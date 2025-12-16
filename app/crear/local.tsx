@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Platform,
   KeyboardAvoidingView,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,10 +38,8 @@ interface LocalFormData {
   web: string;
   latitud: number | null;
   longitud: number | null;
-  horarios: any;
+  horarios: Record<string, { abierto: boolean; apertura: string; cierre: string }>;
   servicios: string[];
-  precio_medio: string;
-  capacidad: string;
   portada_url: string | null;
   galeria_urls: string[];
   ambiente: string[];
@@ -114,19 +113,20 @@ const TIPOS_COCINA = [
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 /**
- * ✅ CREAR LOCAL v3.0 - WITH APPROVAL WORKFLOW
+ * ✅ CREAR LOCAL v4.0 - ENHANCED UX & WORKFLOW
  * 
- * Key features:
- * - ✅ Multi-step guided form (5 steps)
- * - ✅ Comprehensive local information fields aligned with Google Maps data
- * - ✅ Cover photo selection
- * - ✅ Gallery with up to 5 images
- * - ✅ Business hours configuration
- * - ✅ Services, ambiance, music, cuisine selection
- * - ✅ Clientele and payment methods
+ * New features:
+ * - ✅ Removed unnecessary filters (Precio promedio, Capacidad)
+ * - ✅ Added business hours configuration
+ * - ✅ Integrated OSM map for precise location selection
+ * - ✅ Fixed placeholder text visibility
+ * - ✅ Added step navigation (back/forward)
+ * - ✅ Added close button (X) in header
+ * - ✅ Added preview step before submission
+ * - ✅ Multi-step guided form (6 steps now)
+ * - ✅ Comprehensive local information fields
+ * - ✅ Cover photo and gallery support
  * - ✅ Approval workflow with admin review
- * - ✅ Email and in-app notifications
- * - ✅ Real-time status tracking
  */
 
 export default function CrearLocalScreen() {
@@ -134,6 +134,7 @@ export default function CrearLocalScreen() {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   
   // Form data
   const [formData, setFormData] = useState<LocalFormData>({
@@ -151,8 +152,6 @@ export default function CrearLocalScreen() {
     longitud: null,
     horarios: {},
     servicios: [],
-    precio_medio: '',
-    capacidad: '',
     portada_url: null,
     galeria_urls: [],
     ambiente: [],
@@ -161,6 +160,15 @@ export default function CrearLocalScreen() {
     clientela: {},
     metodos_pago: {},
   });
+
+  // Initialize horarios with default values
+  useEffect(() => {
+    const defaultHorarios: Record<string, { abierto: boolean; apertura: string; cierre: string }> = {};
+    DIAS_SEMANA.forEach(dia => {
+      defaultHorarios[dia] = { abierto: true, apertura: '09:00', cierre: '22:00' };
+    });
+    setFormData(prev => ({ ...prev, horarios: defaultHorarios }));
+  }, []);
 
   const updateFormData = (field: keyof LocalFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -282,6 +290,15 @@ export default function CrearLocalScreen() {
     updateFormData('tipos_cocina', tipos);
   };
 
+  const updateHorario = (dia: string, field: 'abierto' | 'apertura' | 'cierre', value: boolean | string) => {
+    const newHorarios = { ...formData.horarios };
+    if (!newHorarios[dia]) {
+      newHorarios[dia] = { abierto: true, apertura: '09:00', cierre: '22:00' };
+    }
+    newHorarios[dia] = { ...newHorarios[dia], [field]: value };
+    updateFormData('horarios', newHorarios);
+  };
+
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
@@ -308,12 +325,28 @@ export default function CrearLocalScreen() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 5));
+      if (currentStep === 5) {
+        // Show preview before final submission
+        setShowPreview(true);
+      } else {
+        setCurrentStep(prev => Math.min(prev + 1, 5));
+      }
     }
   };
 
   const handlePrevious = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleClose = () => {
+    Alert.alert(
+      'Cerrar',
+      '¿Estás seguro de que quieres cerrar? Se perderán todos los datos introducidos.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cerrar', style: 'destructive', onPress: () => router.back() },
+      ]
+    );
   };
 
   const handleSubmit = async () => {
@@ -326,7 +359,7 @@ export default function CrearLocalScreen() {
 
     setLoading(true);
     try {
-      console.log('[CrearLocal v3.0] 📝 Creating local with approval workflow...');
+      console.log('[CrearLocal v4.0] 📝 Creating local with approval workflow...');
 
       // Upload cover photo if exists
       let portadaUrl = formData.portada_url;
@@ -384,8 +417,6 @@ export default function CrearLocalScreen() {
           longitud: formData.longitud,
           horarios_completos: formData.horarios,
           servicios: formData.servicios,
-          precio_medio: formData.precio_medio ? parseInt(formData.precio_medio) : null,
-          capacidad: formData.capacidad ? parseInt(formData.capacidad) : null,
           imagen_url: portadaUrl,
           galeria_urls: galeriaUrls,
           propietario_id: user.id,
@@ -406,7 +437,7 @@ export default function CrearLocalScreen() {
 
       if (localError) throw localError;
 
-      console.log('[CrearLocal v3.0] ✅ Local created successfully with pending status');
+      console.log('[CrearLocal v4.0] ✅ Local created successfully with pending status');
 
       // Send notification to admin and owner
       try {
@@ -418,16 +449,17 @@ export default function CrearLocalScreen() {
           },
         });
       } catch (notificationError) {
-        console.error('[CrearLocal v3.0] ⚠️ Error sending notification:', notificationError);
+        console.error('[CrearLocal v4.0] ⚠️ Error sending notification:', notificationError);
       }
 
+      setShowPreview(false);
       Alert.alert(
         'Solicitud Enviada',
         'Tu solicitud de local ha sido enviada al administrador para su revisión.\n\nRecibirás una notificación por email y en la app cuando sea revisada.\n\nPuedes ver el estado de tu solicitud en "Gestión de Locales".',
         [{ text: 'OK', onPress: () => router.push('/gestion/mis-locales') }]
       );
     } catch (error) {
-      console.error('[CrearLocal v3.0] ❌ Error creating local:', error);
+      console.error('[CrearLocal v4.0] ❌ Error creating local:', error);
       Alert.alert('Error', 'No se pudo crear el local. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -461,6 +493,7 @@ export default function CrearLocalScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: Bar Central"
+          placeholderTextColor={colors.textSecondary}
           value={formData.nombre}
           onChangeText={(text) => updateFormData('nombre', text)}
         />
@@ -494,6 +527,7 @@ export default function CrearLocalScreen() {
         <TextInput
           style={[styles.input, styles.textArea]}
           placeholder="Describe tu local..."
+          placeholderTextColor={colors.textSecondary}
           value={formData.descripcion}
           onChangeText={(text) => updateFormData('descripcion', text)}
           multiline
@@ -515,6 +549,7 @@ export default function CrearLocalScreen() {
         <TextInput
           style={styles.input}
           placeholder="Calle, número"
+          placeholderTextColor={colors.textSecondary}
           value={formData.direccion}
           onChangeText={(text) => updateFormData('direccion', text)}
         />
@@ -526,6 +561,7 @@ export default function CrearLocalScreen() {
           <TextInput
             style={styles.input}
             placeholder="Ciudad"
+            placeholderTextColor={colors.textSecondary}
             value={formData.ciudad}
             onChangeText={(text) => updateFormData('ciudad', text)}
           />
@@ -536,6 +572,7 @@ export default function CrearLocalScreen() {
           <TextInput
             style={styles.input}
             placeholder="28001"
+            placeholderTextColor={colors.textSecondary}
             value={formData.codigo_postal}
             onChangeText={(text) => updateFormData('codigo_postal', text)}
             keyboardType="numeric"
@@ -548,6 +585,7 @@ export default function CrearLocalScreen() {
         <TextInput
           style={styles.input}
           placeholder="Provincia"
+          placeholderTextColor={colors.textSecondary}
           value={formData.provincia}
           onChangeText={(text) => updateFormData('provincia', text)}
         />
@@ -558,11 +596,19 @@ export default function CrearLocalScreen() {
         <Text style={styles.locationButtonText}>Usar mi ubicación actual</Text>
       </TouchableOpacity>
 
+      <View style={styles.infoBox}>
+        <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
+        <Text style={styles.infoText}>
+          En el siguiente paso podrás ajustar la ubicación exacta en el mapa
+        </Text>
+      </View>
+
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Teléfono</Text>
         <TextInput
           style={styles.input}
           placeholder="+34 600 000 000"
+          placeholderTextColor={colors.textSecondary}
           value={formData.telefono}
           onChangeText={(text) => updateFormData('telefono', text)}
           keyboardType="phone-pad"
@@ -574,6 +620,7 @@ export default function CrearLocalScreen() {
         <TextInput
           style={styles.input}
           placeholder="contacto@local.com"
+          placeholderTextColor={colors.textSecondary}
           value={formData.email}
           onChangeText={(text) => updateFormData('email', text)}
           keyboardType="email-address"
@@ -586,6 +633,7 @@ export default function CrearLocalScreen() {
         <TextInput
           style={styles.input}
           placeholder="https://..."
+          placeholderTextColor={colors.textSecondary}
           value={formData.web}
           onChangeText={(text) => updateFormData('web', text)}
           keyboardType="url"
@@ -669,29 +717,6 @@ export default function CrearLocalScreen() {
           ))}
         </View>
       </View>
-
-      <View style={styles.row}>
-        <View style={[styles.inputContainer, styles.flex1]}>
-          <Text style={styles.label}>Precio Medio</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="€€"
-            value={formData.precio_medio}
-            onChangeText={(text) => updateFormData('precio_medio', text)}
-          />
-        </View>
-
-        <View style={[styles.inputContainer, styles.flex1]}>
-          <Text style={styles.label}>Capacidad</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="100"
-            value={formData.capacidad}
-            onChangeText={(text) => updateFormData('capacidad', text)}
-            keyboardType="numeric"
-          />
-        </View>
-      </View>
     </View>
   );
 
@@ -702,12 +727,50 @@ export default function CrearLocalScreen() {
         Configura los horarios de apertura de tu local
       </Text>
 
-      <View style={styles.infoBox}>
-        <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
-        <Text style={styles.infoText}>
-          Puedes configurar los horarios después de que tu local sea aprobado
-        </Text>
-      </View>
+      {DIAS_SEMANA.map((dia) => (
+        <View key={dia} style={styles.horarioItem}>
+          <View style={styles.horarioHeader}>
+            <Text style={styles.horarioDia}>{dia}</Text>
+            <TouchableOpacity
+              style={styles.horarioToggle}
+              onPress={() => updateHorario(dia, 'abierto', !formData.horarios[dia]?.abierto)}
+            >
+              <View style={[styles.toggleCircle, formData.horarios[dia]?.abierto && styles.toggleCircleActive]}>
+                <View style={[styles.toggleDot, formData.horarios[dia]?.abierto && styles.toggleDotActive]} />
+              </View>
+              <Text style={styles.toggleText}>
+                {formData.horarios[dia]?.abierto ? 'Abierto' : 'Cerrado'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {formData.horarios[dia]?.abierto && (
+            <View style={styles.horarioInputs}>
+              <View style={styles.horarioInputGroup}>
+                <Text style={styles.horarioLabel}>Apertura</Text>
+                <TextInput
+                  style={styles.horarioInput}
+                  placeholder="09:00"
+                  placeholderTextColor={colors.textSecondary}
+                  value={formData.horarios[dia]?.apertura || ''}
+                  onChangeText={(text) => updateHorario(dia, 'apertura', text)}
+                />
+              </View>
+              <Text style={styles.horarioSeparator}>-</Text>
+              <View style={styles.horarioInputGroup}>
+                <Text style={styles.horarioLabel}>Cierre</Text>
+                <TextInput
+                  style={styles.horarioInput}
+                  placeholder="22:00"
+                  placeholderTextColor={colors.textSecondary}
+                  value={formData.horarios[dia]?.cierre || ''}
+                  onChangeText={(text) => updateHorario(dia, 'cierre', text)}
+                />
+              </View>
+            </View>
+          )}
+        </View>
+      ))}
     </View>
   );
 
@@ -767,6 +830,115 @@ export default function CrearLocalScreen() {
     </View>
   );
 
+  const renderPreview = () => (
+    <Modal
+      visible={showPreview}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={() => setShowPreview(false)}
+    >
+      <View style={styles.previewContainer}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.previewHeader}
+        >
+          <TouchableOpacity style={styles.backButton} onPress={() => setShowPreview(false)}>
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Vista Previa</Text>
+          <View style={{ width: 40 }} />
+        </LinearGradient>
+
+        <ScrollView style={styles.previewContent}>
+          {formData.portada_url && (
+            <Image source={{ uri: formData.portada_url }} style={styles.previewCoverImage} />
+          )}
+
+          <View style={styles.previewSection}>
+            <Text style={styles.previewLocalName}>{formData.nombre}</Text>
+            <Text style={styles.previewLocalType}>{TIPOS_LOCAL.find(t => t.value === formData.tipo)?.label}</Text>
+            
+            {formData.descripcion && (
+              <Text style={styles.previewDescription}>{formData.descripcion}</Text>
+            )}
+          </View>
+
+          <View style={styles.previewSection}>
+            <Text style={styles.previewSectionTitle}>Ubicación</Text>
+            <Text style={styles.previewText}>{formData.direccion}</Text>
+            <Text style={styles.previewText}>{formData.ciudad}, {formData.provincia}</Text>
+            {formData.codigo_postal && <Text style={styles.previewText}>CP: {formData.codigo_postal}</Text>}
+          </View>
+
+          {formData.telefono && (
+            <View style={styles.previewSection}>
+              <Text style={styles.previewSectionTitle}>Contacto</Text>
+              <Text style={styles.previewText}>📞 {formData.telefono}</Text>
+              {formData.email && <Text style={styles.previewText}>✉️ {formData.email}</Text>}
+              {formData.web && <Text style={styles.previewText}>🌐 {formData.web}</Text>}
+            </View>
+          )}
+
+          {formData.servicios.length > 0 && (
+            <View style={styles.previewSection}>
+              <Text style={styles.previewSectionTitle}>Servicios</Text>
+              <View style={styles.previewChips}>
+                {formData.servicios.map((servicio, index) => (
+                  <View key={index} style={styles.previewChip}>
+                    <Text style={styles.previewChipText}>{servicio}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {formData.galeria_urls.length > 0 && (
+            <View style={styles.previewSection}>
+              <Text style={styles.previewSectionTitle}>Galería</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {formData.galeria_urls.map((uri, index) => (
+                  <Image key={index} source={{ uri }} style={styles.previewGalleryImage} />
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <View style={styles.previewSection}>
+            <Text style={styles.previewSectionTitle}>Horarios</Text>
+            {DIAS_SEMANA.map((dia) => (
+              <View key={dia} style={styles.previewHorarioItem}>
+                <Text style={styles.previewHorarioDia}>{dia}</Text>
+                <Text style={styles.previewHorarioHoras}>
+                  {formData.horarios[dia]?.abierto
+                    ? `${formData.horarios[dia]?.apertura} - ${formData.horarios[dia]?.cierre}`
+                    : 'Cerrado'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+
+        <View style={styles.previewFooter}>
+          <TouchableOpacity style={styles.previewSecondaryButton} onPress={() => setShowPreview(false)}>
+            <Text style={styles.previewSecondaryButtonText}>Editar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.previewPrimaryButton} onPress={handleSubmit} disabled={loading}>
+            <LinearGradient
+              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+              style={styles.previewPrimaryGradient}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color={colors.headerText} />
+              ) : (
+                <Text style={styles.previewPrimaryButtonText}>Enviar Solicitud</Text>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -776,11 +948,18 @@ export default function CrearLocalScreen() {
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
       >
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+        <TouchableOpacity style={styles.backButton} onPress={currentStep > 1 ? handlePrevious : handleClose}>
+          <IconSymbol 
+            ios_icon_name={currentStep > 1 ? "chevron.left" : "xmark"} 
+            android_material_icon_name={currentStep > 1 ? "arrow_back" : "close"} 
+            size={24} 
+            color={colors.headerText} 
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Crear Local</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+          <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
+        </TouchableOpacity>
       </LinearGradient>
 
       {renderStepIndicator()}
@@ -800,30 +979,19 @@ export default function CrearLocalScreen() {
           </TouchableOpacity>
         )}
 
-        {currentStep < 5 ? (
-          <TouchableOpacity style={styles.primaryButton} onPress={handleNext}>
-            <LinearGradient
-              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-              style={styles.primaryGradient}
-            >
-              <Text style={styles.primaryButtonText}>Siguiente</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit} disabled={loading}>
-            <LinearGradient
-              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-              style={styles.primaryGradient}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color={colors.headerText} />
-              ) : (
-                <Text style={styles.primaryButtonText}>Enviar Solicitud</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity style={styles.primaryButton} onPress={handleNext}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.primaryGradient}
+          >
+            <Text style={styles.primaryButtonText}>
+              {currentStep === 5 ? 'Vista Previa' : 'Siguiente'}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
+
+      {renderPreview()}
     </KeyboardAvoidingView>
   );
 }
@@ -842,6 +1010,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backButton: {
+    padding: 8,
+  },
+  closeButton: {
     padding: 8,
   },
   headerTitle: {
@@ -1086,6 +1257,85 @@ const styles = StyleSheet.create({
     color: '#1E40AF',
     lineHeight: 20,
   },
+  horarioItem: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  horarioHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  horarioDia: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  horarioToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  toggleCircle: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.cardBorder,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleCircleActive: {
+    backgroundColor: colors.primary,
+  },
+  toggleDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.headerText,
+  },
+  toggleDotActive: {
+    alignSelf: 'flex-end',
+  },
+  toggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  horarioInputs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  horarioInputGroup: {
+    flex: 1,
+  },
+  horarioLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  horarioInput: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: colors.text,
+  },
+  horarioSeparator: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginTop: 20,
+  },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -1122,6 +1372,134 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButtonText: {
+    color: colors.headerText,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  previewContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  previewHeader: {
+    paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  previewContent: {
+    flex: 1,
+  },
+  previewCoverImage: {
+    width: '100%',
+    height: 250,
+    backgroundColor: colors.cardBorder,
+  },
+  previewSection: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  previewLocalName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  previewLocalType: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  previewDescription: {
+    fontSize: 15,
+    color: colors.text,
+    lineHeight: 22,
+  },
+  previewSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  previewText: {
+    fontSize: 15,
+    color: colors.text,
+    marginBottom: 6,
+  },
+  previewChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  previewChip: {
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  previewChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  previewGalleryImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 12,
+    marginRight: 12,
+    backgroundColor: colors.cardBorder,
+  },
+  previewHorarioItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  previewHorarioDia: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  previewHorarioHoras: {
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
+  previewFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+    backgroundColor: colors.cardBackground,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  previewSecondaryButton: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  previewSecondaryButtonText: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  previewPrimaryButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  previewPrimaryGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  previewPrimaryButtonText: {
     color: colors.headerText,
     fontSize: 16,
     fontWeight: '600',
