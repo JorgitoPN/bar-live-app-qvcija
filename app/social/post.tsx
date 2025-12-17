@@ -29,6 +29,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SOCIAL_ICONS } from '@/constants/SocialIcons';
 import CommentsModal from '@/components/social/CommentsModal';
 import PostLikesAvatars from '@/components/social/PostLikesAvatars';
+import TagDisplay from '@/components/social/TagDisplay';
+import ImageTaggingOverlay from '@/components/social/ImageTaggingOverlay';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -51,14 +53,13 @@ interface Comentario {
 }
 
 /**
- * ✅ POST DETAIL PAGE v3.0 - WITH EDIT DESCRIPTION
+ * ✅ POST DETAIL PAGE v4.0 - WITH TAG DISPLAY & EDIT
  * 
  * Changes:
- * - ✅ White background (#fff) for consistency
- * - ✅ BarLive blue gradient header
- * - ✅ Same design as profile grid post detail
- * - ✅ Consistent styling across all post detail pages
- * - ✅ NEW: Edit description option in 3-dot menu
+ * - ✅ Tag display on images (tap to show/hide)
+ * - ✅ Tagging mode for post owners
+ * - ✅ Edit description option
+ * - ✅ White background for consistency
  */
 
 function formatearFecha(fecha: string): string {
@@ -88,6 +89,10 @@ export default function PostDetailScreen() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginMessage, setLoginMessage] = useState('');
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+  
+  // ✅ NEW: Tag display state
+  const [showTags, setShowTags] = useState(false);
+  const [taggingMode, setTaggingMode] = useState(false);
   
   // ✅ NEW: Edit description modal state
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -413,6 +418,17 @@ export default function PostDetailScreen() {
     setCommentsModalVisible(true);
   };
 
+  // ✅ NEW: Handle image tap - toggle tags or navigate
+  const handleImageTap = useCallback(() => {
+    if (taggingMode) {
+      // In tagging mode, taps are handled by ImageTaggingOverlay
+      return;
+    }
+    
+    // Toggle tag visibility
+    setShowTags(!showTags);
+  }, [taggingMode, showTags]);
+
   const handleDeletePost = async () => {
     console.log('[PostDetail] Delete post');
     
@@ -487,6 +503,27 @@ export default function PostDetailScreen() {
     }
   }, [editedDescription, post, loadPost]);
 
+  // ✅ NEW: Handle add tags
+  const handleAddTags = useCallback(() => {
+    if (!user) {
+      setLoginMessage('Debes iniciar sesión para etiquetar');
+      setShowLoginModal(true);
+      return;
+    }
+    setTaggingMode(true);
+    Alert.alert(
+      'Modo etiquetado',
+      'Toca sobre la imagen donde quieras añadir una etiqueta',
+      [
+        { 
+          text: 'Cancelar', 
+          style: 'cancel',
+          onPress: () => setTaggingMode(false),
+        },
+      ]
+    );
+  }, [user]);
+
   const showOptions = useCallback(() => {
     if (!user || !post) return;
 
@@ -496,19 +533,21 @@ export default function PostDetailScreen() {
 
     if (!isOwner) return;
 
-    const options = ['Editar descripción', 'Eliminar publicación', 'Cancelar'];
+    const options = ['Editar descripción', 'Añadir etiquetas', 'Eliminar publicación', 'Cancelar'];
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options,
-          cancelButtonIndex: 2,
-          destructiveButtonIndex: 1,
+          cancelButtonIndex: 3,
+          destructiveButtonIndex: 2,
         },
         (buttonIndex) => {
           if (buttonIndex === 0) {
             handleEditDescription();
           } else if (buttonIndex === 1) {
+            handleAddTags();
+          } else if (buttonIndex === 2) {
             Alert.alert(
               'Eliminar publicación',
               '¿Estás seguro de que quieres eliminar esta publicación?',
@@ -532,6 +571,10 @@ export default function PostDetailScreen() {
           {
             text: 'Editar descripción',
             onPress: handleEditDescription,
+          },
+          {
+            text: 'Añadir etiquetas',
+            onPress: handleAddTags,
           },
           {
             text: 'Eliminar publicación',
@@ -558,7 +601,7 @@ export default function PostDetailScreen() {
         ]
       );
     }
-  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription]);
+  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription, handleAddTags]);
 
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -697,6 +740,7 @@ export default function PostDetailScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* ✅ Images with TAG DISPLAY */}
           {post.images && post.images.length > 0 && (
             <View style={styles.imageCarouselContainer}>
               <ScrollView
@@ -708,12 +752,41 @@ export default function PostDetailScreen() {
                 style={styles.imageCarousel}
               >
                 {post.images.map((imageUrl: string, index: number) => (
-                  <Image 
-                    key={index} 
-                    source={{ uri: imageUrl }} 
-                    style={styles.postImagen} 
-                    resizeMode="cover" 
-                  />
+                  <TouchableOpacity
+                    key={index}
+                    activeOpacity={0.95}
+                    onPress={handleImageTap}
+                    style={styles.imageWrapper}
+                  >
+                    <Image 
+                      source={{ uri: imageUrl }} 
+                      style={styles.postImagen} 
+                      resizeMode="cover" 
+                    />
+                    
+                    {/* ✅ NEW: Tag display overlay */}
+                    <TagDisplay
+                      postId={post.id}
+                      imageIndex={index}
+                      imageWidth={width}
+                      imageHeight={width}
+                      visible={showTags && index === currentImageIndex}
+                    />
+
+                    {/* ✅ NEW: Tagging overlay (only for post owner) */}
+                    {isOwner && taggingMode && index === currentImageIndex && (
+                      <ImageTaggingOverlay
+                        postId={post.id}
+                        imageIndex={index}
+                        imageWidth={width}
+                        imageHeight={width}
+                        onTagAdded={() => {
+                          setTaggingMode(false);
+                          loadPost();
+                        }}
+                      />
+                    )}
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
               
@@ -973,6 +1046,11 @@ const styles = StyleSheet.create({
   imageCarousel: {
     width: width,
     height: width,
+  },
+  imageWrapper: {
+    width: width,
+    height: width,
+    position: 'relative',
   },
   postImagen: {
     width: width,

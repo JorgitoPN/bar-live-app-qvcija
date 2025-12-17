@@ -327,72 +327,93 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
+  // ✅ UPDATED: Load tagged posts (only accepted tags)
   const cargarEtiquetados = useCallback(async () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      console.log('[Perfil] 🏷️ Loading tagged posts for user:', user.id);
+
+      // Get accepted tags for this user
+      const { data: tagsData, error: tagsError } = await supabase
         .from('post_tags')
+        .select('post_id')
+        .eq('usuario_id', user.id)
+        .eq('tipo', 'usuario')
+        .eq('estado', 'aceptado')
+        .order('created_at', { ascending: false });
+
+      if (tagsError) throw tagsError;
+
+      console.log('[Perfil] 🏷️ Found accepted tags:', tagsData?.length || 0);
+
+      if (!tagsData || tagsData.length === 0) {
+        setTaggedPosts([]);
+        return;
+      }
+
+      const postIds = tagsData.map(tag => tag.post_id);
+
+      // Get posts
+      const { data: postsData, error: postsError } = await supabase
+        .from('posts')
         .select(`
-          post_id,
-          posts (
-            *,
-            autor:usuarios!posts_autor_id_fkey (
-              id,
-              nombre,
-              avatar,
-              username
-            )
+          *,
+          autor:usuarios!posts_autor_id_fkey (
+            id,
+            nombre,
+            avatar,
+            username
           )
         `)
-        .eq('usuario_id', user.id)
-        .eq('estado', 'aceptado')
-        .order('created_at', { ascending: false })
-        .limit(20);
+        .in('id', postIds)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (postsError) throw postsError;
 
-      const taggedPostsData = data?.map(item => item.posts).filter(Boolean) || [];
-      
-      const postIds = taggedPostsData.map(p => p.id);
-      if (postIds.length > 0) {
-        const [likesResult, savesResult, commentsResult] = await Promise.all([
-          supabase
-            .from('likes')
-            .select('post_id')
-            .eq('usuario_id', user.id)
-            .in('post_id', postIds),
-          supabase
-            .from('posts_guardados')
-            .select('post_id')
-            .eq('usuario_id', user.id)
-            .in('post_id', postIds),
-          supabase
-            .from('comentarios')
-            .select('post_id')
-            .in('post_id', postIds),
-        ]);
+      console.log('[Perfil] 🏷️ Loaded tagged posts:', postsData?.length || 0);
 
-        const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
-        const savedPostIds = new Set(savesResult.data?.map(s => s.post_id) || []);
-        const commentCounts = commentsResult.data?.reduce((acc, c) => {
-          acc[c.post_id] = (acc[c.post_id] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>) || {};
-
-        const postsWithStatus = taggedPostsData.map(post => ({
-          ...post,
-          liked: likedPostIds.has(post.id),
-          saved: savedPostIds.has(post.id),
-          comentarios: commentCounts[post.id] || 0,
-        }));
-
-        setTaggedPosts(postsWithStatus);
-      } else {
+      if (!postsData || postsData.length === 0) {
         setTaggedPosts([]);
+        return;
       }
+
+      // Enrich with like/save/comment status
+      const [likesResult, savesResult, commentsResult] = await Promise.all([
+        supabase
+          .from('likes')
+          .select('post_id')
+          .eq('usuario_id', user.id)
+          .in('post_id', postIds),
+        supabase
+          .from('posts_guardados')
+          .select('post_id')
+          .eq('usuario_id', user.id)
+          .in('post_id', postIds),
+        supabase
+          .from('comentarios')
+          .select('post_id')
+          .in('post_id', postIds),
+      ]);
+
+      const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
+      const savedPostIds = new Set(savesResult.data?.map(s => s.post_id) || []);
+      const commentCounts = commentsResult.data?.reduce((acc, c) => {
+        acc[c.post_id] = (acc[c.post_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      const postsWithStatus = postsData.map(post => ({
+        ...post,
+        liked: likedPostIds.has(post.id),
+        saved: savedPostIds.has(post.id),
+        comentarios: commentCounts[post.id] || 0,
+      }));
+
+      setTaggedPosts(postsWithStatus);
     } catch (error) {
       console.error('[Perfil] Error cargando etiquetados:', error);
+      setTaggedPosts([]);
     }
   }, [user]);
 
@@ -1161,7 +1182,6 @@ export default function PerfilScreen() {
   );
 }
 
-// Styles remain the same as before...
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,

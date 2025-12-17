@@ -36,16 +36,14 @@ interface TaggingModalV5Props {
 }
 
 /**
- * ✅ TAGGING MODAL v5.1 - KEYBOARD-AWARE BOTTOM SHEET (FIXED)
+ * ✅ TAGGING MODAL v5.2 - SUPPORTS USERS AND LOCALS
  * 
- * Critical fixes:
- * - ✅ FIXED: Modal now anchors DIRECTLY to keyboard with NO GAP
- * - ✅ FIXED: Uses absolute positioning with bottom = keyboardHeight
- * - ✅ FIXED: Dynamically adjusts height to prevent header overflow
- * - ✅ FIXED: Proper KeyboardAvoidingView implementation
- * - ✅ FIXED: ScrollView with keyboardShouldPersistTaps="handled"
- * - ✅ FIXED: Text input remains visible when keyboard appears
- * - ✅ FIXED: Modal "rests" on keyboard like native iOS/Android modals
+ * Features:
+ * - Search both users and locals
+ * - Visual differentiation (users vs locals)
+ * - Only shows locals with active subscriptions
+ * - Keyboard-aware bottom sheet
+ * - Prevents duplicate tags
  */
 
 export default function TaggingModalV5({
@@ -212,19 +210,11 @@ export default function TaggingModalV5({
   }
 
   // ✅ CRITICAL FIX: Calculate modal height to anchor DIRECTLY to keyboard
-  // The modal should sit DIRECTLY on top of the keyboard with NO GAP
   const HEADER_RESERVED_SPACE = Platform.OS === 'ios' ? 100 : 80;
   const maxAvailableHeight = SCREEN_HEIGHT - keyboardHeight - HEADER_RESERVED_SPACE;
   
-  // ✅ Modal should be 50% of screen or available space (whichever is smaller)
   const idealHeight = SCREEN_HEIGHT * 0.5;
   const modalHeight = Math.min(idealHeight, maxAvailableHeight);
-
-  console.log('[TaggingModalV5] 📐 Screen height:', SCREEN_HEIGHT);
-  console.log('[TaggingModalV5] ⌨️ Keyboard height:', keyboardHeight);
-  console.log('[TaggingModalV5] 📏 Max available height:', maxAvailableHeight);
-  console.log('[TaggingModalV5] 📦 Modal height:', modalHeight);
-  console.log('[TaggingModalV5] 📍 Modal bottom position:', keyboardHeight);
 
   return (
     <Modal
@@ -242,7 +232,7 @@ export default function TaggingModalV5({
                   styles.modalContent, 
                   { 
                     height: modalHeight,
-                    bottom: keyboardHeight, // ✅ CRITICAL: Anchor directly to keyboard
+                    bottom: keyboardHeight,
                   }
                 ]}
                 onStartShouldSetResponder={() => true}
@@ -339,15 +329,27 @@ export default function TaggingModalV5({
                           )}
                           <View style={styles.resultInfo}>
                             <Text style={styles.resultName}>{item.nombre}</Text>
-                            <Text style={styles.resultType}>
-                              {item.tipo === 'local' ? '🏢 Local' : `@${item.username}`}
-                            </Text>
+                            <View style={styles.resultTypeContainer}>
+                              {item.tipo === 'local' ? (
+                                <>
+                                  <IconSymbol 
+                                    ios_icon_name="building.2.fill" 
+                                    android_material_icon_name="business" 
+                                    size={14} 
+                                    color="#F59E0B" 
+                                  />
+                                  <Text style={[styles.resultType, { color: '#F59E0B' }]}>Local</Text>
+                                </>
+                              ) : (
+                                <Text style={styles.resultType}>@{item.username}</Text>
+                              )}
+                            </View>
                           </View>
                           <IconSymbol 
                             ios_icon_name="plus.circle.fill" 
                             android_material_icon_name="add_circle" 
                             size={24} 
-                            color={colors.primary} 
+                            color={item.tipo === 'local' ? '#F59E0B' : colors.primary} 
                           />
                         </TouchableOpacity>
                       ))}
@@ -495,7 +497,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 2,
+    marginBottom: 4,
+  },
+  resultTypeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   resultType: {
     fontSize: 14,

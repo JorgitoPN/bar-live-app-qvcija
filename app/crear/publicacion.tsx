@@ -280,9 +280,9 @@ export default function CrearPublicacionScreen() {
     }
   };
 
-  const handleSelectTag = (user: TaggableUser) => {
-    console.log('[CrearPublicacion] ✅ Selected tag:', user);
-    setUsuariosEtiquetados([...usuariosEtiquetados, user]);
+  const handleSelectTag = (selectedUser: TaggableUser) => {
+    console.log('[CrearPublicacion] ✅ Selected tag:', selectedUser);
+    setUsuariosEtiquetados([...usuariosEtiquetados, selectedUser]);
   };
 
   const eliminarEtiqueta = (itemId: string, tipo: 'usuario' | 'local') => {
@@ -439,33 +439,73 @@ export default function CrearPublicacionScreen() {
 
       setUploadProgress(85);
 
+      // ✅ UPDATED: Support tagging both users and locals
       if (usuariosEtiquetados.length > 0 && postData2) {
-        const userTags = usuariosEtiquetados.filter(u => u.tipo === 'usuario');
-        
-        if (userTags.length > 0) {
-          const tags = userTags.map((u) => ({
+        console.log('[CrearPublicacion] 🏷️ Creating tags for', usuariosEtiquetados.length, 'profiles');
+
+        const tags = usuariosEtiquetados.map((item) => {
+          const tagData: any = {
             post_id: postData2.id,
-            usuario_id: u.id,
+            tipo: item.tipo,
             estado: 'pendiente',
-          }));
+            tagged_by_user_id: user.id,
+          };
 
-          const { error: tagsError } = await supabase
-            .from('post_tags')
-            .insert(tags);
+          if (item.tipo === 'usuario') {
+            tagData.usuario_id = item.id;
+          } else {
+            tagData.local_id = item.id;
+          }
 
-          if (tagsError) console.error('Error adding tags:', tagsError);
+          return tagData;
+        });
 
-          const notifications = userTags.map((u) => ({
-            usuario_id: u.id,
-            tipo: 'mencion',
-            titulo: 'Te han etiquetado',
-            mensaje: `${user.nombre} te ha etiquetado en una publicación`,
-            usuario_origen_id: user.id,
-            post_id: postData2.id,
-          }));
+        const { error: tagsError } = await supabase
+          .from('post_tags')
+          .insert(tags);
 
-          await supabase.from('notificaciones').insert(notifications);
+        if (tagsError) {
+          console.error('[CrearPublicacion] Error adding tags:', tagsError);
+        } else {
+          console.log('[CrearPublicacion] ✅ Tags created successfully');
         }
+
+        // Send notifications
+        for (const item of usuariosEtiquetados) {
+          if (item.tipo === 'usuario') {
+            await supabase.from('notificaciones').insert({
+              usuario_id: item.id,
+              tipo: 'mencion',
+              titulo: 'Te han etiquetado',
+              mensaje: `${user.nombre} te ha etiquetado en una publicación`,
+              usuario_origen_id: user.id,
+              post_id: postData2.id,
+            });
+          } else {
+            // For locals, send notification to all owners
+            const { data: owners } = await supabase
+              .from('propietarios_locales')
+              .select('propietario_id')
+              .eq('local_id', item.id)
+              .eq('activo', true);
+
+            if (owners && owners.length > 0) {
+              const notifications = owners.map(owner => ({
+                usuario_id: owner.propietario_id,
+                tipo: 'mencion',
+                titulo: 'Han etiquetado tu local',
+                mensaje: `${user.nombre} ha etiquetado a ${item.nombre} en una publicación`,
+                usuario_origen_id: user.id,
+                local_origen_id: item.id,
+                post_id: postData2.id,
+              }));
+
+              await supabase.from('notificaciones').insert(notifications);
+            }
+          }
+        }
+
+        console.log('[CrearPublicacion] ✅ Notifications sent');
       }
 
       setUploadProgress(90);
@@ -599,13 +639,16 @@ export default function CrearPublicacionScreen() {
             </View>
           )}
 
-          {/* Tagged Users */}
+          {/* ✅ UPDATED: Tagged Users and Locals */}
           {usuariosEtiquetados.length > 0 && (
             <View style={styles.taggedSection}>
-              <Text style={styles.sectionLabel}>Personas etiquetadas</Text>
+              <Text style={styles.sectionLabel}>Perfiles etiquetados</Text>
               <View style={styles.taggedList}>
                 {usuariosEtiquetados.map((item) => (
-                  <View key={`${item.id}-${item.tipo}`} style={styles.taggedChip}>
+                  <View key={`${item.id}-${item.tipo}`} style={[
+                    styles.taggedChip,
+                    item.tipo === 'local' && styles.taggedChipLocal,
+                  ]}>
                     {item.avatar ? (
                       <Image source={{ uri: item.avatar }} style={styles.taggedAvatar} />
                     ) : (
@@ -621,6 +664,16 @@ export default function CrearPublicacionScreen() {
                     <Text style={styles.taggedName} numberOfLines={1}>
                       {item.username || item.nombre}
                     </Text>
+                    {item.tipo === 'local' && (
+                      <View style={styles.localBadgeSmall}>
+                        <IconSymbol 
+                          ios_icon_name="building.2.fill" 
+                          android_material_icon_name="business" 
+                          size={10} 
+                          color="#F59E0B" 
+                        />
+                      </View>
+                    )}
                     <TouchableOpacity 
                       onPress={() => eliminarEtiqueta(item.id, item.tipo!)} 
                       activeOpacity={0.7}
@@ -630,6 +683,12 @@ export default function CrearPublicacionScreen() {
                     </TouchableOpacity>
                   </View>
                 ))}
+              </View>
+              <View style={styles.tagInfoBox}>
+                <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={14} color={colors.primary} />
+                <Text style={styles.tagInfoText}>
+                  Los perfiles etiquetados recibirán una notificación y podrán aceptar o rechazar la etiqueta
+                </Text>
               </View>
             </View>
           )}
@@ -730,7 +789,7 @@ export default function CrearPublicacionScreen() {
         />
       </View>
 
-      {/* ✅ FIXED v20.0: New TaggingModalV5 with proper keyboard anchoring */}
+      {/* ✅ UPDATED: TaggingModalV5 with local support */}
       <TaggingModalV5
         visible={showTagModal}
         onClose={() => setShowTagModal(false)}
@@ -909,6 +968,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    marginBottom: 12,
   },
   taggedChip: {
     flexDirection: 'row',
@@ -921,6 +981,10 @@ const styles = StyleSheet.create({
     gap: 6,
     borderWidth: 1,
     borderColor: colors.cardBorder,
+  },
+  taggedChipLocal: {
+    borderColor: '#F59E0B',
+    backgroundColor: '#F59E0B' + '10',
   },
   taggedAvatar: {
     width: 24,
@@ -938,8 +1002,31 @@ const styles = StyleSheet.create({
     color: colors.text,
     flex: 1,
   },
+  localBadgeSmall: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#F59E0B' + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   removeTagButton: {
     padding: 2,
+  },
+  tagInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: colors.primary + '10',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  tagInfoText: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.primary,
+    lineHeight: 16,
   },
   locationSection: {
     flexDirection: 'row',

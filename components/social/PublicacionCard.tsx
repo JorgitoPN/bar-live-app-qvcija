@@ -28,6 +28,8 @@ import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import CommentsModal from '@/components/social/CommentsModal';
 import SharePostModal from '@/components/social/SharePostModal';
 import PostLikesAvatars from '@/components/social/PostLikesAvatars';
+import TagDisplay from '@/components/social/TagDisplay';
+import ImageTaggingOverlay from '@/components/social/ImageTaggingOverlay';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -76,6 +78,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
+  
+  // ✅ NEW: Tag display state
+  const [showTags, setShowTags] = useState(false);
+  const [taggingMode, setTaggingMode] = useState(false);
   
   // ✅ NEW: Edit description modal state
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -180,6 +186,17 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     });
   }, [router, post.id]);
 
+  // ✅ NEW: Handle image tap - toggle tags or navigate to detail
+  const handleImageTap = useCallback(() => {
+    if (taggingMode) {
+      // In tagging mode, taps are handled by ImageTaggingOverlay
+      return;
+    }
+    
+    // Toggle tag visibility
+    setShowTags(!showTags);
+  }, [taggingMode, showTags]);
+
   const handleProfilePress = useCallback(() => {
     // ✅ FIXED: Check if it's the current user's profile
     if (post.tipo === 'local' && post.local_id) {
@@ -269,6 +286,26 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [editedDescription, post.id, onUpdate]);
 
+  // ✅ NEW: Handle add tags
+  const handleAddTags = useCallback(() => {
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para etiquetar');
+      return;
+    }
+    setTaggingMode(true);
+    Alert.alert(
+      'Modo etiquetado',
+      'Toca sobre la imagen donde quieras añadir una etiqueta',
+      [
+        { 
+          text: 'Cancelar', 
+          style: 'cancel',
+          onPress: () => setTaggingMode(false),
+        },
+      ]
+    );
+  }, [user]);
+
   const showOptions = useCallback(() => {
     const canEdit = user && (
       (post.tipo === 'usuario' && post.autor_id === user.id) ||
@@ -277,19 +314,21 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
     if (!canEdit) return;
 
-    const options = ['Editar descripción', 'Eliminar publicación', 'Cancelar'];
+    const options = ['Editar descripción', 'Añadir etiquetas', 'Eliminar publicación', 'Cancelar'];
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options,
-          cancelButtonIndex: 2,
-          destructiveButtonIndex: 1,
+          cancelButtonIndex: 3,
+          destructiveButtonIndex: 2,
         },
         (buttonIndex) => {
           if (buttonIndex === 0) {
             handleEditDescription();
           } else if (buttonIndex === 1) {
+            handleAddTags();
+          } else if (buttonIndex === 2) {
             handleDeletePost();
           }
         }
@@ -304,6 +343,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             onPress: handleEditDescription,
           },
           {
+            text: 'Añadir etiquetas',
+            onPress: handleAddTags,
+          },
+          {
             text: 'Eliminar publicación',
             style: 'destructive',
             onPress: handleDeletePost,
@@ -315,7 +358,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         ]
       );
     }
-  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription]);
+  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription, handleAddTags]);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -376,7 +419,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         )}
       </View>
 
-      {/* ✅ Images with swipe support (RESTORED) */}
+      {/* ✅ Images with swipe support + TAG DISPLAY */}
       {post.imagenes && post.imagenes.length > 0 && (
         <View style={styles.imageContainer}>
           <ScrollView
@@ -389,7 +432,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             {post.imagenes.map((imageUrl, index) => (
               <TouchableOpacity
                 key={index}
-                onPress={handlePostPress}
+                onPress={handleImageTap}
                 activeOpacity={0.95}
                 style={styles.imageWrapper}
               >
@@ -398,6 +441,31 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                   style={styles.postImage}
                   resizeMode="cover"
                 />
+                
+                {/* ✅ NEW: Tag display overlay */}
+                <TagDisplay
+                  postId={post.id}
+                  imageIndex={index}
+                  imageWidth={SCREEN_WIDTH}
+                  imageHeight={SCREEN_WIDTH}
+                  visible={showTags && index === currentImageIndex}
+                />
+
+                {/* ✅ NEW: Tagging overlay (only for post owner) */}
+                {canEdit && taggingMode && index === currentImageIndex && (
+                  <ImageTaggingOverlay
+                    postId={post.id}
+                    imageIndex={index}
+                    imageWidth={SCREEN_WIDTH}
+                    imageHeight={SCREEN_WIDTH}
+                    onTagAdded={() => {
+                      setTaggingMode(false);
+                      if (onUpdate) {
+                        onUpdate();
+                      }
+                    }}
+                  />
+                )}
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -600,6 +668,7 @@ const styles = StyleSheet.create({
   imageWrapper: {
     width: SCREEN_WIDTH,
     height: SCREEN_WIDTH,
+    position: 'relative',
   },
   postImage: {
     width: '100%',
