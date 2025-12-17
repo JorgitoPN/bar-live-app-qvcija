@@ -15,6 +15,7 @@ import {
   FlatList,
   ScrollView,
   ActionSheetIOS,
+  Animated,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -30,6 +31,7 @@ import TaggingModalV5, { TaggableUser } from './TaggingModalV5';
 import ImageTaggingOverlay from './ImageTaggingOverlay';
 import TagDisplay from './TagDisplay';
 import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
+import { TapGestureHandler, State } from 'react-native-gesture-handler';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -69,7 +71,7 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v5.0 - WHITE BACKGROUND & SOCIAL FEED STYLING
+ * ✅ POST VIEWER MODAL v6.0 - WHITE BACKGROUND & DOUBLE-TAP LIKE
  * 
  * Key changes:
  * - ✅ WHITE background (not black)
@@ -78,6 +80,7 @@ interface PostViewerModalProps {
  * - ✅ Smooth scrolling
  * - ✅ 3-dot menu for post options
  * - ✅ "See more" for long descriptions
+ * - ✅ DOUBLE-TAP to like/unlike on images
  */
 
 export default function PostViewerModal({
@@ -108,9 +111,22 @@ export default function PostViewerModal({
   // ✅ NEW: Track authors with unviewed momentos
   const [authorsWithMomentos, setAuthorsWithMomentos] = useState<Set<string>>(new Set());
 
+  // ✅ NEW: Double-tap animation refs (one per post)
+  const doubleTapAnimations = useRef<Map<string, { scale: Animated.Value; opacity: Animated.Value }>>(new Map());
+
+  const getDoubleTapAnimation = (postId: string) => {
+    if (!doubleTapAnimations.current.has(postId)) {
+      doubleTapAnimations.current.set(postId, {
+        scale: new Animated.Value(0),
+        opacity: new Animated.Value(0),
+      });
+    }
+    return doubleTapAnimations.current.get(postId)!;
+  };
+
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v5.0] Props received:', { 
+      console.log('[PostViewerModal v6.0] Props received:', { 
         visible, 
         initialPostId, 
         allPostIds: allPostIds ? `array(${allPostIds.length})` : allPostIds,
@@ -119,8 +135,8 @@ export default function PostViewerModal({
       });
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v5.0] ❌ Invalid allPostIds - cannot load posts');
-        console.error('[PostViewerModal v5.0] allPostIds value:', allPostIds);
+        console.error('[PostViewerModal v6.0] ❌ Invalid allPostIds - cannot load posts');
+        console.error('[PostViewerModal v6.0] allPostIds value:', allPostIds);
         setLoading(false);
         setPosts([]);
         return;
@@ -183,7 +199,7 @@ export default function PostViewerModal({
       setLoading(true);
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v5.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v6.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -200,7 +216,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v5.0] Error loading posts:', error);
+        console.error('[PostViewerModal v6.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -208,14 +224,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v5.0] Invalid data received:', data);
+        console.error('[PostViewerModal v6.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v5.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v6.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -285,7 +301,7 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v5.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v6.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -299,7 +315,7 @@ export default function PostViewerModal({
         setCurrentPostId(initialPostId);
       }
     } catch (error) {
-      console.error('[PostViewerModal v5.0] Error:', error);
+      console.error('[PostViewerModal v6.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
@@ -407,6 +423,96 @@ export default function PostViewerModal({
       Alert.alert('Error', 'No se pudo actualizar el me gusta');
     }
   };
+
+  // ✅ NEW: Double-tap handler for like/unlike
+  const handleDoubleTap = useCallback(async (post: Post, event: any) => {
+    if (event.nativeEvent.state === State.ACTIVE) {
+      if (!interactionUserId) {
+        Alert.alert('Inicia sesión', 'Para dar me gusta necesitas registrarte en BarLive');
+        return;
+      }
+
+      const isLiked = post.liked;
+      const currentLikes = post.likes || 0;
+
+      setPosts(prevPosts =>
+        prevPosts.map(p =>
+          p.id === post.id
+            ? { ...p, liked: !isLiked, likes: isLiked ? currentLikes - 1 : currentLikes + 1 }
+            : p
+        )
+      );
+
+      // ✅ Animate heart icon
+      const anim = getDoubleTapAnimation(post.id);
+      anim.scale.setValue(0);
+      anim.opacity.setValue(1);
+      
+      Animated.parallel([
+        Animated.spring(anim.scale, {
+          toValue: 1,
+          friction: 3,
+          useNativeDriver: true,
+        }),
+        Animated.timing(anim.opacity, {
+          toValue: 0,
+          duration: 800,
+          delay: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      try {
+        if (isLiked) {
+          let deleteQuery = supabase
+            .from('likes')
+            .delete()
+            .eq('post_id', post.id)
+            .eq('usuario_id', interactionUserId);
+
+          if (isInteractingAsLocal && interactionLocalId) {
+            deleteQuery = deleteQuery.eq('local_id', interactionLocalId);
+          } else {
+            deleteQuery = deleteQuery.is('local_id', null);
+          }
+
+          const { error: deleteError } = await deleteQuery;
+          if (deleteError) throw deleteError;
+
+          const newLikesCount = Math.max(0, currentLikes - 1);
+          await supabase.from('posts').update({ likes: newLikesCount }).eq('id', post.id);
+        } else {
+          const likeData: any = {
+            post_id: post.id,
+            usuario_id: interactionUserId,
+          };
+
+          if (isInteractingAsLocal && interactionLocalId) {
+            likeData.local_id = interactionLocalId;
+            likeData.tipo = 'local';
+          } else {
+            likeData.tipo = 'usuario';
+          }
+
+          const { error: insertError } = await supabase.from('likes').insert(likeData);
+          if (insertError) throw insertError;
+
+          const newLikesCount = currentLikes + 1;
+          await supabase.from('posts').update({ likes: newLikesCount }).eq('id', post.id);
+        }
+      } catch (error) {
+        console.error('[PostViewerModal] Error toggling like:', error);
+        setPosts(prevPosts =>
+          prevPosts.map(p =>
+            p.id === post.id
+              ? { ...p, liked: isLiked, likes: currentLikes }
+              : p
+          )
+        );
+        Alert.alert('Error', 'No se pudo actualizar el me gusta');
+      }
+    }
+  }, [interactionUserId, interactionLocalId, isInteractingAsLocal]);
 
   const toggleSave = async (post: Post) => {
     if (!user) {
@@ -566,6 +672,9 @@ export default function PostViewerModal({
     // ✅ NEW: Check if author has unviewed momentos
     const authorHasMomentos = authorsWithMomentos.has(post.autor_id);
 
+    // ✅ NEW: Get animation values for this post
+    const anim = getDoubleTapAnimation(post.id);
+
     return (
       <View style={styles.postContainer}>
         {/* ✅ NEW: Header with avatar (with momento border) and 3-dot menu */}
@@ -598,7 +707,7 @@ export default function PostViewerModal({
           )}
         </View>
 
-        {/* Images */}
+        {/* Images with DOUBLE-TAP LIKE */}
         {post.images && post.images.length > 0 && (
           <View style={styles.imageContainer}>
             <ScrollView
@@ -613,31 +722,64 @@ export default function PostViewerModal({
               scrollEventThrottle={16}
             >
               {post.images.map((imageUrl: string, index: number) => (
-                <View key={index} style={styles.imageWrapper}>
-                  <Image
-                    source={{ uri: imageUrl }}
-                    style={styles.postImage}
-                    resizeMode="cover"
-                  />
-                  {showTagsOnImage && !taggingMode && (
-                    <TagDisplay
-                      postId={post.id}
-                      imageIndex={index}
-                      imageWidth={width}
-                      imageHeight={width}
-                      visible={true}
+                <TapGestureHandler
+                  key={index}
+                  onHandlerStateChange={(event) => handleDoubleTap(post, event)}
+                  numberOfTaps={2}
+                >
+                  <View style={styles.imageWrapper}>
+                    <Image
+                      source={{ uri: imageUrl }}
+                      style={styles.postImage}
+                      resizeMode="cover"
                     />
-                  )}
-                  {taggingMode && taggingPostId === post.id && (
-                    <ImageTaggingOverlay
-                      postId={post.id}
-                      imageIndex={index}
-                      imageWidth={width}
-                      imageHeight={width}
-                      onTagAdded={handleTagAdded}
-                    />
-                  )}
-                </View>
+                    
+                    {/* ✅ NEW: Animated heart for double-tap feedback */}
+                    <Animated.View
+                      style={[
+                        styles.doubleTapHeart,
+                        {
+                          opacity: anim.opacity,
+                          transform: [
+                            {
+                              scale: anim.scale.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0, 1],
+                              }),
+                            },
+                          ],
+                        },
+                      ]}
+                      pointerEvents="none"
+                    >
+                      <IconSymbol
+                        ios_icon_name="heart.fill"
+                        android_material_icon_name="favorite"
+                        size={100}
+                        color="#FFFFFF"
+                      />
+                    </Animated.View>
+
+                    {showTagsOnImage && !taggingMode && (
+                      <TagDisplay
+                        postId={post.id}
+                        imageIndex={index}
+                        imageWidth={width}
+                        imageHeight={width}
+                        visible={true}
+                      />
+                    )}
+                    {taggingMode && taggingPostId === post.id && (
+                      <ImageTaggingOverlay
+                        postId={post.id}
+                        imageIndex={index}
+                        imageWidth={width}
+                        imageHeight={width}
+                        onTagAdded={handleTagAdded}
+                      />
+                    )}
+                  </View>
+                </TapGestureHandler>
               ))}
             </ScrollView>
             {post.images.length > 1 && (
@@ -910,6 +1052,19 @@ const styles = StyleSheet.create({
     width: width,
     height: width,
     backgroundColor: colors.cardBorder,
+  },
+  // ✅ NEW: Double-tap heart animation
+  doubleTapHeart: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -50,
+    marginLeft: -50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   imageIndicator: {
     position: 'absolute',

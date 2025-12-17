@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   TextInput,
   Modal,
   KeyboardAvoidingView,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
@@ -31,6 +32,7 @@ import PostLikesAvatars from '@/components/social/PostLikesAvatars';
 import TagDisplay from '@/components/social/TagDisplay';
 import ImageTaggingOverlay from '@/components/social/ImageTaggingOverlay';
 import { LinearGradient } from 'expo-linear-gradient';
+import { TapGestureHandler, State } from 'react-native-gesture-handler';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -88,6 +90,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const [editedDescription, setEditedDescription] = useState(post.contenido || '');
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // ✅ NEW: Double-tap animation state
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
   const handleLike = useCallback(async () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
@@ -117,6 +123,57 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       setLikesCount(prev => prev + (newLikedState ? -1 : 1));
     }
   }, [user, liked, post.id]);
+
+  // ✅ NEW: Double-tap handler for like/unlike
+  const handleDoubleTap = useCallback(async (event: any) => {
+    if (event.nativeEvent.state === State.ACTIVE) {
+      if (!user) {
+        Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
+        return;
+      }
+
+      const newLikedState = !liked;
+      setLiked(newLikedState);
+      setLikesCount(prev => prev + (newLikedState ? 1 : -1));
+
+      // ✅ Animate heart icon
+      scaleAnim.setValue(0);
+      opacityAnim.setValue(1);
+      
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 3,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 800,
+          delay: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      try {
+        if (newLikedState) {
+          await supabase.from('likes').insert({
+            post_id: post.id,
+            usuario_id: user.id,
+          });
+        } else {
+          await supabase
+            .from('likes')
+            .delete()
+            .eq('post_id', post.id)
+            .eq('usuario_id', user.id);
+        }
+      } catch (error) {
+        console.error('[PublicacionCard] Error toggling like:', error);
+        setLiked(!newLikedState);
+        setLikesCount(prev => prev + (newLikedState ? -1 : 1));
+      }
+    }
+  }, [user, liked, post.id, scaleAnim, opacityAnim]);
 
   const handleSave = useCallback(async () => {
     if (!user) {
@@ -419,7 +476,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         )}
       </View>
 
-      {/* ✅ Images with swipe support + TAG DISPLAY */}
+      {/* ✅ Images with swipe support + TAG DISPLAY + DOUBLE-TAP LIKE */}
       {post.imagenes && post.imagenes.length > 0 && (
         <View style={styles.imageContainer}>
           <ScrollView
@@ -430,43 +487,70 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             scrollEventThrottle={16}
           >
             {post.imagenes.map((imageUrl, index) => (
-              <TouchableOpacity
+              <TapGestureHandler
                 key={index}
-                onPress={handleImageTap}
-                activeOpacity={0.95}
-                style={styles.imageWrapper}
+                onHandlerStateChange={handleDoubleTap}
+                numberOfTaps={2}
               >
-                <OptimizedImage
-                  source={{ uri: imageUrl }}
-                  style={styles.postImage}
-                  resizeMode="cover"
-                />
-                
-                {/* ✅ NEW: Tag display overlay */}
-                <TagDisplay
-                  postId={post.id}
-                  imageIndex={index}
-                  imageWidth={SCREEN_WIDTH}
-                  imageHeight={SCREEN_WIDTH}
-                  visible={showTags && index === currentImageIndex}
-                />
+                <View style={styles.imageWrapper}>
+                  <OptimizedImage
+                    source={{ uri: imageUrl }}
+                    style={styles.postImage}
+                    resizeMode="cover"
+                  />
+                  
+                  {/* ✅ NEW: Animated heart for double-tap feedback */}
+                  <Animated.View
+                    style={[
+                      styles.doubleTapHeart,
+                      {
+                        opacity: opacityAnim,
+                        transform: [
+                          {
+                            scale: scaleAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0, 1],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                    pointerEvents="none"
+                  >
+                    <IconSymbol
+                      ios_icon_name="heart.fill"
+                      android_material_icon_name="favorite"
+                      size={100}
+                      color="#FFFFFF"
+                    />
+                  </Animated.View>
 
-                {/* ✅ NEW: Tagging overlay (only for post owner) */}
-                {canEdit && taggingMode && index === currentImageIndex && (
-                  <ImageTaggingOverlay
+                  {/* ✅ NEW: Tag display overlay */}
+                  <TagDisplay
                     postId={post.id}
                     imageIndex={index}
                     imageWidth={SCREEN_WIDTH}
                     imageHeight={SCREEN_WIDTH}
-                    onTagAdded={() => {
-                      setTaggingMode(false);
-                      if (onUpdate) {
-                        onUpdate();
-                      }
-                    }}
+                    visible={showTags && index === currentImageIndex}
                   />
-                )}
-              </TouchableOpacity>
+
+                  {/* ✅ NEW: Tagging overlay (only for post owner) */}
+                  {canEdit && taggingMode && index === currentImageIndex && (
+                    <ImageTaggingOverlay
+                      postId={post.id}
+                      imageIndex={index}
+                      imageWidth={SCREEN_WIDTH}
+                      imageHeight={SCREEN_WIDTH}
+                      onTagAdded={() => {
+                        setTaggingMode(false);
+                        if (onUpdate) {
+                          onUpdate();
+                        }
+                      }}
+                    />
+                  )}
+                </View>
+              </TapGestureHandler>
             ))}
           </ScrollView>
           {/* ✅ FIXED: White dots for image indicators */}
@@ -673,6 +757,19 @@ const styles = StyleSheet.create({
   postImage: {
     width: '100%',
     height: '100%',
+  },
+  // ✅ NEW: Double-tap heart animation
+  doubleTapHeart: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -50,
+    marginLeft: -50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   imageIndicatorContainer: {
     position: 'absolute',
