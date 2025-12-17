@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
@@ -25,13 +26,14 @@ interface ImageTaggingOverlayProps {
 }
 
 /**
- * ✅ IMAGE TAGGING OVERLAY v1.0
+ * ✅ IMAGE TAGGING OVERLAY v2.0 - DISMISSABLE MESSAGE
  * 
  * Features:
  * - Tap on image to add tag at that position
  * - Opens user/local search modal
  * - Saves tag with position coordinates
  * - Sends notification to tagged profile
+ * - ✅ NEW: Dismissable tagging mode message
  */
 
 export default function ImageTaggingOverlay({
@@ -46,6 +48,8 @@ export default function ImageTaggingOverlay({
   const [tagPosition, setTagPosition] = useState<{ x: number; y: number } | null>(null);
   const [alreadyTagged, setAlreadyTagged] = useState<TaggableUser[]>([]);
   const [pulseAnim] = useState(new Animated.Value(1));
+  // ✅ NEW: State to control message visibility
+  const [showMessage, setShowMessage] = useState(true);
 
   const handleImagePress = (event: any) => {
     if (!user) {
@@ -220,6 +224,36 @@ export default function ImageTaggingOverlay({
         activeOpacity={1}
         onPress={handleImagePress}
       >
+        {/* ✅ NEW: Dismissable message banner */}
+        {showMessage && (
+          <View style={styles.messageContainer}>
+            <View style={styles.messageBanner}>
+              <IconSymbol
+                ios_icon_name="info.circle.fill"
+                android_material_icon_name="info"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={styles.messageText}>
+                Modo etiquetado: toca sobre la imagen donde quieres añadir una etiqueta
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowMessage(false)}
+                style={styles.dismissButton}
+                activeOpacity={0.7}
+              >
+                <IconSymbol
+                  ios_icon_name="xmark.circle.fill"
+                  android_material_icon_name="cancel"
+                  size={20}
+                  color={colors.headerText}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Tagging hint icon */}
         <View style={styles.hintContainer} pointerEvents="none">
           <IconSymbol
             ios_icon_name="person.crop.circle.badge.plus"
@@ -246,6 +280,34 @@ export default function ImageTaggingOverlay({
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
+  },
+  messageContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  messageBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  messageText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.headerText,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  dismissButton: {
+    padding: 4,
   },
   hintContainer: {
     position: 'absolute',

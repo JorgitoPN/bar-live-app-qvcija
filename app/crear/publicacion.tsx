@@ -107,7 +107,7 @@ export default function CrearPublicacionScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   
-  // ✅ NEW: Image editor state
+  // ✅ UPDATED: Image editor state (NO rotate/flip like story editor)
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [editingImageUri, setEditingImageUri] = useState<string | null>(null);
@@ -176,14 +176,14 @@ export default function CrearPublicacionScreen() {
     setCursorPosition(newCursorPosition);
   };
 
-  // ✅ NEW: Open image editor
+  // ✅ UPDATED: Open image editor (identical to story editor, NO rotate/flip)
   const handleEditImage = (index: number) => {
     setEditingImageIndex(index);
     setEditingImageUri(imagenes[index]);
     setShowImageEditor(true);
   };
 
-  // ✅ NEW: Apply image edits
+  // ✅ UPDATED: Apply image edits
   const handleApplyImageEdit = async (editedUri: string) => {
     if (editingImageIndex !== null) {
       const newImagenes = [...imagenes];
@@ -195,11 +195,8 @@ export default function CrearPublicacionScreen() {
     setEditingImageUri(null);
   };
 
-  // ✅ NEW: Image editor with crop, rotate, and flip
+  // ✅ UPDATED: Image editor WITHOUT rotate and flip (identical to story editor)
   const ImageEditorModal = () => {
-    const [rotation, setRotation] = useState(0);
-    const [flipHorizontal, setFlipHorizontal] = useState(false);
-    const [flipVertical, setFlipVertical] = useState(false);
     const [processing, setProcessing] = useState(false);
 
     const applyEdits = async () => {
@@ -207,23 +204,10 @@ export default function CrearPublicacionScreen() {
 
       setProcessing(true);
       try {
-        const actions: ImageManipulator.Action[] = [];
-
-        if (rotation !== 0) {
-          actions.push({ rotate: rotation });
-        }
-
-        if (flipHorizontal) {
-          actions.push({ flip: ImageManipulator.FlipType.Horizontal });
-        }
-
-        if (flipVertical) {
-          actions.push({ flip: ImageManipulator.FlipType.Vertical });
-        }
-
+        // ✅ NO TRANSFORMATIONS - Just compress and save
         const result = await ImageManipulator.manipulateAsync(
           editingImageUri,
-          actions,
+          [], // Empty actions array - no rotate/flip
           { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
         );
 
@@ -253,7 +237,7 @@ export default function CrearPublicacionScreen() {
             <TouchableOpacity onPress={() => setShowImageEditor(false)} style={styles.editorCloseButton}>
               <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
             </TouchableOpacity>
-            <Text style={styles.editorHeaderTitle}>Editar Imagen</Text>
+            <Text style={styles.editorHeaderTitle}>Vista Previa</Text>
             <TouchableOpacity 
               onPress={applyEdits} 
               style={styles.editorApplyButton}
@@ -262,7 +246,7 @@ export default function CrearPublicacionScreen() {
               {processing ? (
                 <ActivityIndicator size="small" color={colors.headerText} />
               ) : (
-                <Text style={styles.editorApplyText}>Aplicar</Text>
+                <Text style={styles.editorApplyText}>Listo</Text>
               )}
             </TouchableOpacity>
           </LinearGradient>
@@ -277,42 +261,11 @@ export default function CrearPublicacionScreen() {
             )}
           </View>
 
-          <View style={styles.editorControls}>
-            <View style={styles.editorControlRow}>
-              <Text style={styles.editorControlLabel}>Rotar</Text>
-              <View style={styles.editorControlButtons}>
-                <TouchableOpacity 
-                  style={styles.editorControlButton}
-                  onPress={() => setRotation((rotation - 90) % 360)}
-                >
-                  <IconSymbol ios_icon_name="rotate.left" android_material_icon_name="rotate_left" size={24} color={colors.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.editorControlButton}
-                  onPress={() => setRotation((rotation + 90) % 360)}
-                >
-                  <IconSymbol ios_icon_name="rotate.right" android_material_icon_name="rotate_right" size={24} color={colors.primary} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.editorControlRow}>
-              <Text style={styles.editorControlLabel}>Voltear</Text>
-              <View style={styles.editorControlButtons}>
-                <TouchableOpacity 
-                  style={[styles.editorControlButton, flipHorizontal && styles.editorControlButtonActive]}
-                  onPress={() => setFlipHorizontal(!flipHorizontal)}
-                >
-                  <IconSymbol ios_icon_name="arrow.left.and.right" android_material_icon_name="swap_horiz" size={24} color={flipHorizontal ? colors.white : colors.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.editorControlButton, flipVertical && styles.editorControlButtonActive]}
-                  onPress={() => setFlipVertical(!flipVertical)}
-                >
-                  <IconSymbol ios_icon_name="arrow.up.and.down" android_material_icon_name="swap_vert" size={24} color={flipVertical ? colors.white : colors.primary} />
-                </TouchableOpacity>
-              </View>
-            </View>
+          {/* ✅ NO CONTROLS - Just preview like story editor */}
+          <View style={styles.editorFooter}>
+            <Text style={styles.editorFooterText}>
+              Vista previa de cómo se verá tu imagen
+            </Text>
           </View>
         </View>
       </Modal>
@@ -778,13 +731,13 @@ export default function CrearPublicacionScreen() {
                 {imagenes.map((uri, index) => (
                   <View key={index} style={styles.imagePreviewWrapper}>
                     <Image source={{ uri }} style={styles.imagePreview} />
-                    {/* ✅ NEW: Edit button */}
+                    {/* ✅ UPDATED: Edit button for preview */}
                     <TouchableOpacity
                       style={styles.editImageButton}
                       onPress={() => handleEditImage(index)}
                       activeOpacity={0.7}
                     >
-                      <IconSymbol ios_icon_name="pencil.circle.fill" android_material_icon_name="edit" size={28} color="#FFFFFF" />
+                      <IconSymbol ios_icon_name="eye.circle.fill" android_material_icon_name="visibility" size={28} color="#FFFFFF" />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.removeImageButton}
@@ -952,7 +905,7 @@ export default function CrearPublicacionScreen() {
         />
       </View>
 
-      {/* ✅ NEW: Image Editor Modal */}
+      {/* ✅ UPDATED: Image Editor Modal (NO rotate/flip, just preview) */}
       <ImageEditorModal />
 
       {/* ✅ UPDATED: TaggingModalV5 with local support */}
@@ -1170,39 +1123,16 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  editorControls: {
+  editorFooter: {
     backgroundColor: colors.cardBackground,
     paddingVertical: 20,
     paddingHorizontal: 16,
-    gap: 16,
-  },
-  editorControlRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  editorControlLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  editorControlButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  editorControlButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  editorControlButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  editorFooterText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   taggedSection: {
     backgroundColor: colors.cardBackground,

@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -41,6 +42,7 @@ interface PendingTag {
   tipo: 'usuario' | 'local';
   estado: 'pendiente' | 'aceptado' | 'rechazado';
   created_at: string;
+  tagged_by_user_id?: string;
   post?: {
     imagenes?: string[];
     imagen?: string;
@@ -54,13 +56,15 @@ interface PendingTag {
 }
 
 /**
- * ✅ NOTIFICATIONS PAGE v2.0 - WITH TAG REQUESTS
+ * ✅ NOTIFICATIONS PAGE v3.0 - WITH DELETE FUNCTIONALITY & FIXED TAG NOTIFICATIONS
  * 
  * Features:
  * - Shows regular notifications
- * - Shows pending tag requests at the top
+ * - Shows pending tag requests at the top with proper user info
+ * - Delete individual notifications
  * - Accept/Reject tag functionality
  * - Real-time updates
+ * - Fixed "Invalid date" issue
  */
 
 export default function NotificacionesScreen() {
@@ -89,7 +93,7 @@ export default function NotificacionesScreen() {
 
       setNotificaciones(notifData || []);
 
-      // ✅ NEW: Load pending tag requests
+      // ✅ FIXED: Load pending tag requests with proper user/local info
       const { data: tagsData, error: tagsError } = await supabase
         .from('post_tags')
         .select(`
@@ -98,7 +102,7 @@ export default function NotificacionesScreen() {
             imagenes,
             imagen,
             contenido,
-            autor:usuarios!posts_autor_id_fkey(nombre, username, avatar)
+            autor_id
           )
         `)
         .eq('usuario_id', user.id)
@@ -110,7 +114,34 @@ export default function NotificacionesScreen() {
         console.error('[Notificaciones] Error loading pending tags:', tagsError);
       } else {
         console.log('[Notificaciones] 🏷️ Loaded pending tags:', tagsData?.length || 0);
-        setPendingTags(tagsData || []);
+        
+        // ✅ FIXED: Fetch author info for each tag
+        if (tagsData && tagsData.length > 0) {
+          const enrichedTags = await Promise.all(
+            tagsData.map(async (tag) => {
+              if (tag.tagged_by_user_id) {
+                const { data: authorData } = await supabase
+                  .from('usuarios')
+                  .select('nombre, username, avatar')
+                  .eq('id', tag.tagged_by_user_id)
+                  .single();
+
+                return {
+                  ...tag,
+                  post: {
+                    ...tag.post,
+                    autor: authorData || undefined,
+                  },
+                };
+              }
+              return tag;
+            })
+          );
+
+          setPendingTags(enrichedTags);
+        } else {
+          setPendingTags([]);
+        }
       }
     } catch (error) {
       console.error('[Notificaciones] Error cargando notificaciones:', error);
@@ -175,6 +206,40 @@ export default function NotificacionesScreen() {
     }
   };
 
+  // ✅ NEW: Delete individual notification
+  const handleDeleteNotification = async (notificationId: string) => {
+    if (!user) return;
+
+    Alert.alert(
+      'Eliminar notificación',
+      '¿Estás seguro de que quieres eliminar esta notificación?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('notificaciones')
+                .delete()
+                .eq('id', notificationId)
+                .eq('usuario_id', user.id);
+
+              if (error) throw error;
+
+              // Update local state
+              setNotificaciones(prev => prev.filter(n => n.id !== notificationId));
+            } catch (error) {
+              console.error('[Notificaciones] Error deleting notification:', error);
+              Alert.alert('Error', 'No se pudo eliminar la notificación');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (!user) {
     return (
       <View style={commonStyles.container}>
@@ -235,7 +300,7 @@ export default function NotificacionesScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          {/* ✅ NEW: Pending tag requests section */}
+          {/* ✅ FIXED: Pending tag requests section with proper user info */}
           {pendingTags.length > 0 && (
             <View style={styles.pendingTagsSection}>
               <View style={styles.sectionHeader}>
@@ -257,7 +322,7 @@ export default function NotificacionesScreen() {
             </View>
           )}
 
-          {/* Regular notifications */}
+          {/* ✅ UPDATED: Regular notifications with delete functionality */}
           {notificaciones.length > 0 ? (
             <View style={styles.notificacionesSection}>
               {pendingTags.length > 0 && (
@@ -272,25 +337,39 @@ export default function NotificacionesScreen() {
                 </View>
               )}
               {notificaciones.map((notif) => (
-                <NotificacionItem
-                  key={notif.id}
-                  notificacion={notif}
-                  onPress={() => {
-                    // Mark as read
-                    supabase
-                      .from('notificaciones')
-                      .update({ leida: true, leida_at: new Date().toISOString() })
-                      .eq('id', notif.id)
-                      .then(() => cargarNotificaciones());
+                <View key={notif.id} style={styles.notificationWrapper}>
+                  <NotificacionItem
+                    notificacion={notif}
+                    onPress={() => {
+                      // Mark as read
+                      supabase
+                        .from('notificaciones')
+                        .update({ leida: true, leida_at: new Date().toISOString() })
+                        .eq('id', notif.id)
+                        .then(() => cargarNotificaciones());
 
-                    // Navigate based on type
-                    if (notif.post_id) {
-                      router.push({ pathname: '/social/post', params: { id: notif.post_id } });
-                    } else if (notif.usuario_origen_id) {
-                      router.push({ pathname: '/perfil/usuario', params: { userId: notif.usuario_origen_id } });
-                    }
-                  }}
-                />
+                      // Navigate based on type
+                      if (notif.post_id) {
+                        router.push({ pathname: '/social/post', params: { id: notif.post_id } });
+                      } else if (notif.usuario_origen_id) {
+                        router.push({ pathname: '/perfil/usuario', params: { userId: notif.usuario_origen_id } });
+                      }
+                    }}
+                  />
+                  {/* ✅ NEW: Delete button */}
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteNotification(notif.id)}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol
+                      ios_icon_name="trash.fill"
+                      android_material_icon_name="delete"
+                      size={18}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
               ))}
             </View>
           ) : pendingTags.length === 0 ? (
@@ -358,6 +437,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.text,
+  },
+  notificationWrapper: {
+    position: 'relative',
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 8,
+    backgroundColor: colors.background,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   emptyContainer: {
     flex: 1,

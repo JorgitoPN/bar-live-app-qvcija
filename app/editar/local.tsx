@@ -66,9 +66,12 @@ export default function EditarLocalScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const [checkingUsername, setCheckingUsername] = useState(false);
 
   // Form fields
   const [nombre, setNombre] = useState('');
+  const [username, setUsername] = useState(''); // ✅ NEW: Username field
+  const [usernameError, setUsernameError] = useState(''); // ✅ NEW: Username validation error
   const [tipo, setTipo] = useState('bar');
   const [direccion, setDireccion] = useState('');
   const [provincia, setProvincia] = useState('Madrid');
@@ -125,6 +128,7 @@ export default function EditarLocalScreen() {
 
       if (data) {
         setNombre(data.nombre || '');
+        setUsername(data.username || ''); // ✅ NEW: Load username
         setTipo(data.tipo || 'bar');
         setDireccion(data.direccion || '');
         setProvincia(data.provincia || 'Madrid');
@@ -157,6 +161,83 @@ export default function EditarLocalScreen() {
   useEffect(() => {
     loadLocalData();
   }, [loadLocalData]);
+
+  // ✅ NEW: Validate username availability
+  const validateUsername = async (newUsername: string) => {
+    const cleanUsername = newUsername.trim().toLowerCase();
+    
+    if (!cleanUsername) {
+      setUsernameError('');
+      return true;
+    }
+
+    // Validate format
+    const usernameRegex = /^[a-z0-9_]{3,30}$/;
+    if (!usernameRegex.test(cleanUsername)) {
+      setUsernameError('El nombre de usuario debe tener entre 3-30 caracteres (solo letras, números y guiones bajos)');
+      return false;
+    }
+
+    setCheckingUsername(true);
+    try {
+      // Check if username is taken by another local
+      const { data, error } = await supabase
+        .from('locales')
+        .select('id')
+        .eq('username', cleanUsername)
+        .neq('id', localId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[EditarLocal] Error checking username:', error);
+        setUsernameError('Error al verificar disponibilidad');
+        return false;
+      }
+
+      if (data) {
+        setUsernameError('Este nombre de usuario ya está en uso');
+        return false;
+      }
+
+      // Also check if username is taken by a user
+      const { data: userData, error: userError } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('username', cleanUsername)
+        .maybeSingle();
+
+      if (userError) {
+        console.error('[EditarLocal] Error checking username in users:', userError);
+      }
+
+      if (userData) {
+        setUsernameError('Este nombre de usuario ya está en uso');
+        return false;
+      }
+
+      setUsernameError('');
+      return true;
+    } catch (error) {
+      console.error('[EditarLocal] Error validating username:', error);
+      setUsernameError('Error al verificar disponibilidad');
+      return false;
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
+  // ✅ NEW: Debounced username validation
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (username) {
+        validateUsername(username);
+      } else {
+        setUsernameError('');
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [username]);
 
   const searchGooglePlaces = async (query: string) => {
     if (query.length < 3) {
@@ -334,11 +415,21 @@ export default function EditarLocalScreen() {
       return;
     }
 
+    // ✅ NEW: Validate username if provided
+    if (username.trim()) {
+      const isValid = await validateUsername(username);
+      if (!isValid) {
+        Alert.alert('Error', usernameError || 'El nombre de usuario no es válido');
+        return;
+      }
+    }
+
     setSaving(true);
 
     try {
       const updateData: any = {
         nombre: nombre.trim(),
+        username: username.trim() || null, // ✅ NEW: Save username
         tipo,
         direccion: direccion.trim(),
         provincia,
@@ -399,13 +490,13 @@ export default function EditarLocalScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Editar Local</Text>
         <TouchableOpacity 
           style={styles.saveButton} 
           onPress={handleSave}
-          disabled={saving}
+          disabled={saving || checkingUsername || !!usernameError}
         >
           {saving ? (
             <ActivityIndicator color={colors.headerText} />
@@ -464,7 +555,7 @@ export default function EditarLocalScreen() {
                       {enriching ? (
                         <ActivityIndicator size="small" color={colors.primary} />
                       ) : (
-                        <IconSymbol name="arrow.down.circle" size={24} color={colors.primary} />
+                        <IconSymbol ios_icon_name="arrow.down.circle" android_material_icon_name="download" size={24} color={colors.primary} />
                       )}
                     </TouchableOpacity>
                   ))}
@@ -473,7 +564,7 @@ export default function EditarLocalScreen() {
 
               {enriquecido && googlePlaceId && (
                 <View style={styles.enrichedBadge}>
-                  <IconSymbol name="checkmark.seal.fill" size={20} color={colors.primary} />
+                  <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={20} color={colors.primary} />
                   <Text style={styles.enrichedText}>Local enriquecido con Google Places</Text>
                 </View>
               )}
@@ -488,7 +579,7 @@ export default function EditarLocalScreen() {
                   <Image source={{ uri: imagenUrl }} style={styles.image} />
                 ) : (
                   <View style={[styles.image, styles.imagePlaceholder]}>
-                    <IconSymbol name="photo" size={48} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={48} color={colors.textSecondary} />
                     <Text style={styles.imagePlaceholderText}>Toca para añadir imagen</Text>
                   </View>
                 )}
@@ -506,12 +597,12 @@ export default function EditarLocalScreen() {
                       style={styles.removeGalleryButton}
                       onPress={() => removeGalleryImage(index)}
                     >
-                      <IconSymbol name="xmark.circle.fill" size={24} color={colors.badgeNuevo} />
+                      <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={24} color={colors.badgeNuevo} />
                     </TouchableOpacity>
                   </View>
                 ))}
                 <TouchableOpacity style={styles.addGalleryButton} onPress={pickGalleryImages}>
-                  <IconSymbol name="plus.circle.fill" size={48} color={colors.primary} />
+                  <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={48} color={colors.primary} />
                   <Text style={styles.addGalleryText}>Añadir</Text>
                 </TouchableOpacity>
               </ScrollView>
@@ -529,6 +620,36 @@ export default function EditarLocalScreen() {
               />
             </View>
 
+            {/* ✅ NEW: Username field */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Nombre de usuario</Text>
+              <View style={styles.usernameInputContainer}>
+                <Text style={styles.usernamePrefix}>@</Text>
+                <TextInput
+                  style={styles.usernameInput}
+                  placeholder="nombre_local"
+                  placeholderTextColor={colors.textSecondary}
+                  value={username}
+                  onChangeText={(text) => setUsername(text.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={30}
+                />
+                {checkingUsername && (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                )}
+              </View>
+              {usernameError ? (
+                <Text style={styles.errorText}>{usernameError}</Text>
+              ) : username ? (
+                <Text style={styles.successText}>✓ Nombre de usuario disponible</Text>
+              ) : (
+                <Text style={styles.helperText}>
+                  Este nombre se usará para mencionar el local en publicaciones
+                </Text>
+              )}
+            </View>
+
             {/* Tipo */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Tipo de local *</Text>
@@ -537,7 +658,7 @@ export default function EditarLocalScreen() {
                 onPress={() => setShowTipoModal(true)}
               >
                 <Text style={styles.selectButtonText}>{tipo}</Text>
-                <IconSymbol name="chevron.down" size={20} color={colors.text} />
+                <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -561,7 +682,7 @@ export default function EditarLocalScreen() {
                 onPress={() => setShowProvinciaModal(true)}
               >
                 <Text style={styles.selectButtonText}>{provincia}</Text>
-                <IconSymbol name="chevron.down" size={20} color={colors.text} />
+                <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -656,7 +777,7 @@ export default function EditarLocalScreen() {
                 <Text style={styles.selectButtonText}>
                   {ambiente.length > 0 ? `${ambiente.length} seleccionados` : 'Seleccionar ambiente'}
                 </Text>
-                <IconSymbol name="chevron.down" size={20} color={colors.text} />
+                <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -670,7 +791,7 @@ export default function EditarLocalScreen() {
                 <Text style={styles.selectButtonText}>
                   {musica.length > 0 ? `${musica.length} seleccionados` : 'Seleccionar música'}
                 </Text>
-                <IconSymbol name="chevron.down" size={20} color={colors.text} />
+                <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -684,7 +805,7 @@ export default function EditarLocalScreen() {
                 <Text style={styles.selectButtonText}>
                   {servicios.length > 0 ? `${servicios.length} seleccionados` : 'Seleccionar servicios'}
                 </Text>
-                <IconSymbol name="chevron.down" size={20} color={colors.text} />
+                <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -707,7 +828,7 @@ export default function EditarLocalScreen() {
             </View>
 
             <View style={styles.infoBox}>
-              <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+              <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
               <Text style={styles.infoText}>
                 La opción de local destacado se gestiona desde la página de Gestión de Locales, donde puedes ver cuántos destacados te quedan según tu plan.
               </Text>
@@ -732,7 +853,7 @@ export default function EditarLocalScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Selecciona el tipo</Text>
               <TouchableOpacity onPress={() => setShowTipoModal(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalBody}>
@@ -757,7 +878,7 @@ export default function EditarLocalScreen() {
                     {tipoOption.charAt(0).toUpperCase() + tipoOption.slice(1)}
                   </Text>
                   {tipo === tipoOption && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -781,7 +902,7 @@ export default function EditarLocalScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Selecciona la provincia</Text>
               <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalBody}>
@@ -806,7 +927,7 @@ export default function EditarLocalScreen() {
                     {provinciaOption}
                   </Text>
                   {provincia === provinciaOption && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -830,7 +951,7 @@ export default function EditarLocalScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Selecciona el ambiente</Text>
               <TouchableOpacity onPress={() => setShowAmbienteModal(false)}>
-                <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalBody}>
@@ -852,7 +973,7 @@ export default function EditarLocalScreen() {
                     {option.charAt(0).toUpperCase() + option.slice(1).replace(/_/g, ' ')}
                   </Text>
                   {ambiente.includes(option) && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -876,7 +997,7 @@ export default function EditarLocalScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Selecciona la música</Text>
               <TouchableOpacity onPress={() => setShowMusicaModal(false)}>
-                <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalBody}>
@@ -898,7 +1019,7 @@ export default function EditarLocalScreen() {
                     {option.charAt(0).toUpperCase() + option.slice(1).replace(/_/g, ' ')}
                   </Text>
                   {musica.includes(option) && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -922,7 +1043,7 @@ export default function EditarLocalScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Selecciona los servicios</Text>
               <TouchableOpacity onPress={() => setShowServiciosModal(false)}>
-                <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalBody}>
@@ -944,7 +1065,7 @@ export default function EditarLocalScreen() {
                     {option.charAt(0).toUpperCase() + option.slice(1).replace(/_/g, ' ')}
                   </Text>
                   {servicios.includes(option) && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -1153,6 +1274,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
+  usernameInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  usernamePrefix: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  usernameInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text,
+  },
   textArea: {
     minHeight: 100,
     textAlignVertical: 'top',
@@ -1161,6 +1303,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginTop: 6,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#EF4444',
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  successText: {
+    fontSize: 13,
+    color: '#10B981',
+    marginTop: 6,
+    fontWeight: '600',
   },
   selectButton: {
     backgroundColor: colors.cardBackground,

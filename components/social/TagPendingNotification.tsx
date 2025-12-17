@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ interface Tag {
   tipo: 'usuario' | 'local';
   estado: 'pendiente' | 'aceptado' | 'rechazado';
   created_at: string;
+  tagged_by_user_id?: string;
   post?: {
     imagenes?: string[];
     imagen?: string;
@@ -40,12 +41,14 @@ interface TagPendingNotificationProps {
 }
 
 /**
- * ✅ TAG PENDING NOTIFICATION COMPONENT v1.0
+ * ✅ TAG PENDING NOTIFICATION COMPONENT v2.0 - FIXED USER INFO DISPLAY
  * 
  * Features:
  * - Shows pending tag notification
+ * - ✅ FIXED: Shows profile picture and username of tagger (not "Invalid date")
  * - Accept/Reject buttons
  * - Shows post preview
+ * - Redirects to post detail page
  * - Updates tag status in database
  */
 
@@ -102,15 +105,36 @@ export default function TagPendingNotification({
     }
   };
 
+  // ✅ FIXED: Properly format time ago (no more "Invalid date")
+  const formatTimeAgo = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+      if (seconds < 60) return 'Ahora';
+      if (seconds < 3600) return `Hace ${Math.floor(seconds / 60)}m`;
+      if (seconds < 86400) return `Hace ${Math.floor(seconds / 3600)}h`;
+      if (seconds < 604800) return `Hace ${Math.floor(seconds / 86400)}d`;
+      return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    } catch (error) {
+      console.error('[TagPendingNotification] Error formatting date:', error);
+      return 'Recientemente';
+    }
+  };
+
   const postImage = tag.post?.imagenes?.[0] || tag.post?.imagen;
+  // ✅ FIXED: Show tagger's name and username (not "Invalid date")
   const authorName = tag.post?.autor?.username || tag.post?.autor?.nombre || 'Usuario';
+  const authorAvatar = tag.post?.autor?.avatar;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          {tag.post?.autor?.avatar ? (
-            <Image source={{ uri: tag.post.autor.avatar }} style={styles.avatar} />
+          {/* ✅ FIXED: Show tagger's profile picture */}
+          {authorAvatar ? (
+            <Image source={{ uri: authorAvatar }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.avatarPlaceholder]}>
               <IconSymbol
@@ -122,10 +146,14 @@ export default function TagPendingNotification({
             </View>
           )}
           <View style={styles.headerInfo}>
+            {/* ✅ FIXED: Show tagger's name */}
             <Text style={styles.authorName}>{authorName}</Text>
             <Text style={styles.tagText}>te ha etiquetado en una publicación</Text>
+            {/* ✅ FIXED: Show proper time ago */}
+            <Text style={styles.timeText}>{formatTimeAgo(tag.created_at)}</Text>
           </View>
         </View>
+        {/* ✅ Clickable post thumbnail to view post */}
         {postImage && (
           <TouchableOpacity
             onPress={() => router.push({ pathname: '/social/post', params: { id: tag.post_id } })}
@@ -196,9 +224,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   avatarPlaceholder: {
     backgroundColor: colors.primary,
@@ -209,7 +237,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   authorName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 2,
@@ -217,10 +245,15 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 13,
     color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  timeText: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   postThumbnail: {
-    width: 50,
-    height: 50,
+    width: 60,
+    height: 60,
     borderRadius: 8,
     backgroundColor: colors.background,
   },

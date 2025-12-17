@@ -10,6 +10,7 @@ interface NotificacionItemProps {
   onPress?: () => void;
   onAprobar?: () => void;
   onRechazar?: () => void;
+  onDelete?: () => void; // ✅ NEW: Delete callback
 }
 
 export default function NotificacionItem({
@@ -17,6 +18,7 @@ export default function NotificacionItem({
   onPress,
   onAprobar,
   onRechazar,
+  onDelete, // ✅ NEW
 }: NotificacionItemProps) {
   const getIcono = () => {
     switch (notificacion.tipo) {
@@ -58,60 +60,83 @@ export default function NotificacionItem({
     : (notificacion.usuarioNombre || 'Usuario').replace(/^@/, '');
 
   return (
-    <TouchableOpacity
-      style={[styles.container, !notificacion.leida && styles.containerNoLeida]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.avatarContainer}>
-        {notificacion.usuarioAvatar ? (
-          <Image source={{ uri: notificacion.usuarioAvatar }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
+    <View style={[styles.container, !notificacion.leida && styles.containerNoLeida]}>
+      <TouchableOpacity
+        style={styles.mainContent}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        <View style={styles.avatarContainer}>
+          {notificacion.usuarioAvatar ? (
+            <Image source={{ uri: notificacion.usuarioAvatar }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.textSecondary} />
+            </View>
+          )}
+          <View style={[styles.iconoBadge, { backgroundColor: icono.color }]}>
+            <IconSymbol ios_icon_name={icono.name as any} android_material_icon_name={icono.name as any} size={12} color={colors.headerText} />
           </View>
-        )}
-        <View style={[styles.iconoBadge, { backgroundColor: icono.color }]}>
-          <IconSymbol name={icono.name as any} size={12} color={colors.headerText} />
         </View>
-      </View>
 
-      <View style={styles.content}>
-        <Text style={styles.texto}>
-          <Text style={styles.nombreUsuario}>{displayName}</Text>
-          {' '}
-          {notificacion.contenido}
-        </Text>
-        <Text style={styles.fecha}>{formatearFecha(notificacion.fecha)}</Text>
+        <View style={styles.content}>
+          <Text style={styles.texto}>
+            <Text style={styles.nombreUsuario}>{displayName}</Text>
+            {' '}
+            {notificacion.contenido}
+          </Text>
+          <Text style={styles.fecha}>{formatearFecha(notificacion.fecha)}</Text>
 
-        {notificacion.tipo === 'solicitud' && onAprobar && onRechazar && (
-          <View style={styles.accionesContainer}>
-            <TouchableOpacity style={styles.aprobarButton} onPress={onAprobar}>
-              <Text style={styles.aprobarText}>Aprobar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.rechazarButton} onPress={onRechazar}>
-              <Text style={styles.rechazarText}>Rechazar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
+          {notificacion.tipo === 'solicitud' && onAprobar && onRechazar && (
+            <View style={styles.accionesContainer}>
+              <TouchableOpacity style={styles.aprobarButton} onPress={onAprobar}>
+                <Text style={styles.aprobarText}>Aprobar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.rechazarButton} onPress={onRechazar}>
+                <Text style={styles.rechazarText}>Rechazar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
 
-      {!notificacion.leida && <View style={styles.indicadorNoLeida} />}
-    </TouchableOpacity>
+        {!notificacion.leida && <View style={styles.indicadorNoLeida} />}
+      </TouchableOpacity>
+
+      {/* ✅ NEW: Delete button */}
+      {onDelete && (
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={onDelete}
+          activeOpacity={0.7}
+        >
+          <IconSymbol 
+            ios_icon_name="trash" 
+            android_material_icon_name="delete" 
+            size={20} 
+            color={colors.textSecondary} 
+          />
+        </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    padding: 12,
     backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
-    gap: 12,
+    alignItems: 'center',
   },
   containerNoLeida: {
     backgroundColor: `${colors.primary}10`,
+  },
+  mainContent: {
+    flex: 1,
+    flexDirection: 'row',
+    padding: 12,
+    gap: 12,
   },
   avatarContainer: {
     position: 'relative',
@@ -195,5 +220,10 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: colors.primary,
     marginTop: 8,
+  },
+  deleteButton: {
+    padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
