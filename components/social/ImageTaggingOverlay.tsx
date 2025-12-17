@@ -99,7 +99,7 @@ export default function ImageTaggingOverlay({
           local:locales(id, nombre, imagen_url)
         `)
         .eq('post_id', postId)
-        .eq('imagen_index', imageIndex);
+        .eq('imagen_index', imageIndex || 0);
 
       if (error) {
         console.error('[ImageTaggingOverlay] Error loading tags:', error);
@@ -108,25 +108,27 @@ export default function ImageTaggingOverlay({
 
       const tagged: TaggableUser[] = [];
       
-      data?.forEach(tag => {
-        if (tag.tipo === 'usuario' && tag.usuario) {
-          tagged.push({
-            id: tag.usuario.id,
-            nombre: tag.usuario.nombre,
-            username: tag.usuario.username || tag.usuario.nombre,
-            avatar: tag.usuario.avatar,
-            tipo: 'usuario',
-          });
-        } else if (tag.tipo === 'local' && tag.local) {
-          tagged.push({
-            id: tag.local.id,
-            nombre: tag.local.nombre,
-            username: tag.local.nombre,
-            avatar: tag.local.imagen_url,
-            tipo: 'local',
-          });
-        }
-      });
+      if (data) {
+        data.forEach(tag => {
+          if (tag.tipo === 'usuario' && tag.usuario) {
+            tagged.push({
+              id: tag.usuario.id,
+              nombre: tag.usuario.nombre,
+              username: tag.usuario.username || tag.usuario.nombre,
+              avatar: tag.usuario.avatar,
+              tipo: 'usuario',
+            });
+          } else if (tag.tipo === 'local' && tag.local) {
+            tagged.push({
+              id: tag.local.id,
+              nombre: tag.local.nombre,
+              username: tag.local.nombre,
+              avatar: tag.local.imagen_url,
+              tipo: 'local',
+            });
+          }
+        });
+      }
 
       setAlreadyTagged(tagged);
     } catch (error) {
@@ -224,7 +226,7 @@ export default function ImageTaggingOverlay({
         activeOpacity={1}
         onPress={handleImagePress}
       >
-        {/* ✅ NEW: Dismissable message banner */}
+        {/* ✅ FIXED: Dismissable message banner - moved down to avoid iPhone notch */}
         {showMessage && (
           <View style={styles.messageContainer}>
             <View style={styles.messageBanner}>
@@ -283,12 +285,11 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     position: 'absolute',
-    top: 0,
+    top: 80,
     left: 0,
     right: 0,
     zIndex: 10,
     paddingHorizontal: 16,
-    paddingTop: 16,
   },
   messageBanner: {
     flexDirection: 'row',

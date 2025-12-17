@@ -127,13 +127,16 @@ export default function PostDetailScreen() {
 
     try {
       const { data, error } = await supabase
-        .from('guardados')
+        .from('posts_guardados')
         .select('id')
         .eq('post_id', postId)
         .eq('usuario_id', user.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[PostDetail] Error checking saved status:', error);
+        return;
+      }
       setSaved(!!data);
     } catch (error) {
       console.error('[PostDetail] Error checking saved status:', error);
@@ -186,7 +189,7 @@ export default function PostDetailScreen() {
     try {
       if (saved) {
         await supabase
-          .from('guardados')
+          .from('posts_guardados')
           .delete()
           .eq('post_id', postId)
           .eq('usuario_id', user.id);
@@ -194,7 +197,7 @@ export default function PostDetailScreen() {
         setSaved(false);
       } else {
         await supabase
-          .from('guardados')
+          .from('posts_guardados')
           .insert({
             post_id: postId,
             usuario_id: user.id,

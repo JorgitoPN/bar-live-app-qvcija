@@ -36,7 +36,6 @@ import { GestureHandlerRootView, PinchGestureHandler, PanGestureHandler, State }
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedGestureHandler,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
@@ -238,32 +237,25 @@ export default function CrearPublicacionScreen() {
       }
     }, [editingImageUri]);
 
-    const pinchHandler = useAnimatedGestureHandler({
-      onStart: (_, ctx: any) => {
-        ctx.startScale = scale.value;
-      },
-      onActive: (event, ctx: any) => {
-        scale.value = Math.max(0.5, Math.min(ctx.startScale * event.scale, 5));
-      },
-      onEnd: () => {
+    const pinchHandler = (event: any) => {
+      'worklet';
+      if (event.nativeEvent.state === State.ACTIVE) {
+        scale.value = Math.max(0.5, Math.min(baseScale.value * event.nativeEvent.scale, 5));
+      } else if (event.nativeEvent.state === State.END) {
         baseScale.value = scale.value;
-      },
-    });
+      }
+    };
 
-    const panHandler = useAnimatedGestureHandler({
-      onStart: (_, ctx: any) => {
-        ctx.startX = translateX.value;
-        ctx.startY = translateY.value;
-      },
-      onActive: (event, ctx: any) => {
-        translateX.value = ctx.startX + event.translationX;
-        translateY.value = ctx.startY + event.translationY;
-      },
-      onEnd: () => {
+    const panHandler = (event: any) => {
+      'worklet';
+      if (event.nativeEvent.state === State.ACTIVE) {
+        translateX.value = baseTranslateX.value + event.nativeEvent.translationX;
+        translateY.value = baseTranslateY.value + event.nativeEvent.translationY;
+      } else if (event.nativeEvent.state === State.END) {
         baseTranslateX.value = translateX.value;
         baseTranslateY.value = translateY.value;
-      },
-    });
+      }
+    };
 
     const animatedStyle = useAnimatedStyle(() => {
       return {
