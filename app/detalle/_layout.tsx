@@ -20,45 +20,68 @@ export default function DetalleLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        // ✅ Use 'formSheet' on iOS for modal that doesn't reach top
-        // ✅ Use 'modal' on Android
-        presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
-        // ✅ Enable gesture to dismiss
+        // ✅ CRITICAL: Use 'modal' presentation to prevent full-screen
+        presentation: 'modal',
+        // ✅ Enable gesture to dismiss by dragging down
         gestureEnabled: true,
         gestureDirection: 'vertical',
-        // ✅ Show overlay behind modal
+        // ✅ Show semi-transparent overlay behind modal
         cardOverlayEnabled: true,
-        // ✅ Transparent background
+        // ✅ Transparent background to show overlay
         cardStyle: { 
           backgroundColor: 'transparent',
         },
         // ✅ Animation for modal presentation
         animation: 'slide_from_bottom',
         animationDuration: 300,
+        // ✅ IMPORTANT: This prevents the modal from reaching the top
+        ...(Platform.OS === 'ios' && {
+          contentStyle: {
+            marginTop: 60, // Space from top on iOS
+          },
+        }),
       }}
     >
       <Stack.Screen 
         name="local" 
         options={{
-          presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
+          presentation: 'modal',
           gestureEnabled: true,
           gestureDirection: 'vertical',
+          cardOverlayEnabled: true,
+          ...(Platform.OS === 'ios' && {
+            contentStyle: {
+              marginTop: 60,
+            },
+          }),
         }}
       />
       <Stack.Screen 
         name="evento" 
         options={{
-          presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
+          presentation: 'modal',
           gestureEnabled: true,
           gestureDirection: 'vertical',
+          cardOverlayEnabled: true,
+          ...(Platform.OS === 'ios' && {
+            contentStyle: {
+              marginTop: 60,
+            },
+          }),
         }}
       />
       <Stack.Screen 
         name="sala-virtual" 
         options={{
-          presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
+          presentation: 'modal',
           gestureEnabled: true,
           gestureDirection: 'vertical',
+          cardOverlayEnabled: true,
+          ...(Platform.OS === 'ios' && {
+            contentStyle: {
+              marginTop: 60,
+            },
+          }),
         }}
       />
     </Stack>

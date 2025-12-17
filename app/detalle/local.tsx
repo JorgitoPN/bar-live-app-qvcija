@@ -967,7 +967,7 @@ export default function DetalleLocalScreen() {
                 style={styles.specialButtonGradient}
               >
                 <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
-                <Text style={styles.specialButtonText}>Perfil Social</Text>
+                <Text style={styles.specialButtonText}>Ver Perfil Social</Text>
                 <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
@@ -985,7 +985,7 @@ export default function DetalleLocalScreen() {
                 style={styles.virtualRoomButtonGradient}
               >
                 <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={22} color="#fff" />
-                <Text style={styles.virtualRoomButtonText}>Sala Virtual</Text>
+                <Text style={styles.virtualRoomButtonText}>Ver Sala Virtual</Text>
                 <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
@@ -1293,6 +1293,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
+    marginTop: Platform.OS === 'android' ? 40 : 0, // Additional top margin for Android
   },
   modalHandle: {
     width: 40,
