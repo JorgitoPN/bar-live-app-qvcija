@@ -95,6 +95,8 @@ export default function CrearPublicacionScreen() {
   const { refreshData } = useGlobalData();
   const params = useLocalSearchParams();
   const localId = params.localId as string | undefined;
+  
+  // ✅ FIXED: Use useWindowDimensions hook to get SCREEN_WIDTH
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   
   const [contenido, setContenido] = useState('');
@@ -335,7 +337,13 @@ export default function CrearPublicacionScreen() {
                     <Animated.View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                       <Animated.Image 
                         source={{ uri: editingImageUri }} 
-                        style={[styles.editorImage, animatedStyle]}
+                        style={[
+                          {
+                            width: SCREEN_WIDTH,
+                            height: SCREEN_WIDTH,
+                          },
+                          animatedStyle
+                        ]}
                         resizeMode="contain"
                       />
                     </Animated.View>
@@ -1204,10 +1212,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000',
-  },
-  editorImage: {
-    width: '100%',
-    height: '100%',
   },
   editorFooter: {
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
