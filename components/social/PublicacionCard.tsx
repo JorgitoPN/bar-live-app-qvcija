@@ -438,25 +438,51 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
   const handleRemoveTag = useCallback(async (taggedUser: TaggableUser) => {
     try {
-      const { error } = await supabase
+      console.log('[PublicacionCard] 🗑️ Removing tag:', {
+        postId: post.id,
+        userId: taggedUser.id,
+        tipo: taggedUser.tipo,
+      });
+
+      // ✅ Build the delete query correctly
+      let deleteQuery = supabase
         .from('post_tags')
         .delete()
         .eq('post_id', post.id)
-        .eq(taggedUser.tipo === 'usuario' ? 'usuario_id' : 'local_id', taggedUser.id);
+        .eq('tipo', taggedUser.tipo);
 
-      if (error) throw error;
+      if (taggedUser.tipo === 'usuario') {
+        deleteQuery = deleteQuery.eq('usuario_id', taggedUser.id);
+      } else {
+        deleteQuery = deleteQuery.eq('local_id', taggedUser.id);
+      }
 
+      const { error } = await deleteQuery;
+
+      if (error) {
+        console.error('[PublicacionCard] ❌ Error deleting tag:', error);
+        throw error;
+      }
+
+      console.log('[PublicacionCard] ✅ Tag deleted successfully');
+
+      // ✅ Update local state immediately
       setExistingTags(prev => prev.filter(t => !(t.id === taggedUser.id && t.tipo === taggedUser.tipo)));
-      loadTaggedUsers();
       
+      // ✅ Reload tagged users for display
+      await loadTaggedUsers();
+      
+      // ✅ Trigger parent update
       if (onUpdate) {
         onUpdate();
       }
+
+      Alert.alert('Éxito', 'Etiqueta eliminada correctamente');
     } catch (error) {
-      console.error('[PublicacionCard] Error removing tag:', error);
-      Alert.alert('Error', 'No se pudo eliminar la etiqueta');
+      console.error('[PublicacionCard] ❌ Error removing tag:', error);
+      Alert.alert('Error', 'No se pudo eliminar la etiqueta. Por favor, intenta de nuevo.');
     }
-  }, [post.id, onUpdate]);
+  }, [post.id, loadTaggedUsers, onUpdate]);
 
   const handleAddNewTag = useCallback(async (selectedUser: TaggableUser) => {
     if (!user) return;
@@ -525,6 +551,13 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [user, post.id, loadExistingTags, onUpdate]);
 
+  const handleEditPost = useCallback(() => {
+    router.push({
+      pathname: '/editar/publicacion',
+      params: { postId: post.id },
+    });
+  }, [router, post.id]);
+
   const showOptions = useCallback(() => {
     const canEdit = user && (
       (post.tipo === 'usuario' && post.autor_id === user.id) ||
@@ -533,21 +566,23 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
     if (!canEdit) return;
 
-    const options = ['Editar descripción', 'Gestionar etiquetas', 'Eliminar publicación', 'Cancelar'];
+    const options = ['Editar publicación', 'Editar descripción', 'Gestionar etiquetas', 'Eliminar publicación', 'Cancelar'];
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options,
-          cancelButtonIndex: 3,
-          destructiveButtonIndex: 2,
+          cancelButtonIndex: 4,
+          destructiveButtonIndex: 3,
         },
         (buttonIndex) => {
           if (buttonIndex === 0) {
-            handleEditDescription();
+            handleEditPost();
           } else if (buttonIndex === 1) {
-            handleManageTags();
+            handleEditDescription();
           } else if (buttonIndex === 2) {
+            handleManageTags();
+          } else if (buttonIndex === 3) {
             handleDeletePost();
           }
         }
@@ -557,6 +592,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         'Opciones',
         '',
         [
+          {
+            text: 'Editar publicación',
+            onPress: handleEditPost,
+          },
           {
             text: 'Editar descripción',
             onPress: handleEditDescription,
@@ -577,7 +616,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         ]
       );
     }
-  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription, handleManageTags]);
+  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription, handleManageTags, handleEditPost]);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);

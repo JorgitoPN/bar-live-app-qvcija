@@ -37,9 +37,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  runOnJS,
 } from 'react-native-reanimated';
-import { canLocalPerformAction } from '@/utils/subscriptionPermissions';
 
 const convertImageToJPG = (uri: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -90,21 +88,23 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 };
 
 /**
- * ✅ CREATE PUBLICATION v2.0 - SUBSCRIPTION PERMISSIONS
+ * ✅ EDIT PUBLICATION v1.0 - WITH IMAGE EDITOR
  * 
- * Changes:
- * - ✅ Check subscription permissions before allowing local posts
- * - ✅ Show warning if subscription is inactive
- * - ✅ Prevent publishing if profile is not visible
+ * Features:
+ * - Edit post description
+ * - Add/remove images with image editor
+ * - Manage tags
+ * - Update location
+ * - Same image editing system as momentos
  */
 
-export default function CrearPublicacionScreen() {
+export default function EditarPublicacionScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { activeProfileType, activeProfileId } = useMode();
   const { refreshData } = useGlobalData();
   const params = useLocalSearchParams();
-  const localId = params.localId as string | undefined;
+  const postId = params.postId as string;
   
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
   
@@ -117,7 +117,8 @@ export default function CrearPublicacionScreen() {
     lng: number;
   } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
-  const [publishing, setPublishing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
   const [usuariosEtiquetados, setUsuariosEtiquetados] = useState<TaggableUser[]>([]);
@@ -129,50 +130,18 @@ export default function CrearPublicacionScreen() {
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [editingImageUri, setEditingImageUri] = useState<string | null>(null);
 
-  // ✅ Subscription permission check
-  const [canPublish, setCanPublish] = useState(true);
-  const [permissionMessage, setPermissionMessage] = useState('');
-
   const MAX_IMAGES = 10;
 
-  // ✅ Check permissions on mount if publishing as local
   useEffect(() => {
-    const checkPermissions = async () => {
-      const effectiveLocalId = localId || (activeProfileType === 'local' ? activeProfileId : null);
-      
-      if (effectiveLocalId) {
-        console.log('[CrearPublicacion] 🔒 Checking permissions for local:', effectiveLocalId);
-        
-        const result = await canLocalPerformAction(effectiveLocalId, 'publish_post');
-        
-        setCanPublish(result.allowed);
-        setPermissionMessage(result.reason || '');
-        
-        if (!result.allowed) {
-          console.log('[CrearPublicacion] ⚠️ Cannot publish:', result.reason);
-          Alert.alert(
-            'Publicación No Permitida',
-            result.reason || 'No tienes permiso para publicar',
-            [
-              { text: 'Cancelar', style: 'cancel', onPress: () => router.back() },
-              { 
-                text: 'Ver Planes', 
-                onPress: () => router.push(`/gestion/planes-suscripcion?localId=${effectiveLocalId}`) 
-              },
-            ]
-          );
-        }
-      }
-    };
-
-    checkPermissions();
-  }, [localId, activeProfileType, activeProfileId, router]);
+    if (postId) {
+      loadPost();
+    }
+  }, [postId]);
 
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[CrearPublicacion] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -180,7 +149,6 @@ export default function CrearPublicacionScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[CrearPublicacion] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
       }
     );
@@ -191,9 +159,74 @@ export default function CrearPublicacionScreen() {
     };
   }, []);
 
+  const loadPost = async () => {
+    try {
+      setLoading(true);
+
+      const { data: postData, error: postError } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', postId)
+        .single();
+
+      if (postError) throw postError;
+
+      setContenido(postData.contenido || '');
+      setImagenes(postData.imagenes || []);
+      
+      if (postData.ubicacion && postData.ubicacion_lat && postData.ubicacion_lng) {
+        setUbicacion({
+          nombre: postData.ubicacion,
+          lat: postData.ubicacion_lat,
+          lng: postData.ubicacion_lng,
+        });
+      }
+
+      // Load tags
+      const { data: tagsData, error: tagsError } = await supabase
+        .from('post_tags')
+        .select(`
+          *,
+          usuario:usuarios!post_tags_usuario_id_fkey(id, nombre, username, avatar),
+          local:locales(id, nombre, imagen_url)
+        `)
+        .eq('post_id', postId);
+
+      if (!tagsError && tagsData) {
+        const tags: TaggableUser[] = [];
+        
+        tagsData.forEach(tag => {
+          if (tag.tipo === 'usuario' && tag.usuario) {
+            tags.push({
+              id: tag.usuario.id,
+              nombre: tag.usuario.nombre,
+              username: tag.usuario.username || tag.usuario.nombre,
+              avatar: tag.usuario.avatar,
+              tipo: 'usuario',
+            });
+          } else if (tag.tipo === 'local' && tag.local) {
+            tags.push({
+              id: tag.local.id,
+              nombre: tag.local.nombre,
+              username: tag.local.nombre,
+              avatar: tag.local.imagen_url,
+              tipo: 'local',
+            });
+          }
+        });
+
+        setUsuariosEtiquetados(tags);
+      }
+    } catch (error) {
+      console.error('[EditarPublicacion] Error loading post:', error);
+      Alert.alert('Error', 'No se pudo cargar la publicación');
+      router.back();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSelectInlineMention = (mention: MentionSuggestion, mentionText: string) => {
-    console.log('[CrearPublicacion] ✅ Selected inline mention:', mention);
-    
     const textBeforeCursor = contenido.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
     
@@ -212,8 +245,6 @@ export default function CrearPublicacionScreen() {
   };
 
   const handleSelectInlineHashtag = (hashtag: string, hashtagText: string) => {
-    console.log('[CrearPublicacion] Selected inline hashtag:', hashtag);
-    
     const textBeforeCursor = contenido.substring(0, cursorPosition);
     const lastHashIndex = textBeforeCursor.lastIndexOf('#');
     
@@ -251,9 +282,6 @@ export default function CrearPublicacionScreen() {
     const [processing, setProcessing] = useState(false);
     const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
     const [rotation, setRotation] = useState(0);
-    const [brightness, setBrightness] = useState(1);
-    const [contrast, setContrast] = useState(1);
-    const [saturation, setSaturation] = useState(1);
     
     const scale = useSharedValue(1);
     const translateX = useSharedValue(0);
@@ -265,7 +293,6 @@ export default function CrearPublicacionScreen() {
     useEffect(() => {
       if (editingImageUri) {
         Image.getSize(editingImageUri, (width, height) => {
-          console.log('[ImageEditor] ✅ Image dimensions:', { width, height, SCREEN_WIDTH });
           setImageDimensions({ width, height });
           
           const imageRatio = width / height;
@@ -278,7 +305,7 @@ export default function CrearPublicacionScreen() {
           }
           savedScale.value = scale.value;
         }, (error) => {
-          console.error('[ImageEditor] ❌ Error getting image size:', error);
+          console.error('[ImageEditor] Error getting image size:', error);
         });
       }
     }, [editingImageUri]);
@@ -302,9 +329,6 @@ export default function CrearPublicacionScreen() {
       savedTranslateX.value = 0;
       savedTranslateY.value = 0;
       setRotation(0);
-      setBrightness(1);
-      setContrast(1);
-      setSaturation(1);
     };
 
     const applyEdits = async () => {
@@ -312,15 +336,12 @@ export default function CrearPublicacionScreen() {
 
       setProcessing(true);
       try {
-        // ✅ Apply all transformations
         const actions: any[] = [];
 
-        // Rotation
         if (rotation !== 0) {
           actions.push({ rotate: rotation });
         }
 
-        // Crop to square if needed
         if (imageDimensions.width !== imageDimensions.height) {
           const size = Math.min(imageDimensions.width, imageDimensions.height);
           const originX = (imageDimensions.width - size) / 2;
@@ -343,7 +364,7 @@ export default function CrearPublicacionScreen() {
 
         handleApplyImageEdit(result.uri);
       } catch (error) {
-        console.error('[CrearPublicacion] Error editing image:', error);
+        console.error('[EditarPublicacion] Error editing image:', error);
         Alert.alert('Error', 'No se pudo editar la imagen');
       } finally {
         setProcessing(false);
@@ -585,7 +606,6 @@ export default function CrearPublicacionScreen() {
   };
 
   const handleSelectTag = (selectedUser: TaggableUser) => {
-    console.log('[CrearPublicacion] ✅ Selected tag:', selectedUser);
     setUsuariosEtiquetados([...usuariosEtiquetados, selectedUser]);
   };
 
@@ -620,155 +640,109 @@ export default function CrearPublicacionScreen() {
         });
 
       if (error) {
-        console.error('[CrearPublicacion] Error uploading image:', error);
+        console.error('[EditarPublicacion] Error uploading image:', error);
         return null;
       }
 
       const { data: urlData } = supabase.storage.from('posts').getPublicUrl(fileName);
       return urlData.publicUrl;
     } catch (error) {
-      console.error('[CrearPublicacion] Error in uploadImage:', error);
+      console.error('[EditarPublicacion] Error in uploadImage:', error);
       return null;
     }
   };
 
-  const publicar = async () => {
+  const guardarCambios = async () => {
     if (!contenido.trim() && imagenes.length === 0) {
       Alert.alert('Error', 'Debes agregar contenido o al menos una imagen');
       return;
     }
 
     if (!user) {
-      Alert.alert('Error', 'Debes iniciar sesión para publicar');
+      Alert.alert('Error', 'Debes iniciar sesión para editar');
       return;
     }
 
-    // ✅ Check permissions again before publishing
-    const effectiveLocalId = localId || (activeProfileType === 'local' ? activeProfileId : null);
-    if (effectiveLocalId) {
-      const result = await canLocalPerformAction(effectiveLocalId, 'publish_post');
-      if (!result.allowed) {
-        Alert.alert(
-          'Publicación No Permitida',
-          result.reason || 'No tienes permiso para publicar',
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            { 
-              text: 'Ver Planes', 
-              onPress: () => router.push(`/gestion/planes-suscripcion?localId=${effectiveLocalId}`) 
-            },
-          ]
-        );
-        return;
-      }
-    }
-
-    setPublishing(true);
+    setSaving(true);
     setShowUploadProgress(true);
     setUploadProgress(0);
 
     try {
-      console.log('[CrearPublicacion] Starting publication...');
-      console.log('[CrearPublicacion] Active profile type:', activeProfileType);
-      console.log('[CrearPublicacion] Active profile ID:', activeProfileId);
-      console.log('[CrearPublicacion] LocalId param:', localId);
-      console.log('[CrearPublicacion] User ID:', user.id);
-      console.log('[CrearPublicacion] Number of images:', imagenes.length);
-      
+      // Upload new images
       let imagenesUrls: string[] = [];
-      if (imagenes.length > 0) {
-        console.log('[CrearPublicacion] Uploading', imagenes.length, 'images...');
-        
-        for (let i = 0; i < imagenes.length; i++) {
-          const progressStart = 10 + (i * 60 / imagenes.length);
+      const newImages = imagenes.filter(uri => uri.startsWith('file://') || uri.startsWith('blob:'));
+      const existingImages = imagenes.filter(uri => !uri.startsWith('file://') && !uri.startsWith('blob:'));
+
+      imagenesUrls = [...existingImages];
+
+      if (newImages.length > 0) {
+        for (let i = 0; i < newImages.length; i++) {
+          const progressStart = 10 + (i * 60 / newImages.length);
           setUploadProgress(progressStart);
           
-          const imageUrl = await uploadImage(imagenes[i]);
+          const imageUrl = await uploadImage(newImages[i]);
           if (!imageUrl) {
             Alert.alert('Error', `No se pudo subir la imagen ${i + 1}`);
-            setPublishing(false);
+            setSaving(false);
             setShowUploadProgress(false);
             return;
           }
           imagenesUrls.push(imageUrl);
           
-          const progressEnd = 10 + ((i + 1) * 60 / imagenes.length);
+          const progressEnd = 10 + ((i + 1) * 60 / newImages.length);
           setUploadProgress(progressEnd);
         }
-        
-        console.log('[CrearPublicacion] All images uploaded successfully');
       } else {
         setUploadProgress(70);
       }
 
-      let postLocalId: string | null = null;
-      let postTipo: 'usuario' | 'local' = 'usuario';
-
-      if (localId) {
-        postLocalId = localId;
-        postTipo = 'local';
-        console.log('[CrearPublicacion] ✅ Using localId from params:', localId);
-      } else if (activeProfileType === 'local' && activeProfileId) {
-        postLocalId = activeProfileId;
-        postTipo = 'local';
-        console.log('[CrearPublicacion] ✅ Using active local profile:', activeProfileId);
-      } else {
-        postTipo = 'usuario';
-        console.log('[CrearPublicacion] ✅ Publishing as user (cliente)');
-      }
-
-      console.log('[CrearPublicacion] ✅ Final effective local ID:', postLocalId);
-      console.log('[CrearPublicacion] ✅ Final post tipo:', postTipo);
-
       setUploadProgress(75);
 
       const postData: any = {
-        autor_id: user.id,
-        tipo: postTipo,
-        local_id: postLocalId,
         contenido: contenido,
         imagenes: imagenesUrls,
         ubicacion: ubicacion?.nombre,
         ubicacion_lat: ubicacion?.lat,
         ubicacion_lng: ubicacion?.lng,
+        editado_at: new Date().toISOString(),
       };
 
       if (imagenesUrls.length === 1) {
         postData.imagen = imagenesUrls[0];
       }
 
-      const { data: postData2, error: postError } = await supabase
+      const { error: updateError } = await supabase
         .from('posts')
-        .insert(postData)
-        .select()
-        .single();
+        .update(postData)
+        .eq('id', postId);
 
-      if (postError) {
-        console.error('[CrearPublicacion] Error publicando:', postError);
-        throw postError;
+      if (updateError) {
+        console.error('[EditarPublicacion] Error updating post:', updateError);
+        throw updateError;
       }
-
-      console.log('[CrearPublicacion] ✅ Post created successfully:', postData2);
 
       setUploadProgress(80);
 
-      if (postData2 && contenido) {
-        console.log('[CrearPublicacion] 🏷️ Processing hashtags and mentions...');
+      // Update hashtags and mentions
+      if (contenido) {
         await Promise.all([
-          processPostHashtags(postData2.id, contenido),
-          processPostMentions(postData2.id, contenido),
+          processPostHashtags(postId, contenido),
+          processPostMentions(postId, contenido),
         ]);
-        console.log('[CrearPublicacion] ✅ Hashtags and mentions processed');
       }
 
       setUploadProgress(85);
 
-      if (usuariosEtiquetados.length > 0 && postData2) {
-        console.log('[CrearPublicacion] 🏷️ Creating tags for', usuariosEtiquetados.length, 'profiles');
+      // Update tags
+      await supabase
+        .from('post_tags')
+        .delete()
+        .eq('post_id', postId);
 
+      if (usuariosEtiquetados.length > 0) {
         const tags = usuariosEtiquetados.map((item) => {
           const tagData: any = {
-            post_id: postData2.id,
+            post_id: postId,
             tipo: item.tipo,
             estado: 'pendiente',
             tagged_by_user_id: user.id,
@@ -785,20 +759,10 @@ export default function CrearPublicacionScreen() {
             tagData.usuario_id = null;
           }
 
-          console.log('[CrearPublicacion] 🏷️ Tag data:', tagData);
-
           return tagData;
         });
 
-        const { error: tagsError } = await supabase
-          .from('post_tags')
-          .insert(tags);
-
-        if (tagsError) {
-          console.error('[CrearPublicacion] ❌ Error adding tags:', tagsError);
-        } else {
-          console.log('[CrearPublicacion] ✅ Tags created successfully');
-        }
+        await supabase.from('post_tags').insert(tags);
 
         for (const item of usuariosEtiquetados) {
           if (item.tipo === 'usuario') {
@@ -808,7 +772,7 @@ export default function CrearPublicacionScreen() {
               titulo: 'Te han etiquetado',
               mensaje: `${user.nombre} te ha etiquetado en una publicación`,
               usuario_origen_id: user.id,
-              post_id: postData2.id,
+              post_id: postId,
             });
           } else {
             const { data: owners } = await supabase
@@ -825,38 +789,44 @@ export default function CrearPublicacionScreen() {
                 mensaje: `${user.nombre} ha etiquetado a ${item.nombre} en una publicación`,
                 usuario_origen_id: user.id,
                 local_origen_id: item.id,
-                post_id: postData2.id,
+                post_id: postId,
               }));
 
               await supabase.from('notificaciones').insert(notifications);
             }
           }
         }
-
-        console.log('[CrearPublicacion] ✅ Notifications sent');
       }
 
       setUploadProgress(90);
 
-      console.log('[CrearPublicacion] 🔄 Refreshing global data...');
       await refreshData(true);
 
       setUploadProgress(100);
 
       setTimeout(() => {
         setShowUploadProgress(false);
-        Alert.alert('Éxito', 'Publicación creada correctamente', [
+        Alert.alert('Éxito', 'Publicación actualizada correctamente', [
           { text: 'OK', onPress: () => router.back() },
         ]);
       }, 500);
     } catch (error) {
-      console.error('[CrearPublicacion] Error publicando:', error);
+      console.error('[EditarPublicacion] Error guardando cambios:', error);
       setShowUploadProgress(false);
-      Alert.alert('Error', 'No se pudo crear la publicación');
+      Alert.alert('Error', 'No se pudieron guardar los cambios');
     } finally {
-      setPublishing(false);
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <View style={[commonStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ color: colors.text, marginTop: 16 }}>Cargando publicación...</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView 
@@ -874,31 +844,23 @@ export default function CrearPublicacionScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
             <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Nueva Publicación</Text>
+          <Text style={styles.headerTitle}>Editar Publicación</Text>
           <TouchableOpacity 
-            onPress={publicar} 
-            style={[styles.publishButton, (!contenido.trim() && imagenes.length === 0 || !canPublish) && styles.publishButtonDisabled]}
-            disabled={publishing || (!contenido.trim() && imagenes.length === 0) || !canPublish}
+            onPress={guardarCambios} 
+            style={[styles.publishButton, (!contenido.trim() && imagenes.length === 0) && styles.publishButtonDisabled]}
+            disabled={saving || (!contenido.trim() && imagenes.length === 0)}
             activeOpacity={0.7}
           >
-            {publishing ? (
+            {saving ? (
               <ActivityIndicator size="small" color={colors.headerText} />
             ) : (
-              <Text style={[styles.publishButtonText, (!contenido.trim() && imagenes.length === 0 || !canPublish) && styles.publishButtonTextDisabled]}>
-                Publicar
+              <Text style={[styles.publishButtonText, (!contenido.trim() && imagenes.length === 0) && styles.publishButtonTextDisabled]}>
+                Guardar
               </Text>
             )}
           </TouchableOpacity>
         </View>
       </LinearGradient>
-
-      {/* ✅ Show warning if cannot publish */}
-      {!canPublish && permissionMessage && (
-        <View style={styles.warningBanner}>
-          <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={20} color="#F59E0B" />
-          <Text style={styles.warningText}>{permissionMessage}</Text>
-        </View>
-      )}
 
       <View style={{ flex: 1 }}>
         <ScrollView 
@@ -914,17 +876,15 @@ export default function CrearPublicacionScreen() {
               placeholderTextColor={colors.textSecondary}
               value={contenido}
               onChangeText={(text) => {
-                console.log('[CrearPublicacion] 📝 Text changed:', text);
                 setContenido(text);
               }}
               onSelectionChange={(event) => {
                 const newPosition = event.nativeEvent.selection.start;
-                console.log('[CrearPublicacion] 📍 Cursor position changed to:', newPosition);
                 setCursorPosition(newPosition);
               }}
               multiline
               maxLength={2200}
-              editable={!publishing && canPublish}
+              editable={!saving}
             />
             <Text style={styles.charCount}>{contenido.length}/2200</Text>
             <View style={styles.helperContainer}>
@@ -1049,61 +1009,61 @@ export default function CrearPublicacionScreen() {
             <Text style={styles.actionsSectionTitle}>Añadir a tu publicación</Text>
             <View style={styles.actionsGrid}>
               <TouchableOpacity 
-                style={[styles.actionButton, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonDisabled]} 
+                style={[styles.actionButton, imagenes.length >= MAX_IMAGES && styles.actionButtonDisabled]} 
                 onPress={seleccionarImagenes}
-                disabled={publishing || imagenes.length >= MAX_IMAGES || !canPublish}
+                disabled={saving || imagenes.length >= MAX_IMAGES}
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIconContainer, { backgroundColor: colors.primary + '15' }]}>
-                  <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={24} color={(imagenes.length >= MAX_IMAGES || !canPublish) ? colors.textSecondary : colors.primary} />
+                  <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={24} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.primary} />
                 </View>
-                <Text style={[styles.actionButtonText, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonTextDisabled]}>
+                <Text style={[styles.actionButtonText, imagenes.length >= MAX_IMAGES && styles.actionButtonTextDisabled]}>
                   Fotos
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.actionButton, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonDisabled]} 
+                style={[styles.actionButton, imagenes.length >= MAX_IMAGES && styles.actionButtonDisabled]} 
                 onPress={tomarFoto}
-                disabled={publishing || imagenes.length >= MAX_IMAGES || !canPublish}
+                disabled={saving || imagenes.length >= MAX_IMAGES}
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIconContainer, { backgroundColor: colors.secondary + '15' }]}>
-                  <IconSymbol ios_icon_name="camera" android_material_icon_name="camera_alt" size={24} color={(imagenes.length >= MAX_IMAGES || !canPublish) ? colors.textSecondary : colors.secondary} />
+                  <IconSymbol ios_icon_name="camera" android_material_icon_name="camera_alt" size={24} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.secondary} />
                 </View>
-                <Text style={[styles.actionButtonText, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonTextDisabled]}>
+                <Text style={[styles.actionButtonText, imagenes.length >= MAX_IMAGES && styles.actionButtonTextDisabled]}>
                   Cámara
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.actionButton, !canPublish && styles.actionButtonDisabled]}
+                style={styles.actionButton}
                 onPress={() => setShowTagModal(true)}
-                disabled={publishing || !canPublish}
+                disabled={saving}
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIconContainer, { backgroundColor: '#8B5CF6' + '15' }]}>
-                  <IconSymbol ios_icon_name="person.crop.circle.badge.plus" android_material_icon_name="person_add" size={24} color={!canPublish ? colors.textSecondary : '#8B5CF6'} />
+                  <IconSymbol ios_icon_name="person.crop.circle.badge.plus" android_material_icon_name="person_add" size={24} color='#8B5CF6' />
                 </View>
-                <Text style={[styles.actionButtonText, !canPublish && styles.actionButtonTextDisabled]}>
+                <Text style={styles.actionButtonText}>
                   Etiquetar
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.actionButton, !canPublish && styles.actionButtonDisabled]}
+                style={styles.actionButton}
                 onPress={obtenerUbicacion}
-                disabled={loadingLocation || publishing || !canPublish}
+                disabled={loadingLocation || saving}
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIconContainer, { backgroundColor: '#EF4444' + '15' }]}>
                   {loadingLocation ? (
                     <ActivityIndicator size="small" color="#EF4444" />
                   ) : (
-                    <IconSymbol ios_icon_name="mappin.and.ellipse" android_material_icon_name="location_on" size={24} color={!canPublish ? colors.textSecondary : '#EF4444'} />
+                    <IconSymbol ios_icon_name="mappin.and.ellipse" android_material_icon_name="location_on" size={24} color='#EF4444' />
                   )}
                 </View>
-                <Text style={[styles.actionButtonText, !canPublish && styles.actionButtonTextDisabled]}>
+                <Text style={styles.actionButtonText}>
                   Ubicación
                 </Text>
               </TouchableOpacity>
@@ -1138,7 +1098,7 @@ export default function CrearPublicacionScreen() {
       <UploadProgressModal
         visible={showUploadProgress}
         progress={uploadProgress}
-        message={imagenes.length > 1 ? `Subiendo ${imagenes.length} imágenes...` : "Publicando contenido..."}
+        message={imagenes.length > 1 ? `Guardando ${imagenes.length} imágenes...` : "Guardando cambios..."}
       />
     </KeyboardAvoidingView>
   );
@@ -1186,22 +1146,6 @@ const styles = StyleSheet.create({
   },
   publishButtonTextDisabled: {
     opacity: 0.6,
-  },
-  warningBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F59E0B',
-  },
-  warningText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#92400E',
-    fontWeight: '600',
   },
   content: {
     flex: 1,

@@ -108,12 +108,17 @@ export default function SocialIndexScreen() {
           totalUnread += count || 0;
         }
         setUnreadMessages(totalUnread);
+        
+        console.log('[Social] ✅ Loaded unread counts:', {
+          notifications: notifCount || 0,
+          messages: totalUnread,
+        });
+      } else {
+        console.log('[Social] ✅ Loaded unread counts:', {
+          notifications: notifCount || 0,
+          messages: 0,
+        });
       }
-
-      console.log('[Social] ✅ Loaded unread counts:', {
-        notifications: notifCount || 0,
-        messages: totalUnread || 0,
-      });
     } catch (error) {
       console.error('[Social] Error loading unread counts:', error);
     }

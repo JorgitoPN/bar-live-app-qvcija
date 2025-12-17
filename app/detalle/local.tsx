@@ -762,7 +762,8 @@ export default function DetalleLocalScreen() {
                 </ScrollView>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
+              {/* ✅ Close button moved to bottom to avoid overlapping destacado badge */}
+              <TouchableOpacity style={styles.closeButtonBottom} onPress={() => router.back()}>
                 <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
                   <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={22} color="#fff" />
                 </BlurView>
@@ -1299,6 +1300,21 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     overflow: 'hidden',
     zIndex: 10,
+  },
+  closeButtonBottom: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
   },
   contentContainer: {
     paddingBottom: 120,

@@ -133,17 +133,6 @@ export default function LocalDetailsModal({
             <View style={styles.dragIndicator} />
           </View>
 
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
-              <IconSymbol 
-                ios_icon_name="xmark" 
-                android_material_icon_name="close" 
-                size={22} 
-                color="#fff" 
-              />
-            </BlurView>
-          </TouchableOpacity>
-
           <View style={styles.webViewContainer}>
             <WebView
               key={webViewKey}
@@ -156,6 +145,18 @@ export default function LocalDetailsModal({
               mediaPlaybackRequiresUserAction={false}
             />
           </View>
+
+          {/* ✅ Close button moved to bottom to avoid overlapping badge */}
+          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+            <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
+              <IconSymbol 
+                ios_icon_name="xmark" 
+                android_material_icon_name="close" 
+                size={22} 
+                color="#fff" 
+              />
+            </BlurView>
+          </TouchableOpacity>
         </Animated.View>
       </View>
     </Modal>
@@ -199,13 +200,18 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: 24,
+    bottom: Platform.OS === 'ios' ? 40 : 24,
     right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     overflow: 'hidden',
     zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
   },
   closeButtonBlur: {
     width: '100%',

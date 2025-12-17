@@ -94,12 +94,17 @@ export default function HeaderSocial({
           totalUnread += count || 0;
         }
         setUnreadMessages(totalUnread);
+        
+        console.log('[HeaderSocial] ✅ Loaded unread counts:', {
+          notifications: notifCount || 0,
+          messages: totalUnread,
+        });
+      } else {
+        console.log('[HeaderSocial] ✅ Loaded unread counts:', {
+          notifications: notifCount || 0,
+          messages: 0,
+        });
       }
-
-      console.log('[HeaderSocial] ✅ Loaded unread counts:', {
-        notifications: notifCount || 0,
-        messages: totalUnread || 0,
-      });
     } catch (error) {
       console.error('[HeaderSocial] Error loading unread counts:', error);
     }
