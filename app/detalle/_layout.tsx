@@ -4,35 +4,26 @@ import { Platform } from 'react-native';
 
 /**
  * ============================================================================
- * DETALLE LAYOUT - MODAL PRESENTATION v6.0 - CRITICAL FIX
+ * DETALLE LAYOUT - MODAL PRESENTATION v7.0 - PROPER MODAL BEHAVIOR
  * ============================================================================
  * 
- * ✅ URGENT FIX: Use 'transparentModal' for proper modal overlay behavior
+ * ✅ FIXED: Proper modal behavior with swipe-down-to-close
  * - Opens as modal overlay (not full screen)
- * - NO white space at top
  * - Rounded corners at the top
- * - Semi-transparent background overlay
- * - Can be closed by dragging down
+ * - Semi-transparent background overlay visible
+ * - Can be closed by dragging down (NO REFRESH)
  * - Smooth animations
- * - IDENTICAL to CommentsModal behavior
+ * - Background page visible behind modal
  */
 export default function DetalleLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        // ✅ CRITICAL: Use 'transparentModal' for proper modal behavior
         presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
-        // ✅ Enable gesture to dismiss by dragging down
         gestureEnabled: true,
-        // ✅ Show semi-transparent overlay behind modal
-        cardOverlayEnabled: true,
-        // ✅ Animation for modal presentation
+        gestureDirection: 'vertical',
         animation: 'slide_from_bottom',
-        // ✅ CRITICAL: Set content style for proper modal appearance
-        contentStyle: {
-          backgroundColor: 'transparent',
-        },
       }}
     >
       <Stack.Screen 
@@ -40,10 +31,7 @@ export default function DetalleLayout() {
         options={{
           presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
           gestureEnabled: true,
-          cardOverlayEnabled: true,
-          contentStyle: {
-            backgroundColor: 'transparent',
-          },
+          gestureDirection: 'vertical',
         }}
       />
       <Stack.Screen 
@@ -51,10 +39,7 @@ export default function DetalleLayout() {
         options={{
           presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
           gestureEnabled: true,
-          cardOverlayEnabled: true,
-          contentStyle: {
-            backgroundColor: 'transparent',
-          },
+          gestureDirection: 'vertical',
         }}
       />
       <Stack.Screen 
@@ -62,10 +47,7 @@ export default function DetalleLayout() {
         options={{
           presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
           gestureEnabled: true,
-          cardOverlayEnabled: true,
-          contentStyle: {
-            backgroundColor: 'transparent',
-          },
+          gestureDirection: 'vertical',
         }}
       />
     </Stack>

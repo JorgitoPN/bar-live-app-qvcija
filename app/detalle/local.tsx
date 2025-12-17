@@ -273,14 +273,14 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL v7.0 - PROPER MODAL WITH ROUNDED CORNERS
+ * ✅ DETALLE LOCAL v8.0 - PROPER MODAL BEHAVIOR
  * 
  * Changes:
- * - ✅ CRITICAL: Wrapped in modal container with rounded top corners
- * - ✅ Semi-transparent background visible behind modal
- * - ✅ Proper modal overlay behavior
- * - ✅ Swipe down to dismiss (via _layout.tsx)
+ * - ✅ FIXED: Swipe down closes modal (NO REFRESH)
+ * - ✅ Background page visible behind modal
+ * - ✅ Proper modal overlay with rounded corners
  * - ✅ StatusBar set to light-content
+ * - ✅ NO RefreshControl (prevents refresh on swipe)
  */
 
 export default function DetalleLocalScreen() {
@@ -731,6 +731,8 @@ export default function DetalleLocalScreen() {
           contentContainerStyle={styles.contentContainer}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          bounces={true}
+          scrollEnabled={true}
         >
           {allImages.length > 0 && (
             <View style={styles.coverContainer}>

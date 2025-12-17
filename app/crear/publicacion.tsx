@@ -1214,8 +1214,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   editorImage: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH,
+    width: '100%',
+    height: '100%',
   },
   editorFooter: {
     backgroundColor: 'rgba(0, 0, 0, 0.9)',

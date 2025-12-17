@@ -29,6 +29,7 @@ import { useRouter } from 'expo-router';
 import TaggingModalV5, { TaggableUser } from './TaggingModalV5';
 import ImageTaggingOverlay from './ImageTaggingOverlay';
 import TagDisplay from './TagDisplay';
+import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -68,15 +69,15 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v4.0 - WITH 3-DOT MENU & SEE MORE
+ * ✅ POST VIEWER MODAL v5.0 - WHITE BACKGROUND & SOCIAL FEED STYLING
  * 
  * Key changes:
- * - ✅ Added 3-dot menu for edit/delete/tag options
- * - ✅ Only shows menu if user owns the post
- * - ✅ Tagging mode for adding tags to images
- * - ✅ Delete post functionality
- * - ✅ "See more" for long descriptions (>150 chars)
- * - ✅ Tag display on images
+ * - ✅ WHITE background (not black)
+ * - ✅ Avatars with neon green border for unviewed momentos
+ * - ✅ Same spacing as social feed
+ * - ✅ Smooth scrolling
+ * - ✅ 3-dot menu for post options
+ * - ✅ "See more" for long descriptions
  */
 
 export default function PostViewerModal({
@@ -98,17 +99,18 @@ export default function PostViewerModal({
   const [currentPostId, setCurrentPostId] = useState(initialPostId);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  // ✅ NEW: Expanded descriptions tracking
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
   
-  // ✅ NEW: Tagging mode state
   const [taggingMode, setTaggingMode] = useState(false);
   const [taggingPostId, setTaggingPostId] = useState<string | null>(null);
   const [showTagsOnImage, setShowTagsOnImage] = useState(true);
 
+  // ✅ NEW: Track authors with unviewed momentos
+  const [authorsWithMomentos, setAuthorsWithMomentos] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v4.0] Props received:', { 
+      console.log('[PostViewerModal v5.0] Props received:', { 
         visible, 
         initialPostId, 
         allPostIds: allPostIds ? `array(${allPostIds.length})` : allPostIds,
@@ -117,8 +119,8 @@ export default function PostViewerModal({
       });
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v4.0] ❌ Invalid allPostIds - cannot load posts');
-        console.error('[PostViewerModal v4.0] allPostIds value:', allPostIds);
+        console.error('[PostViewerModal v5.0] ❌ Invalid allPostIds - cannot load posts');
+        console.error('[PostViewerModal v5.0] allPostIds value:', allPostIds);
         setLoading(false);
         setPosts([]);
         return;
@@ -126,12 +128,62 @@ export default function PostViewerModal({
     }
   }, [visible, allPostIds, initialPostId]);
 
+  // ✅ NEW: Check which authors have unviewed momentos
+  const checkAuthorsMomentos = useCallback(async () => {
+    if (!user || posts.length === 0) return;
+
+    try {
+      const authorIds = posts.map(p => p.autor_id).filter(Boolean);
+      if (authorIds.length === 0) return;
+
+      console.log('[PostViewerModal] 🔍 Checking momentos for', authorIds.length, 'authors');
+
+      const { data: momentosData, error: momentosError } = await supabase
+        .from('momentos')
+        .select('id, autor_id')
+        .in('autor_id', authorIds)
+        .eq('tipo', 'usuario')
+        .gt('expires_at', new Date().toISOString());
+
+      if (momentosError || !momentosData) {
+        console.error('[PostViewerModal] Error fetching author momentos:', momentosError);
+        return;
+      }
+
+      if (momentosData.length === 0) {
+        setAuthorsWithMomentos(new Set());
+        return;
+      }
+
+      const momentoIds = momentosData.map(m => m.id);
+      const { data: viewsData } = await supabase
+        .from('momento_views')
+        .select('momento_id')
+        .eq('usuario_id', user.id)
+        .in('momento_id', momentoIds);
+
+      const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
+      
+      const authorsWithUnviewed = new Set<string>();
+      momentosData.forEach(momento => {
+        if (!viewedIds.has(momento.id)) {
+          authorsWithUnviewed.add(momento.autor_id);
+        }
+      });
+
+      console.log('[PostViewerModal] ✅ Authors with unviewed momentos:', authorsWithUnviewed.size);
+      setAuthorsWithMomentos(authorsWithUnviewed);
+    } catch (error) {
+      console.error('[PostViewerModal] Error checking authors momentos:', error);
+    }
+  }, [user, posts]);
+
   const loadPosts = useCallback(async () => {
     try {
       setLoading(true);
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v4.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v5.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -148,7 +200,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v4.0] Error loading posts:', error);
+        console.error('[PostViewerModal v5.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -156,14 +208,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v4.0] Invalid data received:', data);
+        console.error('[PostViewerModal v5.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v4.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v5.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -233,7 +285,7 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v4.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v5.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -247,7 +299,7 @@ export default function PostViewerModal({
         setCurrentPostId(initialPostId);
       }
     } catch (error) {
-      console.error('[PostViewerModal v4.0] Error:', error);
+      console.error('[PostViewerModal v5.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
@@ -260,6 +312,11 @@ export default function PostViewerModal({
       loadPosts();
     }
   }, [visible, loadPosts, allPostIds]);
+
+  // ✅ NEW: Check momentos when posts change
+  useEffect(() => {
+    checkAuthorsMomentos();
+  }, [posts, checkAuthorsMomentos]);
 
   const handleViewableItemsChanged = useCallback(({ viewableItems }: any) => {
     if (!viewableItems || viewableItems.length === 0 || !posts || posts.length === 0) {
@@ -391,7 +448,6 @@ export default function PostViewerModal({
     }
   };
 
-  // ✅ NEW: Handle 3-dot menu
   const handlePostOptions = (post: Post) => {
     const isOwner = user && (
       (post.tipo === 'usuario' && post.autor_id === user.id) ||
@@ -500,7 +556,6 @@ export default function PostViewerModal({
       (post.tipo === 'local' && interactionLocalId === post.local_id)
     );
 
-    // ✅ NEW: Check if description needs "see more"
     const description = post.contenido || '';
     const isExpanded = expandedPosts.has(post.id);
     const needsExpansion = description.length > 150;
@@ -508,8 +563,12 @@ export default function PostViewerModal({
       ? description.substring(0, 150) + '...' 
       : description;
 
+    // ✅ NEW: Check if author has unviewed momentos
+    const authorHasMomentos = authorsWithMomentos.has(post.autor_id);
+
     return (
       <View style={styles.postContainer}>
+        {/* ✅ NEW: Header with avatar (with momento border) and 3-dot menu */}
         <View style={styles.postHeader}>
           <TouchableOpacity 
             style={styles.authorInfo}
@@ -521,28 +580,25 @@ export default function PostViewerModal({
               }
             }}
           >
-            {post.autorAvatar ? (
-              <Image source={{ uri: post.autorAvatar }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarText}>
-                  {post.autorNombre?.charAt(0).toUpperCase() || 'U'}
-                </Text>
-              </View>
-            )}
+            <MiniAvatarWithMomento
+              userId={post.autor_id}
+              imageUrl={post.autorAvatar}
+              size={40}
+              showMomentoBorder={true}
+            />
             <Text style={styles.authorName}>{post.autorNombre}</Text>
           </TouchableOpacity>
-          {/* ✅ NEW: 3-dot menu for owner */}
           {isOwner && (
             <TouchableOpacity 
               style={styles.optionsButton}
               onPress={() => handlePostOptions(post)}
             >
-              <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={24} color={colors.text} />
             </TouchableOpacity>
           )}
         </View>
 
+        {/* Images */}
         {post.images && post.images.length > 0 && (
           <View style={styles.imageContainer}>
             <ScrollView
@@ -563,7 +619,6 @@ export default function PostViewerModal({
                     style={styles.postImage}
                     resizeMode="cover"
                   />
-                  {/* ✅ NEW: Show tags on image if not in tagging mode */}
                   {showTagsOnImage && !taggingMode && (
                     <TagDisplay
                       postId={post.id}
@@ -573,7 +628,6 @@ export default function PostViewerModal({
                       visible={true}
                     />
                   )}
-                  {/* ✅ NEW: Tagging overlay if in tagging mode */}
                   {taggingMode && taggingPostId === post.id && (
                     <ImageTaggingOverlay
                       postId={post.id}
@@ -602,6 +656,7 @@ export default function PostViewerModal({
           </View>
         )}
 
+        {/* Actions */}
         <View style={styles.postActions}>
           <View style={styles.leftActions}>
             <TouchableOpacity style={styles.actionButton} onPress={() => toggleLike(post)}>
@@ -609,7 +664,7 @@ export default function PostViewerModal({
                 ios_icon_name={post.liked ? 'heart.fill' : 'heart'}
                 android_material_icon_name={post.liked ? 'favorite' : 'favorite_border'}
                 size={28}
-                color={post.liked ? '#EF4444' : colors.headerText}
+                color={post.liked ? '#EF4444' : colors.text}
               />
             </TouchableOpacity>
             <TouchableOpacity 
@@ -623,11 +678,11 @@ export default function PostViewerModal({
                 ios_icon_name={SOCIAL_ICONS.COMMENT.ios}
                 android_material_icon_name={SOCIAL_ICONS.COMMENT.android}
                 size={26}
-                color={colors.headerText}
+                color={colors.text}
               />
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionButton}>
-              <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={28} color={colors.headerText} />
+              <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={28} color={colors.text} />
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.actionButton} onPress={() => toggleSave(post)}>
@@ -635,12 +690,12 @@ export default function PostViewerModal({
               ios_icon_name={post.saved ? 'bookmark.fill' : 'bookmark'}
               android_material_icon_name={post.saved ? 'bookmark' : 'bookmark_border'}
               size={28}
-              color={post.saved ? colors.primary : colors.headerText}
+              color={post.saved ? colors.primary : colors.text}
             />
           </TouchableOpacity>
         </View>
 
-        {/* ✅ NEW: Likes count */}
+        {/* Likes count */}
         {post.likes > 0 && (
           <View style={styles.likesContainer}>
             <Text style={styles.likesText}>
@@ -649,7 +704,7 @@ export default function PostViewerModal({
           </View>
         )}
 
-        {/* ✅ UPDATED: Content with "see more" functionality */}
+        {/* Content with "see more" */}
         {description && (
           <View style={styles.postContent}>
             <Text style={styles.postText}>
@@ -666,7 +721,7 @@ export default function PostViewerModal({
           </View>
         )}
 
-        {/* ✅ NEW: Comments count */}
+        {/* Comments count */}
         {post.comentarios > 0 && (
           <TouchableOpacity 
             style={styles.commentsContainer}
@@ -741,7 +796,6 @@ export default function PostViewerModal({
             data={posts}
             renderItem={renderPost}
             keyExtractor={(item) => item.id}
-            pagingEnabled
             showsVerticalScrollIndicator={false}
             onViewableItemsChanged={handleViewableItemsChanged}
             viewabilityConfig={viewabilityConfig}
@@ -751,10 +805,10 @@ export default function PostViewerModal({
               offset: SCREEN_HEIGHT * index,
               index,
             })}
+            ItemSeparatorComponent={() => <View style={styles.postSeparator} />}
           />
         )}
 
-        {/* ✅ NEW: Comments Modal */}
         {currentPostId && (
           <CommentsModal
             visible={commentsModalVisible}
@@ -774,7 +828,7 @@ export default function PostViewerModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: colors.background,
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 60 : 48,
@@ -807,11 +861,15 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: colors.headerText,
+    color: colors.text,
   },
   postContainer: {
-    height: SCREEN_HEIGHT - 100,
-    backgroundColor: '#000',
+    backgroundColor: colors.cardBackground,
+    paddingBottom: 16,
+  },
+  postSeparator: {
+    height: 16,
+    backgroundColor: colors.background,
   },
   postHeader: {
     flexDirection: 'row',
@@ -824,27 +882,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.headerText,
+    gap: 12,
   },
   authorName: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.headerText,
+    color: colors.text,
   },
   optionsButton: {
     padding: 8,
@@ -866,7 +909,7 @@ const styles = StyleSheet.create({
   postImage: {
     width: width,
     height: width,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.cardBorder,
   },
   imageIndicator: {
     position: 'absolute',
@@ -911,7 +954,7 @@ const styles = StyleSheet.create({
   },
   likesText: {
     fontSize: 14,
-    color: colors.headerText,
+    color: colors.text,
   },
   likesBold: {
     fontWeight: '700',
@@ -923,16 +966,16 @@ const styles = StyleSheet.create({
   },
   postText: {
     fontSize: 14,
-    color: colors.headerText,
+    color: colors.text,
     lineHeight: 18,
   },
   authorBold: {
     fontWeight: '600',
-    color: colors.headerText,
+    color: colors.text,
   },
   seeMoreText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: colors.textSecondary,
     marginTop: 4,
     fontWeight: '600',
   },
@@ -942,7 +985,7 @@ const styles = StyleSheet.create({
   },
   commentsText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: colors.textSecondary,
   },
   timeContainer: {
     paddingHorizontal: 16,
@@ -951,7 +994,7 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: colors.textSecondary,
     textTransform: 'uppercase',
   },
 });
