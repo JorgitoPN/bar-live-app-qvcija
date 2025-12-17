@@ -27,7 +27,7 @@ interface LocalDetailsModalProps {
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v1.0 - SWIPEABLE MODAL WITH IFRAME
+ * ✅ LOCAL DETAILS MODAL v2.0 - REBUILT FROM SCRATCH
  * 
  * Features:
  * - Swipe down to close (mobile-style)
@@ -39,6 +39,8 @@ interface LocalDetailsModalProps {
  * - Visual drag indicator
  * - Touch and mouse compatible
  * - Iframe cleared on close
+ * - ✅ Close button positioned higher (not overlapping badges)
+ * - ✅ Close button smaller (badge-sized)
  */
 
 export default function LocalDetailsModal({
@@ -146,13 +148,13 @@ export default function LocalDetailsModal({
             />
           </View>
 
-          {/* ✅ Close button moved to bottom to avoid overlapping badge */}
+          {/* ✅ FIXED: Close button positioned higher and smaller (badge-sized) */}
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
               <IconSymbol 
                 ios_icon_name="xmark" 
                 android_material_icon_name="close" 
-                size={22} 
+                size={18} 
                 color="#fff" 
               />
             </BlurView>
@@ -198,13 +200,14 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     opacity: 0.5,
   },
+  // ✅ FIXED: Close button positioned higher (not at bottom) and smaller
   closeButton: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 40 : 24,
+    top: Platform.OS === 'ios' ? 80 : 70,
     right: 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     overflow: 'hidden',
     zIndex: 1000,
     shadowColor: '#000',

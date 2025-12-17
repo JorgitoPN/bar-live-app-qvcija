@@ -92,16 +92,15 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const [existingTags, setExistingTags] = useState<TaggableUser[]>([]);
   const [loadingTags, setLoadingTags] = useState(false);
 
-  // ✅ NEW: Tagging modal state
   const [showTagModal, setShowTagModal] = useState(false);
 
-  // ✅ NEW: Tagged users display
   const [taggedUsers, setTaggedUsers] = useState<TaggableUser[]>([]);
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
-  // ✅ NEW: Load tagged users for display
+  const MAX_IMAGES = 10;
+
   useEffect(() => {
     loadTaggedUsers();
   }, [post.id]);
@@ -436,15 +435,16 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     setShowTagManagementModal(true);
   }, [loadExistingTags]);
 
+  // ✅ FIXED: Permanent tag deletion
   const handleRemoveTag = useCallback(async (taggedUser: TaggableUser) => {
     try {
-      console.log('[PublicacionCard] 🗑️ Removing tag:', {
+      console.log('[PublicacionCard] 🗑️ Removing tag permanently:', {
         postId: post.id,
         userId: taggedUser.id,
         tipo: taggedUser.tipo,
       });
 
-      // ✅ Build the delete query correctly
+      // Build the delete query correctly
       let deleteQuery = supabase
         .from('post_tags')
         .delete()
@@ -464,9 +464,9 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         throw error;
       }
 
-      console.log('[PublicacionCard] ✅ Tag deleted successfully');
+      console.log('[PublicacionCard] ✅ Tag deleted successfully from database');
 
-      // ✅ Update local state immediately
+      // ✅ Update local state immediately to prevent reappearing
       setExistingTags(prev => prev.filter(t => !(t.id === taggedUser.id && t.tipo === taggedUser.tipo)));
       
       // ✅ Reload tagged users for display
@@ -484,6 +484,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [post.id, loadTaggedUsers, onUpdate]);
 
+  // ✅ FIXED: Only send tag request, not notification
   const handleAddNewTag = useCallback(async (selectedUser: TaggableUser) => {
     if (!user) return;
 
@@ -510,34 +511,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       if (tagError) throw tagError;
 
-      const notificationData: any = {
-        tipo: 'mencion',
-        titulo: 'Te han etiquetado',
-        mensaje: `${user.nombre} te ha etiquetado en una publicación`,
-        usuario_origen_id: user.id,
-        post_id: post.id,
-      };
+      console.log('[PublicacionCard] ✅ Tag request created (no notification sent)');
 
-      if (selectedUser.tipo === 'usuario') {
-        notificationData.usuario_id = selectedUser.id;
-        await supabase.from('notificaciones').insert(notificationData);
-      } else {
-        const { data: owners } = await supabase
-          .from('propietarios_locales')
-          .select('propietario_id')
-          .eq('local_id', selectedUser.id)
-          .eq('activo', true);
-
-        if (owners && owners.length > 0) {
-          const notifications = owners.map(owner => ({
-            ...notificationData,
-            usuario_id: owner.propietario_id,
-            local_origen_id: selectedUser.id,
-          }));
-
-          await supabase.from('notificaciones').insert(notifications);
-        }
-      }
+      // ✅ DO NOT send notification - only tag request is created
+      // The user will see the tag request in their notifications as a "tag_request" type
 
       loadExistingTags();
       loadTaggedUsers();
@@ -545,11 +522,13 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       if (onUpdate) {
         onUpdate();
       }
+
+      Alert.alert('Éxito', 'Solicitud de etiqueta enviada. El usuario debe aprobarla.');
     } catch (error) {
       console.error('[PublicacionCard] Error adding tag:', error);
       Alert.alert('Error', 'No se pudo añadir la etiqueta');
     }
-  }, [user, post.id, loadExistingTags, onUpdate]);
+  }, [user, post.id, loadExistingTags, loadTaggedUsers, onUpdate]);
 
   const handleEditPost = useCallback(() => {
     router.push({
@@ -653,7 +632,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
   return (
     <View style={styles.card}>
-      {/* ✅ NEW: Tagged users display (above author) */}
       {taggedUsers.length > 0 && (
         <View style={styles.taggedUsersHeader}>
           <ScrollView 
@@ -695,7 +673,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </View>
       )}
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerLeft} onPress={handleProfilePress} activeOpacity={0.7}>
           <MiniFoodPlateAvatar
@@ -718,7 +695,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         )}
       </View>
 
-      {/* ✅ Images with swipe support + TAG DISPLAY + DOUBLE-TAP LIKE */}
       {post.imagenes && post.imagenes.length > 0 && (
         <View style={styles.imageContainer}>
           <ScrollView
@@ -793,7 +769,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </View>
       )}
 
-      {/* Actions */}
       <View style={styles.actions}>
         <View style={styles.actionsLeft}>
           <TouchableOpacity style={styles.actionButton} onPress={handleLike} activeOpacity={0.7}>
@@ -873,7 +848,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         onClose={() => setShareModalVisible(false)}
       />
 
-      {/* ✅ NEW: Edit Description Modal */}
       <Modal
         visible={editModalVisible}
         transparent={true}
@@ -919,7 +893,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ✅ NEW: Tag Management Modal */}
       <Modal
         visible={showTagManagementModal}
         transparent={true}
@@ -1003,7 +976,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </View>
       </Modal>
 
-      {/* ✅ NEW: Tagging Modal */}
       <TaggingModalV5
         visible={showTagModal}
         onClose={() => setShowTagModal(false)}
@@ -1024,7 +996,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 0,
   },
-  // ✅ NEW: Tagged users header
   taggedUsersHeader: {
     paddingHorizontal: 16,
     paddingTop: 12,
