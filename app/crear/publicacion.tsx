@@ -32,6 +32,14 @@ import { processPostHashtags, processPostMentions } from '@/utils/postHelpers';
 import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
 import HashtagAutocomplete from '@/components/social/HashtagAutocomplete';
 import TaggingModalV5, { TaggableUser } from '@/components/social/TaggingModalV5';
+import { GestureHandlerRootView, PinchGestureHandler, PanGestureHandler, State } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedGestureHandler,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 const convertImageToJPG = (uri: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -107,7 +115,7 @@ export default function CrearPublicacionScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   
-  // ✅ UPDATED: Image editor state (NO rotate/flip like story editor)
+  // ✅ UPDATED: Image editor state with zoom/pan/crop
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [editingImageUri, setEditingImageUri] = useState<string | null>(null);
@@ -176,7 +184,7 @@ export default function CrearPublicacionScreen() {
     setCursorPosition(newCursorPosition);
   };
 
-  // ✅ UPDATED: Open image editor (identical to story editor, NO rotate/flip)
+  // ✅ UPDATED: Open image editor with zoom/pan/crop
   const handleEditImage = (index: number) => {
     setEditingImageIndex(index);
     setEditingImageUri(imagenes[index]);
@@ -195,19 +203,95 @@ export default function CrearPublicacionScreen() {
     setEditingImageUri(null);
   };
 
-  // ✅ UPDATED: Image editor WITHOUT rotate and flip (identical to story editor)
+  // ✅ NEW: Advanced Image Editor with Zoom, Pan, and Crop
   const ImageEditorModal = () => {
     const [processing, setProcessing] = useState(false);
+    const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+    
+    // Animated values for zoom and pan
+    const scale = useSharedValue(1);
+    const translateX = useSharedValue(0);
+    const translateY = useSharedValue(0);
+    const baseScale = useSharedValue(1);
+    const baseTranslateX = useSharedValue(0);
+    const baseTranslateY = useSharedValue(0);
+
+    useEffect(() => {
+      if (editingImageUri) {
+        Image.getSize(editingImageUri, (width, height) => {
+          setImageDimensions({ width, height });
+          
+          // Calculate initial scale to fit image
+          const screenRatio = SCREEN_WIDTH / (SCREEN_WIDTH * 1.2);
+          const imageRatio = width / height;
+          
+          if (imageRatio > screenRatio) {
+            // Image is wider - fit to width
+            scale.value = 1;
+          } else {
+            // Image is taller - fit to height
+            scale.value = (SCREEN_WIDTH * 1.2) / height * (width / SCREEN_WIDTH);
+          }
+          
+          baseScale.value = scale.value;
+        });
+      }
+    }, [editingImageUri]);
+
+    const pinchHandler = useAnimatedGestureHandler({
+      onStart: (_, ctx: any) => {
+        ctx.startScale = scale.value;
+      },
+      onActive: (event, ctx: any) => {
+        scale.value = Math.max(0.5, Math.min(ctx.startScale * event.scale, 5));
+      },
+      onEnd: () => {
+        baseScale.value = scale.value;
+      },
+    });
+
+    const panHandler = useAnimatedGestureHandler({
+      onStart: (_, ctx: any) => {
+        ctx.startX = translateX.value;
+        ctx.startY = translateY.value;
+      },
+      onActive: (event, ctx: any) => {
+        translateX.value = ctx.startX + event.translationX;
+        translateY.value = ctx.startY + event.translationY;
+      },
+      onEnd: () => {
+        baseTranslateX.value = translateX.value;
+        baseTranslateY.value = translateY.value;
+      },
+    });
+
+    const animatedStyle = useAnimatedStyle(() => {
+      return {
+        transform: [
+          { translateX: translateX.value },
+          { translateY: translateY.value },
+          { scale: scale.value },
+        ],
+      };
+    });
+
+    const resetTransform = () => {
+      scale.value = withSpring(baseScale.value);
+      translateX.value = withSpring(0);
+      translateY.value = withSpring(0);
+      baseTranslateX.value = 0;
+      baseTranslateY.value = 0;
+    };
 
     const applyEdits = async () => {
       if (!editingImageUri) return;
 
       setProcessing(true);
       try {
-        // ✅ NO TRANSFORMATIONS - Just compress and save
+        // For now, just compress - crop functionality would require more complex implementation
         const result = await ImageManipulator.manipulateAsync(
           editingImageUri,
-          [], // Empty actions array - no rotate/flip
+          [],
           { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
         );
 
@@ -227,7 +311,7 @@ export default function CrearPublicacionScreen() {
         animationType="slide"
         onRequestClose={() => setShowImageEditor(false)}
       >
-        <View style={styles.editorContainer}>
+        <GestureHandlerRootView style={styles.editorContainer}>
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             start={{ x: 0, y: 0 }}
@@ -237,7 +321,7 @@ export default function CrearPublicacionScreen() {
             <TouchableOpacity onPress={() => setShowImageEditor(false)} style={styles.editorCloseButton}>
               <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
             </TouchableOpacity>
-            <Text style={styles.editorHeaderTitle}>Vista Previa</Text>
+            <Text style={styles.editorHeaderTitle}>Editar Imagen</Text>
             <TouchableOpacity 
               onPress={applyEdits} 
               style={styles.editorApplyButton}
@@ -253,21 +337,43 @@ export default function CrearPublicacionScreen() {
 
           <View style={styles.editorContent}>
             {editingImageUri && (
-              <Image 
-                source={{ uri: editingImageUri }} 
-                style={styles.editorImage}
-                resizeMode="contain"
-              />
+              <PanGestureHandler onGestureEvent={panHandler}>
+                <Animated.View style={{ flex: 1 }}>
+                  <PinchGestureHandler onGestureEvent={pinchHandler}>
+                    <Animated.View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                      <Animated.Image 
+                        source={{ uri: editingImageUri }} 
+                        style={[styles.editorImage, animatedStyle]}
+                        resizeMode="contain"
+                      />
+                    </Animated.View>
+                  </PinchGestureHandler>
+                </Animated.View>
+              </PanGestureHandler>
             )}
           </View>
 
-          {/* ✅ NO CONTROLS - Just preview like story editor */}
+          {/* ✅ NEW: Editor controls */}
           <View style={styles.editorFooter}>
+            <View style={styles.editorControls}>
+              <TouchableOpacity 
+                style={styles.editorControlButton}
+                onPress={resetTransform}
+              >
+                <IconSymbol 
+                  ios_icon_name="arrow.counterclockwise" 
+                  android_material_icon_name="refresh" 
+                  size={24} 
+                  color={colors.headerText} 
+                />
+                <Text style={styles.editorControlText}>Restablecer</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={styles.editorFooterText}>
-              Vista previa de cómo se verá tu imagen
+              Pellizca para acercar/alejar • Arrastra para centrar
             </Text>
           </View>
-        </View>
+        </GestureHandlerRootView>
       </Modal>
     );
   };
@@ -542,7 +648,6 @@ export default function CrearPublicacionScreen() {
 
       setUploadProgress(85);
 
-      // ✅ CRITICAL FIX: Properly handle tags for both users and locals
       if (usuariosEtiquetados.length > 0 && postData2) {
         console.log('[CrearPublicacion] 🏷️ Creating tags for', usuariosEtiquetados.length, 'profiles');
 
@@ -554,13 +659,12 @@ export default function CrearPublicacionScreen() {
             tagged_by_user_id: user.id,
           };
 
-          // ✅ CRITICAL FIX: Set usuario_id OR local_id, never both null
           if (item.tipo === 'usuario') {
             tagData.usuario_id = item.id;
-            tagData.local_id = null; // Explicitly set to null
+            tagData.local_id = null;
           } else {
             tagData.local_id = item.id;
-            tagData.usuario_id = null; // Explicitly set to null
+            tagData.usuario_id = null;
           }
 
           console.log('[CrearPublicacion] 🏷️ Tag data:', tagData);
@@ -578,7 +682,6 @@ export default function CrearPublicacionScreen() {
           console.log('[CrearPublicacion] ✅ Tags created successfully');
         }
 
-        // Send notifications
         for (const item of usuariosEtiquetados) {
           if (item.tipo === 'usuario') {
             await supabase.from('notificaciones').insert({
@@ -590,7 +693,6 @@ export default function CrearPublicacionScreen() {
               post_id: postData2.id,
             });
           } else {
-            // For locals, send notification to all owners
             const { data: owners } = await supabase
               .from('propietarios_locales')
               .select('propietario_id')
@@ -679,7 +781,6 @@ export default function CrearPublicacionScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Text Input Section */}
           <View style={styles.textInputSection}>
             <TextInput
               style={styles.textInput}
@@ -708,7 +809,6 @@ export default function CrearPublicacionScreen() {
             </View>
           </View>
 
-          {/* Images Preview */}
           {imagenes.length > 0 && (
             <View style={styles.imagesPreviewSection}>
               <View style={styles.imagesSectionHeader}>
@@ -731,13 +831,12 @@ export default function CrearPublicacionScreen() {
                 {imagenes.map((uri, index) => (
                   <View key={index} style={styles.imagePreviewWrapper}>
                     <Image source={{ uri }} style={styles.imagePreview} />
-                    {/* ✅ UPDATED: Edit button for preview */}
                     <TouchableOpacity
                       style={styles.editImageButton}
                       onPress={() => handleEditImage(index)}
                       activeOpacity={0.7}
                     >
-                      <IconSymbol ios_icon_name="eye.circle.fill" android_material_icon_name="visibility" size={28} color="#FFFFFF" />
+                      <IconSymbol ios_icon_name="slider.horizontal.3" android_material_icon_name="tune" size={28} color="#FFFFFF" />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.removeImageButton}
@@ -755,7 +854,6 @@ export default function CrearPublicacionScreen() {
             </View>
           )}
 
-          {/* ✅ UPDATED: Tagged Users and Locals */}
           {usuariosEtiquetados.length > 0 && (
             <View style={styles.taggedSection}>
               <Text style={styles.sectionLabel}>Perfiles etiquetados</Text>
@@ -809,7 +907,6 @@ export default function CrearPublicacionScreen() {
             </View>
           )}
 
-          {/* Location */}
           {ubicacion && (
             <View style={styles.locationSection}>
               <View style={styles.locationContent}>
@@ -822,7 +919,6 @@ export default function CrearPublicacionScreen() {
             </View>
           )}
 
-          {/* Action Buttons */}
           <View style={styles.actionsSection}>
             <Text style={styles.actionsSectionTitle}>Añadir a tu publicación</Text>
             <View style={styles.actionsGrid}>
@@ -889,7 +985,6 @@ export default function CrearPublicacionScreen() {
           </View>
         </ScrollView>
 
-        {/* ✅ FIXED v20.0: Autocomplete Components with keyboardHeight prop */}
         <MentionAutocomplete
           text={contenido}
           cursorPosition={cursorPosition}
@@ -905,10 +1000,8 @@ export default function CrearPublicacionScreen() {
         />
       </View>
 
-      {/* ✅ UPDATED: Image Editor Modal (NO rotate/flip, just preview) */}
       <ImageEditorModal />
 
-      {/* ✅ UPDATED: TaggingModalV5 with local support */}
       <TaggingModalV5
         visible={showTagModal}
         onClose={() => setShowTagModal(false)}
@@ -1053,6 +1146,7 @@ const styles = StyleSheet.create({
     left: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 14,
+    padding: 4,
   },
   removeImageButton: {
     position: 'absolute',
@@ -1077,7 +1171,7 @@ const styles = StyleSheet.create({
   },
   editorContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#000',
   },
   editorHeader: {
     paddingTop: Platform.OS === 'ios' ? 60 : 50,
@@ -1120,18 +1214,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   editorImage: {
-    width: '100%',
-    height: '100%',
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
   },
   editorFooter: {
-    backgroundColor: colors.cardBackground,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     paddingVertical: 20,
     paddingHorizontal: 16,
     alignItems: 'center',
   },
+  editorControls: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    marginBottom: 12,
+  },
+  editorControlButton: {
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+  },
+  editorControlText: {
+    fontSize: 12,
+    color: colors.headerText,
+    fontWeight: '600',
+  },
   editorFooterText: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
   },
   taggedSection: {

@@ -28,6 +28,7 @@ import { SOCIAL_ICONS } from '@/constants/SocialIcons';
 import { useRouter } from 'expo-router';
 import TaggingModalV5, { TaggableUser } from './TaggingModalV5';
 import ImageTaggingOverlay from './ImageTaggingOverlay';
+import TagDisplay from './TagDisplay';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -67,14 +68,15 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v3.0 - WITH 3-DOT MENU
+ * ✅ POST VIEWER MODAL v4.0 - WITH 3-DOT MENU & SEE MORE
  * 
  * Key changes:
  * - ✅ Added 3-dot menu for edit/delete/tag options
  * - ✅ Only shows menu if user owns the post
  * - ✅ Tagging mode for adding tags to images
  * - ✅ Delete post functionality
- * - ✅ Navigate to edit post (future implementation)
+ * - ✅ "See more" for long descriptions (>150 chars)
+ * - ✅ Tag display on images
  */
 
 export default function PostViewerModal({
@@ -96,14 +98,17 @@ export default function PostViewerModal({
   const [currentPostId, setCurrentPostId] = useState(initialPostId);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
+  // ✅ NEW: Expanded descriptions tracking
+  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
+  
   // ✅ NEW: Tagging mode state
   const [taggingMode, setTaggingMode] = useState(false);
-  const [showTagModal, setShowTagModal] = useState(false);
-  const [alreadyTagged, setAlreadyTagged] = useState<TaggableUser[]>([]);
+  const [taggingPostId, setTaggingPostId] = useState<string | null>(null);
+  const [showTagsOnImage, setShowTagsOnImage] = useState(true);
 
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v3.0] Props received:', { 
+      console.log('[PostViewerModal v4.0] Props received:', { 
         visible, 
         initialPostId, 
         allPostIds: allPostIds ? `array(${allPostIds.length})` : allPostIds,
@@ -112,8 +117,8 @@ export default function PostViewerModal({
       });
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v3.0] ❌ Invalid allPostIds - cannot load posts');
-        console.error('[PostViewerModal v3.0] allPostIds value:', allPostIds);
+        console.error('[PostViewerModal v4.0] ❌ Invalid allPostIds - cannot load posts');
+        console.error('[PostViewerModal v4.0] allPostIds value:', allPostIds);
         setLoading(false);
         setPosts([]);
         return;
@@ -126,7 +131,7 @@ export default function PostViewerModal({
       setLoading(true);
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v3.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v4.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -143,7 +148,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v3.0] Error loading posts:', error);
+        console.error('[PostViewerModal v4.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -151,14 +156,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v3.0] Invalid data received:', data);
+        console.error('[PostViewerModal v4.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v3.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v4.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -228,7 +233,7 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v3.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v4.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -242,7 +247,7 @@ export default function PostViewerModal({
         setCurrentPostId(initialPostId);
       }
     } catch (error) {
-      console.error('[PostViewerModal v3.0] Error:', error);
+      console.error('[PostViewerModal v4.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
@@ -386,16 +391,136 @@ export default function PostViewerModal({
     }
   };
 
+  // ✅ NEW: Handle 3-dot menu
+  const handlePostOptions = (post: Post) => {
+    const isOwner = user && (
+      (post.tipo === 'usuario' && post.autor_id === user.id) ||
+      (post.tipo === 'local' && interactionLocalId === post.local_id)
+    );
+
+    if (!isOwner) return;
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancelar', 'Editar', 'Eliminar', 'Añadir etiquetas'],
+          destructiveButtonIndex: 2,
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            Alert.alert('Próximamente', 'La edición de publicaciones estará disponible pronto');
+          } else if (buttonIndex === 2) {
+            handleDeletePost(post);
+          } else if (buttonIndex === 3) {
+            handleAddTags(post);
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Opciones de publicación',
+        '',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Editar', onPress: () => Alert.alert('Próximamente', 'La edición de publicaciones estará disponible pronto') },
+          { 
+            text: 'Eliminar', 
+            style: 'destructive',
+            onPress: () => handleDeletePost(post),
+          },
+          { text: 'Añadir etiquetas', onPress: () => handleAddTags(post) },
+        ]
+      );
+    }
+  };
+
+  const handleDeletePost = async (post: Post) => {
+    if (!user) return;
+
+    Alert.alert(
+      'Eliminar publicación',
+      '¿Estás seguro de que quieres eliminar esta publicación?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('posts')
+                .delete()
+                .eq('id', post.id)
+                .eq('autor_id', user.id);
+
+              if (error) throw error;
+
+              Alert.alert('Éxito', 'Publicación eliminada correctamente', [
+                { text: 'OK', onPress: () => onClose() },
+              ]);
+            } catch (error) {
+              console.error('[PostViewerModal] Error deleting post:', error);
+              Alert.alert('Error', 'No se pudo eliminar la publicación');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleAddTags = (post: Post) => {
+    setTaggingPostId(post.id);
+    setTaggingMode(true);
+    setShowTagsOnImage(false);
+  };
+
+  const handleTagAdded = () => {
+    setTaggingMode(false);
+    setTaggingPostId(null);
+    setShowTagsOnImage(true);
+    loadPosts();
+  };
+
+  const toggleExpanded = (postId: string) => {
+    setExpandedPosts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+  };
+
   const renderPost = ({ item: post }: { item: Post }) => {
     const isOwner = user && (
       (post.tipo === 'usuario' && post.autor_id === user.id) ||
       (post.tipo === 'local' && interactionLocalId === post.local_id)
     );
 
+    // ✅ NEW: Check if description needs "see more"
+    const description = post.contenido || '';
+    const isExpanded = expandedPosts.has(post.id);
+    const needsExpansion = description.length > 150;
+    const displayDescription = needsExpansion && !isExpanded 
+      ? description.substring(0, 150) + '...' 
+      : description;
+
     return (
       <View style={styles.postContainer}>
         <View style={styles.postHeader}>
-          <TouchableOpacity style={styles.authorInfo}>
+          <TouchableOpacity 
+            style={styles.authorInfo}
+            onPress={() => {
+              if (post.tipo === 'local' && post.local_id) {
+                router.push({ pathname: '/perfil/local', params: { localId: post.local_id } });
+              } else {
+                router.push({ pathname: '/perfil/usuario', params: { userId: post.autor_id } });
+              }
+            }}
+          >
             {post.autorAvatar ? (
               <Image source={{ uri: post.autorAvatar }} style={styles.avatar} />
             ) : (
@@ -407,29 +532,74 @@ export default function PostViewerModal({
             )}
             <Text style={styles.authorName}>{post.autorNombre}</Text>
           </TouchableOpacity>
+          {/* ✅ NEW: 3-dot menu for owner */}
           {isOwner && (
-            <TouchableOpacity style={styles.optionsButton}>
+            <TouchableOpacity 
+              style={styles.optionsButton}
+              onPress={() => handlePostOptions(post)}
+            >
               <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={24} color={colors.headerText} />
             </TouchableOpacity>
           )}
         </View>
 
         {post.images && post.images.length > 0 && (
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            style={styles.imageCarousel}
-          >
-            {post.images.map((imageUrl: string, index: number) => (
-              <Image
-                key={index}
-                source={{ uri: imageUrl }}
-                style={styles.postImage}
-                resizeMode="cover"
-              />
-            ))}
-          </ScrollView>
+          <View style={styles.imageContainer}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              style={styles.imageCarousel}
+              onScroll={(event) => {
+                const index = Math.round(event.nativeEvent.contentOffset.x / width);
+                setCurrentImageIndex(index);
+              }}
+              scrollEventThrottle={16}
+            >
+              {post.images.map((imageUrl: string, index: number) => (
+                <View key={index} style={styles.imageWrapper}>
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.postImage}
+                    resizeMode="cover"
+                  />
+                  {/* ✅ NEW: Show tags on image if not in tagging mode */}
+                  {showTagsOnImage && !taggingMode && (
+                    <TagDisplay
+                      postId={post.id}
+                      imageIndex={index}
+                      imageWidth={width}
+                      imageHeight={width}
+                      visible={true}
+                    />
+                  )}
+                  {/* ✅ NEW: Tagging overlay if in tagging mode */}
+                  {taggingMode && taggingPostId === post.id && (
+                    <ImageTaggingOverlay
+                      postId={post.id}
+                      imageIndex={index}
+                      imageWidth={width}
+                      imageHeight={width}
+                      onTagAdded={handleTagAdded}
+                    />
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+            {post.images.length > 1 && (
+              <View style={styles.imageIndicator}>
+                {post.images.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.indicatorDot,
+                      index === currentImageIndex && styles.indicatorDotActive,
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
         )}
 
         <View style={styles.postActions}>
@@ -442,7 +612,13 @@ export default function PostViewerModal({
                 color={post.liked ? '#EF4444' : colors.headerText}
               />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => {
+                setCurrentPostId(post.id);
+                setCommentsModalVisible(true);
+              }}
+            >
               <IconSymbol
                 ios_icon_name={SOCIAL_ICONS.COMMENT.ios}
                 android_material_icon_name={SOCIAL_ICONS.COMMENT.android}
@@ -464,16 +640,67 @@ export default function PostViewerModal({
           </TouchableOpacity>
         </View>
 
-        {post.contenido && (
-          <View style={styles.postContent}>
-            <Text style={styles.postText}>
-              <Text style={styles.authorBold}>{post.autorNombre}</Text>{' '}
-              <ParsedText text={post.contenido} style={styles.postText} />
+        {/* ✅ NEW: Likes count */}
+        {post.likes > 0 && (
+          <View style={styles.likesContainer}>
+            <Text style={styles.likesText}>
+              <Text style={styles.likesBold}>{post.likes}</Text> Me gusta
             </Text>
           </View>
         )}
+
+        {/* ✅ UPDATED: Content with "see more" functionality */}
+        {description && (
+          <View style={styles.postContent}>
+            <Text style={styles.postText}>
+              <Text style={styles.authorBold}>{post.autorNombre}</Text>{' '}
+              <ParsedText text={displayDescription} style={styles.postText} />
+            </Text>
+            {needsExpansion && (
+              <TouchableOpacity onPress={() => toggleExpanded(post.id)}>
+                <Text style={styles.seeMoreText}>
+                  {isExpanded ? 'Ver menos' : 'Ver más'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* ✅ NEW: Comments count */}
+        {post.comentarios > 0 && (
+          <TouchableOpacity 
+            style={styles.commentsContainer}
+            onPress={() => {
+              setCurrentPostId(post.id);
+              setCommentsModalVisible(true);
+            }}
+          >
+            <Text style={styles.commentsText}>
+              Ver {post.comentarios === 1 ? 'el comentario' : `los ${post.comentarios} comentarios`}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Time ago */}
+        <View style={styles.timeContainer}>
+          <Text style={styles.timeText}>
+            {formatTimeAgo(post.created_at)}
+          </Text>
+        </View>
       </View>
     );
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds < 60) return 'Ahora';
+    if (seconds < 3600) return `Hace ${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `Hace ${Math.floor(seconds / 3600)}h`;
+    if (seconds < 604800) return `Hace ${Math.floor(seconds / 86400)}d`;
+    return `Hace ${Math.floor(seconds / 604800)}sem`;
   };
 
   if (!visible) return null;
@@ -526,6 +753,19 @@ export default function PostViewerModal({
             })}
           />
         )}
+
+        {/* ✅ NEW: Comments Modal */}
+        {currentPostId && (
+          <CommentsModal
+            visible={commentsModalVisible}
+            postId={currentPostId}
+            postAuthorId={posts.find(p => p.id === currentPostId)?.autor_id || ''}
+            onClose={() => setCommentsModalVisible(false)}
+            onCommentAdded={() => {
+              loadPosts();
+            }}
+          />
+        )}
       </View>
     </Modal>
   );
@@ -570,7 +810,7 @@ const styles = StyleSheet.create({
     color: colors.headerText,
   },
   postContainer: {
-    height: SCREEN_HEIGHT,
+    height: SCREEN_HEIGHT - 100,
     backgroundColor: '#000',
   },
   postHeader: {
@@ -609,14 +849,46 @@ const styles = StyleSheet.create({
   optionsButton: {
     padding: 8,
   },
+  imageContainer: {
+    width: width,
+    height: width,
+    position: 'relative',
+  },
   imageCarousel: {
     width: width,
     height: width,
+  },
+  imageWrapper: {
+    width: width,
+    height: width,
+    position: 'relative',
   },
   postImage: {
     width: width,
     height: width,
     backgroundColor: '#1a1a1a',
+  },
+  imageIndicator: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  indicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    marginHorizontal: 3,
+  },
+  indicatorDotActive: {
+    backgroundColor: '#fff',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   postActions: {
     flexDirection: 'row',
@@ -633,10 +905,21 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 8,
   },
+  likesContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+  },
+  likesText: {
+    fontSize: 14,
+    color: colors.headerText,
+  },
+  likesBold: {
+    fontWeight: '700',
+  },
   postContent: {
     paddingHorizontal: 16,
     paddingTop: 4,
-    paddingBottom: 8,
+    paddingBottom: 4,
   },
   postText: {
     fontSize: 14,
@@ -646,5 +929,29 @@ const styles = StyleSheet.create({
   authorBold: {
     fontWeight: '600',
     color: colors.headerText,
+  },
+  seeMoreText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  commentsContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+  },
+  commentsText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  timeContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  timeText: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textTransform: 'uppercase',
   },
 });

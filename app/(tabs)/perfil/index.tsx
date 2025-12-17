@@ -14,6 +14,8 @@ import {
   Pressable,
   Linking,
   Platform,
+  Alert,
+  ActionSheetIOS,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -27,6 +29,7 @@ import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 import MomentoViewer from '@/components/momento/MomentoViewer';
 import PostViewerModal from '@/components/social/PostViewerModal';
+import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -98,10 +101,12 @@ export default function PerfilScreen() {
   const [perfilProfesional, setPerfilProfesional] = useState<PerfilProfesional | null>(null);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  // ✅ NEW: Post viewer state
   const [showPostViewer, setShowPostViewer] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [allPostIds, setAllPostIds] = useState<string[]>([]);
+
+  // ✅ NEW: Track unviewed momentos for each post author
+  const [postAuthorsWithMomentos, setPostAuthorsWithMomentos] = useState<Set<string>>(new Set());
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
@@ -177,6 +182,61 @@ export default function PerfilScreen() {
       setHasUnviewedMomentos(false);
     }
   }, [user, activeProfileType, activeProfileId]);
+
+  // ✅ NEW: Check which post authors have unviewed momentos
+  const checkPostAuthorsMomentos = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
+      const authorIds = currentPosts.map(p => p.autor_id).filter(Boolean);
+
+      if (authorIds.length === 0) return;
+
+      console.log('[Perfil] 🔍 Checking momentos for', authorIds.length, 'post authors');
+
+      // Get all momentos for these authors
+      const { data: momentosData, error: momentosError } = await supabase
+        .from('momentos')
+        .select('id, autor_id')
+        .in('autor_id', authorIds)
+        .eq('tipo', 'usuario')
+        .gt('expires_at', new Date().toISOString());
+
+      if (momentosError || !momentosData) {
+        console.error('[Perfil] Error fetching author momentos:', momentosError);
+        return;
+      }
+
+      if (momentosData.length === 0) {
+        setPostAuthorsWithMomentos(new Set());
+        return;
+      }
+
+      // Check which momentos are unviewed
+      const momentoIds = momentosData.map(m => m.id);
+      const { data: viewsData } = await supabase
+        .from('momento_views')
+        .select('momento_id')
+        .eq('usuario_id', user.id)
+        .in('momento_id', momentoIds);
+
+      const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
+      
+      // Find authors with unviewed momentos
+      const authorsWithUnviewed = new Set<string>();
+      momentosData.forEach(momento => {
+        if (!viewedIds.has(momento.id)) {
+          authorsWithUnviewed.add(momento.autor_id);
+        }
+      });
+
+      console.log('[Perfil] ✅ Authors with unviewed momentos:', authorsWithUnviewed.size);
+      setPostAuthorsWithMomentos(authorsWithUnviewed);
+    } catch (error) {
+      console.error('[Perfil] Error checking post authors momentos:', error);
+    }
+  }, [user, posts, savedPosts, taggedPosts, activeTab]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
@@ -333,14 +393,12 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
-  // ✅ UPDATED: Load tagged posts (only accepted tags)
   const cargarEtiquetados = useCallback(async () => {
     if (!user) return;
 
     try {
       console.log('[Perfil] 🏷️ Loading tagged posts for user:', user.id);
 
-      // Get accepted tags for this user
       const { data: tagsData, error: tagsError } = await supabase
         .from('post_tags')
         .select('post_id')
@@ -360,7 +418,6 @@ export default function PerfilScreen() {
 
       const postIds = tagsData.map(tag => tag.post_id);
 
-      // Get posts
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
@@ -384,7 +441,6 @@ export default function PerfilScreen() {
         return;
       }
 
-      // Enrich with like/save/comment status
       const [likesResult, savesResult, commentsResult] = await Promise.all([
         supabase
           .from('likes')
@@ -468,8 +524,6 @@ export default function PerfilScreen() {
       const { data: seguidoresData, error: seguidoresError } = await supabase
         .rpc('get_total_seguidores_count', { p_usuario_id: user.id });
 
-      // ✅ CRITICAL FIX: Get "Siguiendo" count from seguidores table ONLY
-      // This is the social network following, independent of favorites
       const { count: userFollowsCount } = await supabase
         .from('seguidores')
         .select('*', { count: 'exact', head: true })
@@ -534,6 +588,11 @@ export default function PerfilScreen() {
     }
   }, [activeTab, user, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarPerfilProfesional]);
 
+  // ✅ NEW: Check post authors momentos when posts change
+  useEffect(() => {
+    checkPostAuthorsMomentos();
+  }, [posts, savedPosts, taggedPosts, activeTab, checkPostAuthorsMomentos]);
+
   useEffect(() => {
     if (!user) return;
 
@@ -551,6 +610,7 @@ export default function PerfilScreen() {
         () => {
           console.log('[Perfil] 🔄 Momento update detected, rechecking...');
           checkUnviewedMomentos();
+          checkPostAuthorsMomentos();
         }
       )
       .on(
@@ -563,6 +623,7 @@ export default function PerfilScreen() {
         () => {
           console.log('[Perfil] 🔄 View update detected, rechecking...');
           checkUnviewedMomentos();
+          checkPostAuthorsMomentos();
         }
       )
       .subscribe();
@@ -571,7 +632,7 @@ export default function PerfilScreen() {
       console.log('[Perfil] 🔄 Cleaning up momento subscriptions');
       supabase.removeChannel(subscription);
     };
-  }, [user, checkUnviewedMomentos]);
+  }, [user, checkUnviewedMomentos, checkPostAuthorsMomentos]);
 
   const displayName = user?.nombre || 'Usuario';
   const displayAvatar = user?.avatar;
@@ -674,7 +735,6 @@ export default function PerfilScreen() {
     router.push('/crear/publicacion');
   };
 
-  // ✅ NEW: Handle post click to open feed-style viewer
   const handlePostClick = (postId: string) => {
     const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
     const postIds = currentPosts.map(p => p.id);
@@ -686,31 +746,148 @@ export default function PerfilScreen() {
     setShowPostViewer(true);
   };
 
+  // ✅ NEW: Handle 3-dot menu for posts
+  const handlePostOptions = (post: Post) => {
+    const isOwner = post.autor_id === user?.id;
+    
+    if (!isOwner) return;
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancelar', 'Editar', 'Eliminar', 'Añadir etiquetas'],
+          destructiveButtonIndex: 2,
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            // Edit post (future implementation)
+            Alert.alert('Próximamente', 'La edición de publicaciones estará disponible pronto');
+          } else if (buttonIndex === 2) {
+            handleDeletePost(post.id);
+          } else if (buttonIndex === 3) {
+            // Add tags (future implementation)
+            Alert.alert('Próximamente', 'Añadir etiquetas estará disponible pronto');
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Opciones de publicación',
+        '',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Editar', onPress: () => Alert.alert('Próximamente', 'La edición de publicaciones estará disponible pronto') },
+          { 
+            text: 'Eliminar', 
+            style: 'destructive',
+            onPress: () => handleDeletePost(post.id),
+          },
+          { text: 'Añadir etiquetas', onPress: () => Alert.alert('Próximamente', 'Añadir etiquetas estará disponible pronto') },
+        ]
+      );
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!user) return;
+
+    Alert.alert(
+      'Eliminar publicación',
+      '¿Estás seguro de que quieres eliminar esta publicación?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('posts')
+                .delete()
+                .eq('id', postId)
+                .eq('autor_id', user.id);
+
+              if (error) throw error;
+
+              Alert.alert('Éxito', 'Publicación eliminada correctamente');
+              
+              // Reload posts
+              if (activeTab === 'posts') {
+                cargarPosts();
+              } else if (activeTab === 'favoritos') {
+                cargarFavoritos();
+              } else if (activeTab === 'etiquetados') {
+                cargarEtiquetados();
+              }
+            } catch (error) {
+              console.error('[Perfil] Error deleting post:', error);
+              Alert.alert('Error', 'No se pudo eliminar la publicación');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderGridPost = (post: Post) => {
     const firstImage = post.imagenes && post.imagenes.length > 0 
       ? post.imagenes[0] 
       : post.imagen;
 
+    // ✅ NEW: Check if author has unviewed momentos
+    const authorHasMomentos = postAuthorsWithMomentos.has(post.autor_id);
+    const isOwner = post.autor_id === user?.id;
+
     return (
-      <TouchableOpacity
-        key={post.id}
-        style={styles.gridItem}
-        onPress={() => handlePostClick(post.id)}
-        activeOpacity={0.8}
-      >
-        {firstImage ? (
-          <Image source={{ uri: firstImage }} style={styles.gridImage} />
-        ) : (
-          <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
-            <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
+      <View key={post.id} style={styles.gridItemWrapper}>
+        <TouchableOpacity
+          style={styles.gridItem}
+          onPress={() => handlePostClick(post.id)}
+          activeOpacity={0.8}
+        >
+          {firstImage ? (
+            <Image source={{ uri: firstImage }} style={styles.gridImage} />
+          ) : (
+            <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
+              <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
+            </View>
+          )}
+          {post.imagenes && post.imagenes.length > 1 && (
+            <View style={styles.multipleImagesIndicator}>
+              <IconSymbol ios_icon_name="square.stack.fill" android_material_icon_name="collections" size={16} color={colors.headerText} />
+            </View>
+          )}
+          
+          {/* ✅ NEW: Avatar with neon border if author has unviewed momentos */}
+          <View style={styles.gridAvatarContainer}>
+            <MiniAvatarWithMomento
+              userId={post.autor_id}
+              imageUrl={post.autor?.avatar}
+              size={32}
+              showMomentoBorder={true}
+            />
           </View>
-        )}
-        {post.imagenes && post.imagenes.length > 1 && (
-          <View style={styles.multipleImagesIndicator}>
-            <IconSymbol ios_icon_name="square.stack.fill" android_material_icon_name="collections" size={16} color={colors.headerText} />
-          </View>
-        )}
-      </TouchableOpacity>
+
+          {/* ✅ NEW: 3-dot menu for owner's posts */}
+          {isOwner && (
+            <TouchableOpacity
+              style={styles.gridOptionsButton}
+              onPress={() => handlePostOptions(post)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.gridOptionsButtonBg}>
+                <IconSymbol 
+                  ios_icon_name="ellipsis" 
+                  android_material_icon_name="more_vert" 
+                  size={18} 
+                  color={colors.headerText} 
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -1187,7 +1364,6 @@ export default function PerfilScreen() {
         onClose={() => setShowMomentoViewer(false)}
       />
 
-      {/* ✅ NEW: Post Viewer Modal for feed-style scrolling */}
       {selectedPostId && allPostIds.length > 0 && (
         <PostViewerModal
           visible={showPostViewer}
@@ -1474,9 +1650,13 @@ const styles = StyleSheet.create({
     gap: 2,
     backgroundColor: colors.cardBorder,
   },
-  gridItem: {
+  gridItemWrapper: {
     width: GRID_ITEM_SIZE,
     height: GRID_ITEM_SIZE,
+  },
+  gridItem: {
+    width: '100%',
+    height: '100%',
     position: 'relative',
   },
   gridImage: {
@@ -1493,6 +1673,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 16,
+    padding: 6,
+  },
+  gridAvatarContainer: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+  },
+  gridOptionsButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  gridOptionsButtonBg: {
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 16,
     padding: 6,
