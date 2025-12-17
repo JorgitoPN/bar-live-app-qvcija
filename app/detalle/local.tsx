@@ -285,17 +285,15 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL v12.0 - TRANSPARENT MODAL FIX
+ * ✅ DETALLE LOCAL v13.0 - PROPER MODAL IMPLEMENTATION
  * 
  * Changes:
- * - ✅ REBUILT: Now a proper transparent modal with swipe-down gesture
+ * - ✅ Now opens as a proper modal with transparentModal presentation
  * - ✅ Background page visible and dimmed behind modal
+ * - ✅ Swipe-down gesture to close
+ * - ✅ No white/black background when swiping
  * - ✅ Smooth animations with react-native-reanimated
- * - ✅ Drag indicator at top
- * - ✅ No white/black background when swiping - shows previous page
  * - ✅ Close button positioned dynamically based on badges
- * - ✅ Same size as save button (40x40)
- * - ✅ Uses transparentModal presentation for proper background visibility
  */
 
 export default function DetalleLocalScreen() {
@@ -794,9 +792,9 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
-  // ✅ DYNAMIC CLOSE BUTTON POSITION
+  // ✅ DYNAMIC CLOSE BUTTON POSITION - closer to badges
   const closeButtonTop = local.destacado 
-    ? (Platform.OS === 'ios' ? 92 : 92)
+    ? (Platform.OS === 'ios' ? 72 : 72)
     : (Platform.OS === 'ios' ? 52 : 52);
 
   return (
@@ -861,7 +859,7 @@ export default function DetalleLocalScreen() {
                   </ScrollView>
                 </TouchableOpacity>
 
-                {/* ✅ FIXED: Close button with DYNAMIC position based on badges */}
+                {/* ✅ FIXED: Close button with DYNAMIC position based on badges - CLOSER to badges */}
                 <TouchableOpacity 
                   style={[styles.closeButtonFixed, { top: closeButtonTop }]} 
                   onPress={() => router.back()}
@@ -1298,9 +1296,7 @@ export default function DetalleLocalScreen() {
                                 <RNImage source={{ uri: review.usuario.avatar }} style={styles.avatar} />
                               ) : (
                                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                                  <Text style={styles.avatarText}>
-                                    {review.usuario?.nombre?.charAt(0).toUpperCase() || 'U'}
-                                  </Text>
+                                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
                                 </View>
                               )}
                             </View>
@@ -1371,7 +1367,7 @@ export default function DetalleLocalScreen() {
           localId={params.id as string}
           onClose={() => setShowReviewsModal(false)}
           onReviewAdded={() => {
-            console.log('[DetalleLocal v12.0] ✅ Review added, reloading reviews');
+            console.log('[DetalleLocal v13.0] ✅ Review added, reloading reviews');
             cargarReviewsBarlive();
           }}
         />
