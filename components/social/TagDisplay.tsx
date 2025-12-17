@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -65,28 +65,7 @@ export default function TagDisplay({
   const [tags, setTags] = useState<Tag[]>([]);
   const [fadeAnim] = useState(new Animated.Value(0));
 
-  useEffect(() => {
-    loadTags();
-  }, [postId]);
-
-  useEffect(() => {
-    if (visible) {
-      Animated.spring(fadeAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 7,
-      }).start();
-    } else {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [visible]);
-
-  const loadTags = async () => {
+  const loadTags = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('post_tags')
@@ -108,7 +87,28 @@ export default function TagDisplay({
     } catch (error) {
       console.error('[TagDisplay] Error:', error);
     }
-  };
+  }, [postId]);
+
+  useEffect(() => {
+    loadTags();
+  }, [loadTags]);
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(fadeAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+    } else {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible, fadeAnim]);
 
   const handleTagPress = (tag: Tag) => {
     if (tag.tipo === 'usuario' && tag.usuario_id) {

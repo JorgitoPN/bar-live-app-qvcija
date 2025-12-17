@@ -70,8 +70,8 @@ export default function EditarLocalScreen() {
 
   // Form fields
   const [nombre, setNombre] = useState('');
-  const [username, setUsername] = useState(''); // ✅ NEW: Username field
-  const [usernameError, setUsernameError] = useState(''); // ✅ NEW: Username validation error
+  const [username, setUsername] = useState('');
+  const [usernameError, setUsernameError] = useState('');
   const [tipo, setTipo] = useState('bar');
   const [direccion, setDireccion] = useState('');
   const [provincia, setProvincia] = useState('Madrid');
@@ -128,7 +128,7 @@ export default function EditarLocalScreen() {
 
       if (data) {
         setNombre(data.nombre || '');
-        setUsername(data.username || ''); // ✅ NEW: Load username
+        setUsername(data.username || '');
         setTipo(data.tipo || 'bar');
         setDireccion(data.direccion || '');
         setProvincia(data.provincia || 'Madrid');
@@ -162,8 +162,8 @@ export default function EditarLocalScreen() {
     loadLocalData();
   }, [loadLocalData]);
 
-  // ✅ NEW: Validate username availability
-  const validateUsername = async (newUsername: string) => {
+  // Validate username availability
+  const validateUsername = useCallback(async (newUsername: string) => {
     const cleanUsername = newUsername.trim().toLowerCase();
     
     if (!cleanUsername) {
@@ -224,9 +224,9 @@ export default function EditarLocalScreen() {
     } finally {
       setCheckingUsername(false);
     }
-  };
+  }, [localId]);
 
-  // ✅ NEW: Debounced username validation
+  // Debounced username validation
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (username) {
@@ -237,7 +237,7 @@ export default function EditarLocalScreen() {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [username]);
+  }, [username, validateUsername]);
 
   const searchGooglePlaces = async (query: string) => {
     if (query.length < 3) {
@@ -415,7 +415,7 @@ export default function EditarLocalScreen() {
       return;
     }
 
-    // ✅ NEW: Validate username if provided
+    // Validate username if provided
     if (username.trim()) {
       const isValid = await validateUsername(username);
       if (!isValid) {
@@ -429,7 +429,7 @@ export default function EditarLocalScreen() {
     try {
       const updateData: any = {
         nombre: nombre.trim(),
-        username: username.trim() || null, // ✅ NEW: Save username
+        username: username.trim() || null,
         tipo,
         direccion: direccion.trim(),
         provincia,
@@ -620,7 +620,7 @@ export default function EditarLocalScreen() {
               />
             </View>
 
-            {/* ✅ NEW: Username field */}
+            {/* Username field */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Nombre de usuario</Text>
               <View style={styles.usernameInputContainer}>

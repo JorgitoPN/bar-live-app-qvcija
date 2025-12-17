@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -40,11 +40,7 @@ export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps)
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [removing, setRemoving] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadCart();
-  }, []);
-
-  const loadCart = async () => {
+  const loadCart = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -65,7 +61,11 @@ export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps)
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadCart();
+  }, [loadCart]);
 
   const removeItem = async (itemId: string) => {
     setRemoving(itemId);
