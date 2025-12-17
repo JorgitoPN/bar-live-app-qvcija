@@ -66,6 +66,7 @@ interface Local {
   ambiente_completo?: Record<string, boolean>;
   clientela?: Record<string, boolean>;
   metodos_pago_completos?: Record<string, boolean>;
+  coordenadas?: { lat: number; lng: number };
 }
 
 const getCategoryIcon = (categoria?: string): { ios: string; android: string; color: string } => {
@@ -148,10 +149,19 @@ export default function LocalDetailsModal({
         default: `https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`
       });
       Linking.openURL(url);
+    } else if (local?.coordenadas) {
+      const { lat, lng } = local.coordenadas;
+      const url = Platform.select({
+        ios: `maps:0,0?q=${lat},${lng}`,
+        android: `google.navigation:q=${lat},${lng}`,
+        default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+      });
+      Linking.openURL(url);
     }
   };
 
   const handleViewFullDetails = () => {
+    console.log('[LocalDetailsModal] 📱 Navigating to full details page');
     onClose();
     setTimeout(() => {
       router.push({ pathname: '/detalle/local', params: { id: localId } });
@@ -338,7 +348,7 @@ export default function LocalDetailsModal({
                       </TouchableOpacity>
                     )}
                 
-                    {local.latitud && local.longitud && (
+                    {(local.latitud || local.coordenadas) && (
                       <TouchableOpacity style={styles.actionBtn} onPress={handleDirections}>
                         <LinearGradient
                           colors={[colors.primary, colors.secondary]}
