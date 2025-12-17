@@ -18,16 +18,13 @@ import { useFavorites } from '../../contexts/FavoritesContext';
 import { calcularDistancia } from '../../utils/locationUtils';
 import ParsedText from '../../components/social/ParsedText';
 import ReviewsModal from '../../components/social/ReviewsModal';
-import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   withTiming,
   runOnJS,
-  interpolate,
-  Extrapolate,
-  useAnimatedGestureHandler,
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -286,14 +283,12 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL v14.0 - REAL BOTTOM SHEET MODAL
+ * ✅ DETALLE LOCAL v15.0 - FIXED GESTURE HANDLER
  * 
- * Changes from v13.0:
- * - ✅ Removed manual backdrop (Expo Router handles it with transparentModal)
- * - ✅ Simplified gesture handling
- * - ✅ Background page now truly visible behind modal
- * - ✅ No grey/white background when swiping
- * - ✅ Proper bottom sheet behavior with slide_from_bottom animation
+ * Changes from v14.0:
+ * - ✅ Replaced deprecated useAnimatedGestureHandler with modern Gesture API
+ * - ✅ Using Gesture.Pan() with proper event handlers
+ * - ✅ Compatible with react-native-reanimated v4.1.0
  */
 
 export default function DetalleLocalScreen() {
@@ -324,6 +319,11 @@ export default function DetalleLocalScreen() {
 
   // ✅ Gesture handling for swipe-down to close
   const translateY = useSharedValue(0);
+  const startY = useSharedValue(0);
+
+  const handleModalClose = useCallback(() => {
+    router.back();
+  }, [router]);
 
   useEffect(() => {
     (async () => {
@@ -589,18 +589,18 @@ export default function DetalleLocalScreen() {
     });
   };
 
-  // ✅ Simplified gesture handler for swipe-down to close
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx: any) => {
-      ctx.startY = translateY.value;
-    },
-    onActive: (event, ctx: any) => {
+  // ✅ Modern Gesture API for swipe-down to close
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      startY.value = translateY.value;
+    })
+    .onUpdate((event) => {
       // Only allow downward swipes
       if (event.translationY > 0) {
         translateY.value = event.translationY;
       }
-    },
-    onEnd: (event) => {
+    })
+    .onEnd((event) => {
       const shouldClose = event.translationY > SWIPE_THRESHOLD || event.velocityY > 500;
       
       if (shouldClose) {
@@ -608,7 +608,7 @@ export default function DetalleLocalScreen() {
         translateY.value = withTiming(MODAL_HEIGHT, {
           duration: 300,
         }, () => {
-          runOnJS(router.back)();
+          runOnJS(handleModalClose)();
         });
       } else {
         // Snap back to open position
@@ -617,8 +617,7 @@ export default function DetalleLocalScreen() {
           stiffness: 90,
         });
       }
-    },
-  });
+    });
 
   const animatedModalStyle = useAnimatedStyle(() => {
     return {
@@ -781,7 +780,7 @@ export default function DetalleLocalScreen() {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       {/* ✅ Modal container with swipe gesture - NO manual backdrop */}
-      <PanGestureHandler onGestureEvent={gestureHandler}>
+      <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.modalContainer, animatedModalStyle]}>
           {/* ✅ Drag indicator */}
           <View style={styles.dragIndicatorContainer}>
@@ -1315,7 +1314,7 @@ export default function DetalleLocalScreen() {
             </View>
           </ScrollView>
         </Animated.View>
-      </PanGestureHandler>
+      </GestureDetector>
 
       {galleryVisible && (
         <ImageGalleryModal
@@ -1332,7 +1331,7 @@ export default function DetalleLocalScreen() {
           localId={params.id as string}
           onClose={() => setShowReviewsModal(false)}
           onReviewAdded={() => {
-            console.log('[DetalleLocal v14.0] ✅ Review added, reloading reviews');
+            console.log('[DetalleLocal v15.0] ✅ Review added, reloading reviews');
             cargarReviewsBarlive();
           }}
         />
