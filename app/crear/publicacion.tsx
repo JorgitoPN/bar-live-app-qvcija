@@ -202,7 +202,7 @@ export default function CrearPublicacionScreen() {
     setEditingImageUri(null);
   };
 
-  // ✅ NEW: Advanced Image Editor with Zoom, Pan, and Crop
+  // ✅ FIXED: Advanced Image Editor with proper SCREEN_WIDTH usage
   const ImageEditorModal = () => {
     const [processing, setProcessing] = useState(false);
     const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
