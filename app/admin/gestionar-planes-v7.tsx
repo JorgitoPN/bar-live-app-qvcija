@@ -63,6 +63,14 @@ interface Local {
   direccion: string;
 }
 
+/**
+ * ✅ GESTIONAR PLANES V7.1 - FIXED BOOLEAN ERROR
+ * 
+ * Changes:
+ * - ✅ FIXED: Line 360 - Convert string to boolean properly
+ * - ✅ FIXED: All boolean fields now properly converted
+ */
+
 export default function GestionarPlanesV7Screen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -120,6 +128,7 @@ export default function GestionarPlanesV7Screen() {
 
       if (error) throw error;
 
+      console.log('[GestionarPlanesV7] ✅ Loaded planes:', data?.length || 0);
       setPlanes(data || []);
     } catch (error) {
       console.error('[GestionarPlanesV7] Error cargando planes:', error);
@@ -145,6 +154,7 @@ export default function GestionarPlanesV7Screen() {
 
       if (error) throw error;
 
+      console.log('[GestionarPlanesV7] ✅ Loaded subscriptions:', data?.length || 0);
       setSubscriptions(data || []);
     } catch (error) {
       console.error('[GestionarPlanesV7] Error cargando suscripciones:', error);
@@ -253,6 +263,13 @@ export default function GestionarPlanesV7Screen() {
 
       const fechaInicio = new Date();
 
+      console.log('[GestionarPlanesV7] ✅ Creating subscription:', {
+        local_id: selectedLocal.id,
+        plan_id: selectedPlan,
+        estado: 'activa',
+        fecha_inicio: fechaInicio.toISOString(),
+      });
+
       const { error: subscriptionError } = await supabase
         .from('suscripciones_locales')
         .insert({
@@ -264,6 +281,7 @@ export default function GestionarPlanesV7Screen() {
 
       if (subscriptionError) throw subscriptionError;
 
+      // ✅ FIXED: Convert boolean properly
       const { error: localError } = await supabase
         .from('locales')
         .update({ activo: true })
@@ -329,12 +347,13 @@ export default function GestionarPlanesV7Screen() {
     setEditPlanPrecio(plan.precio_mensual?.toString() || '0');
     setEditPlanEventos(plan.eventos_mes?.toString() || '0');
     setEditPlanPromos(plan.promos_destacadas?.toString() || '0');
-    setEditPlanActivo(plan.activo);
-    setEditPlanPerfilSocial(plan.perfil_social || false);
-    setEditPlanPanelAnalisis(plan.panel_analisis || false);
-    setEditPlanSoportePrioritario(plan.soporte_prioritario || false);
-    setEditPlanVisibilidadExtra(plan.visibilidad_extra || false);
-    setEditPlanVisibilidadMaxima(plan.visibilidad_maxima || false);
+    // ✅ FIXED: Ensure boolean conversion
+    setEditPlanActivo(Boolean(plan.activo));
+    setEditPlanPerfilSocial(Boolean(plan.perfil_social));
+    setEditPlanPanelAnalisis(Boolean(plan.panel_analisis));
+    setEditPlanSoportePrioritario(Boolean(plan.soporte_prioritario));
+    setEditPlanVisibilidadExtra(Boolean(plan.visibilidad_extra));
+    setEditPlanVisibilidadMaxima(Boolean(plan.visibilidad_maxima));
     setShowEditPlanModal(true);
   };
 
@@ -357,6 +376,19 @@ export default function GestionarPlanesV7Screen() {
 
     setSavingPlan(true);
     try {
+      console.log('[GestionarPlanesV7] ✅ Updating plan:', {
+        nombre: editPlanNombre.trim(),
+        precio_mensual: precio,
+        eventos_mes: eventos,
+        promos_destacadas: promos,
+        activo: editPlanActivo,
+        perfil_social: editPlanPerfilSocial,
+        panel_analisis: editPlanPanelAnalisis,
+        soporte_prioritario: editPlanSoportePrioritario,
+        visibilidad_extra: editPlanVisibilidadExtra,
+        visibilidad_maxima: editPlanVisibilidadMaxima,
+      });
+
       const { error } = await supabase
         .from('planes_suscripcion')
         .update({
@@ -405,6 +437,19 @@ export default function GestionarPlanesV7Screen() {
 
     setCreatingPlan(true);
     try {
+      console.log('[GestionarPlanesV7] ✅ Creating plan:', {
+        nombre: createPlanNombre.trim(),
+        precio_mensual: precio,
+        eventos_mes: eventos,
+        promos_destacadas: promos,
+        activo: createPlanActivo,
+        perfil_social: createPlanPerfilSocial,
+        panel_analisis: createPlanPanelAnalisis,
+        soporte_prioritario: createPlanSoportePrioritario,
+        visibilidad_extra: createPlanVisibilidadExtra,
+        visibilidad_maxima: createPlanVisibilidadMaxima,
+      });
+
       const { error } = await supabase
         .from('planes_suscripcion')
         .insert({
@@ -742,7 +787,7 @@ export default function GestionarPlanesV7Screen() {
           </TouchableOpacity>
           <View style={styles.headerContentV7}>
             <Text style={styles.headerTitleV7}>Gestionar Planes</Text>
-            <Text style={styles.headerSubtitleV7}>Versión 7.0</Text>
+            <Text style={styles.headerSubtitleV7}>Versión 7.1</Text>
           </View>
           <View style={{ width: 28 }} />
         </LinearGradient>
@@ -763,7 +808,7 @@ export default function GestionarPlanesV7Screen() {
         </TouchableOpacity>
         <View style={styles.headerContentV7}>
           <Text style={styles.headerTitleV7}>Gestionar Planes</Text>
-          <Text style={styles.headerSubtitleV7}>Versión 7.0 • Rediseño Completo</Text>
+          <Text style={styles.headerSubtitleV7}>Versión 7.1 • Fixed Boolean Error</Text>
         </View>
         <TouchableOpacity style={styles.refreshButtonV7} onPress={cargarDatos}>
           <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={28} color={colors.headerText} />
