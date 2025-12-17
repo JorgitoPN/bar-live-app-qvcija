@@ -384,9 +384,12 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [editedDescription, post.id, onUpdate]);
 
+  // ✅ FIXED v2: Reload tags from database after opening modal
   const loadExistingTags = useCallback(async () => {
     setLoadingTags(true);
     try {
+      console.log('[PublicacionCard] 🔄 Loading tags from database for post:', post.id);
+
       const { data, error } = await supabase
         .from('post_tags')
         .select(`
@@ -396,7 +399,12 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         `)
         .eq('post_id', post.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[PublicacionCard] ❌ Error loading tags:', error);
+        throw error;
+      }
+
+      console.log('[PublicacionCard] 📊 Raw tags data from database:', data);
 
       const tags: TaggableUser[] = [];
       
@@ -422,20 +430,23 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         });
       }
 
+      console.log('[PublicacionCard] ✅ Processed tags:', tags.length);
       setExistingTags(tags);
     } catch (error) {
       console.error('[PublicacionCard] Error loading tags:', error);
+      setExistingTags([]);
     } finally {
       setLoadingTags(false);
     }
   }, [post.id]);
 
   const handleManageTags = useCallback(() => {
+    // ✅ Always reload tags from database when opening modal
     loadExistingTags();
     setShowTagManagementModal(true);
   }, [loadExistingTags]);
 
-  // ✅ FIXED: Permanent tag deletion
+  // ✅ FIXED v3: Permanent tag deletion with proper query building
   const handleRemoveTag = useCallback(async (taggedUser: TaggableUser) => {
     try {
       console.log('[PublicacionCard] 🗑️ Removing tag permanently:', {
@@ -444,13 +455,14 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         tipo: taggedUser.tipo,
       });
 
-      // Build the delete query correctly
+      // Build the delete query correctly based on tag type
       let deleteQuery = supabase
         .from('post_tags')
         .delete()
         .eq('post_id', post.id)
         .eq('tipo', taggedUser.tipo);
 
+      // ✅ CRITICAL FIX: Add the correct ID field based on tipo
       if (taggedUser.tipo === 'usuario') {
         deleteQuery = deleteQuery.eq('usuario_id', taggedUser.id);
       } else {
@@ -466,10 +478,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       console.log('[PublicacionCard] ✅ Tag deleted successfully from database');
 
-      // ✅ Update local state immediately to prevent reappearing
-      setExistingTags(prev => prev.filter(t => !(t.id === taggedUser.id && t.tipo === taggedUser.tipo)));
+      // ✅ CRITICAL FIX: Reload tags from database to ensure UI is in sync
+      await loadExistingTags();
       
-      // ✅ Reload tagged users for display
+      // ✅ Also reload tagged users for display
       await loadTaggedUsers();
       
       // ✅ Trigger parent update
@@ -482,7 +494,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       console.error('[PublicacionCard] ❌ Error removing tag:', error);
       Alert.alert('Error', 'No se pudo eliminar la etiqueta. Por favor, intenta de nuevo.');
     }
-  }, [post.id, loadTaggedUsers, onUpdate]);
+  }, [post.id, loadExistingTags, loadTaggedUsers, onUpdate]);
 
   // ✅ FIXED: Only send tag request, not notification
   const handleAddNewTag = useCallback(async (selectedUser: TaggableUser) => {
@@ -516,8 +528,9 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       // ✅ DO NOT send notification - only tag request is created
       // The user will see the tag request in their notifications as a "tag_request" type
 
-      loadExistingTags();
-      loadTaggedUsers();
+      // ✅ Reload tags from database
+      await loadExistingTags();
+      await loadTaggedUsers();
       
       if (onUpdate) {
         onUpdate();
@@ -916,6 +929,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             {loadingTags ? (
               <View style={styles.tagManagementLoading}>
                 <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Cargando etiquetas...</Text>
               </View>
             ) : (
               <ScrollView style={styles.tagManagementScroll}>
@@ -1233,6 +1247,11 @@ const styles = StyleSheet.create({
   tagManagementLoading: {
     paddingVertical: 60,
     alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   tagManagementScroll: {
     maxHeight: 400,

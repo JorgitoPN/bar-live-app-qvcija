@@ -14,14 +14,12 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   useWindowDimensions,
-  Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 import * as Location from 'expo-location';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,12 +30,7 @@ import { processPostHashtags, processPostMentions } from '@/utils/postHelpers';
 import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
 import HashtagAutocomplete from '@/components/social/HashtagAutocomplete';
 import TaggingModalV5, { TaggableUser } from '@/components/social/TaggingModalV5';
-import { GestureHandlerRootView, PinchGestureHandler, PanGestureHandler } from 'react-native-gesture-handler';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
+import ImageEditorV6 from '@/components/social/ImageEditorV6';
 
 const convertImageToJPG = (uri: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -88,14 +81,11 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 };
 
 /**
- * ✅ EDIT PUBLICATION v1.0 - WITH IMAGE EDITOR
+ * ✅ EDIT PUBLICATION v2.0 - WITH IMAGE EDITOR v6.0
  * 
- * Features:
- * - Edit post description
- * - Add/remove images with image editor
- * - Manage tags
- * - Update location
- * - Same image editing system as momentos
+ * Changes:
+ * - ✅ Integrated new ImageEditorV6 component
+ * - ✅ Improved image editing workflow
  */
 
 export default function EditarPublicacionScreen() {
@@ -106,7 +96,7 @@ export default function EditarPublicacionScreen() {
   const params = useLocalSearchParams();
   const postId = params.postId as string;
   
-  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   
   const [contenido, setContenido] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
@@ -126,6 +116,7 @@ export default function EditarPublicacionScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   
+  // ✅ NEW: Image Editor v6.0 state
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [editingImageUri, setEditingImageUri] = useState<string | null>(null);
@@ -182,7 +173,6 @@ export default function EditarPublicacionScreen() {
         });
       }
 
-      // Load tags
       const { data: tagsData, error: tagsError } = await supabase
         .from('post_tags')
         .select(`
@@ -261,237 +251,27 @@ export default function EditarPublicacionScreen() {
     setCursorPosition(newCursorPosition);
   };
 
+  // ✅ NEW: Open Image Editor v6.0
   const handleEditImage = (index: number) => {
+    console.log('[EditarPublicacion] 🎨 Opening Image Editor v6.0 for image:', index);
     setEditingImageIndex(index);
     setEditingImageUri(imagenes[index]);
     setShowImageEditor(true);
   };
 
-  const handleApplyImageEdit = async (editedUri: string) => {
+  // ✅ NEW: Save edited image from Image Editor v6.0
+  const handleSaveEditedImage = (editedUri: string) => {
+    console.log('[EditarPublicacion] ✅ Saving edited image:', editedUri);
+    
     if (editingImageIndex !== null) {
       const newImagenes = [...imagenes];
       newImagenes[editingImageIndex] = editedUri;
       setImagenes(newImagenes);
     }
+    
     setShowImageEditor(false);
     setEditingImageIndex(null);
     setEditingImageUri(null);
-  };
-
-  const ImageEditorModal = () => {
-    const [processing, setProcessing] = useState(false);
-    const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
-    const [rotation, setRotation] = useState(0);
-    
-    const scale = useSharedValue(1);
-    const translateX = useSharedValue(0);
-    const translateY = useSharedValue(0);
-    const savedScale = useSharedValue(1);
-    const savedTranslateX = useSharedValue(0);
-    const savedTranslateY = useSharedValue(0);
-
-    useEffect(() => {
-      if (editingImageUri) {
-        Image.getSize(editingImageUri, (width, height) => {
-          setImageDimensions({ width, height });
-          
-          const imageRatio = width / height;
-          const screenRatio = 1;
-          
-          if (imageRatio > screenRatio) {
-            scale.value = SCREEN_WIDTH / width;
-          } else {
-            scale.value = SCREEN_WIDTH / height;
-          }
-          savedScale.value = scale.value;
-        }, (error) => {
-          console.error('[ImageEditor] Error getting image size:', error);
-        });
-      }
-    }, [editingImageUri]);
-
-    const animatedStyle = useAnimatedStyle(() => {
-      return {
-        transform: [
-          { translateX: translateX.value },
-          { translateY: translateY.value },
-          { scale: scale.value },
-          { rotate: `${rotation}deg` },
-        ],
-      };
-    });
-
-    const resetTransform = () => {
-      scale.value = withSpring(1);
-      translateX.value = withSpring(0);
-      translateY.value = withSpring(0);
-      savedScale.value = 1;
-      savedTranslateX.value = 0;
-      savedTranslateY.value = 0;
-      setRotation(0);
-    };
-
-    const applyEdits = async () => {
-      if (!editingImageUri) return;
-
-      setProcessing(true);
-      try {
-        const actions: any[] = [];
-
-        if (rotation !== 0) {
-          actions.push({ rotate: rotation });
-        }
-
-        if (imageDimensions.width !== imageDimensions.height) {
-          const size = Math.min(imageDimensions.width, imageDimensions.height);
-          const originX = (imageDimensions.width - size) / 2;
-          const originY = (imageDimensions.height - size) / 2;
-          actions.push({
-            crop: {
-              originX,
-              originY,
-              width: size,
-              height: size,
-            },
-          });
-        }
-
-        const result = await ImageManipulator.manipulateAsync(
-          editingImageUri,
-          actions,
-          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-        );
-
-        handleApplyImageEdit(result.uri);
-      } catch (error) {
-        console.error('[EditarPublicacion] Error editing image:', error);
-        Alert.alert('Error', 'No se pudo editar la imagen');
-      } finally {
-        setProcessing(false);
-      }
-    };
-
-    return (
-      <Modal
-        visible={showImageEditor}
-        transparent={false}
-        animationType="slide"
-        onRequestClose={() => setShowImageEditor(false)}
-      >
-        <GestureHandlerRootView style={styles.editorContainer}>
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.editorHeader}
-          >
-            <TouchableOpacity onPress={() => setShowImageEditor(false)} style={styles.editorCloseButton}>
-              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-            <Text style={styles.editorHeaderTitle}>Editar Imagen</Text>
-            <TouchableOpacity 
-              onPress={applyEdits} 
-              style={styles.editorApplyButton}
-              disabled={processing}
-            >
-              {processing ? (
-                <ActivityIndicator size="small" color={colors.headerText} />
-              ) : (
-                <Text style={styles.editorApplyText}>Listo</Text>
-              )}
-            </TouchableOpacity>
-          </LinearGradient>
-
-          <View style={styles.editorContent}>
-            <View style={styles.editorImageFrame}>
-              {editingImageUri ? (
-                <PanGestureHandler
-                  onGestureEvent={(event) => {
-                    'worklet';
-                    translateX.value = savedTranslateX.value + event.translationX;
-                    translateY.value = savedTranslateY.value + event.translationY;
-                  }}
-                  onEnded={() => {
-                    'worklet';
-                    savedTranslateX.value = translateX.value;
-                    savedTranslateY.value = translateY.value;
-                  }}
-                >
-                  <Animated.View style={{ flex: 1 }}>
-                    <PinchGestureHandler
-                      onGestureEvent={(event) => {
-                        'worklet';
-                        scale.value = Math.max(0.5, Math.min(savedScale.value * event.scale, 5));
-                      }}
-                      onEnded={() => {
-                        'worklet';
-                        savedScale.value = scale.value;
-                      }}
-                    >
-                      <Animated.View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                        <Animated.Image 
-                          source={{ uri: editingImageUri }} 
-                          style={[
-                            {
-                              width: SCREEN_WIDTH,
-                              height: SCREEN_WIDTH,
-                            },
-                            animatedStyle
-                          ]}
-                          resizeMode="contain"
-                        />
-                      </Animated.View>
-                    </PinchGestureHandler>
-                  </Animated.View>
-                </PanGestureHandler>
-              ) : (
-                <View style={styles.editorPlaceholder}>
-                  <ActivityIndicator size="large" color={colors.primary} />
-                  <Text style={styles.editorPlaceholderText}>Cargando imagen...</Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.editorFooter}>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.editorControls}
-            >
-              <TouchableOpacity 
-                style={styles.editorControlButton}
-                onPress={() => setRotation((rotation - 90) % 360)}
-              >
-                <IconSymbol 
-                  ios_icon_name="rotate.left" 
-                  android_material_icon_name="rotate_left" 
-                  size={24} 
-                  color={colors.headerText} 
-                />
-                <Text style={styles.editorControlText}>Rotar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.editorControlButton}
-                onPress={resetTransform}
-              >
-                <IconSymbol 
-                  ios_icon_name="arrow.counterclockwise" 
-                  android_material_icon_name="refresh" 
-                  size={24} 
-                  color={colors.headerText} 
-                />
-                <Text style={styles.editorControlText}>Restablecer</Text>
-              </TouchableOpacity>
-            </ScrollView>
-            <Text style={styles.editorFooterText}>
-              Pellizca para acercar/alejar • Arrastra para centrar • Toca para rotar
-            </Text>
-          </View>
-        </GestureHandlerRootView>
-      </Modal>
-    );
   };
 
   const seleccionarImagenes = async () => {
@@ -668,7 +448,6 @@ export default function EditarPublicacionScreen() {
     setUploadProgress(0);
 
     try {
-      // Upload new images
       let imagenesUrls: string[] = [];
       const newImages = imagenes.filter(uri => uri.startsWith('file://') || uri.startsWith('blob:'));
       const existingImages = imagenes.filter(uri => !uri.startsWith('file://') && !uri.startsWith('blob:'));
@@ -723,7 +502,6 @@ export default function EditarPublicacionScreen() {
 
       setUploadProgress(80);
 
-      // Update hashtags and mentions
       if (contenido) {
         await Promise.all([
           processPostHashtags(postId, contenido),
@@ -733,7 +511,6 @@ export default function EditarPublicacionScreen() {
 
       setUploadProgress(85);
 
-      // Update tags
       await supabase
         .from('post_tags')
         .delete()
@@ -763,39 +540,6 @@ export default function EditarPublicacionScreen() {
         });
 
         await supabase.from('post_tags').insert(tags);
-
-        for (const item of usuariosEtiquetados) {
-          if (item.tipo === 'usuario') {
-            await supabase.from('notificaciones').insert({
-              usuario_id: item.id,
-              tipo: 'mencion',
-              titulo: 'Te han etiquetado',
-              mensaje: `${user.nombre} te ha etiquetado en una publicación`,
-              usuario_origen_id: user.id,
-              post_id: postId,
-            });
-          } else {
-            const { data: owners } = await supabase
-              .from('propietarios_locales')
-              .select('propietario_id')
-              .eq('local_id', item.id)
-              .eq('activo', true);
-
-            if (owners && owners.length > 0) {
-              const notifications = owners.map(owner => ({
-                usuario_id: owner.propietario_id,
-                tipo: 'mencion',
-                titulo: 'Han etiquetado tu local',
-                mensaje: `${user.nombre} ha etiquetado a ${item.nombre} en una publicación`,
-                usuario_origen_id: user.id,
-                local_origen_id: item.id,
-                post_id: postId,
-              }));
-
-              await supabase.from('notificaciones').insert(notifications);
-            }
-          }
-        }
       }
 
       setUploadProgress(90);
@@ -875,12 +619,9 @@ export default function EditarPublicacionScreen() {
               placeholder="¿Qué estás pensando?"
               placeholderTextColor={colors.textSecondary}
               value={contenido}
-              onChangeText={(text) => {
-                setContenido(text);
-              }}
+              onChangeText={setContenido}
               onSelectionChange={(event) => {
-                const newPosition = event.nativeEvent.selection.start;
-                setCursorPosition(newPosition);
+                setCursorPosition(event.nativeEvent.selection.start);
               }}
               multiline
               maxLength={2200}
@@ -1086,7 +827,19 @@ export default function EditarPublicacionScreen() {
         />
       </View>
 
-      <ImageEditorModal />
+      {/* ✅ NEW: Image Editor v6.0 */}
+      {editingImageUri && (
+        <ImageEditorV6
+          visible={showImageEditor}
+          imageUri={editingImageUri}
+          onClose={() => {
+            setShowImageEditor(false);
+            setEditingImageIndex(null);
+            setEditingImageUri(null);
+          }}
+          onSave={handleSaveEditedImage}
+        />
+      )}
 
       <TaggingModalV5
         visible={showTagModal}
@@ -1254,103 +1007,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.headerText,
-  },
-  editorContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  editorHeader: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  editorCloseButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editorHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
-  },
-  editorApplyButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 20,
-    minWidth: 90,
-    alignItems: 'center',
-  },
-  editorApplyText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.headerText,
-  },
-  editorContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    padding: 20,
-  },
-  editorImageFrame: {
-    width: '100%',
-    aspectRatio: 1,
-    backgroundColor: '#000',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  editorPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  editorPlaceholderText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  editorFooter: {
-    backgroundColor: colors.cardBackground,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  editorControls: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-  },
-  editorControlButton: {
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: colors.primary + '15',
-    borderRadius: 12,
-  },
-  editorControlText: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  editorFooterText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textAlign: 'center',
   },
   taggedSection: {
     backgroundColor: colors.cardBackground,
