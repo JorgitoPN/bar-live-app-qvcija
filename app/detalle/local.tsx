@@ -285,16 +285,17 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL v11.0 - COMPLETE MODAL REBUILD
+ * ✅ DETALLE LOCAL v12.0 - TRANSPARENT MODAL FIX
  * 
  * Changes:
- * - ✅ REBUILT: Now a proper modal with swipe-down gesture
+ * - ✅ REBUILT: Now a proper transparent modal with swipe-down gesture
  * - ✅ Background page visible and dimmed behind modal
  * - ✅ Smooth animations with react-native-reanimated
  * - ✅ Drag indicator at top
- * - ✅ No white/black background when swiping
+ * - ✅ No white/black background when swiping - shows previous page
  * - ✅ Close button positioned dynamically based on badges
  * - ✅ Same size as save button (40x40)
+ * - ✅ Uses transparentModal presentation for proper background visibility
  */
 
 export default function DetalleLocalScreen() {
@@ -638,7 +639,7 @@ export default function DetalleLocalScreen() {
     const opacity = interpolate(
       translateY.value,
       [0, MODAL_HEIGHT],
-      [0.6, 0],
+      [1, 0],
       Extrapolate.CLAMP
     );
     
@@ -799,11 +800,17 @@ export default function DetalleLocalScreen() {
     : (Platform.OS === 'ios' ? 52 : 52);
 
   return (
-    <GestureHandlerRootView style={styles.gestureRoot}>
+    <View style={styles.gestureRoot}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      {/* ✅ Animated backdrop - visible and dimmed */}
-      <Animated.View style={[styles.backdrop, animatedBackdropStyle]} />
+      {/* ✅ Animated backdrop - visible and dimmed, allows background page to show through */}
+      <Animated.View style={[styles.backdrop, animatedBackdropStyle]}>
+        <TouchableOpacity 
+          style={StyleSheet.absoluteFillObject}
+          activeOpacity={1}
+          onPress={() => router.back()}
+        />
+      </Animated.View>
 
       {/* ✅ Animated modal container with swipe gesture */}
       <PanGestureHandler
@@ -1349,23 +1356,27 @@ export default function DetalleLocalScreen() {
         </Animated.View>
       </PanGestureHandler>
 
-      <ImageGalleryModal
-        visible={galleryVisible}
-        images={allImages}
-        initialIndex={galleryInitialIndex}
-        onClose={() => setGalleryVisible(false)}
-      />
+      {galleryVisible && (
+        <ImageGalleryModal
+          visible={galleryVisible}
+          images={allImages}
+          initialIndex={galleryInitialIndex}
+          onClose={() => setGalleryVisible(false)}
+        />
+      )}
 
-      <ReviewsModal
-        visible={showReviewsModal}
-        localId={params.id as string}
-        onClose={() => setShowReviewsModal(false)}
-        onReviewAdded={() => {
-          console.log('[DetalleLocal v11.0] ✅ Review added, reloading reviews');
-          cargarReviewsBarlive();
-        }}
-      />
-    </GestureHandlerRootView>
+      {showReviewsModal && (
+        <ReviewsModal
+          visible={showReviewsModal}
+          localId={params.id as string}
+          onClose={() => setShowReviewsModal(false)}
+          onReviewAdded={() => {
+            console.log('[DetalleLocal v12.0] ✅ Review added, reloading reviews');
+            cargarReviewsBarlive();
+          }}
+        />
+      )}
+    </View>
   );
 }
 
@@ -1376,7 +1387,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   modalContainer: {
     position: 'absolute',

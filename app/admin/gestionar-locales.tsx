@@ -13,6 +13,7 @@ import {
   Switch,
   Modal,
   Pressable,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -391,17 +392,21 @@ export default function GestionarLocalesScreen() {
                 localesSeleccionados.has(local.id) && styles.checkboxChecked
               ]}>
                 {localesSeleccionados.has(local.id) && (
-                  <IconSymbol name="checkmark" size={16} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={16} color={colors.headerText} />
                 )}
               </View>
             </View>
           )}
 
           {local.imagen_url ? (
-            <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
+            <Image 
+              source={{ uri: `${local.imagen_url}?v=${Date.now()}` }} 
+              style={styles.localImage}
+              resizeMode="cover"
+            />
           ) : (
             <View style={[styles.localImage, styles.imagePlaceholder]}>
-              <IconSymbol name="photo" size={32} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="photo" android_material_icon_name="image" size={32} color={colors.textSecondary} />
             </View>
           )}
 
@@ -412,7 +417,10 @@ export default function GestionarLocalesScreen() {
                   {local.nombre}
                 </Text>
                 {local.enriquecido && (
-                  <IconSymbol name="checkmark.seal.fill" size={16} color={colors.primary} />
+                  <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={16} color={colors.primary} />
+                )}
+                {local.destacado && (
+                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#F59E0B" />
                 )}
               </View>
             </View>
@@ -440,14 +448,14 @@ export default function GestionarLocalesScreen() {
             <View style={styles.ownerInfo}>
               {local.propietario ? (
                 <React.Fragment>
-                  <IconSymbol name="envelope.fill" size={12} color={colors.textSecondary} />
+                  <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={12} color={colors.textSecondary} />
                   <Text style={styles.ownerEmail} numberOfLines={1}>
                     {local.propietario.email}
                   </Text>
                 </React.Fragment>
               ) : (
                 <React.Fragment>
-                  <IconSymbol name="person.crop.circle.badge.xmark" size={12} color={colors.textSecondary} />
+                  <IconSymbol ios_icon_name="person.crop.circle.badge.xmark" android_material_icon_name="person_off" size={12} color={colors.textSecondary} />
                   <Text style={styles.ownerEmail}>Sin propietario</Text>
                 </React.Fragment>
               )}
@@ -499,10 +507,17 @@ export default function GestionarLocalesScreen() {
 
             <View style={styles.actionButtons}>
               <TouchableOpacity
+                style={styles.viewButton}
+                onPress={() => router.push(`/detalle/local?id=${local.id}`)}
+              >
+                <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.primary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 style={styles.editButton}
                 onPress={() => router.push(`/editar/local?id=${local.id}`)}
               >
-                <IconSymbol name="pencil" size={18} color={colors.primary} />
+                <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -522,7 +537,7 @@ export default function GestionarLocalesScreen() {
                   )
                 }
               >
-                <IconSymbol name="trash" size={18} color={colors.badgeNuevo} />
+                <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={18} color={colors.badgeNuevo} />
               </TouchableOpacity>
             </View>
           </View>
@@ -562,7 +577,7 @@ export default function GestionarLocalesScreen() {
 
       {/* Barra de búsqueda */}
       <View style={styles.searchContainer}>
-        <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+        <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar por nombre o dirección..."
@@ -572,7 +587,7 @@ export default function GestionarLocalesScreen() {
         />
         {busqueda !== '' && (
           <TouchableOpacity onPress={() => setBusqueda('')}>
-            <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -583,7 +598,7 @@ export default function GestionarLocalesScreen() {
           style={[styles.filterButton, hayFiltrosActivos() && styles.filterButtonActive]}
           onPress={() => setShowFiltersModal(true)}
         >
-          <IconSymbol name="line.3.horizontal.decrease.circle" size={20} color={hayFiltrosActivos() ? colors.headerText : colors.text} />
+          <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle" android_material_icon_name="filter_list" size={20} color={hayFiltrosActivos() ? colors.headerText : colors.text} />
           <Text style={[styles.filterButtonText, hayFiltrosActivos() && styles.filterButtonTextActive]}>
             Filtros {hayFiltrosActivos() && '•'}
           </Text>
@@ -594,7 +609,7 @@ export default function GestionarLocalesScreen() {
             style={styles.clearFiltersButton}
             onPress={limpiarFiltros}
           >
-            <IconSymbol name="xmark.circle.fill" size={16} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={16} color={colors.textSecondary} />
             <Text style={styles.clearFiltersText}>Limpiar</Text>
           </TouchableOpacity>
         )}
@@ -616,7 +631,7 @@ export default function GestionarLocalesScreen() {
               onPress={eliminarSeleccionados}
               disabled={localesSeleccionados.size === 0}
             >
-              <IconSymbol name="trash.fill" size={16} color={colors.headerText} />
+              <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={16} color={colors.headerText} />
               <Text style={styles.deleteSelectedText}>
                 {localesSeleccionados.size > 0 ? `(${localesSeleccionados.size})` : 'Eliminar'}
               </Text>
@@ -636,7 +651,7 @@ export default function GestionarLocalesScreen() {
             style={styles.selectionModeButton}
             onPress={() => setModoSeleccion(true)}
           >
-            <IconSymbol name="checkmark.circle" size={20} color={colors.primary} />
+            <IconSymbol ios_icon_name="checkmark.circle" android_material_icon_name="check_circle" size={20} color={colors.primary} />
             <Text style={styles.selectionModeText}>Seleccionar</Text>
           </TouchableOpacity>
         )}
@@ -663,7 +678,7 @@ export default function GestionarLocalesScreen() {
 
   const renderEmpty = useCallback(() => (
     <View style={styles.emptyState}>
-      <IconSymbol name="building.2" size={48} color={colors.textSecondary} />
+      <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={48} color={colors.textSecondary} />
       <Text style={styles.emptyText}>No se encontraron locales</Text>
       <Text style={styles.emptySubtext}>
         Intenta ajustar los filtros de búsqueda
@@ -687,14 +702,14 @@ export default function GestionarLocalesScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gestionar Locales</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => router.push('/crear/local')}
         >
-          <IconSymbol name="plus" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={24} color={colors.headerText} />
         </TouchableOpacity>
       </LinearGradient>
 
@@ -730,7 +745,7 @@ export default function GestionarLocalesScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
               <TouchableOpacity onPress={() => setShowFiltersModal(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -1212,11 +1227,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  viewButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   editButton: {
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: `${colors.primary}20`,
+    backgroundColor: colors.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1224,7 +1247,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: `${colors.badgeNuevo}20`,
+    backgroundColor: colors.badgeNuevo + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1254,6 +1277,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
+  },
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 8,
+  },
+  addButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.headerText,
+    flex: 1,
+    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,

@@ -242,7 +242,7 @@ export default function GestionarUsuariosScreen() {
             <Image source={{ uri: usuario.avatar }} style={styles.usuarioAvatar} />
           ) : (
             <View style={[styles.usuarioAvatar, styles.avatarPlaceholder]}>
-              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={32} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={32} color="#FFFFFF" />
             </View>
           )}
 
@@ -293,34 +293,81 @@ export default function GestionarUsuariosScreen() {
 
         <View style={styles.usuarioActions}>
           <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Activo:</Text>
-            <Switch
-              value={usuario.activo}
-              onValueChange={() => {
+            <View style={styles.toggleItem}>
+              <Text style={styles.toggleLabel}>Activo:</Text>
+              <Switch
+                value={usuario.activo}
+                onValueChange={() => {
+                  Alert.alert(
+                    usuario.activo ? 'Desactivar Usuario' : 'Activar Usuario',
+                    `¿Estás seguro de ${usuario.activo ? 'desactivar' : 'activar'} a ${usuario.nombre}?`,
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      {
+                        text: usuario.activo ? 'Desactivar' : 'Activar',
+                        onPress: () => toggleEstadoUsuario(usuario.id, usuario.activo),
+                      },
+                    ]
+                  );
+                }}
+                trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                thumbColor={colors.headerText}
+              />
+            </View>
+          </View>
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.viewButton}
+              onPress={() => router.push(`/perfil/usuario?userId=${usuario.id}`)}
+            >
+              <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.primary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => router.push(`/editar/usuario?id=${usuario.id}`)}
+            >
+              <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => {
                 Alert.alert(
-                  usuario.activo ? 'Desactivar Usuario' : 'Activar Usuario',
-                  `¿Estás seguro de ${usuario.activo ? 'desactivar' : 'activar'} a ${usuario.nombre}?`,
+                  'Eliminar Usuario',
+                  `¿Estás seguro de eliminar a ${usuario.nombre}? Esta acción no se puede deshacer.`,
                   [
                     { text: 'Cancelar', style: 'cancel' },
                     {
-                      text: usuario.activo ? 'Desactivar' : 'Activar',
-                      onPress: () => toggleEstadoUsuario(usuario.id, usuario.activo),
+                      text: 'Eliminar',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          const { error } = await supabase
+                            .from('usuarios')
+                            .delete()
+                            .eq('id', usuario.id);
+
+                          if (error) throw error;
+
+                          setUsuarios(prevUsuarios => prevUsuarios.filter(u => u.id !== usuario.id));
+                          setTotalUsuarios(prev => prev - 1);
+                          Alert.alert('Éxito', 'Usuario eliminado correctamente');
+                          cargarContadores();
+                        } catch (error) {
+                          console.error('[GestionarUsuarios] Error eliminando usuario:', error);
+                          Alert.alert('Error', 'No se pudo eliminar el usuario');
+                        }
+                      },
                     },
                   ]
                 );
               }}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.headerText}
-            />
+            >
+              <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={18} color={colors.badgeNuevo} />
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.viewButton}
-            onPress={() => router.push(`/perfil/usuario?userId=${usuario.id}`)}
-          >
-            <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.primary} />
-            <Text style={styles.viewButtonText}>Ver Perfil</Text>
-          </TouchableOpacity>
         </View>
       </View>
     );
@@ -729,7 +776,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   avatarPlaceholder: {
-    backgroundColor: colors.cardBorder,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -825,26 +872,45 @@ const styles = StyleSheet.create({
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
-  toggleLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  viewButton: {
+  toggleItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.primary + '15',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
   },
-  viewButtonText: {
-    fontSize: 13,
+  toggleLabel: {
+    fontSize: 11,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.text,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  viewButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: colors.badgeNuevo + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   footerLoader: {
     flexDirection: 'row',

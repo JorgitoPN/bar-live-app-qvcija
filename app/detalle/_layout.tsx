@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 /**
  * ============================================================================
- * DETALLE LAYOUT - MODAL PRESENTATION v11.0 - FINAL FIX
+ * DETALLE LAYOUT - MODAL PRESENTATION v12.0 - TRANSPARENT MODAL FIX
  * ============================================================================
  * 
  * ✅ FINAL FIX: Perfect modal behavior with proper presentation
@@ -16,44 +16,47 @@ import { Platform } from 'react-native';
  * - Background page visible behind modal
  * - NO duplicate views
  * - NO white/black background
- * - Uses 'modal' presentation for proper gesture handling
+ * - Uses 'transparentModal' presentation for proper background visibility
  */
 export default function DetalleLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        presentation: 'modal',
+        presentation: 'transparentModal',
         gestureEnabled: true,
         gestureDirection: 'vertical',
-        animation: 'slide_from_bottom',
+        animation: 'fade',
         contentStyle: { backgroundColor: 'transparent' },
       }}
     >
       <Stack.Screen 
         name="local" 
         options={{
-          presentation: 'modal',
+          presentation: 'transparentModal',
           gestureEnabled: true,
           gestureDirection: 'vertical',
+          animation: 'fade',
           contentStyle: { backgroundColor: 'transparent' },
         }}
       />
       <Stack.Screen 
         name="evento" 
         options={{
-          presentation: 'modal',
+          presentation: 'transparentModal',
           gestureEnabled: true,
           gestureDirection: 'vertical',
+          animation: 'fade',
           contentStyle: { backgroundColor: 'transparent' },
         }}
       />
       <Stack.Screen 
         name="sala-virtual" 
         options={{
-          presentation: 'modal',
+          presentation: 'transparentModal',
           gestureEnabled: true,
           gestureDirection: 'vertical',
+          animation: 'fade',
           contentStyle: { backgroundColor: 'transparent' },
         }}
       />
