@@ -168,6 +168,14 @@ export default function AdminIndexScreen() {
       description: 'Enriquece datos con Google Places',
     },
     {
+      title: 'Gestionar Duplicados',
+      icon: 'doc.on.doc.fill' as const,
+      androidIcon: 'content_copy' as const,
+      color: '#F59E0B',
+      route: '/admin/gestionar-duplicados',
+      description: 'Encuentra y elimina locales duplicados',
+    },
+    {
       title: 'Facturación',
       icon: 'eurosign.circle.fill' as const,
       androidIcon: 'euro' as const,
