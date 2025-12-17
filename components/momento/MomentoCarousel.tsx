@@ -15,6 +15,7 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
+import { useRouter } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const AVATAR_SIZE = 84;
@@ -31,17 +32,25 @@ interface MomentoAuthor {
   lastMomentoAt: string;
 }
 
-interface MomentoCarouselProps {
-  onOpenViewer: (authorId: string, tipo: 'usuario' | 'local') => void;
-  onUploadMomento: () => void;
-}
-
-export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: MomentoCarouselProps) {
+export default function MomentoCarousel() {
+  const router = useRouter();
   const { user } = useAuth();
   const { activeProfileType, activeProfileId } = useMode();
   const [authors, setAuthors] = useState<MomentoAuthor[]>([]);
   const [userMomento, setUserMomento] = useState<MomentoAuthor | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const handleOpenViewer = useCallback((authorId: string, tipo: 'usuario' | 'local') => {
+    console.log('[MomentoCarousel] Opening viewer for:', { authorId, tipo });
+    // TODO: Navigate to momento viewer
+    // router.push({ pathname: '/momento/viewer', params: { authorId, tipo } });
+  }, [router]);
+
+  const handleUploadMomento = useCallback(() => {
+    console.log('[MomentoCarousel] Opening momento upload');
+    // TODO: Navigate to momento upload
+    // router.push('/momento/upload');
+  }, [router]);
 
   const loadMomentos = useCallback(async () => {
     if (!user) return;
@@ -280,7 +289,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
       <TouchableOpacity
         key={`${author.tipo}-${author.id}`}
         style={styles.avatarContainer}
-        onPress={() => onOpenViewer(author.id, author.tipo)}
+        onPress={() => handleOpenViewer(author.id, author.tipo)}
         activeOpacity={0.7}
       >
         <View style={styles.avatarBorderContainer}>
@@ -367,7 +376,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
       return (
         <TouchableOpacity
           style={styles.avatarContainer}
-          onPress={() => onOpenViewer(userMomento.id, userMomento.tipo)}
+          onPress={() => handleOpenViewer(userMomento.id, userMomento.tipo)}
           activeOpacity={0.7}
         >
           <View style={styles.avatarBorderContainer}>
@@ -441,7 +450,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
               style={styles.addIconContainer}
               onPress={(e) => {
                 e.stopPropagation();
-                onUploadMomento();
+                handleUploadMomento();
               }}
               activeOpacity={0.7}
             >
@@ -471,7 +480,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
     return (
       <TouchableOpacity
         style={styles.avatarContainer}
-        onPress={onUploadMomento}
+        onPress={handleUploadMomento}
         activeOpacity={0.7}
       >
         <View style={styles.avatarBorderContainer}>
@@ -510,7 +519,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
             style={styles.addIconContainer}
             onPress={(e) => {
               e.stopPropagation();
-              onUploadMomento();
+              handleUploadMomento();
             }}
             activeOpacity={0.7}
           >

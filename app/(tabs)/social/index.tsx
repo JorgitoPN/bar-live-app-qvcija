@@ -203,9 +203,9 @@ export default function SocialIndexScreen() {
     router.push('/crear/publicacion');
   };
 
-  // ✅ ENABLED: Search functionality
+  // ✅ ENABLED: Search functionality - navigate to dedicated search page
   const handleSearch = () => {
-    router.push('/social/hashtag');
+    router.push('/social/search');
   };
 
   const renderHeader = useCallback(() => (
