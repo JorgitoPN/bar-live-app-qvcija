@@ -12,6 +12,10 @@ import {
   Alert,
   Platform,
   StatusBar,
+  ActionSheetIOS,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -24,6 +28,7 @@ import ParsedText from '@/components/social/ParsedText';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SOCIAL_ICONS } from '@/constants/SocialIcons';
 import CommentsModal from '@/components/social/CommentsModal';
+import PostLikesAvatars from '@/components/social/PostLikesAvatars';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -46,192 +51,15 @@ interface Comentario {
 }
 
 /**
- * ✅ POST DETAIL PAGE v2.0 - UNIFIED STYLING
+ * ✅ POST DETAIL PAGE v3.0 - WITH EDIT DESCRIPTION
  * 
  * Changes:
  * - ✅ White background (#fff) for consistency
  * - ✅ BarLive blue gradient header
  * - ✅ Same design as profile grid post detail
  * - ✅ Consistent styling across all post detail pages
+ * - ✅ NEW: Edit description option in 3-dot menu
  */
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 48,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
-  },
-  deleteButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scrollContent: {
-    paddingBottom: 120,
-  },
-  postCard: {
-    backgroundColor: '#fff',
-  },
-  postHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  authorInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  postAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  postAutorNombre: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#000',
-  },
-  postAutorBold: {
-    fontWeight: '600',
-    color: '#000',
-  },
-  imageCarouselContainer: {
-    position: 'relative',
-    width: width,
-    height: width,
-  },
-  imageCarousel: {
-    width: width,
-    height: width,
-  },
-  postImagen: {
-    width: width,
-    height: width,
-    backgroundColor: '#f0f0f0',
-  },
-  imageIndicatorContainer: {
-    position: 'absolute',
-    bottom: 12,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-  },
-  imageIndicatorDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  imageIndicatorDotActive: {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  postActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingTop: 4,
-    paddingBottom: 4,
-  },
-  leftActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  postActionButton: {
-    padding: 8,
-  },
-  postLikes: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 4,
-  },
-  postLikesText: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: '#000',
-  },
-  postLikesBold: {
-    fontWeight: '600',
-  },
-  postDescripcion: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 4,
-  },
-  postDescripcionText: {
-    fontSize: 14,
-    color: '#000',
-    lineHeight: 18,
-  },
-  viewCommentsButton: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 4,
-  },
-  viewCommentsText: {
-    fontSize: 14,
-    color: 'rgba(0, 0, 0, 0.5)',
-    fontWeight: '400',
-  },
-  postTimeContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 12,
-  },
-  postTimeText: {
-    fontSize: 11,
-    color: 'rgba(0, 0, 0, 0.4)',
-    textTransform: 'uppercase',
-  },
-});
 
 function formatearFecha(fecha: string): string {
   const ahora = new Date();
@@ -260,6 +88,11 @@ export default function PostDetailScreen() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginMessage, setLoginMessage] = useState('');
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+  
+  // ✅ NEW: Edit description modal state
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editedDescription, setEditedDescription] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const loadPost = useCallback(async () => {
     try {
@@ -306,7 +139,7 @@ export default function PostDetailScreen() {
           .select('id')
           .eq('post_id', params.id)
           .eq('usuario_id', user.id)
-          .single();
+          .maybeSingle();
         
         saved = !!saveData;
       }
@@ -619,11 +452,142 @@ export default function PostDetailScreen() {
     }
   };
 
+  // ✅ NEW: Handle edit description
+  const handleEditDescription = useCallback(() => {
+    setEditedDescription(post.contenido || '');
+    setEditModalVisible(true);
+  }, [post]);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editedDescription.trim()) {
+      Alert.alert('Error', 'La descripción no puede estar vacía');
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .update({ 
+          contenido: editedDescription.trim(),
+          editado_at: new Date().toISOString(),
+        })
+        .eq('id', post.id);
+
+      if (error) throw error;
+
+      setEditModalVisible(false);
+      loadPost();
+      Alert.alert('Éxito', 'Descripción actualizada correctamente');
+    } catch (error) {
+      console.error('[PostDetail] Error updating description:', error);
+      Alert.alert('Error', 'No se pudo actualizar la descripción');
+    } finally {
+      setSavingEdit(false);
+    }
+  }, [editedDescription, post, loadPost]);
+
+  const showOptions = useCallback(() => {
+    if (!user || !post) return;
+
+    const isOwner = post.tipo === 'usuario' 
+      ? post.autor_id === user.id
+      : post.tipo === 'local' && interactionLocalId === post.local_id;
+
+    if (!isOwner) return;
+
+    const options = ['Editar descripción', 'Eliminar publicación', 'Cancelar'];
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: 2,
+          destructiveButtonIndex: 1,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            handleEditDescription();
+          } else if (buttonIndex === 1) {
+            Alert.alert(
+              'Eliminar publicación',
+              '¿Estás seguro de que quieres eliminar esta publicación?',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Eliminar',
+                  style: 'destructive',
+                  onPress: handleDeletePost,
+                },
+              ]
+            );
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Opciones',
+        '',
+        [
+          {
+            text: 'Editar descripción',
+            onPress: handleEditDescription,
+          },
+          {
+            text: 'Eliminar publicación',
+            style: 'destructive',
+            onPress: () => {
+              Alert.alert(
+                'Eliminar publicación',
+                '¿Estás seguro de que quieres eliminar esta publicación?',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  {
+                    text: 'Eliminar',
+                    style: 'destructive',
+                    onPress: handleDeletePost,
+                  },
+                ]
+              );
+            },
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+        ]
+      );
+    }
+  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription]);
+
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / width);
     setCurrentImageIndex(index);
   };
+
+  const handleProfilePress = useCallback(() => {
+    if (!post) return;
+    
+    // ✅ FIXED: Check if it's the current user's profile
+    if (post.tipo === 'local' && post.local_id) {
+      router.push({
+        pathname: '/perfil/local',
+        params: { localId: post.local_id },
+      });
+    } else if (post.tipo === 'usuario' && post.autor_id) {
+      if (user && post.autor_id === user.id) {
+        // Navigate to own profile
+        router.push('/(tabs)/perfil');
+      } else {
+        // Navigate to other user's profile
+        router.push({
+          pathname: '/perfil/usuario',
+          params: { userId: post.autor_id },
+        });
+      }
+    }
+  }, [post, user, router]);
 
   if (loading) {
     return (
@@ -637,7 +601,7 @@ export default function PostDetailScreen() {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Publicación</Text>
             <View style={{ width: 40 }} />
@@ -662,7 +626,7 @@ export default function PostDetailScreen() {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Publicación</Text>
             <View style={{ width: 40 }} />
@@ -675,6 +639,11 @@ export default function PostDetailScreen() {
     );
   }
 
+  const isOwner = user && (
+    (post.tipo === 'usuario' && post.autor_id === user.id) ||
+    (post.tipo === 'local' && interactionLocalId === post.local_id)
+  );
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
@@ -686,38 +655,20 @@ export default function PostDetailScreen() {
       >
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={28} color={colors.headerText} />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={28} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Publicación</Text>
-          {user && (
-            (post.tipo === 'usuario' && post.autor_id === user.id) ||
-            (post.tipo === 'local' && interactionLocalId === post.local_id)
-          ) && (
+          {isOwner ? (
             <TouchableOpacity 
-              style={styles.deleteButton} 
-              onPress={() => {
-                Alert.alert(
-                  'Eliminar publicación',
-                  '¿Estás seguro de que quieres eliminar esta publicación?',
-                  [
-                    { text: 'Cancelar', style: 'cancel' },
-                    {
-                      text: 'Eliminar',
-                      style: 'destructive',
-                      onPress: handleDeletePost,
-                    },
-                  ]
-                );
-              }}
+              style={styles.optionsButton} 
+              onPress={showOptions}
               activeOpacity={0.7}
             >
-              <IconSymbol name="trash" size={22} color={colors.headerText} />
+              <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={24} color={colors.headerText} />
             </TouchableOpacity>
+          ) : (
+            <View style={{ width: 40 }} />
           )}
-          {!user || (
-            (post.tipo !== 'usuario' || post.autor_id !== user.id) &&
-            (post.tipo !== 'local' || interactionLocalId !== post.local_id)
-          ) && <View style={{ width: 40 }} />}
         </View>
       </LinearGradient>
 
@@ -730,15 +681,7 @@ export default function PostDetailScreen() {
           <View style={styles.postHeader}>
             <TouchableOpacity
               style={styles.authorInfoRow}
-              onPress={() => {
-                if (post.tipo === 'local' && post.local_id) {
-                  router.push(`/perfil/local?localId=${post.local_id}`);
-                } else if (user && post.autor_id === user.id) {
-                  router.push('/(tabs)/perfil');
-                } else {
-                  router.push(`/perfil/usuario?userId=${post.autor_id}`);
-                }
-              }}
+              onPress={handleProfilePress}
               activeOpacity={0.7}
             >
               {post.autorAvatar ? (
@@ -774,6 +717,7 @@ export default function PostDetailScreen() {
                 ))}
               </ScrollView>
               
+              {/* ✅ FIXED: White dots for image indicators */}
               {post.images.length > 1 && (
                 <View style={styles.imageIndicatorContainer}>
                   {post.images.map((_: string, index: number) => (
@@ -798,7 +742,8 @@ export default function PostDetailScreen() {
                 activeOpacity={0.7}
               >
                 <IconSymbol
-                  name={post.liked ? 'heart.fill' : 'heart'}
+                  ios_icon_name={post.liked ? 'heart.fill' : 'heart'}
+                  android_material_icon_name={post.liked ? 'favorite' : 'favorite_border'}
                   size={28}
                   color={post.liked ? '#EF4444' : '#000'}
                 />
@@ -826,7 +771,7 @@ export default function PostDetailScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <IconSymbol name="paperplane" size={28} color="#000" />
+                <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={28} color="#000" />
               </TouchableOpacity>
             </View>
             <TouchableOpacity 
@@ -835,20 +780,16 @@ export default function PostDetailScreen() {
               activeOpacity={0.7}
             >
               <IconSymbol
-                name={post.saved ? 'bookmark.fill' : 'bookmark'}
+                ios_icon_name={post.saved ? 'bookmark.fill' : 'bookmark'}
+                android_material_icon_name={post.saved ? 'bookmark' : 'bookmark_border'}
                 size={28}
                 color={post.saved ? colors.primary : '#000'}
               />
             </TouchableOpacity>
           </View>
 
-          {post.likes > 0 && (
-            <View style={styles.postLikes}>
-              <Text style={styles.postLikesText}>
-                <Text style={styles.postLikesBold}>{post.likes}</Text> Me gusta
-              </Text>
-            </View>
-          )}
+          {/* ✅ Instagram-style likes display */}
+          <PostLikesAvatars postId={post.id} totalLikes={post.likes || 0} />
 
           {post.contenido && (
             <View style={styles.postDescripcion}>
@@ -892,6 +833,276 @@ export default function PostDetailScreen() {
         onClose={() => setShowLoginModal(false)}
         message={loginMessage}
       />
+
+      {/* ✅ NEW: Edit Description Modal */}
+      <Modal
+        visible={editModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.editModalOverlay}
+        >
+          <TouchableOpacity 
+            style={styles.editModalBackdrop}
+            activeOpacity={1}
+            onPress={() => setEditModalVisible(false)}
+          />
+          <View style={styles.editModalContent}>
+            <View style={styles.editModalHeader}>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <Text style={styles.editModalCancel}>Cancelar</Text>
+              </TouchableOpacity>
+              <Text style={styles.editModalTitle}>Editar descripción</Text>
+              <TouchableOpacity onPress={handleSaveEdit} disabled={savingEdit}>
+                <Text style={[styles.editModalSave, savingEdit && styles.editModalSaveDisabled]}>
+                  {savingEdit ? 'Guardando...' : 'Guardar'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.editModalInput}
+              value={editedDescription}
+              onChangeText={setEditedDescription}
+              placeholder="Escribe una descripción..."
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              maxLength={2200}
+              autoFocus
+              editable={!savingEdit}
+            />
+            <Text style={styles.editModalCounter}>
+              {editedDescription.length}/2200
+            </Text>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.headerText,
+    flex: 1,
+    textAlign: 'center',
+  },
+  optionsButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+  postCard: {
+    backgroundColor: '#fff',
+  },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  authorInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  postAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  avatarPlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.headerText,
+  },
+  postAutorNombre: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#000',
+  },
+  postAutorBold: {
+    fontWeight: '600',
+    color: '#000',
+  },
+  imageCarouselContainer: {
+    position: 'relative',
+    width: width,
+    height: width,
+  },
+  imageCarousel: {
+    width: width,
+    height: width,
+  },
+  postImagen: {
+    width: width,
+    height: width,
+    backgroundColor: '#f0f0f0',
+  },
+  imageIndicatorContainer: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  imageIndicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  imageIndicatorDotActive: {
+    backgroundColor: '#FFFFFF',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  postActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  leftActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  postActionButton: {
+    padding: 8,
+  },
+  postDescripcion: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  postDescripcionText: {
+    fontSize: 14,
+    color: '#000',
+    lineHeight: 18,
+  },
+  viewCommentsButton: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  viewCommentsText: {
+    fontSize: 14,
+    color: 'rgba(0, 0, 0, 0.5)',
+    fontWeight: '400',
+  },
+  postTimeContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 12,
+  },
+  postTimeText: {
+    fontSize: 11,
+    color: 'rgba(0, 0, 0, 0.4)',
+    textTransform: 'uppercase',
+  },
+  // ✅ NEW: Edit modal styles
+  editModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  editModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  editModalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    maxHeight: '80%',
+  },
+  editModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  editModalCancel: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  editModalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  editModalSave: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  editModalSaveDisabled: {
+    opacity: 0.5,
+  },
+  editModalInput: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: colors.text,
+    minHeight: 150,
+    maxHeight: 400,
+    textAlignVertical: 'top',
+  },
+  editModalCounter: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'right',
+  },
+});

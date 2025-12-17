@@ -2,6 +2,7 @@
 import React from 'react';
 import { Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 import { parseText, ParsedSegment } from '@/utils/textParser';
 import { supabase } from '@/utils/supabase';
@@ -13,8 +14,19 @@ interface ParsedTextProps {
   onMentionPress?: (mention: string) => void;
 }
 
+/**
+ * ✅ PARSED TEXT v2.0 - FIXED USER REDIRECTION
+ * 
+ * Features:
+ * - ✅ Parse hashtags and mentions
+ * - ✅ Clickable hashtags navigate to hashtag page
+ * - ✅ Clickable mentions navigate to user/local profiles
+ * - ✅ FIXED: Redirect to own profile if user clicks on their own mention
+ */
+
 export default function ParsedText({ text, style, onHashtagPress, onMentionPress }: ParsedTextProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const segments = parseText(text);
 
   const handleHashtagPress = (hashtag: string) => {
@@ -27,26 +39,36 @@ export default function ParsedText({ text, style, onHashtagPress, onMentionPress
   };
 
   const handleMentionPress = async (mention: string) => {
-    console.log('[ParsedText] Mention pressed:', mention);
+    console.log('[ParsedText v2.0] Mention pressed:', mention);
     if (onMentionPress) {
       onMentionPress(mention);
       return;
     }
 
     try {
-      const { data: user } = await supabase
+      // ✅ First, check if it's a user
+      const { data: userData } = await supabase
         .from('usuarios')
-        .select('id')
+        .select('id, username')
         .eq('username', mention)
         .eq('activo', true)
         .single();
 
-      if (user) {
-        console.log('[ParsedText] Found user, navigating to profile:', user.id);
-        router.push(`/perfil/usuario?userId=${user.id}`);
+      if (userData) {
+        console.log('[ParsedText v2.0] Found user:', userData.id);
+        
+        // ✅ FIXED: Check if it's the current user
+        if (user && userData.id === user.id) {
+          console.log('[ParsedText v2.0] ✅ Navigating to own profile');
+          router.push('/(tabs)/perfil');
+        } else {
+          console.log('[ParsedText v2.0] ✅ Navigating to other user profile');
+          router.push(`/perfil/usuario?userId=${userData.id}`);
+        }
         return;
       }
 
+      // ✅ If not a user, check if it's a local with active subscription
       const { data: localsWithSubs } = await supabase
         .from('locales')
         .select(`
@@ -66,21 +88,21 @@ export default function ParsedText({ text, style, onHashtagPress, onMentionPress
 
       if (localsWithSubs && localsWithSubs.length > 0) {
         const local = localsWithSubs[0];
-        const subscription = local.suscripciones_locales;
+        const subscription = local.suscripciones_locales as any;
         
         if (subscription && subscription.estado === 'activa') {
           const planName = subscription.planes_suscripcion?.nombre;
           if (planName === 'estandar' || planName === 'premium') {
-            console.log('[ParsedText] Found local, navigating to profile:', local.id);
+            console.log('[ParsedText v2.0] ✅ Found local, navigating to profile:', local.id);
             router.push(`/perfil/local?localId=${local.id}`);
             return;
           }
         }
       }
 
-      console.log('[ParsedText] User/local not found for mention:', mention);
+      console.log('[ParsedText v2.0] ⚠️ User/local not found for mention:', mention);
     } catch (error) {
-      console.error('[ParsedText] Error finding mentioned user/local:', error);
+      console.error('[ParsedText v2.0] ❌ Error finding mentioned user/local:', error);
     }
   };
 

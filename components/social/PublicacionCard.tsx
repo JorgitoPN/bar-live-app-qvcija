@@ -12,6 +12,9 @@ import {
   ActionSheetIOS,
   ScrollView,
   Share,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
@@ -73,6 +76,11 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
+  
+  // ✅ NEW: Edit description modal state
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editedDescription, setEditedDescription] = useState(post.contenido || '');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const handleLike = useCallback(async () => {
     if (!user) {
@@ -173,18 +181,25 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   }, [router, post.id]);
 
   const handleProfilePress = useCallback(() => {
+    // ✅ FIXED: Check if it's the current user's profile
     if (post.tipo === 'local' && post.local_id) {
       router.push({
         pathname: '/perfil/local',
         params: { localId: post.local_id },
       });
     } else if (post.tipo === 'usuario' && post.autor_id) {
-      router.push({
-        pathname: '/perfil/usuario',
-        params: { userId: post.autor_id },
-      });
+      if (user && post.autor_id === user.id) {
+        // Navigate to own profile
+        router.push('/(tabs)/perfil');
+      } else {
+        // Navigate to other user's profile
+        router.push({
+          pathname: '/perfil/usuario',
+          params: { userId: post.autor_id },
+        });
+      }
     }
-  }, [router, post]);
+  }, [router, post, user]);
 
   const handleDeletePost = useCallback(async () => {
     Alert.alert(
@@ -217,25 +232,64 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     );
   }, [post.id, onUpdate]);
 
+  // ✅ NEW: Handle edit description
+  const handleEditDescription = useCallback(() => {
+    setEditedDescription(post.contenido || '');
+    setEditModalVisible(true);
+  }, [post.contenido]);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editedDescription.trim()) {
+      Alert.alert('Error', 'La descripción no puede estar vacía');
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .update({ 
+          contenido: editedDescription.trim(),
+          editado_at: new Date().toISOString(),
+        })
+        .eq('id', post.id);
+
+      if (error) throw error;
+
+      setEditModalVisible(false);
+      if (onUpdate) {
+        onUpdate();
+      }
+      Alert.alert('Éxito', 'Descripción actualizada correctamente');
+    } catch (error) {
+      console.error('[PublicacionCard] Error updating description:', error);
+      Alert.alert('Error', 'No se pudo actualizar la descripción');
+    } finally {
+      setSavingEdit(false);
+    }
+  }, [editedDescription, post.id, onUpdate]);
+
   const showOptions = useCallback(() => {
-    const canDelete = user && (
+    const canEdit = user && (
       (post.tipo === 'usuario' && post.autor_id === user.id) ||
       (post.tipo === 'local' && interactionLocalId === post.local_id)
     );
 
-    if (!canDelete) return;
+    if (!canEdit) return;
 
-    const options = ['Eliminar publicación', 'Cancelar'];
+    const options = ['Editar descripción', 'Eliminar publicación', 'Cancelar'];
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options,
-          cancelButtonIndex: 1,
-          destructiveButtonIndex: 0,
+          cancelButtonIndex: 2,
+          destructiveButtonIndex: 1,
         },
         (buttonIndex) => {
           if (buttonIndex === 0) {
+            handleEditDescription();
+          } else if (buttonIndex === 1) {
             handleDeletePost();
           }
         }
@@ -245,6 +299,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         'Opciones',
         '',
         [
+          {
+            text: 'Editar descripción',
+            onPress: handleEditDescription,
+          },
           {
             text: 'Eliminar publicación',
             style: 'destructive',
@@ -257,7 +315,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         ]
       );
     }
-  }, [user, post, interactionLocalId, handleDeletePost]);
+  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription]);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -281,7 +339,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     ? post.local.imagen_url 
     : post.autor?.avatar || '';
 
-  const canDelete = user && (
+  const canEdit = user && (
     (post.tipo === 'usuario' && post.autor_id === user.id) ||
     (post.tipo === 'local' && interactionLocalId === post.local_id)
   );
@@ -297,7 +355,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerLeft} onPress={handleProfilePress} activeOpacity={0.7}>
-          {/* ✅ FIXED: Show neon border on mini-avatars when user has new momento */}
+          {/* ✅ FIXED: Show neon border on mini-avatars when user has UNVIEWED momento */}
           <MiniFoodPlateAvatar
             imageUrl={displayAvatar}
             size={40}
@@ -311,7 +369,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             <Text style={styles.timestamp}>{formatTimeAgo(post.created_at)}</Text>
           </View>
         </TouchableOpacity>
-        {canDelete && (
+        {canEdit && (
           <TouchableOpacity style={styles.optionsButton} onPress={showOptions} activeOpacity={0.7}>
             <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={24} color={colors.text} />
           </TouchableOpacity>
@@ -360,13 +418,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </View>
       )}
 
-      {/* ✅ Description BELOW image and ABOVE actions */}
-      {post.contenido && (
-        <View style={styles.contentContainer}>
-          <ParsedText text={post.contenido} style={styles.content} />
-        </View>
-      )}
-
       {/* Actions */}
       <View style={styles.actions}>
         <View style={styles.actionsLeft}>
@@ -411,6 +462,13 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       {/* ✅ Instagram-style likes display with modal */}
       <PostLikesAvatars postId={post.id} totalLikes={likesCount} />
 
+      {/* ✅ Description BELOW likes and ABOVE comments count */}
+      {post.contenido && (
+        <View style={styles.contentContainer}>
+          <ParsedText text={post.contenido} style={styles.content} />
+        </View>
+      )}
+
       {/* Comments count */}
       {post.comentarios_count > 0 && (
         <TouchableOpacity 
@@ -444,6 +502,52 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         postContent={post.contenido}
         onClose={() => setShareModalVisible(false)}
       />
+
+      {/* ✅ NEW: Edit Description Modal */}
+      <Modal
+        visible={editModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.editModalOverlay}
+        >
+          <TouchableOpacity 
+            style={styles.editModalBackdrop}
+            activeOpacity={1}
+            onPress={() => setEditModalVisible(false)}
+          />
+          <View style={styles.editModalContent}>
+            <View style={styles.editModalHeader}>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <Text style={styles.editModalCancel}>Cancelar</Text>
+              </TouchableOpacity>
+              <Text style={styles.editModalTitle}>Editar descripción</Text>
+              <TouchableOpacity onPress={handleSaveEdit} disabled={savingEdit}>
+                <Text style={[styles.editModalSave, savingEdit && styles.editModalSaveDisabled]}>
+                  {savingEdit ? 'Guardando...' : 'Guardar'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.editModalInput}
+              value={editedDescription}
+              onChangeText={setEditedDescription}
+              placeholder="Escribe una descripción..."
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              maxLength={2200}
+              autoFocus
+              editable={!savingEdit}
+            />
+            <Text style={styles.editModalCounter}>
+              {editedDescription.length}/2200
+            </Text>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 });
@@ -515,17 +619,17 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)', // ✅ FIXED: White dots
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   imageIndicatorDotActive: {
-    backgroundColor: '#FFFFFF', // ✅ FIXED: White active dot
+    backgroundColor: '#FFFFFF',
     width: 8,
     height: 8,
     borderRadius: 4,
   },
   contentContainer: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 8,
     paddingBottom: 8,
   },
   content: {
@@ -555,5 +659,64 @@ const styles = StyleSheet.create({
   commentsCountText: {
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  // ✅ NEW: Edit modal styles
+  editModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  editModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  editModalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    maxHeight: '80%',
+  },
+  editModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  editModalCancel: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  editModalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  editModalSave: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  editModalSaveDisabled: {
+    opacity: 0.5,
+  },
+  editModalInput: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: colors.text,
+    minHeight: 150,
+    maxHeight: 400,
+    textAlignVertical: 'top',
+  },
+  editModalCounter: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'right',
   },
 });

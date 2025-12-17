@@ -5,6 +5,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 const DEFAULT_AVATAR_ICON = 'person.circle.fill';
 
@@ -21,13 +22,16 @@ interface MiniFoodPlateAvatarProps {
 }
 
 /**
- * MINI FOOD PLATE AVATAR v7.0 - With Momento Border
- * Compact version of FoodPlateAvatar for use in posts, comments, etc.
+ * ✅ MINI FOOD PLATE AVATAR v8.0 - REAL-TIME MOMENTO SYNC
+ * 
  * Features:
  * - Smaller size optimized for inline use
  * - Default avatar with user icon (non-realistic)
  * - ALWAYS shows an avatar (never empty)
- * - ✅ Shows neon green border if user/local has active momento
+ * - ✅ FIXED: Real-time sync for momento border
+ * - ✅ Shows neon green border ONLY if user/local has UNVIEWED momentos
+ * - ✅ Removes border when all momentos are viewed
+ * - ✅ Subscribes to real-time updates for momento_views
  */
 export default function MiniFoodPlateAvatar({
   imageUrl,
@@ -40,42 +44,106 @@ export default function MiniFoodPlateAvatar({
   localId,
   showMomentoBorder = true,
 }: MiniFoodPlateAvatarProps) {
-  const [hasMomento, setHasMomento] = useState(false);
+  const { user } = useAuth();
+  const [hasUnviewedMomento, setHasUnviewedMomento] = useState(false);
 
   useEffect(() => {
-    if (!showMomentoBorder) return;
+    if (!showMomentoBorder || !user) return;
     
-    const checkMomento = async () => {
+    const checkUnviewedMomentos = async () => {
       if (!userId && !localId) return;
 
       try {
-        let query = supabase
+        // Get all active momentos for this user/local
+        let momentosQuery = supabase
           .from('momentos')
           .select('id')
-          .gt('expires_at', new Date().toISOString())
-          .limit(1);
+          .gt('expires_at', new Date().toISOString());
 
         if (userId) {
-          query = query.eq('autor_id', userId).eq('tipo', 'usuario');
+          momentosQuery = momentosQuery.eq('autor_id', userId).eq('tipo', 'usuario');
         } else if (localId) {
-          query = query.eq('local_id', localId).eq('tipo', 'local');
+          momentosQuery = momentosQuery.eq('local_id', localId).eq('tipo', 'local');
         }
 
-        const { data, error } = await query;
+        const { data: momentosData, error: momentosError } = await momentosQuery;
 
-        if (!error && data && data.length > 0) {
-          setHasMomento(true);
-        } else {
-          setHasMomento(false);
+        if (momentosError || !momentosData || momentosData.length === 0) {
+          setHasUnviewedMomento(false);
+          return;
         }
+
+        // Check if current user has viewed all these momentos
+        const momentoIds = momentosData.map(m => m.id);
+        
+        const { data: viewsData, error: viewsError } = await supabase
+          .from('momento_views')
+          .select('momento_id')
+          .eq('usuario_id', user.id)
+          .in('momento_id', momentoIds);
+
+        if (viewsError) {
+          console.error('[MiniFoodPlateAvatar] Error checking views:', viewsError);
+          setHasUnviewedMomento(false);
+          return;
+        }
+
+        const viewedMomentoIds = new Set(viewsData?.map(v => v.momento_id) || []);
+        
+        // ✅ CRITICAL: Show border only if there are UNVIEWED momentos
+        const hasUnviewed = momentosData.some(m => !viewedMomentoIds.has(m.id));
+        
+        console.log('[MiniFoodPlateAvatar] 🔍 Momento check:', {
+          userId,
+          localId,
+          totalMomentos: momentosData.length,
+          viewedCount: viewedMomentoIds.size,
+          hasUnviewed,
+        });
+
+        setHasUnviewedMomento(hasUnviewed);
       } catch (error) {
         console.error('[MiniFoodPlateAvatar] Error checking momento:', error);
-        setHasMomento(false);
+        setHasUnviewedMomento(false);
       }
     };
 
-    checkMomento();
-  }, [userId, localId, showMomentoBorder]);
+    checkUnviewedMomentos();
+
+    // ✅ CRITICAL: Subscribe to real-time updates for momento views
+    const channel = supabase
+      .channel(`momento-views-${userId || localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'momento_views',
+          filter: `usuario_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[MiniFoodPlateAvatar] 🔄 Real-time view update:', payload);
+          checkUnviewedMomentos();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'momentos',
+        },
+        (payload) => {
+          console.log('[MiniFoodPlateAvatar] 🔄 Real-time momento update:', payload);
+          checkUnviewedMomentos();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, localId, showMomentoBorder, user]);
 
   const plateSize = size;
   const imageSize = size * 0.85;
@@ -84,7 +152,7 @@ export default function MiniFoodPlateAvatar({
 
   const shouldShowImage = !!imageUrl;
 
-  if (hasMomento) {
+  if (hasUnviewedMomento) {
     return (
       <View style={[styles.container, { width: plateSize + borderWidth * 2, height: plateSize + borderWidth * 2 }, style]}>
         <LinearGradient

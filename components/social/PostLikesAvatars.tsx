@@ -5,6 +5,7 @@ import { supabase } from '@/utils/supabase';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface PostLikesAvatarsProps {
@@ -21,7 +22,7 @@ interface LikeUser {
 }
 
 /**
- * ✅ POST LIKES AVATARS v3.0 - INSTAGRAM STYLE WITH MODAL
+ * ✅ POST LIKES AVATARS v4.0 - FIXED USER REDIRECTION
  * 
  * Features:
  * - ✅ Show 3 overlapping mini-avatars
@@ -31,10 +32,12 @@ interface LikeUser {
  * - ✅ Clickable usernames to navigate to profiles
  * - ✅ "más personas" text opens modal with full list
  * - ✅ NO neon borders (removed momento detection)
+ * - ✅ FIXED: Redirect to own profile if user clicks on themselves
  */
 
 export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatarsProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [likeUsers, setLikeUsers] = useState<LikeUser[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [allLikes, setAllLikes] = useState<LikeUser[]>([]);
@@ -112,7 +115,12 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
 
   const handleUserPress = (userId: string, tipo: 'usuario' | 'local') => {
     setShowModal(false);
-    if (tipo === 'local') {
+    
+    // ✅ FIXED: Check if it's the current user
+    if (tipo === 'usuario' && user && userId === user.id) {
+      // Navigate to own profile
+      router.push('/(tabs)/perfil');
+    } else if (tipo === 'local') {
       router.push({
         pathname: '/perfil/local',
         params: { localId: userId },
