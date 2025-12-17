@@ -1,525 +1,138 @@
 
-import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, Modal, Pressable, Alert } from 'react-native';
-import { IconSymbol } from '@/components/IconSymbol';
-import { Post } from '@/types';
-import { colors } from '@/styles/commonStyles';
+import React, { useState, useCallback, memo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Dimensions,
+  Alert,
+  Platform,
+  ActionSheetIOS,
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import { colors } from '@/styles/commonStyles';
+import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInteractionContext } from '@/hooks/useInteractionContext';
-import ParsedText from './ParsedText';
-import { SOCIAL_ICONS } from '@/constants/SocialIcons';
+import OptimizedImage from '@/components/common/OptimizedImage';
+import ParsedText from '@/components/social/ParsedText';
+import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
+import CommentsModal from '@/components/social/CommentsModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+interface Post {
+  id: string;
+  autor_id: string;
+  tipo: 'usuario' | 'local';
+  local_id?: string;
+  contenido: string;
+  imagenes: string[];
+  video_url?: string;
+  ubicacion?: string;
+  likes_count: number;
+  comentarios_count: number;
+  compartidos_count: number;
+  created_at: string;
+  autor?: {
+    id: string;
+    nombre: string;
+    username?: string;
+    avatar?: string;
+  };
+  local?: {
+    id: string;
+    nombre: string;
+    imagen_url?: string;
+  };
+  user_has_liked?: boolean;
+}
+
 interface PublicacionCardProps {
   post: Post;
-  onLike?: () => void;
-  onComment?: () => void;
-  onShare?: () => void;
+  onUpdate?: () => void;
 }
 
-interface MentionedUser {
-  id: string;
-  nombre: string;
-  username?: string;
-  avatar?: string;
-  tipo: 'usuario' | 'local';
-}
-
-interface TaggedUser {
-  id: string;
-  nombre: string;
-  username?: string;
-  avatar?: string;
-  position_x?: number;
-  position_y?: number;
-}
-
-const PostImage = memo(({ uri, onPress }: { uri: string; onPress: () => void }) => (
-  <TouchableOpacity
-    activeOpacity={0.95}
-    onPress={onPress}
-    style={styles.imageContainer}
-  >
-    <Image 
-      source={{ uri: `${uri}?v=${Date.now()}` }} 
-      style={styles.imagen} 
-      resizeMode="cover"
-      fadeDuration={0}
-      progressiveRenderingEnabled={true}
-      cache="reload"
-    />
-  </TouchableOpacity>
-));
-
-PostImage.displayName = 'PostImage';
-
-const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment, onShare }: PublicacionCardProps) {
+const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const router = useRouter();
   const { user } = useAuth();
-  const { interactionUserId, interactionType, interactionLocalId, isInteractingAsLocal } = useInteractionContext();
+  const { interactionUserId, interactionLocalId, isInteractingAsLocal } = useInteractionContext();
   
-  const [liked, setLiked] = useState(post?.liked || false);
-  const [saved, setSaved] = useState(post?.saved || false);
-  const [likesCount, setLikesCount] = useState(post?.likes || 0);
+  const [liked, setLiked] = useState(post.user_has_liked || false);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [mentionedUsers, setMentionedUsers] = useState<MentionedUser[]>([]);
-  const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
-  const [showTagsOverlay, setShowTagsOverlay] = useState(false);
-  const [authorData, setAuthorData] = useState<{ nombre: string; avatar: string | null; username?: string } | null>(null);
-  const [loadingAuthor, setLoadingAuthor] = useState(true);
-  const [imageError, setImageError] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
-
-  console.log('[PublicacionCard] 🎭 Interaction context:', {
-    interactionUserId,
-    interactionType,
-    interactionLocalId,
-    isInteractingAsLocal,
-  });
-
-  // ✅ NEW: Subscribe to real-time like updates
-  useEffect(() => {
-    if (!post?.id) return;
-
-    const likesChannel = supabase
-      .channel(`post-likes-${post.id}`)
-      .on(
-        'broadcast',
-        { event: 'like_update' },
-        (payload) => {
-          console.log('[PublicacionCard] 🔄 Real-time like update received:', payload);
-          if (payload.payload.postId === post.id) {
-            setLikesCount(payload.payload.likesCount);
-            
-            // Update liked state if it's for the current user
-            if (payload.payload.userId === interactionUserId) {
-              setLiked(payload.payload.liked);
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(likesChannel);
-    };
-  }, [post?.id, interactionUserId]);
-
-  useEffect(() => {
-    const fetchAuthorData = async () => {
-      if (!post) {
-        console.log('[PublicacionCard] No post data, skipping author fetch');
-        setLoadingAuthor(false);
-        return;
-      }
-
-      try {
-        console.log('[PublicacionCard] Fetching author data for post:', {
-          postId: post.id,
-          tipo: post.tipo,
-          autorId: post.autorId,
-          autor_id: post.autor_id,
-          localId: post.localId,
-          local_id: post.local_id
-        });
-        
-        const actualAutorId = post.autor_id || post.autorId;
-        const actualLocalId = post.local_id || post.localId;
-        
-        if (post.tipo === 'local' && actualLocalId) {
-          const { data, error } = await supabase
-            .from('locales')
-            .select('nombre, imagen_url, logo')
-            .eq('id', actualLocalId)
-            .single();
-
-          if (error) {
-            console.error('[PublicacionCard] Error fetching local:', error);
-            setAuthorData({ nombre: 'Local', avatar: null });
-          } else if (data) {
-            console.log('[PublicacionCard] Local data fetched:', data);
-            setAuthorData({ 
-              nombre: data.nombre, 
-              avatar: data.logo || data.imagen_url 
-            });
-          }
-        } else if (actualAutorId) {
-          const { data, error } = await supabase
-            .from('usuarios')
-            .select('nombre, avatar, username')
-            .eq('id', actualAutorId)
-            .single();
-
-          if (error) {
-            console.error('[PublicacionCard] Error fetching user:', error);
-            setAuthorData({ nombre: 'Usuario', avatar: null });
-          } else if (data) {
-            console.log('[PublicacionCard] User data fetched:', {
-              nombre: data.nombre,
-              username: data.username,
-              hasAvatar: !!data.avatar
-            });
-            setAuthorData({ 
-              nombre: data.nombre || 'Usuario', 
-              avatar: data.avatar,
-              username: data.username 
-            });
-          }
-        } else {
-          console.log('[PublicacionCard] No valid author ID found');
-          setAuthorData({ nombre: 'Usuario', avatar: null });
-        }
-      } catch (error) {
-        console.error('[PublicacionCard] Error fetching author:', error);
-        setAuthorData({ nombre: 'Usuario', avatar: null });
-      } finally {
-        setLoadingAuthor(false);
-      }
-    };
-
-    fetchAuthorData();
-  }, [post]);
-
-  useEffect(() => {
-    const checkIfLiked = async () => {
-      if (!interactionUserId || !post?.id) return;
-
-      try {
-        console.log('[PublicacionCard] 🔍 Checking like status:', {
-          postId: post.id,
-          interactionUserId,
-          interactionLocalId,
-          isInteractingAsLocal
-        });
-
-        let query = supabase
-          .from('likes')
-          .select('id')
-          .eq('post_id', post.id)
-          .eq('usuario_id', interactionUserId);
-
-        if (isInteractingAsLocal && interactionLocalId) {
-          query = query.eq('local_id', interactionLocalId);
-        } else {
-          query = query.is('local_id', null);
-        }
-
-        const { data, error } = await query.maybeSingle();
-
-        if (!error && data) {
-          console.log('[PublicacionCard] ✅ Post is liked');
-          setLiked(true);
-        } else {
-          console.log('[PublicacionCard] ❌ Post is not liked');
-          setLiked(false);
-        }
-      } catch (error) {
-        console.error('[PublicacionCard] Error checking like status:', error);
-      }
-    };
-
-    checkIfLiked();
-  }, [interactionUserId, interactionLocalId, isInteractingAsLocal, post?.id]);
-
-  useEffect(() => {
-    if (!post?.id) {
-      console.error('[PublicacionCard] Post ID is undefined, skipping mentions load');
-      return;
-    }
-
-    const loadMentions = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('post_mentions')
-          .select(`
-            usuario_id,
-            local_id,
-            username,
-            usuarios:usuario_id(nombre, username, avatar),
-            locales:local_id(nombre, imagen_url)
-          `)
-          .eq('post_id', post.id);
-
-        if (error) {
-          console.error('[PublicacionCard] Error loading mentions:', error);
-          return;
-        }
-
-        const mentions: MentionedUser[] = (data || []).map((m: any) => {
-          if (m.usuario_id && m.usuarios) {
-            return {
-              id: m.usuario_id,
-              nombre: m.usuarios.nombre,
-              username: m.usuarios.username,
-              avatar: m.usuarios.avatar,
-              tipo: 'usuario' as const,
-            };
-          } else if (m.local_id && m.locales) {
-            return {
-              id: m.local_id,
-              nombre: m.locales.nombre,
-              username: m.locales.nombre,
-              avatar: m.locales.imagen_url,
-              tipo: 'local' as const,
-            };
-          }
-          return null;
-        }).filter(Boolean);
-
-        setMentionedUsers(mentions);
-      } catch (error) {
-        console.error('[PublicacionCard] Error loading mentions:', error);
-      }
-    };
-
-    loadMentions();
-  }, [post?.id]);
-
-  useEffect(() => {
-    if (!post?.id) {
-      console.error('[PublicacionCard] Post ID is undefined, skipping tags load');
-      return;
-    }
-
-    const loadTags = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('post_tags')
-          .select(`
-            usuario_id,
-            position_x,
-            position_y,
-            usuarios:usuario_id(nombre, username, avatar)
-          `)
-          .eq('post_id', post.id)
-          .in('estado', ['aceptado', 'pendiente']);
-
-        if (error) {
-          console.error('[PublicacionCard] Error loading tags:', error);
-          return;
-        }
-
-        const tags: TaggedUser[] = (data || []).map((t: any) => ({
-          id: t.usuario_id,
-          nombre: t.usuarios?.nombre || 'Usuario',
-          username: t.usuarios?.username,
-          avatar: t.usuarios?.avatar,
-          position_x: t.position_x,
-          position_y: t.position_y,
-        }));
-
-        setTaggedUsers(tags);
-      } catch (error) {
-        console.error('[PublicacionCard] Error loading tags:', error);
-      }
-    };
-
-    loadTags();
-  }, [post?.id]);
+  const [commentsModalVisible, setCommentsModalVisible] = useState(false);
 
   const handleLike = useCallback(async () => {
-    console.log('[PublicacionCard] handleLike - Interaction context:', {
-      interactionUserId,
-      interactionType,
-      interactionLocalId,
-      isInteractingAsLocal,
-    });
-    
-    if (!interactionUserId) {
-      Alert.alert('Error', 'Debes iniciar sesión para dar me gusta');
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
       return;
     }
 
-    const newLiked = !liked;
-    const previousLikesCount = likesCount;
-    
-    setLiked(newLiked);
-    setLikesCount(newLiked ? likesCount + 1 : Math.max(0, likesCount - 1));
+    const newLikedState = !liked;
+    setLiked(newLikedState);
+    setLikesCount(prev => prev + (newLikedState ? 1 : -1));
 
     try {
-      if (newLiked) {
-        const likeData: any = {
+      if (newLikedState) {
+        await supabase.from('likes').insert({
           post_id: post.id,
-          usuario_id: interactionUserId,
-        };
-
-        if (isInteractingAsLocal && interactionLocalId) {
-          likeData.local_id = interactionLocalId;
-          likeData.tipo = 'local';
-          console.log('[PublicacionCard] 🏢 Adding like as local:', interactionLocalId);
-        } else {
-          likeData.tipo = 'usuario';
-          console.log('[PublicacionCard] 👤 Adding like as user');
-        }
-
-        const { error: insertError } = await supabase
-          .from('likes')
-          .insert(likeData);
-        
-        if (insertError) {
-          console.error('[PublicacionCard] Error inserting like:', insertError);
-          throw insertError;
-        }
-        
-        console.log('[PublicacionCard] ✅ Like added successfully');
-      } else {
-        let deleteQuery = supabase
-          .from('likes')
-          .delete()
-          .eq('post_id', post.id)
-          .eq('usuario_id', interactionUserId);
-
-        if (isInteractingAsLocal && interactionLocalId) {
-          deleteQuery = deleteQuery.eq('local_id', interactionLocalId);
-        } else {
-          deleteQuery = deleteQuery.is('local_id', null);
-        }
-
-        const { error: deleteError } = await deleteQuery;
-        
-        if (deleteError) {
-          console.error('[PublicacionCard] Error deleting like:', deleteError);
-          throw deleteError;
-        }
-        
-        console.log('[PublicacionCard] ✅ Like removed successfully');
-      }
-
-      const newLikesCount = newLiked ? previousLikesCount + 1 : Math.max(0, previousLikesCount - 1);
-
-      const { error: updateError } = await supabase
-        .from('posts')
-        .update({ likes: newLikesCount })
-        .eq('id', post.id);
-
-      if (updateError) {
-        console.error('[PublicacionCard] Error updating post likes count:', updateError);
-      }
-
-      // ✅ NEW: Broadcast like update to all subscribers
-      await supabase.channel(`post-likes-${post.id}`).send({
-        type: 'broadcast',
-        event: 'like_update',
-        payload: {
-          postId: post.id,
-          likesCount: newLikesCount,
-          liked: newLiked,
-          userId: interactionUserId,
-        },
-      });
-
-      console.log('[PublicacionCard] 📡 Broadcasted like update');
-    } catch (error) {
-      console.error('[PublicacionCard] Error toggling like:', error);
-      setLiked(!newLiked);
-      setLikesCount(previousLikesCount);
-      Alert.alert('Error', 'No se pudo actualizar el me gusta');
-    }
-
-    if (onLike) onLike();
-  }, [liked, likesCount, onLike, interactionUserId, interactionType, interactionLocalId, isInteractingAsLocal, post.id]);
-
-  const handleSave = useCallback(async () => {
-    console.log('[PublicacionCard] handleSave - Interaction context:', {
-      interactionUserId,
-      interactionType,
-      interactionLocalId,
-    });
-    
-    if (!interactionUserId) {
-      Alert.alert('Error', 'Debes iniciar sesión para guardar publicaciones');
-      return;
-    }
-
-    const newSaved = !saved;
-    setSaved(newSaved);
-
-    try {
-      if (newSaved) {
-        await supabase.from('posts_guardados').insert({
-          post_id: post.id,
-          usuario_id: interactionUserId,
+          usuario_id: user.id,
         });
-        Alert.alert('Guardado', 'Publicación guardada en favoritos');
       } else {
         await supabase
-          .from('posts_guardados')
+          .from('likes')
           .delete()
           .eq('post_id', post.id)
-          .eq('usuario_id', interactionUserId);
-        Alert.alert('Eliminado', 'Publicación eliminada de favoritos');
+          .eq('usuario_id', user.id);
       }
     } catch (error) {
-      console.error('[PublicacionCard] Error toggling save:', error);
-      setSaved(!newSaved);
-      Alert.alert('Error', 'No se pudo guardar la publicación');
+      console.error('[PublicacionCard] Error toggling like:', error);
+      setLiked(!newLikedState);
+      setLikesCount(prev => prev + (newLikedState ? -1 : 1));
     }
-  }, [saved, interactionUserId, interactionLocalId, interactionType, post.id]);
+  }, [user, liked, post.id]);
 
   const handleComment = useCallback(() => {
-    console.log('[PublicacionCard] handleComment - Interaction context:', {
-      interactionUserId,
-      interactionType,
-      interactionLocalId,
-    });
-    
-    if (!interactionUserId) {
-      Alert.alert('Error', 'Debes iniciar sesión para comentar');
-      return;
-    }
-    router.push(`/social/comentar?postId=${post.id}`);
-    if (onComment) onComment();
-  }, [interactionUserId, interactionLocalId, interactionType, router, post.id, onComment]);
-
-  const handleShare = useCallback(async () => {
-    console.log('[PublicacionCard] handleShare - Interaction context:', {
-      interactionUserId,
-      interactionType,
-      interactionLocalId,
-    });
-    
-    if (!interactionUserId) {
-      Alert.alert('Error', 'Debes iniciar sesión para compartir');
-      return;
-    }
-    
-    const postImage = post.imagenes && post.imagenes.length > 0 
-      ? post.imagenes[0] 
-      : post.imagen || null;
-    
-    router.push({
-      pathname: '/chat/nuevo-chat',
-      params: { 
-        sharePostId: post.id,
-        sharePostImage: postImage || '',
-        sharePostAuthor: authorData?.nombre || 'Usuario',
-      }
-    });
-    
-    if (onShare) onShare();
-  }, [interactionUserId, interactionLocalId, interactionType, router, post, onShare, authorData]);
-
-  const handleDelete = useCallback(async () => {
-    console.log('[PublicacionCard] handleDelete - User:', user?.id, 'Post autor:', post.autor_id || post.autorId);
-    
     if (!user) {
-      Alert.alert('Error', 'Debes iniciar sesión para eliminar publicaciones');
+      Alert.alert('Inicia sesión', 'Para comentar necesitas registrarte en BarLive');
       return;
     }
+    setCommentsModalVisible(true);
+  }, [user]);
 
-    const actualAutorId = post.autor_id || post.autorId;
-    const isAuthor = post.tipo === 'usuario' 
-      ? actualAutorId === user.id 
-      : false;
+  const handleShare = useCallback(() => {
+    router.push({
+      pathname: '/social/post',
+      params: { id: post.id },
+    });
+  }, [router, post.id]);
 
-    if (!isAuthor) {
-      Alert.alert('Error', 'No tienes permisos para eliminar esta publicación');
-      return;
+  const handlePostPress = useCallback(() => {
+    router.push({
+      pathname: '/social/post',
+      params: { id: post.id },
+    });
+  }, [router, post.id]);
+
+  const handleProfilePress = useCallback(() => {
+    if (post.tipo === 'local' && post.local_id) {
+      router.push({
+        pathname: '/perfil/local',
+        params: { localId: post.local_id },
+      });
+    } else if (post.tipo === 'usuario' && post.autor_id) {
+      router.push({
+        pathname: '/perfil/usuario',
+        params: { userId: post.autor_id },
+      });
     }
+  }, [router, post]);
 
+  const handleDeletePost = useCallback(async () => {
     Alert.alert(
       'Eliminar publicación',
       '¿Estás seguro de que quieres eliminar esta publicación?',
@@ -537,8 +150,9 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
 
               if (error) throw error;
 
-              Alert.alert('Éxito', 'Publicación eliminada');
-              if (onLike) onLike();
+              if (onUpdate) {
+                onUpdate();
+              }
             } catch (error) {
               console.error('[PublicacionCard] Error deleting post:', error);
               Alert.alert('Error', 'No se pudo eliminar la publicación');
@@ -547,592 +161,294 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         },
       ]
     );
-  }, [user, post, onLike]);
+  }, [post.id, onUpdate]);
 
-  const formatearFecha = useCallback((fecha: string) => {
-    try {
-      const date = new Date(fecha);
-      const ahora = new Date();
-      const diff = ahora.getTime() - date.getTime();
-      const minutos = Math.floor(diff / 60000);
-      const horas = Math.floor(diff / 3600000);
-      const dias = Math.floor(diff / 86400000);
+  const showOptions = useCallback(() => {
+    const canDelete = user && (
+      (post.tipo === 'usuario' && post.autor_id === user.id) ||
+      (post.tipo === 'local' && interactionLocalId === post.local_id)
+    );
 
-      if (minutos < 1) return 'Ahora';
-      if (minutos < 60) return `Hace ${minutos}m`;
-      if (horas < 24) return `Hace ${horas}h`;
-      if (dias < 7) return `Hace ${dias}d`;
-      return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-    } catch (error) {
-      console.error('[PublicacionCard] Error formatting date:', error);
-      return 'Fecha desconocida';
-    }
-  }, []);
+    if (!canDelete) return;
 
-  const handleScroll = useCallback((event: any) => {
-    const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffsetX / SCREEN_WIDTH);
-    setCurrentImageIndex(index);
-  }, []);
+    const options = ['Eliminar publicación', 'Cancelar'];
 
-  const handleImagePress = useCallback(() => {
-    if (taggedUsers.length > 0) {
-      setShowTagsOverlay(true);
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: 1,
+          destructiveButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            handleDeletePost();
+          }
+        }
+      );
     } else {
-      router.push(`/social/post?id=${post?.id || ''}`);
+      Alert.alert(
+        'Opciones',
+        '',
+        [
+          {
+            text: 'Eliminar publicación',
+            style: 'destructive',
+            onPress: handleDeletePost,
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+        ]
+      );
     }
-  }, [taggedUsers.length, router, post?.id]);
+  }, [user, post, interactionLocalId, handleDeletePost]);
 
-  const navigateToProfile = useCallback((user: MentionedUser | TaggedUser, tipo?: 'usuario' | 'local') => {
-    const userType = tipo || (user as MentionedUser).tipo || 'usuario';
-    if (userType === 'local') {
-      router.push(`/perfil/local?localId=${user.id}`);
-    } else {
-      router.push(`/perfil/usuario?userId=${user.id}`);
-    }
-  }, [router]);
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  if (!post) {
-    console.error('[PublicacionCard] Post is undefined, skipping render');
-    return null;
-  }
+    if (seconds < 60) return 'Ahora';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
+    return `${Math.floor(seconds / 604800)}sem`;
+  };
 
-  const images = post.imagenes && post.imagenes.length > 0 
-    ? post.imagenes 
-    : post.imagen 
-      ? [post.imagen] 
-      : [];
+  const displayName = post.tipo === 'local' && post.local 
+    ? post.local.nombre 
+    : post.autor?.username 
+      ? post.autor.username.replace(/^@/, '')
+      : post.autor?.nombre || 'Usuario';
 
-  // ✅ FIXED: Remove @ symbol from username display
-  const displayName = loadingAuthor 
-    ? 'Cargando...' 
-    : authorData?.username 
-      ? authorData.username.replace(/^@/, '')
-      : authorData?.nombre?.replace(/^@/, '') || 'Usuario';
-  
-  const avatarUrl = authorData?.avatar || null;
-  const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
-  const actualAutorId = post.autor_id || post.autorId;
-  const isAuthor = user && post.tipo === 'usuario' && actualAutorId === user.id;
-  const actualLocalId = post.local_id || post.localId;
+  const displayAvatar = post.tipo === 'local' && post.local 
+    ? post.local.imagen_url 
+    : post.autor?.avatar || '';
 
-  console.log('[PublicacionCard] Rendering with:', {
-    displayName,
-    hasAvatar: !!avatarUrl,
-    isAuthor,
-    loadingAuthor,
-    userId: user?.id,
-    postAutorId: actualAutorId,
-    liked,
-    likesCount
-  });
+  const canDelete = user && (
+    (post.tipo === 'usuario' && post.autor_id === user.id) ||
+    (post.tipo === 'local' && interactionLocalId === post.local_id)
+  );
 
   return (
     <View style={styles.card}>
-      {/* ✅ FIXED: Header with mini avatar and username (no @) */}
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerTouchable}
-          onPress={() => {
-            if (post?.tipo === 'local' && actualLocalId) {
-              router.push(`/perfil/local?localId=${actualLocalId}`);
-            } else if (actualAutorId) {
-              router.push(`/perfil/usuario?userId=${actualAutorId}`);
-            }
-          }}
-          activeOpacity={0.7}
-        >
-          {avatarUrl && !imageError ? (
-            <Image 
-              source={{ uri: `${avatarUrl}?v=${Date.now()}` }} 
-              style={styles.avatar}
-              onError={() => {
-                console.log('[PublicacionCard] ⚠️ Avatar image failed to load');
-                setImageError(true);
-              }}
-            />
+        <TouchableOpacity style={styles.headerLeft} onPress={handleProfilePress} activeOpacity={0.7}>
+          {displayAvatar ? (
+            <Image source={{ uri: displayAvatar }} style={styles.avatar} />
           ) : (
-            <View style={styles.avatarPlaceholder}>
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
               <Text style={styles.avatarText}>
-                {authorData?.nombre?.charAt(0).toUpperCase() || 'U'}
+                {displayName?.charAt(0).toUpperCase() || 'U'}
               </Text>
             </View>
           )}
-          <View style={styles.headerContent}>
-            <Text style={styles.autorNombre}>{displayName}</Text>
-            <Text style={styles.fecha}>{displayDate}</Text>
+          <View style={styles.headerInfo}>
+            <Text style={styles.username}>{displayName}</Text>
+            <Text style={styles.timestamp}>{formatTimeAgo(post.created_at)}</Text>
           </View>
         </TouchableOpacity>
-        {isAuthor && (
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} activeOpacity={0.7}>
-            <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={20} color="#000" />
+        {canDelete && (
+          <TouchableOpacity style={styles.optionsButton} onPress={showOptions} activeOpacity={0.7}>
+            <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={24} color={colors.text} />
           </TouchableOpacity>
         )}
       </View>
 
-      {mentionedUsers.length > 0 && (
-        <View style={styles.mentionsContainer}>
-          <Text style={styles.mentionsText}>
-            Con{' '}
-            {mentionedUsers.slice(0, 3).map((user, index) => (
-              <React.Fragment key={user.id}>
-                {index > 0 && ', '}
-                <Text
-                  style={styles.mentionedUsername}
-                  onPress={() => navigateToProfile(user)}
-                >
-                  {user.tipo === 'local' 
-                    ? user.nombre 
-                    : user.username 
-                      ? user.username.replace(/^@/, '')
-                      : user.nombre}
-                </Text>
-              </React.Fragment>
-            ))}
-            {mentionedUsers.length > 3 && (
-              <Text style={styles.mentionsText}> y {mentionedUsers.length - 3} más</Text>
-            )}
-          </Text>
-        </View>
+      {/* Content */}
+      {post.contenido && (
+        <TouchableOpacity onPress={handlePostPress} activeOpacity={1}>
+          <ParsedText text={post.contenido} style={styles.content} />
+        </TouchableOpacity>
       )}
 
-      {taggedUsers.length > 0 && (
-        <View style={styles.taggedContainer}>
-          <View style={styles.taggedAvatarsRow}>
-            {taggedUsers.slice(0, 2).map((taggedUser, index) => (
-              <TouchableOpacity
-                key={taggedUser.id}
-                style={[styles.taggedMiniAvatar, index > 0 && styles.taggedMiniAvatarOverlap]}
-                onPress={() => navigateToProfile(taggedUser, 'usuario')}
-                activeOpacity={0.7}
-              >
-                {taggedUser.avatar ? (
-                  <Image source={{ uri: `${taggedUser.avatar}?v=${Date.now()}` }} style={styles.taggedAvatarImage} />
-                ) : (
-                  <View style={styles.taggedAvatarPlaceholder}>
-                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={14} color={colors.textSecondary} />
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
+      {/* Images */}
+      {post.imagenes && post.imagenes.length > 0 && (
+        <TouchableOpacity onPress={handlePostPress} activeOpacity={0.95}>
+          <View style={styles.imageContainer}>
+            <OptimizedImage
+              source={{ uri: post.imagenes[currentImageIndex] }}
+              style={styles.postImage}
+              resizeMode="cover"
+            />
+            {post.imagenes.length > 1 && (
+              <View style={styles.imageIndicator}>
+                <Text style={styles.imageIndicatorText}>
+                  {currentImageIndex + 1}/{post.imagenes.length}
+                </Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.taggedText}>
-            Etiquetado{' '}
-            {taggedUsers.slice(0, 2).map((taggedUser, index) => (
-              <React.Fragment key={taggedUser.id}>
-                {index > 0 && ' y '}
-                <Text
-                  style={styles.taggedUsername}
-                  onPress={() => navigateToProfile(taggedUser, 'usuario')}
-                >
-                  {taggedUser.username ? taggedUser.username.replace(/^@/, '') : taggedUser.nombre}
-                </Text>
-              </React.Fragment>
-            ))}
-            {taggedUsers.length > 2 && (
-              <Text style={styles.taggedText}> y {taggedUsers.length - 2} más</Text>
-            )}
-          </Text>
-        </View>
+        </TouchableOpacity>
       )}
 
-      {/* ✅ FIXED: Image carousel BEFORE description */}
-      {images.length > 0 && (
-        <View style={styles.imageCarouselContainer}>
-          <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            style={styles.imageCarousel}
-            scrollEnabled={true}
-            bounces={false}
-            decelerationRate="fast"
-            snapToInterval={SCREEN_WIDTH}
-            snapToAlignment="center"
-            removeClippedSubviews={true}
-          >
-            {images.map((imageUrl, index) => (
-              <PostImage
-                key={index}
-                uri={imageUrl}
-                onPress={handleImagePress}
-              />
-            ))}
-          </ScrollView>
-
-          {images.length > 1 && (
-            <View style={styles.imageCountBadge}>
-              <Text style={styles.imageCountText}>
-                {currentImageIndex + 1}/{images.length}
+      {/* Actions */}
+      <View style={styles.actions}>
+        <View style={styles.actionsLeft}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleLike} activeOpacity={0.7}>
+            <IconSymbol
+              ios_icon_name={liked ? "heart.fill" : "heart"}
+              android_material_icon_name={liked ? "favorite" : "favorite_border"}
+              size={26}
+              color={liked ? "#EF4444" : colors.text}
+            />
+            {likesCount > 0 && (
+              <Text style={[styles.actionText, liked && { color: '#EF4444' }]}>
+                {likesCount}
               </Text>
-            </View>
-          )}
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton} onPress={handleComment} activeOpacity={0.7}>
+            <IconSymbol
+              ios_icon_name="bubble.left"
+              android_material_icon_name="chat_bubble_outline"
+              size={24}
+              color={colors.text}
+            />
+            {post.comentarios_count > 0 && (
+              <Text style={styles.actionText}>{post.comentarios_count}</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton} onPress={handleShare} activeOpacity={0.7}>
+            <IconSymbol
+              ios_icon_name="paperplane"
+              android_material_icon_name="send"
+              size={24}
+              color={colors.text}
+            />
+            {post.compartidos_count > 0 && (
+              <Text style={styles.actionText}>{post.compartidos_count}</Text>
+            )}
+          </TouchableOpacity>
         </View>
-      )}
-
-      {/* ✅ FIXED: Description AFTER image */}
-      {post?.contenido && (
-        <View style={styles.contenidoContainer}>
-          <ParsedText text={post.contenido} style={styles.contenido} />
-        </View>
-      )}
-
-      {post?.ubicacion && (
-        <View style={styles.locationContainer}>
-          <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
-          <Text style={styles.locationText}>{post.ubicacion}</Text>
-        </View>
-      )}
-
-      {/* ✅ Action buttons (like, comment, share) */}
-      <View style={styles.acciones}>
-        <TouchableOpacity style={styles.accionButton} onPress={handleLike} activeOpacity={0.7}>
-          <IconSymbol
-            ios_icon_name={liked ? SOCIAL_ICONS.LIKE.iosFilled : SOCIAL_ICONS.LIKE.ios}
-            android_material_icon_name={liked ? SOCIAL_ICONS.LIKE.androidFilled : SOCIAL_ICONS.LIKE.android}
-            size={26}
-            color={liked ? '#EF4444' : colors.text}
-          />
-          <Text style={[styles.accionText, liked && styles.accionTextLiked]}>
-            {likesCount}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.accionButton} onPress={handleComment} activeOpacity={0.7}>
-          <IconSymbol 
-            ios_icon_name={SOCIAL_ICONS.COMMENT.ios} 
-            android_material_icon_name={SOCIAL_ICONS.COMMENT.android} 
-            size={26} 
-            color={colors.text} 
-          />
-          <Text style={styles.accionText}>{post?.comentarios || 0}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.accionButton} onPress={handleShare} activeOpacity={0.7}>
-          <IconSymbol 
-            ios_icon_name={SOCIAL_ICONS.SHARE.ios} 
-            android_material_icon_name={SOCIAL_ICONS.SHARE.android} 
-            size={26} 
-            color={colors.text} 
-          />
-        </TouchableOpacity>
-
-        <View style={styles.spacer} />
-
-        <TouchableOpacity style={styles.accionButton} onPress={handleSave} activeOpacity={0.7}>
-          <IconSymbol 
-            ios_icon_name={saved ? SOCIAL_ICONS.SAVE.iosFilled : SOCIAL_ICONS.SAVE.ios} 
-            android_material_icon_name={saved ? SOCIAL_ICONS.SAVE.androidFilled : SOCIAL_ICONS.SAVE.android} 
-            size={26} 
-            color={saved ? colors.primary : colors.text} 
-          />
-        </TouchableOpacity>
       </View>
 
-      <Modal
-        visible={showTagsOverlay}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowTagsOverlay(false)}
-        hardwareAccelerated={true}
-      >
-        <Pressable 
-          style={styles.tagsOverlay}
-          onPress={() => setShowTagsOverlay(false)}
-        >
-          <View style={styles.tagsImageContainer}>
-            <Image 
-              source={{ uri: `${images[currentImageIndex]}?v=${Date.now()}` }} 
-              style={styles.tagsImage} 
-              resizeMode="contain" 
-            />
-            {taggedUsers.map((taggedUser) => {
-              if (taggedUser.position_x !== undefined && taggedUser.position_y !== undefined) {
-                return (
-                  <TouchableOpacity
-                    key={taggedUser.id}
-                    style={[
-                      styles.tagMarker,
-                      {
-                        left: `${taggedUser.position_x * 100}%`,
-                        top: `${taggedUser.position_y * 100}%`,
-                      },
-                    ]}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      setShowTagsOverlay(false);
-                      navigateToProfile(taggedUser, 'usuario');
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.tagMarkerDot} />
-                    <View style={styles.tagMarkerLabel}>
-                      <Text style={styles.tagMarkerText}>
-                        {taggedUser.username ? taggedUser.username.replace(/^@/, '') : taggedUser.nombre}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              }
-              return null;
-            })}
-          </View>
-          <TouchableOpacity 
-            style={styles.closeTagsButton}
-            onPress={() => setShowTagsOverlay(false)}
-            activeOpacity={0.7}
-          >
-            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={32} color={colors.headerText} />
-          </TouchableOpacity>
-        </Pressable>
-      </Modal>
+      {/* ✅ Comments Modal Integration */}
+      <CommentsModal
+        visible={commentsModalVisible}
+        postId={post.id}
+        postAuthorId={post.autor_id}
+        onClose={() => setCommentsModalVisible(false)}
+        onCommentAdded={() => {
+          if (onUpdate) {
+            onUpdate();
+          }
+        }}
+      />
     </View>
   );
 });
 
+PublicacionCard.displayName = 'PublicacionCard';
+
+export default PublicacionCard;
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.cardBackground,
-    marginBottom: 0,
-    paddingBottom: 16,
+    marginBottom: 12,
     borderRadius: 0,
-    marginHorizontal: 0,
-    marginTop: 0,
-    borderBottomWidth: 8,
-    borderBottomColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    gap: 12,
-    backgroundColor: colors.cardBackground,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  headerTouchable: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     flex: 1,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.cardBorder,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
   },
   avatarPlaceholder: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
     backgroundColor: colors.primary,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarText: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: colors.headerText,
   },
-  headerContent: {
+  headerInfo: {
     flex: 1,
   },
-  autorNombre: {
-    fontSize: 16,
-    fontWeight: '700',
+  username: {
+    fontSize: 15,
+    fontWeight: '600',
     color: colors.text,
+    marginBottom: 2,
   },
-  fecha: {
-    fontSize: 14,
+  timestamp: {
+    fontSize: 13,
     color: colors.textSecondary,
-    marginTop: 3,
-    fontWeight: '500',
   },
-  deleteButton: {
+  optionsButton: {
     padding: 8,
-    backgroundColor: colors.background,
-    borderRadius: 20,
   },
-  mentionsContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  mentionsText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  mentionedUsername: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.secondary,
-  },
-  taggedContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    gap: 10,
-  },
-  taggedAvatarsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  taggedMiniAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: colors.cardBackground,
-    overflow: 'hidden',
-    backgroundColor: colors.background,
-  },
-  taggedMiniAvatarOverlap: {
-    marginLeft: -10,
-  },
-  taggedAvatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  taggedAvatarPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  taggedText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    flex: 1,
-  },
-  taggedUsername: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  imageCarouselContainer: {
-    position: 'relative',
-    borderRadius: 0,
-    overflow: 'hidden',
-    marginHorizontal: 0,
-    marginBottom: 12,
-  },
-  imageCarousel: {
-    width: SCREEN_WIDTH,
-  },
-  imageContainer: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH,
-    position: 'relative',
-  },
-  imagen: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.cardBorder,
-  },
-  imageCountBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  imageCountText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.headerText,
-  },
-  contenidoContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  contenido: {
+  content: {
     fontSize: 15,
     color: colors.text,
     lineHeight: 22,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 12,
-    gap: 6,
+    marginBottom: 12,
   },
-  locationText: {
-    fontSize: 13,
-    color: colors.text,
-    fontWeight: '500',
-  },
-  acciones: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    gap: 20,
-  },
-  accionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  accionText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  accionTextLiked: {
-    color: '#EF4444',
-  },
-  spacer: {
-    flex: 1,
-  },
-  tagsOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tagsImageContainer: {
+  imageContainer: {
+    position: 'relative',
     width: SCREEN_WIDTH,
     height: SCREEN_WIDTH,
-    position: 'relative',
+    backgroundColor: colors.background,
   },
-  tagsImage: {
+  postImage: {
     width: '100%',
     height: '100%',
   },
-  tagMarker: {
+  imageIndicator: {
     position: 'absolute',
-    alignItems: 'center',
-  },
-  tagMarkerDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    borderWidth: 3,
-    borderColor: colors.headerText,
-  },
-  tagMarkerLabel: {
-    marginTop: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 12,
   },
-  tagMarkerText: {
-    fontSize: 13,
+  imageIndicatorText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: colors.headerText,
+    color: '#fff',
   },
-  closeTagsButton: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  actionsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
   },
 });
-
-export default PublicacionCard;
