@@ -8,11 +8,14 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 interface CartItem {
   id: string;
@@ -33,6 +36,17 @@ interface ShoppingCartProps {
   onCheckout: (items: CartItem[], total: number) => void;
   onClose: () => void;
 }
+
+/**
+ * ✅ SHOPPING CART v2.0 - BARLIVE DESIGN
+ * 
+ * Changes:
+ * - ✅ Updated with Barlive colors (teal/cyan gradients)
+ * - ✅ Modern card design
+ * - ✅ Gradient header
+ * - ✅ Improved visual hierarchy
+ * - ✅ Better spacing and typography
+ */
 
 export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps) {
   const { user } = useAuth();
@@ -106,12 +120,17 @@ export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps)
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
           <Text style={styles.headerTitle}>Carrito de Compras</Text>
-          <TouchableOpacity onPress={onClose}>
-            <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Cargando carrito...</Text>
@@ -122,57 +141,107 @@ export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps)
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
         <Text style={styles.headerTitle}>Carrito de Compras</Text>
-        <TouchableOpacity onPress={onClose}>
-          <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {cartItems.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <IconSymbol ios_icon_name="cart" android_material_icon_name="shopping_cart" size={64} color={colors.textSecondary} />
+          <View style={styles.emptyIconContainer}>
+            <IconSymbol ios_icon_name="cart" android_material_icon_name="shopping_cart" size={64} color={colors.primary} />
+          </View>
           <Text style={styles.emptyText}>Tu carrito está vacío</Text>
           <Text style={styles.emptySubtext}>Añade planes de suscripción para tus locales</Text>
+          <TouchableOpacity style={styles.emptyButton} onPress={onClose}>
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.emptyButtonGradient}
+            >
+              <Text style={styles.emptyButtonText}>Explorar Planes</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       ) : (
         <React.Fragment>
           <ScrollView style={styles.itemsContainer} contentContainerStyle={styles.itemsContent}>
             {cartItems.map((item) => (
               <View key={item.id} style={styles.cartItem}>
+                <View style={styles.itemHeader}>
+                  <View style={styles.planBadge}>
+                    <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color={colors.badgeDestacado} />
+                    <Text style={styles.planBadgeText}>{item.planes_suscripcion.nombre}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => removeItem(item.id)}
+                    disabled={removing === item.id}
+                  >
+                    {removing === item.id ? (
+                      <ActivityIndicator size="small" color={colors.badgeNuevo} />
+                    ) : (
+                      <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color={colors.badgeNuevo} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                
                 <View style={styles.itemInfo}>
-                  <Text style={styles.itemPlanName}>{item.planes_suscripcion.nombre}</Text>
-                  <Text style={styles.itemLocalName}>{item.locales.nombre}</Text>
+                  <View style={styles.localInfo}>
+                    <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="business" size={18} color={colors.primary} />
+                    <Text style={styles.itemLocalName}>{item.locales.nombre}</Text>
+                  </View>
+                  
                   <Text style={styles.itemDescription} numberOfLines={2}>
                     {item.planes_suscripcion.descripcion}
                   </Text>
-                  <Text style={styles.itemPrice}>
-                    €{item.planes_suscripcion.precio_mensual.toFixed(2)}/mes
-                  </Text>
+                  
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.itemPrice}>
+                      €{item.planes_suscripcion.precio_mensual.toFixed(2)}
+                    </Text>
+                    <Text style={styles.priceLabel}>/mes</Text>
+                  </View>
                 </View>
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => removeItem(item.id)}
-                  disabled={removing === item.id}
-                >
-                  {removing === item.id ? (
-                    <ActivityIndicator size="small" color={colors.badgeDestacado} />
-                  ) : (
-                    <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color={colors.badgeDestacado} />
-                  )}
-                </TouchableOpacity>
               </View>
             ))}
           </ScrollView>
 
           <View style={styles.footer}>
-            <View style={styles.totalContainer}>
-              <Text style={styles.totalLabel}>Total:</Text>
-              <Text style={styles.totalAmount}>€{calculateTotal().toFixed(2)}</Text>
+            <View style={styles.totalSection}>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Subtotal:</Text>
+                <Text style={styles.totalAmount}>€{calculateTotal().toFixed(2)}</Text>
+              </View>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabelSmall}>IVA (21%):</Text>
+                <Text style={styles.totalAmountSmall}>€{(calculateTotal() * 0.21).toFixed(2)}</Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabelFinal}>Total:</Text>
+                <Text style={styles.totalAmountFinal}>€{(calculateTotal() * 1.21).toFixed(2)}</Text>
+              </View>
             </View>
+            
             <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
-              <IconSymbol ios_icon_name="creditcard.fill" android_material_icon_name="payment" size={20} color={colors.white} />
-              <Text style={styles.checkoutButtonText}>Proceder al Pago</Text>
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.checkoutButtonGradient}
+              >
+                <IconSymbol ios_icon_name="creditcard.fill" android_material_icon_name="payment" size={20} color={colors.headerText} />
+                <Text style={styles.checkoutButtonText}>Proceder al Pago</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </React.Fragment>
@@ -190,15 +259,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.white,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.headerText,
+    flex: 1,
+  },
+  closeButton: {
+    padding: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -216,17 +288,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
   },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
   emptyText: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '700',
     color: colors.text,
-    marginTop: 16,
+    marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
-    marginTop: 8,
+    marginBottom: 32,
     textAlign: 'center',
+  },
+  emptyButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  emptyButtonGradient: {
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+  },
+  emptyButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.headerText,
   },
   itemsContainer: {
     flex: 1,
@@ -235,76 +329,139 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   cartItem: {
-    flexDirection: 'row',
-    backgroundColor: colors.white,
-    borderRadius: 12,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    ...commonStyles.shadow,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    ...commonStyles.cardShadow,
   },
-  itemInfo: {
-    flex: 1,
-  },
-  itemPlanName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  itemLocalName: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  itemDescription: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  itemPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  removeButton: {
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footer: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.white,
-  },
-  totalContainer: {
+  itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
+  },
+  planBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.badgeDestacado + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  planBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.badgeDestacadoText,
+    textTransform: 'uppercase',
+  },
+  removeButton: {
+    padding: 8,
+  },
+  itemInfo: {
+    gap: 10,
+  },
+  localInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  itemLocalName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    flex: 1,
+  },
+  itemDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  itemPrice: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  priceLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  footer: {
+    backgroundColor: colors.cardBackground,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    ...commonStyles.cardShadow,
+  },
+  totalSection: {
     marginBottom: 16,
   },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   totalLabel: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     color: colors.text,
   },
   totalAmount: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  totalLabelSmall: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textSecondary,
+  },
+  totalAmountSmall: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.cardBorder,
+    marginVertical: 12,
+  },
+  totalLabelFinal: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  totalAmountFinal: {
+    fontSize: 28,
+    fontWeight: '800',
     color: colors.primary,
   },
   checkoutButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  checkoutButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    backgroundColor: colors.primary,
     paddingVertical: 16,
-    borderRadius: 12,
   },
   checkoutButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.white,
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.headerText,
   },
 });

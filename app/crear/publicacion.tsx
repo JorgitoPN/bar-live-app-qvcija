@@ -30,7 +30,6 @@ import { processPostHashtags, processPostMentions } from '@/utils/postHelpers';
 import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
 import HashtagAutocomplete from '@/components/social/HashtagAutocomplete';
 import TaggingModalV5, { TaggableUser } from '@/components/social/TaggingModalV5';
-import ImageEditorV6 from '@/components/social/ImageEditorV6';
 import { canLocalPerformAction } from '@/utils/subscriptionPermissions';
 
 const convertImageToJPG = (uri: string): Promise<Blob> => {
@@ -82,12 +81,13 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 };
 
 /**
- * ✅ CREATE PUBLICATION v3.0 - WITH IMAGE EDITOR v6.0
+ * ✅ CREATE PUBLICATION v4.0 - IMAGE EDITOR REMOVED
  * 
  * Changes:
- * - ✅ Integrated new ImageEditorV6 component
+ * - ✅ REMOVED: Image editor completely removed
+ * - ✅ Images are uploaded directly without editing
  * - ✅ Subscription permissions check
- * - ✅ Improved image editing workflow
+ * - ✅ Simplified image workflow
  */
 
 export default function CrearPublicacionScreen() {
@@ -116,11 +116,6 @@ export default function CrearPublicacionScreen() {
   const [showTagModal, setShowTagModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  
-  // ✅ NEW: Image Editor v6.0 state
-  const [showImageEditor, setShowImageEditor] = useState(false);
-  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
-  const [editingImageUri, setEditingImageUri] = useState<string | null>(null);
 
   const [canPublish, setCanPublish] = useState(true);
   const [permissionMessage, setPermissionMessage] = useState('');
@@ -213,29 +208,6 @@ export default function CrearPublicacionScreen() {
     
     const newCursorPosition = lastHashIndex + hashtag.length + 2;
     setCursorPosition(newCursorPosition);
-  };
-
-  // ✅ NEW: Open Image Editor v6.0
-  const handleEditImage = (index: number) => {
-    console.log('[CrearPublicacion] 🎨 Opening Image Editor v6.0 for image:', index);
-    setEditingImageIndex(index);
-    setEditingImageUri(imagenes[index]);
-    setShowImageEditor(true);
-  };
-
-  // ✅ NEW: Save edited image from Image Editor v6.0
-  const handleSaveEditedImage = (editedUri: string) => {
-    console.log('[CrearPublicacion] ✅ Saving edited image:', editedUri);
-    
-    if (editingImageIndex !== null) {
-      const newImagenes = [...imagenes];
-      newImagenes[editingImageIndex] = editedUri;
-      setImagenes(newImagenes);
-    }
-    
-    setShowImageEditor(false);
-    setEditingImageIndex(null);
-    setEditingImageUri(null);
   };
 
   const seleccionarImagenes = async () => {
@@ -649,13 +621,6 @@ export default function CrearPublicacionScreen() {
                   <View key={index} style={styles.imagePreviewWrapper}>
                     <Image source={{ uri }} style={styles.imagePreview} />
                     <TouchableOpacity
-                      style={styles.editImageButton}
-                      onPress={() => handleEditImage(index)}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol ios_icon_name="slider.horizontal.3" android_material_icon_name="tune" size={28} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
                       style={styles.removeImageButton}
                       onPress={() => eliminarImagen(index)}
                       activeOpacity={0.7}
@@ -817,20 +782,6 @@ export default function CrearPublicacionScreen() {
         />
       </View>
 
-      {/* ✅ NEW: Image Editor v6.0 */}
-      {editingImageUri && (
-        <ImageEditorV6
-          visible={showImageEditor}
-          imageUri={editingImageUri}
-          onClose={() => {
-            setShowImageEditor(false);
-            setEditingImageIndex(null);
-            setEditingImageUri(null);
-          }}
-          onSave={handleSaveEditedImage}
-        />
-      )}
-
       <TaggingModalV5
         visible={showTagModal}
         onClose={() => setShowTagModal(false)}
@@ -984,14 +935,6 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: 12,
     backgroundColor: colors.cardBorder,
-  },
-  editImageButton: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 14,
-    padding: 4,
   },
   removeImageButton: {
     position: 'absolute',

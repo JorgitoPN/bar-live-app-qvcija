@@ -4,10 +4,10 @@ import { Platform } from 'react-native';
 
 /**
  * ============================================================================
- * DETALLE LAYOUT - MODAL PRESENTATION v9.0 - REBUILT FROM SCRATCH
+ * DETALLE LAYOUT - MODAL PRESENTATION v11.0 - FINAL FIX
  * ============================================================================
  * 
- * ✅ COMPLETELY REBUILT: Perfect modal behavior
+ * ✅ FINAL FIX: Perfect modal behavior with proper presentation
  * - Opens as modal overlay (not full screen)
  * - Rounded corners at the top
  * - Semi-transparent background overlay visible
@@ -15,14 +15,15 @@ import { Platform } from 'react-native';
  * - Smooth animations
  * - Background page visible behind modal
  * - NO duplicate views
- * - NO black background
+ * - NO white/black background
+ * - Uses 'modal' presentation for proper gesture handling
  */
 export default function DetalleLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        presentation: 'transparentModal',
+        presentation: 'modal',
         gestureEnabled: true,
         gestureDirection: 'vertical',
         animation: 'slide_from_bottom',
@@ -32,7 +33,7 @@ export default function DetalleLayout() {
       <Stack.Screen 
         name="local" 
         options={{
-          presentation: 'transparentModal',
+          presentation: 'modal',
           gestureEnabled: true,
           gestureDirection: 'vertical',
           contentStyle: { backgroundColor: 'transparent' },
@@ -41,7 +42,7 @@ export default function DetalleLayout() {
       <Stack.Screen 
         name="evento" 
         options={{
-          presentation: 'transparentModal',
+          presentation: 'modal',
           gestureEnabled: true,
           gestureDirection: 'vertical',
           contentStyle: { backgroundColor: 'transparent' },
@@ -50,7 +51,7 @@ export default function DetalleLayout() {
       <Stack.Screen 
         name="sala-virtual" 
         options={{
-          presentation: 'transparentModal',
+          presentation: 'modal',
           gestureEnabled: true,
           gestureDirection: 'vertical',
           contentStyle: { backgroundColor: 'transparent' },

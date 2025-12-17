@@ -16,7 +16,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
-import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 
 interface User {
@@ -39,6 +39,17 @@ interface SharePostModalProps {
   postContent?: string;
   onClose: () => void;
 }
+
+/**
+ * ✅ SHARE POST MODAL v2.0 - BARLIVE DESIGN
+ * 
+ * Changes:
+ * - ✅ Updated with Barlive colors (teal/cyan gradients)
+ * - ✅ Gradient header
+ * - ✅ Improved visual hierarchy
+ * - ✅ Better spacing and typography
+ * - ✅ Modern card design
+ */
 
 export default function SharePostModal({
   visible,
@@ -169,9 +180,7 @@ export default function SharePostModal({
         
         let chatId: string;
         
-        // ✅ FIXED: Handle local and user chats differently
         if (isLocal) {
-          // For local chats, verify the local exists
           const { data: localExists, error: localCheckError } = await supabase
             .from('locales')
             .select('id')
@@ -181,10 +190,9 @@ export default function SharePostModal({
           if (localCheckError || !localExists) {
             console.error('[SharePostModal] Local does not exist:', recipientId, localCheckError);
             failCount++;
-            continue; // Skip this recipient
+            continue;
           }
 
-          // ✅ FIXED: For local chats, only verify the current user exists
           const { data: currentUserExists } = await supabase
             .from('usuarios')
             .select('id')
@@ -197,8 +205,6 @@ export default function SharePostModal({
             continue;
           }
 
-          // For local chats, use user.id as both usuario1_id and usuario2_id
-          // The local_id field will identify this as a local chat
           const { data: existingChat } = await supabase
             .from('chats')
             .select('id')
@@ -225,12 +231,11 @@ export default function SharePostModal({
             if (error) {
               console.error('[SharePostModal] Error creating local chat:', error);
               failCount++;
-              continue; // Skip this recipient
+              continue;
             }
             chatId = newChat.id;
           }
         } else {
-          // ✅ FIXED: For user chats, verify the recipient user exists
           const { data: userExists, error: userCheckError } = await supabase
             .from('usuarios')
             .select('id')
@@ -240,10 +245,9 @@ export default function SharePostModal({
           if (userCheckError || !userExists) {
             console.error('[SharePostModal] User does not exist:', recipientId, userCheckError);
             failCount++;
-            continue; // Skip this recipient
+            continue;
           }
 
-          // ✅ FIXED: Also verify current user exists
           const { data: currentUserExists } = await supabase
             .from('usuarios')
             .select('id')
@@ -285,28 +289,26 @@ export default function SharePostModal({
             if (error) {
               console.error('[SharePostModal] Error creating user chat:', error);
               failCount++;
-              continue; // Skip this recipient
+              continue;
             }
             chatId = newChat.id;
           }
         }
 
-        // ✅ FIXED: Send message with correct tipo_mensaje value
         const { error: messageError } = await supabase.from('mensajes').insert({
           chat_id: chatId,
           remitente_id: user.id,
           contenido: shareMessage,
           post_id: postId,
-          tipo_mensaje: 'post_compartido', // ✅ FIXED: Changed from 'post_share' to 'post_compartido'
+          tipo_mensaje: 'post_compartido',
         });
 
         if (messageError) {
           console.error('[SharePostModal] Error sending message:', messageError);
           failCount++;
-          continue; // Skip this recipient
+          continue;
         }
 
-        // Update chat last message
         await supabase
           .from('chats')
           .update({
@@ -373,7 +375,10 @@ export default function SharePostModal({
             <Text style={styles.recipientUsername}>@{(item as User).username}</Text>
           )}
           {!isUser && (
-            <Text style={styles.recipientUsername}>Local</Text>
+            <View style={styles.localBadge}>
+              <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="business" size={12} color="#F59E0B" />
+              <Text style={styles.localBadgeText}>Local</Text>
+            </View>
           )}
         </View>
         <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
@@ -382,7 +387,7 @@ export default function SharePostModal({
               ios_icon_name="checkmark"
               android_material_icon_name="check"
               size={16}
-              color="#fff"
+              color={colors.headerText}
             />
           )}
         </View>
@@ -398,7 +403,12 @@ export default function SharePostModal({
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        <BlurView intensity={80} tint="light" style={styles.header}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
           <TouchableOpacity
             style={styles.closeButton}
             onPress={onClose}
@@ -408,7 +418,7 @@ export default function SharePostModal({
               ios_icon_name="xmark"
               android_material_icon_name="close"
               size={24}
-              color={colors.text}
+              color={colors.headerText}
             />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Compartir publicación</Text>
@@ -419,14 +429,14 @@ export default function SharePostModal({
             disabled={selectedRecipients.size === 0 || sending}
           >
             {sending ? (
-              <ActivityIndicator size="small" color={colors.primary} />
+              <ActivityIndicator size="small" color={colors.headerText} />
             ) : (
               <Text style={[styles.sendButtonText, selectedRecipients.size === 0 && styles.sendButtonTextDisabled]}>
                 Enviar
               </Text>
             )}
           </TouchableOpacity>
-        </BlurView>
+        </LinearGradient>
 
         <View style={styles.searchContainer}>
           <IconSymbol
@@ -456,9 +466,31 @@ export default function SharePostModal({
           )}
         </View>
 
+        {selectedRecipients.size > 0 && (
+          <View style={styles.selectedCountContainer}>
+            <LinearGradient
+              colors={[colors.primary + '20', colors.secondary + '20']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.selectedCountGradient}
+            >
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={styles.selectedCountText}>
+                {selectedRecipients.size} {selectedRecipients.size === 1 ? 'destinatario seleccionado' : 'destinatarios seleccionados'}
+              </Text>
+            </LinearGradient>
+          </View>
+        )}
+
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Cargando contactos...</Text>
           </View>
         ) : (
           <FlatList
@@ -480,6 +512,11 @@ export default function SharePostModal({
                     ? 'No se encontraron resultados' 
                     : 'No hay destinatarios disponibles'}
                 </Text>
+                <Text style={styles.emptySubtext}>
+                  {searchQuery.trim()
+                    ? 'Intenta con otro término de búsqueda'
+                    : 'Sigue a usuarios o locales para compartir publicaciones'}
+                </Text>
               </View>
             }
           />
@@ -500,34 +537,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 60 : 48,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    overflow: 'hidden',
+    paddingBottom: 16,
   },
   closeButton: {
     padding: 8,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.headerText,
     flex: 1,
     textAlign: 'center',
   },
   sendButton: {
-    padding: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 20,
   },
   sendButtonDisabled: {
     opacity: 0.5,
   },
   sendButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary,
+    fontWeight: '700',
+    color: colors.headerText,
   },
   sendButtonTextDisabled: {
-    color: colors.textSecondary,
+    opacity: 0.6,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -539,16 +576,41 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
     color: colors.text,
   },
+  selectedCountContainer: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  selectedCountGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  selectedCountText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.textSecondary,
   },
   listContent: {
     flexGrow: 1,
@@ -560,13 +622,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
+    backgroundColor: colors.cardBackground,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   recipientInfo: {
     flex: 1,
   },
   recipientName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
   },
   recipientUsername: {
@@ -574,14 +642,31 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
+  localBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F59E0B' + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  localBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F59E0B',
+  },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
   checkboxSelected: {
     backgroundColor: colors.primary,
@@ -595,9 +680,16 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   emptyText: {
-    fontSize: 16,
-    color: colors.textSecondary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
     marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 8,
     textAlign: 'center',
   },
 });
