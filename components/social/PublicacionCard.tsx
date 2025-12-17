@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, memo, useRef } from 'react';
+import React, { useState, useCallback, memo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
@@ -30,7 +31,7 @@ import CommentsModal from '@/components/social/CommentsModal';
 import SharePostModal from '@/components/social/SharePostModal';
 import PostLikesAvatars from '@/components/social/PostLikesAvatars';
 import TagDisplay from '@/components/social/TagDisplay';
-import ImageTaggingOverlay from '@/components/social/ImageTaggingOverlay';
+import TaggingModalV5, { TaggableUser } from '@/components/social/TaggingModalV5';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TapGestureHandler, State } from 'react-native-gesture-handler';
 
@@ -81,18 +82,73 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   
-  // ✅ NEW: Tag display state
   const [showTags, setShowTags] = useState(false);
-  const [taggingMode, setTaggingMode] = useState(false);
   
-  // ✅ NEW: Edit description modal state
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editedDescription, setEditedDescription] = useState(post.contenido || '');
   const [savingEdit, setSavingEdit] = useState(false);
 
-  // ✅ NEW: Double-tap animation state
+  const [showTagManagementModal, setShowTagManagementModal] = useState(false);
+  const [existingTags, setExistingTags] = useState<TaggableUser[]>([]);
+  const [loadingTags, setLoadingTags] = useState(false);
+
+  // ✅ NEW: Tagging modal state
+  const [showTagModal, setShowTagModal] = useState(false);
+
+  // ✅ NEW: Tagged users display
+  const [taggedUsers, setTaggedUsers] = useState<TaggableUser[]>([]);
+
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  // ✅ NEW: Load tagged users for display
+  useEffect(() => {
+    loadTaggedUsers();
+  }, [post.id]);
+
+  const loadTaggedUsers = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('post_tags')
+        .select(`
+          *,
+          usuario:usuarios!post_tags_usuario_id_fkey(id, nombre, username, avatar),
+          local:locales(id, nombre, imagen_url)
+        `)
+        .eq('post_id', post.id)
+        .eq('estado', 'aceptado');
+
+      if (error) throw error;
+
+      const tags: TaggableUser[] = [];
+      
+      if (data) {
+        data.forEach(tag => {
+          if (tag.tipo === 'usuario' && tag.usuario) {
+            tags.push({
+              id: tag.usuario.id,
+              nombre: tag.usuario.nombre,
+              username: tag.usuario.username || tag.usuario.nombre,
+              avatar: tag.usuario.avatar,
+              tipo: 'usuario',
+            });
+          } else if (tag.tipo === 'local' && tag.local) {
+            tags.push({
+              id: tag.local.id,
+              nombre: tag.local.nombre,
+              username: tag.local.nombre,
+              avatar: tag.local.imagen_url,
+              tipo: 'local',
+            });
+          }
+        });
+      }
+
+      setTaggedUsers(tags);
+    } catch (error) {
+      console.error('[PublicacionCard] Error loading tagged users:', error);
+    }
+  }, [post.id]);
 
   const handleLike = useCallback(async () => {
     if (!user) {
@@ -124,7 +180,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [user, liked, post.id]);
 
-  // ✅ NEW: Double-tap handler for like/unlike
   const handleDoubleTap = useCallback(async (event: any) => {
     if (event.nativeEvent.state === State.ACTIVE) {
       if (!user) {
@@ -136,7 +191,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       setLiked(newLikedState);
       setLikesCount(prev => prev + (newLikedState ? 1 : -1));
 
-      // ✅ Animate heart icon
       scaleAnim.setValue(0);
       opacityAnim.setValue(1);
       
@@ -217,7 +271,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       return;
     }
 
-    // Open share modal for sharing via messages
     setShareModalVisible(true);
   }, [user]);
 
@@ -243,19 +296,11 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     });
   }, [router, post.id]);
 
-  // ✅ NEW: Handle image tap - toggle tags or navigate to detail
   const handleImageTap = useCallback(() => {
-    if (taggingMode) {
-      // In tagging mode, taps are handled by ImageTaggingOverlay
-      return;
-    }
-    
-    // Toggle tag visibility
     setShowTags(!showTags);
-  }, [taggingMode, showTags]);
+  }, [showTags]);
 
   const handleProfilePress = useCallback(() => {
-    // ✅ FIXED: Check if it's the current user's profile
     if (post.tipo === 'local' && post.local_id) {
       router.push({
         pathname: '/perfil/local',
@@ -263,10 +308,8 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       });
     } else if (post.tipo === 'usuario' && post.autor_id) {
       if (user && post.autor_id === user.id) {
-        // Navigate to own profile
         router.push('/(tabs)/perfil');
       } else {
-        // Navigate to other user's profile
         router.push({
           pathname: '/perfil/usuario',
           params: { userId: post.autor_id },
@@ -306,7 +349,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     );
   }, [post.id, onUpdate]);
 
-  // ✅ NEW: Handle edit description
   const handleEditDescription = useCallback(() => {
     setEditedDescription(post.contenido || '');
     setEditModalVisible(true);
@@ -343,25 +385,145 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [editedDescription, post.id, onUpdate]);
 
-  // ✅ NEW: Handle add tags
-  const handleAddTags = useCallback(() => {
-    if (!user) {
-      Alert.alert('Inicia sesión', 'Debes iniciar sesión para etiquetar');
-      return;
+  const loadExistingTags = useCallback(async () => {
+    setLoadingTags(true);
+    try {
+      const { data, error } = await supabase
+        .from('post_tags')
+        .select(`
+          *,
+          usuario:usuarios!post_tags_usuario_id_fkey(id, nombre, username, avatar),
+          local:locales(id, nombre, imagen_url)
+        `)
+        .eq('post_id', post.id);
+
+      if (error) throw error;
+
+      const tags: TaggableUser[] = [];
+      
+      if (data) {
+        data.forEach(tag => {
+          if (tag.tipo === 'usuario' && tag.usuario) {
+            tags.push({
+              id: tag.usuario.id,
+              nombre: tag.usuario.nombre,
+              username: tag.usuario.username || tag.usuario.nombre,
+              avatar: tag.usuario.avatar,
+              tipo: 'usuario',
+            });
+          } else if (tag.tipo === 'local' && tag.local) {
+            tags.push({
+              id: tag.local.id,
+              nombre: tag.local.nombre,
+              username: tag.local.nombre,
+              avatar: tag.local.imagen_url,
+              tipo: 'local',
+            });
+          }
+        });
+      }
+
+      setExistingTags(tags);
+    } catch (error) {
+      console.error('[PublicacionCard] Error loading tags:', error);
+    } finally {
+      setLoadingTags(false);
     }
-    setTaggingMode(true);
-    Alert.alert(
-      'Modo etiquetado',
-      'Toca sobre la imagen donde quieras añadir una etiqueta',
-      [
-        { 
-          text: 'Cancelar', 
-          style: 'cancel',
-          onPress: () => setTaggingMode(false),
-        },
-      ]
-    );
-  }, [user]);
+  }, [post.id]);
+
+  const handleManageTags = useCallback(() => {
+    loadExistingTags();
+    setShowTagManagementModal(true);
+  }, [loadExistingTags]);
+
+  const handleRemoveTag = useCallback(async (taggedUser: TaggableUser) => {
+    try {
+      const { error } = await supabase
+        .from('post_tags')
+        .delete()
+        .eq('post_id', post.id)
+        .eq(taggedUser.tipo === 'usuario' ? 'usuario_id' : 'local_id', taggedUser.id);
+
+      if (error) throw error;
+
+      setExistingTags(prev => prev.filter(t => !(t.id === taggedUser.id && t.tipo === taggedUser.tipo)));
+      loadTaggedUsers();
+      
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('[PublicacionCard] Error removing tag:', error);
+      Alert.alert('Error', 'No se pudo eliminar la etiqueta');
+    }
+  }, [post.id, onUpdate]);
+
+  const handleAddNewTag = useCallback(async (selectedUser: TaggableUser) => {
+    if (!user) return;
+
+    try {
+      const tagData: any = {
+        post_id: post.id,
+        tipo: selectedUser.tipo,
+        estado: 'pendiente',
+        tagged_by_user_id: user.id,
+        imagen_index: 0,
+        position_x: 0.5,
+        position_y: 0.5,
+      };
+
+      if (selectedUser.tipo === 'usuario') {
+        tagData.usuario_id = selectedUser.id;
+      } else {
+        tagData.local_id = selectedUser.id;
+      }
+
+      const { error: tagError } = await supabase
+        .from('post_tags')
+        .insert(tagData);
+
+      if (tagError) throw tagError;
+
+      const notificationData: any = {
+        tipo: 'mencion',
+        titulo: 'Te han etiquetado',
+        mensaje: `${user.nombre} te ha etiquetado en una publicación`,
+        usuario_origen_id: user.id,
+        post_id: post.id,
+      };
+
+      if (selectedUser.tipo === 'usuario') {
+        notificationData.usuario_id = selectedUser.id;
+        await supabase.from('notificaciones').insert(notificationData);
+      } else {
+        const { data: owners } = await supabase
+          .from('propietarios_locales')
+          .select('propietario_id')
+          .eq('local_id', selectedUser.id)
+          .eq('activo', true);
+
+        if (owners && owners.length > 0) {
+          const notifications = owners.map(owner => ({
+            ...notificationData,
+            usuario_id: owner.propietario_id,
+            local_origen_id: selectedUser.id,
+          }));
+
+          await supabase.from('notificaciones').insert(notifications);
+        }
+      }
+
+      loadExistingTags();
+      loadTaggedUsers();
+      
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('[PublicacionCard] Error adding tag:', error);
+      Alert.alert('Error', 'No se pudo añadir la etiqueta');
+    }
+  }, [user, post.id, loadExistingTags, onUpdate]);
 
   const showOptions = useCallback(() => {
     const canEdit = user && (
@@ -371,7 +533,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
     if (!canEdit) return;
 
-    const options = ['Editar descripción', 'Añadir etiquetas', 'Eliminar publicación', 'Cancelar'];
+    const options = ['Editar descripción', 'Gestionar etiquetas', 'Eliminar publicación', 'Cancelar'];
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -384,7 +546,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           if (buttonIndex === 0) {
             handleEditDescription();
           } else if (buttonIndex === 1) {
-            handleAddTags();
+            handleManageTags();
           } else if (buttonIndex === 2) {
             handleDeletePost();
           }
@@ -400,8 +562,8 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             onPress: handleEditDescription,
           },
           {
-            text: 'Añadir etiquetas',
-            onPress: handleAddTags,
+            text: 'Gestionar etiquetas',
+            onPress: handleManageTags,
           },
           {
             text: 'Eliminar publicación',
@@ -415,7 +577,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         ]
       );
     }
-  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription, handleAddTags]);
+  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription, handleManageTags]);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -452,10 +614,51 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
   return (
     <View style={styles.card}>
+      {/* ✅ NEW: Tagged users display (above author) */}
+      {taggedUsers.length > 0 && (
+        <View style={styles.taggedUsersHeader}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.taggedUsersScroll}
+          >
+            {taggedUsers.map((taggedUser) => (
+              <TouchableOpacity
+                key={`${taggedUser.id}-${taggedUser.tipo}`}
+                style={styles.taggedUserChip}
+                onPress={() => {
+                  if (taggedUser.tipo === 'usuario') {
+                    router.push({ pathname: '/perfil/usuario', params: { userId: taggedUser.id } });
+                  } else {
+                    router.push({ pathname: '/perfil/local', params: { localId: taggedUser.id } });
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                {taggedUser.avatar ? (
+                  <Image source={{ uri: taggedUser.avatar }} style={styles.taggedUserAvatar} />
+                ) : (
+                  <View style={[styles.taggedUserAvatar, styles.taggedUserAvatarPlaceholder]}>
+                    <IconSymbol
+                      ios_icon_name={taggedUser.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                      android_material_icon_name={taggedUser.tipo === 'local' ? 'business' : 'person'}
+                      size={12}
+                      color={colors.textSecondary}
+                    />
+                  </View>
+                )}
+                <Text style={styles.taggedUserName} numberOfLines={1}>
+                  {taggedUser.username}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerLeft} onPress={handleProfilePress} activeOpacity={0.7}>
-          {/* ✅ FIXED: Show neon border on mini-avatars when user has UNVIEWED momento */}
           <MiniFoodPlateAvatar
             imageUrl={displayAvatar}
             size={40}
@@ -499,7 +702,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                     resizeMode="cover"
                   />
                   
-                  {/* ✅ NEW: Animated heart for double-tap feedback */}
                   <Animated.View
                     style={[
                       styles.doubleTapHeart,
@@ -525,7 +727,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                     />
                   </Animated.View>
 
-                  {/* ✅ NEW: Tag display overlay */}
                   <TagDisplay
                     postId={post.id}
                     imageIndex={index}
@@ -533,27 +734,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                     imageHeight={SCREEN_WIDTH}
                     visible={showTags && index === currentImageIndex}
                   />
-
-                  {/* ✅ NEW: Tagging overlay (only for post owner) */}
-                  {canEdit && taggingMode && index === currentImageIndex && (
-                    <ImageTaggingOverlay
-                      postId={post.id}
-                      imageIndex={index}
-                      imageWidth={SCREEN_WIDTH}
-                      imageHeight={SCREEN_WIDTH}
-                      onTagAdded={() => {
-                        setTaggingMode(false);
-                        if (onUpdate) {
-                          onUpdate();
-                        }
-                      }}
-                    />
-                  )}
                 </View>
               </TapGestureHandler>
             ))}
           </ScrollView>
-          {/* ✅ FIXED: White dots for image indicators */}
           {post.imagenes.length > 1 && (
             <View style={styles.imageIndicatorContainer}>
               {post.imagenes.map((_, index) => (
@@ -611,17 +795,14 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ Instagram-style likes display with modal */}
       <PostLikesAvatars postId={post.id} totalLikes={likesCount} />
 
-      {/* ✅ Description BELOW likes and ABOVE comments count */}
       {post.contenido && (
         <View style={styles.contentContainer}>
           <ParsedText text={post.contenido} style={styles.content} />
         </View>
       )}
 
-      {/* Comments count */}
       {post.comentarios_count > 0 && (
         <TouchableOpacity 
           style={styles.commentsCount}
@@ -634,7 +815,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </TouchableOpacity>
       )}
 
-      {/* ✅ Comments Modal Integration */}
       <CommentsModal
         visible={commentsModalVisible}
         postId={post.id}
@@ -647,7 +827,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         }}
       />
 
-      {/* ✅ Share Modal Integration */}
       <SharePostModal
         visible={shareModalVisible}
         postId={post.id}
@@ -700,6 +879,98 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* ✅ NEW: Tag Management Modal */}
+      <Modal
+        visible={showTagManagementModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowTagManagementModal(false)}
+      >
+        <View style={styles.tagManagementOverlay}>
+          <TouchableOpacity 
+            style={styles.tagManagementBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowTagManagementModal(false)}
+          />
+          <View style={styles.tagManagementContent}>
+            <View style={styles.tagManagementHeader}>
+              <Text style={styles.tagManagementTitle}>Gestionar etiquetas</Text>
+              <TouchableOpacity onPress={() => setShowTagManagementModal(false)}>
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {loadingTags ? (
+              <View style={styles.tagManagementLoading}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : (
+              <ScrollView style={styles.tagManagementScroll}>
+                {existingTags.length > 0 ? (
+                  <View style={styles.tagManagementList}>
+                    <Text style={styles.tagManagementSectionTitle}>Etiquetados ({existingTags.length})</Text>
+                    {existingTags.map((tag) => (
+                      <View key={`${tag.id}-${tag.tipo}`} style={styles.tagManagementItem}>
+                        {tag.avatar ? (
+                          <Image source={{ uri: tag.avatar }} style={styles.tagManagementAvatar} />
+                        ) : (
+                          <View style={[styles.tagManagementAvatar, styles.tagManagementAvatarPlaceholder]}>
+                            <IconSymbol 
+                              ios_icon_name={tag.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                              android_material_icon_name={tag.tipo === 'local' ? 'business' : 'person'}
+                              size={20} 
+                              color={colors.textSecondary} 
+                            />
+                          </View>
+                        )}
+                        <View style={styles.tagManagementInfo}>
+                          <Text style={styles.tagManagementName}>{tag.nombre}</Text>
+                          <Text style={styles.tagManagementType}>
+                            {tag.tipo === 'local' ? 'Local' : `@${tag.username}`}
+                          </Text>
+                        </View>
+                        <TouchableOpacity 
+                          onPress={() => handleRemoveTag(tag)}
+                          style={styles.tagManagementRemoveButton}
+                        >
+                          <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.tagManagementEmpty}>
+                    <IconSymbol ios_icon_name="person.crop.circle.badge.plus" android_material_icon_name="person_add" size={48} color={colors.textSecondary} />
+                    <Text style={styles.tagManagementEmptyText}>No hay etiquetas</Text>
+                  </View>
+                )}
+              </ScrollView>
+            )}
+
+            <TouchableOpacity 
+              style={styles.tagManagementAddButton}
+              onPress={() => {
+                setShowTagManagementModal(false);
+                setTimeout(() => {
+                  setShowTagModal(true);
+                }, 300);
+              }}
+            >
+              <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.white} />
+              <Text style={styles.tagManagementAddButtonText}>Añadir etiqueta</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ✅ NEW: Tagging Modal */}
+      <TaggingModalV5
+        visible={showTagModal}
+        onClose={() => setShowTagModal(false)}
+        onSelectUser={handleAddNewTag}
+        alreadyTagged={existingTags}
+      />
     </View>
   );
 });
@@ -713,6 +984,43 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     marginBottom: 12,
     borderRadius: 0,
+  },
+  // ✅ NEW: Tagged users header
+  taggedUsersHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  taggedUsersScroll: {
+    gap: 8,
+  },
+  taggedUserChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingLeft: 4,
+    paddingRight: 12,
+    paddingVertical: 4,
+    borderRadius: 16,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  taggedUserAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  taggedUserAvatarPlaceholder: {
+    backgroundColor: colors.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  taggedUserName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    maxWidth: 100,
   },
   header: {
     flexDirection: 'row',
@@ -758,7 +1066,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  // ✅ NEW: Double-tap heart animation
   doubleTapHeart: {
     position: 'absolute',
     top: '50%',
@@ -826,7 +1133,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  // ✅ NEW: Edit modal styles
   editModalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -884,5 +1190,111 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'right',
+  },
+  tagManagementOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  tagManagementBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  tagManagementContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    maxHeight: '80%',
+  },
+  tagManagementHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  tagManagementTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  tagManagementLoading: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  tagManagementScroll: {
+    maxHeight: 400,
+  },
+  tagManagementList: {
+    padding: 16,
+  },
+  tagManagementSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+  },
+  tagManagementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  tagManagementAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  tagManagementAvatarPlaceholder: {
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tagManagementInfo: {
+    flex: 1,
+  },
+  tagManagementName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  tagManagementType: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  tagManagementRemoveButton: {
+    padding: 8,
+  },
+  tagManagementEmpty: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  tagManagementEmptyText: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    marginTop: 12,
+  },
+  tagManagementAddButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    marginHorizontal: 16,
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  tagManagementAddButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.white,
   },
 });

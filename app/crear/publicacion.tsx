@@ -36,6 +36,7 @@ import { GestureHandlerRootView, PinchGestureHandler, PanGestureHandler, State }
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedGestureHandler,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
@@ -96,8 +97,7 @@ export default function CrearPublicacionScreen() {
   const params = useLocalSearchParams();
   const localId = params.localId as string | undefined;
   
-  // ✅ FIXED: Use useWindowDimensions hook to get SCREEN_WIDTH
-  const { width: SCREEN_WIDTH } = useWindowDimensions();
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
   
   const [contenido, setContenido] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
@@ -116,7 +116,6 @@ export default function CrearPublicacionScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   
-  // ✅ UPDATED: Image editor state with zoom/pan/crop
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [editingImageUri, setEditingImageUri] = useState<string | null>(null);
@@ -185,14 +184,12 @@ export default function CrearPublicacionScreen() {
     setCursorPosition(newCursorPosition);
   };
 
-  // ✅ UPDATED: Open image editor with zoom/pan/crop
   const handleEditImage = (index: number) => {
     setEditingImageIndex(index);
     setEditingImageUri(imagenes[index]);
     setShowImageEditor(true);
   };
 
-  // ✅ UPDATED: Apply image edits
   const handleApplyImageEdit = async (editedUri: string) => {
     if (editingImageIndex !== null) {
       const newImagenes = [...imagenes];
@@ -204,60 +201,58 @@ export default function CrearPublicacionScreen() {
     setEditingImageUri(null);
   };
 
-  // ✅ FIXED: Advanced Image Editor with proper SCREEN_WIDTH usage
+  // ✅ FIXED: Advanced Image Editor with proper dimensions and controls
   const ImageEditorModal = () => {
     const [processing, setProcessing] = useState(false);
     const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
     
-    // Animated values for zoom and pan
     const scale = useSharedValue(1);
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
-    const baseScale = useSharedValue(1);
-    const baseTranslateX = useSharedValue(0);
-    const baseTranslateY = useSharedValue(0);
+    const focalX = useSharedValue(0);
+    const focalY = useSharedValue(0);
 
     useEffect(() => {
       if (editingImageUri) {
         Image.getSize(editingImageUri, (width, height) => {
+          console.log('[ImageEditor] ✅ Image dimensions:', { width, height, SCREEN_WIDTH });
           setImageDimensions({ width, height });
           
-          // Calculate initial scale to fit image
-          const screenRatio = SCREEN_WIDTH / (SCREEN_WIDTH * 1.2);
           const imageRatio = width / height;
+          const screenRatio = 1; // Square crop
           
           if (imageRatio > screenRatio) {
-            // Image is wider - fit to width
-            scale.value = 1;
+            scale.value = SCREEN_WIDTH / width;
           } else {
-            // Image is taller - fit to height
-            scale.value = (SCREEN_WIDTH * 1.2) / height * (width / SCREEN_WIDTH);
+            scale.value = SCREEN_WIDTH / height;
           }
-          
-          baseScale.value = scale.value;
+        }, (error) => {
+          console.error('[ImageEditor] ❌ Error getting image size:', error);
         });
       }
     }, [editingImageUri]);
 
-    const pinchHandler = (event: any) => {
-      'worklet';
-      if (event.nativeEvent.state === State.ACTIVE) {
-        scale.value = Math.max(0.5, Math.min(baseScale.value * event.nativeEvent.scale, 5));
-      } else if (event.nativeEvent.state === State.END) {
-        baseScale.value = scale.value;
-      }
-    };
+    const pinchHandler = useAnimatedGestureHandler({
+      onStart: (event, ctx: any) => {
+        ctx.startScale = scale.value;
+        focalX.value = event.focalX;
+        focalY.value = event.focalY;
+      },
+      onActive: (event, ctx: any) => {
+        scale.value = Math.max(0.5, Math.min(ctx.startScale * event.scale, 5));
+      },
+    });
 
-    const panHandler = (event: any) => {
-      'worklet';
-      if (event.nativeEvent.state === State.ACTIVE) {
-        translateX.value = baseTranslateX.value + event.nativeEvent.translationX;
-        translateY.value = baseTranslateY.value + event.nativeEvent.translationY;
-      } else if (event.nativeEvent.state === State.END) {
-        baseTranslateX.value = translateX.value;
-        baseTranslateY.value = translateY.value;
-      }
-    };
+    const panHandler = useAnimatedGestureHandler({
+      onStart: (event, ctx: any) => {
+        ctx.startX = translateX.value;
+        ctx.startY = translateY.value;
+      },
+      onActive: (event, ctx: any) => {
+        translateX.value = ctx.startX + event.translationX;
+        translateY.value = ctx.startY + event.translationY;
+      },
+    });
 
     const animatedStyle = useAnimatedStyle(() => {
       return {
@@ -270,11 +265,9 @@ export default function CrearPublicacionScreen() {
     });
 
     const resetTransform = () => {
-      scale.value = withSpring(baseScale.value);
+      scale.value = withSpring(1);
       translateX.value = withSpring(0);
       translateY.value = withSpring(0);
-      baseTranslateX.value = 0;
-      baseTranslateY.value = 0;
     };
 
     const applyEdits = async () => {
@@ -282,7 +275,6 @@ export default function CrearPublicacionScreen() {
 
       setProcessing(true);
       try {
-        // For now, just compress - crop functionality would require more complex implementation
         const result = await ImageManipulator.manipulateAsync(
           editingImageUri,
           [],
@@ -329,31 +321,39 @@ export default function CrearPublicacionScreen() {
             </TouchableOpacity>
           </LinearGradient>
 
+          {/* ✅ FIXED: Proper image display with visible frame */}
           <View style={styles.editorContent}>
-            {editingImageUri && (
-              <PanGestureHandler onGestureEvent={panHandler}>
-                <Animated.View style={{ flex: 1 }}>
-                  <PinchGestureHandler onGestureEvent={pinchHandler}>
-                    <Animated.View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                      <Animated.Image 
-                        source={{ uri: editingImageUri }} 
-                        style={[
-                          {
-                            width: SCREEN_WIDTH,
-                            height: SCREEN_WIDTH,
-                          },
-                          animatedStyle
-                        ]}
-                        resizeMode="contain"
-                      />
-                    </Animated.View>
-                  </PinchGestureHandler>
-                </Animated.View>
-              </PanGestureHandler>
-            )}
+            <View style={styles.editorImageFrame}>
+              {editingImageUri ? (
+                <PanGestureHandler onGestureEvent={panHandler}>
+                  <Animated.View style={{ flex: 1 }}>
+                    <PinchGestureHandler onGestureEvent={pinchHandler}>
+                      <Animated.View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                        <Animated.Image 
+                          source={{ uri: editingImageUri }} 
+                          style={[
+                            {
+                              width: SCREEN_WIDTH,
+                              height: SCREEN_WIDTH,
+                            },
+                            animatedStyle
+                          ]}
+                          resizeMode="contain"
+                        />
+                      </Animated.View>
+                    </PinchGestureHandler>
+                  </Animated.View>
+                </PanGestureHandler>
+              ) : (
+                <View style={styles.editorPlaceholder}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={styles.editorPlaceholderText}>Cargando imagen...</Text>
+                </View>
+              )}
+            </View>
           </View>
 
-          {/* ✅ NEW: Editor controls */}
+          {/* ✅ IMPROVED: Editor controls */}
           <View style={styles.editorFooter}>
             <View style={styles.editorControls}>
               <TouchableOpacity 
@@ -657,6 +657,9 @@ export default function CrearPublicacionScreen() {
             tipo: item.tipo,
             estado: 'pendiente',
             tagged_by_user_id: user.id,
+            position_x: 0.5,
+            position_y: 0.5,
+            imagen_index: 0,
           };
 
           if (item.tipo === 'usuario') {
@@ -1169,9 +1172,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
+  // ✅ FIXED: Image editor styles with proper background
   editorContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: colors.background,
   },
   editorHeader: {
     paddingTop: Platform.OS === 'ios' ? 60 : 50,
@@ -1207,17 +1211,40 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.headerText,
   },
+  // ✅ FIXED: Proper content area with visible frame
   editorContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
+    padding: 20,
+  },
+  editorImageFrame: {
+    width: '100%',
+    aspectRatio: 1,
     backgroundColor: '#000',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  editorPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  editorPlaceholderText: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   editorFooter: {
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: colors.cardBackground,
     paddingVertical: 20,
     paddingHorizontal: 16,
     alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
   },
   editorControls: {
     flexDirection: 'row',
@@ -1230,17 +1257,17 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: colors.primary + '15',
     borderRadius: 12,
   },
   editorControlText: {
     fontSize: 12,
-    color: colors.headerText,
+    color: colors.primary,
     fontWeight: '600',
   },
   editorFooterText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   taggedSection: {

@@ -1,21 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   Alert,
-  Animated,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import TaggingModalV5, { TaggableUser } from './TaggingModalV5';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface ImageTaggingOverlayProps {
   postId: string;
@@ -26,14 +22,13 @@ interface ImageTaggingOverlayProps {
 }
 
 /**
- * ✅ IMAGE TAGGING OVERLAY v2.0 - DISMISSABLE MESSAGE
+ * ✅ IMAGE TAGGING OVERLAY v3.0 - DIRECT SEARCH MODAL
  * 
  * Features:
- * - Tap on image to add tag at that position
- * - Opens user/local search modal
- * - Saves tag with position coordinates
- * - Sends notification to tagged profile
- * - ✅ NEW: Dismissable tagging mode message
+ * - ✅ NO NEED to tap specific point on image
+ * - ✅ Opens search modal directly when entering tagging mode
+ * - ✅ Dismissable info message
+ * - ✅ Exit tagging mode button
  */
 
 export default function ImageTaggingOverlay({
@@ -44,50 +39,13 @@ export default function ImageTaggingOverlay({
   onTagAdded,
 }: ImageTaggingOverlayProps) {
   const { user } = useAuth();
-  const [showTagModal, setShowTagModal] = useState(false);
-  const [tagPosition, setTagPosition] = useState<{ x: number; y: number } | null>(null);
+  const [showTagModal, setShowTagModal] = useState(true); // ✅ Open immediately
   const [alreadyTagged, setAlreadyTagged] = useState<TaggableUser[]>([]);
-  const [pulseAnim] = useState(new Animated.Value(1));
-  // ✅ NEW: State to control message visibility
   const [showMessage, setShowMessage] = useState(true);
 
-  const handleImagePress = (event: any) => {
-    if (!user) {
-      Alert.alert('Inicia sesión', 'Debes iniciar sesión para etiquetar');
-      return;
-    }
-
-    const { locationX, locationY } = event.nativeEvent;
-    
-    // Convert to 0-1 range
-    const normalizedX = locationX / imageWidth;
-    const normalizedY = locationY / imageHeight;
-
-    console.log('[ImageTaggingOverlay] Tag position:', { 
-      x: normalizedX, 
-      y: normalizedY,
-      pixelX: locationX,
-      pixelY: locationY,
-    });
-
-    setTagPosition({ x: normalizedX, y: normalizedY });
+  useEffect(() => {
     loadAlreadyTagged();
-    setShowTagModal(true);
-
-    // Pulse animation
-    Animated.sequence([
-      Animated.timing(pulseAnim, {
-        toValue: 1.2,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(pulseAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
+  }, []);
 
   const loadAlreadyTagged = async () => {
     try {
@@ -137,21 +95,20 @@ export default function ImageTaggingOverlay({
   };
 
   const handleSelectUser = async (selectedUser: TaggableUser) => {
-    if (!tagPosition || !user) return;
+    if (!user) return;
 
     try {
       console.log('[ImageTaggingOverlay] Creating tag:', {
         postId,
         selectedUser,
-        position: tagPosition,
         imageIndex,
       });
 
       const tagData: any = {
         post_id: postId,
         tipo: selectedUser.tipo,
-        position_x: tagPosition.x,
-        position_y: tagPosition.y,
+        position_x: 0.5, // ✅ Default center position
+        position_y: 0.5,
         imagen_index: imageIndex,
         estado: 'pendiente',
         tagged_by_user_id: user.id,
@@ -169,7 +126,6 @@ export default function ImageTaggingOverlay({
 
       if (tagError) throw tagError;
 
-      // Send notification
       const notificationData: any = {
         tipo: 'mencion',
         titulo: 'Te han etiquetado',
@@ -180,8 +136,8 @@ export default function ImageTaggingOverlay({
 
       if (selectedUser.tipo === 'usuario') {
         notificationData.usuario_id = selectedUser.id;
+        await supabase.from('notificaciones').insert(notificationData);
       } else {
-        // For locals, send notification to all owners
         const { data: owners } = await supabase
           .from('propietarios_locales')
           .select('propietario_id')
@@ -199,14 +155,9 @@ export default function ImageTaggingOverlay({
         }
       }
 
-      if (selectedUser.tipo === 'usuario') {
-        await supabase.from('notificaciones').insert(notificationData);
-      }
-
       console.log('[ImageTaggingOverlay] ✅ Tag created and notification sent');
       
       setShowTagModal(false);
-      setTagPosition(null);
       onTagAdded();
       
       Alert.alert(
@@ -221,12 +172,8 @@ export default function ImageTaggingOverlay({
 
   return (
     <>
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={handleImagePress}
-      >
-        {/* ✅ FIXED: Dismissable message banner - moved down to avoid iPhone notch */}
+      <View style={styles.overlay}>
+        {/* ✅ NEW: Dismissable info message */}
         {showMessage && (
           <View style={styles.messageContainer}>
             <View style={styles.messageBanner}>
@@ -237,7 +184,7 @@ export default function ImageTaggingOverlay({
                 color={colors.primary}
               />
               <Text style={styles.messageText}>
-                Modo etiquetado: toca sobre la imagen donde quieres añadir una etiqueta
+                Busca y selecciona personas o locales para etiquetar
               </Text>
               <TouchableOpacity
                 onPress={() => setShowMessage(false)}
@@ -255,22 +202,29 @@ export default function ImageTaggingOverlay({
           </View>
         )}
 
-        {/* Tagging hint icon */}
-        <View style={styles.hintContainer} pointerEvents="none">
-          <IconSymbol
-            ios_icon_name="person.crop.circle.badge.plus"
-            android_material_icon_name="person_add"
-            size={24}
-            color="rgba(255, 255, 255, 0.8)"
-          />
-        </View>
-      </TouchableOpacity>
+        {/* ✅ NEW: Exit tagging mode button */}
+        <TouchableOpacity
+          style={styles.exitButton}
+          onPress={onTagAdded}
+          activeOpacity={0.7}
+        >
+          <View style={styles.exitButtonContent}>
+            <IconSymbol
+              ios_icon_name="xmark"
+              android_material_icon_name="close"
+              size={20}
+              color={colors.headerText}
+            />
+          </View>
+        </TouchableOpacity>
+      </View>
 
+      {/* ✅ UPDATED: Modal opens directly */}
       <TaggingModalV5
         visible={showTagModal}
         onClose={() => {
           setShowTagModal(false);
-          setTagPosition(null);
+          onTagAdded(); // Exit tagging mode when modal closes
         }}
         onSelectUser={handleSelectUser}
         alreadyTagged={alreadyTagged}
@@ -310,12 +264,21 @@ const styles = StyleSheet.create({
   dismissButton: {
     padding: 4,
   },
-  hintContainer: {
+  // ✅ NEW: Exit tagging mode button
+  exitButton: {
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    zIndex: 10,
+  },
+  exitButtonContent: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 20,
-    padding: 8,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
 });

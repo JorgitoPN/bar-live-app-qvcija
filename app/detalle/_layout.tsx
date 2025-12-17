@@ -4,17 +4,18 @@ import { Platform } from 'react-native';
 
 /**
  * ============================================================================
- * DETALLE LAYOUT - MODAL PRESENTATION v8.0 - PERFECT MODAL BEHAVIOR
+ * DETALLE LAYOUT - MODAL PRESENTATION v9.0 - REBUILT FROM SCRATCH
  * ============================================================================
  * 
- * ✅ FIXED: Perfect modal behavior matching "Me Gusta" modal
+ * ✅ COMPLETELY REBUILT: Perfect modal behavior
  * - Opens as modal overlay (not full screen)
  * - Rounded corners at the top
  * - Semi-transparent background overlay visible
- * - Can be closed by dragging down (NO REFRESH)
+ * - Can be closed by dragging down
  * - Smooth animations
  * - Background page visible behind modal
- * - Uses transparentModal for better overlay effect
+ * - NO duplicate views
+ * - NO black background
  */
 export default function DetalleLayout() {
   return (

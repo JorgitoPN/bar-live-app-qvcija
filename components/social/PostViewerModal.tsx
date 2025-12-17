@@ -16,6 +16,8 @@ import {
   ScrollView,
   ActionSheetIOS,
   Animated,
+  TextInput,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -71,16 +73,15 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v6.0 - WHITE BACKGROUND & DOUBLE-TAP LIKE
+ * ✅ POST VIEWER MODAL v7.0 - COMPLETE TAGGING & EDITING SYSTEM
  * 
  * Key changes:
- * - ✅ WHITE background (not black)
- * - ✅ Avatars with neon green border for unviewed momentos
- * - ✅ Same spacing as social feed
- * - ✅ Smooth scrolling
- * - ✅ 3-dot menu for post options
- * - ✅ "See more" for long descriptions
- * - ✅ DOUBLE-TAP to like/unlike on images
+ * - ✅ Full tagging mode support (same as profile grid)
+ * - ✅ Edit description functionality
+ * - ✅ Tag management (add/remove tags)
+ * - ✅ Double-tap to like/unlike
+ * - ✅ Tagged users display with navigation
+ * - ✅ Direct tagging (no need to tap specific point)
  */
 
 export default function PostViewerModal({
@@ -104,14 +105,26 @@ export default function PostViewerModal({
   
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
   
+  // ✅ NEW: Tagging mode state
   const [taggingMode, setTaggingMode] = useState(false);
   const [taggingPostId, setTaggingPostId] = useState<string | null>(null);
   const [showTagsOnImage, setShowTagsOnImage] = useState(true);
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [existingTags, setExistingTags] = useState<TaggableUser[]>([]);
 
-  // ✅ NEW: Track authors with unviewed momentos
+  // ✅ NEW: Edit mode state
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editedDescription, setEditedDescription] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // ✅ NEW: Tag management modal state
+  const [showTagManagementModal, setShowTagManagementModal] = useState(false);
+  const [managingPostId, setManagingPostId] = useState<string | null>(null);
+  const [loadingTags, setLoadingTags] = useState(false);
+
   const [authorsWithMomentos, setAuthorsWithMomentos] = useState<Set<string>>(new Set());
 
-  // ✅ NEW: Double-tap animation refs (one per post)
   const doubleTapAnimations = useRef<Map<string, { scale: Animated.Value; opacity: Animated.Value }>>(new Map());
 
   const getDoubleTapAnimation = (postId: string) => {
@@ -126,7 +139,7 @@ export default function PostViewerModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v6.0] Props received:', { 
+      console.log('[PostViewerModal v7.0] Props received:', { 
         visible, 
         initialPostId, 
         allPostIds: allPostIds ? `array(${allPostIds.length})` : allPostIds,
@@ -135,8 +148,8 @@ export default function PostViewerModal({
       });
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v6.0] ❌ Invalid allPostIds - cannot load posts');
-        console.error('[PostViewerModal v6.0] allPostIds value:', allPostIds);
+        console.error('[PostViewerModal v7.0] ❌ Invalid allPostIds - cannot load posts');
+        console.error('[PostViewerModal v7.0] allPostIds value:', allPostIds);
         setLoading(false);
         setPosts([]);
         return;
@@ -144,7 +157,6 @@ export default function PostViewerModal({
     }
   }, [visible, allPostIds, initialPostId]);
 
-  // ✅ NEW: Check which authors have unviewed momentos
   const checkAuthorsMomentos = useCallback(async () => {
     if (!user || posts.length === 0) return;
 
@@ -199,7 +211,7 @@ export default function PostViewerModal({
       setLoading(true);
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v6.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v7.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -216,7 +228,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v6.0] Error loading posts:', error);
+        console.error('[PostViewerModal v7.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -224,14 +236,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v6.0] Invalid data received:', data);
+        console.error('[PostViewerModal v7.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v6.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v7.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -301,7 +313,7 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v6.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v7.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -315,7 +327,7 @@ export default function PostViewerModal({
         setCurrentPostId(initialPostId);
       }
     } catch (error) {
-      console.error('[PostViewerModal v6.0] Error:', error);
+      console.error('[PostViewerModal v7.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
@@ -329,7 +341,6 @@ export default function PostViewerModal({
     }
   }, [visible, loadPosts, allPostIds]);
 
-  // ✅ NEW: Check momentos when posts change
   useEffect(() => {
     checkAuthorsMomentos();
   }, [posts, checkAuthorsMomentos]);
@@ -424,7 +435,6 @@ export default function PostViewerModal({
     }
   };
 
-  // ✅ NEW: Double-tap handler for like/unlike
   const handleDoubleTap = useCallback(async (post: Post, event: any) => {
     if (event.nativeEvent.state === State.ACTIVE) {
       if (!interactionUserId) {
@@ -443,7 +453,6 @@ export default function PostViewerModal({
         )
       );
 
-      // ✅ Animate heart icon
       const anim = getDoubleTapAnimation(post.id);
       anim.scale.setValue(0);
       anim.opacity.setValue(1);
@@ -554,6 +563,184 @@ export default function PostViewerModal({
     }
   };
 
+  // ✅ NEW: Load existing tags for a post
+  const loadExistingTags = useCallback(async (postId: string) => {
+    setLoadingTags(true);
+    try {
+      const { data, error } = await supabase
+        .from('post_tags')
+        .select(`
+          *,
+          usuario:usuarios!post_tags_usuario_id_fkey(id, nombre, username, avatar),
+          local:locales(id, nombre, imagen_url)
+        `)
+        .eq('post_id', postId);
+
+      if (error) throw error;
+
+      const tags: TaggableUser[] = [];
+      
+      if (data) {
+        data.forEach(tag => {
+          if (tag.tipo === 'usuario' && tag.usuario) {
+            tags.push({
+              id: tag.usuario.id,
+              nombre: tag.usuario.nombre,
+              username: tag.usuario.username || tag.usuario.nombre,
+              avatar: tag.usuario.avatar,
+              tipo: 'usuario',
+            });
+          } else if (tag.tipo === 'local' && tag.local) {
+            tags.push({
+              id: tag.local.id,
+              nombre: tag.local.nombre,
+              username: tag.local.nombre,
+              avatar: tag.local.imagen_url,
+              tipo: 'local',
+            });
+          }
+        });
+      }
+
+      setExistingTags(tags);
+    } catch (error) {
+      console.error('[PostViewerModal] Error loading tags:', error);
+    } finally {
+      setLoadingTags(false);
+    }
+  }, []);
+
+  // ✅ NEW: Handle edit description
+  const handleEditDescription = useCallback((post: Post) => {
+    setEditingPostId(post.id);
+    setEditedDescription(post.contenido || '');
+    setEditModalVisible(true);
+  }, []);
+
+  // ✅ NEW: Save edited description
+  const handleSaveEdit = useCallback(async () => {
+    if (!editedDescription.trim()) {
+      Alert.alert('Error', 'La descripción no puede estar vacía');
+      return;
+    }
+
+    if (!editingPostId) return;
+
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .update({ 
+          contenido: editedDescription.trim(),
+          editado_at: new Date().toISOString(),
+        })
+        .eq('id', editingPostId);
+
+      if (error) throw error;
+
+      setEditModalVisible(false);
+      loadPosts();
+      Alert.alert('Éxito', 'Descripción actualizada correctamente');
+    } catch (error) {
+      console.error('[PostViewerModal] Error updating description:', error);
+      Alert.alert('Error', 'No se pudo actualizar la descripción');
+    } finally {
+      setSavingEdit(false);
+    }
+  }, [editedDescription, editingPostId, loadPosts]);
+
+  // ✅ NEW: Handle manage tags
+  const handleManageTags = useCallback((post: Post) => {
+    setManagingPostId(post.id);
+    loadExistingTags(post.id);
+    setShowTagManagementModal(true);
+  }, [loadExistingTags]);
+
+  // ✅ NEW: Handle remove tag
+  const handleRemoveTag = useCallback(async (taggedUser: TaggableUser) => {
+    if (!managingPostId) return;
+
+    try {
+      const { error } = await supabase
+        .from('post_tags')
+        .delete()
+        .eq('post_id', managingPostId)
+        .eq(taggedUser.tipo === 'usuario' ? 'usuario_id' : 'local_id', taggedUser.id);
+
+      if (error) throw error;
+
+      setExistingTags(prev => prev.filter(t => !(t.id === taggedUser.id && t.tipo === taggedUser.tipo)));
+      loadPosts();
+    } catch (error) {
+      console.error('[PostViewerModal] Error removing tag:', error);
+      Alert.alert('Error', 'No se pudo eliminar la etiqueta');
+    }
+  }, [managingPostId, loadPosts]);
+
+  // ✅ NEW: Handle add new tag
+  const handleAddNewTag = useCallback(async (selectedUser: TaggableUser) => {
+    if (!user || !managingPostId) return;
+
+    try {
+      const tagData: any = {
+        post_id: managingPostId,
+        tipo: selectedUser.tipo,
+        estado: 'pendiente',
+        tagged_by_user_id: user.id,
+        imagen_index: 0,
+        position_x: 0.5,
+        position_y: 0.5,
+      };
+
+      if (selectedUser.tipo === 'usuario') {
+        tagData.usuario_id = selectedUser.id;
+      } else {
+        tagData.local_id = selectedUser.id;
+      }
+
+      const { error: tagError } = await supabase
+        .from('post_tags')
+        .insert(tagData);
+
+      if (tagError) throw tagError;
+
+      const notificationData: any = {
+        tipo: 'mencion',
+        titulo: 'Te han etiquetado',
+        mensaje: `${user.nombre} te ha etiquetado en una publicación`,
+        usuario_origen_id: user.id,
+        post_id: managingPostId,
+      };
+
+      if (selectedUser.tipo === 'usuario') {
+        notificationData.usuario_id = selectedUser.id;
+        await supabase.from('notificaciones').insert(notificationData);
+      } else {
+        const { data: owners } = await supabase
+          .from('propietarios_locales')
+          .select('propietario_id')
+          .eq('local_id', selectedUser.id)
+          .eq('activo', true);
+
+        if (owners && owners.length > 0) {
+          const notifications = owners.map(owner => ({
+            ...notificationData,
+            usuario_id: owner.propietario_id,
+            local_origen_id: selectedUser.id,
+          }));
+
+          await supabase.from('notificaciones').insert(notifications);
+        }
+      }
+
+      loadExistingTags(managingPostId);
+      loadPosts();
+    } catch (error) {
+      console.error('[PostViewerModal] Error adding tag:', error);
+      Alert.alert('Error', 'No se pudo añadir la etiqueta');
+    }
+  }, [user, managingPostId, loadExistingTags, loadPosts]);
+
   const handlePostOptions = (post: Post) => {
     const isOwner = user && (
       (post.tipo === 'usuario' && post.autor_id === user.id) ||
@@ -565,17 +752,17 @@ export default function PostViewerModal({
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancelar', 'Editar', 'Eliminar', 'Añadir etiquetas'],
-          destructiveButtonIndex: 2,
+          options: ['Cancelar', 'Editar descripción', 'Gestionar etiquetas', 'Eliminar'],
+          destructiveButtonIndex: 3,
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
-            Alert.alert('Próximamente', 'La edición de publicaciones estará disponible pronto');
+            handleEditDescription(post);
           } else if (buttonIndex === 2) {
-            handleDeletePost(post);
+            handleManageTags(post);
           } else if (buttonIndex === 3) {
-            handleAddTags(post);
+            handleDeletePost(post);
           }
         }
       );
@@ -585,13 +772,13 @@ export default function PostViewerModal({
         '',
         [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Editar', onPress: () => Alert.alert('Próximamente', 'La edición de publicaciones estará disponible pronto') },
+          { text: 'Editar descripción', onPress: () => handleEditDescription(post) },
+          { text: 'Gestionar etiquetas', onPress: () => handleManageTags(post) },
           { 
             text: 'Eliminar', 
             style: 'destructive',
             onPress: () => handleDeletePost(post),
           },
-          { text: 'Añadir etiquetas', onPress: () => handleAddTags(post) },
         ]
       );
     }
@@ -631,18 +818,58 @@ export default function PostViewerModal({
     );
   };
 
-  const handleAddTags = (post: Post) => {
-    setTaggingPostId(post.id);
-    setTaggingMode(true);
-    setShowTagsOnImage(false);
-  };
+  // ✅ NEW: Load tagged users for display
+  const [taggedUsers, setTaggedUsers] = useState<Map<string, TaggableUser[]>>(new Map());
 
-  const handleTagAdded = () => {
-    setTaggingMode(false);
-    setTaggingPostId(null);
-    setShowTagsOnImage(true);
-    loadPosts();
-  };
+  const loadTaggedUsers = useCallback(async (postId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('post_tags')
+        .select(`
+          *,
+          usuario:usuarios!post_tags_usuario_id_fkey(id, nombre, username, avatar),
+          local:locales(id, nombre, imagen_url)
+        `)
+        .eq('post_id', postId)
+        .eq('estado', 'aceptado');
+
+      if (error) throw error;
+
+      const tags: TaggableUser[] = [];
+      
+      if (data) {
+        data.forEach(tag => {
+          if (tag.tipo === 'usuario' && tag.usuario) {
+            tags.push({
+              id: tag.usuario.id,
+              nombre: tag.usuario.nombre,
+              username: tag.usuario.username || tag.usuario.nombre,
+              avatar: tag.usuario.avatar,
+              tipo: 'usuario',
+            });
+          } else if (tag.tipo === 'local' && tag.local) {
+            tags.push({
+              id: tag.local.id,
+              nombre: tag.local.nombre,
+              username: tag.local.nombre,
+              avatar: tag.local.imagen_url,
+              tipo: 'local',
+            });
+          }
+        });
+      }
+
+      setTaggedUsers(prev => new Map(prev).set(postId, tags));
+    } catch (error) {
+      console.error('[PostViewerModal] Error loading tagged users:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    posts.forEach(post => {
+      loadTaggedUsers(post.id);
+    });
+  }, [posts, loadTaggedUsers]);
 
   const toggleExpanded = (postId: string) => {
     setExpandedPosts(prev => {
@@ -669,15 +896,56 @@ export default function PostViewerModal({
       ? description.substring(0, 150) + '...' 
       : description;
 
-    // ✅ NEW: Check if author has unviewed momentos
-    const authorHasMomentos = authorsWithMomentos.has(post.autor_id);
-
-    // ✅ NEW: Get animation values for this post
     const anim = getDoubleTapAnimation(post.id);
+
+    // ✅ NEW: Get tagged users for this post
+    const postTaggedUsers = taggedUsers.get(post.id) || [];
 
     return (
       <View style={styles.postContainer}>
-        {/* ✅ NEW: Header with avatar (with momento border) and 3-dot menu */}
+        {/* ✅ NEW: Tagged users display (above author) */}
+        {postTaggedUsers.length > 0 && (
+          <View style={styles.taggedUsersHeader}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.taggedUsersScroll}
+            >
+              {postTaggedUsers.map((taggedUser) => (
+                <TouchableOpacity
+                  key={`${taggedUser.id}-${taggedUser.tipo}`}
+                  style={styles.taggedUserChip}
+                  onPress={() => {
+                    if (taggedUser.tipo === 'usuario') {
+                      router.push({ pathname: '/perfil/usuario', params: { userId: taggedUser.id } });
+                    } else {
+                      router.push({ pathname: '/perfil/local', params: { localId: taggedUser.id } });
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  {taggedUser.avatar ? (
+                    <Image source={{ uri: taggedUser.avatar }} style={styles.taggedUserAvatar} />
+                  ) : (
+                    <View style={[styles.taggedUserAvatar, styles.taggedUserAvatarPlaceholder]}>
+                      <IconSymbol
+                        ios_icon_name={taggedUser.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                        android_material_icon_name={taggedUser.tipo === 'local' ? 'business' : 'person'}
+                        size={12}
+                        color={colors.textSecondary}
+                      />
+                    </View>
+                  )}
+                  <Text style={styles.taggedUserName} numberOfLines={1}>
+                    {taggedUser.username}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Header with avatar and 3-dot menu */}
         <View style={styles.postHeader}>
           <TouchableOpacity 
             style={styles.authorInfo}
@@ -707,7 +975,7 @@ export default function PostViewerModal({
           )}
         </View>
 
-        {/* Images with DOUBLE-TAP LIKE */}
+        {/* Images with DOUBLE-TAP LIKE + TAG DISPLAY */}
         {post.images && post.images.length > 0 && (
           <View style={styles.imageContainer}>
             <ScrollView
@@ -734,7 +1002,6 @@ export default function PostViewerModal({
                       resizeMode="cover"
                     />
                     
-                    {/* ✅ NEW: Animated heart for double-tap feedback */}
                     <Animated.View
                       style={[
                         styles.doubleTapHeart,
@@ -767,15 +1034,6 @@ export default function PostViewerModal({
                         imageWidth={width}
                         imageHeight={width}
                         visible={true}
-                      />
-                    )}
-                    {taggingMode && taggingPostId === post.id && (
-                      <ImageTaggingOverlay
-                        postId={post.id}
-                        imageIndex={index}
-                        imageWidth={width}
-                        imageHeight={width}
-                        onTagAdded={handleTagAdded}
                       />
                     )}
                   </View>
@@ -962,6 +1220,144 @@ export default function PostViewerModal({
             }}
           />
         )}
+
+        {/* ✅ NEW: Edit Description Modal */}
+        <Modal
+          visible={editModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setEditModalVisible(false)}
+        >
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.editModalOverlay}
+          >
+            <TouchableOpacity 
+              style={styles.editModalBackdrop}
+              activeOpacity={1}
+              onPress={() => setEditModalVisible(false)}
+            />
+            <View style={styles.editModalContent}>
+              <View style={styles.editModalHeader}>
+                <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                  <Text style={styles.editModalCancel}>Cancelar</Text>
+                </TouchableOpacity>
+                <Text style={styles.editModalTitle}>Editar descripción</Text>
+                <TouchableOpacity onPress={handleSaveEdit} disabled={savingEdit}>
+                  <Text style={[styles.editModalSave, savingEdit && styles.editModalSaveDisabled]}>
+                    {savingEdit ? 'Guardando...' : 'Guardar'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                style={styles.editModalInput}
+                value={editedDescription}
+                onChangeText={setEditedDescription}
+                placeholder="Escribe una descripción..."
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                maxLength={2200}
+                autoFocus
+                editable={!savingEdit}
+              />
+              <Text style={styles.editModalCounter}>
+                {editedDescription.length}/2200
+              </Text>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        {/* ✅ NEW: Tag Management Modal */}
+        <Modal
+          visible={showTagManagementModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowTagManagementModal(false)}
+        >
+          <View style={styles.tagManagementOverlay}>
+            <TouchableOpacity 
+              style={styles.tagManagementBackdrop}
+              activeOpacity={1}
+              onPress={() => setShowTagManagementModal(false)}
+            />
+            <View style={styles.tagManagementContent}>
+              <View style={styles.tagManagementHeader}>
+                <Text style={styles.tagManagementTitle}>Gestionar etiquetas</Text>
+                <TouchableOpacity onPress={() => setShowTagManagementModal(false)}>
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              {loadingTags ? (
+                <View style={styles.tagManagementLoading}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+              ) : (
+                <ScrollView style={styles.tagManagementScroll}>
+                  {existingTags.length > 0 ? (
+                    <View style={styles.tagManagementList}>
+                      <Text style={styles.tagManagementSectionTitle}>Etiquetados ({existingTags.length})</Text>
+                      {existingTags.map((tag) => (
+                        <View key={`${tag.id}-${tag.tipo}`} style={styles.tagManagementItem}>
+                          {tag.avatar ? (
+                            <Image source={{ uri: tag.avatar }} style={styles.tagManagementAvatar} />
+                          ) : (
+                            <View style={[styles.tagManagementAvatar, styles.tagManagementAvatarPlaceholder]}>
+                              <IconSymbol 
+                                ios_icon_name={tag.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                                android_material_icon_name={tag.tipo === 'local' ? 'business' : 'person'}
+                                size={20} 
+                                color={colors.textSecondary} 
+                              />
+                            </View>
+                          )}
+                          <View style={styles.tagManagementInfo}>
+                            <Text style={styles.tagManagementName}>{tag.nombre}</Text>
+                            <Text style={styles.tagManagementType}>
+                              {tag.tipo === 'local' ? 'Local' : `@${tag.username}`}
+                            </Text>
+                          </View>
+                          <TouchableOpacity 
+                            onPress={() => handleRemoveTag(tag)}
+                            style={styles.tagManagementRemoveButton}
+                          >
+                            <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color="#EF4444" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <View style={styles.tagManagementEmpty}>
+                      <IconSymbol ios_icon_name="person.crop.circle.badge.plus" android_material_icon_name="person_add" size={48} color={colors.textSecondary} />
+                      <Text style={styles.tagManagementEmptyText}>No hay etiquetas</Text>
+                    </View>
+                  )}
+                </ScrollView>
+              )}
+
+              <TouchableOpacity 
+                style={styles.tagManagementAddButton}
+                onPress={() => {
+                  setShowTagManagementModal(false);
+                  setTimeout(() => {
+                    setShowTagModal(true);
+                  }, 300);
+                }}
+              >
+                <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.white} />
+                <Text style={styles.tagManagementAddButtonText}>Añadir etiqueta</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* ✅ NEW: Tagging Modal */}
+        <TaggingModalV5
+          visible={showTagModal}
+          onClose={() => setShowTagModal(false)}
+          onSelectUser={handleAddNewTag}
+          alreadyTagged={existingTags}
+        />
       </View>
     </Modal>
   );
@@ -1013,6 +1409,43 @@ const styles = StyleSheet.create({
     height: 16,
     backgroundColor: colors.background,
   },
+  // ✅ NEW: Tagged users header
+  taggedUsersHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  taggedUsersScroll: {
+    gap: 8,
+  },
+  taggedUserChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingLeft: 4,
+    paddingRight: 12,
+    paddingVertical: 4,
+    borderRadius: 16,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  taggedUserAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  taggedUserAvatarPlaceholder: {
+    backgroundColor: colors.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  taggedUserName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    maxWidth: 100,
+  },
   postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1053,7 +1486,6 @@ const styles = StyleSheet.create({
     height: width,
     backgroundColor: colors.cardBorder,
   },
-  // ✅ NEW: Double-tap heart animation
   doubleTapHeart: {
     position: 'absolute',
     top: '50%',
@@ -1151,5 +1583,171 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textSecondary,
     textTransform: 'uppercase',
+  },
+  // ✅ NEW: Edit modal styles
+  editModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  editModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  editModalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    maxHeight: '80%',
+  },
+  editModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  editModalCancel: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  editModalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  editModalSave: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  editModalSaveDisabled: {
+    opacity: 0.5,
+  },
+  editModalInput: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: colors.text,
+    minHeight: 150,
+    maxHeight: 400,
+    textAlignVertical: 'top',
+  },
+  editModalCounter: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'right',
+  },
+  // ✅ NEW: Tag management modal styles
+  tagManagementOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  tagManagementBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  tagManagementContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    maxHeight: '80%',
+  },
+  tagManagementHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  tagManagementTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  tagManagementLoading: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  tagManagementScroll: {
+    maxHeight: 400,
+  },
+  tagManagementList: {
+    padding: 16,
+  },
+  tagManagementSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+  },
+  tagManagementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  tagManagementAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  tagManagementAvatarPlaceholder: {
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tagManagementInfo: {
+    flex: 1,
+  },
+  tagManagementName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  tagManagementType: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  tagManagementRemoveButton: {
+    padding: 8,
+  },
+  tagManagementEmpty: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  tagManagementEmptyText: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    marginTop: 12,
+  },
+  tagManagementAddButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    marginHorizontal: 16,
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  tagManagementAddButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.white,
   },
 });
