@@ -39,6 +39,7 @@ import Animated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
+import { canLocalPerformAction } from '@/utils/subscriptionPermissions';
 
 const convertImageToJPG = (uri: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -88,6 +89,15 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
   });
 };
 
+/**
+ * ✅ CREATE PUBLICATION v2.0 - SUBSCRIPTION PERMISSIONS
+ * 
+ * Changes:
+ * - ✅ Check subscription permissions before allowing local posts
+ * - ✅ Show warning if subscription is inactive
+ * - ✅ Prevent publishing if profile is not visible
+ */
+
 export default function CrearPublicacionScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -119,7 +129,44 @@ export default function CrearPublicacionScreen() {
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [editingImageUri, setEditingImageUri] = useState<string | null>(null);
 
+  // ✅ Subscription permission check
+  const [canPublish, setCanPublish] = useState(true);
+  const [permissionMessage, setPermissionMessage] = useState('');
+
   const MAX_IMAGES = 10;
+
+  // ✅ Check permissions on mount if publishing as local
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const effectiveLocalId = localId || (activeProfileType === 'local' ? activeProfileId : null);
+      
+      if (effectiveLocalId) {
+        console.log('[CrearPublicacion] 🔒 Checking permissions for local:', effectiveLocalId);
+        
+        const result = await canLocalPerformAction(effectiveLocalId, 'publish_post');
+        
+        setCanPublish(result.allowed);
+        setPermissionMessage(result.reason || '');
+        
+        if (!result.allowed) {
+          console.log('[CrearPublicacion] ⚠️ Cannot publish:', result.reason);
+          Alert.alert(
+            'Publicación No Permitida',
+            result.reason || 'No tienes permiso para publicar',
+            [
+              { text: 'Cancelar', style: 'cancel', onPress: () => router.back() },
+              { 
+                text: 'Ver Planes', 
+                onPress: () => router.push(`/gestion/planes-suscripcion?localId=${effectiveLocalId}`) 
+              },
+            ]
+          );
+        }
+      }
+    };
+
+    checkPermissions();
+  }, [localId, activeProfileType, activeProfileId, router]);
 
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
@@ -200,7 +247,6 @@ export default function CrearPublicacionScreen() {
     setEditingImageUri(null);
   };
 
-  // ✅ FIXED: Advanced Image Editor with proper Reanimated v4 API
   const ImageEditorModal = () => {
     const [processing, setProcessing] = useState(false);
     const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
@@ -219,7 +265,7 @@ export default function CrearPublicacionScreen() {
           setImageDimensions({ width, height });
           
           const imageRatio = width / height;
-          const screenRatio = 1; // Square crop
+          const screenRatio = 1;
           
           if (imageRatio > screenRatio) {
             scale.value = SCREEN_WIDTH / width;
@@ -303,7 +349,6 @@ export default function CrearPublicacionScreen() {
             </TouchableOpacity>
           </LinearGradient>
 
-          {/* ✅ FIXED: Proper image display with visible frame */}
           <View style={styles.editorContent}>
             <View style={styles.editorImageFrame}>
               {editingImageUri ? (
@@ -355,7 +400,6 @@ export default function CrearPublicacionScreen() {
             </View>
           </View>
 
-          {/* ✅ IMPROVED: Editor controls */}
           <View style={styles.editorFooter}>
             <View style={styles.editorControls}>
               <TouchableOpacity 
@@ -550,6 +594,26 @@ export default function CrearPublicacionScreen() {
       return;
     }
 
+    // ✅ Check permissions again before publishing
+    const effectiveLocalId = localId || (activeProfileType === 'local' ? activeProfileId : null);
+    if (effectiveLocalId) {
+      const result = await canLocalPerformAction(effectiveLocalId, 'publish_post');
+      if (!result.allowed) {
+        Alert.alert(
+          'Publicación No Permitida',
+          result.reason || 'No tienes permiso para publicar',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { 
+              text: 'Ver Planes', 
+              onPress: () => router.push(`/gestion/planes-suscripcion?localId=${effectiveLocalId}`) 
+            },
+          ]
+        );
+        return;
+      }
+    }
+
     setPublishing(true);
     setShowUploadProgress(true);
     setUploadProgress(0);
@@ -588,15 +652,15 @@ export default function CrearPublicacionScreen() {
         setUploadProgress(70);
       }
 
-      let effectiveLocalId: string | null = null;
+      let postLocalId: string | null = null;
       let postTipo: 'usuario' | 'local' = 'usuario';
 
       if (localId) {
-        effectiveLocalId = localId;
+        postLocalId = localId;
         postTipo = 'local';
         console.log('[CrearPublicacion] ✅ Using localId from params:', localId);
       } else if (activeProfileType === 'local' && activeProfileId) {
-        effectiveLocalId = activeProfileId;
+        postLocalId = activeProfileId;
         postTipo = 'local';
         console.log('[CrearPublicacion] ✅ Using active local profile:', activeProfileId);
       } else {
@@ -604,7 +668,7 @@ export default function CrearPublicacionScreen() {
         console.log('[CrearPublicacion] ✅ Publishing as user (cliente)');
       }
 
-      console.log('[CrearPublicacion] ✅ Final effective local ID:', effectiveLocalId);
+      console.log('[CrearPublicacion] ✅ Final effective local ID:', postLocalId);
       console.log('[CrearPublicacion] ✅ Final post tipo:', postTipo);
 
       setUploadProgress(75);
@@ -612,7 +676,7 @@ export default function CrearPublicacionScreen() {
       const postData: any = {
         autor_id: user.id,
         tipo: postTipo,
-        local_id: effectiveLocalId,
+        local_id: postLocalId,
         contenido: contenido,
         imagenes: imagenesUrls,
         ubicacion: ubicacion?.nombre,
@@ -764,20 +828,28 @@ export default function CrearPublicacionScreen() {
           <Text style={styles.headerTitle}>Nueva Publicación</Text>
           <TouchableOpacity 
             onPress={publicar} 
-            style={[styles.publishButton, (!contenido.trim() && imagenes.length === 0) && styles.publishButtonDisabled]}
-            disabled={publishing || (!contenido.trim() && imagenes.length === 0)}
+            style={[styles.publishButton, (!contenido.trim() && imagenes.length === 0 || !canPublish) && styles.publishButtonDisabled]}
+            disabled={publishing || (!contenido.trim() && imagenes.length === 0) || !canPublish}
             activeOpacity={0.7}
           >
             {publishing ? (
               <ActivityIndicator size="small" color={colors.headerText} />
             ) : (
-              <Text style={[styles.publishButtonText, (!contenido.trim() && imagenes.length === 0) && styles.publishButtonTextDisabled]}>
+              <Text style={[styles.publishButtonText, (!contenido.trim() && imagenes.length === 0 || !canPublish) && styles.publishButtonTextDisabled]}>
                 Publicar
               </Text>
             )}
           </TouchableOpacity>
         </View>
       </LinearGradient>
+
+      {/* ✅ Show warning if cannot publish */}
+      {!canPublish && permissionMessage && (
+        <View style={styles.warningBanner}>
+          <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={20} color="#F59E0B" />
+          <Text style={styles.warningText}>{permissionMessage}</Text>
+        </View>
+      )}
 
       <View style={{ flex: 1 }}>
         <ScrollView 
@@ -803,7 +875,7 @@ export default function CrearPublicacionScreen() {
               }}
               multiline
               maxLength={2200}
-              editable={!publishing}
+              editable={!publishing && canPublish}
             />
             <Text style={styles.charCount}>{contenido.length}/2200</Text>
             <View style={styles.helperContainer}>
@@ -928,61 +1000,61 @@ export default function CrearPublicacionScreen() {
             <Text style={styles.actionsSectionTitle}>Añadir a tu publicación</Text>
             <View style={styles.actionsGrid}>
               <TouchableOpacity 
-                style={[styles.actionButton, imagenes.length >= MAX_IMAGES && styles.actionButtonDisabled]} 
+                style={[styles.actionButton, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonDisabled]} 
                 onPress={seleccionarImagenes}
-                disabled={publishing || imagenes.length >= MAX_IMAGES}
+                disabled={publishing || imagenes.length >= MAX_IMAGES || !canPublish}
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIconContainer, { backgroundColor: colors.primary + '15' }]}>
-                  <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={24} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.primary} />
+                  <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={24} color={(imagenes.length >= MAX_IMAGES || !canPublish) ? colors.textSecondary : colors.primary} />
                 </View>
-                <Text style={[styles.actionButtonText, imagenes.length >= MAX_IMAGES && styles.actionButtonTextDisabled]}>
+                <Text style={[styles.actionButtonText, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonTextDisabled]}>
                   Fotos
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.actionButton, imagenes.length >= MAX_IMAGES && styles.actionButtonDisabled]} 
+                style={[styles.actionButton, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonDisabled]} 
                 onPress={tomarFoto}
-                disabled={publishing || imagenes.length >= MAX_IMAGES}
+                disabled={publishing || imagenes.length >= MAX_IMAGES || !canPublish}
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIconContainer, { backgroundColor: colors.secondary + '15' }]}>
-                  <IconSymbol ios_icon_name="camera" android_material_icon_name="camera_alt" size={24} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.secondary} />
+                  <IconSymbol ios_icon_name="camera" android_material_icon_name="camera_alt" size={24} color={(imagenes.length >= MAX_IMAGES || !canPublish) ? colors.textSecondary : colors.secondary} />
                 </View>
-                <Text style={[styles.actionButtonText, imagenes.length >= MAX_IMAGES && styles.actionButtonTextDisabled]}>
+                <Text style={[styles.actionButtonText, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonTextDisabled]}>
                   Cámara
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.actionButton}
+                style={[styles.actionButton, !canPublish && styles.actionButtonDisabled]}
                 onPress={() => setShowTagModal(true)}
-                disabled={publishing}
+                disabled={publishing || !canPublish}
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIconContainer, { backgroundColor: '#8B5CF6' + '15' }]}>
-                  <IconSymbol ios_icon_name="person.crop.circle.badge.plus" android_material_icon_name="person_add" size={24} color="#8B5CF6" />
+                  <IconSymbol ios_icon_name="person.crop.circle.badge.plus" android_material_icon_name="person_add" size={24} color={!canPublish ? colors.textSecondary : '#8B5CF6'} />
                 </View>
-                <Text style={styles.actionButtonText}>
+                <Text style={[styles.actionButtonText, !canPublish && styles.actionButtonTextDisabled]}>
                   Etiquetar
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.actionButton}
+                style={[styles.actionButton, !canPublish && styles.actionButtonDisabled]}
                 onPress={obtenerUbicacion}
-                disabled={loadingLocation || publishing}
+                disabled={loadingLocation || publishing || !canPublish}
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIconContainer, { backgroundColor: '#EF4444' + '15' }]}>
                   {loadingLocation ? (
                     <ActivityIndicator size="small" color="#EF4444" />
                   ) : (
-                    <IconSymbol ios_icon_name="mappin.and.ellipse" android_material_icon_name="location_on" size={24} color="#EF4444" />
+                    <IconSymbol ios_icon_name="mappin.and.ellipse" android_material_icon_name="location_on" size={24} color={!canPublish ? colors.textSecondary : '#EF4444'} />
                   )}
                 </View>
-                <Text style={styles.actionButtonText}>
+                <Text style={[styles.actionButtonText, !canPublish && styles.actionButtonTextDisabled]}>
                   Ubicación
                 </Text>
               </TouchableOpacity>
@@ -1065,6 +1137,22 @@ const styles = StyleSheet.create({
   },
   publishButtonTextDisabled: {
     opacity: 0.6,
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F59E0B',
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#92400E',
+    fontWeight: '600',
   },
   content: {
     flex: 1,
@@ -1174,7 +1262,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  // ✅ FIXED: Image editor styles with proper background
   editorContainer: {
     flex: 1,
     backgroundColor: colors.background,
@@ -1213,7 +1300,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.headerText,
   },
-  // ✅ FIXED: Proper content area with visible frame
   editorContent: {
     flex: 1,
     justifyContent: 'center',

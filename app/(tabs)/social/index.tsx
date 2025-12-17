@@ -19,6 +19,7 @@ import { useImpersonation } from '@/contexts/ImpersonationContext';
 import PublicacionCard from '@/components/social/PublicacionCard';
 import NewPostCard from '@/components/social/NewPostCard';
 import MomentoCarousel from '@/components/momento/MomentoCarousel';
+import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -52,6 +53,14 @@ interface Post {
 
 const POSTS_PER_PAGE = 10;
 
+/**
+ * ✅ SOCIAL FEED v2.0 - SYNCHRONIZED BADGES
+ * 
+ * Changes:
+ * - ✅ Uses HeaderSocial component with synchronized notification/message badges
+ * - ✅ Real-time updates for badge counts
+ */
+
 export default function SocialIndexScreen() {
   const router = useRouter();
   const { userId, user, isImpersonating, adminUser } = useEffectiveUser();
@@ -63,6 +72,92 @@ export default function SocialIndexScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const flatListRef = useRef<FlatList>(null);
+
+  // ✅ Badge counts state
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  // ✅ Load unread counts
+  const loadUnreadCounts = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      const { count: notifCount } = await supabase
+        .from('notificaciones')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_id', userId)
+        .eq('leida', false);
+
+      setUnreadNotifications(notifCount || 0);
+
+      const { data: chatsData } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`usuario1_id.eq.${userId},usuario2_id.eq.${userId}`);
+
+      if (chatsData) {
+        let totalUnread = 0;
+        for (const chat of chatsData) {
+          const { count } = await supabase
+            .from('mensajes')
+            .select('*', { count: 'exact', head: true })
+            .eq('chat_id', chat.id)
+            .eq('leido', false)
+            .neq('remitente_id', userId);
+          
+          totalUnread += count || 0;
+        }
+        setUnreadMessages(totalUnread);
+      }
+
+      console.log('[Social] ✅ Loaded unread counts:', {
+        notifications: notifCount || 0,
+        messages: totalUnread || 0,
+      });
+    } catch (error) {
+      console.error('[Social] Error loading unread counts:', error);
+    }
+  }, [userId]);
+
+  // ✅ Subscribe to real-time updates
+  useEffect(() => {
+    if (!userId) return;
+
+    loadUnreadCounts();
+
+    const subscription = supabase
+      .channel('social-feed-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notificaciones',
+          filter: `usuario_id=eq.${userId}`,
+        },
+        () => {
+          console.log('[Social] 🔔 Notification update detected');
+          loadUnreadCounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'mensajes',
+        },
+        () => {
+          console.log('[Social] 💬 Message update detected');
+          loadUnreadCounts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [userId, loadUnreadCounts]);
 
   const cargarPosts = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
     if (!userId) {
@@ -85,7 +180,6 @@ export default function SocialIndexScreen() {
 
       console.log(`[Social] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
 
-      // Get posts from users and locals that the effective user follows
       const { data: followingData, error: followingError } = await supabase
         .from('seguidores')
         .select('seguido_id, local_id')
@@ -101,7 +195,6 @@ export default function SocialIndexScreen() {
         ?.filter(f => f.local_id)
         .map(f => f.local_id) || [];
 
-      // Include the effective user's own posts
       const authorIds = [...followedUserIds, userId];
 
       let query = supabase
@@ -114,7 +207,6 @@ export default function SocialIndexScreen() {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      // Filter by followed users and locals
       if (authorIds.length > 0 || followedLocalIds.length > 0) {
         const conditions = [];
         if (authorIds.length > 0) {
@@ -130,7 +222,6 @@ export default function SocialIndexScreen() {
 
       if (postsError) throw postsError;
 
-      // Check which posts the user has liked and saved
       if (postsData && postsData.length > 0) {
         const postIds = postsData.map(p => p.id);
         
@@ -185,8 +276,7 @@ export default function SocialIndexScreen() {
     if (userId) {
       cargarPosts(1, false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, cargarPosts]);
 
   const handleRefresh = useCallback(() => {
     cargarPosts(1, true);
@@ -202,26 +292,12 @@ export default function SocialIndexScreen() {
     cargarPosts(1, true);
   }, [cargarPosts]);
 
-  const handleNotifications = () => {
-    router.push('/perfil/notificaciones');
-  };
-
-  const handleMessages = () => {
-    router.push('/(tabs)/perfil/chats');
-  };
-
   const handleCreatePost = () => {
     router.push('/crear/publicacion');
   };
 
-  // ✅ ENABLED: Search functionality - navigate to dedicated search page
-  const handleSearch = () => {
-    router.push('/social/search');
-  };
-
   const renderHeader = useCallback(() => (
     <React.Fragment>
-      {/* Impersonation Banner */}
       {isImpersonating && impersonationSession && (
         <View style={styles.impersonationBanner}>
           <LinearGradient
@@ -285,38 +361,12 @@ export default function SocialIndexScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅ Header with search icon enabled */}
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
-      >
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Red Social</Text>
-          <View style={styles.headerIcons}>
-            {isImpersonating && impersonationSession && (
-              <View style={styles.impersonationIndicator}>
-                <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={20} color={colors.headerText} />
-              </View>
-            )}
-            {/* ✅ ENABLED: Search Icon */}
-            <TouchableOpacity style={styles.headerIconButton} onPress={handleSearch}>
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-            {/* Messages Icon */}
-            <TouchableOpacity style={styles.headerIconButton} onPress={handleMessages}>
-              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-            {/* Create Post Icon */}
-            <TouchableOpacity style={styles.headerIconButton} onPress={handleCreatePost}>
-              <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-            {/* Notifications Icon */}
-            <TouchableOpacity style={styles.headerIconButton} onPress={handleNotifications}>
-              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </LinearGradient>
+      {/* ✅ Header with synchronized badges */}
+      <HeaderSocial
+        unreadNotifications={unreadNotifications}
+        unreadMessages={unreadMessages}
+        onCreatePost={handleCreatePost}
+      />
 
       <FlatList
         ref={flatListRef}
@@ -353,42 +403,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  headerIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  headerIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  impersonationIndicator: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },

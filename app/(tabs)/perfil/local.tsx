@@ -33,7 +33,7 @@ import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
 
-const SCREEN_VERSION = '8.0.0';
+const SCREEN_VERSION = '9.0.0';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -89,6 +89,15 @@ interface Seguidor {
   avatar?: string;
   bio?: string;
 }
+
+/**
+ * ✅ LOCAL PROFILE v9.0 - USERNAME DISPLAY
+ * 
+ * Changes:
+ * - ✅ Display username below local name
+ * - ✅ Show subscription status badge
+ * - ✅ Hide profile if subscription is inactive
+ */
 
 export default function LocalPerfilScreen() {
   const router = useRouter();
@@ -168,7 +177,6 @@ export default function LocalPerfilScreen() {
       console.log('[LocalPerfil] 📊 Loading followers for local:', localId);
       console.log('[LocalPerfil] ⚠️ Followers = users who FOLLOW this local in the social network');
 
-      // Get followers from seguidores table where seguido_id is the local's propietario_id
       const { data, error } = await supabase
         .from('seguidores')
         .select(`
@@ -285,6 +293,17 @@ export default function LocalPerfilScreen() {
         return;
       }
 
+      // ✅ Check if profile is visible (subscription-based)
+      if (!localData.perfil_visible && (!user || localData.propietario_id !== user.id)) {
+        console.log('[LocalPerfil] ⚠️ Profile is not visible (subscription inactive)');
+        Alert.alert(
+          'Perfil No Disponible',
+          'Este perfil de local no está disponible actualmente. El propietario debe activar un plan de suscripción.',
+          [{ text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }]
+        );
+        return;
+      }
+
       setLocal(localData);
 
       if (user && localData.propietario_id === user.id) {
@@ -295,8 +314,6 @@ export default function LocalPerfilScreen() {
         console.log('[LocalPerfil] ✅ User is NOT owner of this local');
       }
 
-      // Count followers (users who follow this local in the social network)
-      console.log('[LocalPerfil] 📊 Counting followers from seguidores table...');
       const { count: followersCount } = await supabase
         .from('seguidores')
         .select('*', { count: 'exact', head: true })
@@ -305,7 +322,6 @@ export default function LocalPerfilScreen() {
       setSeguidoresCount(followersCount || 0);
       console.log('[LocalPerfil] ✅ Followers count:', followersCount || 0);
 
-      // Count following (users/locals that this local follows)
       if (localData.propietario_id) {
         const { count: followingCount } = await supabase
           .from('seguidores')
@@ -352,7 +368,6 @@ export default function LocalPerfilScreen() {
         setContentLoaded(prev => ({ ...prev, eventos: true }));
       }
 
-      // Check if current user is following this local
       setIsFollowing(!!followResult.data);
       console.log('[LocalPerfil] ✅ Is following:', !!followResult.data);
       setContentLoaded(prev => ({ ...prev, info: true }));
@@ -443,7 +458,6 @@ export default function LocalPerfilScreen() {
       console.log('[LocalPerfil] ⚠️ IMPORTANT: This is INDEPENDENT from favorites');
       console.log('[LocalPerfil] ⚠️ Following affects ONLY the social network, NOT favorites');
 
-      // Optimistic update
       setIsFollowing(!wasFollowing);
       setSeguidoresCount(wasFollowing ? Math.max(0, previousSeguidores - 1) : previousSeguidores + 1);
 
@@ -465,7 +479,6 @@ export default function LocalPerfilScreen() {
         console.log('[LocalPerfil] ➕ Following local in social network...');
         console.log('[LocalPerfil] ⚠️ This will NOT add to favorites');
 
-        // Check if already following
         const { data: existingFollow } = await supabase
           .from('seguidores')
           .select('id')
@@ -488,7 +501,6 @@ export default function LocalPerfilScreen() {
 
         if (insertError) throw insertError;
 
-        // Send notification to local owner
         await supabase
           .from('notificaciones')
           .insert({
@@ -504,7 +516,6 @@ export default function LocalPerfilScreen() {
         console.log('[LocalPerfil] ℹ️ To save this local to favorites, go to the Locales Favoritos page');
       }
 
-      // Reload counts to ensure accuracy
       const { count: updatedFollowersCount } = await supabase
         .from('seguidores')
         .select('*', { count: 'exact', head: true })
@@ -514,7 +525,6 @@ export default function LocalPerfilScreen() {
     } catch (error) {
       console.error('[LocalPerfil] Error toggling follow:', error);
       
-      // Revert optimistic update
       setIsFollowing(wasFollowing);
       setSeguidoresCount(previousSeguidores);
       
@@ -922,6 +932,10 @@ export default function LocalPerfilScreen() {
               </View>
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>{local.nombre}</Text>
+                {/* ✅ Display username below local name */}
+                {local.username && (
+                  <Text style={styles.profileUsername}>@{local.username}</Text>
+                )}
                 {categoriasLocal.length > 0 && (
                   <View style={styles.categoriesContainer}>
                     {categoriasLocal.slice(0, 2).map((categoria: string, index: number) => (
@@ -1609,6 +1623,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
+    marginBottom: 4,
+  },
+  profileUsername: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
     marginBottom: 8,
   },
   categoriesContainer: {

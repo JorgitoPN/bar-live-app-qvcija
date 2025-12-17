@@ -30,6 +30,7 @@ import MomentoUpload from '@/components/momento/MomentoUpload';
 import MomentoViewer from '@/components/momento/MomentoViewer';
 import PostViewerModal from '@/components/social/PostViewerModal';
 import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
+import ShoppingCart from '@/components/payment/ShoppingCart';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -68,13 +69,12 @@ interface PerfilProfesional {
 }
 
 /**
- * ✅ PROFILE SCREEN v8.0 - GRID WITHOUT AVATARS/MENU
+ * ✅ PROFILE SCREEN v9.0 - CART ICON FOR OWNERS
  * 
  * Changes:
- * - ✅ REMOVED avatars from grid items (only in PostViewerModal)
- * - ✅ REMOVED 3-dot menu from grid items (only in PostViewerModal)
- * - ✅ Grid items now show only the image and multi-image indicator
- * - ✅ PostViewerModal handles all interactions (avatars, menu, etc.)
+ * - ✅ Added cart icon in header (only visible for propietario role)
+ * - ✅ Cart icon shows badge with item count
+ * - ✅ Opens shopping cart modal
  */
 
 export default function PerfilScreen() {
@@ -94,9 +94,11 @@ export default function PerfilScreen() {
   const [showMomentoUpload, setShowMomentoUpload] = useState(false);
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
+  const [showCart, setShowCart] = useState(false);
   
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [cartItemsCount, setCartItemsCount] = useState(0);
   
   const [seguidores, setSeguidores] = useState(0);
   const [seguidos, setSeguidos] = useState(0);
@@ -117,6 +119,28 @@ export default function PerfilScreen() {
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
+
+  // ✅ Load cart items count
+  const loadCartItemsCount = useCallback(async () => {
+    if (!user || userRole !== 'propietario') return;
+
+    try {
+      const { count, error } = await supabase
+        .from('shopping_cart')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('[Perfil] Error loading cart count:', error);
+        return;
+      }
+
+      setCartItemsCount(count || 0);
+      console.log('[Perfil] Cart items count:', count || 0);
+    } catch (error) {
+      console.error('[Perfil] Error loading cart count:', error);
+    }
+  }, [user, userRole]);
 
   const checkUnviewedMomentos = useCallback(async () => {
     if (!user) {
@@ -470,6 +494,7 @@ export default function PerfilScreen() {
 
       await loadUnreadCounts();
       await checkUnviewedMomentos();
+      await loadCartItemsCount();
 
       console.log('[Perfil] ✅ Loading user profile with FIXED counting logic');
       
@@ -512,7 +537,7 @@ export default function PerfilScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, loadUnreadCounts, checkUnviewedMomentos, cargarPosts]);
+  }, [user, loadUnreadCounts, checkUnviewedMomentos, loadCartItemsCount, cargarPosts]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -578,6 +603,32 @@ export default function PerfilScreen() {
       supabase.removeChannel(subscription);
     };
   }, [user, checkUnviewedMomentos]);
+
+  // ✅ Subscribe to cart changes
+  useEffect(() => {
+    if (!user || userRole !== 'propietario') return;
+
+    const subscription = supabase
+      .channel('cart-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shopping_cart',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          console.log('[Perfil] 🛒 Cart update detected, reloading count...');
+          loadCartItemsCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [user, userRole, loadCartItemsCount]);
 
   const displayName = user?.nombre || 'Usuario';
   const displayAvatar = user?.avatar;
@@ -691,7 +742,20 @@ export default function PerfilScreen() {
     setShowPostViewer(true);
   };
 
-  // ✅ REMOVED: Grid items no longer show avatars or 3-dot menu
+  // ✅ Handle cart checkout
+  const handleCartCheckout = async (items: any[], total: number) => {
+    console.log('[Perfil] 🛒 Processing checkout:', { items: items.length, total });
+    
+    // TODO: Implement Stripe payment flow
+    Alert.alert(
+      'Pago en Desarrollo',
+      `Total a pagar: €${total.toFixed(2)}\n\nLa integración con Stripe está en desarrollo.`,
+      [
+        { text: 'OK', onPress: () => setShowCart(false) }
+      ]
+    );
+  };
+
   const renderGridPost = (post: Post) => {
     const firstImage = post.imagenes && post.imagenes.length > 0 
       ? post.imagenes[0] 
@@ -941,6 +1005,24 @@ export default function PerfilScreen() {
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Mi Perfil</Text>
           <View style={styles.headerActions}>
+            {/* ✅ CART ICON - Only visible for propietario role */}
+            {userRole === 'propietario' && (
+              <TouchableOpacity 
+                style={styles.headerButton} 
+                onPress={() => setShowCart(true)}
+                activeOpacity={0.7}
+              >
+                <IconSymbol ios_icon_name="cart.fill" android_material_icon_name="shopping_cart" size={24} color={colors.headerText} />
+                {cartItemsCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {cartItemsCount > 99 ? '99+' : cartItemsCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+            
             <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
               <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
               {unreadMessages > 0 && (
@@ -1206,6 +1288,19 @@ export default function PerfilScreen() {
           }}
         />
       )}
+
+      {/* ✅ Shopping Cart Modal */}
+      <Modal
+        visible={showCart}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowCart(false)}
+      >
+        <ShoppingCart
+          onCheckout={handleCartCheckout}
+          onClose={() => setShowCart(false)}
+        />
+      </Modal>
 
       <LoginRequiredModal
         visible={showLoginModal}

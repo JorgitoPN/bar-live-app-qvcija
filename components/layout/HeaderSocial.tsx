@@ -30,9 +30,18 @@ interface SearchResult {
   provincia?: string;
 }
 
+/**
+ * ✅ HEADER SOCIAL v2.0 - SYNCHRONIZED BADGES
+ * 
+ * Changes:
+ * - ✅ Shows notification badge with count (synchronized with profile page)
+ * - ✅ Shows message badge with count (synchronized with profile page)
+ * - ✅ Real-time updates via Supabase subscriptions
+ */
+
 export default function HeaderSocial({
-  unreadNotifications = 0,
-  unreadMessages = 0,
+  unreadNotifications: propUnreadNotifications,
+  unreadMessages: propUnreadMessages,
   onSearchPress,
   onCreatePress,
   onCreatePost,
@@ -41,20 +50,124 @@ export default function HeaderSocial({
   const router = useRouter();
   const { user } = useAuth();
   
-  // ✅ NEW: Search state
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   
+  // ✅ Local state for badge counts (synchronized with profile page)
+  const [unreadNotifications, setUnreadNotifications] = useState(propUnreadNotifications || 0);
+  const [unreadMessages, setUnreadMessages] = useState(propUnreadMessages || 0);
+  
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // ✅ Load unread counts
+  const loadUnreadCounts = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      // Load notifications count
+      const { count: notifCount } = await supabase
+        .from('notificaciones')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_id', user.id)
+        .eq('leida', false);
+
+      setUnreadNotifications(notifCount || 0);
+
+      // Load messages count
+      const { data: chatsData } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
+
+      if (chatsData) {
+        let totalUnread = 0;
+        for (const chat of chatsData) {
+          const { count } = await supabase
+            .from('mensajes')
+            .select('*', { count: 'exact', head: true })
+            .eq('chat_id', chat.id)
+            .eq('leido', false)
+            .neq('remitente_id', user.id);
+          
+          totalUnread += count || 0;
+        }
+        setUnreadMessages(totalUnread);
+      }
+
+      console.log('[HeaderSocial] ✅ Loaded unread counts:', {
+        notifications: notifCount || 0,
+        messages: totalUnread || 0,
+      });
+    } catch (error) {
+      console.error('[HeaderSocial] Error loading unread counts:', error);
+    }
+  }, [user]);
+
+  // ✅ Load counts on mount and when props change
+  useEffect(() => {
+    loadUnreadCounts();
+  }, [loadUnreadCounts]);
+
+  useEffect(() => {
+    if (propUnreadNotifications !== undefined) {
+      setUnreadNotifications(propUnreadNotifications);
+    }
+  }, [propUnreadNotifications]);
+
+  useEffect(() => {
+    if (propUnreadMessages !== undefined) {
+      setUnreadMessages(propUnreadMessages);
+    }
+  }, [propUnreadMessages]);
+
+  // ✅ Subscribe to real-time updates
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('[HeaderSocial] 🔄 Setting up real-time subscriptions');
+
+    const subscription = supabase
+      .channel('header-social-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notificaciones',
+          filter: `usuario_id=eq.${user.id}`,
+        },
+        () => {
+          console.log('[HeaderSocial] 🔔 Notification update detected');
+          loadUnreadCounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'mensajes',
+        },
+        () => {
+          console.log('[HeaderSocial] 💬 Message update detected');
+          loadUnreadCounts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[HeaderSocial] 🔄 Cleaning up subscriptions');
+      supabase.removeChannel(subscription);
+    };
+  }, [user, loadUnreadCounts]);
 
   const formatBadgeCount = (count: number): string => {
     if (count > 99) return '99+';
     return count.toString();
   };
 
-  // ✅ FIXED: Search functionality to include locals with active standard/premium plans
   const performSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -65,7 +178,6 @@ export default function HeaderSocial({
     try {
       console.log('[HeaderSocial] Searching for:', query);
 
-      // Search users by username or name (without @ symbol)
       const cleanQuery = query.replace('@', '').trim().toLowerCase();
       
       const { data: usersData, error: usersError } = await supabase
@@ -78,8 +190,6 @@ export default function HeaderSocial({
         console.error('[HeaderSocial] Error searching users:', usersError);
       }
 
-      // ✅ FIXED: Search locals with active standard or premium subscriptions
-      // Step 1: Get plan IDs for estandar and premium
       const { data: plansData, error: plansError } = await supabase
         .from('planes_suscripcion')
         .select('id, nombre')
@@ -92,7 +202,6 @@ export default function HeaderSocial({
       const validPlanIds = (plansData || []).map(p => p.id);
       console.log('[HeaderSocial] Valid plan IDs:', validPlanIds);
 
-      // Step 2: Get active subscriptions with these plans
       const { data: activeSubscriptionsData, error: subsError } = await supabase
         .from('suscripciones_locales')
         .select('local_id, plan_id')
@@ -106,14 +215,14 @@ export default function HeaderSocial({
       const activeLocalIds = (activeSubscriptionsData || []).map(sub => sub.local_id);
       console.log('[HeaderSocial] Active local IDs with valid plans:', activeLocalIds.length);
 
-      // Step 3: Search locales with these IDs
       let localsData: any[] = [];
       if (activeLocalIds.length > 0) {
         const { data, error: localsError } = await supabase
           .from('locales')
-          .select('id, nombre, imagen_url, barlive_type, provincia')
-          .ilike('nombre', `%${cleanQuery}%`)
+          .select('id, nombre, username, imagen_url, barlive_type, provincia')
+          .or(`nombre.ilike.%${cleanQuery}%,username.ilike.%${cleanQuery}%`)
           .eq('activo', true)
+          .eq('perfil_visible', true)
           .in('id', activeLocalIds)
           .limit(10);
 
@@ -137,6 +246,7 @@ export default function HeaderSocial({
           id: l.id,
           type: 'local' as const,
           nombre: l.nombre,
+          username: l.username,
           imagen_url: l.imagen_url,
           barlive_type: l.barlive_type,
           provincia: l.provincia,
@@ -153,7 +263,6 @@ export default function HeaderSocial({
     }
   }, []);
 
-  // ✅ Debounced search
   useEffect(() => {
     if (debouncedSearchQuery) {
       performSearch(debouncedSearchQuery);
@@ -162,7 +271,6 @@ export default function HeaderSocial({
     }
   }, [debouncedSearchQuery, performSearch]);
 
-  // ✅ FIXED: Handle search result press with proper error handling
   const handleSearchResultPress = (result: SearchResult) => {
     try {
       console.log('[HeaderSocial] Navigating to:', result.type, result.id);
@@ -187,7 +295,6 @@ export default function HeaderSocial({
     }
   };
 
-  // ✅ Render search result item
   const renderSearchResult = ({ item }: { item: SearchResult }) => (
     <TouchableOpacity
       style={styles.searchResultItem}
@@ -271,7 +378,6 @@ export default function HeaderSocial({
               )}
             </TouchableOpacity>
 
-            {/* ✅ NEW: Search button */}
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => setShowSearch(true)}
@@ -293,7 +399,6 @@ export default function HeaderSocial({
         </View>
       </LinearGradient>
 
-      {/* ✅ NEW: Search Modal */}
       <Modal
         visible={showSearch}
         animationType="slide"
@@ -435,7 +540,6 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     textAlignVertical: 'center',
   },
-  // ✅ NEW: Search modal styles
   searchContainer: {
     flex: 1,
     backgroundColor: colors.background,
@@ -488,11 +592,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
   },
   searchResultAvatar: {
     width: 56,
