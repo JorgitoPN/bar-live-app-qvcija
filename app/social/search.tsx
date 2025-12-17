@@ -57,13 +57,7 @@ export default function SocialSearchScreen() {
   const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set());
 
   // Load followed users for priority sorting
-  useEffect(() => {
-    if (user) {
-      loadFollowedUsers();
-    }
-  }, [user]);
-
-  const loadFollowedUsers = async () => {
+  const loadFollowedUsers = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -78,7 +72,13 @@ export default function SocialSearchScreen() {
     } catch (error) {
       console.error('[SocialSearch] Error loading followed users:', error);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadFollowedUsers();
+    }
+  }, [user, loadFollowedUsers]);
 
   const searchUsersAndLocals = useCallback(async (query: string) => {
     const cleanQuery = query.trim();

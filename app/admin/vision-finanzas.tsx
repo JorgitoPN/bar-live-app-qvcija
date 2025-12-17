@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -40,11 +40,7 @@ export default function VisionFinanzasScreen() {
     beneficioNeto: 0,
   });
 
-  useEffect(() => {
-    cargarDatosFinancieros();
-  }, [periodo]);
-
-  const cargarDatosFinancieros = async () => {
+  const cargarDatosFinancieros = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -122,7 +118,11 @@ export default function VisionFinanzasScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [periodo]);
+
+  useEffect(() => {
+    cargarDatosFinancieros();
+  }, [cargarDatosFinancieros]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -150,7 +150,7 @@ export default function VisionFinanzasScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Visión Financiera</Text>
         <View style={{ width: 40 }} />
@@ -184,7 +184,7 @@ export default function VisionFinanzasScreen() {
           </Text>
           <View style={styles.mainCardSubInfo}>
             <View style={styles.subInfoItem}>
-              <IconSymbol name="arrow.up.circle.fill" size={16} color="#10B981" />
+              <IconSymbol ios_icon_name="arrow.up.circle.fill" android_material_icon_name="arrow_upward" size={16} color="#10B981" />
               <Text style={styles.subInfoText}>+12.5% vs mes anterior</Text>
             </View>
           </View>
@@ -197,7 +197,7 @@ export default function VisionFinanzasScreen() {
         >
           <View style={styles.beneficioHeader}>
             <Text style={styles.beneficioLabel}>Beneficio Neto</Text>
-            <IconSymbol name="chart.line.uptrend.xyaxis" size={20} color="white" />
+            <IconSymbol ios_icon_name="chart.line.uptrend.xyaxis" android_material_icon_name="trending_up" size={20} color="white" />
           </View>
           <Text style={styles.beneficioValue}>
             {formatCurrency(financialData.beneficioNeto)}
@@ -214,7 +214,7 @@ export default function VisionFinanzasScreen() {
           <View style={styles.incomeCard}>
             <View style={styles.incomeHeader}>
               <View style={styles.incomeIcon}>
-                <IconSymbol name="star.fill" size={20} color={colors.primary} />
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color={colors.primary} />
               </View>
               <View style={styles.incomeInfo}>
                 <Text style={styles.incomeLabel}>Suscripciones Premium</Text>
@@ -251,7 +251,7 @@ export default function VisionFinanzasScreen() {
           <View style={styles.incomeCard}>
             <View style={styles.incomeHeader}>
               <View style={styles.incomeIcon}>
-                <IconSymbol name="megaphone.fill" size={20} color={colors.badgeDestacado} />
+                <IconSymbol ios_icon_name="megaphone.fill" android_material_icon_name="campaign" size={20} color={colors.badgeDestacado} />
               </View>
               <View style={styles.incomeInfo}>
                 <Text style={styles.incomeLabel}>Publicidad Destacada</Text>
@@ -290,7 +290,7 @@ export default function VisionFinanzasScreen() {
 
           <View style={styles.expenseCard}>
             <View style={styles.expenseHeader}>
-              <IconSymbol name="cloud.fill" size={24} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="cloud.fill" android_material_icon_name="cloud" size={24} color={colors.textSecondary} />
               <View style={styles.expenseInfo}>
                 <Text style={styles.expenseLabel}>APIs y Servicios</Text>
                 <Text style={styles.expenseValue}>
@@ -303,7 +303,7 @@ export default function VisionFinanzasScreen() {
               onPress={() => router.push('/admin/control-costes-api')}
             >
               <Text style={styles.detailButtonText}>Ver Detalles</Text>
-              <IconSymbol name="chevron.right" size={16} color={colors.primary} />
+              <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={16} color={colors.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -314,28 +314,28 @@ export default function VisionFinanzasScreen() {
 
           <View style={styles.metricsGrid}>
             <View style={styles.metricCard}>
-              <IconSymbol name="person.3.fill" size={24} color={colors.primary} />
+              <IconSymbol ios_icon_name="person.3.fill" android_material_icon_name="people" size={24} color={colors.primary} />
               <Text style={styles.metricValue}>87</Text>
               <Text style={styles.metricLabel}>Suscriptores</Text>
               <Text style={styles.metricChange}>+5 este mes</Text>
             </View>
 
             <View style={styles.metricCard}>
-              <IconSymbol name="chart.bar.fill" size={24} color={colors.badgeDestacado} />
+              <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={24} color={colors.badgeDestacado} />
               <Text style={styles.metricValue}>€100</Text>
               <Text style={styles.metricLabel}>Ingreso Medio</Text>
               <Text style={styles.metricChange}>por suscriptor</Text>
             </View>
 
             <View style={styles.metricCard}>
-              <IconSymbol name="arrow.up.right" size={24} color="#10B981" />
+              <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="trending_up" size={24} color="#10B981" />
               <Text style={styles.metricValue}>12.5%</Text>
               <Text style={styles.metricLabel}>Crecimiento</Text>
               <Text style={styles.metricChange}>mensual</Text>
             </View>
 
             <View style={styles.metricCard}>
-              <IconSymbol name="dollarsign.circle.fill" size={24} color={colors.badgeNuevo} />
+              <IconSymbol ios_icon_name="dollarsign.circle.fill" android_material_icon_name="attach_money" size={24} color={colors.badgeNuevo} />
               <Text style={styles.metricValue}>82.0%</Text>
               <Text style={styles.metricLabel}>Margen</Text>
               <Text style={styles.metricChange}>de beneficio</Text>
