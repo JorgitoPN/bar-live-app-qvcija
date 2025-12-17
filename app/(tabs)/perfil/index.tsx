@@ -1024,24 +1024,7 @@ export default function PerfilScreen() {
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Mi Perfil</Text>
           <View style={styles.headerActions}>
-            {/* ✅ CART ICON - Visible for propietario role OR admin in propietario mode */}
-            {isPropietario && (
-              <TouchableOpacity 
-                style={styles.headerButton} 
-                onPress={() => setShowCart(true)}
-                activeOpacity={0.7}
-              >
-                <IconSymbol ios_icon_name="cart.fill" android_material_icon_name="shopping_cart" size={24} color={colors.headerText} />
-                {cartItemsCount > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {cartItemsCount > 99 ? '99+' : cartItemsCount}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            )}
-            
+            {/* ✅ FIXED: Icon order - Messages, Notifications, Cart (if propietario), Settings */}
             <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
               <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
               {unreadMessages > 0 && (
@@ -1062,6 +1045,25 @@ export default function PerfilScreen() {
                 </View>
               )}
             </TouchableOpacity>
+            
+            {/* ✅ FIXED: CART ICON - Now positioned BEFORE settings icon */}
+            {isPropietario && (
+              <TouchableOpacity 
+                style={styles.headerButton} 
+                onPress={() => setShowCart(true)}
+                activeOpacity={0.7}
+              >
+                <IconSymbol ios_icon_name="cart.fill" android_material_icon_name="shopping_cart" size={24} color={colors.headerText} />
+                {cartItemsCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {cartItemsCount > 99 ? '99+' : cartItemsCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+            
             <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
               <IconSymbol ios_icon_name="gearshape.fill" android_material_icon_name="settings" size={24} color={colors.headerText} />
             </TouchableOpacity>

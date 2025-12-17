@@ -10,6 +10,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
@@ -49,6 +50,7 @@ interface ShoppingCartProps {
  */
 
 export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps) {
+  const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -160,7 +162,15 @@ export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps)
           </View>
           <Text style={styles.emptyText}>Tu carrito está vacío</Text>
           <Text style={styles.emptySubtext}>Añade planes de suscripción para tus locales</Text>
-          <TouchableOpacity style={styles.emptyButton} onPress={onClose}>
+          {/* ✅ FIXED: Redirect to plans page instead of just closing */}
+          <TouchableOpacity 
+            style={styles.emptyButton} 
+            onPress={() => {
+              onClose();
+              // Navigate to plans page
+              router.push('/gestion/planes-suscripcion');
+            }}
+          >
             <LinearGradient
               colors={[colors.primary, colors.secondary]}
               start={{ x: 0, y: 0 }}

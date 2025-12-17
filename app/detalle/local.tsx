@@ -601,6 +601,12 @@ export default function DetalleLocalScreen() {
     }
   };
 
+  // ✅ FIXED: Define handleModalClosed BEFORE using it in onGestureEnd
+  const handleModalClosed = useCallback(() => {
+    console.log('[DetalleLocal] ✅ Modal closed via gesture');
+    router.back();
+  }, [router]);
+
   const onGestureEnd = (event: any) => {
     'worklet';
     const translationY = event.translationY;
@@ -620,11 +626,6 @@ export default function DetalleLocalScreen() {
         stiffness: 90,
       });
     }
-  };
-
-  const handleModalClosed = () => {
-    console.log('[DetalleLocal] ✅ Modal closed via gesture');
-    router.back();
   };
 
   const animatedModalStyle = useAnimatedStyle(() => {
@@ -792,10 +793,10 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
-  // ✅ DYNAMIC CLOSE BUTTON POSITION - closer to badges
+  // ✅ FIXED: DYNAMIC CLOSE BUTTON POSITION - moved down to not overlap badges
   const closeButtonTop = local.destacado 
-    ? (Platform.OS === 'ios' ? 72 : 72)
-    : (Platform.OS === 'ios' ? 52 : 52);
+    ? (Platform.OS === 'ios' ? 80 : 80)  // Moved down from 72 to 80
+    : (Platform.OS === 'ios' ? 60 : 60);  // Moved down from 52 to 60
 
   return (
     <View style={styles.gestureRoot}>

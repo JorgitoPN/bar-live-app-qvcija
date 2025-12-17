@@ -279,8 +279,12 @@ export default function MentionAutocomplete({
     }
   }, [currentMentionText, searchMentions]);
 
+  // ✅ FIXED: Auto-close on selection
   const handleSelectMention = (mention: MentionSuggestion) => {
+    console.log('[MentionAutocomplete v7.0] ✅ Mention selected, auto-closing:', mention.username);
     onSelectMention(mention, currentMentionText || '');
+    
+    // Immediately hide the modal
     setIsVisible(false);
     setSuggestions([]);
     setCurrentMentionText(null);

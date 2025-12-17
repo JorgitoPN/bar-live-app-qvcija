@@ -367,6 +367,9 @@ export default function GestionarLocalesScreen() {
   }, [hasMore, loadingMore, initialLoading, paginaActual, cargarLocales]);
 
   const LocalCard = useCallback(({ local }: { local: Local }) => {
+    // ✅ FIXED: Get cover photo from imagen_url or first image in galeria_urls
+    const coverPhoto = local.imagen_url || (local.galeria_urls && local.galeria_urls.length > 0 ? local.galeria_urls[0] : null);
+    
     return (
       <View style={styles.localCard}>
         <Pressable
@@ -398,9 +401,10 @@ export default function GestionarLocalesScreen() {
             </View>
           )}
 
-          {local.imagen_url ? (
+          {/* ✅ FIXED: Show cover photo */}
+          {coverPhoto ? (
             <Image 
-              source={{ uri: `${local.imagen_url}?v=${Date.now()}` }} 
+              source={{ uri: `${coverPhoto}?v=${Date.now()}` }} 
               style={styles.localImage}
               resizeMode="cover"
             />
@@ -469,6 +473,7 @@ export default function GestionarLocalesScreen() {
           </View>
         </Pressable>
 
+        {/* ✅ FIXED: Show ALL admin controls including plan assignment */}
         {!modoSeleccion && (
           <View style={styles.localActions}>
             <View style={styles.toggleRow}>
@@ -505,6 +510,14 @@ export default function GestionarLocalesScreen() {
               </View>
             </View>
 
+            {/* ✅ FIXED: Show current plan */}
+            {local.plan_activo && (
+              <View style={styles.planInfo}>
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color={colors.badgeDestacado} />
+                <Text style={styles.planInfoText}>Plan: {local.plan_activo}</Text>
+              </View>
+            )}
+
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 style={styles.viewButton}
@@ -518,6 +531,14 @@ export default function GestionarLocalesScreen() {
                 onPress={() => router.push(`/editar/local?id=${local.id}`)}
               >
                 <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
+              </TouchableOpacity>
+
+              {/* ✅ FIXED: Add plan assignment button */}
+              <TouchableOpacity
+                style={styles.planButton}
+                onPress={() => router.push(`/gestion/planes-suscripcion?localId=${local.id}`)}
+              >
+                <IconSymbol ios_icon_name="creditcard.fill" android_material_icon_name="payment" size={18} color="#F59E0B" />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1223,6 +1244,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
   },
+  planInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: colors.badgeDestacado + '15',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  planInfoText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text,
+    textTransform: 'capitalize',
+  },
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
@@ -1240,6 +1277,14 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 8,
     backgroundColor: colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  planButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#F59E0B' + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
