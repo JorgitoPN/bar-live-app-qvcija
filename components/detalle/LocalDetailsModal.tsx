@@ -81,16 +81,16 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
     'coctelería': { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
   };
   return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
-}
+};
 
 /**
- * ✅ LOCAL DETAILS MODAL v11.0 - STANDARD MODAL IMPLEMENTATION
+ * ✅ LOCAL DETAILS MODAL v12.0 - STANDARD MODAL IMPLEMENTATION (FIXED)
  * 
  * Features:
  * - ✅ Standard modal behavior (centered, floating container)
  * - ✅ Blocks interaction with background content
  * - ✅ Dark overlay background
- * - ✅ Close button with proper positioning (respects badge margins)
+ * - ✅ Close button with FIXED positioning (respects badge margins - moved down)
  * - ✅ Can close by clicking overlay or close button
  * - ✅ No swipe gestures (standard modal behavior)
  */
@@ -191,10 +191,10 @@ export default function LocalDetailsModal({
 
   const displayRating = local?.rating || local?.google_rating || 0;
 
-  // ✅ FIXED: Close button position respects badge margins
+  // ✅ FIXED: Close button position respects badge margins - MOVED DOWN MORE
   const closeButtonTop = local?.destacado 
-    ? (Platform.OS === 'ios' ? 100 : 100)
-    : (Platform.OS === 'ios' ? 60 : 60);
+    ? (Platform.OS === 'ios' ? 108 : 108)  // Moved down from 100 to 108
+    : (Platform.OS === 'ios' ? 68 : 68);   // Moved down from 60 to 68
 
   return (
     <Modal
@@ -239,7 +239,7 @@ export default function LocalDetailsModal({
                       resizeMode="cover"
                     />
 
-                    {/* ✅ FIXED: Close button with proper positioning - respects badge margins */}
+                    {/* ✅ FIXED: Close button with IMPROVED positioning - respects badge margins MORE */}
                     <TouchableOpacity 
                       style={[styles.closeButtonFixed, { top: closeButtonTop }]} 
                       onPress={onClose}
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
   },
-  // ✅ FIXED: Close button with proper positioning - respects badge margins
+  // ✅ FIXED: Close button with IMPROVED positioning - respects badge margins MORE (moved down 8px)
   closeButtonFixed: {
     position: 'absolute',
     left: 16,

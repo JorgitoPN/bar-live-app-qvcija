@@ -69,10 +69,12 @@ interface PerfilProfesional {
 }
 
 /**
- * ✅ PROFILE SCREEN v10.0 - CART ICON FOR OWNERS (FIXED)
+ * ✅ PROFILE SCREEN v11.0 - CART ICON POSITION FIXED
  * 
  * Changes:
- * - ✅ Cart icon now shows for propietario role AND admin in propietario mode
+ * - ✅ Cart icon now positioned to the RIGHT of all icons except settings
+ * - ✅ Order: Messages -> Notifications -> Cart -> Settings
+ * - ✅ Cart icon shows for propietario role AND admin in propietario mode
  * - ✅ Cart icon shows badge with item count
  * - ✅ Opens shopping cart modal
  */
@@ -1023,8 +1025,31 @@ export default function PerfilScreen() {
       >
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Mi Perfil</Text>
+          {/* ✅ FIXED: Icon order - Messages -> Notifications -> Cart -> Settings */}
           <View style={styles.headerActions}>
-            {/* ✅ CART ICON - Visible for propietario role OR admin in propietario mode */}
+            <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
+              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
+              {unreadMessages > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadMessages > 99 ? '99+' : unreadMessages}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
+              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={24} color={colors.headerText} />
+              {unreadNotifications > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            
+            {/* ✅ CART ICON - Now positioned BEFORE settings icon */}
             {isPropietario && (
               <TouchableOpacity 
                 style={styles.headerButton} 
@@ -1042,26 +1067,6 @@ export default function PerfilScreen() {
               </TouchableOpacity>
             )}
             
-            <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
-              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
-              {unreadMessages > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {unreadMessages > 99 ? '99+' : unreadMessages}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
-              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={24} color={colors.headerText} />
-              {unreadNotifications > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
               <IconSymbol ios_icon_name="gearshape.fill" android_material_icon_name="settings" size={24} color={colors.headerText} />
             </TouchableOpacity>

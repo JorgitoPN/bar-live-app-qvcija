@@ -15,7 +15,7 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import { useRouter } from 'expo-router';
 
 interface CartItem {
   id: string;
@@ -38,7 +38,7 @@ interface ShoppingCartProps {
 }
 
 /**
- * ✅ SHOPPING CART v2.0 - BARLIVE DESIGN
+ * ✅ SHOPPING CART v3.0 - BARLIVE DESIGN (FIXED)
  * 
  * Changes:
  * - ✅ Updated with Barlive colors (teal/cyan gradients)
@@ -46,10 +46,12 @@ interface ShoppingCartProps {
  * - ✅ Gradient header
  * - ✅ Improved visual hierarchy
  * - ✅ Better spacing and typography
+ * - ✅ FIXED: "Explorar Planes" button now redirects to plans page
  */
 
 export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -117,6 +119,15 @@ export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps)
     onCheckout(cartItems, total);
   };
 
+  // ✅ FIXED: Navigate to plans page
+  const handleExplorePlans = () => {
+    console.log('[ShoppingCart] ✅ Navigating to plans page');
+    onClose();
+    setTimeout(() => {
+      router.push('/gestion/planes-suscripcion');
+    }, 300);
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -160,7 +171,8 @@ export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps)
           </View>
           <Text style={styles.emptyText}>Tu carrito está vacío</Text>
           <Text style={styles.emptySubtext}>Añade planes de suscripción para tus locales</Text>
-          <TouchableOpacity style={styles.emptyButton} onPress={onClose}>
+          {/* ✅ FIXED: Button now navigates to plans page */}
+          <TouchableOpacity style={styles.emptyButton} onPress={handleExplorePlans}>
             <LinearGradient
               colors={[colors.primary, colors.secondary]}
               start={{ x: 0, y: 0 }}
