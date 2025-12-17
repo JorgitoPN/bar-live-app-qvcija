@@ -27,11 +27,12 @@ import Animated, {
   runOnJS,
   interpolate,
   Extrapolate,
+  useAnimatedGestureHandler,
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.92;
-const SWIPE_THRESHOLD = 120;
+const SWIPE_THRESHOLD = 100;
 
 interface Local {
   id: string;
@@ -285,15 +286,14 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL v13.0 - PROPER MODAL IMPLEMENTATION
+ * ✅ DETALLE LOCAL v14.0 - REAL BOTTOM SHEET MODAL
  * 
- * Changes:
- * - ✅ Now opens as a proper modal with transparentModal presentation
- * - ✅ Background page visible and dimmed behind modal
- * - ✅ Swipe-down gesture to close
- * - ✅ No white/black background when swiping
- * - ✅ Smooth animations with react-native-reanimated
- * - ✅ Close button positioned dynamically based on badges
+ * Changes from v13.0:
+ * - ✅ Removed manual backdrop (Expo Router handles it with transparentModal)
+ * - ✅ Simplified gesture handling
+ * - ✅ Background page now truly visible behind modal
+ * - ✅ No grey/white background when swiping
+ * - ✅ Proper bottom sheet behavior with slide_from_bottom animation
  */
 
 export default function DetalleLocalScreen() {
@@ -324,7 +324,6 @@ export default function DetalleLocalScreen() {
 
   // ✅ Gesture handling for swipe-down to close
   const translateY = useSharedValue(0);
-  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -590,60 +589,40 @@ export default function DetalleLocalScreen() {
     });
   };
 
-  // ✅ Gesture handlers for swipe-down to close
-  const onGestureEvent = (event: any) => {
-    'worklet';
-    const translationY = event.translationY;
-    
-    // Only allow downward swipes
-    if (translationY > 0) {
-      translateY.value = translationY;
-    }
-  };
-
-  // ✅ FIXED: Define handleModalClosed BEFORE using it in onGestureEnd
-  const handleModalClosed = useCallback(() => {
-    console.log('[DetalleLocal] ✅ Modal closed via gesture');
-    router.back();
-  }, [router]);
-
-  const onGestureEnd = (event: any) => {
-    'worklet';
-    const translationY = event.translationY;
-    const velocityY = event.velocityY;
-    
-    // Close if swiped down enough or fast enough
-    if (translationY > SWIPE_THRESHOLD || velocityY > 500) {
-      translateY.value = withTiming(MODAL_HEIGHT, {
-        duration: 300,
-      }, () => {
-        runOnJS(handleModalClosed)();
-      });
-    } else {
-      // Snap back to open position
-      translateY.value = withSpring(0, {
-        damping: 20,
-        stiffness: 90,
-      });
-    }
-  };
+  // ✅ Simplified gesture handler for swipe-down to close
+  const gestureHandler = useAnimatedGestureHandler({
+    onStart: (_, ctx: any) => {
+      ctx.startY = translateY.value;
+    },
+    onActive: (event, ctx: any) => {
+      // Only allow downward swipes
+      if (event.translationY > 0) {
+        translateY.value = event.translationY;
+      }
+    },
+    onEnd: (event) => {
+      const shouldClose = event.translationY > SWIPE_THRESHOLD || event.velocityY > 500;
+      
+      if (shouldClose) {
+        // Close the modal
+        translateY.value = withTiming(MODAL_HEIGHT, {
+          duration: 300,
+        }, () => {
+          runOnJS(router.back)();
+        });
+      } else {
+        // Snap back to open position
+        translateY.value = withSpring(0, {
+          damping: 20,
+          stiffness: 90,
+        });
+      }
+    },
+  });
 
   const animatedModalStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateY: translateY.value }],
-    };
-  });
-
-  const animatedBackdropStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      translateY.value,
-      [0, MODAL_HEIGHT],
-      [1, 0],
-      Extrapolate.CLAMP
-    );
-    
-    return {
-      opacity,
     };
   });
 
@@ -793,30 +772,16 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
-  // ✅ FIXED: DYNAMIC CLOSE BUTTON POSITION - moved down to not overlap badges
   const closeButtonTop = local.destacado 
-    ? (Platform.OS === 'ios' ? 80 : 80)  // Moved down from 72 to 80
-    : (Platform.OS === 'ios' ? 60 : 60);  // Moved down from 52 to 60
+    ? (Platform.OS === 'ios' ? 80 : 80)
+    : (Platform.OS === 'ios' ? 60 : 60);
 
   return (
-    <View style={styles.gestureRoot}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      {/* ✅ Animated backdrop - visible and dimmed, allows background page to show through */}
-      <Animated.View style={[styles.backdrop, animatedBackdropStyle]}>
-        <TouchableOpacity 
-          style={StyleSheet.absoluteFillObject}
-          activeOpacity={1}
-          onPress={() => router.back()}
-        />
-      </Animated.View>
-
-      {/* ✅ Animated modal container with swipe gesture */}
-      <PanGestureHandler
-        onGestureEvent={onGestureEvent}
-        onEnded={onGestureEnd}
-        activeOffsetY={10}
-      >
+      {/* ✅ Modal container with swipe gesture - NO manual backdrop */}
+      <PanGestureHandler onGestureEvent={gestureHandler}>
         <Animated.View style={[styles.modalContainer, animatedModalStyle]}>
           {/* ✅ Drag indicator */}
           <View style={styles.dragIndicatorContainer}>
@@ -825,7 +790,7 @@ export default function DetalleLocalScreen() {
 
           <ScrollView 
             ref={scrollViewRef}
-            style={styles.container} 
+            style={styles.scrollView} 
             contentContainerStyle={styles.contentContainer}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -860,7 +825,6 @@ export default function DetalleLocalScreen() {
                   </ScrollView>
                 </TouchableOpacity>
 
-                {/* ✅ FIXED: Close button with DYNAMIC position based on badges - CLOSER to badges */}
                 <TouchableOpacity 
                   style={[styles.closeButtonFixed, { top: closeButtonTop }]} 
                   onPress={() => router.back()}
@@ -1368,7 +1332,7 @@ export default function DetalleLocalScreen() {
           localId={params.id as string}
           onClose={() => setShowReviewsModal(false)}
           onReviewAdded={() => {
-            console.log('[DetalleLocal v13.0] ✅ Review added, reloading reviews');
+            console.log('[DetalleLocal v14.0] ✅ Review added, reloading reviews');
             cargarReviewsBarlive();
           }}
         />
@@ -1378,13 +1342,9 @@ export default function DetalleLocalScreen() {
 }
 
 const styles = StyleSheet.create({
-  gestureRoot: {
+  container: {
     flex: 1,
     backgroundColor: 'transparent',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   modalContainer: {
     position: 'absolute',
@@ -1416,7 +1376,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     opacity: 0.5,
   },
-  container: {
+  scrollView: {
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
