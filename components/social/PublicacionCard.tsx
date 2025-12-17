@@ -24,6 +24,7 @@ import ParsedText from '@/components/social/ParsedText';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import CommentsModal from '@/components/social/CommentsModal';
 import SharePostModal from '@/components/social/SharePostModal';
+import PostLikesAvatars from '@/components/social/PostLikesAvatars';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -56,15 +57,6 @@ interface Post {
   user_has_saved?: boolean;
 }
 
-interface LikeUser {
-  id: string;
-  nombre: string;
-  username?: string;
-  avatar?: string;
-  tipo: 'usuario' | 'local';
-  has_momento?: boolean;
-}
-
 interface PublicacionCardProps {
   post: Post;
   onUpdate?: () => void;
@@ -81,53 +73,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
-  const [likeUsers, setLikeUsers] = useState<LikeUser[]>([]);
-  const [loadingLikes, setLoadingLikes] = useState(false);
-
-  // ✅ Load like users for Instagram-style display
-  const loadLikeUsers = useCallback(async () => {
-    if (likesCount === 0 || loadingLikes) return;
-
-    try {
-      setLoadingLikes(true);
-      const { data, error } = await supabase
-        .from('likes')
-        .select(`
-          usuario_id,
-          usuarios!likes_usuario_id_fkey(id, nombre, username, avatar)
-        `)
-        .eq('post_id', post.id)
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      if (!error && data) {
-        // ✅ FIXED: Do NOT check for momentos - remove neon border from likes
-        const users = data
-          .filter(like => like.usuarios)
-          .map((like: any) => ({
-            id: like.usuarios.id,
-            nombre: like.usuarios.nombre,
-            username: like.usuarios.username,
-            avatar: like.usuarios.avatar,
-            tipo: 'usuario' as const,
-            has_momento: false, // ✅ ALWAYS false - no neon border in likes
-          }));
-        
-        setLikeUsers(users);
-      }
-    } catch (error) {
-      console.error('[PublicacionCard] Error loading like users:', error);
-    } finally {
-      setLoadingLikes(false);
-    }
-  }, [post.id, likesCount, loadingLikes]);
-
-  // Load like users when component mounts or likes count changes
-  React.useEffect(() => {
-    if (likesCount > 0) {
-      loadLikeUsers();
-    }
-  }, [likesCount]);
 
   const handleLike = useCallback(async () => {
     if (!user) {
@@ -152,15 +97,12 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           .eq('post_id', post.id)
           .eq('usuario_id', user.id);
       }
-      
-      // Reload like users after like/unlike
-      loadLikeUsers();
     } catch (error) {
       console.error('[PublicacionCard] Error toggling like:', error);
       setLiked(!newLikedState);
       setLikesCount(prev => prev + (newLikedState ? -1 : 1));
     }
-  }, [user, liked, post.id, loadLikeUsers]);
+  }, [user, liked, post.id]);
 
   const handleSave = useCallback(async () => {
     if (!user) {
@@ -344,35 +286,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     (post.tipo === 'local' && interactionLocalId === post.local_id)
   );
 
-  // ✅ Format likes text Instagram-style
-  const getLikesText = () => {
-    if (likesCount === 0) return null;
-    if (likesCount === 1) {
-      const firstUser = likeUsers[0];
-      if (firstUser) {
-        const username = firstUser.username || firstUser.nombre;
-        return `Le gusta a @${username}`;
-      }
-      return '1 me gusta';
-    }
-    if (likesCount === 2 && likeUsers.length >= 2) {
-      const user1 = likeUsers[0].username || likeUsers[0].nombre;
-      const user2 = likeUsers[1].username || likeUsers[1].nombre;
-      return `Les gusta a @${user1} y @${user2}`;
-    }
-    if (likesCount >= 3 && likeUsers.length >= 1) {
-      const firstUser = likeUsers[0].username || likeUsers[0].nombre;
-      const others = likesCount - 1;
-      return `Les gusta a @${firstUser} y otras ${others} personas`;
-    }
-    return `${likesCount} me gusta`;
-  };
-
-  const handleLikesPress = () => {
-    // TODO: Open likes modal
-    console.log('[PublicacionCard] Open likes modal for post:', post.id);
-  };
-
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / SCREEN_WIDTH);
@@ -495,40 +408,8 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ Instagram-style likes display WITHOUT neon borders */}
-      {likesCount > 0 && (
-        <TouchableOpacity 
-          style={styles.likesContainer}
-          onPress={handleLikesPress}
-          activeOpacity={0.7}
-        >
-          {likeUsers.length > 0 && (
-            <View style={styles.likesAvatars}>
-              {likeUsers.slice(0, 3).map((likeUser, index) => (
-                <View
-                  key={likeUser.id}
-                  style={[
-                    styles.likeAvatarWrapper,
-                    index > 0 && { marginLeft: -8 },
-                  ]}
-                >
-                  {/* ✅ FIXED: NO neon border - simple avatar */}
-                  {likeUser.avatar ? (
-                    <Image source={{ uri: likeUser.avatar }} style={styles.likeAvatar} />
-                  ) : (
-                    <View style={[styles.likeAvatar, styles.likeAvatarPlaceholder]}>
-                      <Text style={styles.likeAvatarText}>
-                        {likeUser.nombre.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              ))}
-            </View>
-          )}
-          <Text style={styles.likesText}>{getLikesText()}</Text>
-        </TouchableOpacity>
-      )}
+      {/* ✅ Instagram-style likes display with modal */}
+      <PostLikesAvatars postId={post.id} totalLikes={likesCount} />
 
       {/* Comments count */}
       {post.comentarios_count > 0 && (
@@ -666,42 +547,6 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     padding: 4,
-  },
-  likesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
-  },
-  likesAvatars: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  likeAvatarWrapper: {
-    position: 'relative',
-  },
-  likeAvatar: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: colors.cardBackground,
-  },
-  likeAvatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  likeAvatarText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  likesText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
   },
   commentsCount: {
     paddingHorizontal: 16,

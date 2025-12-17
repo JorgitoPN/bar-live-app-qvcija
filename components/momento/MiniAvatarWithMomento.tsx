@@ -117,8 +117,8 @@ export default function MiniAvatarWithMomento({
       return;
     }
 
-    // Subscribe to real-time updates
-    const subscription = supabase
+    // Subscribe to real-time updates for momentos and views
+    const momentosChannel = supabase
       .channel(`momento-updates-${userId || localId}`)
       .on(
         'postgres_changes',
@@ -126,30 +126,40 @@ export default function MiniAvatarWithMomento({
           event: '*',
           schema: 'public',
           table: 'momentos',
+          filter: userId ? `autor_id=eq.${userId}` : `local_id=eq.${localId}`,
         },
-        () => {
-          console.log('[MiniAvatarWithMomento] 🔄 Momento update detected');
-          checkUnviewedMomentos();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'momento_views',
-        },
-        () => {
-          console.log('[MiniAvatarWithMomento] 🔄 View update detected');
+        (payload) => {
+          console.log('[MiniAvatarWithMomento] 🔄 Momento update detected:', payload);
           checkUnviewedMomentos();
         }
       )
       .subscribe();
 
+    // Subscribe to view updates for current user
+    const viewsChannel = user ? supabase
+      .channel(`momento-views-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'momento_views',
+          filter: `usuario_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[MiniAvatarWithMomento] 🔄 View update detected:', payload);
+          checkUnviewedMomentos();
+        }
+      )
+      .subscribe() : null;
+
     return () => {
-      supabase.removeChannel(subscription);
+      supabase.removeChannel(momentosChannel);
+      if (viewsChannel) {
+        supabase.removeChannel(viewsChannel);
+      }
     };
-  }, [userId, localId, showMomentoBorder, checkUnviewedMomentos]);
+  }, [userId, localId, showMomentoBorder, checkUnviewedMomentos, user]);
 
   const renderAvatar = () => (
     <View

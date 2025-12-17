@@ -402,6 +402,19 @@ export default function CommentsModal({
   };
 
   const handleDeleteComment = async (comment: Comment) => {
+    // ✅ Allow deletion if:
+    // 1. User is the comment author
+    // 2. User is the post author (can delete any comment on their post)
+    const canDelete = user && (
+      comment.autor_id === user.id || 
+      postAuthorId === user.id
+    );
+
+    if (!canDelete) {
+      Alert.alert('Error', 'No tienes permiso para eliminar este comentario');
+      return;
+    }
+
     Alert.alert(
       'Eliminar comentario',
       '¿Estás seguro de que quieres eliminar este comentario?',
@@ -556,9 +569,13 @@ export default function CommentsModal({
       ? item.local.imagen_url 
       : item.usuario?.avatar || '';
 
+    // ✅ Allow deletion if:
+    // 1. User is the comment author
+    // 2. User is the post author (can delete any comment on their post)
     const canDelete = user && (
       (item.tipo === 'usuario' && item.autor_id === user.id) ||
-      (item.tipo === 'local' && interactionLocalId === item.local_id)
+      (item.tipo === 'local' && interactionLocalId === item.local_id) ||
+      postAuthorId === user.id
     );
 
     return (
@@ -644,9 +661,13 @@ export default function CommentsModal({
                 ? reply.local.imagen_url 
                 : reply.usuario?.avatar || '';
 
+              // ✅ Allow deletion if:
+              // 1. User is the reply author
+              // 2. User is the post author (can delete any comment on their post)
               const canDeleteReply = user && (
                 (reply.tipo === 'usuario' && reply.autor_id === user.id) ||
-                (reply.tipo === 'local' && interactionLocalId === reply.local_id)
+                (reply.tipo === 'local' && interactionLocalId === reply.local_id) ||
+                postAuthorId === user.id
               );
 
               return (
@@ -874,20 +895,16 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   commentWrapper: {
-    marginBottom: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginHorizontal: 16,
-    padding: 12,
+    marginBottom: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   pinnedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingBottom: 8,
-    marginBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    paddingBottom: 4,
+    marginBottom: 4,
   },
   pinnedText: {
     fontSize: 12,
@@ -896,13 +913,13 @@ const styles = StyleSheet.create({
   },
   commentItem: {
     flexDirection: 'row',
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   commentAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
   },
   replyAvatar: {
     width: 28,
@@ -926,16 +943,16 @@ const styles = StyleSheet.create({
   commentHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   commentUsername: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#000',
-    marginRight: 8,
+    marginRight: 6,
   },
   commentTime: {
-    fontSize: 12,
+    fontSize: 11,
     color: 'rgba(0, 0, 0, 0.5)',
   },
   commentOptionsButton: {
@@ -945,8 +962,8 @@ const styles = StyleSheet.create({
   commentText: {
     fontSize: 14,
     color: '#000',
-    lineHeight: 20,
-    marginBottom: 6,
+    lineHeight: 18,
+    marginBottom: 4,
   },
   commentActions: {
     flexDirection: 'row',
@@ -964,15 +981,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   repliesContainer: {
-    marginLeft: 44,
-    marginTop: 12,
-    borderLeftWidth: 2,
-    borderLeftColor: '#E5E7EB',
-    paddingLeft: 12,
+    marginLeft: 46,
+    marginTop: 4,
+    paddingLeft: 0,
   },
   replyItem: {
     flexDirection: 'row',
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   emptyState: {
     flex: 1,

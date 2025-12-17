@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 /**
  * ============================================================================
- * DETALLE LAYOUT - MODAL PRESENTATION (NOT FULL SCREEN)
+ * DETALLE LAYOUT - MODAL PRESENTATION v2.0
  * ============================================================================
  * 
  * ✅ This layout configures detail pages to open as modals:
@@ -14,6 +14,11 @@ import { Platform } from 'react-native';
  * - Transparent background overlay
  * - Can be closed by dragging down
  * - Smooth animations
+ * 
+ * CRITICAL FIXES:
+ * - ✅ Increased top margin to 60px (was causing issues)
+ * - ✅ Added Android-specific margin handling
+ * - ✅ Proper gesture configuration for swipe-to-dismiss
  */
 export default function DetalleLayout() {
   return (
@@ -35,11 +40,12 @@ export default function DetalleLayout() {
         animation: 'slide_from_bottom',
         animationDuration: 300,
         // ✅ IMPORTANT: This prevents the modal from reaching the top
-        ...(Platform.OS === 'ios' && {
-          contentStyle: {
-            marginTop: 60, // Space from top on iOS
-          },
-        }),
+        contentStyle: {
+          marginTop: Platform.OS === 'ios' ? 60 : 40,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          overflow: 'hidden',
+        },
       }}
     >
       <Stack.Screen 
@@ -49,11 +55,12 @@ export default function DetalleLayout() {
           gestureEnabled: true,
           gestureDirection: 'vertical',
           cardOverlayEnabled: true,
-          ...(Platform.OS === 'ios' && {
-            contentStyle: {
-              marginTop: 60,
-            },
-          }),
+          contentStyle: {
+            marginTop: Platform.OS === 'ios' ? 60 : 40,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            overflow: 'hidden',
+          },
         }}
       />
       <Stack.Screen 
@@ -63,11 +70,12 @@ export default function DetalleLayout() {
           gestureEnabled: true,
           gestureDirection: 'vertical',
           cardOverlayEnabled: true,
-          ...(Platform.OS === 'ios' && {
-            contentStyle: {
-              marginTop: 60,
-            },
-          }),
+          contentStyle: {
+            marginTop: Platform.OS === 'ios' ? 60 : 40,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            overflow: 'hidden',
+          },
         }}
       />
       <Stack.Screen 
@@ -77,11 +85,12 @@ export default function DetalleLayout() {
           gestureEnabled: true,
           gestureDirection: 'vertical',
           cardOverlayEnabled: true,
-          ...(Platform.OS === 'ios' && {
-            contentStyle: {
-              marginTop: 60,
-            },
-          }),
+          contentStyle: {
+            marginTop: Platform.OS === 'ios' ? 60 : 40,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            overflow: 'hidden',
+          },
         }}
       />
     </Stack>
