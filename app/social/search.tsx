@@ -27,18 +27,20 @@ interface SearchResult {
   avatar?: string;
   tipo: 'usuario' | 'local';
   descripcion?: string;
-  categoria?: string;
+  barlive_type?: string;
   isFollowing?: boolean;
 }
 
 /**
- * ✅ SOCIAL FEED SEARCH v4.0 - FIXED LOCAL SEARCH
+ * ✅ SOCIAL FEED SEARCH v5.0 - FIXED DATABASE COLUMN ERROR
  * 
  * Features:
  * - ✅ Search without @ symbol
  * - ✅ Predictive from first character
  * - ✅ Mixed results (users + locals)
- * - ✅ FIXED: Search locals by checking active subscriptions properly
+ * - ✅ FIXED: Removed non-existent 'categoria' column
+ * - ✅ FIXED: Use 'barlive_type' instead of 'categoria'
+ * - ✅ Search locals by checking active subscriptions properly
  * - ✅ Priority: exact matches, followed users, relevant locals
  * - ✅ Debounce ~300ms
  * - ✅ Show avatar + name + type
@@ -88,7 +90,7 @@ export default function SocialSearchScreen() {
 
     setLoading(true);
     try {
-      console.log('[SocialSearch v4.0] 🔍 Searching for:', cleanQuery);
+      console.log('[SocialSearch v5.0] 🔍 Searching for:', cleanQuery);
       
       const allResults: SearchResult[] = [];
 
@@ -110,28 +112,29 @@ export default function SocialSearchScreen() {
             tipo: 'usuario' as const,
             isFollowing: followedUserIds.has(u.id),
           })));
-          console.log('[SocialSearch v4.0] ✅ Found', usersData.length, 'users');
+          console.log('[SocialSearch v5.0] ✅ Found', usersData.length, 'users');
         }
       } catch (error) {
-        console.error('[SocialSearch v4.0] Error searching users:', error);
+        console.error('[SocialSearch v5.0] Error searching users:', error);
       }
 
       // ✅ FIXED: Search locals with active subscriptions (premium or estandar)
+      // ✅ CRITICAL FIX: Removed 'categoria' column, using 'barlive_type' instead
       try {
-        console.log('[SocialSearch v4.0] 🔍 Searching locals with query:', cleanQuery);
+        console.log('[SocialSearch v5.0] 🔍 Searching locals with query:', cleanQuery);
         
         // First, get all locals matching the search query
         const { data: localsData, error: localsError } = await supabase
           .from('locales')
-          .select('id, nombre, imagen_url, descripcion, categoria')
+          .select('id, nombre, imagen_url, descripcion, barlive_type')
           .ilike('nombre', `%${cleanQuery}%`)
           .eq('activo', true)
           .limit(50);
 
         if (localsError) {
-          console.error('[SocialSearch v4.0] ❌ Error searching locals:', localsError);
+          console.error('[SocialSearch v5.0] ❌ Error searching locals:', localsError);
         } else if (localsData && localsData.length > 0) {
-          console.log('[SocialSearch v4.0] 📍 Found', localsData.length, 'locals matching query');
+          console.log('[SocialSearch v5.0] 📍 Found', localsData.length, 'locals matching query');
           
           const localIds = localsData.map(l => l.id);
           
@@ -148,9 +151,9 @@ export default function SocialSearchScreen() {
             .eq('estado', 'activa');
 
           if (subsError) {
-            console.error('[SocialSearch v4.0] ❌ Error fetching subscriptions:', subsError);
+            console.error('[SocialSearch v5.0] ❌ Error fetching subscriptions:', subsError);
           } else if (subscriptionsData) {
-            console.log('[SocialSearch v4.0] 📊 Found', subscriptionsData.length, 'active subscriptions');
+            console.log('[SocialSearch v5.0] 📊 Found', subscriptionsData.length, 'active subscriptions');
             
             // ✅ Filter for premium or estandar plans
             const validLocalIds = subscriptionsData
@@ -158,7 +161,7 @@ export default function SocialSearchScreen() {
                 const plan = sub.planes_suscripcion as any;
                 const planName = plan?.nombre?.toLowerCase();
                 const isValid = planName === 'estandar' || planName === 'premium';
-                console.log('[SocialSearch v4.0] 🔍 Checking subscription:', {
+                console.log('[SocialSearch v5.0] 🔍 Checking subscription:', {
                   localId: sub.local_id,
                   planName,
                   isValid,
@@ -167,13 +170,13 @@ export default function SocialSearchScreen() {
               })
               .map(sub => sub.local_id);
 
-            console.log('[SocialSearch v4.0] ✅ Valid local IDs with paid plans:', validLocalIds);
+            console.log('[SocialSearch v5.0] ✅ Valid local IDs with paid plans:', validLocalIds);
 
             const filteredLocalsData = localsData.filter(local => 
               validLocalIds.includes(local.id)
             );
 
-            console.log('[SocialSearch v4.0] ✅ Filtered locals with active plans:', filteredLocalsData.length);
+            console.log('[SocialSearch v5.0] ✅ Filtered locals with active plans:', filteredLocalsData.length);
 
             allResults.push(...filteredLocalsData.map(l => ({
               id: l.id,
@@ -182,12 +185,12 @@ export default function SocialSearchScreen() {
               avatar: l.imagen_url,
               tipo: 'local' as const,
               descripcion: l.descripcion,
-              categoria: l.categoria,
+              barlive_type: l.barlive_type,
             })));
           }
         }
       } catch (error) {
-        console.error('[SocialSearch v4.0] ❌ Error searching locals:', error);
+        console.error('[SocialSearch v5.0] ❌ Error searching locals:', error);
       }
 
       // ✅ Sort results by priority:
@@ -215,13 +218,13 @@ export default function SocialSearchScreen() {
         return 0;
       });
 
-      console.log('[SocialSearch v4.0] ✅ Total results:', sortedResults.length, {
+      console.log('[SocialSearch v5.0] ✅ Total results:', sortedResults.length, {
         users: sortedResults.filter(r => r.tipo === 'usuario').length,
         locals: sortedResults.filter(r => r.tipo === 'local').length,
       });
       setResults(sortedResults);
     } catch (error) {
-      console.error('[SocialSearch v4.0] ❌ Error in searchUsersAndLocals:', error);
+      console.error('[SocialSearch v5.0] ❌ Error in searchUsersAndLocals:', error);
       setResults([]);
     } finally {
       setLoading(false);
@@ -310,8 +313,8 @@ export default function SocialSearchScreen() {
             {item.tipo === 'usuario' && item.username && (
               <Text style={styles.resultUsername}>@{item.username}</Text>
             )}
-            {item.tipo === 'local' && item.categoria && (
-              <Text style={styles.resultCategory}>{item.categoria}</Text>
+            {item.tipo === 'local' && item.barlive_type && (
+              <Text style={styles.resultCategory}>{item.barlive_type}</Text>
             )}
           </View>
         </View>
