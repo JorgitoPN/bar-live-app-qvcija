@@ -32,14 +32,14 @@ interface SearchResult {
 }
 
 /**
- * ✅ SOCIAL FEED SEARCH v5.0 - FIXED DATABASE COLUMN ERROR
+ * ✅ SOCIAL FEED SEARCH v6.0 - FIXED SUBSCRIPTION QUERY ERROR
  * 
  * Features:
  * - ✅ Search without @ symbol
  * - ✅ Predictive from first character
  * - ✅ Mixed results (users + locals)
- * - ✅ FIXED: Removed non-existent 'categoria' column
- * - ✅ FIXED: Use 'barlive_type' instead of 'categoria'
+ * - ✅ CRITICAL FIX: Fixed subscription query to avoid embedding multiple relationships
+ * - ✅ Use separate queries for subscriptions and plans
  * - ✅ Search locals by checking active subscriptions properly
  * - ✅ Priority: exact matches, followed users, relevant locals
  * - ✅ Debounce ~300ms
@@ -90,7 +90,7 @@ export default function SocialSearchScreen() {
 
     setLoading(true);
     try {
-      console.log('[SocialSearch v5.0] 🔍 Searching for:', cleanQuery);
+      console.log('[SocialSearch v6.0] 🔍 Searching for:', cleanQuery);
       
       const allResults: SearchResult[] = [];
 
@@ -112,16 +112,16 @@ export default function SocialSearchScreen() {
             tipo: 'usuario' as const,
             isFollowing: followedUserIds.has(u.id),
           })));
-          console.log('[SocialSearch v5.0] ✅ Found', usersData.length, 'users');
+          console.log('[SocialSearch v6.0] ✅ Found', usersData.length, 'users');
         }
       } catch (error) {
-        console.error('[SocialSearch v5.0] Error searching users:', error);
+        console.error('[SocialSearch v6.0] Error searching users:', error);
       }
 
-      // ✅ FIXED: Search locals with active subscriptions (premium or estandar)
-      // ✅ CRITICAL FIX: Removed 'categoria' column, using 'barlive_type' instead
+      // ✅ CRITICAL FIX: Search locals with active subscriptions (premium or estandar)
+      // ✅ Use separate queries to avoid embedding multiple relationships
       try {
-        console.log('[SocialSearch v5.0] 🔍 Searching locals with query:', cleanQuery);
+        console.log('[SocialSearch v6.0] 🔍 Searching locals with query:', cleanQuery);
         
         // First, get all locals matching the search query
         const { data: localsData, error: localsError } = await supabase
@@ -132,65 +132,78 @@ export default function SocialSearchScreen() {
           .limit(50);
 
         if (localsError) {
-          console.error('[SocialSearch v5.0] ❌ Error searching locals:', localsError);
+          console.error('[SocialSearch v6.0] ❌ Error searching locals:', localsError);
         } else if (localsData && localsData.length > 0) {
-          console.log('[SocialSearch v5.0] 📍 Found', localsData.length, 'locals matching query');
+          console.log('[SocialSearch v6.0] 📍 Found', localsData.length, 'locals matching query');
           
           const localIds = localsData.map(l => l.id);
           
-          // ✅ CRITICAL FIX: Get active subscriptions with plan details
+          // ✅ CRITICAL FIX: Get active subscriptions WITHOUT embedding plans
           const { data: subscriptionsData, error: subsError } = await supabase
             .from('suscripciones_locales')
-            .select(`
-              local_id,
-              estado,
-              plan_id,
-              planes_suscripcion!inner(id, nombre)
-            `)
+            .select('local_id, estado, plan_id')
             .in('local_id', localIds)
             .eq('estado', 'activa');
 
           if (subsError) {
-            console.error('[SocialSearch v5.0] ❌ Error fetching subscriptions:', subsError);
-          } else if (subscriptionsData) {
-            console.log('[SocialSearch v5.0] 📊 Found', subscriptionsData.length, 'active subscriptions');
+            console.error('[SocialSearch v6.0] ❌ Error fetching subscriptions:', subsError);
+          } else if (subscriptionsData && subscriptionsData.length > 0) {
+            console.log('[SocialSearch v6.0] 📊 Found', subscriptionsData.length, 'active subscriptions');
             
-            // ✅ Filter for premium or estandar plans
-            const validLocalIds = subscriptionsData
-              .filter(sub => {
-                const plan = sub.planes_suscripcion as any;
-                const planName = plan?.nombre?.toLowerCase();
-                const isValid = planName === 'estandar' || planName === 'premium';
-                console.log('[SocialSearch v5.0] 🔍 Checking subscription:', {
-                  localId: sub.local_id,
-                  planName,
-                  isValid,
-                });
-                return isValid;
-              })
-              .map(sub => sub.local_id);
+            // Get unique plan IDs
+            const planIds = [...new Set(subscriptionsData.map(sub => sub.plan_id))];
+            
+            // ✅ CRITICAL FIX: Fetch plans separately
+            const { data: plansData, error: plansError } = await supabase
+              .from('planes_suscripcion')
+              .select('id, nombre')
+              .in('id', planIds);
 
-            console.log('[SocialSearch v5.0] ✅ Valid local IDs with paid plans:', validLocalIds);
+            if (plansError) {
+              console.error('[SocialSearch v6.0] ❌ Error fetching plans:', plansError);
+            } else if (plansData) {
+              console.log('[SocialSearch v6.0] 📋 Found', plansData.length, 'plans');
+              
+              // Create a map of plan_id to plan name
+              const planMap = new Map(plansData.map(plan => [plan.id, plan.nombre?.toLowerCase()]));
+              
+              // ✅ Filter for premium or estandar plans
+              const validLocalIds = subscriptionsData
+                .filter(sub => {
+                  const planName = planMap.get(sub.plan_id);
+                  const isValid = planName === 'estandar' || planName === 'premium';
+                  console.log('[SocialSearch v6.0] 🔍 Checking subscription:', {
+                    localId: sub.local_id,
+                    planId: sub.plan_id,
+                    planName,
+                    isValid,
+                  });
+                  return isValid;
+                })
+                .map(sub => sub.local_id);
 
-            const filteredLocalsData = localsData.filter(local => 
-              validLocalIds.includes(local.id)
-            );
+              console.log('[SocialSearch v6.0] ✅ Valid local IDs with paid plans:', validLocalIds);
 
-            console.log('[SocialSearch v5.0] ✅ Filtered locals with active plans:', filteredLocalsData.length);
+              const filteredLocalsData = localsData.filter(local => 
+                validLocalIds.includes(local.id)
+              );
 
-            allResults.push(...filteredLocalsData.map(l => ({
-              id: l.id,
-              nombre: l.nombre,
-              username: l.nombre,
-              avatar: l.imagen_url,
-              tipo: 'local' as const,
-              descripcion: l.descripcion,
-              barlive_type: l.barlive_type,
-            })));
+              console.log('[SocialSearch v6.0] ✅ Filtered locals with active plans:', filteredLocalsData.length);
+
+              allResults.push(...filteredLocalsData.map(l => ({
+                id: l.id,
+                nombre: l.nombre,
+                username: l.nombre,
+                avatar: l.imagen_url,
+                tipo: 'local' as const,
+                descripcion: l.descripcion,
+                barlive_type: l.barlive_type,
+              })));
+            }
           }
         }
       } catch (error) {
-        console.error('[SocialSearch v5.0] ❌ Error searching locals:', error);
+        console.error('[SocialSearch v6.0] ❌ Error searching locals:', error);
       }
 
       // ✅ Sort results by priority:
@@ -218,13 +231,13 @@ export default function SocialSearchScreen() {
         return 0;
       });
 
-      console.log('[SocialSearch v5.0] ✅ Total results:', sortedResults.length, {
+      console.log('[SocialSearch v6.0] ✅ Total results:', sortedResults.length, {
         users: sortedResults.filter(r => r.tipo === 'usuario').length,
         locals: sortedResults.filter(r => r.tipo === 'local').length,
       });
       setResults(sortedResults);
     } catch (error) {
-      console.error('[SocialSearch v5.0] ❌ Error in searchUsersAndLocals:', error);
+      console.error('[SocialSearch v6.0] ❌ Error in searchUsersAndLocals:', error);
       setResults([]);
     } finally {
       setLoading(false);
