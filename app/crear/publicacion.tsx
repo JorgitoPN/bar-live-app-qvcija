@@ -32,13 +32,12 @@ import { processPostHashtags, processPostMentions } from '@/utils/postHelpers';
 import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
 import HashtagAutocomplete from '@/components/social/HashtagAutocomplete';
 import TaggingModalV5, { TaggableUser } from '@/components/social/TaggingModalV5';
-import { GestureHandlerRootView, PinchGestureHandler, PanGestureHandler, State } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, PinchGestureHandler, PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedGestureHandler,
   withSpring,
-  withTiming,
+  runOnJS,
 } from 'react-native-reanimated';
 
 const convertImageToJPG = (uri: string): Promise<Blob> => {
@@ -201,7 +200,7 @@ export default function CrearPublicacionScreen() {
     setEditingImageUri(null);
   };
 
-  // ✅ FIXED: Advanced Image Editor with proper dimensions and controls
+  // ✅ FIXED: Advanced Image Editor with proper Reanimated v4 API
   const ImageEditorModal = () => {
     const [processing, setProcessing] = useState(false);
     const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
@@ -209,8 +208,9 @@ export default function CrearPublicacionScreen() {
     const scale = useSharedValue(1);
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
-    const focalX = useSharedValue(0);
-    const focalY = useSharedValue(0);
+    const savedScale = useSharedValue(1);
+    const savedTranslateX = useSharedValue(0);
+    const savedTranslateY = useSharedValue(0);
 
     useEffect(() => {
       if (editingImageUri) {
@@ -226,33 +226,12 @@ export default function CrearPublicacionScreen() {
           } else {
             scale.value = SCREEN_WIDTH / height;
           }
+          savedScale.value = scale.value;
         }, (error) => {
           console.error('[ImageEditor] ❌ Error getting image size:', error);
         });
       }
     }, [editingImageUri]);
-
-    const pinchHandler = useAnimatedGestureHandler({
-      onStart: (event, ctx: any) => {
-        ctx.startScale = scale.value;
-        focalX.value = event.focalX;
-        focalY.value = event.focalY;
-      },
-      onActive: (event, ctx: any) => {
-        scale.value = Math.max(0.5, Math.min(ctx.startScale * event.scale, 5));
-      },
-    });
-
-    const panHandler = useAnimatedGestureHandler({
-      onStart: (event, ctx: any) => {
-        ctx.startX = translateX.value;
-        ctx.startY = translateY.value;
-      },
-      onActive: (event, ctx: any) => {
-        translateX.value = ctx.startX + event.translationX;
-        translateY.value = ctx.startY + event.translationY;
-      },
-    });
 
     const animatedStyle = useAnimatedStyle(() => {
       return {
@@ -268,6 +247,9 @@ export default function CrearPublicacionScreen() {
       scale.value = withSpring(1);
       translateX.value = withSpring(0);
       translateY.value = withSpring(0);
+      savedScale.value = 1;
+      savedTranslateX.value = 0;
+      savedTranslateY.value = 0;
     };
 
     const applyEdits = async () => {
@@ -325,9 +307,29 @@ export default function CrearPublicacionScreen() {
           <View style={styles.editorContent}>
             <View style={styles.editorImageFrame}>
               {editingImageUri ? (
-                <PanGestureHandler onGestureEvent={panHandler}>
+                <PanGestureHandler
+                  onGestureEvent={(event) => {
+                    'worklet';
+                    translateX.value = savedTranslateX.value + event.translationX;
+                    translateY.value = savedTranslateY.value + event.translationY;
+                  }}
+                  onEnded={() => {
+                    'worklet';
+                    savedTranslateX.value = translateX.value;
+                    savedTranslateY.value = translateY.value;
+                  }}
+                >
                   <Animated.View style={{ flex: 1 }}>
-                    <PinchGestureHandler onGestureEvent={pinchHandler}>
+                    <PinchGestureHandler
+                      onGestureEvent={(event) => {
+                        'worklet';
+                        scale.value = Math.max(0.5, Math.min(savedScale.value * event.scale, 5));
+                      }}
+                      onEnded={() => {
+                        'worklet';
+                        savedScale.value = scale.value;
+                      }}
+                    >
                       <Animated.View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                         <Animated.Image 
                           source={{ uri: editingImageUri }} 
