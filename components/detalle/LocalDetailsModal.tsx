@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import {
   ActivityIndicator,
   Linking,
   Alert,
-  Image as RNImage,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -83,18 +82,6 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
   return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
 };
 
-/**
- * ✅ LOCAL DETAILS MODAL v12.0 - STANDARD MODAL IMPLEMENTATION (FIXED)
- * 
- * Features:
- * - ✅ Standard modal behavior (centered, floating container)
- * - ✅ Blocks interaction with background content
- * - ✅ Dark overlay background
- * - ✅ Close button with FIXED positioning (respects badge margins - moved down)
- * - ✅ Can close by clicking overlay or close button
- * - ✅ No swipe gestures (standard modal behavior)
- */
-
 export default function LocalDetailsModal({
   visible,
   localId,
@@ -110,12 +97,13 @@ export default function LocalDetailsModal({
   const localIsFavorite = localId ? isFavorite(localId) : false;
 
   useEffect(() => {
-    if (visible) {
+    if (visible && localId) {
       console.log('[LocalDetailsModal] 🚀 Opening modal for local:', localId);
       loadLocalData();
     } else {
       setLocal(null);
       setLoading(true);
+      setCurrentImageIndex(0);
     }
   }, [visible, localId]);
 
@@ -129,9 +117,10 @@ export default function LocalDetailsModal({
         .single();
 
       if (error) throw error;
+      console.log('[LocalDetailsModal] ✅ Local loaded:', data?.nombre);
       setLocal(data);
     } catch (error) {
-      console.error('[LocalDetailsModal] Error loading local:', error);
+      console.error('[LocalDetailsModal] ❌ Error loading local:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
     } finally {
       setLoading(false);
@@ -191,10 +180,9 @@ export default function LocalDetailsModal({
 
   const displayRating = local?.rating || local?.google_rating || 0;
 
-  // ✅ FIXED: Close button position respects badge margins - MOVED DOWN MORE
   const closeButtonTop = local?.destacado 
-    ? (Platform.OS === 'ios' ? 108 : 108)  // Moved down from 100 to 108
-    : (Platform.OS === 'ios' ? 68 : 68);   // Moved down from 60 to 68
+    ? (Platform.OS === 'ios' ? 108 : 108)
+    : (Platform.OS === 'ios' ? 68 : 68);
 
   return (
     <Modal
@@ -206,13 +194,11 @@ export default function LocalDetailsModal({
     >
       <StatusBar barStyle="light-content" backgroundColor="rgba(0, 0, 0, 0.7)" translucent />
       
-      {/* ✅ Dark overlay - blocks interaction with background */}
       <TouchableOpacity 
         style={styles.overlay}
         activeOpacity={1}
         onPress={onClose}
       >
-        {/* ✅ Modal container - centered, floating */}
         <TouchableOpacity 
           style={styles.modalContainer}
           activeOpacity={1}
@@ -230,7 +216,6 @@ export default function LocalDetailsModal({
               </View>
             ) : local ? (
               <React.Fragment>
-                {/* Cover Image */}
                 {allImages.length > 0 && (
                   <View style={styles.coverContainer}>
                     <OptimizedImage
@@ -239,7 +224,6 @@ export default function LocalDetailsModal({
                       resizeMode="cover"
                     />
 
-                    {/* ✅ FIXED: Close button with IMPROVED positioning - respects badge margins MORE */}
                     <TouchableOpacity 
                       style={[styles.closeButtonFixed, { top: closeButtonTop }]} 
                       onPress={onClose}
@@ -302,7 +286,6 @@ export default function LocalDetailsModal({
                   </View>
                 )}
 
-                {/* Content */}
                 <View style={styles.contentCard}>
                   <Text style={styles.localNameText}>{local.nombre}</Text>
 
@@ -450,7 +433,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
   },
-  // ✅ FIXED: Close button with IMPROVED positioning - respects badge margins MORE (moved down 8px)
   closeButtonFixed: {
     position: 'absolute',
     left: 16,

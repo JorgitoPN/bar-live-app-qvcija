@@ -26,16 +26,6 @@ interface TarjetaLocalProps {
   onVisible?: () => void;
 }
 
-/**
- * ✅ TARJETA LOCAL v2.0 - MODAL INTEGRATION FIX
- * 
- * Changes:
- * - ✅ CRITICAL FIX: Opens LocalDetailsModal instead of navigating to page
- * - ✅ Modal state managed locally in component
- * - ✅ Proper modal open/close handling
- * - ✅ Maintains all existing functionality
- */
-
 export default function TarjetaLocal({ local, destacado, userLocation, onVisible }: TarjetaLocalProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -97,13 +87,13 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   }, [local.id]);
 
   const handlePress = () => {
-    console.log('[TarjetaLocal v2.0] 🎯 Opening modal for local:', local.id);
+    console.log('[TarjetaLocal] 🎯 Opening modal for local:', local.id, local.nombre);
     trackProfileView(local.id, user?.id, 'explore');
     setModalVisible(true);
   };
 
   const handleCloseModal = () => {
-    console.log('[TarjetaLocal v2.0] ❌ Closing modal');
+    console.log('[TarjetaLocal] ❌ Closing modal');
     setModalVisible(false);
   };
 
@@ -361,7 +351,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         </View>
       </TouchableOpacity>
 
-      {/* ✅ FIXED: Modal opens when card is clicked */}
       <LocalDetailsModal
         visible={modalVisible}
         localId={local.id}
