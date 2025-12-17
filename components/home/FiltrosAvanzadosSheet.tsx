@@ -101,7 +101,6 @@ const PROVINCIAS = [
   'Zaragoza',
 ];
 
-// FIXED: Removed "Terrazas", "Rooftops", and "Lounge" categories
 const TIPOS_LOCAL = [
   'Todos',
   'Cafés',
@@ -156,7 +155,13 @@ const AMBIENTES = [
   'Tranquilo',
 ];
 
-const PRECIOS = ['Todos', '€', '€€', '€€€'];
+/**
+ * ✅ FILTROS AVANZADOS v2.0 - REMOVED PRICE RANGE FILTER
+ * 
+ * Changes:
+ * - ❌ Removed "Rango de Precios" section completely
+ * - ✅ All other filters remain functional
+ */
 
 export default function FiltrosAvanzadosSheet({
   visible,
@@ -210,7 +215,7 @@ export default function FiltrosAvanzadosSheet({
               style={styles.header}
             >
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <IconSymbol name="xmark" size={24} color={colors.headerText} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
               </TouchableOpacity>
               <Text style={styles.headerTitle}>Filtros Avanzados</Text>
               <TouchableOpacity onPress={handleLimpiar}>
@@ -223,7 +228,6 @@ export default function FiltrosAvanzadosSheet({
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>📍 Ubicación y Distancia</Text>
                 
-                {/* FIXED: Comunidad Autónoma as dropdown selector */}
                 <Text style={styles.subsectionTitle}>Comunidad Autónoma</Text>
                 <TouchableOpacity
                   style={styles.selectButton}
@@ -232,10 +236,9 @@ export default function FiltrosAvanzadosSheet({
                   <Text style={styles.selectButtonText}>
                     {filtrosTemp.comunidad || 'Todas las Comunidades'}
                   </Text>
-                  <IconSymbol name="chevron.down" size={20} color={colors.text} />
+                  <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={20} color={colors.text} />
                 </TouchableOpacity>
 
-                {/* FIXED: Provincia as dropdown selector */}
                 <Text style={styles.subsectionTitle}>Provincia</Text>
                 <TouchableOpacity
                   style={styles.selectButton}
@@ -244,7 +247,7 @@ export default function FiltrosAvanzadosSheet({
                   <Text style={styles.selectButtonText}>
                     {filtrosTemp.provincia || 'Todas las Provincias'}
                   </Text>
-                  <IconSymbol name="chevron.down" size={20} color={colors.text} />
+                  <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={20} color={colors.text} />
                 </TouchableOpacity>
 
                 <Text style={styles.subsectionTitle}>Distancia desde mi ubicación</Text>
@@ -358,37 +361,6 @@ export default function FiltrosAvanzadosSheet({
                 </View>
               </View>
 
-              {/* Rango de Precios */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>💰 Rango de Precios</Text>
-                <View style={styles.chipContainer}>
-                  {PRECIOS.map((precio) => (
-                    <TouchableOpacity
-                      key={precio}
-                      style={[
-                        styles.chip,
-                        filtrosTemp.precioRango === precio && styles.chipActivo,
-                      ]}
-                      onPress={() =>
-                        setFiltrosTemp({
-                          ...filtrosTemp,
-                          precioRango: filtrosTemp.precioRango === precio ? undefined : precio,
-                        })
-                      }
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          filtrosTemp.precioRango === precio && styles.chipTextActivo,
-                        ]}
-                      >
-                        {precio}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
               <View style={{ height: 100 }} />
             </ScrollView>
 
@@ -424,7 +396,7 @@ export default function FiltrosAvanzadosSheet({
             <View style={styles.selectorModalHeader}>
               <Text style={styles.selectorModalTitle}>Comunidad Autónoma</Text>
               <TouchableOpacity onPress={() => setShowComunidadModal(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.selectorModalBody}>
@@ -452,7 +424,7 @@ export default function FiltrosAvanzadosSheet({
                     {comunidad}
                   </Text>
                   {filtrosTemp.comunidad === comunidad && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -476,7 +448,7 @@ export default function FiltrosAvanzadosSheet({
             <View style={styles.selectorModalHeader}>
               <Text style={styles.selectorModalTitle}>Provincia</Text>
               <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.selectorModalBody}>
@@ -504,7 +476,7 @@ export default function FiltrosAvanzadosSheet({
                     {provincia}
                   </Text>
                   {filtrosTemp.provincia === provincia && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
