@@ -284,16 +284,16 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL v5.0 - EXACT COMMENTS MODAL BEHAVIOR
+ * ✅ DETALLE LOCAL v6.0 - FIXED MODAL BEHAVIOR & SHARE ICON POSITION
  * 
  * Changes:
+ * - ✅ CRITICAL FIX: Removed blue header (image now covers entire top)
  * - ✅ CRITICAL FIX: Removed white gap at top of modal
- * - ✅ StatusBar set to light-content to match header
- * - ✅ Header gradient now covers entire top area including status bar
- * - ✅ Modal handle for drag-to-dismiss visual cue
- * - ✅ Opens as modal (not full screen) - presentationStyle="modal"
- * - ✅ Light background (#F9FAFB) instead of dark
- * - ✅ BarLive blue gradient header
+ * - ✅ CRITICAL FIX: Share icon repositioned below review score icon
+ * - ✅ StatusBar set to light-content for better visibility
+ * - ✅ Modal handle removed (was causing white gap)
+ * - ✅ Opens as modal overlay (not full screen) - presentationStyle="formSheet"
+ * - ✅ Light background (#F9FAFB) for clean design
  * - ✅ IDENTICAL to CommentsModal behavior
  */
 
@@ -745,27 +745,8 @@ export default function DetalleLocalScreen() {
 
   return (
     <View style={styles.modalContainer}>
-      {/* ✅ CRITICAL FIX: StatusBar set to light-content to match header */}
-      <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
-      
-      {/* ✅ CRITICAL FIX: Modal Handle for drag-to-dismiss visual cue */}
-      <View style={styles.modalHandle} />
-      
-      {/* ✅ CRITICAL FIX: Header with gradient covering entire top area */}
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
-      >
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-            <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>{local.nombre}</Text>
-          <View style={{ width: 40 }} />
-        </View>
-      </LinearGradient>
+      {/* ✅ CRITICAL FIX: StatusBar set to light-content for better visibility on cover image */}
+      <StatusBar barStyle="light-content" />
       
       <ScrollView 
         ref={scrollViewRef}
@@ -802,6 +783,13 @@ export default function DetalleLocalScreen() {
                 ))}
               </ScrollView>
             </TouchableOpacity>
+
+            {/* ✅ CRITICAL FIX: Close button at top left */}
+            <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
+              <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={22} color="#fff" />
+              </BlurView>
+            </TouchableOpacity>
           
             {displayRating > 0 && (
               <View style={styles.ratingBadgeTopRight}>
@@ -810,6 +798,15 @@ export default function DetalleLocalScreen() {
                   <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
                 </BlurView>
               </View>
+            )}
+
+            {/* ✅ CRITICAL FIX: Share button repositioned below rating badge */}
+            {displayRating > 0 && (
+              <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+                <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+                  <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
+                </BlurView>
+              </TouchableOpacity>
             )}
           
             <View style={styles.statusBadgeTop}>
@@ -832,12 +829,6 @@ export default function DetalleLocalScreen() {
                 </BlurView>
               </View>
             )}
-
-            <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-              <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
-                <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
-              </BlurView>
-            </TouchableOpacity>
           
             <TouchableOpacity
               style={styles.favoritoButton}
@@ -1315,45 +1306,20 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-  },
-  modalHandle: {
-    width: 40,
-    height: 5,
-    backgroundColor: colors.textSecondary + '40',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 0,
-  },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 48,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
   },
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    left: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    zIndex: 10,
   },
   contentContainer: {
     paddingBottom: 120,
@@ -1482,8 +1448,8 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     position: 'absolute',
-    top: 12,
-    right: 70,
+    top: 52,
+    right: 16,
     width: 44,
     height: 44,
     borderRadius: 22,

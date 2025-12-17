@@ -40,9 +40,10 @@ interface Chat {
 }
 
 /**
- * ✅ CHATS SYSTEM v29.0 - PERMANENT DELETION FIX WITH RLS POLICIES
+ * ✅ CHATS SYSTEM v30.0 - NAVIGATION FIX + PERMANENT DELETION
  * 
- * Complete fix for conversation deletion:
+ * Complete fix for conversation deletion and navigation:
+ * - ✅ FIXED: Back button now navigates to previous page (not profile)
  * - ✅ FIXED: Added RLS DELETE policy for chats table
  * - ✅ FIXED: Added RLS DELETE policy for messages from user's chats
  * - ✅ FIXED: Proper cascade deletion (messages first, then chat)
