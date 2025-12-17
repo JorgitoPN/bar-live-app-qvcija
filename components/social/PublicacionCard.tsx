@@ -101,16 +101,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         .limit(3);
 
       if (!error && data) {
-        // Check which users have momentos
-        const userIds = data.map(like => like.usuario_id);
-        const { data: momentosData } = await supabase
-          .from('momentos')
-          .select('autor_id')
-          .in('autor_id', userIds)
-          .gt('expires_at', new Date().toISOString());
-
-        const usersWithMomentos = new Set(momentosData?.map(m => m.autor_id) || []);
-
+        // ✅ FIXED: Do NOT check for momentos - remove neon border from likes
         const users = data
           .filter(like => like.usuarios)
           .map((like: any) => ({
@@ -119,7 +110,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             username: like.usuarios.username,
             avatar: like.usuarios.avatar,
             tipo: 'usuario' as const,
-            has_momento: usersWithMomentos.has(like.usuarios.id),
+            has_momento: false, // ✅ ALWAYS false - no neon border in likes
           }));
         
         setLikeUsers(users);
@@ -393,15 +384,15 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerLeft} onPress={handleProfilePress} activeOpacity={0.7}>
-          {displayAvatar ? (
-            <Image source={{ uri: displayAvatar }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarText}>
-                {displayName?.charAt(0).toUpperCase() || 'U'}
-              </Text>
-            </View>
-          )}
+          {/* ✅ FIXED: Show neon border on mini-avatars when user has new momento */}
+          <MiniFoodPlateAvatar
+            imageUrl={displayAvatar}
+            size={40}
+            nombre={displayName}
+            userId={post.tipo === 'usuario' ? post.autor_id : undefined}
+            localId={post.tipo === 'local' ? post.local_id : undefined}
+            showMomentoBorder={true}
+          />
           <View style={styles.headerInfo}>
             <Text style={styles.username}>{displayName}</Text>
             <Text style={styles.timestamp}>{formatTimeAgo(post.created_at)}</Text>
@@ -439,11 +430,18 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
               </TouchableOpacity>
             ))}
           </ScrollView>
+          {/* ✅ FIXED: White dots for image indicators */}
           {post.imagenes.length > 1 && (
-            <View style={styles.imageIndicator}>
-              <Text style={styles.imageIndicatorText}>
-                {currentImageIndex + 1}/{post.imagenes.length}
-              </Text>
+            <View style={styles.imageIndicatorContainer}>
+              {post.imagenes.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.imageIndicatorDot,
+                    currentImageIndex === index && styles.imageIndicatorDotActive,
+                  ]}
+                />
+              ))}
             </View>
           )}
         </View>
@@ -497,7 +495,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ Instagram-style likes display */}
+      {/* ✅ Instagram-style likes display WITHOUT neon borders */}
       {likesCount > 0 && (
         <TouchableOpacity 
           style={styles.likesContainer}
@@ -514,36 +512,15 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                     index > 0 && { marginLeft: -8 },
                   ]}
                 >
-                  {likeUser.has_momento && (
-                    <LinearGradient
-                      colors={['#00FF88', '#00FF88']}
-                      style={styles.likeAvatarBorder}
-                    >
-                      <View style={styles.likeAvatarInner}>
-                        {likeUser.avatar ? (
-                          <Image source={{ uri: likeUser.avatar }} style={styles.likeAvatar} />
-                        ) : (
-                          <View style={[styles.likeAvatar, styles.likeAvatarPlaceholder]}>
-                            <Text style={styles.likeAvatarText}>
-                              {likeUser.nombre.charAt(0).toUpperCase()}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </LinearGradient>
-                  )}
-                  {!likeUser.has_momento && (
-                    <>
-                      {likeUser.avatar ? (
-                        <Image source={{ uri: likeUser.avatar }} style={styles.likeAvatar} />
-                      ) : (
-                        <View style={[styles.likeAvatar, styles.likeAvatarPlaceholder]}>
-                          <Text style={styles.likeAvatarText}>
-                            {likeUser.nombre.charAt(0).toUpperCase()}
-                          </Text>
-                        </View>
-                      )}
-                    </>
+                  {/* ✅ FIXED: NO neon border - simple avatar */}
+                  {likeUser.avatar ? (
+                    <Image source={{ uri: likeUser.avatar }} style={styles.likeAvatar} />
+                  ) : (
+                    <View style={[styles.likeAvatar, styles.likeAvatarPlaceholder]}>
+                      <Text style={styles.likeAvatarText}>
+                        {likeUser.nombre.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
                   )}
                 </View>
               ))}
@@ -612,24 +589,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
   headerInfo: {
     flex: 1,
+    marginLeft: 12,
   },
   username: {
     fontSize: 15,
@@ -658,19 +620,27 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  imageIndicator: {
+  imageIndicatorContainer: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
   },
-  imageIndicatorText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
+  imageIndicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)', // ✅ FIXED: White dots
+  },
+  imageIndicatorDotActive: {
+    backgroundColor: '#FFFFFF', // ✅ FIXED: White active dot
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   contentContainer: {
     paddingHorizontal: 16,
@@ -710,21 +680,6 @@ const styles = StyleSheet.create({
   },
   likeAvatarWrapper: {
     position: 'relative',
-  },
-  likeAvatarBorder: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 2,
-  },
-  likeAvatarInner: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.cardBackground,
-    overflow: 'hidden',
   },
   likeAvatar: {
     width: 22,

@@ -16,6 +16,8 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { useRouter } from 'expo-router';
+import MomentoViewer from '@/components/momento/MomentoViewer';
+import MomentoUpload from '@/components/momento/MomentoUpload';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const AVATAR_SIZE = 84;
@@ -39,18 +41,24 @@ export default function MomentoCarousel() {
   const [authors, setAuthors] = useState<MomentoAuthor[]>([]);
   const [userMomento, setUserMomento] = useState<MomentoAuthor | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // ✅ NEW: State for viewer and upload modals
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [uploadVisible, setUploadVisible] = useState(false);
+  const [selectedAuthorId, setSelectedAuthorId] = useState<string | null>(null);
+  const [selectedAuthorType, setSelectedAuthorType] = useState<'usuario' | 'local'>('usuario');
 
   const handleOpenViewer = useCallback((authorId: string, tipo: 'usuario' | 'local') => {
-    console.log('[MomentoCarousel] Opening viewer for:', { authorId, tipo });
-    // TODO: Navigate to momento viewer
-    // router.push({ pathname: '/momento/viewer', params: { authorId, tipo } });
-  }, [router]);
+    console.log('[MomentoCarousel] ✅ Opening viewer for:', { authorId, tipo });
+    setSelectedAuthorId(authorId);
+    setSelectedAuthorType(tipo);
+    setViewerVisible(true);
+  }, []);
 
   const handleUploadMomento = useCallback(() => {
-    console.log('[MomentoCarousel] Opening momento upload');
-    // TODO: Navigate to momento upload
-    // router.push('/momento/upload');
-  }, [router]);
+    console.log('[MomentoCarousel] ✅ Opening momento upload');
+    setUploadVisible(true);
+  }, []);
 
   const loadMomentos = useCallback(async () => {
     if (!user) return;
@@ -556,17 +564,42 @@ export default function MomentoCarousel() {
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {renderTuMomento()}
-        
-        {authors.map((author, index) => renderAvatar(author, index))}
-      </ScrollView>
-    </View>
+    <>
+      <View style={styles.container}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {renderTuMomento()}
+          
+          {authors.map((author, index) => renderAvatar(author, index))}
+        </ScrollView>
+      </View>
+
+      {/* ✅ NEW: Momento Viewer Modal */}
+      {selectedAuthorId && (
+        <MomentoViewer
+          visible={viewerVisible}
+          authorId={selectedAuthorId}
+          authorType={selectedAuthorType}
+          onClose={() => {
+            setViewerVisible(false);
+            setSelectedAuthorId(null);
+            loadMomentos(); // Reload to update viewed status
+          }}
+        />
+      )}
+
+      {/* ✅ NEW: Momento Upload Modal */}
+      <MomentoUpload
+        visible={uploadVisible}
+        onClose={() => setUploadVisible(false)}
+        onSuccess={() => {
+          loadMomentos(); // Reload to show new momento
+        }}
+      />
+    </>
   );
 }
 
