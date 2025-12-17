@@ -47,6 +47,7 @@ interface Post {
     imagen_url?: string;
   };
   user_has_liked?: boolean;
+  user_has_saved?: boolean;
 }
 
 const POSTS_PER_PAGE = 10;
@@ -129,31 +130,41 @@ export default function SocialIndexScreen() {
 
       if (postsError) throw postsError;
 
-      // Check which posts the user has liked
+      // Check which posts the user has liked and saved
       if (postsData && postsData.length > 0) {
         const postIds = postsData.map(p => p.id);
-        const { data: likesData } = await supabase
-          .from('likes')
-          .select('post_id')
-          .eq('usuario_id', userId)
-          .in('post_id', postIds);
+        
+        const [likesResult, savedResult] = await Promise.all([
+          supabase
+            .from('likes')
+            .select('post_id')
+            .eq('usuario_id', userId)
+            .in('post_id', postIds),
+          supabase
+            .from('posts_guardados')
+            .select('post_id')
+            .eq('usuario_id', userId)
+            .in('post_id', postIds),
+        ]);
 
-        const likedPostIds = new Set(likesData?.map(l => l.post_id) || []);
+        const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
+        const savedPostIds = new Set(savedResult.data?.map(s => s.post_id) || []);
 
-        const postsWithLikes = postsData.map(post => ({
+        const postsWithStatus = postsData.map(post => ({
           ...post,
           user_has_liked: likedPostIds.has(post.id),
+          user_has_saved: savedPostIds.has(post.id),
         }));
 
         if (isRefresh || pageNum === 1) {
-          setPosts(postsWithLikes);
+          setPosts(postsWithStatus);
           setPage(2);
         } else {
-          setPosts(prev => [...prev, ...postsWithLikes]);
+          setPosts(prev => [...prev, ...postsWithStatus]);
           setPage(pageNum + 1);
         }
 
-        setHasMore(postsWithLikes.length === POSTS_PER_PAGE);
+        setHasMore(postsWithStatus.length === POSTS_PER_PAGE);
       } else {
         if (isRefresh || pageNum === 1) {
           setPosts([]);

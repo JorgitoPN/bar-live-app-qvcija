@@ -32,7 +32,7 @@ interface SearchResult {
 }
 
 /**
- * ✅ SOCIAL FEED SEARCH v2.0 - PREDICTIVE SEARCH WITHOUT @
+ * ✅ SOCIAL FEED SEARCH v3.0 - WHITE TEXT & ICONS
  * 
  * Features:
  * - ✅ Search without @ symbol
@@ -41,6 +41,7 @@ interface SearchResult {
  * - ✅ Priority: exact matches, followed users, relevant locals
  * - ✅ Debounce ~300ms
  * - ✅ Show avatar + name + type
+ * - ✅ WHITE text and magnifying glass icon
  */
 
 export default function SocialSearchScreen() {
@@ -288,7 +289,7 @@ export default function SocialSearchScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* ✅ Header with WHITE text and icons */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -298,20 +299,22 @@ export default function SocialSearchScreen() {
             ios_icon_name="chevron.left"
             android_material_icon_name="arrow_back"
             size={24}
-            color={colors.headerText}
+            color="#FFFFFF"
           />
         </TouchableOpacity>
         <View style={styles.searchContainer}>
+          {/* ✅ WHITE magnifying glass icon */}
           <IconSymbol
             ios_icon_name="magnifyingglass"
             android_material_icon_name="search"
             size={20}
-            color={colors.textSecondary}
+            color="#FFFFFF"
           />
+          {/* ✅ WHITE text input */}
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar usuarios y locales..."
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor="rgba(255, 255, 255, 0.7)"
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoFocus
@@ -330,7 +333,7 @@ export default function SocialSearchScreen() {
                 ios_icon_name="xmark.circle.fill"
                 android_material_icon_name="cancel"
                 size={20}
-                color={colors.textSecondary}
+                color="#FFFFFF"
               />
             </TouchableOpacity>
           )}
@@ -412,7 +415,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: colors.headerText,
+    color: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
