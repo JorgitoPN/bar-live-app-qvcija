@@ -11,6 +11,7 @@ import {
   ScrollView,
   Dimensions,
   Alert,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -35,9 +36,10 @@ interface ImageEditorV6Props {
 }
 
 /**
- * ✅ IMAGE EDITOR v6.0 - COMPLETELY NEW AND FUNCTIONAL
+ * ✅ IMAGE EDITOR v6.1 - FIXED Animated.Image.getSize ERROR
  * 
  * Features:
+ * - ✅ FIXED: Use Image.getSize instead of Animated.Image.getSize
  * - ✅ Pinch to zoom (0.5x to 5x)
  * - ✅ Pan to move image
  * - ✅ Rotate 90° left/right
@@ -76,8 +78,8 @@ export default function ImageEditorV6({
       console.log('[ImageEditorV6] 🖼️ Loading image:', imageUri);
       setImageLoaded(false);
       
-      // Load image dimensions
-      Animated.Image.getSize(
+      // ✅ CRITICAL FIX: Use Image.getSize instead of Animated.Image.getSize
+      Image.getSize(
         imageUri,
         (width, height) => {
           console.log('[ImageEditorV6] ✅ Image loaded:', { width, height });

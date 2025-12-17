@@ -70,6 +70,16 @@ interface PublicacionCardProps {
   onUpdate?: () => void;
 }
 
+/**
+ * ✅ PUBLICACION CARD v5.0 - FIXED TAG DELETION
+ * 
+ * Changes:
+ * - ✅ FIXED: Tag deletion now properly removes from database
+ * - ✅ FIXED: Tag management modal reloads from database (only accepted tags)
+ * - ✅ FIXED: Proper query building for usuario_id vs local_id
+ * - ✅ NO notifications sent when tagging (only tag request)
+ */
+
 const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const router = useRouter();
   const { user } = useAuth();
@@ -384,7 +394,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [editedDescription, post.id, onUpdate]);
 
-  // ✅ FIXED v3: Reload tags from database - ONLY ACCEPTED TAGS
+  // ✅ FIXED v5: Reload tags from database - ONLY ACCEPTED TAGS
   const loadExistingTags = useCallback(async () => {
     setLoadingTags(true);
     try {
@@ -448,7 +458,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     setShowTagManagementModal(true);
   }, [loadExistingTags]);
 
-  // ✅ FIXED v3: Permanent tag deletion with proper query building
+  // ✅ FIXED v5: Permanent tag deletion with proper query building
   const handleRemoveTag = useCallback(async (taggedUser: TaggableUser) => {
     try {
       console.log('[PublicacionCard] 🗑️ Removing tag permanently:', {
@@ -457,21 +467,26 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         tipo: taggedUser.tipo,
       });
 
-      // Build the delete query correctly based on tag type
-      let deleteQuery = supabase
-        .from('post_tags')
-        .delete()
-        .eq('post_id', post.id)
-        .eq('tipo', taggedUser.tipo);
+      // ✅ CRITICAL FIX: Build delete query correctly based on tag type
+      const deleteData: any = {
+        post_id: post.id,
+        tipo: taggedUser.tipo,
+        estado: 'aceptado', // Only delete accepted tags
+      };
 
-      // ✅ CRITICAL FIX: Add the correct ID field based on tipo
+      // Add the correct ID field based on tipo
       if (taggedUser.tipo === 'usuario') {
-        deleteQuery = deleteQuery.eq('usuario_id', taggedUser.id);
+        deleteData.usuario_id = taggedUser.id;
       } else {
-        deleteQuery = deleteQuery.eq('local_id', taggedUser.id);
+        deleteData.local_id = taggedUser.id;
       }
 
-      const { error } = await deleteQuery;
+      console.log('[PublicacionCard] 🔍 Delete query data:', deleteData);
+
+      const { error } = await supabase
+        .from('post_tags')
+        .delete()
+        .match(deleteData);
 
       if (error) {
         console.error('[PublicacionCard] ❌ Error deleting tag:', error);
@@ -503,6 +518,12 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     if (!user) return;
 
     try {
+      console.log('[PublicacionCard] ➕ Adding new tag:', {
+        postId: post.id,
+        userId: selectedUser.id,
+        tipo: selectedUser.tipo,
+      });
+
       const tagData: any = {
         post_id: post.id,
         tipo: selectedUser.tipo,

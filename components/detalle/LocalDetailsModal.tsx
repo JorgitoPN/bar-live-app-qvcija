@@ -35,7 +35,7 @@ interface LocalDetailsModalProps {
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v3.0 - COMPLETELY REBUILT FROM SCRATCH
+ * ✅ LOCAL DETAILS MODAL v4.0 - COMPLETELY REBUILT FROM SCRATCH
  * 
  * Features:
  * - ✅ Swipe down to close (mobile-style gesture)
@@ -47,8 +47,8 @@ interface LocalDetailsModalProps {
  * - ✅ Visual drag indicator
  * - ✅ Touch and mouse compatible
  * - ✅ WebView cleared on close to release resources
- * - ✅ Close button positioned at top-right (not overlapping badges)
- * - ✅ Close button badge-sized (40x40)
+ * - ✅ Close button positioned below badges (not overlapping)
+ * - ✅ Close button same size as save button (40x40)
  * - ✅ Background visible when swiping down
  */
 
@@ -197,7 +197,7 @@ export default function LocalDetailsModal({
               />
             </View>
 
-            {/* ✅ FIXED: Close button positioned at top-right, badge-sized (40x40) */}
+            {/* ✅ FIXED: Close button positioned below badges, same size as save button (40x40) */}
             <TouchableOpacity style={styles.closeButton} onPress={closeModal} activeOpacity={0.8}>
               <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
                 <IconSymbol 
@@ -253,10 +253,10 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     opacity: 0.5,
   },
-  // ✅ FIXED: Close button at top-right, badge-sized (40x40), not overlapping badges
+  // ✅ FIXED: Close button below badges, same size as save button (40x40)
   closeButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 70 : 60,
+    top: Platform.OS === 'ios' ? 120 : 110,
     right: 16,
     width: 40,
     height: 40,

@@ -273,14 +273,12 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL v8.0 - PROPER MODAL BEHAVIOR
+ * ✅ DETALLE LOCAL v9.0 - FIXED CLOSE BUTTON POSITION
  * 
  * Changes:
- * - ✅ FIXED: Swipe down closes modal (NO REFRESH)
- * - ✅ Background page visible behind modal
- * - ✅ Proper modal overlay with rounded corners
- * - ✅ StatusBar set to light-content
- * - ✅ NO RefreshControl (prevents refresh on swipe)
+ * - ✅ FIXED: Close button positioned below badges (not overlapping)
+ * - ✅ Close button same size as save button (40x40)
+ * - ✅ Close button positioned at top-left, below destacado badge
  */
 
 export default function DetalleLocalScreen() {
@@ -762,10 +760,10 @@ export default function DetalleLocalScreen() {
                 </ScrollView>
               </TouchableOpacity>
 
-              {/* ✅ Close button moved to bottom to avoid overlapping destacado badge */}
-              <TouchableOpacity style={styles.closeButtonBottom} onPress={() => router.back()}>
+              {/* ✅ FIXED: Close button positioned below badges, same size as save button (40x40) */}
+              <TouchableOpacity style={styles.closeButtonFixed} onPress={() => router.back()}>
                 <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
-                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={22} color="#fff" />
+                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={18} color="#fff" />
                 </BlurView>
               </TouchableOpacity>
           
@@ -1265,7 +1263,7 @@ export default function DetalleLocalScreen() {
         localId={params.id as string}
         onClose={() => setShowReviewsModal(false)}
         onReviewAdded={() => {
-          console.log('[DetalleLocal v7.0] ✅ Review added, reloading reviews');
+          console.log('[DetalleLocal v9.0] ✅ Review added, reloading reviews');
           cargarReviewsBarlive();
         }}
       />
@@ -1291,23 +1289,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  closeButton: {
+  // ✅ FIXED: Close button positioned below badges, same size as save button (40x40)
+  closeButtonFixed: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 40,
+    top: Platform.OS === 'ios' ? 120 : 110,
     left: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    overflow: 'hidden',
-    zIndex: 10,
-  },
-  closeButtonBottom: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     overflow: 'hidden',
     zIndex: 10,
     shadowColor: '#000',
@@ -1464,9 +1453,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 12,
     right: 12,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     overflow: 'hidden',
     zIndex: 10,
     shadowColor: '#000',
