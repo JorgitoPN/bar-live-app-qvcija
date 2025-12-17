@@ -69,10 +69,10 @@ interface PerfilProfesional {
 }
 
 /**
- * ✅ PROFILE SCREEN v9.0 - CART ICON FOR OWNERS
+ * ✅ PROFILE SCREEN v10.0 - CART ICON FOR OWNERS (FIXED)
  * 
  * Changes:
- * - ✅ Added cart icon in header (only visible for propietario role)
+ * - ✅ Cart icon now shows for propietario role AND admin in propietario mode
  * - ✅ Cart icon shows badge with item count
  * - ✅ Opens shopping cart modal
  */
@@ -118,29 +118,42 @@ export default function PerfilScreen() {
   const [allPostIds, setAllPostIds] = useState<string[]>([]);
 
   const userRole = user?.rol_app || 'cliente';
+  // ✅ FIXED: Show cart icon for propietario role OR admin in propietario mode
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
+
+  console.log('[Perfil] 🛒 Cart icon visibility check:', {
+    userRole,
+    currentMode,
+    isPropietario,
+    shouldShowCart: isPropietario,
+  });
 
   // ✅ Load cart items count
   const loadCartItemsCount = useCallback(async () => {
-    if (!user || userRole !== 'propietario') return;
+    if (!user || !isPropietario) {
+      console.log('[Perfil] 🛒 Skipping cart load - not propietario:', { user: !!user, isPropietario });
+      return;
+    }
 
     try {
+      console.log('[Perfil] 🛒 Loading cart items count for user:', user.id);
+      
       const { count, error } = await supabase
         .from('shopping_cart')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('[Perfil] Error loading cart count:', error);
+        console.error('[Perfil] ❌ Error loading cart count:', error);
         return;
       }
 
       setCartItemsCount(count || 0);
-      console.log('[Perfil] Cart items count:', count || 0);
+      console.log('[Perfil] ✅ Cart items count loaded:', count || 0);
     } catch (error) {
-      console.error('[Perfil] Error loading cart count:', error);
+      console.error('[Perfil] ❌ Error loading cart count:', error);
     }
-  }, [user, userRole]);
+  }, [user, isPropietario]);
 
   const checkUnviewedMomentos = useCallback(async () => {
     if (!user) {
@@ -604,9 +617,14 @@ export default function PerfilScreen() {
     };
   }, [user, checkUnviewedMomentos]);
 
-  // ✅ Subscribe to cart changes
+  // ✅ Subscribe to cart changes (FIXED: check isPropietario instead of userRole)
   useEffect(() => {
-    if (!user || userRole !== 'propietario') return;
+    if (!user || !isPropietario) {
+      console.log('[Perfil] 🛒 Skipping cart subscription - not propietario');
+      return;
+    }
+
+    console.log('[Perfil] 🛒 Setting up cart subscription for user:', user.id);
 
     const subscription = supabase
       .channel('cart-updates')
@@ -626,9 +644,10 @@ export default function PerfilScreen() {
       .subscribe();
 
     return () => {
+      console.log('[Perfil] 🛒 Cleaning up cart subscription');
       supabase.removeChannel(subscription);
     };
-  }, [user, userRole, loadCartItemsCount]);
+  }, [user, isPropietario, loadCartItemsCount]);
 
   const displayName = user?.nombre || 'Usuario';
   const displayAvatar = user?.avatar;
@@ -1005,8 +1024,8 @@ export default function PerfilScreen() {
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Mi Perfil</Text>
           <View style={styles.headerActions}>
-            {/* ✅ CART ICON - Only visible for propietario role */}
-            {userRole === 'propietario' && (
+            {/* ✅ CART ICON - Visible for propietario role OR admin in propietario mode */}
+            {isPropietario && (
               <TouchableOpacity 
                 style={styles.headerButton} 
                 onPress={() => setShowCart(true)}

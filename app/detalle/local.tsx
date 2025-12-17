@@ -273,12 +273,14 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL v9.0 - FIXED CLOSE BUTTON POSITION
+ * ✅ DETALLE LOCAL v10.0 - DYNAMIC CLOSE BUTTON POSITION
  * 
  * Changes:
- * - ✅ FIXED: Close button positioned below badges (not overlapping)
+ * - ✅ FIXED: Close button position dynamically adjusts based on badges
+ * - ✅ When "Destacado" badge is present, close button is below it
+ * - ✅ When "Destacado" badge is NOT present, close button is closer to "Abierto ahora" badge
  * - ✅ Close button same size as save button (40x40)
- * - ✅ Close button positioned at top-left, below destacado badge
+ * - ✅ Maintains consistent spacing with other cover elements
  */
 
 export default function DetalleLocalScreen() {
@@ -717,6 +719,13 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
+  // ✅ DYNAMIC CLOSE BUTTON POSITION
+  // If "Destacado" badge is present, position close button below it (top: 92)
+  // If "Destacado" badge is NOT present, position close button closer to "Abierto ahora" (top: 52)
+  const closeButtonTop = local.destacado 
+    ? (Platform.OS === 'ios' ? 92 : 92)  // Below "Destacado" badge
+    : (Platform.OS === 'ios' ? 52 : 52); // Closer to "Abierto ahora" badge
+
   return (
     <View style={styles.modalContainer}>
       <StatusBar barStyle="light-content" />
@@ -760,8 +769,11 @@ export default function DetalleLocalScreen() {
                 </ScrollView>
               </TouchableOpacity>
 
-              {/* ✅ FIXED: Close button positioned below badges, same size as save button (40x40) */}
-              <TouchableOpacity style={styles.closeButtonFixed} onPress={() => router.back()}>
+              {/* ✅ FIXED: Close button with DYNAMIC position based on badges */}
+              <TouchableOpacity 
+                style={[styles.closeButtonFixed, { top: closeButtonTop }]} 
+                onPress={() => router.back()}
+              >
                 <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
                   <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={18} color="#fff" />
                 </BlurView>
@@ -1177,7 +1189,7 @@ export default function DetalleLocalScreen() {
               </View>
 
               {allReviews.length > 0 ? (
-                <>
+                <React.Fragment>
                   {allReviews.map((review: any) => {
                     const isExpanded = expandedReviews.has(review.id);
                     const reviewText = review.text || review.texto || '';
@@ -1211,7 +1223,7 @@ export default function DetalleLocalScreen() {
                           </View>
                         </View>
                         {reviewText && (
-                          <>
+                          <React.Fragment>
                             <ParsedText text={displayText} style={styles.reviewText} />
                             {needsExpansion && (
                               <TouchableOpacity onPress={() => toggleReviewExpansion(review.id)}>
@@ -1220,12 +1232,12 @@ export default function DetalleLocalScreen() {
                                 </Text>
                               </TouchableOpacity>
                             )}
-                          </>
+                          </React.Fragment>
                         )}
                       </View>
                     );
                   })}
-                </>
+                </React.Fragment>
               ) : (
                 <View style={styles.noReviewsBox}>
                   <Ionicons name="chatbubbles-outline" size={36} color={colors.textSecondary} />
@@ -1263,7 +1275,7 @@ export default function DetalleLocalScreen() {
         localId={params.id as string}
         onClose={() => setShowReviewsModal(false)}
         onReviewAdded={() => {
-          console.log('[DetalleLocal v9.0] ✅ Review added, reloading reviews');
+          console.log('[DetalleLocal v10.0] ✅ Review added, reloading reviews');
           cargarReviewsBarlive();
         }}
       />
@@ -1289,10 +1301,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  // ✅ FIXED: Close button positioned below badges, same size as save button (40x40)
+  // ✅ FIXED: Close button with DYNAMIC position based on badges
+  // Position is calculated in component: closeButtonTop variable
   closeButtonFixed: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 120 : 110,
     left: 16,
     width: 40,
     height: 40,
