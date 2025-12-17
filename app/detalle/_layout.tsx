@@ -1,13 +1,14 @@
 
 import { Stack } from 'expo-router';
+import { Platform } from 'react-native';
 
 /**
  * ============================================================================
- * DETALLE LAYOUT - MODAL PRESENTATION v5.0 - EXACT COMMENTS MODAL BEHAVIOR
+ * DETALLE LAYOUT - MODAL PRESENTATION v6.0 - CRITICAL FIX
  * ============================================================================
  * 
- * ✅ This layout configures detail pages to open EXACTLY like CommentsModal:
- * - Opens as modal overlay (not full screen) - presentationStyle="pageSheet"
+ * ✅ URGENT FIX: Use 'transparentModal' for proper modal overlay behavior
+ * - Opens as modal overlay (not full screen)
  * - NO white space at top
  * - Rounded corners at the top
  * - Semi-transparent background overlay
@@ -20,38 +21,51 @@ export default function DetalleLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        // ✅ CRITICAL: Use 'formSheet' on iOS and 'modal' on Android for proper modal behavior
-        presentation: 'formSheet',
+        // ✅ CRITICAL: Use 'transparentModal' for proper modal behavior
+        presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
         // ✅ Enable gesture to dismiss by dragging down
         gestureEnabled: true,
         // ✅ Show semi-transparent overlay behind modal
         cardOverlayEnabled: true,
         // ✅ Animation for modal presentation
         animation: 'slide_from_bottom',
+        // ✅ CRITICAL: Set content style for proper modal appearance
+        contentStyle: {
+          backgroundColor: 'transparent',
+        },
       }}
     >
       <Stack.Screen 
         name="local" 
         options={{
-          presentation: 'formSheet',
+          presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
           gestureEnabled: true,
           cardOverlayEnabled: true,
+          contentStyle: {
+            backgroundColor: 'transparent',
+          },
         }}
       />
       <Stack.Screen 
         name="evento" 
         options={{
-          presentation: 'formSheet',
+          presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
           gestureEnabled: true,
           cardOverlayEnabled: true,
+          contentStyle: {
+            backgroundColor: 'transparent',
+          },
         }}
       />
       <Stack.Screen 
         name="sala-virtual" 
         options={{
-          presentation: 'formSheet',
+          presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
           gestureEnabled: true,
           cardOverlayEnabled: true,
+          contentStyle: {
+            backgroundColor: 'transparent',
+          },
         }}
       />
     </Stack>

@@ -26,6 +26,7 @@ import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 import MomentoViewer from '@/components/momento/MomentoViewer';
+import PostViewerModal from '@/components/social/PostViewerModal';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -96,6 +97,11 @@ export default function PerfilScreen() {
   
   const [perfilProfesional, setPerfilProfesional] = useState<PerfilProfesional | null>(null);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
+
+  // ✅ NEW: Post viewer state
+  const [showPostViewer, setShowPostViewer] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [allPostIds, setAllPostIds] = useState<string[]>([]);
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
@@ -668,6 +674,18 @@ export default function PerfilScreen() {
     router.push('/crear/publicacion');
   };
 
+  // ✅ NEW: Handle post click to open feed-style viewer
+  const handlePostClick = (postId: string) => {
+    const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
+    const postIds = currentPosts.map(p => p.id);
+    
+    console.log('[Perfil] ✅ Opening post viewer:', { postId, totalPosts: postIds.length });
+    
+    setSelectedPostId(postId);
+    setAllPostIds(postIds);
+    setShowPostViewer(true);
+  };
+
   const renderGridPost = (post: Post) => {
     const firstImage = post.imagenes && post.imagenes.length > 0 
       ? post.imagenes[0] 
@@ -677,7 +695,7 @@ export default function PerfilScreen() {
       <TouchableOpacity
         key={post.id}
         style={styles.gridItem}
-        onPress={() => router.push(`/social/post?id=${post.id}`)}
+        onPress={() => handlePostClick(post.id)}
         activeOpacity={0.8}
       >
         {firstImage ? (
@@ -1168,6 +1186,20 @@ export default function PerfilScreen() {
         authorType={activeProfileType === 'local' ? 'local' : 'usuario'}
         onClose={() => setShowMomentoViewer(false)}
       />
+
+      {/* ✅ NEW: Post Viewer Modal for feed-style scrolling */}
+      {selectedPostId && allPostIds.length > 0 && (
+        <PostViewerModal
+          visible={showPostViewer}
+          initialPostId={selectedPostId}
+          allPostIds={allPostIds}
+          onClose={() => {
+            setShowPostViewer(false);
+            setSelectedPostId(null);
+            setAllPostIds([]);
+          }}
+        />
+      )}
 
       <LoginRequiredModal
         visible={showLoginModal}

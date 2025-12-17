@@ -14,12 +14,14 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   useWindowDimensions,
+  Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as Location from 'expo-location';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -104,6 +106,11 @@ export default function CrearPublicacionScreen() {
   const [showTagModal, setShowTagModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  
+  // ✅ NEW: Image editor state
+  const [showImageEditor, setShowImageEditor] = useState(false);
+  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
+  const [editingImageUri, setEditingImageUri] = useState<string | null>(null);
 
   const MAX_IMAGES = 10;
 
@@ -167,6 +174,149 @@ export default function CrearPublicacionScreen() {
     
     const newCursorPosition = lastHashIndex + hashtag.length + 2;
     setCursorPosition(newCursorPosition);
+  };
+
+  // ✅ NEW: Open image editor
+  const handleEditImage = (index: number) => {
+    setEditingImageIndex(index);
+    setEditingImageUri(imagenes[index]);
+    setShowImageEditor(true);
+  };
+
+  // ✅ NEW: Apply image edits
+  const handleApplyImageEdit = async (editedUri: string) => {
+    if (editingImageIndex !== null) {
+      const newImagenes = [...imagenes];
+      newImagenes[editingImageIndex] = editedUri;
+      setImagenes(newImagenes);
+    }
+    setShowImageEditor(false);
+    setEditingImageIndex(null);
+    setEditingImageUri(null);
+  };
+
+  // ✅ NEW: Image editor with crop, rotate, and flip
+  const ImageEditorModal = () => {
+    const [rotation, setRotation] = useState(0);
+    const [flipHorizontal, setFlipHorizontal] = useState(false);
+    const [flipVertical, setFlipVertical] = useState(false);
+    const [processing, setProcessing] = useState(false);
+
+    const applyEdits = async () => {
+      if (!editingImageUri) return;
+
+      setProcessing(true);
+      try {
+        const actions: ImageManipulator.Action[] = [];
+
+        if (rotation !== 0) {
+          actions.push({ rotate: rotation });
+        }
+
+        if (flipHorizontal) {
+          actions.push({ flip: ImageManipulator.FlipType.Horizontal });
+        }
+
+        if (flipVertical) {
+          actions.push({ flip: ImageManipulator.FlipType.Vertical });
+        }
+
+        const result = await ImageManipulator.manipulateAsync(
+          editingImageUri,
+          actions,
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        );
+
+        handleApplyImageEdit(result.uri);
+      } catch (error) {
+        console.error('[CrearPublicacion] Error editing image:', error);
+        Alert.alert('Error', 'No se pudo editar la imagen');
+      } finally {
+        setProcessing(false);
+      }
+    };
+
+    return (
+      <Modal
+        visible={showImageEditor}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={() => setShowImageEditor(false)}
+      >
+        <View style={styles.editorContainer}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.editorHeader}
+          >
+            <TouchableOpacity onPress={() => setShowImageEditor(false)} style={styles.editorCloseButton}>
+              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.editorHeaderTitle}>Editar Imagen</Text>
+            <TouchableOpacity 
+              onPress={applyEdits} 
+              style={styles.editorApplyButton}
+              disabled={processing}
+            >
+              {processing ? (
+                <ActivityIndicator size="small" color={colors.headerText} />
+              ) : (
+                <Text style={styles.editorApplyText}>Aplicar</Text>
+              )}
+            </TouchableOpacity>
+          </LinearGradient>
+
+          <View style={styles.editorContent}>
+            {editingImageUri && (
+              <Image 
+                source={{ uri: editingImageUri }} 
+                style={styles.editorImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+
+          <View style={styles.editorControls}>
+            <View style={styles.editorControlRow}>
+              <Text style={styles.editorControlLabel}>Rotar</Text>
+              <View style={styles.editorControlButtons}>
+                <TouchableOpacity 
+                  style={styles.editorControlButton}
+                  onPress={() => setRotation((rotation - 90) % 360)}
+                >
+                  <IconSymbol ios_icon_name="rotate.left" android_material_icon_name="rotate_left" size={24} color={colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.editorControlButton}
+                  onPress={() => setRotation((rotation + 90) % 360)}
+                >
+                  <IconSymbol ios_icon_name="rotate.right" android_material_icon_name="rotate_right" size={24} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.editorControlRow}>
+              <Text style={styles.editorControlLabel}>Voltear</Text>
+              <View style={styles.editorControlButtons}>
+                <TouchableOpacity 
+                  style={[styles.editorControlButton, flipHorizontal && styles.editorControlButtonActive]}
+                  onPress={() => setFlipHorizontal(!flipHorizontal)}
+                >
+                  <IconSymbol ios_icon_name="arrow.left.and.right" android_material_icon_name="swap_horiz" size={24} color={flipHorizontal ? colors.white : colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.editorControlButton, flipVertical && styles.editorControlButtonActive]}
+                  onPress={() => setFlipVertical(!flipVertical)}
+                >
+                  <IconSymbol ios_icon_name="arrow.up.and.down" android_material_icon_name="swap_vert" size={24} color={flipVertical ? colors.white : colors.primary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
   };
 
   const seleccionarImagenes = async () => {
@@ -439,7 +589,7 @@ export default function CrearPublicacionScreen() {
 
       setUploadProgress(85);
 
-      // ✅ UPDATED: Support tagging both users and locals
+      // ✅ CRITICAL FIX: Properly handle tags for both users and locals
       if (usuariosEtiquetados.length > 0 && postData2) {
         console.log('[CrearPublicacion] 🏷️ Creating tags for', usuariosEtiquetados.length, 'profiles');
 
@@ -451,11 +601,16 @@ export default function CrearPublicacionScreen() {
             tagged_by_user_id: user.id,
           };
 
+          // ✅ CRITICAL FIX: Set usuario_id OR local_id, never both null
           if (item.tipo === 'usuario') {
             tagData.usuario_id = item.id;
+            tagData.local_id = null; // Explicitly set to null
           } else {
             tagData.local_id = item.id;
+            tagData.usuario_id = null; // Explicitly set to null
           }
+
+          console.log('[CrearPublicacion] 🏷️ Tag data:', tagData);
 
           return tagData;
         });
@@ -465,7 +620,7 @@ export default function CrearPublicacionScreen() {
           .insert(tags);
 
         if (tagsError) {
-          console.error('[CrearPublicacion] Error adding tags:', tagsError);
+          console.error('[CrearPublicacion] ❌ Error adding tags:', tagsError);
         } else {
           console.log('[CrearPublicacion] ✅ Tags created successfully');
         }
@@ -623,6 +778,14 @@ export default function CrearPublicacionScreen() {
                 {imagenes.map((uri, index) => (
                   <View key={index} style={styles.imagePreviewWrapper}>
                     <Image source={{ uri }} style={styles.imagePreview} />
+                    {/* ✅ NEW: Edit button */}
+                    <TouchableOpacity
+                      style={styles.editImageButton}
+                      onPress={() => handleEditImage(index)}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol ios_icon_name="pencil.circle.fill" android_material_icon_name="edit" size={28} color="#FFFFFF" />
+                    </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.removeImageButton}
                       onPress={() => eliminarImagen(index)}
@@ -789,6 +952,9 @@ export default function CrearPublicacionScreen() {
         />
       </View>
 
+      {/* ✅ NEW: Image Editor Modal */}
+      <ImageEditorModal />
+
       {/* ✅ UPDATED: TaggingModalV5 with local support */}
       <TaggingModalV5
         visible={showTagModal}
@@ -928,6 +1094,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.cardBorder,
   },
+  editImageButton: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 14,
+  },
   removeImageButton: {
     position: 'absolute',
     top: 8,
@@ -948,6 +1121,88 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.headerText,
+  },
+  editorContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  editorHeader: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  editorCloseButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editorHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.headerText,
+    flex: 1,
+    textAlign: 'center',
+  },
+  editorApplyButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 20,
+    minWidth: 90,
+    alignItems: 'center',
+  },
+  editorApplyText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.headerText,
+  },
+  editorContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  editorImage: {
+    width: '100%',
+    height: '100%',
+  },
+  editorControls: {
+    backgroundColor: colors.cardBackground,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+  editorControlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  editorControlLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  editorControlButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  editorControlButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  editorControlButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   taggedSection: {
     backgroundColor: colors.cardBackground,
