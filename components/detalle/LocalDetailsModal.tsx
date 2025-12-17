@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Linking,
   Alert,
+  Image as RNImage,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -66,7 +67,6 @@ interface Local {
   ambiente_completo?: Record<string, boolean>;
   clientela?: Record<string, boolean>;
   metodos_pago_completos?: Record<string, boolean>;
-  coordenadas?: { lat: number; lng: number };
 }
 
 const getCategoryIcon = (categoria?: string): { ios: string; android: string; color: string } => {
@@ -81,7 +81,19 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
     'coctelería': { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
   };
   return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
-};
+}
+
+/**
+ * ✅ LOCAL DETAILS MODAL v11.0 - STANDARD MODAL IMPLEMENTATION
+ * 
+ * Features:
+ * - ✅ Standard modal behavior (centered, floating container)
+ * - ✅ Blocks interaction with background content
+ * - ✅ Dark overlay background
+ * - ✅ Close button with proper positioning (respects badge margins)
+ * - ✅ Can close by clicking overlay or close button
+ * - ✅ No swipe gestures (standard modal behavior)
+ */
 
 export default function LocalDetailsModal({
   visible,
@@ -98,13 +110,12 @@ export default function LocalDetailsModal({
   const localIsFavorite = localId ? isFavorite(localId) : false;
 
   useEffect(() => {
-    if (visible && localId) {
+    if (visible) {
       console.log('[LocalDetailsModal] 🚀 Opening modal for local:', localId);
       loadLocalData();
     } else {
       setLocal(null);
       setLoading(true);
-      setCurrentImageIndex(0);
     }
   }, [visible, localId]);
 
@@ -118,10 +129,9 @@ export default function LocalDetailsModal({
         .single();
 
       if (error) throw error;
-      console.log('[LocalDetailsModal] ✅ Local loaded:', data?.nombre);
       setLocal(data);
     } catch (error) {
-      console.error('[LocalDetailsModal] ❌ Error loading local:', error);
+      console.error('[LocalDetailsModal] Error loading local:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
     } finally {
       setLoading(false);
@@ -149,19 +159,10 @@ export default function LocalDetailsModal({
         default: `https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`
       });
       Linking.openURL(url);
-    } else if (local?.coordenadas) {
-      const { lat, lng } = local.coordenadas;
-      const url = Platform.select({
-        ios: `maps:0,0?q=${lat},${lng}`,
-        android: `google.navigation:q=${lat},${lng}`,
-        default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
-      });
-      Linking.openURL(url);
     }
   };
 
   const handleViewFullDetails = () => {
-    console.log('[LocalDetailsModal] 📱 Navigating to full details page');
     onClose();
     setTimeout(() => {
       router.push({ pathname: '/detalle/local', params: { id: localId } });
@@ -190,9 +191,10 @@ export default function LocalDetailsModal({
 
   const displayRating = local?.rating || local?.google_rating || 0;
 
+  // ✅ FIXED: Close button position respects badge margins
   const closeButtonTop = local?.destacado 
-    ? (Platform.OS === 'ios' ? 108 : 108)
-    : (Platform.OS === 'ios' ? 68 : 68);
+    ? (Platform.OS === 'ios' ? 100 : 100)
+    : (Platform.OS === 'ios' ? 60 : 60);
 
   return (
     <Modal
@@ -204,11 +206,13 @@ export default function LocalDetailsModal({
     >
       <StatusBar barStyle="light-content" backgroundColor="rgba(0, 0, 0, 0.7)" translucent />
       
+      {/* ✅ Dark overlay - blocks interaction with background */}
       <TouchableOpacity 
         style={styles.overlay}
         activeOpacity={1}
         onPress={onClose}
       >
+        {/* ✅ Modal container - centered, floating */}
         <TouchableOpacity 
           style={styles.modalContainer}
           activeOpacity={1}
@@ -226,6 +230,7 @@ export default function LocalDetailsModal({
               </View>
             ) : local ? (
               <React.Fragment>
+                {/* Cover Image */}
                 {allImages.length > 0 && (
                   <View style={styles.coverContainer}>
                     <OptimizedImage
@@ -234,6 +239,7 @@ export default function LocalDetailsModal({
                       resizeMode="cover"
                     />
 
+                    {/* ✅ FIXED: Close button with proper positioning - respects badge margins */}
                     <TouchableOpacity 
                       style={[styles.closeButtonFixed, { top: closeButtonTop }]} 
                       onPress={onClose}
@@ -296,6 +302,7 @@ export default function LocalDetailsModal({
                   </View>
                 )}
 
+                {/* Content */}
                 <View style={styles.contentCard}>
                   <Text style={styles.localNameText}>{local.nombre}</Text>
 
@@ -348,7 +355,7 @@ export default function LocalDetailsModal({
                       </TouchableOpacity>
                     )}
                 
-                    {(local.latitud || local.coordenadas) && (
+                    {local.latitud && local.longitud && (
                       <TouchableOpacity style={styles.actionBtn} onPress={handleDirections}>
                         <LinearGradient
                           colors={[colors.primary, colors.secondary]}
@@ -443,6 +450,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
   },
+  // ✅ FIXED: Close button with proper positioning - respects badge margins
   closeButtonFixed: {
     position: 'absolute',
     left: 16,

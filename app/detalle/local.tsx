@@ -1,43 +1,37 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-  Platform,
-  Linking,
-  Alert,
-  ActivityIndicator,
-  Share,
-  StatusBar,
-} from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { IconSymbol } from '@/components/IconSymbol';
-import { colors } from '@/styles/commonStyles';
-import { supabase } from '@/utils/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-import { useFavorites } from '@/contexts/FavoritesContext';
-import OptimizedImage from '@/components/common/OptimizedImage';
-import { getEstadoLocal } from '@/utils/timeUtils';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare, Image as RNImage, StatusBar } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../integrations/supabase/client';
+import { colors } from '../../styles/commonStyles';
+import OptimizedImage from '../../components/common/OptimizedImage';
 import { LinearGradient } from 'expo-linear-gradient';
-import ImageGalleryModal from '@/components/detalle/ImageGalleryModal';
-import ReviewsModal from '@/components/social/ReviewsModal';
 import { BlurView } from 'expo-blur';
+import { IconSymbol } from '../../components/IconSymbol';
+import * as Location from 'expo-location';
+import ImageGalleryModal from '../../components/detalle/ImageGalleryModal';
+import { CATEGORIAS_EXCLUIDAS } from '../../utils/constants';
+import { getEstadoLocal } from '../../utils/timeUtils';
+import { useAuth } from '../../contexts/AuthContext';
+import { useFavorites } from '../../contexts/FavoritesContext';
+import { calcularDistancia } from '../../utils/locationUtils';
+import ParsedText from '../../components/social/ParsedText';
+import ReviewsModal from '../../components/social/ReviewsModal';
+import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, {
-  useAnimatedScrollHandler,
   useSharedValue,
   useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS,
   interpolate,
   Extrapolate,
-  withTiming,
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const HEADER_HEIGHT = 300;
-const HEADER_SCROLL_DISTANCE = HEADER_HEIGHT - 100;
+const MODAL_HEIGHT = SCREEN_HEIGHT * 0.92;
+const SWIPE_THRESHOLD = 120;
 
 interface Local {
   id: string;
@@ -47,6 +41,7 @@ interface Local {
   telefono?: string;
   email?: string;
   website?: string;
+  horario?: string;
   categoria?: string;
   subcategoria?: string;
   precio_medio?: number;
@@ -59,124 +54,438 @@ interface Local {
   longitud?: number;
   ciudad?: string;
   provincia?: string;
+  codigo_postal?: string;
+  capacidad?: number;
+  servicios?: string[];
+  servicios_disponibles?: Record<string, any>;
+  ambiente?: string;
+  ambiente_completo?: Record<string, boolean>;
+  musica?: string;
+  dress_code?: string;
+  edad_minima?: number;
+  accesibilidad?: boolean;
+  parking?: boolean;
+  terraza?: boolean;
+  wifi?: boolean;
+  reservas?: boolean;
+  delivery?: boolean;
+  takeaway?: boolean;
+  created_at?: string;
+  updated_at?: string;
   horarios_completos?: Record<string, string[]>;
   estado_actual?: 'abierto_ahora' | 'cerrado_ahora';
+  clientela?: Record<string, boolean>;
+  plan_activo?: string;
   barlive_type?: string;
   barlive_types?: string[];
+  analisis_reviews?: Record<string, any>;
+  reviews_google?: any[];
+  google_rating?: number;
+  google_user_ratings_total?: number;
   destacado?: boolean;
   rating?: number;
-  google_rating?: number;
-  descripcion_google?: string;
-  servicios_disponibles?: Record<string, any>;
-  ambiente_completo?: Record<string, boolean>;
-  clientela?: Record<string, boolean>;
   metodos_pago_completos?: Record<string, boolean>;
-  coordenadas?: { lat: number; lng: number };
+  tipos_cocina?: string[];
+  descripcion_google?: string;
+  rango_precios?: string;
+  nivel_precio_google?: number;
 }
 
-const DIAS_SEMANA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+interface Review {
+  id: string;
+  local_id: string;
+  usuario_id: string;
+  rating: number;
+  texto?: string;
+  created_at: string;
+  usuario?: {
+    nombre?: string;
+    avatar?: string;
+  };
+}
+
+interface Evento {
+  id: string;
+  titulo: string;
+  descripcion?: string;
+  fecha: string;
+  hora_inicio?: string;
+  hora_fin?: string;
+  imagen_url?: string;
+  precio?: number;
+}
+
+const getCategoryIcon = (categoria?: string): { ios: string; android: string; color: string } => {
+  const categoryMap: Record<string, { ios: string; android: string; color: string }> = {
+    'bar': { ios: 'wineglass.fill', android: 'local_bar', color: '#F59E0B' },
+    'restaurante': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    'cafe': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#8B5CF6' },
+    'cafetería': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#8B5CF6' },
+    'pub': { ios: 'wineglass', android: 'sports_bar', color: '#10B981' },
+    'discoteca': { ios: 'music.note', android: 'nightlife', color: '#EC4899' },
+    'cocteleria': { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
+    'coctelería': { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
+    'sala_conciertos': { ios: 'music.note.list', android: 'music_note', color: '#F59E0B' },
+  };
+  return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
+};
+
+const getServiceIcon = (servicio: string): { ios: string; android: string; color: string } => {
+  const serviceMap: Record<string, { ios: string; android: string; color: string }> = {
+    'cerveza': { ios: 'wineglass', android: 'sports_bar', color: '#F59E0B' },
+    'cócteles': { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
+    'cocteles': { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
+    'cocktails': { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
+    'efectivo': { ios: 'banknote', android: 'payments', color: '#10B981' },
+    'pago_efectivo': { ios: 'banknote', android: 'payments', color: '#10B981' },
+    'tarjetas': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
+    'pago_tarjetas': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
+    'tarjetas_credito': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
+    'tarjetas_debito': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
+    'wifi': { ios: 'wifi', android: 'wifi', color: '#8B5CF6' },
+    'wifi_gratis': { ios: 'wifi', android: 'wifi', color: '#8B5CF6' },
+    'terraza': { ios: 'sun.max.fill', android: 'wb_sunny', color: '#F59E0B' },
+    'terraza_exterior': { ios: 'sun.max.fill', android: 'wb_sunny', color: '#F59E0B' },
+    'parking': { ios: 'car.fill', android: 'local_parking', color: '#6366F1' },
+    'aparcamiento': { ios: 'car.fill', android: 'local_parking', color: '#6366F1' },
+    'accesibilidad': { ios: 'figure.roll', android: 'accessible', color: '#10B981' },
+    'accesible_silla_ruedas': { ios: 'figure.roll', android: 'accessible', color: '#10B981' },
+    'reservas': { ios: 'calendar', android: 'event', color: '#EF4444' },
+    'delivery': { ios: 'bicycle', android: 'delivery_dining', color: '#F59E0B' },
+    'entrega_domicilio': { ios: 'bicycle', android: 'delivery_dining', color: '#F59E0B' },
+    'takeaway': { ios: 'bag.fill', android: 'takeout_dining', color: '#8B5CF6' },
+    'para_llevar': { ios: 'bag.fill', android: 'takeout_dining', color: '#8B5CF6' },
+    'comida': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    'almuerzo': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    'cena': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    'desayuno': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
+    'bebidas': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
+    'cafe': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
+    'vino': { ios: 'wineglass.fill', android: 'wine_bar', color: '#8B5CF6' },
+    'musica en vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
+    'música en vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
+    'musica_vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
+    'karaoke': { ios: 'mic.fill', android: 'mic', color: '#8B5CF6' },
+    'tv': { ios: 'tv.fill', android: 'tv', color: '#3B82F6' },
+    'deportes_tv': { ios: 'tv.fill', android: 'tv', color: '#3B82F6' },
+    'juegos': { ios: 'gamecontroller.fill', android: 'sports_esports', color: '#10B981' },
+    'dj': { ios: 'music.note.list', android: 'music_note', color: '#EC4899' },
+    'sin_gluten': { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
+    'opciones_veganas': { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
+    'comida_vegetariana': { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
+  };
+  
+  const lowerServicio = servicio.toLowerCase().replace(/ /g, '_');
+  for (const [key, value] of Object.entries(serviceMap)) {
+    if (lowerServicio.includes(key) || key.includes(lowerServicio)) {
+      return value;
+    }
+  }
+  
+  return { ios: 'checkmark.circle.fill', android: 'check_circle', color: colors.primary };
+};
+
+const getAmbienteIcon = (ambiente: string): { ios: string; android: string; color: string } => {
+  const ambienteMap: Record<string, { ios: string; android: string; color: string }> = {
+    'familiar': { ios: 'person.3.fill', android: 'family_restroom', color: '#14B8A6' },
+    'tranquilo': { ios: 'leaf.fill', android: 'spa', color: '#06B6D4' },
+    'animado': { ios: 'bolt.fill', android: 'celebration', color: '#F59E0B' },
+    'romántico': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
+    'romantico': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
+    'moderno': { ios: 'sparkles', android: 'auto_awesome', color: '#8B5CF6' },
+    'elegante': { ios: 'star.fill', android: 'star', color: '#F59E0B' },
+    'acogedor': { ios: 'house.fill', android: 'home', color: '#F59E0B' },
+    'de_moda': { ios: 'sparkles', android: 'auto_awesome', color: '#EC4899' },
+    'juvenil': { ios: 'bolt.fill', android: 'celebration', color: '#3B82F6' },
+    'tematico': { ios: 'star.fill', android: 'star', color: '#8B5CF6' },
+  };
+  
+  const lowerAmbiente = ambiente.toLowerCase().replace(/ /g, '_');
+  for (const [key, value] of Object.entries(ambienteMap)) {
+    if (lowerAmbiente.includes(key) || key.includes(lowerAmbiente)) {
+      return value;
+    }
+  }
+  
+  return { ios: 'sparkles', android: 'auto_awesome', color: colors.primary };
+};
+
+const getClientelaIcon = (clientela: string): { ios: string; android: string; color: string } => {
+  const clientelaMap: Record<string, { ios: string; android: string; color: string }> = {
+    'grupos': { ios: 'person.3.fill', android: 'groups', color: '#10B981' },
+    'familias': { ios: 'house.fill', android: 'family_restroom', color: '#059669' },
+    'parejas': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
+    'estudiantes': { ios: 'book.fill', android: 'school', color: '#3B82F6' },
+    'turistas': { ios: 'airplane', android: 'flight', color: '#F59E0B' },
+    'ninos_bienvenidos': { ios: 'figure.2.and.child.holdinghands', android: 'child_care', color: '#14B8A6' },
+    'lgtbi_friendly': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
+    'locales': { ios: 'person.2.fill', android: 'people', color: '#8B5CF6' },
+  };
+  
+  const lowerClientela = clientela.toLowerCase().replace(/ /g, '_');
+  for (const [key, value] of Object.entries(clientelaMap)) {
+    if (lowerClientela.includes(key) || key.includes(lowerClientela)) {
+      return value;
+    }
+  }
+  
+  return { ios: 'person.2.fill', android: 'people', color: colors.primary };
+};
+
+const summarizeText = (text: string, maxLength: number = 120): { summary: string; needsExpansion: boolean } => {
+  if (!text || text.length <= maxLength) {
+    return { summary: text, needsExpansion: false };
+  }
+  
+  const summary = text.substring(0, maxLength).trim() + '...';
+  return { summary, needsExpansion: true };
+};
+
+const calculateSentiment = (rating: number): { sentiment: string; color: string } => {
+  if (rating >= 4.5) {
+    return { sentiment: 'Excelente', color: '#10B981' };
+  } else if (rating >= 4) {
+    return { sentiment: 'Muy Positivo', color: '#10B981' };
+  } else if (rating >= 3) {
+    return { sentiment: 'Positivo', color: '#3B82F6' };
+  } else if (rating >= 2) {
+    return { sentiment: 'Neutral', color: '#F59E0B' };
+  } else {
+    return { sentiment: 'Negativo', color: '#EF4444' };
+  }
+};
+
+const normalizeDayName = (day: string): string => {
+  const normalizations: Record<string, string> = {
+    'lunes': 'lunes',
+    'martes': 'martes',
+    'miércoles': 'miercoles',
+    'miercoles': 'miercoles',
+    'jueves': 'jueves',
+    'viernes': 'viernes',
+    'sábado': 'sabado',
+    'sabado': 'sabado',
+    'domingo': 'domingo',
+  };
+  return normalizations[day.toLowerCase()] || day;
+};
+
+const formatOpeningHours = (hours: string[]): string => {
+  if (!hours || hours.length === 0) {
+    return 'Cerrado';
+  }
+  
+  const sortedHours = [...hours].sort((a, b) => {
+    const timeA = a.split('–')[0]?.trim() || a.split('-')[0]?.trim() || '';
+    const timeB = b.split('–')[0]?.trim() || b.split('-')[0]?.trim() || '';
+    return timeA.localeCompare(timeB);
+  });
+  
+  return sortedHours.join(', ');
+};
+
+/**
+ * ✅ DETALLE LOCAL v13.0 - PROPER MODAL IMPLEMENTATION
+ * 
+ * Changes:
+ * - ✅ Now opens as a proper modal with transparentModal presentation
+ * - ✅ Background page visible and dimmed behind modal
+ * - ✅ Swipe-down gesture to close
+ * - ✅ No white/black background when swiping
+ * - ✅ Smooth animations with react-native-reanimated
+ * - ✅ Close button positioned dynamically based on badges
+ */
 
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const { user, ensureValidSession } = useAuth();
   const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
+  const scrollViewRef = useRef<ScrollView>(null);
   
   const [local, setLocal] = useState<Local | null>(null);
   const [loading, setLoading] = useState(true);
-  const [galleryVisible, setGalleryVisible] = useState(false);
-  const [reviewsVisible, setReviewsVisible] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [reviewCount, setReviewCount] = useState(0);
+  const [averageRating, setAverageRating] = useState(0);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [distance, setDistance] = useState<string | null>(null);
+  const [galleryVisible, setGalleryVisible] = useState(false);
+  const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
+  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [loadingEventos, setLoadingEventos] = useState(false);
+  const [expandedDescription, setExpandedDescription] = useState(false);
+  
+  const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
-  const scrollY = useSharedValue(0);
-  const localId = params.id as string;
-  const localIsFavorite = localId ? isFavorite(localId) : false;
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
+
+  // ✅ Gesture handling for swipe-down to close
+  const translateY = useSharedValue(0);
+  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
-    if (localId) {
-      loadLocalData();
-      loadReviewCount();
-    }
-  }, [localId]);
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({});
+          setUserLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+          console.log('[DetalleLocal] ✅ User location obtained:', location.coords.latitude, location.coords.longitude);
+        } else {
+          console.log('[DetalleLocal] ⚠️ Location permission not granted');
+        }
+      } catch (error) {
+        console.error('[DetalleLocal] Error getting location:', error);
+      }
+    })();
+  }, []);
 
-  const loadLocalData = async () => {
+  useEffect(() => {
+    if (userLocation && local?.latitud && local?.longitud) {
+      const distKm = calcularDistancia(
+        userLocation.latitude,
+        userLocation.longitude,
+        Number(local.latitud),
+        Number(local.longitud)
+      );
+      
+      const dist = distKm < 1 
+        ? `${Math.round(distKm * 1000)} m` 
+        : `${distKm.toFixed(1)} km`;
+      
+      setDistance(dist);
+      console.log('[DetalleLocal] ✅ Real distance calculated:', dist, 'from user:', userLocation, 'to local:', local.latitud, local.longitud);
+    } else {
+      console.log('[DetalleLocal] ⚠️ Cannot calculate distance - missing data:', {
+        hasUserLocation: !!userLocation,
+        hasLocalLat: !!local?.latitud,
+        hasLocalLon: !!local?.longitud
+      });
+    }
+  }, [userLocation, local]);
+
+  const cargarReviewsBarlive = useCallback(async () => {
     try {
+      setLoadingReviews(true);
+      const { data, error } = await supabase
+        .from('reviews_barlive')
+        .select(`
+          *,
+          usuario:usuario_id (
+            nombre,
+            avatar
+          )
+        `)
+        .eq('local_id', params.id)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (error) {
+        console.error('[DetalleLocal] Error loading reviews:', error);
+        return;
+      }
+
+      console.log('[DetalleLocal] Loaded reviews:', data);
+      setReviews(data || []);
+      
+      if (data && data.length > 0) {
+        const avg = data.reduce((sum, r) => sum + r.rating, 0) / data.length;
+        setAverageRating(avg);
+      }
+      
+      setLoadingReviews(false);
+    } catch (error) {
+      console.error('[DetalleLocal] Error loading reviews:', error);
+      setLoadingReviews(false);
+    }
+  }, [params.id]);
+
+  const cargarEventos = useCallback(async () => {
+    try {
+      setLoadingEventos(true);
+      const { data, error } = await supabase
+        .from('eventos')
+        .select('*')
+        .eq('local_id', params.id)
+        .eq('activo', true)
+        .gte('fecha', new Date().toISOString().split('T')[0])
+        .order('fecha', { ascending: true })
+        .limit(3);
+
+      if (error) {
+        console.error('[DetalleLocal] Error loading eventos:', error);
+        return;
+      }
+
+      console.log('[DetalleLocal] Loaded eventos:', data);
+      setEventos(data || []);
+      setLoadingEventos(false);
+    } catch (error) {
+      console.error('[DetalleLocal] Error loading eventos:', error);
+      setLoadingEventos(false);
+    }
+  }, [params.id]);
+
+  const cargarLocal = useCallback(async () => {
+    try {
+      const timestamp = Date.now();
+      console.log('[DetalleLocal] Loading local with timestamp:', timestamp);
+      
       setLoading(true);
       const { data, error } = await supabase
         .from('locales')
         .select('*')
-        .eq('id', localId)
+        .eq('id', params.id)
         .single();
 
-      if (error) throw error;
-      console.log('[DetalleLocal] ✅ Local loaded:', data?.nombre);
+      if (error) {
+        console.error('[DetalleLocal] Error loading local:', error);
+        setLoading(false);
+        return;
+      }
+
+      console.log('[DetalleLocal] Loaded local from Supabase:', {
+        id: data.id,
+        nombre: data.nombre,
+        hasServicios: !!data.servicios_disponibles,
+        serviciosCount: data.servicios_disponibles ? Object.keys(data.servicios_disponibles).length : 0,
+        hasHorarios: !!data.horarios_completos,
+        horariosKeys: data.horarios_completos ? Object.keys(data.horarios_completos) : [],
+        planActivo: data.plan_activo,
+        destacado: data.destacado,
+        hasAmbiente: !!data.ambiente_completo,
+        hasClientela: !!data.clientela,
+        hasAnalisisReviews: !!data.analisis_reviews,
+        latitud: data.latitud,
+        longitud: data.longitud
+      });
+      
       setLocal(data);
+      setLoading(false);
+      cargarReviewsBarlive();
+      cargarEventos();
     } catch (error) {
-      console.error('[DetalleLocal] ❌ Error loading local:', error);
-      Alert.alert('Error', 'No se pudo cargar el local');
-      router.back();
-    } finally {
+      console.error('[DetalleLocal] Error:', error);
       setLoading(false);
     }
-  };
+  }, [params.id, cargarReviewsBarlive, cargarEventos]);
 
-  const loadReviewCount = async () => {
-    try {
-      const { count, error } = await supabase
-        .from('reviews')
-        .select('*', { count: 'exact', head: true })
-        .eq('local_id', localId);
-
-      if (error) throw error;
-      setReviewCount(count || 0);
-    } catch (error) {
-      console.error('[DetalleLocal] Error loading review count:', error);
+  useEffect(() => {
+    if (params.id) {
+      cargarLocal();
     }
-  };
+  }, [params.id, cargarLocal]);
 
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
-    },
-  });
-
-  const headerAnimatedStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      scrollY.value,
-      [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
-      [0, 0, 1],
-      Extrapolate.CLAMP
-    );
-
-    return {
-      opacity,
-    };
-  });
-
-  const imageAnimatedStyle = useAnimatedStyle(() => {
-    const scale = interpolate(
-      scrollY.value,
-      [-100, 0],
-      [1.5, 1],
-      Extrapolate.CLAMP
-    );
-
-    const translateY = interpolate(
-      scrollY.value,
-      [0, HEADER_SCROLL_DISTANCE],
-      [0, -HEADER_SCROLL_DISTANCE / 2],
-      Extrapolate.CLAMP
-    );
-
-    return {
-      transform: [{ scale }, { translateY }],
-    };
-  });
-
-  const handleToggleFavorito = async () => {
-    if (localId) {
-      await toggleFavorite(localId);
+  const handleToggleFavorito = async (e: any) => {
+    e.stopPropagation();
+    if (params.id) {
+      await toggleFavorite(params.id as string);
     }
   };
 
@@ -186,56 +495,156 @@ export default function DetalleLocalScreen() {
     }
   };
 
-  const handleEmail = () => {
-    if (local?.email) {
-      Linking.openURL(`mailto:${local.email}`);
-    }
-  };
-
-  const handleWebsite = () => {
-    if (local?.website) {
-      Linking.openURL(local.website);
-    }
-  };
-
   const handleDirections = () => {
     if (local?.latitud && local?.longitud) {
-      const url = Platform.select({
-        ios: `maps:0,0?q=${local.latitud},${local.longitud}`,
-        android: `google.navigation:q=${local.latitud},${local.longitud}`,
-        default: `https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`
-      });
-      Linking.openURL(url);
-    } else if (local?.coordenadas) {
-      const { lat, lng } = local.coordenadas;
-      const url = Platform.select({
-        ios: `maps:0,0?q=${lat},${lng}`,
-        android: `google.navigation:q=${lat},${lng}`,
-        default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
-      });
-      Linking.openURL(url);
+      Alert.alert(
+        'Cómo llegar',
+        'Elige tu aplicación de navegación',
+        [
+          {
+            text: 'Google Maps',
+            onPress: () => {
+              const url = Platform.select({
+                ios: `comgooglemaps://?q=${local.latitud},${local.longitud}`,
+                android: `google.navigation:q=${local.latitud},${local.longitud}`,
+                default: `https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`
+              });
+              Linking.canOpenURL(url).then(supported => {
+                if (supported) {
+                  Linking.openURL(url);
+                } else {
+                  Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`);
+                }
+              });
+            }
+          },
+          {
+            text: 'Apple Maps',
+            onPress: () => {
+              const url = `maps:0,0?q=${local.latitud},${local.longitud}`;
+              Linking.openURL(url);
+            }
+          },
+          {
+            text: 'Waze',
+            onPress: () => {
+              const url = `waze://?ll=${local.latitud},${local.longitud}&navigate=yes`;
+              Linking.canOpenURL(url).then(supported => {
+                if (supported) {
+                  Linking.openURL(url);
+                } else {
+                  Alert.alert('Error', 'Waze no está instalado');
+                }
+              });
+            }
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel'
+          }
+        ]
+      );
     }
+  };
+
+  const handleSocialProfile = () => {
+    router.push({
+      pathname: '/perfil/local',
+      params: { localId: params.id }
+    });
   };
 
   const handleShare = async () => {
     try {
-      await Share.share({
-        message: `¡Mira este local! ${local?.nombre} - ${local?.direccion}`,
-        url: `https://natively.dev/detalle/local?id=${localId}`,
+      await RNShare.share({
+        message: `¡Mira este local en BarLive! ${local?.nombre}`,
+        title: local?.nombre || 'Local en BarLive',
       });
     } catch (error) {
       console.error('[DetalleLocal] Error sharing:', error);
     }
   };
 
+  const handleAddReview = () => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para añadir una reseña');
+      return;
+    }
+    setShowReviewsModal(true);
+  };
+
   const handleOpenGallery = (index: number) => {
-    setCurrentImageIndex(index);
+    setGalleryInitialIndex(index);
     setGalleryVisible(true);
   };
 
-  const handleOpenReviews = () => {
-    setReviewsVisible(true);
+  const toggleReviewExpansion = (reviewId: string) => {
+    setExpandedReviews(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(reviewId)) {
+        newSet.delete(reviewId);
+      } else {
+        newSet.add(reviewId);
+      }
+      return newSet;
+    });
   };
+
+  // ✅ Gesture handlers for swipe-down to close
+  const onGestureEvent = (event: any) => {
+    'worklet';
+    const translationY = event.translationY;
+    
+    // Only allow downward swipes
+    if (translationY > 0) {
+      translateY.value = translationY;
+    }
+  };
+
+  const onGestureEnd = (event: any) => {
+    'worklet';
+    const translationY = event.translationY;
+    const velocityY = event.velocityY;
+    
+    // Close if swiped down enough or fast enough
+    if (translationY > SWIPE_THRESHOLD || velocityY > 500) {
+      translateY.value = withTiming(MODAL_HEIGHT, {
+        duration: 300,
+      }, () => {
+        runOnJS(handleModalClosed)();
+      });
+    } else {
+      // Snap back to open position
+      translateY.value = withSpring(0, {
+        damping: 20,
+        stiffness: 90,
+      });
+    }
+  };
+
+  const handleModalClosed = () => {
+    console.log('[DetalleLocal] ✅ Modal closed via gesture');
+    router.back();
+  };
+
+  const animatedModalStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: translateY.value }],
+    };
+  });
+
+  const animatedBackdropStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      translateY.value,
+      [0, MODAL_HEIGHT],
+      [1, 0],
+      Extrapolate.CLAMP
+    );
+    
+    return {
+      opacity,
+    };
+  });
 
   if (loading) {
     return (
@@ -249,10 +658,10 @@ export default function DetalleLocalScreen() {
   if (!local) {
     return (
       <View style={styles.errorContainer}>
-        <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="error" size={48} color={colors.badgeDestacado} />
+        <Ionicons name="alert-circle-outline" size={64} color={colors.badgeNuevo} />
         <Text style={styles.errorText}>No se pudo cargar el local</Text>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Volver</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={cargarLocal}>
+          <Text style={styles.retryButtonText}>Reintentar</Text>
         </TouchableOpacity>
       </View>
     );
@@ -262,10 +671,112 @@ export default function DetalleLocalScreen() {
     local.imagen_url || local.foto_principal,
     ...(local.fotos || []),
     ...(local.galeria_urls || [])
-  ].filter(Boolean);
+  ].filter(Boolean).map(img => `${img}?v=${Date.now()}`);
 
   const estadoLocal = getEstadoLocal(local);
-  const isOpen = estadoLocal?.estaAbierto === true;
+  const isOpen = estadoLocal.estaAbierto === true;
+  const hasSocialProfile = local.plan_activo === 'estandar' || local.plan_activo === 'premium';
+
+  const allServices: string[] = [];
+  const serviceSet = new Set<string>();
+  
+  if (local.servicios_disponibles) {
+    Object.entries(local.servicios_disponibles).forEach(([key, value]) => {
+      if (value === true) {
+        const serviceName = key.replace(/_/g, ' ');
+        if (!serviceSet.has(serviceName.toLowerCase())) {
+          serviceSet.add(serviceName.toLowerCase());
+          allServices.push(serviceName);
+        }
+      }
+    });
+  }
+  
+  if (local.servicios && local.servicios.length > 0) {
+    local.servicios.forEach(servicio => {
+      if (!serviceSet.has(servicio.toLowerCase())) {
+        serviceSet.add(servicio.toLowerCase());
+        allServices.push(servicio);
+      }
+    });
+  }
+  
+  if (local.metodos_pago_completos) {
+    Object.entries(local.metodos_pago_completos).forEach(([key, value]) => {
+      if (value === true) {
+        const serviceName = key.replace(/_/g, ' ');
+        if (!serviceSet.has(serviceName.toLowerCase())) {
+          serviceSet.add(serviceName.toLowerCase());
+          allServices.push(serviceName);
+        }
+      }
+    });
+  }
+
+  const ambienteTags: string[] = [];
+  const ambienteSet = new Set<string>();
+  
+  if (local.ambiente_completo) {
+    Object.entries(local.ambiente_completo).forEach(([key, value]) => {
+      if (value === true) {
+        const ambienteName = key.replace(/_/g, ' ');
+        if (!ambienteSet.has(ambienteName.toLowerCase())) {
+          ambienteSet.add(ambienteName.toLowerCase());
+          ambienteTags.push(ambienteName);
+        }
+      }
+    });
+  }
+  
+  if (local.ambiente && !ambienteTags.length) {
+    if (!ambienteSet.has(local.ambiente.toLowerCase())) {
+      ambienteSet.add(local.ambiente.toLowerCase());
+      ambienteTags.push(local.ambiente);
+    }
+  }
+
+  const clientelaTags: string[] = [];
+  const clientelaSet = new Set<string>();
+  
+  if (local.clientela) {
+    Object.entries(local.clientela).forEach(([key, value]) => {
+      if (value === true) {
+        const clientelaName = key.replace(/_/g, ' ');
+        if (!clientelaSet.has(clientelaName.toLowerCase())) {
+          clientelaSet.add(clientelaName.toLowerCase());
+          clientelaTags.push(clientelaName);
+        }
+      }
+    });
+  }
+
+  const diaLogicoParaResaltar = estadoLocal.diaLogico || 'lunes';
+  console.log('[DetalleLocal] ========================================');
+  console.log('[DetalleLocal] Local:', local.nombre);
+  console.log('[DetalleLocal] Estado local:', estadoLocal);
+  console.log('[DetalleLocal] Día lógico para resaltar:', diaLogicoParaResaltar);
+  console.log('[DetalleLocal] Horarios completos:', local.horarios_completos);
+  console.log('[DetalleLocal] ========================================');
+
+  const displayRating = local.rating || local.google_rating || averageRating || 0;
+
+  const allReviewsForSentiment = [
+    ...reviews,
+    ...(local.reviews_google || [])
+  ];
+  
+  const averageRatingForSentiment = allReviewsForSentiment.length > 0
+    ? allReviewsForSentiment.reduce((sum, r) => sum + (r.rating || 0), 0) / allReviewsForSentiment.length
+    : displayRating;
+
+  const allReviews = [
+    ...reviews.map(r => ({ ...r, isGoogle: false })),
+    ...(local.reviews_google || []).slice(0, 3 - reviews.length).map((r: any) => ({
+      ...r,
+      isGoogle: true,
+      id: r.time?.toString() || Math.random().toString(),
+    }))
+  ].slice(0, 3);
 
   const allCategories = (local.barlive_types && local.barlive_types.length > 0 
     ? local.barlive_types 
@@ -274,399 +785,591 @@ export default function DetalleLocalScreen() {
       : local.categoria 
         ? [local.categoria] 
         : []
-  );
+  ).filter(cat => !CATEGORIAS_EXCLUIDAS.some(excluded => cat.toLowerCase().includes(excluded.toLowerCase())));
 
-  const displayRating = local.rating || local.google_rating || 0;
+  const description = local.descripcion_google || local.descripcion || '';
+  const { summary: descriptionSummary, needsExpansion: needsDescriptionExpansion } = summarizeText(description, 150);
 
-  const horarios = local.horarios_completos || {};
-  const hasHorarios = Object.keys(horarios).length > 0;
+  const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
-  const servicios = local.servicios_disponibles || {};
-  const hasServicios = Object.keys(servicios).some(key => servicios[key]);
-
-  const ambiente = local.ambiente_completo || {};
-  const hasAmbiente = Object.keys(ambiente).some(key => ambiente[key]);
-
-  const clientela = local.clientela || {};
-  const hasClientela = Object.keys(clientela).some(key => clientela[key]);
-
-  const metodosPago = local.metodos_pago_completos || {};
-  const hasMetodosPago = Object.keys(metodosPago).some(key => metodosPago[key]);
+  // ✅ DYNAMIC CLOSE BUTTON POSITION - closer to badges
+  const closeButtonTop = local.destacado 
+    ? (Platform.OS === 'ios' ? 72 : 72)
+    : (Platform.OS === 'ios' ? 52 : 52);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.gestureRoot}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      <Stack.Screen
-        options={{
-          headerShown: false,
-        }}
-      />
-
-      <Animated.ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header Image */}
-        <Animated.View style={[styles.headerImageContainer, imageAnimatedStyle]}>
-          {allImages.length > 0 ? (
-            <TouchableOpacity onPress={() => handleOpenGallery(0)} activeOpacity={0.9}>
-              <OptimizedImage
-                source={{ uri: allImages[0] }}
-                style={styles.headerImage}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
-          ) : (
-            <View style={[styles.headerImage, styles.placeholderImage]}>
-              <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={64} color={colors.textSecondary} />
-            </View>
-          )}
-
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.8)']}
-            style={styles.headerGradient}
-          />
-
-          {/* Status Badge */}
-          {estadoLocal && (
-            <View style={styles.statusBadge}>
-              <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
-                <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
-                <Text style={styles.statusText}>{estadoLocal.badge}</Text>
-                {estadoLocal.tiempoRestante && (
-                  <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>
-                )}
-              </BlurView>
-            </View>
-          )}
-
-          {/* Rating Badge */}
-          {displayRating > 0 && (
-            <View style={styles.ratingBadge}>
-              <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
-                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
-              </BlurView>
-            </View>
-          )}
-
-          {/* Destacado Badge */}
-          {local.destacado && (
-            <View style={styles.destacadoBadge}>
-              <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
-                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#F59E0B" />
-                <Text style={styles.destacadoText}>Destacado</Text>
-              </BlurView>
-            </View>
-          )}
-        </Animated.View>
-
-        {/* Content */}
-        <View style={styles.contentContainer}>
-          {/* Title Section */}
-          <View style={styles.titleSection}>
-            <Text style={styles.localName}>{local.nombre}</Text>
-            
-            {allCategories.length > 0 && (
-              <View style={styles.categoriesRow}>
-                {allCategories.map((categoria, index) => (
-                  <View key={index} style={styles.categoryChip}>
-                    <Text style={styles.categoryChipText}>{categoria.toUpperCase()}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* Address */}
-          {local.direccion && (
-            <View style={styles.infoCard}>
-              <View style={styles.infoRow}>
-                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={24} color={colors.primary} />
-                <Text style={styles.infoText}>{local.direccion}</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Description */}
-          {(local.descripcion_google || local.descripcion) && (
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Descripción</Text>
-              <Text style={styles.descriptionText}>
-                {local.descripcion_google || local.descripcion}
-              </Text>
-            </View>
-          )}
-
-          {/* Action Buttons */}
-          <View style={styles.actionsContainer}>
-            {local.telefono && (
-              <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
-                <LinearGradient
-                  colors={['#10B981', '#059669']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.actionButtonGradient}
-                >
-                  <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
-                  <Text style={styles.actionButtonText}>Llamar</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-
-            {(local.latitud || local.coordenadas) && (
-              <TouchableOpacity style={styles.actionButton} onPress={handleDirections}>
-                <LinearGradient
-                  colors={[colors.primary, colors.secondary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.actionButtonGradient}
-                >
-                  <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
-                  <Text style={styles.actionButtonText}>Cómo llegar</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-
-            {local.email && (
-              <TouchableOpacity style={styles.actionButton} onPress={handleEmail}>
-                <LinearGradient
-                  colors={['#3B82F6', '#2563EB']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.actionButtonGradient}
-                >
-                  <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={20} color="#fff" />
-                  <Text style={styles.actionButtonText}>Email</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-
-            {local.website && (
-              <TouchableOpacity style={styles.actionButton} onPress={handleWebsite}>
-                <LinearGradient
-                  colors={['#8B5CF6', '#7C3AED']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.actionButtonGradient}
-                >
-                  <IconSymbol ios_icon_name="globe" android_material_icon_name="language" size={20} color="#fff" />
-                  <Text style={styles.actionButtonText}>Web</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Gallery */}
-          {allImages.length > 1 && (
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Galería ({allImages.length})</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
-                {allImages.map((image, index) => (
-                  <TouchableOpacity key={index} onPress={() => handleOpenGallery(index)}>
-                    <OptimizedImage
-                      source={{ uri: image }}
-                      style={styles.galleryImage}
-                      resizeMode="cover"
-                    />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Horarios */}
-          {hasHorarios && (
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Horarios</Text>
-              {DIAS_SEMANA.map((dia) => {
-                const horariosDia = horarios[dia] || [];
-                return (
-                  <View key={dia} style={styles.horarioRow}>
-                    <Text style={styles.horarioDia}>{dia.charAt(0).toUpperCase() + dia.slice(1)}</Text>
-                    <Text style={styles.horarioHoras}>
-                      {horariosDia.length > 0 ? horariosDia.join(', ') : 'Cerrado'}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-
-          {/* Servicios */}
-          {hasServicios && (
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Servicios</Text>
-              <View style={styles.tagsContainer}>
-                {Object.entries(servicios).map(([key, value]) => {
-                  if (value) {
-                    return (
-                      <View key={key} style={styles.tag}>
-                        <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color={colors.primary} />
-                        <Text style={styles.tagText}>{key.replace(/_/g, ' ')}</Text>
-                      </View>
-                    );
-                  }
-                  return null;
-                })}
-              </View>
-            </View>
-          )}
-
-          {/* Ambiente */}
-          {hasAmbiente && (
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Ambiente</Text>
-              <View style={styles.tagsContainer}>
-                {Object.entries(ambiente).map(([key, value]) => {
-                  if (value) {
-                    return (
-                      <View key={key} style={styles.tag}>
-                        <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color={colors.primary} />
-                        <Text style={styles.tagText}>{key.replace(/_/g, ' ')}</Text>
-                      </View>
-                    );
-                  }
-                  return null;
-                })}
-              </View>
-            </View>
-          )}
-
-          {/* Clientela */}
-          {hasClientela && (
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Clientela</Text>
-              <View style={styles.tagsContainer}>
-                {Object.entries(clientela).map(([key, value]) => {
-                  if (value) {
-                    return (
-                      <View key={key} style={styles.tag}>
-                        <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color={colors.primary} />
-                        <Text style={styles.tagText}>{key.replace(/_/g, ' ')}</Text>
-                      </View>
-                    );
-                  }
-                  return null;
-                })}
-              </View>
-            </View>
-          )}
-
-          {/* Métodos de Pago */}
-          {hasMetodosPago && (
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Métodos de Pago</Text>
-              <View style={styles.tagsContainer}>
-                {Object.entries(metodosPago).map(([key, value]) => {
-                  if (value) {
-                    return (
-                      <View key={key} style={styles.tag}>
-                        <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color={colors.primary} />
-                        <Text style={styles.tagText}>{key.replace(/_/g, ' ')}</Text>
-                      </View>
-                    );
-                  }
-                  return null;
-                })}
-              </View>
-            </View>
-          )}
-
-          {/* Reviews */}
-          <TouchableOpacity style={styles.reviewsCard} onPress={handleOpenReviews}>
-            <View style={styles.reviewsHeader}>
-              <Text style={styles.sectionTitle}>Reseñas</Text>
-              <View style={styles.reviewsCount}>
-                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={18} color="#FFD700" />
-                <Text style={styles.reviewsCountText}>{reviewCount}</Text>
-              </View>
-            </View>
-            <Text style={styles.reviewsSubtext}>Ver todas las reseñas</Text>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={24} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          {/* Bottom Padding */}
-          <View style={{ height: 100 }} />
-        </View>
-      </Animated.ScrollView>
-
-      {/* Fixed Header */}
-      <Animated.View style={[styles.fixedHeader, headerAnimatedStyle]}>
-        <BlurView intensity={100} tint="dark" style={styles.headerBlur}>
-          <TouchableOpacity style={styles.headerBackButton} onPress={() => router.back()}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>{local.nombre}</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerActionButton} onPress={handleShare}>
-              <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={20} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerActionButton} onPress={handleToggleFavorito} disabled={loadingFavorite}>
-              {loadingFavorite ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <IconSymbol
-                  ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
-                  android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
-                  size={20}
-                  color={localIsFavorite ? "#EF4444" : "#fff"}
-                />
-              )}
-            </TouchableOpacity>
-          </View>
-        </BlurView>
+      {/* ✅ Animated backdrop - visible and dimmed, allows background page to show through */}
+      <Animated.View style={[styles.backdrop, animatedBackdropStyle]}>
+        <TouchableOpacity 
+          style={StyleSheet.absoluteFillObject}
+          activeOpacity={1}
+          onPress={() => router.back()}
+        />
       </Animated.View>
 
-      {/* Floating Back Button */}
-      <TouchableOpacity style={styles.floatingBackButton} onPress={() => router.back()}>
-        <BlurView intensity={80} tint="dark" style={styles.floatingBackBlur}>
-          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color="#fff" />
-        </BlurView>
-      </TouchableOpacity>
+      {/* ✅ Animated modal container with swipe gesture */}
+      <PanGestureHandler
+        onGestureEvent={onGestureEvent}
+        onEnded={onGestureEnd}
+        activeOffsetY={10}
+      >
+        <Animated.View style={[styles.modalContainer, animatedModalStyle]}>
+          {/* ✅ Drag indicator */}
+          <View style={styles.dragIndicatorContainer}>
+            <View style={styles.dragIndicator} />
+          </View>
 
-      {/* Floating Actions */}
-      <View style={styles.floatingActions}>
-        <TouchableOpacity style={styles.floatingActionButton} onPress={handleShare}>
-          <BlurView intensity={80} tint="dark" style={styles.floatingActionBlur}>
-            <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={20} color="#fff" />
-          </BlurView>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.floatingActionButton} onPress={handleToggleFavorito} disabled={loadingFavorite}>
-          <BlurView intensity={80} tint="dark" style={styles.floatingActionBlur}>
-            {loadingFavorite ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <IconSymbol
-                ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
-                android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
-                size={20}
-                color={localIsFavorite ? "#EF4444" : "#fff"}
-              />
+          <ScrollView 
+            ref={scrollViewRef}
+            style={styles.container} 
+            contentContainerStyle={styles.contentContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+            scrollEnabled={true}
+          >
+            {allImages.length > 0 && (
+              <View style={styles.coverContainer}>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => handleOpenGallery(currentImageIndex)}
+                >
+                  <ScrollView
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    onScroll={(event) => {
+                      const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                      setCurrentImageIndex(index);
+                    }}
+                    scrollEventThrottle={16}
+                  >
+                    {allImages.map((image, index) => (
+                      <View key={index} style={{ width: SCREEN_WIDTH, height: 300 }}>
+                        <OptimizedImage
+                          source={{ uri: image }}
+                          style={styles.coverImage}
+                          resizeMode="cover"
+                        />
+                      </View>
+                    ))}
+                  </ScrollView>
+                </TouchableOpacity>
+
+                {/* ✅ FIXED: Close button with DYNAMIC position based on badges - CLOSER to badges */}
+                <TouchableOpacity 
+                  style={[styles.closeButtonFixed, { top: closeButtonTop }]} 
+                  onPress={() => router.back()}
+                >
+                  <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+                    <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={18} color="#fff" />
+                  </BlurView>
+                </TouchableOpacity>
+            
+                {displayRating > 0 && (
+                  <View style={styles.ratingBadgeTopRight}>
+                    <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
+                      <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
+                      <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
+                    </BlurView>
+                  </View>
+                )}
+
+                {displayRating > 0 && (
+                  <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+                    <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+                      <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
+                    </BlurView>
+                  </TouchableOpacity>
+                )}
+            
+                <View style={styles.statusBadgeTop}>
+                  <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
+                    <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
+                    <Text style={styles.statusText}>
+                      {estadoLocal.badge}
+                    </Text>
+                    {estadoLocal.tiempoRestante && (
+                      <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>
+                    )}
+                  </BlurView>
+                </View>
+
+                {local.destacado && (
+                  <View style={styles.destacadoBadgeTop}>
+                    <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
+                      <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#F59E0B" />
+                      <Text style={styles.destacadoText}>Destacado</Text>
+                    </BlurView>
+                  </View>
+                )}
+            
+                <TouchableOpacity
+                  style={styles.favoritoButton}
+                  onPress={handleToggleFavorito}
+                  disabled={loadingFavorite}
+                >
+                  <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
+                    {loadingFavorite ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <IconSymbol
+                        ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
+                        android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
+                        size={22}
+                        color={localIsFavorite ? "#EF4444" : "#FFFFFF"}
+                      />
+                    )}
+                  </BlurView>
+                </TouchableOpacity>
+              </View>
             )}
-          </BlurView>
-        </TouchableOpacity>
-      </View>
 
-      {/* Modals */}
+            {allImages.length > 1 && (
+              <View style={styles.gallerySection}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
+                  {allImages.slice(1, 6).map((image, index) => (
+                    <TouchableOpacity 
+                      key={index} 
+                      style={styles.galleryItem}
+                      onPress={() => handleOpenGallery(index + 1)}
+                    >
+                      <OptimizedImage
+                        source={{ uri: image }}
+                        style={styles.galleryImage}
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                  ))}
+                  {allImages.length > 6 && (
+                    <TouchableOpacity 
+                      style={styles.galleryItem}
+                      onPress={() => handleOpenGallery(6)}
+                    >
+                      <OptimizedImage
+                        source={{ uri: allImages[6] }}
+                        style={styles.galleryImage}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.galleryOverlay}>
+                        <Text style={styles.galleryOverlayText}>+{allImages.length - 6}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
+              </View>
+            )}
+
+            <View style={styles.contentCard}>
+              <View style={styles.headerSection}>
+                <Text style={styles.localNameText}>{local.nombre}</Text>
+
+                {allCategories.length > 0 && (
+                  <View style={styles.categoriesRow}>
+                    {allCategories.map((categoria, index) => {
+                      const icon = getCategoryIcon(categoria);
+                      return (
+                        <View key={index} style={[styles.categoryChipHighlighted, { backgroundColor: icon.color }]}>
+                          <IconSymbol 
+                            ios_icon_name={icon.ios} 
+                            android_material_icon_name={icon.android} 
+                            size={18} 
+                            color="#fff" 
+                          />
+                          <Text style={styles.categoryChipTextHighlighted}>{categoria.toUpperCase()}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+
+                {local.direccion && (
+                  <View style={styles.addressCompact}>
+                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
+                    <Text style={styles.addressTextCompact} numberOfLines={1}>
+                      {local.direccion}
+                    </Text>
+                  </View>
+                )}
+
+                {distance && (
+                  <View style={styles.distanceContainer}>
+                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={16} color={colors.primary} />
+                    <Text style={styles.distanceText}>A {distance} de tu ubicación</Text>
+                  </View>
+                )}
+              </View>
+
+              {description && (
+                <View style={styles.descriptionSection}>
+                  <Text style={styles.descriptionText}>
+                    {expandedDescription ? description : descriptionSummary}
+                  </Text>
+                  {needsDescriptionExpansion && (
+                    <TouchableOpacity onPress={() => setExpandedDescription(!expandedDescription)}>
+                      <Text style={styles.expandButton}>
+                        {expandedDescription ? 'Ver menos' : 'Ver más'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              <View style={styles.actionsRow}>
+                {local.telefono && (
+                  <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
+                    <LinearGradient
+                      colors={['#10B981', '#059669']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.actionBtnGradient}
+                    >
+                      <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
+                      <Text style={styles.actionBtnText}>Llamar</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+            
+                {local.latitud && local.longitud && (
+                  <TouchableOpacity style={styles.actionBtn} onPress={handleDirections}>
+                    <LinearGradient
+                      colors={[colors.primary, colors.secondary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.actionBtnGradient}
+                    >
+                      <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
+                      <Text style={styles.actionBtnText}>Cómo llegar</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {hasSocialProfile && (
+                <TouchableOpacity style={styles.specialButton} onPress={handleSocialProfile}>
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.specialButtonGradient}
+                  >
+                    <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
+                    <Text style={styles.specialButtonText}>Ver Perfil Social</Text>
+                    <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+
+              {isOpen && (
+                <TouchableOpacity 
+                  style={styles.virtualRoomButton} 
+                  onPress={() => router.push({ pathname: '/detalle/sala-virtual', params: { localId: params.id } })}
+                >
+                  <LinearGradient
+                    colors={['#8B5CF6', '#7C3AED']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.virtualRoomButtonGradient}
+                  >
+                    <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={22} color="#fff" />
+                    <Text style={styles.virtualRoomButtonText}>Ver Sala Virtual</Text>
+                    <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+
+              {eventos.length > 0 && (
+                <View style={styles.compactSection}>
+                  <View style={styles.compactSectionHeader}>
+                    <View style={[styles.compactIconCircle, { backgroundColor: colors.primary + '20' }]}>
+                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={20} color={colors.primary} />
+                    </View>
+                    <Text style={styles.compactSectionTitle}>Eventos Próximos</Text>
+                  </View>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.eventsScroll}>
+                    {eventos.map((evento) => (
+                      <TouchableOpacity
+                        key={evento.id}
+                        style={styles.eventCard}
+                        onPress={() => router.push({ pathname: '/detalle/evento', params: { id: evento.id } })}
+                      >
+                        {evento.imagen_url && (
+                          <OptimizedImage
+                            source={{ uri: `${evento.imagen_url}?v=${Date.now()}` }}
+                            style={styles.eventImage}
+                            resizeMode="cover"
+                          />
+                        )}
+                        <View style={styles.eventContent}>
+                          <Text style={styles.eventTitle} numberOfLines={2}>{evento.titulo}</Text>
+                          <Text style={styles.eventDate}>
+                            {new Date(evento.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
+                <View style={styles.compactSection}>
+                  <View style={styles.compactSectionHeader}>
+                    <View style={[styles.compactIconCircle, { backgroundColor: '#3B82F6' + '20' }]}>
+                      <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={20} color="#3B82F6" />
+                    </View>
+                    <Text style={styles.compactSectionTitle}>Horarios</Text>
+                  </View>
+                  <View style={styles.scheduleCompact}>
+                    {orderedDaysDisplay.map((dayDisplay) => {
+                      const dayNormalized = normalizeDayName(dayDisplay);
+                      const hours = local.horarios_completos?.[dayNormalized] || [];
+                      const isToday = dayNormalized.toLowerCase() === normalizeDayName(diaLogicoParaResaltar).toLowerCase();
+                    
+                      const formattedHours = formatOpeningHours(hours);
+                    
+                      return (
+                        <View key={dayDisplay} style={[styles.scheduleRow, isToday && styles.scheduleRowToday]}>
+                          <View style={styles.scheduleDayContainer}>
+                            <Text style={[styles.scheduleDayCompact, isToday && styles.scheduleDayTodayCompact]}>
+                              {dayDisplay.charAt(0).toUpperCase() + dayDisplay.slice(1, 3)}
+                            </Text>
+                            {isToday && <View style={styles.todayDot} />}
+                          </View>
+                          <Text style={[styles.scheduleHoursCompact, isToday && styles.scheduleHoursTodayCompact]} numberOfLines={2}>
+                            {formattedHours}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {allServices.length > 0 && (
+                <View style={styles.compactSection}>
+                  <View style={styles.compactSectionHeader}>
+                    <View style={[styles.compactIconCircle, { backgroundColor: '#10B981' + '20' }]}>
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
+                    </View>
+                    <Text style={styles.compactSectionTitle}>Servicios Disponibles</Text>
+                  </View>
+                  <View style={styles.tagsGrid}>
+                    {allServices.map((servicio, index) => {
+                      const icon = getServiceIcon(servicio);
+                      return (
+                        <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
+                          <IconSymbol 
+                            ios_icon_name={icon.ios} 
+                            android_material_icon_name={icon.android} 
+                            size={16} 
+                            color={icon.color} 
+                          />
+                          <Text style={[styles.tagText, { color: icon.color }]}>{servicio}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {ambienteTags.length > 0 && (
+                <View style={styles.compactSection}>
+                  <View style={styles.compactSectionHeader}>
+                    <View style={[styles.compactIconCircle, { backgroundColor: '#8B5CF6' + '20' }]}>
+                      <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color="#8B5CF6" />
+                    </View>
+                    <Text style={styles.compactSectionTitle}>Ambiente</Text>
+                  </View>
+                  <View style={styles.tagsGrid}>
+                    {ambienteTags.map((tag, index) => {
+                      const icon = getAmbienteIcon(tag);
+                      return (
+                        <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
+                          <IconSymbol 
+                            ios_icon_name={icon.ios} 
+                            android_material_icon_name={icon.android} 
+                            size={16} 
+                            color={icon.color} 
+                          />
+                          <Text style={[styles.tagText, { color: icon.color }]}>{tag}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {clientelaTags.length > 0 && (
+                <View style={styles.compactSection}>
+                  <View style={styles.compactSectionHeader}>
+                    <View style={[styles.compactIconCircle, { backgroundColor: '#EC4899' + '20' }]}>
+                      <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color="#EC4899" />
+                    </View>
+                    <Text style={styles.compactSectionTitle}>Clientela Típica</Text>
+                  </View>
+                  <View style={styles.tagsGrid}>
+                    {clientelaTags.map((tag, index) => {
+                      const icon = getClientelaIcon(tag);
+                      return (
+                        <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
+                          <IconSymbol 
+                            ios_icon_name={icon.ios} 
+                            android_material_icon_name={icon.android} 
+                            size={16} 
+                            color={icon.color} />
+                          <Text style={[styles.tagText, { color: icon.color }]}>{tag}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {((local.analisis_reviews && Object.keys(local.analisis_reviews).length > 0) || allReviewsForSentiment.length > 0) && (
+                <View style={styles.compactSection}>
+                  <View style={styles.compactSectionHeader}>
+                    <View style={[styles.compactIconCircle, { backgroundColor: '#F59E0B' + '20' }]}>
+                      <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="analytics" size={20} color="#F59E0B" />
+                    </View>
+                    <Text style={styles.compactSectionTitle}>Análisis de Reseñas</Text>
+                  </View>
+                  <View style={styles.analysisBox}>
+                    {averageRatingForSentiment > 0 && (
+                      <View style={styles.analysisItem}>
+                        <Text style={styles.analysisLabel}>Sentimiento General</Text>
+                        <View style={[styles.sentimentBadge, { backgroundColor: calculateSentiment(averageRatingForSentiment).color + '20' }]}>
+                          <Text style={[styles.sentimentText, { color: calculateSentiment(averageRatingForSentiment).color }]}>
+                            {calculateSentiment(averageRatingForSentiment).sentiment}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                    {local.analisis_reviews?.palabras_destacadas_google && local.analisis_reviews.palabras_destacadas_google.length > 0 && (
+                      <View style={styles.analysisItem}>
+                        <Text style={styles.analysisLabel}>Palabras Clave</Text>
+                        <View style={styles.keywordsRow}>
+                          {local.analisis_reviews.palabras_destacadas_google.slice(0, 5).map((keyword: string, index: number) => (
+                            <View key={index} style={styles.keywordTag}>
+                              <Text style={styles.keywordTagText}>{keyword}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    )}
+                    {local.analisis_reviews?.resumen_automatico && (
+                      <View style={styles.analysisItem}>
+                        <Text style={styles.analysisLabel}>Resumen</Text>
+                        <Text style={styles.analysisSummary}>{local.analisis_reviews.resumen_automatico}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.compactSection}>
+                <View style={styles.compactSectionHeader}>
+                  <View style={[styles.compactIconCircle, { backgroundColor: '#FFD700' + '20' }]}>
+                    <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color="#FFD700" />
+                  </View>
+                  <Text style={styles.compactSectionTitle}>Reseñas</Text>
+                </View>
+
+                {allReviews.length > 0 ? (
+                  <React.Fragment>
+                    {allReviews.map((review: any) => {
+                      const isExpanded = expandedReviews.has(review.id);
+                      const reviewText = review.text || review.texto || '';
+                      const { summary, needsExpansion } = summarizeText(reviewText);
+                      const displayText = isExpanded ? reviewText : summary;
+                    
+                      const isOwner = user && !review.isGoogle && review.usuario_id === user.id;
+                    
+                      return (
+                        <View key={review.id} style={styles.reviewCard}>
+                          <View style={styles.reviewHeader}>
+                            <View style={styles.reviewAvatar}>
+                              {review.usuario?.avatar ? (
+                                <RNImage source={{ uri: review.usuario.avatar }} style={styles.avatar} />
+                              ) : (
+                                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
+                                </View>
+                              )}
+                            </View>
+                            <View style={styles.reviewInfo}>
+                              <Text style={styles.reviewAuthor}>
+                                {isOwner ? 'Tu reseña' : 'Cliente del local'}
+                              </Text>
+                              <View style={styles.reviewRating}>
+                                <Ionicons name="star" size={14} color="#FFD700" />
+                                <Text style={styles.reviewRatingText}>{review.rating}</Text>
+                              </View>
+                            </View>
+                          </View>
+                          {reviewText && (
+                            <React.Fragment>
+                              <ParsedText text={displayText} style={styles.reviewText} />
+                              {needsExpansion && (
+                                <TouchableOpacity onPress={() => toggleReviewExpansion(review.id)}>
+                                  <Text style={styles.expandButton}>
+                                    {isExpanded ? 'Ver menos' : 'Ver más'}
+                                  </Text>
+                                </TouchableOpacity>
+                              )}
+                            </React.Fragment>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </React.Fragment>
+                ) : (
+                  <View style={styles.noReviewsBox}>
+                    <Ionicons name="chatbubbles-outline" size={36} color={colors.textSecondary} />
+                    <Text style={styles.noReviewsText}>No hay reseñas todavía</Text>
+                  </View>
+                )}
+
+                <TouchableOpacity style={styles.addReviewBtn} onPress={handleAddReview}>
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.addReviewGradient}
+                  >
+                    <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color="#fff" />
+                    <Text style={styles.addReviewText}>
+                      {reviews.some(r => r.usuario_id === user?.id) ? 'Editar Reseña' : 'Añadir Reseña'}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </Animated.View>
+      </PanGestureHandler>
+
       {galleryVisible && (
         <ImageGalleryModal
           visible={galleryVisible}
           images={allImages}
-          initialIndex={currentImageIndex}
+          initialIndex={galleryInitialIndex}
           onClose={() => setGalleryVisible(false)}
         />
       )}
 
-      {reviewsVisible && (
+      {showReviewsModal && (
         <ReviewsModal
-          visible={reviewsVisible}
-          localId={localId}
-          onClose={() => setReviewsVisible(false)}
+          visible={showReviewsModal}
+          localId={params.id as string}
+          onClose={() => setShowReviewsModal(false)}
+          onReviewAdded={() => {
+            console.log('[DetalleLocal v13.0] ✅ Review added, reloading reviews');
+            cargarReviewsBarlive();
+          }}
         />
       )}
     </View>
@@ -674,9 +1377,64 @@ export default function DetalleLocalScreen() {
 }
 
 const styles = StyleSheet.create({
+  gestureRoot: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  modalContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: MODAL_HEIGHT,
+    backgroundColor: '#F9FAFB',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 15,
+  },
+  dragIndicatorContainer: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#F9FAFB',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  dragIndicator: {
+    width: 40,
+    height: 5,
+    backgroundColor: colors.textSecondary,
+    borderRadius: 3,
+    opacity: 0.5,
+  },
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F9FAFB',
+  },
+  closeButtonFixed: {
+    position: 'absolute',
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  contentContainer: {
+    paddingBottom: 120,
   },
   loadingContainer: {
     flex: 1,
@@ -687,7 +1445,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: colors.textSecondary,
+    color: colors.text,
   },
   errorContainer: {
     flex: 1,
@@ -698,55 +1456,57 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginTop: 16,
-    fontSize: 16,
+    fontSize: 18,
     color: colors.text,
     textAlign: 'center',
   },
-  backButton: {
+  retryButton: {
     marginTop: 20,
     paddingHorizontal: 24,
     paddingVertical: 12,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: 12,
   },
-  backButtonText: {
+  retryButtonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  coverContainer: {
+    position: 'relative',
+    height: 300,
+  },
+  coverImage: {
+    width: SCREEN_WIDTH,
+    height: 300,
+  },
+  ratingBadgeTopRight: {
+    position: 'absolute',
+    top: 12,
+    right: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+    zIndex: 11,
+  },
+  ratingBlur: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  ratingText: {
+    fontSize: 15,
+    fontWeight: '800',
     color: '#fff',
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  headerImageContainer: {
-    height: HEADER_HEIGHT,
-    width: '100%',
-    position: 'relative',
-  },
-  headerImage: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholderImage: {
-    backgroundColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerGradient: {
+  statusBadgeTop: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-  },
-  statusBadge: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 48,
+    top: 12,
     left: 16,
     borderRadius: 20,
     overflow: 'hidden',
+    zIndex: 10,
   },
   statusBlur: {
     flexDirection: 'row',
@@ -778,31 +1538,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  ratingBadge: {
+  destacadoBadgeTop: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 48,
-    right: 16,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  ratingBlur: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 6,
-  },
-  ratingText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  destacadoBadge: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 100 : 88,
+    top: 52,
     left: 16,
     borderRadius: 20,
     overflow: 'hidden',
+    zIndex: 9,
   },
   destacadoBlur: {
     flexDirection: 'row',
@@ -816,120 +1558,322 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
-  contentContainer: {
+  shareButton: {
+    position: 'absolute',
+    top: 52,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    zIndex: 5,
+  },
+  buttonBlur: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  favoritoButton: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  favoritoBlur: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(25, 25, 25, 0.62)',
+  },
+  gallerySection: {
+    backgroundColor: '#F9FAFB',
+    paddingVertical: 12,
+  },
+  galleryScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  galleryItem: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginRight: 8,
+    position: 'relative',
+  },
+  galleryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  galleryOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galleryOverlayText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  contentCard: {
+    backgroundColor: '#F9FAFB',
     padding: 16,
   },
-  titleSection: {
+  headerSection: {
     marginBottom: 16,
   },
-  localName: {
+  localNameText: {
     fontSize: 28,
     fontWeight: '800',
     color: colors.text,
+    letterSpacing: 0.5,
     marginBottom: 12,
   },
   categoriesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    marginBottom: 12,
   },
-  categoryChip: {
-    backgroundColor: colors.primary + '20',
+  categoryChipHighlighted: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 16,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  categoryChipText: {
+  categoryChipTextHighlighted: {
     fontSize: 13,
-    fontWeight: '700',
-    color: colors.primary,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
   },
-  infoCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  infoRow: {
+  addressCompact: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
+    backgroundColor: colors.cardBackground,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 8,
   },
-  infoText: {
+  addressTextCompact: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.text,
     fontWeight: '600',
   },
-  sectionCard: {
-    backgroundColor: colors.cardBackground,
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
   },
-  sectionTitle: {
-    fontSize: 18,
+  distanceText: {
+    fontSize: 14,
+    color: colors.primary,
     fontWeight: '700',
-    color: colors.text,
-    marginBottom: 12,
+  },
+  descriptionSection: {
+    marginBottom: 16,
   },
   descriptionText: {
     fontSize: 15,
     color: colors.text,
     lineHeight: 22,
   },
-  actionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 16,
+  expandButton: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '700',
+    marginTop: 6,
   },
-  actionButton: {
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  actionBtn: {
     flex: 1,
-    minWidth: '45%',
     borderRadius: 12,
     overflow: 'hidden',
   },
-  actionButtonGradient: {
+  actionBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 14,
+    paddingVertical: 12,
   },
-  actionButtonText: {
-    fontSize: 15,
+  actionBtnText: {
+    fontSize: 14,
     fontWeight: '700',
     color: '#fff',
   },
-  galleryScroll: {
-    marginHorizontal: -16,
-    paddingHorizontal: 16,
-  },
-  galleryImage: {
-    width: 120,
-    height: 120,
+  specialButton: {
     borderRadius: 12,
-    marginRight: 12,
+    overflow: 'hidden',
+    marginBottom: 10,
   },
-  horarioRow: {
+  specialButtonGradient: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
-  horarioDia: {
+  specialButtonText: {
+    flex: 1,
     fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+    marginLeft: 10,
+  },
+  virtualRoomButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  virtualRoomButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  virtualRoomButtonText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+    marginLeft: 10,
+  },
+  compactSection: {
+    marginTop: 20,
+  },
+  compactSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  compactIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  eventsScroll: {
+    paddingRight: 16,
+    gap: 10,
+  },
+  eventCard: {
+    width: 180,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  eventImage: {
+    width: '100%',
+    height: 100,
+  },
+  eventContent: {
+    padding: 10,
+  },
+  eventTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  eventDate: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  scheduleCompact: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 10,
+    gap: 6,
+  },
+  scheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  scheduleRowToday: {
+    backgroundColor: colors.primary + '15',
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+  },
+  scheduleDayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 50,
+    gap: 4,
+  },
+  scheduleDayCompact: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
     textTransform: 'capitalize',
   },
-  horarioHoras: {
-    fontSize: 15,
-    color: colors.textSecondary,
+  scheduleDayTodayCompact: {
+    color: colors.primary,
+    fontWeight: '800',
+    fontSize: 14,
   },
-  tagsContainer: {
+  todayDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+  },
+  scheduleHoursCompact: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  scheduleHoursTodayCompact: {
+    color: colors.text,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  tagsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
@@ -937,120 +1881,151 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary + '15',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 16,
     gap: 6,
+    borderWidth: 1,
   },
   tagText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: colors.text,
     textTransform: 'capitalize',
   },
-  reviewsCard: {
+  analysisBox: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    padding: 14,
   },
-  reviewsHeader: {
-    flex: 1,
+  analysisItem: {
+    marginBottom: 12,
   },
-  reviewsCount: {
+  analysisLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  sentimentBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  sentimentText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  keywordsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 6,
-    marginTop: 4,
   },
-  reviewsCountText: {
-    fontSize: 16,
+  keywordTag: {
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  keywordTagText: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  analysisSummary: {
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 19,
+  },
+  reviewCard: {
+    backgroundColor: colors.cardBackground,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 10,
+  },
+  reviewAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  avatarPlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.headerText,
+  },
+  reviewInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reviewAuthor: {
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
   },
-  reviewsSubtext: {
+  reviewRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  reviewRatingText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  reviewText: {
     fontSize: 14,
-    color: colors.textSecondary,
-    marginRight: 8,
+    color: colors.text,
+    lineHeight: 20,
   },
-  fixedHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: Platform.OS === 'ios' ? 100 : 80,
-    zIndex: 100,
+  noReviewsBox: {
+    backgroundColor: colors.cardBackground,
+    padding: 24,
+    borderRadius: 12,
+    alignItems: 'center',
   },
-  headerBlur: {
-    flex: 1,
+  noReviewsText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  addReviewBtn: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginTop: 10,
+  },
+  addReviewGradient: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
-  },
-  headerBackButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  headerActions: {
-    flexDirection: 'row',
     gap: 8,
+    paddingVertical: 12,
   },
-  headerActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  floatingBackButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 48,
-    left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-    zIndex: 99,
-  },
-  floatingBackBlur: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  floatingActions: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 48,
-    right: 16,
-    gap: 12,
-    zIndex: 99,
-  },
-  floatingActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  floatingActionBlur: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+  addReviewText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#fff',
   },
 });

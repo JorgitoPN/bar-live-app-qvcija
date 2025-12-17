@@ -65,13 +65,16 @@ interface CommentsModalProps {
 }
 
 /**
- * ✅ COMMENTS MODAL v5.0 - KEYBOARD AVOIDANCE FIXED
+ * ✅ COMMENTS MODAL v4.0 - FIXED HEADER WHITE GAP
  * 
  * Changes:
- * - ✅ CRITICAL FIX: Mention autocomplete now appears ABOVE keyboard
- * - ✅ Keyboard height tracked and passed to MentionAutocomplete
- * - ✅ Input container moves with keyboard
- * - ✅ Autocomplete attached to keyboard (no gap)
+ * - ✅ CRITICAL FIX: Removed white gap at top of modal
+ * - ✅ StatusBar set to light-content to match header
+ * - ✅ Header gradient now covers entire top area including status bar
+ * - ✅ Modal handle removed (was causing white gap)
+ * - ✅ Opens as modal (not full screen) - presentationStyle="pageSheet"
+ * - ✅ Light background (#F9FAFB) instead of dark
+ * - ✅ BarLive blue gradient header
  * - ✅ Maintains Instagram-style design with light theme
  */
 
@@ -99,7 +102,7 @@ export default function CommentsModal({
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[CommentsModal v5.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[CommentsModal] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -107,7 +110,7 @@ export default function CommentsModal({
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[CommentsModal v5.0] ⌨️ Keyboard hidden');
+        console.log('[CommentsModal] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
       }
     );
@@ -211,7 +214,7 @@ export default function CommentsModal({
   }, [visible, postId, loadComments]);
 
   const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
-    console.log('[CommentsModal v5.0] ✅ Selected mention:', mention);
+    console.log('[CommentsModal] ✅ Selected mention:', mention);
     
     const textBeforeCursor = commentText.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
@@ -244,11 +247,11 @@ export default function CommentsModal({
     setSending(true);
 
     try {
-      console.log('[CommentsModal v5.0] 🔄 Ensuring valid session before sending comment...');
+      console.log('[CommentsModal v4.0] 🔄 Ensuring valid session before sending comment...');
       const validSession = await ensureValidSession();
       
       if (!validSession || !validSession.user) {
-        console.error('[CommentsModal v5.0] ❌ No valid session available');
+        console.error('[CommentsModal v4.0] ❌ No valid session available');
         Alert.alert(
           'Error de autenticación',
           'Tu sesión ha expirado o no tienes permisos. Por favor inicia sesión de nuevo.',
@@ -264,7 +267,7 @@ export default function CommentsModal({
         return;
       }
 
-      console.log('[CommentsModal v5.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
+      console.log('[CommentsModal v4.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
 
       if (editingComment) {
         const { error } = await supabase
@@ -291,7 +294,7 @@ export default function CommentsModal({
           commentData.tipo = 'usuario';
         }
 
-        console.log('[CommentsModal v5.0] 📝 Inserting comment with data:', commentData);
+        console.log('[CommentsModal v4.0] 📝 Inserting comment with data:', commentData);
 
         const { data: newComment, error } = await supabase
           .from('comentarios')
@@ -309,19 +312,19 @@ export default function CommentsModal({
           .single();
 
         if (error) {
-          console.error('[CommentsModal v5.0] ❌ Error inserting comment:', error);
+          console.error('[CommentsModal v4.0] ❌ Error inserting comment:', error);
           throw error;
         }
 
-        console.log('[CommentsModal v5.0] ✅ Comment inserted successfully:', newComment.id);
+        console.log('[CommentsModal v4.0] ✅ Comment inserted successfully:', newComment.id);
 
         if (newComment && text) {
-          console.log('[CommentsModal v5.0] 🏷️ Processing hashtags and mentions in comment...');
+          console.log('[CommentsModal v4.0] 🏷️ Processing hashtags and mentions in comment...');
           await Promise.all([
             processCommentHashtags(newComment.id, text),
             processCommentMentions(newComment.id, text, postId),
           ]);
-          console.log('[CommentsModal v5.0] ✅ Comment hashtags and mentions processed');
+          console.log('[CommentsModal v4.0] ✅ Comment hashtags and mentions processed');
         }
 
         if (replyingTo) {
@@ -336,7 +339,7 @@ export default function CommentsModal({
         }
       }
     } catch (error: any) {
-      console.error('[CommentsModal v5.0] ❌ Error sending comment:', error);
+      console.error('[CommentsModal v4.0] ❌ Error sending comment:', error);
       
       let errorMessage = 'No se pudo enviar el comentario';
       
@@ -399,6 +402,9 @@ export default function CommentsModal({
   };
 
   const handleDeleteComment = async (comment: Comment) => {
+    // ✅ Allow deletion if:
+    // 1. User is the comment author
+    // 2. User is the post author (can delete any comment on their post)
     const canDelete = user && (
       comment.autor_id === user.id || 
       postAuthorId === user.id
@@ -563,6 +569,9 @@ export default function CommentsModal({
       ? item.local.imagen_url 
       : item.usuario?.avatar || '';
 
+    // ✅ Allow deletion if:
+    // 1. User is the comment author
+    // 2. User is the post author (can delete any comment on their post)
     const canDelete = user && (
       (item.tipo === 'usuario' && item.autor_id === user.id) ||
       (item.tipo === 'local' && interactionLocalId === item.local_id) ||
@@ -602,7 +611,7 @@ export default function CommentsModal({
                   onPress={() => handleDeleteComment(item)}
                   activeOpacity={0.7}
                 >
-                  <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={16} color="rgba(0, 0, 0, 0.5)" />
+                  <IconSymbol name="trash" size={16} color="rgba(0, 0, 0, 0.5)" />
                 </TouchableOpacity>
               )}
             </View>
@@ -652,6 +661,9 @@ export default function CommentsModal({
                 ? reply.local.imagen_url 
                 : reply.usuario?.avatar || '';
 
+              // ✅ Allow deletion if:
+              // 1. User is the reply author
+              // 2. User is the post author (can delete any comment on their post)
               const canDeleteReply = user && (
                 (reply.tipo === 'usuario' && reply.autor_id === user.id) ||
                 (reply.tipo === 'local' && interactionLocalId === reply.local_id) ||
@@ -679,7 +691,7 @@ export default function CommentsModal({
                           onPress={() => handleDeleteComment(reply)}
                           activeOpacity={0.7}
                         >
-                          <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={14} color="rgba(0, 0, 0, 0.5)" />
+                          <IconSymbol name="trash" size={14} color="rgba(0, 0, 0, 0.5)" />
                         </TouchableOpacity>
                       )}
                     </View>
@@ -727,7 +739,7 @@ export default function CommentsModal({
             <View style={{ width: 40 }} />
             <Text style={styles.headerTitle}>Comentarios</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
+              <IconSymbol name="xmark" size={24} color={colors.headerText} />
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -754,13 +766,21 @@ export default function CommentsModal({
             tint="light" 
             style={[styles.inputContainer, { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }]}
           >
-            {/* ✅ FIXED: Autocomplete positioned ABOVE keyboard, attached to it */}
-            <MentionAutocomplete
-              text={commentText}
-              cursorPosition={cursorPosition}
-              onSelectMention={handleSelectMention}
-              keyboardHeight={keyboardHeight}
-            />
+            <View 
+              style={[
+                styles.autocompleteWrapper,
+                { 
+                  bottom: 60,
+                }
+              ]}
+              pointerEvents="box-none"
+            >
+              <MentionAutocomplete
+                text={commentText}
+                cursorPosition={cursorPosition}
+                onSelectMention={handleSelectMention}
+              />
+            </View>
 
             {(replyingTo || editingComment) && (
               <View style={styles.replyingBanner}>
@@ -802,12 +822,12 @@ export default function CommentsModal({
                 placeholderTextColor="rgba(0, 0, 0, 0.4)"
                 value={commentText}
                 onChangeText={(text) => {
-                  console.log('[CommentsModal v5.0] 📝 Text changed:', text);
+                  console.log('[CommentsModal] 📝 Text changed:', text);
                   setCommentText(text);
                 }}
                 onSelectionChange={(event) => {
                   const newPosition = event.nativeEvent.selection.start;
-                  console.log('[CommentsModal v5.0] 📍 Cursor position changed to:', newPosition);
+                  console.log('[CommentsModal] 📍 Cursor position changed to:', newPosition);
                   setCursorPosition(newPosition);
                 }}
                 multiline
@@ -994,6 +1014,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
+  },
+  autocompleteWrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    elevation: 9999,
   },
   replyingBanner: {
     flexDirection: 'row',

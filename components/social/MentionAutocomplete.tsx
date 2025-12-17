@@ -31,14 +31,13 @@ interface MentionAutocompleteProps {
 }
 
 /**
- * ✅ MENTION SYSTEM v9.0 - AUTO-CLOSE ON SELECTION FIX
+ * ✅ MENTION SYSTEM v7.0 - FIXED KEYBOARD OVERLAP
  * 
  * Changes:
- * - ✅ CRITICAL FIX: Modal closes automatically after selecting a mention
- * - ✅ Keyboard height tracking for proper positioning
- * - ✅ Attached to keyboard (no gap)
+ * - ✅ FIXED: Modal now appears ABOVE keyboard, not hidden behind it
+ * - ✅ Position calculated based on keyboard height
+ * - ✅ Proper z-index and elevation to stay on top
  * - ✅ Maintains all search and selection functionality
- * - ✅ Proper cleanup after selection
  */
 
 function normalizeText(text: string): string {
@@ -186,7 +185,7 @@ export default function MentionAutocomplete({
           })));
         }
       } catch (error) {
-        console.error('[MentionAutocomplete v9.0] Error in user search:', error);
+        console.error('[MentionAutocomplete v7.0] Error in user search:', error);
       }
 
       try {
@@ -243,7 +242,7 @@ export default function MentionAutocomplete({
           }
         }
       } catch (error) {
-        console.error('[MentionAutocomplete v9.0] Error in local search:', error);
+        console.error('[MentionAutocomplete v7.0] Error in local search:', error);
       }
 
       const uniqueResults = results.filter((item, index, self) =>
@@ -252,7 +251,7 @@ export default function MentionAutocomplete({
       
       setSuggestions(uniqueResults);
     } catch (error) {
-      console.error('[MentionAutocomplete v9.0] Error in searchMentions:', error);
+      console.error('[MentionAutocomplete v7.0] Error in searchMentions:', error);
       setSuggestions([]);
     } finally {
       setLoading(false);
@@ -281,27 +280,25 @@ export default function MentionAutocomplete({
   }, [currentMentionText, searchMentions]);
 
   const handleSelectMention = (mention: MentionSuggestion) => {
-    console.log('[MentionAutocomplete v9.0] ✅ Mention selected, closing modal');
-    
-    // ✅ FIXED: Close modal immediately
+    onSelectMention(mention, currentMentionText || '');
     setIsVisible(false);
     setSuggestions([]);
     setCurrentMentionText(null);
     setShowHint(false);
-    
-    // Call parent callback
-    onSelectMention(mention, currentMentionText || '');
   };
 
-  // Don't show if keyboard is not visible or modal is not visible
   if (!isVisible || currentMentionText === null || keyboardHeight === 0) {
     return null;
   }
 
+  // ✅ FIXED: Position modal ABOVE keyboard with proper spacing
   const modalHeight = Math.min(280, SCREEN_HEIGHT * 0.4);
-  const bottomPosition = keyboardHeight;
+  const bottomPosition = keyboardHeight + 10; // 10px above keyboard
 
-  console.log('[MentionAutocomplete v9.0] 📐 Rendering at bottom:', bottomPosition, 'height:', modalHeight);
+  console.log('[MentionAutocomplete v7.0] 📐 Screen height:', SCREEN_HEIGHT);
+  console.log('[MentionAutocomplete v7.0] ⌨️ Keyboard height:', keyboardHeight);
+  console.log('[MentionAutocomplete v7.0] 📦 Modal height:', modalHeight);
+  console.log('[MentionAutocomplete v7.0] 📍 Bottom position:', bottomPosition);
 
   return (
     <View
