@@ -384,12 +384,13 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [editedDescription, post.id, onUpdate]);
 
-  // ✅ FIXED v2: Reload tags from database after opening modal
+  // ✅ FIXED v3: Reload tags from database - ONLY ACCEPTED TAGS
   const loadExistingTags = useCallback(async () => {
     setLoadingTags(true);
     try {
-      console.log('[PublicacionCard] 🔄 Loading tags from database for post:', post.id);
+      console.log('[PublicacionCard] 🔄 Loading ACCEPTED tags from database for post:', post.id);
 
+      // ✅ CRITICAL FIX: Only load accepted tags, not pending or rejected
       const { data, error } = await supabase
         .from('post_tags')
         .select(`
@@ -397,14 +398,15 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           usuario:usuarios!post_tags_usuario_id_fkey(id, nombre, username, avatar),
           local:locales(id, nombre, imagen_url)
         `)
-        .eq('post_id', post.id);
+        .eq('post_id', post.id)
+        .eq('estado', 'aceptado');
 
       if (error) {
         console.error('[PublicacionCard] ❌ Error loading tags:', error);
         throw error;
       }
 
-      console.log('[PublicacionCard] 📊 Raw tags data from database:', data);
+      console.log('[PublicacionCard] 📊 Raw ACCEPTED tags data from database:', data);
 
       const tags: TaggableUser[] = [];
       
@@ -430,7 +432,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         });
       }
 
-      console.log('[PublicacionCard] ✅ Processed tags:', tags.length);
+      console.log('[PublicacionCard] ✅ Processed ACCEPTED tags:', tags.length);
       setExistingTags(tags);
     } catch (error) {
       console.error('[PublicacionCard] Error loading tags:', error);
