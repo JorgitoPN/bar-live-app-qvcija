@@ -71,13 +71,12 @@ interface PublicacionCardProps {
 }
 
 /**
- * ✅ PUBLICACION CARD v5.0 - FIXED TAG DELETION
+ * ✅ PUBLICACION CARD v6.0 - REMOVED EDIT PUBLICATION OPTION
  * 
  * Changes:
- * - ✅ FIXED: Tag deletion now properly removes from database
- * - ✅ FIXED: Tag management modal reloads from database (only accepted tags)
- * - ✅ FIXED: Proper query building for usuario_id vs local_id
- * - ✅ NO notifications sent when tagging (only tag request)
+ * - ✅ REMOVED: "Edit Publication" option from three-dot menu
+ * - ✅ Only shows: Edit Description, Manage Tags, Delete Publication
+ * - ✅ Maintains all other functionality
  */
 
 const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
@@ -394,13 +393,11 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [editedDescription, post.id, onUpdate]);
 
-  // ✅ FIXED v5: Reload tags from database - ONLY ACCEPTED TAGS
   const loadExistingTags = useCallback(async () => {
     setLoadingTags(true);
     try {
       console.log('[PublicacionCard] 🔄 Loading ACCEPTED tags from database for post:', post.id);
 
-      // ✅ CRITICAL FIX: Only load accepted tags, not pending or rejected
       const { data, error } = await supabase
         .from('post_tags')
         .select(`
@@ -453,12 +450,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   }, [post.id]);
 
   const handleManageTags = useCallback(() => {
-    // ✅ Always reload tags from database when opening modal
     loadExistingTags();
     setShowTagManagementModal(true);
   }, [loadExistingTags]);
 
-  // ✅ FIXED v5: Permanent tag deletion with proper query building
   const handleRemoveTag = useCallback(async (taggedUser: TaggableUser) => {
     try {
       console.log('[PublicacionCard] 🗑️ Removing tag permanently:', {
@@ -467,14 +462,12 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         tipo: taggedUser.tipo,
       });
 
-      // ✅ CRITICAL FIX: Build delete query correctly based on tag type
       const deleteData: any = {
         post_id: post.id,
         tipo: taggedUser.tipo,
-        estado: 'aceptado', // Only delete accepted tags
+        estado: 'aceptado',
       };
 
-      // Add the correct ID field based on tipo
       if (taggedUser.tipo === 'usuario') {
         deleteData.usuario_id = taggedUser.id;
       } else {
@@ -495,13 +488,9 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       console.log('[PublicacionCard] ✅ Tag deleted successfully from database');
 
-      // ✅ CRITICAL FIX: Reload tags from database to ensure UI is in sync
       await loadExistingTags();
-      
-      // ✅ Also reload tagged users for display
       await loadTaggedUsers();
       
-      // ✅ Trigger parent update
       if (onUpdate) {
         onUpdate();
       }
@@ -513,7 +502,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [post.id, loadExistingTags, loadTaggedUsers, onUpdate]);
 
-  // ✅ FIXED: Only send tag request, not notification
   const handleAddNewTag = useCallback(async (selectedUser: TaggableUser) => {
     if (!user) return;
 
@@ -548,10 +536,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       console.log('[PublicacionCard] ✅ Tag request created (no notification sent)');
 
-      // ✅ DO NOT send notification - only tag request is created
-      // The user will see the tag request in their notifications as a "tag_request" type
-
-      // ✅ Reload tags from database
       await loadExistingTags();
       await loadTaggedUsers();
       
@@ -566,13 +550,9 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [user, post.id, loadExistingTags, loadTaggedUsers, onUpdate]);
 
-  const handleEditPost = useCallback(() => {
-    router.push({
-      pathname: '/editar/publicacion',
-      params: { postId: post.id },
-    });
-  }, [router, post.id]);
+  // ✅ REMOVED: handleEditPost function - no longer needed
 
+  // ✅ UPDATED: showOptions - removed "Edit Publication" option
   const showOptions = useCallback(() => {
     const canEdit = user && (
       (post.tipo === 'usuario' && post.autor_id === user.id) ||
@@ -581,23 +561,22 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
     if (!canEdit) return;
 
-    const options = ['Editar publicación', 'Editar descripción', 'Gestionar etiquetas', 'Eliminar publicación', 'Cancelar'];
+    // ✅ REMOVED: "Editar publicación" option
+    const options = ['Editar descripción', 'Gestionar etiquetas', 'Eliminar publicación', 'Cancelar'];
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options,
-          cancelButtonIndex: 4,
-          destructiveButtonIndex: 3,
+          cancelButtonIndex: 3,
+          destructiveButtonIndex: 2,
         },
         (buttonIndex) => {
           if (buttonIndex === 0) {
-            handleEditPost();
-          } else if (buttonIndex === 1) {
             handleEditDescription();
-          } else if (buttonIndex === 2) {
+          } else if (buttonIndex === 1) {
             handleManageTags();
-          } else if (buttonIndex === 3) {
+          } else if (buttonIndex === 2) {
             handleDeletePost();
           }
         }
@@ -607,10 +586,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         'Opciones',
         '',
         [
-          {
-            text: 'Editar publicación',
-            onPress: handleEditPost,
-          },
           {
             text: 'Editar descripción',
             onPress: handleEditDescription,
@@ -631,7 +606,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         ]
       );
     }
-  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription, handleManageTags, handleEditPost]);
+  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription, handleManageTags]);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);

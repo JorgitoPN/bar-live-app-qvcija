@@ -10,9 +10,6 @@ import {
   ScrollView,
   Platform,
   useWindowDimensions,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
-  Keyboard,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -34,16 +31,13 @@ interface MentionAutocompleteProps {
 }
 
 /**
- * ✅ MENTION SYSTEM v6.0 - KEYBOARD-AWARE BOTTOM SHEET WITH ADMIN PANEL BEHAVIOR
+ * ✅ MENTION SYSTEM v7.0 - FIXED KEYBOARD OVERLAP
  * 
- * Revolutionary improvements:
- * - ✅ NEW: KeyboardAvoidingView wrapper for proper keyboard handling
- * - ✅ NEW: ScrollView with keyboardShouldPersistTaps="handled"
- * - ✅ NEW: TouchableWithoutFeedback to dismiss keyboard on overlay tap
- * - ✅ NEW: Proper content padding for text input visibility
- * - ✅ NEW: Matches Admin Panel Comment Modal behavior
- * - ✅ FIXED: Text inputs remain visible when keyboard appears
- * - ✅ FIXED: Improved UX with proper scroll and keyboard handling
+ * Changes:
+ * - ✅ FIXED: Modal now appears ABOVE keyboard, not hidden behind it
+ * - ✅ Position calculated based on keyboard height
+ * - ✅ Proper z-index and elevation to stay on top
+ * - ✅ Maintains all search and selection functionality
  */
 
 function normalizeText(text: string): string {
@@ -161,7 +155,6 @@ export default function MentionAutocomplete({
       const results: MentionSuggestion[] = [];
       const cleanQuery = query.trim();
 
-      // Search users
       try {
         const usersQuery = supabase
           .from('usuarios')
@@ -192,10 +185,9 @@ export default function MentionAutocomplete({
           })));
         }
       } catch (error) {
-        console.error('[MentionAutocomplete v6.0] Error in user search:', error);
+        console.error('[MentionAutocomplete v7.0] Error in user search:', error);
       }
 
-      // Search locals
       try {
         const localsQuery = supabase
           .from('locales')
@@ -250,7 +242,7 @@ export default function MentionAutocomplete({
           }
         }
       } catch (error) {
-        console.error('[MentionAutocomplete v6.0] Error in local search:', error);
+        console.error('[MentionAutocomplete v7.0] Error in local search:', error);
       }
 
       const uniqueResults = results.filter((item, index, self) =>
@@ -259,7 +251,7 @@ export default function MentionAutocomplete({
       
       setSuggestions(uniqueResults);
     } catch (error) {
-      console.error('[MentionAutocomplete v6.0] Error in searchMentions:', error);
+      console.error('[MentionAutocomplete v7.0] Error in searchMentions:', error);
       setSuggestions([]);
     } finally {
       setLoading(false);
@@ -299,127 +291,117 @@ export default function MentionAutocomplete({
     return null;
   }
 
-  // ✅ Calculate maximum available height to avoid header overlap
-  // Reserve space for: status bar (50) + header (100) + safe margin (20)
-  const HEADER_RESERVED_SPACE = Platform.OS === 'ios' ? 170 : 150;
-  const maxAvailableHeight = SCREEN_HEIGHT - keyboardHeight - HEADER_RESERVED_SPACE;
-  
-  // ✅ Modal height should be minimum of 280px or available space
-  const modalHeight = Math.min(280, maxAvailableHeight);
+  // ✅ FIXED: Position modal ABOVE keyboard with proper spacing
+  const modalHeight = Math.min(280, SCREEN_HEIGHT * 0.4);
+  const bottomPosition = keyboardHeight + 10; // 10px above keyboard
 
-  console.log('[MentionAutocomplete v6.0] 📐 Screen height:', SCREEN_HEIGHT);
-  console.log('[MentionAutocomplete v6.0] ⌨️ Keyboard height:', keyboardHeight);
-  console.log('[MentionAutocomplete v6.0] 📏 Max available height:', maxAvailableHeight);
-  console.log('[MentionAutocomplete v6.0] 📦 Modal height:', modalHeight);
+  console.log('[MentionAutocomplete v7.0] 📐 Screen height:', SCREEN_HEIGHT);
+  console.log('[MentionAutocomplete v7.0] ⌨️ Keyboard height:', keyboardHeight);
+  console.log('[MentionAutocomplete v7.0] 📦 Modal height:', modalHeight);
+  console.log('[MentionAutocomplete v7.0] 📍 Bottom position:', bottomPosition);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <View
       style={[
         styles.container, 
         { 
-          bottom: keyboardHeight,
+          bottom: bottomPosition,
           maxHeight: modalHeight,
         }
       ]}
-      keyboardVerticalOffset={0}
       pointerEvents="box-none"
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.overlayTouchable} pointerEvents="box-none">
-          <View style={[styles.content, { maxHeight: modalHeight }]} pointerEvents="auto">
-            <View style={styles.header}>
-              <IconSymbol 
-                ios_icon_name="at" 
-                android_material_icon_name="alternate_email" 
-                size={16} 
-                color={colors.primary} 
-              />
-              <Text style={styles.headerText}>Etiquetar usuarios/locales</Text>
-            </View>
+      <View style={[styles.content, { maxHeight: modalHeight }]} pointerEvents="auto">
+        <View style={styles.header}>
+          <IconSymbol 
+            ios_icon_name="at" 
+            android_material_icon_name="alternate_email" 
+            size={16} 
+            color={colors.primary} 
+          />
+          <Text style={styles.headerText}>Etiquetar usuarios/locales</Text>
+        </View>
 
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={styles.loadingText}>Buscando...</Text>
-              </View>
-            ) : showHint ? (
-              <View style={styles.hintContainer}>
-                <IconSymbol 
-                  ios_icon_name="info.circle.fill" 
-                  android_material_icon_name="info" 
-                  size={18} 
-                  color={colors.primary} 
-                />
-                <Text style={styles.hintText}>
-                  Escribe al menos 2 letras para buscar
-                </Text>
-              </View>
-            ) : suggestions.length > 0 ? (
-              <ScrollView 
-                style={styles.list}
-                contentContainerStyle={styles.listContent}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.loadingText}>Buscando...</Text>
+          </View>
+        ) : showHint ? (
+          <View style={styles.hintContainer}>
+            <IconSymbol 
+              ios_icon_name="info.circle.fill" 
+              android_material_icon_name="info" 
+              size={18} 
+              color={colors.primary} 
+            />
+            <Text style={styles.hintText}>
+              Escribe al menos 2 letras para buscar
+            </Text>
+          </View>
+        ) : suggestions.length > 0 ? (
+          <ScrollView 
+            style={styles.list}
+            contentContainerStyle={styles.listContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {suggestions.map((item) => (
+              <TouchableOpacity
+                key={`${item.id}-${item.tipo}`}
+                style={styles.suggestionItem}
+                onPress={() => handleSelectMention(item)}
+                activeOpacity={0.7}
               >
-                {suggestions.map((item) => (
-                  <TouchableOpacity
-                    key={`${item.id}-${item.tipo}`}
-                    style={styles.suggestionItem}
-                    onPress={() => handleSelectMention(item)}
-                    activeOpacity={0.7}
-                  >
-                    {item.avatar ? (
-                      <Image source={{ uri: item.avatar }} style={styles.avatar} />
-                    ) : (
-                      <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                        <IconSymbol
-                          ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                          android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
-                          size={16}
-                          color={colors.textSecondary}
+                {item.avatar ? (
+                  <Image source={{ uri: item.avatar }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                    <IconSymbol
+                      ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                      android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
+                      size={16}
+                      color={colors.textSecondary}
+                    />
+                  </View>
+                )}
+                <View style={styles.suggestionInfo}>
+                  <View style={styles.suggestionHeader}>
+                    <Text style={styles.suggestionUsername}>
+                      @{item.username}
+                    </Text>
+                    {item.tipo === 'local' && (
+                      <View style={styles.localBadge}>
+                        <IconSymbol 
+                          ios_icon_name="building.2.fill" 
+                          android_material_icon_name="business" 
+                          size={9} 
+                          color={colors.primary} 
                         />
+                        <Text style={styles.localBadgeText}>Local</Text>
                       </View>
                     )}
-                    <View style={styles.suggestionInfo}>
-                      <View style={styles.suggestionHeader}>
-                        <Text style={styles.suggestionUsername}>
-                          @{item.username}
-                        </Text>
-                        {item.tipo === 'local' && (
-                          <View style={styles.localBadge}>
-                            <IconSymbol 
-                              ios_icon_name="building.2.fill" 
-                              android_material_icon_name="business" 
-                              size={9} 
-                              color={colors.primary} 
-                            />
-                            <Text style={styles.localBadgeText}>Local</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.suggestionName} numberOfLines={1}>
-                        {item.nombre}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            ) : (
-              <View style={styles.emptyContainer}>
-                <IconSymbol 
-                  ios_icon_name="magnifyingglass" 
-                  android_material_icon_name="search" 
-                  size={18} 
-                  color={colors.textSecondary} 
-                />
-                <Text style={styles.emptyText}>Sin resultados para "@{currentMentionText}"</Text>
-              </View>
-            )}
+                  </View>
+                  <Text style={styles.suggestionName} numberOfLines={1}>
+                    {item.nombre}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <IconSymbol 
+              ios_icon_name="magnifyingglass" 
+              android_material_icon_name="search" 
+              size={18} 
+              color={colors.textSecondary} 
+            />
+            <Text style={styles.emptyText}>Sin resultados para "@{currentMentionText}"</Text>
           </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -428,11 +410,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    zIndex: 1000,
-    elevation: 1000,
-  },
-  overlayTouchable: {
-    flex: 1,
+    zIndex: 9999,
+    elevation: 9999,
   },
   content: {
     backgroundColor: colors.cardBackground,

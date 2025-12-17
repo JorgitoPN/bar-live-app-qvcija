@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,16 +18,6 @@ import {
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { BlurView } from 'expo-blur';
-import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  runOnJS,
-  interpolate,
-  Extrapolate,
-} from 'react-native-reanimated';
 import { supabase } from '@/utils/supabase';
 import OptimizedImage from '@/components/common/OptimizedImage';
 import { getEstadoLocal } from '@/utils/timeUtils';
@@ -38,8 +28,6 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRouter } from 'expo-router';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.9;
-const SWIPE_THRESHOLD = 150;
 
 interface LocalDetailsModalProps {
   visible: boolean;
@@ -93,24 +81,18 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
     'coctelería': { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
   };
   return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
-};
+}
 
 /**
- * ✅ LOCAL DETAILS MODAL v10.0 - COMPLETELY REBUILT
+ * ✅ LOCAL DETAILS MODAL v11.0 - STANDARD MODAL IMPLEMENTATION
  * 
  * Features:
- * - ✅ Swipe down to close (mobile-style gesture)
- * - ✅ Click close button to close
- * - ✅ Smooth animations with react-native-reanimated
- * - ✅ Background page visible and dimmed behind modal
- * - ✅ 90% screen coverage
- * - ✅ Rounded top corners
- * - ✅ Visual drag indicator
- * - ✅ Touch and mouse compatible
- * - ✅ Direct content rendering (no WebView)
- * - ✅ Close button positioned below badges (not overlapping)
- * - ✅ Close button same size as save button (40x40)
- * - ✅ Background visible when swiping down
+ * - ✅ Standard modal behavior (centered, floating container)
+ * - ✅ Blocks interaction with background content
+ * - ✅ Dark overlay background
+ * - ✅ Close button with proper positioning (respects badge margins)
+ * - ✅ Can close by clicking overlay or close button
+ * - ✅ No swipe gestures (standard modal behavior)
  */
 
 export default function LocalDetailsModal({
@@ -121,8 +103,6 @@ export default function LocalDetailsModal({
   const router = useRouter();
   const { user } = useAuth();
   const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
-  const translateY = useSharedValue(MODAL_HEIGHT);
-  const [isClosing, setIsClosing] = useState(false);
   const [local, setLocal] = useState<Local | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -132,13 +112,10 @@ export default function LocalDetailsModal({
   useEffect(() => {
     if (visible) {
       console.log('[LocalDetailsModal] 🚀 Opening modal for local:', localId);
-      translateY.value = withSpring(0, {
-        damping: 20,
-        stiffness: 90,
-      });
       loadLocalData();
     } else {
-      translateY.value = MODAL_HEIGHT;
+      setLocal(null);
+      setLoading(true);
     }
   }, [visible, localId]);
 
@@ -160,77 +137,6 @@ export default function LocalDetailsModal({
       setLoading(false);
     }
   };
-
-  const closeModal = () => {
-    if (isClosing) return;
-    
-    console.log('[LocalDetailsModal] 🔽 Closing modal...');
-    setIsClosing(true);
-    
-    translateY.value = withTiming(MODAL_HEIGHT, {
-      duration: 300,
-    }, () => {
-      runOnJS(handleModalClosed)();
-    });
-  };
-
-  const handleModalClosed = () => {
-    console.log('[LocalDetailsModal] ✅ Modal closed');
-    setIsClosing(false);
-    setLocal(null);
-    setLoading(true);
-    onClose();
-  };
-
-  const onGestureEvent = (event: any) => {
-    'worklet';
-    const translationY = event.translationY;
-    
-    // Only allow downward swipes
-    if (translationY > 0) {
-      translateY.value = translationY;
-    }
-  };
-
-  const onGestureEnd = (event: any) => {
-    'worklet';
-    const translationY = event.translationY;
-    const velocityY = event.velocityY;
-    
-    // Close if swiped down enough or fast enough
-    if (translationY > SWIPE_THRESHOLD || velocityY > 500) {
-      translateY.value = withTiming(MODAL_HEIGHT, {
-        duration: 300,
-      }, () => {
-        runOnJS(handleModalClosed)();
-      });
-    } else {
-      // Snap back to open position
-      translateY.value = withSpring(0, {
-        damping: 20,
-        stiffness: 90,
-      });
-    }
-  };
-
-  const animatedModalStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: translateY.value }],
-    };
-  });
-
-  const animatedBackdropStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      translateY.value,
-      [0, MODAL_HEIGHT],
-      [0.5, 0],
-      Extrapolate.CLAMP
-    );
-    
-    return {
-      opacity,
-    };
-  });
 
   const handleToggleFavorito = async (e: any) => {
     e.stopPropagation();
@@ -257,7 +163,7 @@ export default function LocalDetailsModal({
   };
 
   const handleViewFullDetails = () => {
-    closeModal();
+    onClose();
     setTimeout(() => {
       router.push({ pathname: '/detalle/local', params: { id: localId } });
     }, 300);
@@ -285,256 +191,234 @@ export default function LocalDetailsModal({
 
   const displayRating = local?.rating || local?.google_rating || 0;
 
+  // ✅ FIXED: Close button position respects badge margins
+  const closeButtonTop = local?.destacado 
+    ? (Platform.OS === 'ios' ? 100 : 100)
+    : (Platform.OS === 'ios' ? 60 : 60);
+
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="none"
-      onRequestClose={closeModal}
+      animationType="fade"
+      onRequestClose={onClose}
       statusBarTranslucent
     >
-      <GestureHandlerRootView style={styles.gestureRoot}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-        
-        {/* ✅ Animated backdrop - visible and dimmed */}
-        <Animated.View style={[styles.backdrop, animatedBackdropStyle]}>
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFillObject}
-            activeOpacity={1} 
-            onPress={closeModal}
-          />
-        </Animated.View>
-
-        {/* ✅ Animated modal container */}
-        <PanGestureHandler
-          onGestureEvent={onGestureEvent}
-          onEnded={onGestureEnd}
-          activeOffsetY={10}
+      <StatusBar barStyle="light-content" backgroundColor="rgba(0, 0, 0, 0.7)" translucent />
+      
+      {/* ✅ Dark overlay - blocks interaction with background */}
+      <TouchableOpacity 
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        {/* ✅ Modal container - centered, floating */}
+        <TouchableOpacity 
+          style={styles.modalContainer}
+          activeOpacity={1}
+          onPress={(e) => e.stopPropagation()}
         >
-          <Animated.View style={[styles.modalContainer, animatedModalStyle]}>
-            {/* ✅ Drag indicator */}
-            <View style={styles.dragIndicatorContainer}>
-              <View style={styles.dragIndicator} />
-            </View>
+          <ScrollView 
+            style={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Cargando local...</Text>
+              </View>
+            ) : local ? (
+              <React.Fragment>
+                {/* Cover Image */}
+                {allImages.length > 0 && (
+                  <View style={styles.coverContainer}>
+                    <OptimizedImage
+                      source={{ uri: allImages[currentImageIndex] }}
+                      style={styles.coverImage}
+                      resizeMode="cover"
+                    />
 
-            {/* ✅ Content */}
-            <ScrollView 
-              style={styles.contentContainer}
-              showsVerticalScrollIndicator={false}
-              bounces={false}
-            >
-              {loading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={colors.primary} />
-                  <Text style={styles.loadingText}>Cargando local...</Text>
-                </View>
-              ) : local ? (
-                <React.Fragment>
-                  {/* Cover Image */}
-                  {allImages.length > 0 && (
-                    <View style={styles.coverContainer}>
-                      <OptimizedImage
-                        source={{ uri: allImages[currentImageIndex] }}
-                        style={styles.coverImage}
-                        resizeMode="cover"
-                      />
-
-                      {/* ✅ FIXED: Close button positioned below badges, same size as save button (40x40) */}
-                      <TouchableOpacity style={styles.closeButtonFixed} onPress={closeModal}>
-                        <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
-                          <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={18} color="#fff" />
+                    {/* ✅ FIXED: Close button with proper positioning - respects badge margins */}
+                    <TouchableOpacity 
+                      style={[styles.closeButtonFixed, { top: closeButtonTop }]} 
+                      onPress={onClose}
+                    >
+                      <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+                        <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={18} color="#fff" />
+                      </BlurView>
+                    </TouchableOpacity>
+                
+                    {displayRating > 0 && (
+                      <View style={styles.ratingBadgeTopRight}>
+                        <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
+                          <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
+                          <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
                         </BlurView>
-                      </TouchableOpacity>
-                  
-                      {displayRating > 0 && (
-                        <View style={styles.ratingBadgeTopRight}>
-                          <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
-                            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
-                            <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
-                          </BlurView>
-                        </View>
-                      )}
-                  
-                      {estadoLocal && (
-                        <View style={styles.statusBadgeTop}>
-                          <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
-                            <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
-                            <Text style={styles.statusText}>
-                              {estadoLocal.badge}
-                            </Text>
-                            {estadoLocal.tiempoRestante && (
-                              <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>
-                            )}
-                          </BlurView>
-                        </View>
-                      )}
-
-                      {local.destacado && (
-                        <View style={styles.destacadoBadgeTop}>
-                          <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
-                            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#F59E0B" />
-                            <Text style={styles.destacadoText}>Destacado</Text>
-                          </BlurView>
-                        </View>
-                      )}
-                  
-                      <TouchableOpacity
-                        style={styles.favoritoButton}
-                        onPress={handleToggleFavorito}
-                        disabled={loadingFavorite}
-                      >
-                        <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
-                          {loadingFavorite ? (
-                            <ActivityIndicator size="small" color="#FFFFFF" />
-                          ) : (
-                            <IconSymbol
-                              ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
-                              android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
-                              size={22}
-                              color={localIsFavorite ? "#EF4444" : "#FFFFFF"}
-                            />
+                      </View>
+                    )}
+                
+                    {estadoLocal && (
+                      <View style={styles.statusBadgeTop}>
+                        <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
+                          <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
+                          <Text style={styles.statusText}>
+                            {estadoLocal.badge}
+                          </Text>
+                          {estadoLocal.tiempoRestante && (
+                            <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>
                           )}
                         </BlurView>
-                      </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {local.destacado && (
+                      <View style={styles.destacadoBadgeTop}>
+                        <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
+                          <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#F59E0B" />
+                          <Text style={styles.destacadoText}>Destacado</Text>
+                        </BlurView>
+                      </View>
+                    )}
+                
+                    <TouchableOpacity
+                      style={styles.favoritoButton}
+                      onPress={handleToggleFavorito}
+                      disabled={loadingFavorite}
+                    >
+                      <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
+                        {loadingFavorite ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <IconSymbol
+                            ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
+                            android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
+                            size={22}
+                            color={localIsFavorite ? "#EF4444" : "#FFFFFF"}
+                          />
+                        )}
+                      </BlurView>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Content */}
+                <View style={styles.contentCard}>
+                  <Text style={styles.localNameText}>{local.nombre}</Text>
+
+                  {allCategories.length > 0 && (
+                    <View style={styles.categoriesRow}>
+                      {allCategories.map((categoria, index) => {
+                        const icon = getCategoryIcon(categoria);
+                        return (
+                          <View key={index} style={[styles.categoryChip, { backgroundColor: icon.color }]}>
+                            <IconSymbol 
+                              ios_icon_name={icon.ios} 
+                              android_material_icon_name={icon.android} 
+                              size={18} 
+                              color="#fff" 
+                            />
+                            <Text style={styles.categoryChipText}>{categoria.toUpperCase()}</Text>
+                          </View>
+                        );
+                      })}
                     </View>
                   )}
 
-                  {/* Content */}
-                  <View style={styles.contentCard}>
-                    <Text style={styles.localNameText}>{local.nombre}</Text>
-
-                    {allCategories.length > 0 && (
-                      <View style={styles.categoriesRow}>
-                        {allCategories.map((categoria, index) => {
-                          const icon = getCategoryIcon(categoria);
-                          return (
-                            <View key={index} style={[styles.categoryChip, { backgroundColor: icon.color }]}>
-                              <IconSymbol 
-                                ios_icon_name={icon.ios} 
-                                android_material_icon_name={icon.android} 
-                                size={18} 
-                                color="#fff" 
-                              />
-                              <Text style={styles.categoryChipText}>{categoria.toUpperCase()}</Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    )}
-
-                    {local.direccion && (
-                      <View style={styles.addressContainer}>
-                        <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
-                        <Text style={styles.addressText} numberOfLines={2}>
-                          {local.direccion}
-                        </Text>
-                      </View>
-                    )}
-
-                    {(local.descripcion_google || local.descripcion) && (
-                      <Text style={styles.descriptionText} numberOfLines={3}>
-                        {local.descripcion_google || local.descripcion}
+                  {local.direccion && (
+                    <View style={styles.addressContainer}>
+                      <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
+                      <Text style={styles.addressText} numberOfLines={2}>
+                        {local.direccion}
                       </Text>
-                    )}
-
-                    <View style={styles.actionsRow}>
-                      {local.telefono && (
-                        <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
-                          <LinearGradient
-                            colors={['#10B981', '#059669']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.actionBtnGradient}
-                          >
-                            <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
-                            <Text style={styles.actionBtnText}>Llamar</Text>
-                          </LinearGradient>
-                        </TouchableOpacity>
-                      )}
-                  
-                      {local.latitud && local.longitud && (
-                        <TouchableOpacity style={styles.actionBtn} onPress={handleDirections}>
-                          <LinearGradient
-                            colors={[colors.primary, colors.secondary]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.actionBtnGradient}
-                          >
-                            <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
-                            <Text style={styles.actionBtnText}>Cómo llegar</Text>
-                          </LinearGradient>
-                        </TouchableOpacity>
-                      )}
                     </View>
+                  )}
 
-                    <TouchableOpacity style={styles.viewFullButton} onPress={handleViewFullDetails}>
-                      <LinearGradient
-                        colors={[colors.primary, colors.secondary]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.viewFullButtonGradient}
-                      >
-                        <Text style={styles.viewFullButtonText}>Ver Detalles Completos</Text>
-                        <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
-                      </LinearGradient>
-                    </TouchableOpacity>
+                  {(local.descripcion_google || local.descripcion) && (
+                    <Text style={styles.descriptionText} numberOfLines={3}>
+                      {local.descripcion_google || local.descripcion}
+                    </Text>
+                  )}
+
+                  <View style={styles.actionsRow}>
+                    {local.telefono && (
+                      <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
+                        <LinearGradient
+                          colors={['#10B981', '#059669']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.actionBtnGradient}
+                        >
+                          <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
+                          <Text style={styles.actionBtnText}>Llamar</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    )}
+                
+                    {local.latitud && local.longitud && (
+                      <TouchableOpacity style={styles.actionBtn} onPress={handleDirections}>
+                        <LinearGradient
+                          colors={[colors.primary, colors.secondary]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.actionBtnGradient}
+                        >
+                          <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
+                          <Text style={styles.actionBtnText}>Cómo llegar</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    )}
                   </View>
-                </React.Fragment>
-              ) : (
-                <View style={styles.errorContainer}>
-                  <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="error" size={48} color={colors.badgeDestacado} />
-                  <Text style={styles.errorText}>No se pudo cargar el local</Text>
+
+                  <TouchableOpacity style={styles.viewFullButton} onPress={handleViewFullDetails}>
+                    <LinearGradient
+                      colors={[colors.primary, colors.secondary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.viewFullButtonGradient}
+                    >
+                      <Text style={styles.viewFullButtonText}>Ver Detalles Completos</Text>
+                      <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
-              )}
-            </ScrollView>
-          </Animated.View>
-        </PanGestureHandler>
-      </GestureHandlerRootView>
+              </React.Fragment>
+            ) : (
+              <View style={styles.errorContainer}>
+                <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="error" size={48} color={colors.badgeDestacado} />
+                <Text style={styles.errorText}>No se pudo cargar el local</Text>
+              </View>
+            )}
+          </ScrollView>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  gestureRoot: {
+  overlay: {
     flex: 1,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   modalContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: MODAL_HEIGHT,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: SCREEN_HEIGHT * 0.85,
     backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 15,
-  },
-  dragIndicatorContainer: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  dragIndicator: {
-    width: 40,
-    height: 5,
-    backgroundColor: colors.textSecondary,
-    borderRadius: 3,
-    opacity: 0.5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 20,
   },
   contentContainer: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -560,16 +444,15 @@ const styles = StyleSheet.create({
   },
   coverContainer: {
     position: 'relative',
-    height: 300,
+    height: 250,
   },
   coverImage: {
-    width: SCREEN_WIDTH,
-    height: 300,
+    width: '100%',
+    height: 250,
   },
-  // ✅ FIXED: Close button positioned below badges, same size as save button (40x40)
+  // ✅ FIXED: Close button with proper positioning - respects badge margins
   closeButtonFixed: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 120 : 110,
     left: 16,
     width: 40,
     height: 40,
@@ -692,7 +575,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   localNameText: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '800',
     color: colors.text,
     marginBottom: 12,
