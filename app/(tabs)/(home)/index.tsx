@@ -184,7 +184,7 @@ export default function HomeScreen() {
 
       let localesConDistancia = data || [];
 
-      // ✅ CRITICAL FIX v8 - IMPLEMENT EXACT ALGORITHM FROM REQUIREMENTS
+      // ✅ CRITICAL FIX v9 - IMPLEMENT EXACT MANDATORY ALGORITHM
       if (userLocation) {
         console.log('[Home] 📍 User location:', userLocation);
         
@@ -199,51 +199,51 @@ export default function HomeScreen() {
             );
             return { ...local, distancia };
           }
-          return { ...local, distancia: 999 };
+          return { ...local, distancia: 999999 }; // Very high distance for locals without coordinates
         });
 
-        console.log('[Home] 🧠 Applying MANDATORY sorting algorithm...');
+        console.log('[Home] 🧠 Applying MANDATORY sorting algorithm (NON-INTERPRETABLE)...');
 
         // 🧠 MANDATORY ALGORITHM (NON-INTERPRETABLE)
         // groupA = locales with distance <= 100km
-        // groupB = locales with distance > 100km
         const groupA = localesConDistancia.filter(l => 
           l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
         );
         
+        // groupB = locales with distance > 100km
         const groupB = localesConDistancia.filter(l => 
           l.distancia !== undefined && l.distancia > MAX_FEATURED_DISTANCE_KM
         );
 
         console.log('[Home] 📊 Groups created:');
-        console.log('  - Group A (≤100km):', groupA.length);
-        console.log('  - Group B (>100km):', groupB.length);
+        console.log('  - Group A (≤100km):', groupA.length, 'locals');
+        console.log('  - Group B (>100km):', groupB.length, 'locals');
 
         // groupA_destacados = groupA where destacado == true sorted by distance
         const groupA_destacados = groupA
           .filter(l => l.destacado === true)
-          .sort((a, b) => (a.distancia || 999) - (b.distancia || 999));
+          .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
         // groupA_no_destacados = groupA where destacado == false sorted by distance
         const groupA_no_destacados = groupA
-          .filter(l => !l.destacado)
-          .sort((a, b) => (a.distancia || 999) - (b.distancia || 999));
+          .filter(l => l.destacado === false)
+          .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
         // groupB_no_destacados = groupB where destacado == false sorted by distance
         const groupB_no_destacados = groupB
-          .filter(l => !l.destacado)
-          .sort((a, b) => (a.distancia || 999) - (b.distancia || 999));
+          .filter(l => l.destacado === false)
+          .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
         // groupB_destacados = groupB where destacado == true sorted by distance
         const groupB_destacados = groupB
           .filter(l => l.destacado === true)
-          .sort((a, b) => (a.distancia || 999) - (b.distancia || 999));
+          .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-        console.log('[Home] 📊 Sub-groups:');
-        console.log('  1. Group A Featured (≤100km):', groupA_destacados.length);
-        console.log('  2. Group A Non-Featured (≤100km):', groupA_no_destacados.length);
-        console.log('  3. Group B Non-Featured (>100km):', groupB_no_destacados.length);
-        console.log('  4. Group B Featured (>100km):', groupB_destacados.length);
+        console.log('[Home] 📊 Sub-groups created:');
+        console.log('  1. Group A Featured (≤100km, destacado=true):', groupA_destacados.length);
+        console.log('  2. Group A Non-Featured (≤100km, destacado=false):', groupA_no_destacados.length);
+        console.log('  3. Group B Non-Featured (>100km, destacado=false):', groupB_no_destacados.length);
+        console.log('  4. Group B Featured (>100km, destacado=true):', groupB_destacados.length);
 
         // resultado_final = groupA_destacados + groupA_no_destacados + groupB_no_destacados + groupB_destacados
         localesConDistancia = [
@@ -253,17 +253,16 @@ export default function HomeScreen() {
           ...groupB_destacados,
         ];
 
-        console.log('[Home] ✅ FINAL SORTING APPLIED');
-        console.log('[Home] 🔝 First 15 locals in list:');
-        localesConDistancia.slice(0, 15).forEach((l, i) => {
+        console.log('[Home] ✅ FINAL SORTING APPLIED - Total locals:', localesConDistancia.length);
+        console.log('[Home] 🔝 First 20 locals in final list:');
+        localesConDistancia.slice(0, 20).forEach((l, i) => {
           const group = l.distancia! <= MAX_FEATURED_DISTANCE_KM ? 'A' : 'B';
-          const featured = l.destacado ? '⭐' : '  ';
-          console.log(`  ${i + 1}. [Group ${group}] ${featured} ${l.nombre}`);
-          console.log(`      Destacado: ${l.destacado}, Distancia: ${l.distancia?.toFixed(1)}km`);
-          console.log(`      Dirección: ${l.direccion}`);
+          const featured = l.destacado ? '⭐ DESTACADO' : '   NORMAL   ';
+          console.log(`  ${String(i + 1).padStart(2, '0')}. [Group ${group}] ${featured} | ${l.nombre}`);
+          console.log(`      📍 Distancia: ${l.distancia?.toFixed(1)}km | 📌 Dirección: ${l.direccion}`);
         });
 
-        // 📌 Verify Casa Paco position
+        // 📌 CRITICAL VERIFICATION: Find Casa Paco position
         const casaPacoIndex = localesConDistancia.findIndex(l => 
           l.nombre.toLowerCase().includes('casa paco') || 
           l.direccion?.toLowerCase().includes('rincón de san nicolás')
@@ -271,19 +270,35 @@ export default function HomeScreen() {
         
         if (casaPacoIndex !== -1) {
           const casaPaco = localesConDistancia[casaPacoIndex];
-          console.log('[Home] 📌 CASA PACO VERIFICATION:');
-          console.log(`  Position in list: #${casaPacoIndex + 1}`);
-          console.log(`  Name: ${casaPaco.nombre}`);
-          console.log(`  Address: ${casaPaco.direccion}`);
-          console.log(`  Featured: ${casaPaco.destacado}`);
-          console.log(`  Distance: ${casaPaco.distancia?.toFixed(1)}km`);
-          console.log(`  Expected position: LAST BLOCK (Group B Featured)`);
+          const expectedGroup = casaPaco.distancia! > MAX_FEATURED_DISTANCE_KM ? 'B' : 'A';
+          const expectedSubgroup = casaPaco.destacado ? 'Featured' : 'Non-Featured';
           
-          if (casaPacoIndex < 5) {
-            console.error('[Home] ❌❌❌ CRITICAL ERROR: Casa Paco is in top 5! This violates the mandatory algorithm!');
+          console.log('[Home] 📌 ========================================');
+          console.log('[Home] 📌 CASA PACO VERIFICATION:');
+          console.log('[Home] 📌 ========================================');
+          console.log(`[Home] 📌 Position in list: #${casaPacoIndex + 1} of ${localesConDistancia.length}`);
+          console.log(`[Home] 📌 Name: ${casaPaco.nombre}`);
+          console.log(`[Home] 📌 Address: ${casaPaco.direccion}`);
+          console.log(`[Home] 📌 Featured: ${casaPaco.destacado}`);
+          console.log(`[Home] 📌 Distance: ${casaPaco.distancia?.toFixed(1)}km`);
+          console.log(`[Home] 📌 Expected Group: ${expectedGroup} (${expectedSubgroup})`);
+          console.log(`[Home] 📌 Expected Position: LAST BLOCK (Group B Featured)`);
+          
+          // Count how many locals should be before Casa Paco
+          const expectedPosition = groupA_destacados.length + groupA_no_destacados.length + groupB_no_destacados.length;
+          
+          console.log(`[Home] 📌 Expected minimum position: #${expectedPosition + 1}`);
+          console.log(`[Home] 📌 Actual position: #${casaPacoIndex + 1}`);
+          
+          if (casaPacoIndex < expectedPosition) {
+            console.error('[Home] ❌❌❌ CRITICAL ERROR: Casa Paco is NOT in the correct position!');
+            console.error(`[Home] ❌ It should be at position #${expectedPosition + 1} or later, but it's at #${casaPacoIndex + 1}`);
           } else {
-            console.log('[Home] ✅ Casa Paco is correctly positioned in the last block');
+            console.log('[Home] ✅✅✅ Casa Paco is CORRECTLY positioned in the last block (Group B Featured)');
           }
+          console.log('[Home] 📌 ========================================');
+        } else {
+          console.log('[Home] ℹ️ Casa Paco not found in current results');
         }
       } else {
         console.log('[Home] ⚠️ No user location available, sorting by destacado and rating only');

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -71,7 +72,7 @@ export default function AdminSolicitudesPropietarioScreen() {
       setSolicitudes(data || []);
     } catch (error) {
       console.error('[Solicitudes] Error:', error);
-      Alert.alert('Error', 'No se pudieron cargar las solicitudes. Verifica que la tabla solicitudes_propietario exista en Supabase.');
+      Alert.alert('Error', 'No se pudieron cargar las solicitudes');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -158,7 +159,7 @@ export default function AdminSolicitudesPropietarioScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Solicitudes de Propietario</Text>
         <View style={{ width: 40 }} />
@@ -191,6 +192,7 @@ export default function AdminSolicitudesPropietarioScreen() {
       ) : (
         <ScrollView 
           style={styles.content}
+          contentContainerStyle={styles.contentContainer}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -199,14 +201,14 @@ export default function AdminSolicitudesPropietarioScreen() {
             solicitudesFiltradas.map((solicitud) => (
               <View
                 key={solicitud.id}
-                style={[commonStyles.card, commonStyles.cardShadow, styles.solicitudCard]}
+                style={styles.solicitudCard}
               >
                 <View style={styles.solicitudHeader}>
                   {solicitud.usuario?.avatar ? (
                     <Image source={{ uri: solicitud.usuario.avatar }} style={styles.avatar} />
                   ) : (
                     <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                      <IconSymbol name="person.fill" size={24} color={colors.textSecondary} />
+                      <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.textSecondary} />
                     </View>
                   )}
                   <View style={styles.solicitudInfo}>
@@ -247,14 +249,14 @@ export default function AdminSolicitudesPropietarioScreen() {
                       style={[styles.actionButton, styles.aprobarButton]}
                       onPress={() => handleAprobar(solicitud.id, solicitud.usuario_id)}
                     >
-                      <IconSymbol name="checkmark.circle.fill" size={20} color="#fff" />
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#fff" />
                       <Text style={styles.actionButtonText}>Aprobar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.rechazarButton]}
                       onPress={() => handleRechazar(solicitud.id, solicitud.usuario_id)}
                     >
-                      <IconSymbol name="xmark.circle.fill" size={20} color="#fff" />
+                      <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color="#fff" />
                       <Text style={styles.actionButtonText}>Rechazar</Text>
                     </TouchableOpacity>
                   </View>
@@ -263,7 +265,7 @@ export default function AdminSolicitudesPropietarioScreen() {
             ))
           ) : (
             <View style={styles.emptyContainer}>
-              <IconSymbol name="doc.text" size={64} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="doc.text" android_material_icon_name="description" size={64} color={colors.textSecondary} />
               <Text style={styles.emptyText}>
                 {filtro === 'todas' 
                   ? 'No hay solicitudes' 
@@ -283,7 +285,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -297,18 +299,23 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
+    flex: 1,
+    textAlign: 'center',
   },
   filters: {
     flexDirection: 'row',
     padding: 16,
     gap: 8,
     flexWrap: 'wrap',
+    backgroundColor: colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
   filterButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
@@ -326,7 +333,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     padding: 16,
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -340,8 +350,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   solicitudCard: {
-    marginBottom: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
     padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    ...commonStyles.cardShadow,
   },
   solicitudHeader: {
     flexDirection: 'row',

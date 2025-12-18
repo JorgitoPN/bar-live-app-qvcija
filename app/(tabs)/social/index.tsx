@@ -12,6 +12,7 @@ import {
   Platform,
   ScrollView,
   Image,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
@@ -24,6 +25,8 @@ import MomentoCarousel from '@/components/momento/MomentoCarousel';
 import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface Post {
   id: string;
@@ -72,10 +75,12 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL FEED v3.0 - WITH FRIENDS LOCATIONS
+ * ✅ SOCIAL FEED v4.0 - WITH FULL-WIDTH FRIENDS LOCATIONS CAROUSEL
  * 
  * Features:
- * - ✅ "¿Quieres saber dónde están tus amigos?" section
+ * - ✅ Full-width "¿Quieres saber dónde están tus amigos?" section
+ * - ✅ Horizontal scrolling carousel (like stories)
+ * - ✅ Smaller, more compact design
  * - ✅ Shows friends currently at locals
  * - ✅ Shows user's own check-in if present
  * - ✅ Beautiful visual cards with avatars, local photos, badges
@@ -473,175 +478,144 @@ export default function SocialIndexScreen() {
 
       <MomentoCarousel />
 
-      {/* ✅ MY CHECK-IN SECTION - Show if I'm checked in */}
-      {myCheckIn && myCheckIn.locales && (
-        <View style={styles.myCheckInSection}>
-          <LinearGradient
-            colors={['#10B981', '#059669']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.myCheckInGradient}
-          >
-            <View style={styles.myCheckInHeader}>
-              <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={24} color={colors.white} />
-              <Text style={styles.myCheckInTitle}>Estás en:</Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.myCheckInCard}
-              onPress={() => router.push(`/detalle/local?id=${myCheckIn.locales.id}`)}
-              activeOpacity={0.9}
-            >
-              <View style={styles.myCheckInImageContainer}>
-                {myCheckIn.locales.imagen_url ? (
-                  <Image 
-                    source={{ uri: myCheckIn.locales.imagen_url }} 
-                    style={styles.myCheckInImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={[styles.myCheckInImage, styles.myCheckInImagePlaceholder]}>
-                    <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={40} color={colors.white} />
-                  </View>
-                )}
-                <View style={styles.myCheckInOverlay} />
-                <View style={styles.myCheckInBadge}>
-                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color="#10B981" />
-                  <Text style={styles.myCheckInBadgeText}>Ahora aquí</Text>
-                </View>
-              </View>
-
-              <View style={styles.myCheckInInfo}>
-                <Text style={styles.myCheckInLocalName} numberOfLines={1}>
-                  {myCheckIn.locales.nombre}
-                </Text>
-                <View style={styles.myCheckInMeta}>
-                  <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={12} color="rgba(255, 255, 255, 0.9)" />
-                  <Text style={styles.myCheckInAddress} numberOfLines={1}>
-                    {myCheckIn.locales.direccion}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.myCheckInArrow}>
-                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={24} color={colors.white} />
-              </View>
-            </TouchableOpacity>
-          </LinearGradient>
-        </View>
-      )}
-
-      {/* ✅ FRIENDS LOCATIONS SECTION - "¿Quieres saber dónde están tus amigos?" */}
-      {friendsLocations.length > 0 && (
+      {/* ✅ FRIENDS LOCATIONS SECTION - FULL WIDTH, HORIZONTAL SCROLL */}
+      {(myCheckIn || friendsLocations.length > 0) && (
         <View style={styles.friendsLocationsSection}>
-          <LinearGradient
-            colors={['#14B8A6', '#0D9488']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.friendsLocationsSectionGradient}
-          >
-            <View style={styles.friendsLocationsSectionHeader}>
-              <View style={styles.friendsLocationsSectionTitleContainer}>
-                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={28} color={colors.white} />
-                <View>
-                  <Text style={styles.friendsLocationsSectionTitle}>
-                    ¿Quieres saber dónde están tus amigos?
-                  </Text>
-                  <Text style={styles.friendsLocationsSectionSubtitle}>
-                    {friendsLocations.length} {friendsLocations.length === 1 ? 'local con amigos' : 'locales con amigos'}
-                  </Text>
-                </View>
-              </View>
-            </View>
+          <View style={styles.friendsLocationsSectionHeader}>
+            <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color={colors.primary} />
+            <Text style={styles.friendsLocationsSectionTitle}>
+              ¿Quieres saber dónde están tus amigos?
+            </Text>
+          </View>
 
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.friendsLocationsScroll}
-            >
-              {friendsLocations.map((location) => (
-                <TouchableOpacity
-                  key={location.local.id}
-                  style={styles.friendLocationCard}
-                  onPress={() => router.push(`/detalle/local?id=${location.local.id}`)}
-                  activeOpacity={0.9}
-                >
-                  <View style={styles.friendLocationImageContainer}>
-                    {location.local.imagen_url ? (
-                      <Image 
-                        source={{ uri: location.local.imagen_url }} 
-                        style={styles.friendLocationImage}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View style={[styles.friendLocationImage, styles.friendLocationImagePlaceholder]}>
-                        <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={32} color={colors.white} />
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.friendsLocationsScroll}
+            style={styles.friendsLocationsScrollView}
+          >
+            {/* MY CHECK-IN CARD */}
+            {myCheckIn && myCheckIn.locales && (
+              <TouchableOpacity
+                style={styles.friendLocationCard}
+                onPress={() => router.push(`/detalle/local?id=${myCheckIn.locales.id}`)}
+                activeOpacity={0.9}
+              >
+                <View style={styles.friendLocationImageContainer}>
+                  {myCheckIn.locales.imagen_url ? (
+                    <Image 
+                      source={{ uri: myCheckIn.locales.imagen_url }} 
+                      style={styles.friendLocationImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[styles.friendLocationImage, styles.friendLocationImagePlaceholder]}>
+                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={28} color="rgba(255, 255, 255, 0.6)" />
+                    </View>
+                  )}
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0, 0, 0, 0.7)']}
+                    style={styles.friendLocationGradient}
+                  />
+                  
+                  {/* "Tú estás aquí" badge */}
+                  <View style={[styles.friendLocationBadge, { backgroundColor: '#10B981' }]}>
+                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={12} color={colors.white} />
+                    <Text style={styles.friendLocationBadgeText}>Tú estás aquí</Text>
+                  </View>
+                </View>
+
+                <View style={styles.friendLocationInfo}>
+                  <Text style={styles.friendLocationName} numberOfLines={1}>
+                    {myCheckIn.locales.nombre}
+                  </Text>
+                  <View style={styles.friendLocationMeta}>
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={10} color={colors.textSecondary} />
+                    <Text style={styles.friendLocationAddress} numberOfLines={1}>
+                      {myCheckIn.locales.direccion}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {/* FRIENDS LOCATION CARDS */}
+            {friendsLocations.map((location) => (
+              <TouchableOpacity
+                key={location.local.id}
+                style={styles.friendLocationCard}
+                onPress={() => router.push(`/detalle/local?id=${location.local.id}`)}
+                activeOpacity={0.9}
+              >
+                <View style={styles.friendLocationImageContainer}>
+                  {location.local.imagen_url ? (
+                    <Image 
+                      source={{ uri: location.local.imagen_url }} 
+                      style={styles.friendLocationImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[styles.friendLocationImage, styles.friendLocationImagePlaceholder]}>
+                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={28} color="rgba(255, 255, 255, 0.6)" />
+                    </View>
+                  )}
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0, 0, 0, 0.7)']}
+                    style={styles.friendLocationGradient}
+                  />
+                  
+                  {/* User avatars */}
+                  <View style={styles.friendLocationAvatars}>
+                    {location.users.slice(0, 3).map((user, userIndex) => (
+                      <View 
+                        key={user.id} 
+                        style={[
+                          styles.friendLocationAvatar,
+                          { marginLeft: userIndex > 0 ? -10 : 0 }
+                        ]}
+                      >
+                        {user.avatar ? (
+                          <Image 
+                            source={{ uri: user.avatar }} 
+                            style={styles.friendLocationAvatarImage}
+                          />
+                        ) : (
+                          <View style={styles.friendLocationAvatarPlaceholder}>
+                            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={12} color={colors.white} />
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                    {location.users.length > 3 && (
+                      <View style={[styles.friendLocationAvatar, styles.friendLocationAvatarMore, { marginLeft: -10 }]}>
+                        <Text style={styles.friendLocationAvatarMoreText}>+{location.users.length - 3}</Text>
                       </View>
                     )}
-                    <View style={styles.friendLocationOverlay} />
-                    
-                    {/* User avatars */}
-                    <View style={styles.friendLocationAvatars}>
-                      {location.users.slice(0, 3).map((user, userIndex) => (
-                        <View 
-                          key={user.id} 
-                          style={[
-                            styles.friendLocationAvatar,
-                            { marginLeft: userIndex > 0 ? -12 : 0 }
-                          ]}
-                        >
-                          {user.avatar ? (
-                            <Image 
-                              source={{ uri: user.avatar }} 
-                              style={styles.friendLocationAvatarImage}
-                            />
-                          ) : (
-                            <View style={styles.friendLocationAvatarPlaceholder}>
-                              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={14} color={colors.white} />
-                            </View>
-                          )}
-                        </View>
-                      ))}
-                      {location.users.length > 3 && (
-                        <View style={[styles.friendLocationAvatar, styles.friendLocationAvatarMore, { marginLeft: -12 }]}>
-                          <Text style={styles.friendLocationAvatarMoreText}>+{location.users.length - 3}</Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* "Ahora en..." badge */}
-                    <View style={styles.friendLocationBadge}>
-                      <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={14} color="#14B8A6" />
-                      <Text style={styles.friendLocationBadgeText}>Ahora en...</Text>
-                    </View>
                   </View>
 
-                  <View style={styles.friendLocationInfo}>
-                    <Text style={styles.friendLocationName} numberOfLines={1}>
-                      {location.local.nombre}
+                  {/* "Ahora en..." badge */}
+                  <View style={styles.friendLocationBadge}>
+                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={12} color={colors.white} />
+                    <Text style={styles.friendLocationBadgeText}>
+                      {location.users.length} {location.users.length === 1 ? 'amigo' : 'amigos'}
                     </Text>
-                    <View style={styles.friendLocationMeta}>
-                      <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={12} color={colors.white} />
-                      <Text style={styles.friendLocationAddress} numberOfLines={1}>
-                        {location.local.direccion}
-                      </Text>
-                    </View>
-                    <View style={styles.friendLocationUsers}>
-                      <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={14} color={colors.white} />
-                      <Text style={styles.friendLocationUsersText}>
-                        {location.users.slice(0, 2).map(u => u.nombre.split(' ')[0]).join(', ')}
-                        {location.users.length > 2 && ` +${location.users.length - 2}`}
-                      </Text>
-                    </View>
                   </View>
+                </View>
 
-                  <View style={styles.friendLocationArrow}>
-                    <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.white} />
+                <View style={styles.friendLocationInfo}>
+                  <Text style={styles.friendLocationName} numberOfLines={1}>
+                    {location.local.nombre}
+                  </Text>
+                  <View style={styles.friendLocationMeta}>
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={10} color={colors.textSecondary} />
+                    <Text style={styles.friendLocationAddress} numberOfLines={1}>
+                      {location.local.direccion}
+                    </Text>
                   </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </LinearGradient>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       )}
     </React.Fragment>
@@ -793,145 +767,46 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  // ✅ MY CHECK-IN STYLES
-  myCheckInSection: {
-    marginHorizontal: 16,
+  // ✅ FRIENDS LOCATIONS SECTION - FULL WIDTH, COMPACT, HORIZONTAL SCROLL
+  friendsLocationsSection: {
     marginTop: 12,
-    marginBottom: 8,
-    borderRadius: 16,
-    overflow: 'hidden',
+    marginBottom: 12,
+    backgroundColor: colors.cardBackground,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.cardBorder,
+    paddingVertical: 12,
   },
-  myCheckInGradient: {
-    padding: 16,
-  },
-  myCheckInHeader: {
+  friendsLocationsSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    paddingHorizontal: 16,
     marginBottom: 12,
   },
-  myCheckInTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.white,
-  },
-  myCheckInCard: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  myCheckInImageContainer: {
-    width: 100,
-    height: 100,
-    position: 'relative',
-  },
-  myCheckInImage: {
-    width: '100%',
-    height: '100%',
-  },
-  myCheckInImagePlaceholder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  myCheckInOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  myCheckInBadge: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.white,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  myCheckInBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  myCheckInInfo: {
-    flex: 1,
-    padding: 12,
-    justifyContent: 'center',
-  },
-  myCheckInLocalName: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.white,
-    marginBottom: 6,
-  },
-  myCheckInMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  myCheckInAddress: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.9)',
-    flex: 1,
-  },
-  myCheckInArrow: {
-    justifyContent: 'center',
-    paddingRight: 12,
-  },
-  // ✅ FRIENDS LOCATIONS STYLES
-  friendsLocationsSection: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  friendsLocationsSectionGradient: {
-    padding: 16,
-  },
-  friendsLocationsSectionHeader: {
-    marginBottom: 16,
-  },
-  friendsLocationsSectionTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
   friendsLocationsSectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.white,
-    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
   },
-  friendsLocationsSectionSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
+  friendsLocationsScrollView: {
+    flexGrow: 0,
   },
   friendsLocationsScroll: {
+    paddingHorizontal: 16,
     gap: 12,
-    paddingRight: 16,
   },
   friendLocationCard: {
-    width: 280,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    width: 140,
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    flexDirection: 'row',
+    borderColor: colors.cardBorder,
   },
   friendLocationImageContainer: {
-    width: 100,
-    height: 120,
+    width: '100%',
+    height: 100,
     position: 'relative',
   },
   friendLocationImage: {
@@ -939,32 +814,32 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   friendLocationImagePlaceholder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  friendLocationOverlay: {
+  friendLocationGradient: {
     position: 'absolute',
-    top: 0,
+    bottom: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    height: '50%',
   },
   friendLocationAvatars: {
     position: 'absolute',
-    top: 10,
-    left: 10,
+    top: 8,
+    left: 8,
     flexDirection: 'row',
     alignItems: 'center',
   },
   friendLocationAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     borderWidth: 2,
     borderColor: colors.white,
     overflow: 'hidden',
+    backgroundColor: colors.cardBackground,
   },
   friendLocationAvatarImage: {
     width: '100%',
@@ -983,62 +858,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   friendLocationAvatarMoreText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: colors.white,
   },
   friendLocationBadge: {
     position: 'absolute',
-    bottom: 8,
-    left: 8,
+    bottom: 6,
+    left: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.white,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    gap: 3,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   friendLocationBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#14B8A6',
-  },
-  friendLocationInfo: {
-    flex: 1,
-    padding: 12,
-    justifyContent: 'center',
-  },
-  friendLocationName: {
-    fontSize: 16,
+    fontSize: 10,
     fontWeight: '700',
     color: colors.white,
-    marginBottom: 6,
+  },
+  friendLocationInfo: {
+    padding: 10,
+  },
+  friendLocationName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
   },
   friendLocationMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
+    gap: 3,
   },
   friendLocationAddress: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 11,
+    color: colors.textSecondary,
     flex: 1,
-  },
-  friendLocationUsers: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  friendLocationUsersText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.white,
-    flex: 1,
-  },
-  friendLocationArrow: {
-    justifyContent: 'center',
-    paddingRight: 12,
   },
 });

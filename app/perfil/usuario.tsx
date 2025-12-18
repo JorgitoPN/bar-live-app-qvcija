@@ -637,7 +637,7 @@ export default function UsuarioPerfilScreen() {
           {currentLocal && canViewLocation && (
             <View style={styles.currentLocalSection}>
               <View style={styles.currentLocalHeader}>
-                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={20} color="#10B981" />
+                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color="#10B981" />
                 <Text style={styles.currentLocalHeaderText}>Estado actual</Text>
               </View>
 
@@ -655,25 +655,28 @@ export default function UsuarioPerfilScreen() {
                     />
                   ) : (
                     <View style={[styles.currentLocalImage, styles.currentLocalImagePlaceholder]}>
-                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={28} color="rgba(255, 255, 255, 0.6)" />
+                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="rgba(255, 255, 255, 0.6)" />
                     </View>
                   )}
-                  <View style={styles.currentLocalImageOverlay} />
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0, 0, 0, 0.6)']}
+                    style={styles.currentLocalImageGradient}
+                  />
                   <View style={styles.currentLocalBadge}>
-                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={14} color="#10B981" />
+                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={12} color="#10B981" />
                     <Text style={styles.currentLocalBadgeText}>Ahora en...</Text>
                   </View>
                 </View>
 
                 <View style={styles.currentLocalContent}>
                   <Text style={styles.currentLocalLabel}>
-                    {isOwnProfile ? 'Actualmente en' : 'Actualmente en'}
+                    Actualmente en
                   </Text>
                   <Text style={styles.currentLocalName} numberOfLines={1}>
                     {currentLocal.nombre}
                   </Text>
                   <View style={styles.currentLocalMeta}>
-                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={12} color="rgba(255, 255, 255, 0.8)" />
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={11} color="rgba(255, 255, 255, 0.8)" />
                     <Text style={styles.currentLocalAddress} numberOfLines={1}>
                       {currentLocal.direccion}
                     </Text>
@@ -681,14 +684,14 @@ export default function UsuarioPerfilScreen() {
                 </View>
 
                 <View style={styles.currentLocalArrow}>
-                  <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={18} color={colors.headerText} />
                 </View>
               </TouchableOpacity>
               
               {/* 🔘 "Salir del local" button - ONLY for own profile */}
               {isOwnProfile && (
                 <TouchableOpacity style={styles.exitLocalButton} onPress={handleExitLocal}>
-                  <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={18} color="#EF4444" />
+                  <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={16} color="#EF4444" />
                   <Text style={styles.exitLocalButtonText}>Salir del local</Text>
                 </TouchableOpacity>
               )}
@@ -842,33 +845,33 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 16,
   },
-  // ✅ CURRENT LOCATION SECTION STYLES
+  // ✅ CURRENT LOCATION SECTION STYLES - VISUAL CARD
   currentLocalSection: {
     marginBottom: 20,
   },
   currentLocalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     marginBottom: 10,
   },
   currentLocalHeaderText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.headerText,
   },
   currentLocalCard: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    borderRadius: 14,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
     marginBottom: 10,
   },
   currentLocalImageContainer: {
-    width: 90,
-    height: 90,
+    width: 80,
+    height: 80,
     position: 'relative',
   },
   currentLocalImage: {
@@ -880,60 +883,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  currentLocalImageOverlay: {
+  currentLocalImageGradient: {
     position: 'absolute',
-    top: 0,
+    bottom: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    height: '50%',
   },
   currentLocalBadge: {
     position: 'absolute',
-    bottom: 6,
-    left: 6,
+    bottom: 5,
+    left: 5,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     backgroundColor: colors.white,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   currentLocalBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: '#10B981',
   },
   currentLocalContent: {
     flex: 1,
-    padding: 12,
+    padding: 10,
     justifyContent: 'center',
   },
   currentLocalLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 3,
   },
   currentLocalName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.headerText,
-    marginBottom: 6,
+    marginBottom: 5,
   },
   currentLocalMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
   },
   currentLocalAddress: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
     flex: 1,
   },
   currentLocalArrow: {
     justifyContent: 'center',
-    paddingRight: 12,
+    paddingRight: 10,
   },
   exitLocalButton: {
     flexDirection: 'row',
@@ -941,14 +943,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   exitLocalButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#EF4444',
   },

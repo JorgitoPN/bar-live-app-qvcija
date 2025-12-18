@@ -143,6 +143,14 @@ export default function AdminIndexScreen() {
       description: 'Asigna locales a usuarios con roles específicos',
     },
     {
+      title: 'Solicitudes de Propietario',
+      icon: 'person.badge.plus.fill' as const,
+      androidIcon: 'person_add' as const,
+      color: '#EC4899',
+      route: '/admin/solicitudes-propietario',
+      description: 'Gestiona solicitudes de usuarios para ser propietarios',
+    },
+    {
       title: 'Gestión de Planes',
       icon: 'star.fill' as const,
       androidIcon: 'star' as const,

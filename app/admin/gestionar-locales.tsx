@@ -266,7 +266,7 @@ export default function GestionarLocalesScreen() {
           activo: true,
         });
 
-      if (junctionError && junctionError.code !== '23505') { // Ignore duplicate key error
+      if (junctionError && junctionError.code !== '23505') {
         console.error('[GestionarLocales] Error creating junction entry:', junctionError);
       }
 
@@ -492,6 +492,7 @@ export default function GestionarLocalesScreen() {
             </View>
           )}
 
+          {/* ✅ MINI COVER PHOTO */}
           {coverPhoto ? (
             <Image 
               source={{ uri: `${coverPhoto}?v=${Date.now()}` }} 
@@ -815,7 +816,7 @@ export default function GestionarLocalesScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gestionar Locales</Text>
+        <Text style={styles.headerTitle}>Gestión de Locales</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => router.push('/crear/local')}
@@ -1150,6 +1151,8 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: colors.cardBackground,
     marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
   statsSectionTitle: {
     fontSize: 16,

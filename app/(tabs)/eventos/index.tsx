@@ -84,15 +84,11 @@ export default function EventosScreen() {
   const canCreateEvents = (userRole === 'propietario' && currentMode === 'propietario') || 
                           (userRole === 'admin' && currentMode === 'propietario');
 
-  // Check if user can delete an event
-  // Only owners in "propietario" mode can delete their own events
   const canDeleteEvent = useCallback((eventoId: string, propietarioId: string): boolean => {
     if (!user) return false;
     
-    // Admin can always delete
     if (user.rol_app === 'admin') return true;
     
-    // Owner can only delete if they are in "propietario" mode
     if (user.id === propietarioId && currentMode === 'propietario') return true;
     
     return false;
@@ -103,7 +99,6 @@ export default function EventosScreen() {
       setLoading(true);
       console.log('[Eventos] Cargando eventos...');
 
-      // FIXED: Filter out expired events
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString().split('T')[0];
@@ -126,7 +121,7 @@ export default function EventosScreen() {
           )
         `)
         .eq('activo', true)
-        .gte('fecha', todayStr) // Only get events from today onwards
+        .gte('fecha', todayStr)
         .order('fecha', { ascending: true });
 
       const { data, error } = await query;
@@ -229,7 +224,6 @@ export default function EventosScreen() {
     }
     if (event.type === 'set' && selectedDate) {
       setFechaInicio(selectedDate);
-      // Auto-adjust end date if it's before start date
       if (fechaFin && fechaFin < selectedDate) {
         setFechaFin(selectedDate);
       }
@@ -243,7 +237,6 @@ export default function EventosScreen() {
       setShowDatePickerFin(false);
     }
     if (event.type === 'set' && selectedDate) {
-      // Ensure end date is not before start date
       if (fechaInicio && selectedDate >= fechaInicio) {
         setFechaFin(selectedDate);
       } else if (!fechaInicio) {
@@ -270,7 +263,6 @@ export default function EventosScreen() {
       return;
     }
 
-    // Check if user can delete
     if (!canDeleteEvent(eventoId, propietarioId)) {
       Alert.alert(
         'Acción no permitida',
@@ -291,7 +283,6 @@ export default function EventosScreen() {
             try {
               console.log('[Eventos] Deleting event:', eventoId);
               
-              // Mark as inactive
               const { error } = await supabase
                 .from('eventos')
                 .update({ activo: false })
@@ -330,7 +321,7 @@ export default function EventosScreen() {
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar eventos..."
-            placeholderTextColor={colors.white}
+            placeholderTextColor="rgba(255, 255, 255, 0.7)"
             value={busqueda}
             onChangeText={setBusqueda}
           />
@@ -477,7 +468,6 @@ export default function EventosScreen() {
                   </View>
                 )}
 
-                {/* Date Picker Inicio - INSIDE MODAL */}
                 {showDatePickerInicio && (
                   <Modal
                     visible={showDatePickerInicio}
@@ -520,7 +510,6 @@ export default function EventosScreen() {
                   </Modal>
                 )}
 
-                {/* Date Picker Fin - INSIDE MODAL */}
                 {showDatePickerFin && (
                   <Modal
                     visible={showDatePickerFin}
@@ -839,7 +828,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.white,
   },
-  // Date Picker Modal Styles
   datePickerModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
