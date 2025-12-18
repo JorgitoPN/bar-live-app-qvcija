@@ -306,6 +306,7 @@ export default function DetalleLocalScreen() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(false);
   const [expandedDescription, setExpandedDescription] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
 
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
@@ -531,6 +532,11 @@ export default function DetalleLocalScreen() {
     });
   };
 
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setScrollY(offsetY);
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -670,36 +676,23 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
+  // Only allow scroll when not at the top to enable swipe-to-close
+  const scrollEnabled = scrollY > 0;
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Close button - fixed at top */}
-      <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-        <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
-          <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
-        </BlurView>
-      </TouchableOpacity>
-
-      {/* Share button */}
-      <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-        <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
-          <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
-        </BlurView>
-      </TouchableOpacity>
-
-      {/* Rating badge */}
-      {displayRating > 0 && (
-        <View style={styles.ratingBadge}>
-          <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
-            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
-            <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
-          </BlurView>
-        </View>
-      )}
-
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false} bounces={true}>
-        {/* Cover image */}
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.contentContainer} 
+        showsVerticalScrollIndicator={false} 
+        bounces={true}
+        scrollEnabled={scrollEnabled}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        {/* Cover image with buttons and badges inside ScrollView */}
         {allImages.length > 0 && (
           <View style={styles.coverContainer}>
             <TouchableOpacity activeOpacity={0.9} onPress={() => handleOpenGallery(currentImageIndex)}>
@@ -720,6 +713,30 @@ export default function DetalleLocalScreen() {
                 ))}
               </ScrollView>
             </TouchableOpacity>
+
+            {/* Close button - now part of cover */}
+            <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+              <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
+              </BlurView>
+            </TouchableOpacity>
+
+            {/* Share button - now part of cover */}
+            <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+              <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+                <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
+              </BlurView>
+            </TouchableOpacity>
+
+            {/* Rating badge - now part of cover */}
+            {displayRating > 0 && (
+              <View style={styles.ratingBadge}>
+                <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
+                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
+                  <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
+                </BlurView>
+              </View>
+            )}
 
             {/* Status badge */}
             <View style={styles.statusBadge}>
@@ -1138,7 +1155,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     overflow: 'hidden',
-    zIndex: 1000,
+    zIndex: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -1159,7 +1176,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     overflow: 'hidden',
-    zIndex: 1000,
+    zIndex: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -1178,7 +1195,7 @@ const styles = StyleSheet.create({
     right: 16,
     borderRadius: 20,
     overflow: 'hidden',
-    zIndex: 1000,
+    zIndex: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
