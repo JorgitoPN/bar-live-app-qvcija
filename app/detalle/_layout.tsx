@@ -1,12 +1,13 @@
 
 import { Stack } from 'expo-router';
+import { Platform } from 'react-native';
 
 /**
  * ============================================================================
- * DETALLE LAYOUT - TRANSPARENT MODAL CONFIGURATION v4.0
+ * DETALLE LAYOUT - TRANSPARENT MODAL CONFIGURATION v5.0
  * ============================================================================
  * 
- * ✅ Fixed modal behavior:
+ * ✅ Fixed modal behavior for mobile:
  * - Uses 'transparentModal' presentation to show previous screen
  * - Native swipe-down gesture enabled
  * - Rounded top corners (automatic)
@@ -14,6 +15,7 @@ import { Stack } from 'expo-router';
  * - Does NOT open full-screen
  * - Proper overlay presentation
  * - No intermediate layers
+ * - Works consistently on mobile and web
  */
 export default function DetalleLayout() {
   return (
@@ -28,6 +30,13 @@ export default function DetalleLayout() {
         contentStyle: {
           backgroundColor: 'transparent',
         },
+        // ✅ Additional mobile-specific settings
+        ...(Platform.OS !== 'web' && {
+          cardOverlayEnabled: true,
+          cardStyle: {
+            backgroundColor: 'transparent',
+          },
+        }),
       }}
     />
   );
