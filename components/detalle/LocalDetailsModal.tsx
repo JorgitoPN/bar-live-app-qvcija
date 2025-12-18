@@ -84,15 +84,10 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v11.0 - STANDARD MODAL IMPLEMENTATION
+ * ✅ LOCAL DETAILS MODAL v11.1 - FIXED LINT WARNINGS
  * 
- * Features:
- * - ✅ Standard modal behavior (centered, floating container)
- * - ✅ Blocks interaction with background content
- * - ✅ Dark overlay background
- * - ✅ Close button with proper positioning (respects badge margins)
- * - ✅ Can close by clicking overlay or close button
- * - ✅ No swipe gestures (standard modal behavior)
+ * Changes:
+ * - ✅ Wrapped loadLocalData in useCallback to fix dependency warning
  */
 
 export default function LocalDetailsModal({
@@ -108,16 +103,6 @@ export default function LocalDetailsModal({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const localIsFavorite = localId ? isFavorite(localId) : false;
-
-  useEffect(() => {
-    if (visible) {
-      console.log('[LocalDetailsModal] 🚀 Opening modal for local:', localId);
-      loadLocalData();
-    } else {
-      setLocal(null);
-      setLoading(true);
-    }
-  }, [visible, localId, loadLocalData]);
 
   const loadLocalData = useCallback(async () => {
     try {
@@ -137,6 +122,16 @@ export default function LocalDetailsModal({
       setLoading(false);
     }
   }, [localId]);
+
+  useEffect(() => {
+    if (visible) {
+      console.log('[LocalDetailsModal] 🚀 Opening modal for local:', localId);
+      loadLocalData();
+    } else {
+      setLocal(null);
+      setLoading(true);
+    }
+  }, [visible, localId, loadLocalData]);
 
   const handleToggleFavorito = async (e: any) => {
     e.stopPropagation();

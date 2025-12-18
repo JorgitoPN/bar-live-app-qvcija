@@ -37,28 +37,21 @@ export default function EditarLocalScreen() {
       return;
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('locales')
-        .select('*')
-        .eq('id', localId)
-        .single();
+    const { data, error } = await supabase
+      .from('locales')
+      .select('*')
+      .eq('id', localId)
+      .single();
 
-      if (error) {
-        console.error('Error loading local data:', error);
-        Alert.alert('Error', 'No se pudo cargar la información del local');
-        router.back();
-        return;
-      }
-
-      setLocalData(data);
-    } catch (error) {
-      console.error('Error in loadLocalData:', error);
-      Alert.alert('Error', 'Ocurrió un error al cargar el local');
+    if (error) {
+      console.error('Error loading local data:', error);
+      Alert.alert('Error', 'No se pudo cargar la información del local');
       router.back();
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    setLocalData(data);
+    setLoading(false);
   }, [localId, router]);
 
   useEffect(() => {

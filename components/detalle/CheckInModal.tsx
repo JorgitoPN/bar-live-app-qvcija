@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -42,18 +42,6 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (searchQuery.trim().length >= 2) {
-      const timeoutId = setTimeout(() => {
-        searchUsers(searchQuery);
-      }, 300);
-
-      return () => clearTimeout(timeoutId);
-    } else {
-      setSearchResults([]);
-    }
-  }, [searchQuery, searchUsers]);
-
   const searchUsers = useCallback(async (query: string) => {
     if (!user) return;
 
@@ -82,6 +70,18 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
       setSearching(false);
     }
   }, [user, specificUsers]);
+
+  useEffect(() => {
+    if (searchQuery.trim().length >= 2) {
+      const timeoutId = setTimeout(() => {
+        searchUsers(searchQuery);
+      }, 300);
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery, searchUsers]);
 
   const addSpecificUser = (user: User) => {
     if (!specificUsers.some(u => u.id === user.id)) {

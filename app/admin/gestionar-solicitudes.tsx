@@ -4,529 +4,796 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
   TextInput,
-  Modal,
   Image,
-  KeyboardAvoidingView,
+  Alert,
+  ActivityIndicator,
+  Modal,
+  Pressable,
   Platform,
-  Keyboard,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors, commonStyles } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
+import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface LocalSolicitud {
+interface SolicitudLocal {
   id: string;
   nombre: string;
   tipo: string;
   direccion: string;
   provincia: string;
-  descripcion: string;
-  imagen_url: string | null;
-  galeria_urls: string[];
-  propietario_id: string;
+  imagen_url?: string;
   estado_solicitud: 'pendiente' | 'en_revision' | 'aprobado' | 'denegado';
   fecha_solicitud: string;
-  fecha_revision: string | null;
-  motivo_denegacion: string | null;
-  comentarios_admin: string | null;
-  propietario: {
+  fecha_revision?: string;
+  motivo_denegacion?: string;
+  comentarios_admin?: string;
+  propietario_id?: string;
+  propietario?: {
     nombre: string;
     email: string;
   };
 }
 
+const SOLICITUDES_POR_PAGINA = 20;
+
 export default function GestionarSolicitudesScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [solicitudes, setSolicitudes] = useState<LocalSolicitud[]>([]);
-  const [filtroEstado, setFiltroEstado] = useState<string>('pendiente');
-  const [selectedSolicitud, setSelectedSolicitud] = useState<LocalSolicitud | null>(null);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [showActionModal, setShowActionModal] = useState(false);
-  const [actionType, setActionType] = useState<'aprobar' | 'denegar' | 'revision' | 'eliminar'>('aprobar');
-  const [comentarios, setComentarios] = useState('');
-  const [motivoDenegacion, setMotivoDenegacion] = useState('');
-  const [processing, setProcessing] = useState(false);
+  const [solicitudes, setSolicitudes] = useState<SolicitudLocal[]>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState<string>('todos');
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalSolicitudes, setTotalSolicitudes] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
-  const cargarSolicitudes = useCallback(async () => {
-    setLoading(true);
+  const [showFiltersModal, setShowFiltersModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedSolicitud, setSelectedSolicitud] = useState<SolicitudLocal | null>(null);
+  const [motivoDenegacion, setMotivoDenegacion] = useState('');
+  const [comentariosAdmin, setComentariosAdmin] = useState('');
+  const [processingReview, setProcessingReview] = useState(false);
+
+  const [contadores, setContadores] = useState({
+    total: 0,
+    pendientes: 0,
+    enRevision: 0,
+    aprobados: 0,
+    denegados: 0,
+  });
+
+  const cargarContadores = useCallback(async () => {
     try {
-      // ✅ FIXED: Only show locales created by owners (propietario_id is not null)
+      const { data, error } = await supabase
+        .from('locales')
+        .select('estado_solicitud');
+
+      if (error) throw error;
+
+      const stats = {
+        total: data?.length || 0,
+        pendientes: data?.filter(l => l.estado_solicitud === 'pendiente').length || 0,
+        enRevision: data?.filter(l => l.estado_solicitud === 'en_revision').length || 0,
+        aprobados: data?.filter(l => l.estado_solicitud === 'aprobado').length || 0,
+        denegados: data?.filter(l => l.estado_solicitud === 'denegado').length || 0,
+      };
+
+      setContadores(stats);
+    } catch (error) {
+      console.error('[GestionarSolicitudes] Error cargando contadores:', error);
+    }
+  }, []);
+
+  const cargarSolicitudes = useCallback(async (reset: boolean = false, currentPage: number = 1) => {
+    try {
+      if (reset) {
+        setInitialLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const from = reset ? 0 : (currentPage - 1) * SOLICITUDES_POR_PAGINA;
+      const to = from + SOLICITUDES_POR_PAGINA - 1;
+
       let query = supabase
         .from('locales')
         .select(`
           *,
-          propietario:usuarios!propietario_id(nombre, email)
-        `)
-        .not('propietario_id', 'is', null)
-        .order('fecha_solicitud', { ascending: false });
+          propietario:usuarios!propietario_id(
+            nombre,
+            email
+          )
+        `, { count: 'exact' })
+        .order('fecha_solicitud', { ascending: false })
+        .range(from, to);
+
+      if (busqueda) {
+        query = query.or(`nombre.ilike.%${busqueda}%,direccion.ilike.%${busqueda}%`);
+      }
 
       if (filtroEstado !== 'todos') {
         query = query.eq('estado_solicitud', filtroEstado);
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
 
       if (error) {
-        console.error('Error loading solicitudes:', error);
-        Alert.alert('Error', 'No se pudieron cargar las solicitudes');
-        return;
+        console.error('[GestionarSolicitudes] Error cargando solicitudes:', error);
+        throw error;
       }
 
-      console.log('[GestionarSolicitudes] ✅ Loaded locales created by owners:', data?.length || 0);
-      setSolicitudes(data || []);
+      console.log('[GestionarSolicitudes] Solicitudes cargadas:', data?.length || 0);
+      
+      if (reset) {
+        setSolicitudes(data || []);
+        setPaginaActual(2);
+      } else {
+        setSolicitudes(prev => [...prev, ...(data || [])]);
+        setPaginaActual(currentPage + 1);
+      }
+      
+      setTotalSolicitudes(count || 0);
+      setHasMore((data?.length || 0) === SOLICITUDES_POR_PAGINA);
     } catch (error) {
-      console.error('Error:', error);
-      Alert.alert('Error', 'Ocurrió un error al cargar las solicitudes');
+      console.error('[GestionarSolicitudes] Error cargando solicitudes:', error);
+      Alert.alert('Error', 'No se pudieron cargar las solicitudes');
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setLoadingMore(false);
     }
-  }, [filtroEstado]);
+  }, [busqueda, filtroEstado]);
 
   useEffect(() => {
-    cargarSolicitudes();
-  }, [cargarSolicitudes]);
+    console.log('[GestionarSolicitudes] Initial load');
+    cargarContadores();
+    cargarSolicitudes(true, 1);
+  }, []);
 
-  const handlePreview = (solicitud: LocalSolicitud) => {
+  useEffect(() => {
+    if (!initialLoading) {
+      console.log('[GestionarSolicitudes] Filters changed, reloading...');
+      const timer = setTimeout(() => {
+        cargarSolicitudes(true, 1);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [busqueda, filtroEstado, initialLoading]);
+
+  const handleLoadMore = useCallback(() => {
+    if (hasMore && !loadingMore && !initialLoading) {
+      console.log('[GestionarSolicitudes] Loading more, page:', paginaActual);
+      cargarSolicitudes(false, paginaActual);
+    }
+  }, [hasMore, loadingMore, initialLoading, paginaActual, cargarSolicitudes]);
+
+  const openReviewModal = (solicitud: SolicitudLocal) => {
     setSelectedSolicitud(solicitud);
-    setShowPreviewModal(true);
+    setMotivoDenegacion(solicitud.motivo_denegacion || '');
+    setComentariosAdmin(solicitud.comentarios_admin || '');
+    setShowReviewModal(true);
   };
 
-  const handleAction = (solicitud: LocalSolicitud, action: 'aprobar' | 'denegar' | 'revision' | 'eliminar') => {
-    setSelectedSolicitud(solicitud);
-    setActionType(action);
-    setComentarios('');
-    setMotivoDenegacion('');
-    setShowActionModal(true);
+  const handleAprobar = async () => {
+    if (!selectedSolicitud || !user) return;
+
+    setProcessingReview(true);
+    try {
+      const { error } = await supabase
+        .from('locales')
+        .update({
+          estado_solicitud: 'aprobado',
+          fecha_revision: new Date().toISOString(),
+          revisado_por: user.id,
+          comentarios_admin: comentariosAdmin || null,
+          activo: true,
+        })
+        .eq('id', selectedSolicitud.id);
+
+      if (error) throw error;
+
+      // Send notification to owner
+      if (selectedSolicitud.propietario_id) {
+        await supabase
+          .from('notificaciones_locales')
+          .insert({
+            local_id: selectedSolicitud.id,
+            propietario_id: selectedSolicitud.propietario_id,
+            tipo: 'aprobado',
+            titulo: 'Local Aprobado',
+            mensaje: `Tu local "${selectedSolicitud.nombre}" ha sido aprobado y ya está visible en BarLive.`,
+          });
+      }
+
+      Alert.alert('Éxito', 'Local aprobado correctamente');
+      setShowReviewModal(false);
+      setSelectedSolicitud(null);
+      cargarSolicitudes(true, 1);
+      cargarContadores();
+    } catch (error) {
+      console.error('[GestionarSolicitudes] Error aprobando solicitud:', error);
+      Alert.alert('Error', 'No se pudo aprobar la solicitud');
+    } finally {
+      setProcessingReview(false);
+    }
   };
 
-  const executeAction = async () => {
-    if (!selectedSolicitud) return;
+  const handleDenegar = async () => {
+    if (!selectedSolicitud || !user) return;
 
-    if (actionType === 'denegar' && !motivoDenegacion.trim()) {
-      Alert.alert('Error', 'Debes indicar el motivo de la denegación');
+    if (!motivoDenegacion.trim()) {
+      Alert.alert('Error', 'Debes proporcionar un motivo de denegación');
       return;
     }
 
-    setProcessing(true);
+    setProcessingReview(true);
     try {
-      if (actionType === 'eliminar') {
-        // Delete local permanently
-        const { error } = await supabase
-          .from('locales')
-          .delete()
-          .eq('id', selectedSolicitud.id);
-
-        if (error) throw error;
-
-        Alert.alert('Éxito', 'Local eliminado correctamente');
-      } else {
-        // Update local status
-        const updateData: any = {
-          estado_solicitud: actionType === 'aprobar' ? 'aprobado' : actionType === 'denegar' ? 'denegado' : 'en_revision',
+      const { error } = await supabase
+        .from('locales')
+        .update({
+          estado_solicitud: 'denegado',
           fecha_revision: new Date().toISOString(),
-          revisado_por: user?.id,
-          comentarios_admin: comentarios.trim() || null,
-          activo: actionType === 'aprobar',
-        };
+          revisado_por: user.id,
+          motivo_denegacion: motivoDenegacion,
+          comentarios_admin: comentariosAdmin || null,
+          activo: false,
+        })
+        .eq('id', selectedSolicitud.id);
 
-        if (actionType === 'denegar') {
-          updateData.motivo_denegacion = motivoDenegacion.trim();
-        }
+      if (error) throw error;
 
-        const { error } = await supabase
-          .from('locales')
-          .update(updateData)
-          .eq('id', selectedSolicitud.id);
-
-        if (error) throw error;
-
-        // Send notification
-        try {
-          await supabase.functions.invoke('send-local-approval-notification', {
-            body: {
-              localId: selectedSolicitud.id,
-              propietarioId: selectedSolicitud.propietario_id,
-              tipo: actionType === 'aprobar' ? 'aprobado' : actionType === 'denegar' ? 'denegado' : 'en_revision',
-              motivoDenegacion: actionType === 'denegar' ? motivoDenegacion.trim() : undefined,
-              comentariosAdmin: comentarios.trim() || undefined,
-            },
+      // Send notification to owner
+      if (selectedSolicitud.propietario_id) {
+        await supabase
+          .from('notificaciones_locales')
+          .insert({
+            local_id: selectedSolicitud.id,
+            propietario_id: selectedSolicitud.propietario_id,
+            tipo: 'denegado',
+            titulo: 'Local Denegado',
+            mensaje: `Tu local "${selectedSolicitud.nombre}" ha sido denegado. Motivo: ${motivoDenegacion}`,
           });
-        } catch (notificationError) {
-          console.error('Error sending notification:', notificationError);
-        }
-
-        Alert.alert(
-          'Éxito',
-          actionType === 'aprobar' 
-            ? 'Local aprobado y publicado correctamente' 
-            : actionType === 'denegar'
-            ? 'Local denegado correctamente'
-            : 'Estado actualizado correctamente'
-        );
       }
 
-      setShowActionModal(false);
-      setShowPreviewModal(false);
-      cargarSolicitudes();
+      Alert.alert('Éxito', 'Local denegado correctamente');
+      setShowReviewModal(false);
+      setSelectedSolicitud(null);
+      setMotivoDenegacion('');
+      setComentariosAdmin('');
+      cargarSolicitudes(true, 1);
+      cargarContadores();
     } catch (error) {
-      console.error('Error executing action:', error);
-      Alert.alert('Error', 'No se pudo completar la acción');
+      console.error('[GestionarSolicitudes] Error denegando solicitud:', error);
+      Alert.alert('Error', 'No se pudo denegar la solicitud');
     } finally {
-      setProcessing(false);
+      setProcessingReview(false);
     }
   };
 
-  const getEstadoBadge = (estado: string) => {
-    const badges: Record<string, { color: string; text: string }> = {
-      pendiente: { color: '#F59E0B', text: 'Pendiente' },
-      en_revision: { color: '#3B82F6', text: 'En Revisión' },
-      aprobado: { color: '#10B981', text: 'Aprobado' },
-      denegado: { color: '#EF4444', text: 'Denegado' },
-    };
+  const handleMarcarEnRevision = async (solicitudId: string) => {
+    if (!user) return;
 
-    const badge = badges[estado] || badges.pendiente;
+    try {
+      const { error } = await supabase
+        .from('locales')
+        .update({
+          estado_solicitud: 'en_revision',
+        })
+        .eq('id', solicitudId);
 
+      if (error) throw error;
+
+      setSolicitudes(prevSolicitudes =>
+        prevSolicitudes.map(sol =>
+          sol.id === solicitudId ? { ...sol, estado_solicitud: 'en_revision' as const } : sol
+        )
+      );
+
+      cargarContadores();
+    } catch (error) {
+      console.error('[GestionarSolicitudes] Error marcando en revisión:', error);
+      Alert.alert('Error', 'No se pudo actualizar el estado');
+    }
+  };
+
+  const limpiarFiltros = useCallback(() => {
+    setFiltroEstado('todos');
+    setBusqueda('');
+  }, []);
+
+  const hayFiltrosActivos = useCallback(() => {
+    return filtroEstado !== 'todos' || busqueda !== '';
+  }, [filtroEstado, busqueda]);
+
+  const getEstadoBadgeColor = (estado: string) => {
+    switch (estado) {
+      case 'pendiente':
+        return '#F59E0B';
+      case 'en_revision':
+        return '#3B82F6';
+      case 'aprobado':
+        return '#10B981';
+      case 'denegado':
+        return '#EF4444';
+      default:
+        return colors.textSecondary;
+    }
+  };
+
+  const getEstadoLabel = (estado: string) => {
+    switch (estado) {
+      case 'pendiente':
+        return 'Pendiente';
+      case 'en_revision':
+        return 'En Revisión';
+      case 'aprobado':
+        return 'Aprobado';
+      case 'denegado':
+        return 'Denegado';
+      default:
+        return estado;
+    }
+  };
+
+  const SolicitudCard = ({ solicitud }: { solicitud: SolicitudLocal }) => {
+    const coverPhoto = solicitud.imagen_url;
+    const estadoColor = getEstadoBadgeColor(solicitud.estado_solicitud);
+    
     return (
-      <View style={[styles.badge, { backgroundColor: badge.color + '20' }]}>
-        <Text style={[styles.badgeText, { color: badge.color }]}>{badge.text}</Text>
+      <View style={styles.solicitudCard}>
+        <TouchableOpacity
+          style={styles.solicitudCardContent}
+          onPress={() => router.push(`/detalle/local?id=${solicitud.id}`)}
+        >
+          {coverPhoto ? (
+            <Image 
+              source={{ uri: coverPhoto }} 
+              style={styles.solicitudImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.solicitudImage, styles.imagePlaceholder]}>
+              <IconSymbol ios_icon_name="photo" android_material_icon_name="image" size={32} color={colors.textSecondary} />
+            </View>
+          )}
+
+          <View style={styles.solicitudInfo}>
+            <View style={styles.solicitudHeader}>
+              <Text style={styles.solicitudNombre} numberOfLines={1}>
+                {solicitud.nombre}
+              </Text>
+              <View style={[styles.estadoBadge, { backgroundColor: estadoColor + '20' }]}>
+                <Text style={[styles.estadoText, { color: estadoColor }]}>
+                  {getEstadoLabel(solicitud.estado_solicitud)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.tipoBadge}>
+              <Text style={styles.tipoText}>{solicitud.tipo}</Text>
+            </View>
+
+            <Text style={styles.solicitudDireccion} numberOfLines={2}>
+              {solicitud.direccion}
+            </Text>
+
+            {solicitud.propietario && (
+              <View style={styles.ownerInfo}>
+                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={12} color={colors.textSecondary} />
+                <Text style={styles.ownerText} numberOfLines={1}>
+                  {solicitud.propietario.nombre}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.fechaInfo}>
+              <IconSymbol ios_icon_name="calendar" android_material_icon_name="calendar_today" size={12} color={colors.textSecondary} />
+              <Text style={styles.fechaText}>
+                {new Date(solicitud.fecha_solicitud).toLocaleDateString('es-ES')}
+              </Text>
+            </View>
+
+            {solicitud.motivo_denegacion && (
+              <View style={styles.motivoContainer}>
+                <Text style={styles.motivoLabel}>Motivo de denegación:</Text>
+                <Text style={styles.motivoText} numberOfLines={2}>
+                  {solicitud.motivo_denegacion}
+                </Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.solicitudActions}>
+          {solicitud.estado_solicitud === 'pendiente' && (
+            <TouchableOpacity
+              style={styles.revisionButton}
+              onPress={() => handleMarcarEnRevision(solicitud.id)}
+            >
+              <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={16} color="#3B82F6" />
+              <Text style={styles.revisionButtonText}>Marcar en Revisión</Text>
+            </TouchableOpacity>
+          )}
+
+          {(solicitud.estado_solicitud === 'pendiente' || solicitud.estado_solicitud === 'en_revision') && (
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                style={styles.aprobarButton}
+                onPress={() => {
+                  setSelectedSolicitud(solicitud);
+                  setComentariosAdmin('');
+                  setMotivoDenegacion('');
+                  Alert.alert(
+                    'Aprobar Local',
+                    `¿Aprobar "${solicitud.nombre}"?`,
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      {
+                        text: 'Aprobar',
+                        onPress: async () => {
+                          try {
+                            const { error } = await supabase
+                              .from('locales')
+                              .update({
+                                estado_solicitud: 'aprobado',
+                                fecha_revision: new Date().toISOString(),
+                                revisado_por: user?.id,
+                                activo: true,
+                              })
+                              .eq('id', solicitud.id);
+
+                            if (error) throw error;
+
+                            if (solicitud.propietario_id) {
+                              await supabase
+                                .from('notificaciones_locales')
+                                .insert({
+                                  local_id: solicitud.id,
+                                  propietario_id: solicitud.propietario_id,
+                                  tipo: 'aprobado',
+                                  titulo: 'Local Aprobado',
+                                  mensaje: `Tu local "${solicitud.nombre}" ha sido aprobado y ya está visible en BarLive.`,
+                                });
+                            }
+
+                            Alert.alert('Éxito', 'Local aprobado correctamente');
+                            cargarSolicitudes(true, 1);
+                            cargarContadores();
+                          } catch (error) {
+                            console.error('[GestionarSolicitudes] Error aprobando:', error);
+                            Alert.alert('Error', 'No se pudo aprobar la solicitud');
+                          }
+                        },
+                      },
+                    ]
+                  );
+                }}
+              >
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={18} color={colors.white} />
+                <Text style={styles.aprobarButtonText}>Aprobar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.denegarButton}
+                onPress={() => openReviewModal(solicitud)}
+              >
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={18} color={colors.white} />
+                <Text style={styles.denegarButtonText}>Denegar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.viewButton}
+            onPress={() => router.push(`/detalle/local?id=${solicitud.id}`)}
+          >
+            <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.primary} />
+            <Text style={styles.viewButtonText}>Ver Detalles</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
 
-  const renderSolicitudCard = (solicitud: LocalSolicitud) => (
-    <View key={solicitud.id} style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.cardHeaderLeft}>
-          {solicitud.imagen_url && (
-            <Image source={{ uri: solicitud.imagen_url }} style={styles.cardImage} />
-          )}
-          <View style={styles.cardInfo}>
-            <Text style={styles.cardTitle}>{solicitud.nombre}</Text>
-            <Text style={styles.cardSubtitle}>{solicitud.tipo} • {solicitud.provincia}</Text>
-            <Text style={styles.cardDate}>
-              Solicitado: {new Date(solicitud.fecha_solicitud).toLocaleDateString()}
-            </Text>
+  const renderSolicitudCard = useCallback(({ item }: { item: SolicitudLocal }) => (
+    <SolicitudCard solicitud={item} />
+  ), []);
+
+  const renderHeader = useMemo(() => (
+    <React.Fragment>
+      <View style={styles.statsSection}>
+        <Text style={styles.statsSectionTitle}>Estadísticas de Solicitudes</Text>
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{contadores.total}</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statNumber, { color: '#F59E0B' }]}>{contadores.pendientes}</Text>
+            <Text style={styles.statLabel}>Pendientes</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statNumber, { color: '#3B82F6' }]}>{contadores.enRevision}</Text>
+            <Text style={styles.statLabel}>En Revisión</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statNumber, { color: '#10B981' }]}>{contadores.aprobados}</Text>
+            <Text style={styles.statLabel}>Aprobados</Text>
           </View>
         </View>
-        {getEstadoBadge(solicitud.estado_solicitud)}
       </View>
 
-      <View style={styles.cardBody}>
-        <Text style={styles.cardDescription} numberOfLines={2}>
-          {solicitud.descripcion || 'Sin descripción'}
-        </Text>
-        <Text style={styles.cardOwner}>
-          Propietario: {solicitud.propietario?.nombre} ({solicitud.propietario?.email})
-        </Text>
-      </View>
-
-      <View style={styles.cardActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.previewButton]}
-          onPress={() => handlePreview(solicitud)}
-        >
-          <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color="#3B82F6" />
-          <Text style={[styles.actionButtonText, { color: '#3B82F6' }]}>Vista Previa</Text>
-        </TouchableOpacity>
-
-        {solicitud.estado_solicitud === 'pendiente' && (
-          <>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.revisionButton]}
-              onPress={() => handleAction(solicitud, 'revision')}
-            >
-              <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={18} color="#F59E0B" />
-              <Text style={[styles.actionButtonText, { color: '#F59E0B' }]}>En Revisión</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.approveButton]}
-              onPress={() => handleAction(solicitud, 'aprobar')}
-            >
-              <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={18} color="#10B981" />
-              <Text style={[styles.actionButtonText, { color: '#10B981' }]}>Aprobar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.denyButton]}
-              onPress={() => handleAction(solicitud, 'denegar')}
-            >
-              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={18} color="#EF4444" />
-              <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Denegar</Text>
-            </TouchableOpacity>
-          </>
-        )}
-
-        {solicitud.estado_solicitud === 'en_revision' && (
-          <>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.approveButton]}
-              onPress={() => handleAction(solicitud, 'aprobar')}
-            >
-              <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={18} color="#10B981" />
-              <Text style={[styles.actionButtonText, { color: '#10B981' }]}>Aprobar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.denyButton]}
-              onPress={() => handleAction(solicitud, 'denegar')}
-            >
-              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={18} color="#EF4444" />
-              <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Denegar</Text>
-            </TouchableOpacity>
-          </>
-        )}
-
-        {solicitud.estado_solicitud === 'denegado' && (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.deleteButton]}
-            onPress={() => handleAction(solicitud, 'eliminar')}
-          >
-            <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#EF4444" />
-            <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Eliminar</Text>
+      <View style={styles.searchContainer}>
+        <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar por nombre o dirección..."
+          placeholderTextColor={colors.textSecondary}
+          value={busqueda}
+          onChangeText={setBusqueda}
+        />
+        {busqueda !== '' && (
+          <TouchableOpacity onPress={() => setBusqueda('')}>
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
+
+      <View style={styles.filterButtonsRow}>
+        <TouchableOpacity
+          style={[styles.filterButton, hayFiltrosActivos() && styles.filterButtonActive]}
+          onPress={() => setShowFiltersModal(true)}
+        >
+          <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle" android_material_icon_name="filter_list" size={20} color={hayFiltrosActivos() ? colors.headerText : colors.text} />
+          <Text style={[styles.filterButtonText, hayFiltrosActivos() && styles.filterButtonTextActive]}>
+            Filtros {hayFiltrosActivos() && '•'}
+          </Text>
+        </TouchableOpacity>
+
+        {hayFiltrosActivos() && (
+          <TouchableOpacity
+            style={styles.clearFiltersButton}
+            onPress={limpiarFiltros}
+          >
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={16} color={colors.textSecondary} />
+            <Text style={styles.clearFiltersText}>Limpiar</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={styles.resultsIndicator}>
+        <Text style={styles.resultsText}>
+          Mostrando {solicitudes.length} de {totalSolicitudes} solicitudes
+        </Text>
+      </View>
+    </React.Fragment>
+  ), [contadores, busqueda, hayFiltrosActivos, solicitudes.length, totalSolicitudes, limpiarFiltros]);
+
+  const renderFooter = useCallback(() => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={styles.footerLoaderText}>Cargando más...</Text>
+      </View>
+    );
+  }, [loadingMore]);
+
+  const renderEmpty = useCallback(() => (
+    <View style={styles.emptyState}>
+      <IconSymbol ios_icon_name="doc.text" android_material_icon_name="description" size={48} color={colors.textSecondary} />
+      <Text style={styles.emptyText}>No se encontraron solicitudes</Text>
+      <Text style={styles.emptySubtext}>
+        Intenta ajustar los filtros de búsqueda
+      </Text>
     </View>
-  );
+  ), []);
+
+  if (initialLoading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Cargando solicitudes...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color="white" />
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gestionar Solicitudes</Text>
-        <TouchableOpacity onPress={cargarSolicitudes}>
-          <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={24} color="white" />
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
       </LinearGradient>
 
-      <View style={styles.filters}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {['pendiente', 'en_revision', 'aprobado', 'denegado', 'todos'].map((estado) => (
-            <TouchableOpacity
-              key={estado}
-              style={[styles.filterButton, filtroEstado === estado && styles.filterButtonActive]}
-              onPress={() => setFiltroEstado(estado)}
-            >
-              <Text style={[styles.filterButtonText, filtroEstado === estado && styles.filterButtonTextActive]}>
-                {estado === 'todos' ? 'Todos' : estado.charAt(0).toUpperCase() + estado.slice(1).replace('_', ' ')}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      <FlatList
+        data={solicitudes}
+        renderItem={renderSolicitudCard}
+        keyExtractor={item => item.id}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={renderEmpty}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        windowSize={10}
+      />
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando solicitudes...</Text>
-        </View>
-      ) : solicitudes.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <IconSymbol ios_icon_name="tray.fill" android_material_icon_name="inbox" size={64} color={colors.textSecondary} />
-          <Text style={styles.emptyText}>No hay solicitudes {filtroEstado !== 'todos' ? `en estado "${filtroEstado}"` : ''}</Text>
-        </View>
-      ) : (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {solicitudes.map(renderSolicitudCard)}
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      )}
-
-      {/* Preview Modal */}
+      {/* Modal de Filtros */}
       <Modal
-        visible={showPreviewModal}
+        visible={showFiltersModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowPreviewModal(false)}
+        onRequestClose={() => setShowFiltersModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowFiltersModal(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Vista Previa del Local</Text>
-              <TouchableOpacity onPress={() => setShowPreviewModal(false)}>
+              <Text style={styles.modalTitle}>Filtros</Text>
+              <TouchableOpacity onPress={() => setShowFiltersModal(false)}>
                 <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            {selectedSolicitud && (
-              <ScrollView style={styles.modalBody}>
-                {selectedSolicitud.imagen_url && (
-                  <Image source={{ uri: selectedSolicitud.imagen_url }} style={styles.previewImage} />
-                )}
-
-                <View style={styles.previewSection}>
-                  <Text style={styles.previewTitle}>{selectedSolicitud.nombre}</Text>
-                  <Text style={styles.previewSubtitle}>{selectedSolicitud.tipo} • {selectedSolicitud.provincia}</Text>
+            <View style={styles.modalBody}>
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Estado</Text>
+                <View style={styles.filterOptions}>
+                  {['todos', 'pendiente', 'en_revision', 'aprobado', 'denegado'].map(option => (
+                    <TouchableOpacity
+                      key={option}
+                      style={[
+                        styles.filterOption,
+                        filtroEstado === option && styles.filterOptionActive
+                      ]}
+                      onPress={() => setFiltroEstado(option)}
+                    >
+                      <Text style={[
+                        styles.filterOptionText,
+                        filtroEstado === option && styles.filterOptionTextActive
+                      ]}>
+                        {getEstadoLabel(option)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
+              </View>
+            </View>
 
-                <View style={styles.previewSection}>
-                  <Text style={styles.previewLabel}>Descripción</Text>
-                  <Text style={styles.previewText}>{selectedSolicitud.descripcion || 'Sin descripción'}</Text>
-                </View>
-
-                <View style={styles.previewSection}>
-                  <Text style={styles.previewLabel}>Dirección</Text>
-                  <Text style={styles.previewText}>{selectedSolicitud.direccion}</Text>
-                </View>
-
-                {selectedSolicitud.galeria_urls && selectedSolicitud.galeria_urls.length > 0 && (
-                  <View style={styles.previewSection}>
-                    <Text style={styles.previewLabel}>Galería ({selectedSolicitud.galeria_urls.length} imágenes)</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      {selectedSolicitud.galeria_urls.map((url, index) => (
-                        <Image key={index} source={{ uri: url }} style={styles.galleryPreviewImage} />
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-
-                <View style={styles.previewSection}>
-                  <Text style={styles.previewLabel}>Propietario</Text>
-                  <Text style={styles.previewText}>{selectedSolicitud.propietario?.nombre}</Text>
-                  <Text style={styles.previewText}>{selectedSolicitud.propietario?.email}</Text>
-                </View>
-
-                {selectedSolicitud.motivo_denegacion && (
-                  <View style={[styles.previewSection, { backgroundColor: '#FEE2E2', padding: 12, borderRadius: 8 }]}>
-                    <Text style={[styles.previewLabel, { color: '#DC2626' }]}>Motivo de Denegación</Text>
-                    <Text style={[styles.previewText, { color: '#DC2626' }]}>{selectedSolicitud.motivo_denegacion}</Text>
-                  </View>
-                )}
-
-                {selectedSolicitud.comentarios_admin && (
-                  <View style={[styles.previewSection, { backgroundColor: '#DBEAFE', padding: 12, borderRadius: 8 }]}>
-                    <Text style={[styles.previewLabel, { color: '#1E40AF' }]}>Comentarios del Administrador</Text>
-                    <Text style={[styles.previewText, { color: '#1E40AF' }]}>{selectedSolicitud.comentarios_admin}</Text>
-                  </View>
-                )}
-              </ScrollView>
-            )}
-          </View>
-        </View>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={limpiarFiltros}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Limpiar Filtros</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonPrimary}
+                onPress={() => setShowFiltersModal(false)}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Aplicar</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
-      {/* ✅ FIXED v2.0: Action Modal with KeyboardAvoidingView */}
+      {/* Modal de Revisión */}
       <Modal
-        visible={showActionModal}
+        visible={showReviewModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowActionModal(false)}
+        onRequestClose={() => setShowReviewModal(false)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        <Pressable
           style={styles.modalOverlay}
-          keyboardVerticalOffset={0}
+          onPress={() => setShowReviewModal(false)}
         >
-          <TouchableOpacity 
-            style={styles.modalOverlayTouchable}
-            activeOpacity={1}
-            onPress={() => {
-              Keyboard.dismiss();
-            }}
-          >
-            <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {actionType === 'aprobar' && 'Aprobar Local'}
-                  {actionType === 'denegar' && 'Denegar Local'}
-                  {actionType === 'revision' && 'Marcar en Revisión'}
-                  {actionType === 'eliminar' && 'Eliminar Local'}
-                </Text>
-                <TouchableOpacity onPress={() => setShowActionModal(false)}>
-                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView 
-                style={styles.modalBody}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={styles.modalBodyContent}
-              >
-                {selectedSolicitud && (
-                  <View style={styles.actionModalContent}>
-                    <Text style={styles.actionModalText}>
-                      {actionType === 'aprobar' && `¿Estás seguro de que quieres aprobar el local "${selectedSolicitud.nombre}"? El local será publicado y visible para todos los usuarios.`}
-                      {actionType === 'denegar' && `¿Estás seguro de que quieres denegar el local "${selectedSolicitud.nombre}"? El propietario recibirá una notificación con el motivo.`}
-                      {actionType === 'revision' && `¿Estás seguro de que quieres marcar el local "${selectedSolicitud.nombre}" como en revisión? El propietario recibirá una notificación.`}
-                      {actionType === 'eliminar' && `¿Estás seguro de que quieres eliminar permanentemente el local "${selectedSolicitud.nombre}"? Esta acción no se puede deshacer.`}
-                    </Text>
-
-                    {actionType === 'denegar' && (
-                      <View style={styles.inputContainer}>
-                        <Text style={styles.inputLabel}>Motivo de la Denegación *</Text>
-                        <TextInput
-                          style={[styles.input, styles.textArea]}
-                          placeholder="Explica por qué se deniega el local..."
-                          placeholderTextColor={colors.textSecondary}
-                          value={motivoDenegacion}
-                          onChangeText={setMotivoDenegacion}
-                          multiline
-                          numberOfLines={4}
-                          textAlignVertical="top"
-                        />
-                      </View>
-                    )}
-
-                    {(actionType === 'aprobar' || actionType === 'denegar' || actionType === 'revision') && (
-                      <View style={styles.inputContainer}>
-                        <Text style={styles.inputLabel}>Comentarios Adicionales (opcional)</Text>
-                        <TextInput
-                          style={[styles.input, styles.textArea]}
-                          placeholder="Añade comentarios adicionales..."
-                          placeholderTextColor={colors.textSecondary}
-                          value={comentarios}
-                          onChangeText={setComentarios}
-                          multiline
-                          numberOfLines={3}
-                          textAlignVertical="top"
-                        />
-                      </View>
-                    )}
-
-                    <View style={styles.actionModalButtons}>
-                      <TouchableOpacity
-                        style={[styles.modalButton, styles.cancelButton]}
-                        onPress={() => setShowActionModal(false)}
-                      >
-                        <Text style={styles.cancelButtonText}>Cancelar</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[styles.modalButton, styles.confirmButton]}
-                        onPress={executeAction}
-                        disabled={processing}
-                      >
-                        {processing ? (
-                          <ActivityIndicator size="small" color="white" />
-                        ) : (
-                          <Text style={styles.confirmButtonText}>
-                            {actionType === 'aprobar' && 'Aprobar'}
-                            {actionType === 'denegar' && 'Denegar'}
-                            {actionType === 'revision' && 'Marcar'}
-                            {actionType === 'eliminar' && 'Eliminar'}
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
-              </ScrollView>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Revisar Solicitud</Text>
+              <TouchableOpacity onPress={() => setShowReviewModal(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
+
+            <ScrollView style={styles.reviewModalBody}>
+              {selectedSolicitud && (
+                <React.Fragment>
+                  <View style={styles.selectedLocalInfo}>
+                    <Text style={styles.selectedLocalName}>{selectedSolicitud.nombre}</Text>
+                    <Text style={styles.selectedLocalAddress}>{selectedSolicitud.direccion}</Text>
+                    {selectedSolicitud.propietario && (
+                      <View style={styles.selectedLocalOwner}>
+                        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={14} color={colors.textSecondary} />
+                        <Text style={styles.selectedLocalOwnerText}>
+                          {selectedSolicitud.propietario.nombre} ({selectedSolicitud.propietario.email})
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.inputSection}>
+                    <Text style={styles.inputLabel}>Comentarios del Administrador (Opcional)</Text>
+                    <TextInput
+                      style={styles.textArea}
+                      value={comentariosAdmin}
+                      onChangeText={setComentariosAdmin}
+                      placeholder="Añade comentarios internos sobre esta solicitud..."
+                      placeholderTextColor={colors.textSecondary}
+                      multiline
+                      numberOfLines={3}
+                    />
+                  </View>
+
+                  <View style={styles.inputSection}>
+                    <Text style={styles.inputLabel}>Motivo de Denegación (Requerido para denegar)</Text>
+                    <TextInput
+                      style={styles.textArea}
+                      value={motivoDenegacion}
+                      onChangeText={setMotivoDenegacion}
+                      placeholder="Explica por qué se deniega esta solicitud..."
+                      placeholderTextColor={colors.textSecondary}
+                      multiline
+                      numberOfLines={4}
+                    />
+                  </View>
+
+                  <View style={styles.reviewActions}>
+                    <TouchableOpacity
+                      style={styles.aprobarButtonLarge}
+                      onPress={handleAprobar}
+                      disabled={processingReview}
+                    >
+                      {processingReview ? (
+                        <ActivityIndicator size="small" color={colors.white} />
+                      ) : (
+                        <React.Fragment>
+                          <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.white} />
+                          <Text style={styles.aprobarButtonLargeText}>Aprobar Local</Text>
+                        </React.Fragment>
+                      )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.denegarButtonLarge}
+                      onPress={handleDenegar}
+                      disabled={processingReview || !motivoDenegacion.trim()}
+                    >
+                      {processingReview ? (
+                        <ActivityIndicator size="small" color={colors.white} />
+                      ) : (
+                        <React.Fragment>
+                          <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.white} />
+                          <Text style={styles.denegarButtonLargeText}>Denegar Local</Text>
+                        </React.Fragment>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </React.Fragment>
+              )}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -537,35 +804,109 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.text,
+    marginTop: 16,
+  },
   header: {
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
+  backButton: {
+    padding: 8,
   },
-  filters: {
-    paddingVertical: 12,
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.headerText,
+    flex: 1,
+    textAlign: 'center',
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  statsSection: {
+    padding: 16,
+    backgroundColor: colors.cardBackground,
+    marginBottom: 12,
+  },
+  statsSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    marginHorizontal: 16,
+    marginBottom: 12,
     paddingHorizontal: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingVertical: 10,
+    borderRadius: 12,
+    ...commonStyles.cardShadow,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 15,
+    color: colors.text,
+  },
+  filterButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    gap: 8,
   },
   filterButton: {
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
     paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: colors.background,
-    marginRight: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   filterButtonActive: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   filterButtonText: {
     fontSize: 14,
@@ -573,213 +914,360 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   filterButtonTextActive: {
-    color: 'white',
+    color: colors.headerText,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    ...commonStyles.shadow,
-  },
-  cardHeader: {
+  clearFiltersButton: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  cardHeaderLeft: {
-    flexDirection: 'row',
-    flex: 1,
-  },
-  cardImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: colors.border,
-  },
-  cardInfo: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  cardDate: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  badge: {
+    alignItems: 'center',
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    gap: 4,
   },
-  badgeText: {
-    fontSize: 12,
+  clearFiltersText: {
+    fontSize: 13,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
-  cardBody: {
-    marginBottom: 12,
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: colors.text,
+  resultsIndicator: {
+    paddingHorizontal: 16,
     marginBottom: 8,
   },
-  cardOwner: {
-    fontSize: 12,
+  resultsText: {
+    fontSize: 13,
     color: colors.textSecondary,
   },
-  cardActions: {
+  solicitudCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+    ...commonStyles.cardShadow,
+  },
+  solicitudCardContent: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+  },
+  solicitudImage: {
+    width: 100,
+    height: 140,
+  },
+  imagePlaceholder: {
+    backgroundColor: colors.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  solicitudInfo: {
+    flex: 1,
+    padding: 12,
+  },
+  solicitudHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 6,
     gap: 8,
   },
-  actionButton: {
+  solicitudNombre: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: colors.text,
+    flex: 1,
+  },
+  estadoBadge: {
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+  estadoText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  tipoBadge: {
+    backgroundColor: `${colors.primary}20`,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
+  },
+  tipoText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  solicitudDireccion: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 6,
+    lineHeight: 16,
+  },
+  ownerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
     gap: 6,
+    marginBottom: 4,
   },
-  previewButton: {
-    backgroundColor: '#DBEAFE',
+  ownerText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  fechaInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  fechaText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  motivoContainer: {
+    backgroundColor: '#FEE2E2',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  motivoLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#DC2626',
+    marginBottom: 2,
+  },
+  motivoText: {
+    fontSize: 11,
+    color: '#DC2626',
+    lineHeight: 14,
+  },
+  solicitudActions: {
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    padding: 12,
+    gap: 8,
   },
   revisionButton: {
-    backgroundColor: '#FEF3C7',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#3B82F6' + '20',
+    paddingVertical: 10,
+    borderRadius: 8,
   },
-  approveButton: {
-    backgroundColor: '#D1FAE5',
-  },
-  denyButton: {
-    backgroundColor: '#FEE2E2',
-  },
-  deleteButton: {
-    backgroundColor: '#FEE2E2',
-  },
-  actionButtonText: {
+  revisionButtonText: {
     fontSize: 13,
     fontWeight: '600',
+    color: '#3B82F6',
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  aprobarButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#10B981',
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  aprobarButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  denegarButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#EF4444',
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  denegarButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  viewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.primary + '20',
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  viewButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  footerLoader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  footerLoaderText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
-  modalOverlayTouchable: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '90%',
+    maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.cardBorder,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
   },
   modalBody: {
-    maxHeight: '80%',
-  },
-  modalBodyContent: {
     padding: 20,
-    paddingBottom: 40,
   },
-  previewImage: {
-    width: '100%',
-    height: 200,
+  filterSection: {
+    marginBottom: 20,
+  },
+  filterSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 10,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  filterOptionActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterOptionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  filterOptionTextActive: {
+    color: colors.headerText,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 20,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  modalButtonSecondary: {
+    flex: 1,
+    paddingVertical: 14,
     borderRadius: 12,
-    marginBottom: 16,
-    backgroundColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
-  previewSection: {
-    marginBottom: 16,
+  modalButtonSecondaryText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
   },
-  previewTitle: {
-    fontSize: 24,
+  modalButtonPrimary: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+  },
+  modalButtonPrimaryText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.headerText,
+  },
+  reviewModalBody: {
+    padding: 20,
+    maxHeight: 500,
+  },
+  selectedLocalInfo: {
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  selectedLocalName: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
   },
-  previewSubtitle: {
-    fontSize: 16,
+  selectedLocalAddress: {
+    fontSize: 14,
     color: colors.textSecondary,
+    marginBottom: 8,
   },
-  previewLabel: {
-    fontSize: 14,
+  selectedLocalOwner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  selectedLocalOwnerText: {
+    fontSize: 13,
+    color: colors.textSecondary,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: 6,
+    flex: 1,
   },
-  previewText: {
-    fontSize: 14,
-    color: colors.text,
-    lineHeight: 20,
-  },
-  galleryPreviewImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 8,
-    marginRight: 8,
-    backgroundColor: colors.border,
-  },
-  actionModalContent: {
-    paddingVertical: 4,
-  },
-  actionModalText: {
-    fontSize: 16,
-    color: colors.text,
-    lineHeight: 24,
+  inputSection: {
     marginBottom: 20,
-  },
-  inputContainer: {
-    marginBottom: 16,
   },
   inputLabel: {
     fontSize: 14,
@@ -787,47 +1275,46 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 8,
   },
-  input: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: colors.text,
-  },
   textArea: {
-    minHeight: 100,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 15,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    minHeight: 80,
     textAlignVertical: 'top',
   },
-  actionModalButtons: {
-    flexDirection: 'row',
+  reviewActions: {
     gap: 12,
-    marginTop: 20,
   },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
+  aprobarButtonLarge: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    borderRadius: 12,
   },
-  cancelButton: {
-    backgroundColor: colors.background,
-    borderWidth: 2,
-    borderColor: colors.border,
+  aprobarButtonLargeText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.white,
   },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
+  denegarButtonLarge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#EF4444',
+    paddingVertical: 14,
+    borderRadius: 12,
   },
-  confirmButton: {
-    backgroundColor: colors.primary,
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+  denegarButtonLargeText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.white,
   },
 });

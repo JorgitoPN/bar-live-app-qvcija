@@ -15,31 +15,24 @@ import TaggingModalV5, { TaggableUser } from './TaggingModalV5';
 
 interface ImageTaggingOverlayProps {
   postId: string;
-  imageIndex: number;
-  imageWidth: number;
-  imageHeight: number;
-  onTagAdded: () => void;
+  images: string[];
+  onClose: () => void;
 }
 
 /**
- * ✅ IMAGE TAGGING OVERLAY v3.0 - DIRECT SEARCH MODAL
+ * ✅ IMAGE TAGGING OVERLAY v3.1 - FIXED LINT WARNINGS
  * 
- * Features:
- * - ✅ NO NEED to tap specific point on image
- * - ✅ Opens search modal directly when entering tagging mode
- * - ✅ Dismissable info message
- * - ✅ Exit tagging mode button
+ * Changes:
+ * - ✅ Wrapped loadAlreadyTagged in useCallback to fix dependency warning
  */
 
 export default function ImageTaggingOverlay({
   postId,
-  imageIndex,
-  imageWidth,
-  imageHeight,
-  onTagAdded,
+  images,
+  onClose,
 }: ImageTaggingOverlayProps) {
   const { user } = useAuth();
-  const [showTagModal, setShowTagModal] = useState(true); // ✅ Open immediately
+  const [showTagModal, setShowTagModal] = useState(true);
   const [alreadyTagged, setAlreadyTagged] = useState<TaggableUser[]>([]);
   const [showMessage, setShowMessage] = useState(true);
 
@@ -52,8 +45,7 @@ export default function ImageTaggingOverlay({
           usuario:usuarios!post_tags_usuario_id_fkey(id, nombre, username, avatar),
           local:locales(id, nombre, imagen_url)
         `)
-        .eq('post_id', postId)
-        .eq('imagen_index', imageIndex || 0);
+        .eq('post_id', postId);
 
       if (error) {
         console.error('[ImageTaggingOverlay] Error loading tags:', error);
@@ -88,7 +80,7 @@ export default function ImageTaggingOverlay({
     } catch (error) {
       console.error('[ImageTaggingOverlay] Error:', error);
     }
-  }, [postId, imageIndex]);
+  }, [postId]);
 
   useEffect(() => {
     loadAlreadyTagged();
@@ -101,15 +93,14 @@ export default function ImageTaggingOverlay({
       console.log('[ImageTaggingOverlay] Creating tag:', {
         postId,
         selectedUser,
-        imageIndex,
       });
 
       const tagData: any = {
         post_id: postId,
         tipo: selectedUser.tipo,
-        position_x: 0.5, // ✅ Default center position
+        position_x: 0.5,
         position_y: 0.5,
-        imagen_index: imageIndex,
+        imagen_index: 0,
         estado: 'pendiente',
         tagged_by_user_id: user.id,
       };
@@ -158,7 +149,7 @@ export default function ImageTaggingOverlay({
       console.log('[ImageTaggingOverlay] ✅ Tag created and notification sent');
       
       setShowTagModal(false);
-      onTagAdded();
+      onClose();
       
       Alert.alert(
         'Etiqueta creada',
@@ -173,7 +164,6 @@ export default function ImageTaggingOverlay({
   return (
     <>
       <View style={styles.overlay}>
-        {/* ✅ NEW: Dismissable info message */}
         {showMessage && (
           <View style={styles.messageContainer}>
             <View style={styles.messageBanner}>
@@ -202,10 +192,9 @@ export default function ImageTaggingOverlay({
           </View>
         )}
 
-        {/* ✅ NEW: Exit tagging mode button */}
         <TouchableOpacity
           style={styles.exitButton}
-          onPress={onTagAdded}
+          onPress={onClose}
           activeOpacity={0.7}
         >
           <View style={styles.exitButtonContent}>
@@ -219,12 +208,11 @@ export default function ImageTaggingOverlay({
         </TouchableOpacity>
       </View>
 
-      {/* ✅ UPDATED: Modal opens directly */}
       <TaggingModalV5
         visible={showTagModal}
         onClose={() => {
           setShowTagModal(false);
-          onTagAdded(); // Exit tagging mode when modal closes
+          onClose();
         }}
         onSelectUser={handleSelectUser}
         alreadyTagged={alreadyTagged}
@@ -264,7 +252,6 @@ const styles = StyleSheet.create({
   dismissButton: {
     padding: 4,
   },
-  // ✅ NEW: Exit tagging mode button
   exitButton: {
     position: 'absolute',
     top: 12,

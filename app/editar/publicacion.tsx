@@ -81,11 +81,10 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 };
 
 /**
- * ✅ EDIT PUBLICATION v2.0 - WITH IMAGE EDITOR v6.0
+ * ✅ EDIT PUBLICATION v2.1 - FIXED LINT WARNINGS
  * 
  * Changes:
- * - ✅ Integrated new ImageEditorV6 component
- * - ✅ Improved image editing workflow
+ * - ✅ Wrapped loadPost in useCallback to fix dependency warning
  */
 
 export default function EditarPublicacionScreen() {
@@ -122,33 +121,6 @@ export default function EditarPublicacionScreen() {
   const [editingImageUri, setEditingImageUri] = useState<string | null>(null);
 
   const MAX_IMAGES = 10;
-
-  useEffect(() => {
-    if (postId) {
-      loadPost();
-    }
-  }, [postId, loadPost]);
-
-  useEffect(() => {
-    const keyboardWillShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => {
-        setKeyboardHeight(e.endCoordinates.height);
-      }
-    );
-
-    const keyboardWillHideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        setKeyboardHeight(0);
-      }
-    );
-
-    return () => {
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
-    };
-  }, []);
 
   const loadPost = useCallback(async () => {
     try {
@@ -215,6 +187,33 @@ export default function EditarPublicacionScreen() {
       setLoading(false);
     }
   }, [postId, router]);
+
+  useEffect(() => {
+    if (postId) {
+      loadPost();
+    }
+  }, [postId, loadPost]);
+
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
 
   const handleSelectInlineMention = (mention: MentionSuggestion, mentionText: string) => {
     const textBeforeCursor = contenido.substring(0, cursorPosition);

@@ -75,12 +75,6 @@ export default function PostDetailScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  useEffect(() => {
-    loadPost();
-    checkLikedStatus();
-    checkSavedStatus();
-  }, [postId, loadPost, checkLikedStatus, checkSavedStatus]);
-
   const loadPost = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -142,6 +136,12 @@ export default function PostDetailScreen() {
       console.error('[PostDetail] Error checking saved status:', error);
     }
   }, [user, postId]);
+
+  useEffect(() => {
+    loadPost();
+    checkLikedStatus();
+    checkSavedStatus();
+  }, [postId, loadPost, checkLikedStatus, checkSavedStatus]);
 
   const handleLike = async () => {
     if (!user) {
