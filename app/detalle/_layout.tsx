@@ -2,20 +2,16 @@
 import { Stack } from 'expo-router';
 
 /**
- * ✅ DETALLE LAYOUT - TRANSPARENT MODAL CONFIGURATION
+ * ✅ DETALLE LAYOUT - MODAL CONFIGURATION
  * 
- * Using transparentModal presentation to show the underlying page:
- * - Slides up from bottom
- * - Shows the previous page behind with dimmed overlay
- * - Swipe down to close
- * - Proper rounded corners
+ * Using modal presentation without backdrop layers
  */
 export default function DetalleLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        presentation: 'transparentModal',
+        presentation: 'modal',
         animation: 'slide_from_bottom',
         contentStyle: {
           backgroundColor: 'transparent',
