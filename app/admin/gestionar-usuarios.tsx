@@ -172,7 +172,7 @@ export default function GestionarUsuariosScreen() {
     console.log('[GestionarUsuarios] Initial load');
     cargarContadores();
     cargarUsuarios(true, 1);
-  }, [cargarContadores, cargarUsuarios]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!initialLoading) {
@@ -182,7 +182,7 @@ export default function GestionarUsuariosScreen() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [busqueda, filtroRol, filtroEstado, filtroProvider, initialLoading, cargarUsuarios]);
+  }, [busqueda, filtroRol, filtroEstado, filtroProvider]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleEstadoUsuario = useCallback(async (usuarioId: string, activo: boolean) => {
     try {

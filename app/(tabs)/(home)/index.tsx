@@ -184,7 +184,7 @@ export default function HomeScreen() {
 
       let localesConDistancia = data || [];
 
-      // ✅ FIXED SORTING LOGIC v6 - Featured beyond 100km are EXCLUDED, non-featured within 100km are prioritized
+      // ✅ CRITICAL FIX v7 - Completely exclude featured locals beyond 100km
       if (userLocation) {
         console.log('[Home] 📍 User location:', userLocation);
         
@@ -202,44 +202,43 @@ export default function HomeScreen() {
           return { ...local, distancia: 999 };
         });
 
-        // ✅ CRITICAL FIX: Separate featured and non-featured by distance
-        const destacadosCerca = localesConDistancia.filter(l => 
+        // ✅ CRITICAL: Filter out featured locals beyond 100km BEFORE sorting
+        const localesFiltered = localesConDistancia.filter(local => {
+          // If it's featured and beyond 100km, EXCLUDE IT
+          if (local.destacado && local.distancia !== undefined && local.distancia > MAX_FEATURED_DISTANCE_KM) {
+            console.log(`[Home] 🚫 EXCLUDING featured local beyond 100km: ${local.nombre} (${local.distancia.toFixed(1)}km)`);
+            return false;
+          }
+          return true;
+        });
+
+        console.log('[Home] ✅ Filtered out', localesConDistancia.length - localesFiltered.length, 'featured locals beyond 100km');
+
+        // Now separate into groups
+        const destacadosCerca = localesFiltered.filter(l => 
           l.destacado === true && l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
         );
         
-        const noDestacadosCerca = localesConDistancia.filter(l => 
+        const noDestacadosCerca = localesFiltered.filter(l => 
           !l.destacado && l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
         );
 
-        const noDestacadosLejos = localesConDistancia.filter(l => 
+        const noDestacadosLejos = localesFiltered.filter(l => 
           !l.destacado && l.distancia !== undefined && l.distancia > MAX_FEATURED_DISTANCE_KM
         );
 
-        // Featured locals beyond MAX_FEATURED_DISTANCE_KM are EXCLUDED
-        const destacadosMuyLejos = localesConDistancia.filter(l => 
-          l.destacado === true && l.distancia !== undefined && l.distancia > MAX_FEATURED_DISTANCE_KM
-        );
+        console.log('[Home] 📊 Distribution:');
+        console.log('  - Featured ≤100km:', destacadosCerca.length);
+        console.log('  - Non-featured ≤100km:', noDestacadosCerca.length);
+        console.log('  - Non-featured >100km:', noDestacadosLejos.length);
 
-        console.log('[Home] 📍 Destacados ≤100km:', destacadosCerca.length);
-        console.log('[Home] 📍 No destacados ≤100km:', noDestacadosCerca.length);
-        console.log('[Home] 📍 No destacados >100km:', noDestacadosLejos.length);
-        console.log('[Home] 🚫 Destacados >100km (EXCLUDED):', destacadosMuyLejos.length);
-
-        if (destacadosMuyLejos.length > 0) {
-          console.log('[Home] 🚫 Excluded featured locals (too far):');
-          destacadosMuyLejos.forEach(l => {
-            console.log(`  - ${l.nombre} (${l.distancia?.toFixed(1)}km) - ${l.direccion}`);
-          });
-        }
-
-        // Sort featured locals ≤100km by distance
+        // Sort each group by distance
         destacadosCerca.sort((a, b) => {
           const distA = a.distancia !== undefined && a.distancia !== null ? a.distancia : 999;
           const distB = b.distancia !== undefined && b.distancia !== null ? b.distancia : 999;
           return distA - distB;
         });
 
-        // Sort non-featured locals by distance
         noDestacadosCerca.sort((a, b) => {
           const distA = a.distancia !== undefined && a.distancia !== null ? a.distancia : 999;
           const distB = b.distancia !== undefined && b.distancia !== null ? b.distancia : 999;
@@ -252,25 +251,24 @@ export default function HomeScreen() {
           return distA - distB;
         });
 
-        // ✅ FIXED PRIORITY ORDER:
+        // ✅ FINAL ORDER:
         // 1. Featured ≤100km (by distance)
-        // 2. Non-featured ≤100km (by distance) - PRIORITIZED OVER FAR FEATURED
+        // 2. Non-featured ≤100km (by distance)
         // 3. Non-featured >100km (by distance)
-        // Featured >100km are EXCLUDED
         localesConDistancia = [
           ...destacadosCerca,
           ...noDestacadosCerca,
           ...noDestacadosLejos,
         ];
 
-        console.log('[Home] ✅ FIXED sorting applied (featured >100km EXCLUDED):');
-        console.log('  📍 Featured ≤100km:', destacadosCerca.length, destacadosCerca.map(l => `${l.nombre} (${l.distancia?.toFixed(1)}km)`));
+        console.log('[Home] ✅ Final sorting applied:');
+        console.log('  📍 Featured ≤100km:', destacadosCerca.length);
         console.log('  📍 Non-featured ≤100km:', noDestacadosCerca.length);
         console.log('  📍 Non-featured >100km:', noDestacadosLejos.length);
         
         console.log('[Home] 🔝 First 10 locals in list:');
         localesConDistancia.slice(0, 10).forEach((l, i) => {
-          console.log(`  ${i + 1}. ${l.nombre} - Destacado: ${l.destacado}, Distancia: ${l.distancia?.toFixed(1)}km`);
+          console.log(`  ${i + 1}. ${l.nombre} - Destacado: ${l.destacado}, Distancia: ${l.distancia?.toFixed(1)}km, Dirección: ${l.direccion}`);
         });
       } else {
         console.log('[Home] ⚠️ No user location available, sorting by destacado and rating only');
