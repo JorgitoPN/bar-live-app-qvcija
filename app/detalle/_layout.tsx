@@ -4,11 +4,11 @@ import { Stack } from 'expo-router';
 /**
  * DETALLE LAYOUT - TRANSPARENT MODAL CONFIGURATION
  * 
- * Configured to show as an overlay modal:
+ * Configured to show as a window overlay:
  * - Opens from the bottom with slide animation
  * - Shows the previous page behind it (transparent background)
- * - Can be closed by swiping down from anywhere when at the top
- * - Standard modal behavior
+ * - Can be closed by swiping down from anywhere
+ * - Not full screen - leaves space at the top
  */
 export default function DetalleLayout() {
   return (

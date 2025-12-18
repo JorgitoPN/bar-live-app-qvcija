@@ -44,6 +44,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const WINDOW_TOP_OFFSET = 60; // Space from top of screen
+const WINDOW_HEIGHT = SCREEN_HEIGHT - WINDOW_TOP_OFFSET;
 
 interface Local {
   id: string;
@@ -336,17 +338,20 @@ export default function DetalleLocalScreen() {
     router.back();
   };
 
+  // Pan gesture that works from anywhere in the content
   const panGesture = Gesture.Pan()
     .onStart(() => {
       context.value = { y: translateY.value };
     })
     .onUpdate((event) => {
+      // Allow dragging down from anywhere when at the top of scroll
       if (scrollY.value <= 0 && event.translationY > 0) {
         translateY.value = context.value.y + event.translationY;
       }
     })
     .onEnd((event) => {
-      if (scrollY.value <= 0 && (event.translationY > 150 || event.velocityY > 800)) {
+      // Close if dragged down enough or with enough velocity
+      if (scrollY.value <= 0 && (event.translationY > 100 || event.velocityY > 500)) {
         runOnJS(closeModal)();
       } else {
         translateY.value = withSpring(0, {
@@ -359,7 +364,7 @@ export default function DetalleLocalScreen() {
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateY: Math.max(0, translateY.value) }],
-      opacity: interpolate(translateY.value, [0, SCREEN_HEIGHT * 0.3], [1, 0.5], Extrapolate.CLAMP),
+      opacity: interpolate(translateY.value, [0, WINDOW_HEIGHT * 0.5], [1, 0.3], Extrapolate.CLAMP),
     };
   });
 
@@ -726,18 +731,18 @@ export default function DetalleLocalScreen() {
     <GestureHandlerRootView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Backdrop */}
+      {/* Backdrop - shows the underlying page */}
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={closeModal} />
 
-      {/* Modal content */}
+      {/* Window content */}
       <GestureDetector gesture={panGesture}>
-        <Animated.View style={[styles.modalContent, animatedStyle]}>
+        <Animated.View style={[styles.windowContent, animatedStyle]}>
           {/* Drag indicator */}
           <View style={styles.dragIndicatorContainer}>
             <View style={styles.dragIndicator} />
           </View>
 
-          {/* Close button */}
+          {/* Close button - with more margin to avoid overlapping status badge */}
           <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
             <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
               <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
@@ -791,7 +796,7 @@ export default function DetalleLocalScreen() {
                   </ScrollView>
                 </TouchableOpacity>
 
-                {/* Status badge */}
+                {/* Status badge - with more space from top */}
                 <View style={styles.statusBadge}>
                   <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
                     <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
@@ -1204,14 +1209,14 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
-  modalContent: {
+  windowContent: {
     position: 'absolute',
-    bottom: 0,
+    top: WINDOW_TOP_OFFSET,
     left: 0,
     right: 0,
-    height: SCREEN_HEIGHT * 0.95,
+    height: WINDOW_HEIGHT,
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -1352,7 +1357,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     position: 'absolute',
-    top: 16,
+    top: 24,
     left: 16,
     borderRadius: 20,
     overflow: 'hidden',
@@ -1389,7 +1394,7 @@ const styles = StyleSheet.create({
   },
   destacadoBadge: {
     position: 'absolute',
-    top: 66,
+    top: 74,
     left: 16,
     borderRadius: 20,
     overflow: 'hidden',
