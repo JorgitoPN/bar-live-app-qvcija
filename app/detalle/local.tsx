@@ -25,11 +25,13 @@ import Animated, {
   withSpring,
   withTiming,
   runOnJS,
+  useAnimatedScrollHandler,
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.92;
-const SWIPE_THRESHOLD = 100;
+const MODAL_MAX_HEIGHT = SCREEN_HEIGHT * 0.95;
+const SWIPE_THRESHOLD = 150;
+const VELOCITY_THRESHOLD = 800;
 
 interface Local {
   id: string;
@@ -283,12 +285,13 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL v15.0 - FIXED GESTURE HANDLER
+ * ✅ DETALLE LOCAL v16.0 - PROPER BOTTOM SHEET MODAL
  * 
- * Changes from v14.0:
- * - ✅ Replaced deprecated useAnimatedGestureHandler with modern Gesture API
- * - ✅ Using Gesture.Pan() with proper event handlers
- * - ✅ Compatible with react-native-reanimated v4.1.0
+ * Changes from v15.0:
+ * - ✅ Cover image extends to the very top (no white bar)
+ * - ✅ Scroll-to-close gesture works from anywhere when at scroll top
+ * - ✅ Underlying screen visible (transparent background)
+ * - ✅ Proper gesture handling with scroll coordination
  */
 
 export default function DetalleLocalScreen() {
@@ -319,7 +322,8 @@ export default function DetalleLocalScreen() {
 
   // ✅ Gesture handling for swipe-down to close
   const translateY = useSharedValue(0);
-  const startY = useSharedValue(0);
+  const scrollY = useSharedValue(0);
+  const isAtTop = useSharedValue(true);
 
   const handleModalClose = useCallback(() => {
     router.back();
@@ -589,23 +593,33 @@ export default function DetalleLocalScreen() {
     });
   };
 
-  // ✅ Modern Gesture API for swipe-down to close
+  // ✅ Track scroll position
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+      isAtTop.value = event.contentOffset.y <= 0;
+    },
+  });
+
+  // ✅ Pan gesture for swipe-down to close (only when at top)
   const panGesture = Gesture.Pan()
     .onStart(() => {
-      startY.value = translateY.value;
+      console.log('[DetalleLocal] Pan gesture started, isAtTop:', isAtTop.value);
     })
     .onUpdate((event) => {
-      // Only allow downward swipes
-      if (event.translationY > 0) {
+      // Only allow downward swipes when scrolled to top
+      if (isAtTop.value && event.translationY > 0) {
         translateY.value = event.translationY;
       }
     })
     .onEnd((event) => {
-      const shouldClose = event.translationY > SWIPE_THRESHOLD || event.velocityY > 500;
+      const shouldClose = 
+        (event.translationY > SWIPE_THRESHOLD) || 
+        (event.velocityY > VELOCITY_THRESHOLD);
       
-      if (shouldClose) {
+      if (shouldClose && isAtTop.value) {
         // Close the modal
-        translateY.value = withTiming(MODAL_HEIGHT, {
+        translateY.value = withTiming(MODAL_MAX_HEIGHT, {
           duration: 300,
         }, () => {
           runOnJS(handleModalClose)();
@@ -771,23 +785,14 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
-  const closeButtonTop = local.destacado 
-    ? (Platform.OS === 'ios' ? 80 : 80)
-    : (Platform.OS === 'ios' ? 60 : 60);
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      {/* ✅ Modal container with swipe gesture - NO manual backdrop */}
+      {/* ✅ Modal container with swipe gesture */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.modalContainer, animatedModalStyle]}>
-          {/* ✅ Drag indicator */}
-          <View style={styles.dragIndicatorContainer}>
-            <View style={styles.dragIndicator} />
-          </View>
-
-          <ScrollView 
+          <Animated.ScrollView 
             ref={scrollViewRef}
             style={styles.scrollView} 
             contentContainerStyle={styles.contentContainer}
@@ -795,7 +800,10 @@ export default function DetalleLocalScreen() {
             showsVerticalScrollIndicator={false}
             bounces={true}
             scrollEnabled={true}
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
           >
+            {/* ✅ Cover image at the very top - no white bar */}
             {allImages.length > 0 && (
               <View style={styles.coverContainer}>
                 <TouchableOpacity
@@ -813,7 +821,7 @@ export default function DetalleLocalScreen() {
                     scrollEventThrottle={16}
                   >
                     {allImages.map((image, index) => (
-                      <View key={index} style={{ width: SCREEN_WIDTH, height: 300 }}>
+                      <View key={index} style={{ width: SCREEN_WIDTH, height: 350 }}>
                         <OptimizedImage
                           source={{ uri: image }}
                           style={styles.coverImage}
@@ -825,7 +833,7 @@ export default function DetalleLocalScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={[styles.closeButtonFixed, { top: closeButtonTop }]} 
+                  style={styles.closeButtonFixed} 
                   onPress={() => router.back()}
                 >
                   <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
@@ -1312,7 +1320,7 @@ export default function DetalleLocalScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </ScrollView>
+          </Animated.ScrollView>
         </Animated.View>
       </GestureDetector>
 
@@ -1331,7 +1339,7 @@ export default function DetalleLocalScreen() {
           localId={params.id as string}
           onClose={() => setShowReviewsModal(false)}
           onReviewAdded={() => {
-            console.log('[DetalleLocal v15.0] ✅ Review added, reloading reviews');
+            console.log('[DetalleLocal v16.0] ✅ Review added, reloading reviews');
             cargarReviewsBarlive();
           }}
         />
@@ -1350,37 +1358,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: MODAL_HEIGHT,
-    backgroundColor: '#F9FAFB',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    height: MODAL_MAX_HEIGHT,
+    backgroundColor: 'transparent',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 15,
-  },
-  dragIndicatorContainer: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    backgroundColor: '#F9FAFB',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  dragIndicator: {
-    width: 40,
-    height: 5,
-    backgroundColor: colors.textSecondary,
-    borderRadius: 3,
-    opacity: 0.5,
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
   },
   closeButtonFixed: {
     position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 48,
     left: 16,
     width: 40,
     height: 40,
@@ -1434,15 +1422,15 @@ const styles = StyleSheet.create({
   },
   coverContainer: {
     position: 'relative',
-    height: 300,
+    height: 350,
   },
   coverImage: {
     width: SCREEN_WIDTH,
-    height: 300,
+    height: 350,
   },
   ratingBadgeTopRight: {
     position: 'absolute',
-    top: 12,
+    top: Platform.OS === 'ios' ? 60 : 48,
     right: 16,
     borderRadius: 20,
     overflow: 'hidden',
@@ -1462,8 +1450,8 @@ const styles = StyleSheet.create({
   },
   statusBadgeTop: {
     position: 'absolute',
-    top: 12,
-    left: 16,
+    top: Platform.OS === 'ios' ? 60 : 48,
+    left: 70,
     borderRadius: 20,
     overflow: 'hidden',
     zIndex: 10,
@@ -1500,8 +1488,8 @@ const styles = StyleSheet.create({
   },
   destacadoBadgeTop: {
     position: 'absolute',
-    top: 52,
-    left: 16,
+    top: Platform.OS === 'ios' ? 110 : 98,
+    left: 70,
     borderRadius: 20,
     overflow: 'hidden',
     zIndex: 9,
@@ -1520,7 +1508,7 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     position: 'absolute',
-    top: 52,
+    top: Platform.OS === 'ios' ? 110 : 98,
     right: 16,
     width: 44,
     height: 44,
