@@ -3,14 +3,15 @@ import { Stack } from 'expo-router';
 
 /**
  * ============================================================================
- * DETALLE LAYOUT - STANDARD MODAL CONFIGURATION
+ * DETALLE LAYOUT - STANDARD MODAL CONFIGURATION v2.0
  * ============================================================================
  * 
- * ✅ Standard modal behavior matching CommentsModal:
- * - Uses modal presentation (not transparentModal)
- * - Native swipe-down to close gesture
- * - Rounded top corners (automatic with modal)
+ * ✅ Standard modal behavior:
+ * - Uses 'modal' presentation (not 'transparentModal')
+ * - Native swipe-down gesture enabled
+ * - Rounded top corners (automatic)
  * - Previous screen visible behind
+ * - Does NOT open full-screen
  */
 export default function DetalleLayout() {
   return (
@@ -21,6 +22,10 @@ export default function DetalleLayout() {
         animation: 'slide_from_bottom',
         gestureEnabled: true,
         gestureDirection: 'vertical',
+        // ✅ These options ensure proper modal behavior
+        contentStyle: {
+          backgroundColor: 'transparent',
+        },
       }}
     />
   );
