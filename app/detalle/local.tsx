@@ -46,6 +46,8 @@ import Animated, {
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const WINDOW_TOP_OFFSET = 60; // Space from top of screen
 const WINDOW_HEIGHT = SCREEN_HEIGHT - WINDOW_TOP_OFFSET;
+const SWIPE_THRESHOLD = 100; // Distance to swipe before closing
+const VELOCITY_THRESHOLD = 500; // Velocity threshold for quick swipes
 
 interface Local {
   id: string;
@@ -338,20 +340,20 @@ export default function DetalleLocalScreen() {
     router.back();
   };
 
-  // Pan gesture that works from anywhere in the content
+  // Pan gesture that works from anywhere when scrolled to top
   const panGesture = Gesture.Pan()
     .onStart(() => {
       context.value = { y: translateY.value };
     })
     .onUpdate((event) => {
-      // Allow dragging down from anywhere when at the top of scroll
+      // Only allow dragging down when at the top of scroll
       if (scrollY.value <= 0 && event.translationY > 0) {
         translateY.value = context.value.y + event.translationY;
       }
     })
     .onEnd((event) => {
       // Close if dragged down enough or with enough velocity
-      if (scrollY.value <= 0 && (event.translationY > 100 || event.velocityY > 500)) {
+      if (scrollY.value <= 0 && (event.translationY > SWIPE_THRESHOLD || event.velocityY > VELOCITY_THRESHOLD)) {
         runOnJS(closeModal)();
       } else {
         translateY.value = withSpring(0, {
@@ -742,7 +744,7 @@ export default function DetalleLocalScreen() {
             <View style={styles.dragIndicator} />
           </View>
 
-          {/* Close button - with more margin to avoid overlapping status badge */}
+          {/* Close button - positioned to avoid overlapping status badge */}
           <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
             <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
               <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
@@ -796,7 +798,7 @@ export default function DetalleLocalScreen() {
                   </ScrollView>
                 </TouchableOpacity>
 
-                {/* Status badge - with more space from top */}
+                {/* Status badge - positioned below close button */}
                 <View style={styles.statusBadge}>
                   <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
                     <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
@@ -1357,7 +1359,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     position: 'absolute',
-    top: 24,
+    top: 80,
     left: 16,
     borderRadius: 20,
     overflow: 'hidden',
@@ -1394,7 +1396,7 @@ const styles = StyleSheet.create({
   },
   destacadoBadge: {
     position: 'absolute',
-    top: 74,
+    top: 130,
     left: 16,
     borderRadius: 20,
     overflow: 'hidden',
