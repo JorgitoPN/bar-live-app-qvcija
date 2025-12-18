@@ -32,7 +32,7 @@ import { useFavorites } from '../../contexts/FavoritesContext';
 import { calcularDistancia } from '../../utils/locationUtils';
 import ParsedText from '../../components/social/ParsedText';
 import ReviewsModal from '../../components/social/ReviewsModal';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -325,6 +325,7 @@ export default function DetalleLocalScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const translateY = useSharedValue(0);
   const scrollY = useSharedValue(0);
+  const isScrolling = useSharedValue(false);
 
   useEffect(() => {
     (async () => {
@@ -557,10 +558,14 @@ export default function DetalleLocalScreen() {
 
   // Pan gesture for swipe-to-close when at top
   const panGesture = Gesture.Pan()
+    .onStart(() => {
+      isScrolling.value = false;
+    })
     .onUpdate((event) => {
-      // Only allow downward swipe when at the top
+      // Only allow downward swipe when at the top of the scroll
       if (scrollY.value <= 0 && event.translationY > 0) {
         translateY.value = event.translationY;
+        isScrolling.value = true;
       }
     })
     .onEnd((event) => {
@@ -577,6 +582,7 @@ export default function DetalleLocalScreen() {
           stiffness: 300,
         });
       }
+      isScrolling.value = false;
     });
 
   const animatedModalStyle = useAnimatedStyle(() => {
@@ -737,18 +743,13 @@ export default function DetalleLocalScreen() {
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Semi-transparent backdrop */}
-      <Animated.View style={[styles.backdrop, animatedBackdropStyle]}>
-        <TouchableOpacity 
-          style={StyleSheet.absoluteFill} 
-          activeOpacity={1} 
-          onPress={dismissModal}
-        />
-      </Animated.View>
+      {/* Semi-transparent backdrop - NOT touchable for dismissal */}
+      <Animated.View style={[styles.backdrop, animatedBackdropStyle]} pointerEvents="none" />
 
+      {/* Modal container with gesture detector */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.modalContainer, animatedModalStyle]}>
           <ScrollView 
@@ -759,6 +760,7 @@ export default function DetalleLocalScreen() {
             bounces={true}
             onScroll={handleScroll}
             scrollEventThrottle={16}
+            scrollEnabled={!isScrolling.value}
           >
         {/* Cover image with buttons and badges inside ScrollView */}
         {allImages.length > 0 && (
@@ -1208,7 +1210,7 @@ export default function DetalleLocalScreen() {
           }}
         />
       )}
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
