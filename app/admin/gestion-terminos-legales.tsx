@@ -43,6 +43,7 @@ export default function GestionTerminosLegalesScreen() {
   const [editingContent, setEditingContent] = useState<ContenidoLegal | null>(null);
   const [editText, setEditText] = useState('');
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState<string | null>(null);
 
   const cargarContenidos = useCallback(async () => {
     try {
@@ -139,8 +140,55 @@ export default function GestionTerminosLegalesScreen() {
     );
   };
 
+  // ✅ NEW: Generate legal terms automatically using AI
+  const handleGenerateAuto = async (tipo: 'terminos' | 'privacidad' | 'cookies' | 'acerca') => {
+    const tipoInfo = TIPOS_CONTENIDO.find(t => t.tipo === tipo);
+    if (!tipoInfo) return;
+
+    Alert.alert(
+      `Generar ${tipoInfo.nombre} Automáticamente`,
+      'Se generará el contenido usando IA basado en las características de Barlive. ¿Deseas continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Generar',
+          onPress: async () => {
+            setGenerating(tipo);
+            try {
+              console.log('[GestionTerminosLegales] 🤖 Generating legal terms for:', tipo);
+              
+              const { data, error } = await supabase.functions.invoke('generate-legal-terms', {
+                body: { tipo },
+              });
+
+              if (error) throw error;
+
+              if (!data.success) {
+                throw new Error(data.error || 'Failed to generate content');
+              }
+
+              Alert.alert(
+                '✅ Contenido Generado',
+                'El contenido legal ha sido generado automáticamente. Revísalo y edítalo si es necesario.',
+                [{ text: 'OK' }]
+              );
+              
+              await cargarContenidos();
+            } catch (error: any) {
+              console.error('[GestionTerminosLegales] Error generating content:', error);
+              Alert.alert('Error', error.message || 'No se pudo generar el contenido automáticamente');
+            } finally {
+              setGenerating(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderContentCard = (tipoInfo: typeof TIPOS_CONTENIDO[0]) => {
     const content = contenidos.find(c => c.tipo === tipoInfo.tipo);
+    const isGenerating = generating === tipoInfo.tipo;
 
     return (
       <View key={tipoInfo.tipo} style={styles.contentCard}>
@@ -170,23 +218,57 @@ export default function GestionTerminosLegalesScreen() {
           )}
         </View>
 
-        {content ? (
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: tipoInfo.color }]}
-            onPress={() => handleEdit(content)}
-          >
-            <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.white} />
-            <Text style={styles.actionButtonText}>Editar</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: tipoInfo.color }]}
-            onPress={() => handleCreate(tipoInfo.tipo)}
-          >
-            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={20} color={colors.white} />
-            <Text style={styles.actionButtonText}>Crear</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.contentActions}>
+          {content ? (
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: tipoInfo.color }]}
+                onPress={() => handleEdit(content)}
+              >
+                <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.white} />
+                <Text style={styles.actionButtonText}>Editar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButtonSecondary, isGenerating && styles.actionButtonDisabled]}
+                onPress={() => handleGenerateAuto(tipoInfo.tipo)}
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <ActivityIndicator size="small" color={tipoInfo.color} />
+                ) : (
+                  <>
+                    <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={18} color={tipoInfo.color} />
+                    <Text style={[styles.actionButtonSecondaryText, { color: tipoInfo.color }]}>Regenerar</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: tipoInfo.color }]}
+                onPress={() => handleCreate(tipoInfo.tipo)}
+              >
+                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={20} color={colors.white} />
+                <Text style={styles.actionButtonText}>Crear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButtonSecondary, isGenerating && styles.actionButtonDisabled]}
+                onPress={() => handleGenerateAuto(tipoInfo.tipo)}
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <ActivityIndicator size="small" color={tipoInfo.color} />
+                ) : (
+                  <>
+                    <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={18} color={tipoInfo.color} />
+                    <Text style={[styles.actionButtonSecondaryText, { color: tipoInfo.color }]}>Generar IA</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
       </View>
     );
   };
@@ -236,7 +318,8 @@ export default function GestionTerminosLegalesScreen() {
               - Edita los términos y condiciones de uso{'\n'}
               - Actualiza la política de privacidad{'\n'}
               - Configura la política de cookies{'\n'}
-              - Modifica la información "Acerca de"{'\n'}
+              - Modifica la información &quot;Acerca de&quot;{'\n'}
+              - Genera contenido automáticamente con IA{'\n'}
               - Los cambios se reflejan inmediatamente en la app
             </Text>
           </View>
@@ -431,6 +514,9 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
+  contentActions: {
+    gap: 8,
+  },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -443,6 +529,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.white,
+  },
+  actionButtonSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  actionButtonSecondaryText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
   },
   modalOverlay: {
     flex: 1,

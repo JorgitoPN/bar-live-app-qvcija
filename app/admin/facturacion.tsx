@@ -25,14 +25,24 @@ interface Invoice {
   invoice_number: string;
   customer_name: string;
   customer_email: string;
+  customer_tax_id?: string;
+  customer_address?: string;
+  customer_city?: string;
+  customer_postal_code?: string;
+  customer_country?: string;
+  subtotal: number;
+  tax_rate: number;
+  tax_amount: number;
   total: number;
   currency: string;
   status: 'draft' | 'issued' | 'paid' | 'cancelled';
   issued_at: string;
+  due_date?: string;
   paid_at?: string;
   pdf_url?: string;
   local_id?: string;
   plan_id?: string;
+  metadata?: any;
 }
 
 interface CompanyFiscalData {
@@ -88,6 +98,7 @@ export default function FacturacionScreen() {
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [testEmail, setTestEmail] = useState('');
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null);
 
   const cargarFacturas = useCallback(async () => {
     try {
@@ -127,7 +138,6 @@ export default function FacturacionScreen() {
       if (data) {
         console.log('[Facturacion] ✅ Datos fiscales cargados');
         setFiscalData(data);
-        // Populate form
         setCompanyName(data.company_name || '');
         setTaxId(data.tax_id || '');
         setAddress(data.address || '');
@@ -192,7 +202,6 @@ export default function FacturacionScreen() {
       };
 
       if (fiscalData) {
-        // Update existing
         const { error } = await supabase
           .from('company_fiscal_data')
           .update(fiscalDataToSave)
@@ -200,7 +209,6 @@ export default function FacturacionScreen() {
 
         if (error) throw error;
       } else {
-        // Create new
         const { error } = await supabase
           .from('company_fiscal_data')
           .insert(fiscalDataToSave);
@@ -224,6 +232,7 @@ export default function FacturacionScreen() {
     setShowPreviewModal(true);
   };
 
+  // ✅ NEW: Send test email using edge function
   const handleSendTestEmail = async () => {
     if (!testEmail.trim()) {
       Alert.alert('Error', 'Ingresa un email válido');
@@ -235,24 +244,96 @@ export default function FacturacionScreen() {
       return;
     }
 
+    // Create a test invoice if none exists
+    if (invoices.length === 0) {
+      Alert.alert('Error', 'No hay facturas disponibles para enviar como prueba');
+      return;
+    }
+
     setSendingTestEmail(true);
     try {
-      // In a real app, you would call an Edge Function to send the test email
-      // For now, we'll simulate it
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const testInvoice = invoices[0];
       
+      console.log('[Facturacion] 📧 Sending test email to:', testEmail);
+      
+      const { data, error } = await supabase.functions.invoke('send-invoice-email', {
+        body: {
+          invoiceId: testInvoice.id,
+          recipientEmail: testEmail.trim(),
+          isTest: true,
+        },
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to send email');
+      }
+
       Alert.alert(
         '✅ Email de Prueba Enviado',
         `Se ha enviado una factura de prueba a ${testEmail}`,
         [{ text: 'OK' }]
       );
       setTestEmail('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Facturacion] Error enviando email de prueba:', error);
-      Alert.alert('Error', 'No se pudo enviar el email de prueba');
+      Alert.alert('Error', error.message || 'No se pudo enviar el email de prueba');
     } finally {
       setSendingTestEmail(false);
     }
+  };
+
+  // ✅ NEW: Send invoice email to customer
+  const handleSendInvoiceEmail = async (invoice: Invoice) => {
+    if (!fiscalData) {
+      Alert.alert('Error', 'Configura primero los datos fiscales');
+      return;
+    }
+
+    Alert.alert(
+      'Enviar Factura',
+      `¿Deseas enviar la factura ${invoice.invoice_number} a ${invoice.customer_email}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Enviar',
+          onPress: async () => {
+            setSendingInvoiceId(invoice.id);
+            try {
+              console.log('[Facturacion] 📧 Sending invoice email:', invoice.invoice_number);
+              
+              const { data, error } = await supabase.functions.invoke('send-invoice-email', {
+                body: {
+                  invoiceId: invoice.id,
+                  recipientEmail: invoice.customer_email,
+                  isTest: false,
+                },
+              });
+
+              if (error) throw error;
+
+              if (!data.success) {
+                throw new Error(data.error || 'Failed to send email');
+              }
+
+              Alert.alert(
+                '✅ Factura Enviada',
+                `La factura ${invoice.invoice_number} ha sido enviada a ${invoice.customer_email}`,
+                [{ text: 'OK' }]
+              );
+              
+              await cargarFacturas();
+            } catch (error: any) {
+              console.error('[Facturacion] Error enviando factura:', error);
+              Alert.alert('Error', error.message || 'No se pudo enviar la factura');
+            } finally {
+              setSendingInvoiceId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const downloadInvoice = async (invoice: Invoice) => {
@@ -269,7 +350,6 @@ export default function FacturacionScreen() {
         {
           text: 'Descargar',
           onPress: () => {
-            // In a real app, you would download the PDF here
             Alert.alert('Información', 'Funcionalidad de descarga en desarrollo');
           },
         },
@@ -283,17 +363,54 @@ export default function FacturacionScreen() {
       return;
     }
 
+    const pendingInvoices = invoices.filter(inv => inv.status === 'issued' || inv.status === 'paid');
+    
+    if (pendingInvoices.length === 0) {
+      Alert.alert('Información', 'No hay facturas para enviar');
+      return;
+    }
+
     Alert.alert(
       'Enviar Facturas',
-      `¿Deseas enviar todas las facturas pendientes a ${fiscalData.accounting_email}?`,
+      `¿Deseas enviar ${pendingInvoices.length} facturas a ${fiscalData.accounting_email}?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Enviar',
           onPress: async () => {
             try {
-              // In a real app, you would call an Edge Function to send emails
-              Alert.alert('Éxito', 'Facturas enviadas correctamente a la gestoría');
+              let successCount = 0;
+              let errorCount = 0;
+
+              for (const invoice of pendingInvoices) {
+                try {
+                  const { data, error } = await supabase.functions.invoke('send-invoice-email', {
+                    body: {
+                      invoiceId: invoice.id,
+                      recipientEmail: fiscalData.accounting_email,
+                      isTest: false,
+                    },
+                  });
+
+                  if (error || !data.success) {
+                    errorCount++;
+                  } else {
+                    successCount++;
+                  }
+                } catch (error) {
+                  console.error('[Facturacion] Error sending invoice:', invoice.invoice_number, error);
+                  errorCount++;
+                }
+              }
+
+              if (errorCount === 0) {
+                Alert.alert('✅ Éxito', `Se enviaron ${successCount} facturas correctamente a la gestoría`);
+              } else {
+                Alert.alert(
+                  'Parcialmente Completado',
+                  `Se enviaron ${successCount} facturas correctamente. ${errorCount} facturas fallaron.`
+                );
+              }
             } catch (error) {
               console.error('[Facturacion] Error enviando facturas:', error);
               Alert.alert('Error', 'No se pudieron enviar las facturas');
@@ -406,6 +523,18 @@ export default function FacturacionScreen() {
                     </Text>
                   </View>
                 )}
+                {invoice.metadata?.email_sent_at && (
+                  <View style={styles.invoiceDateItem}>
+                    <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={16} color={colors.primary} />
+                    <Text style={styles.invoiceDate}>
+                      Enviada: {new Date(invoice.metadata.email_sent_at).toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               <View style={styles.invoiceActions}>
@@ -417,13 +546,27 @@ export default function FacturacionScreen() {
                   <Text style={styles.previewButtonText}>Vista Previa</Text>
                 </TouchableOpacity>
 
+                <TouchableOpacity
+                  style={[styles.sendEmailButton, sendingInvoiceId === invoice.id && styles.sendEmailButtonDisabled]}
+                  onPress={() => handleSendInvoiceEmail(invoice)}
+                  disabled={sendingInvoiceId === invoice.id}
+                >
+                  {sendingInvoiceId === invoice.id ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <>
+                      <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={18} color={colors.white} />
+                      <Text style={styles.sendEmailButtonText}>Enviar Email</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
                 {invoice.pdf_url && (
                   <TouchableOpacity
                     style={styles.downloadButton}
                     onPress={() => downloadInvoice(invoice)}
                   >
                     <IconSymbol ios_icon_name="arrow.down.doc.fill" android_material_icon_name="download" size={18} color={colors.primary} />
-                    <Text style={styles.downloadButtonText}>Descargar PDF</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -466,7 +609,7 @@ export default function FacturacionScreen() {
             autoCapitalize="none"
           />
           <TouchableOpacity
-            style={[styles.sendTestButton, sendingTestEmail && styles.sendTestButtonDisabled]}
+            style={[styles.sendTestButton, (sendingTestEmail || !fiscalData) && styles.sendTestButtonDisabled]}
             onPress={handleSendTestEmail}
             disabled={sendingTestEmail || !fiscalData}
           >
@@ -597,7 +740,7 @@ export default function FacturacionScreen() {
           <Text style={styles.infoTitle}>Sistema de Facturación Automática</Text>
           <Text style={styles.infoText}>
             - Las facturas se emiten automáticamente tras cada compra{'\n'}
-            - Se envían adjuntas en el correo de confirmación{'\n'}
+            - Puedes enviarlas manualmente por email{'\n'}
             - Incluyen datos fiscales del propietario y del local{'\n'}
             - Puedes descargarlas y enviarlas a tu gestoría{'\n'}
             - Incluyen impuestos legales aplicables en España (21% IVA)
@@ -697,7 +840,6 @@ export default function FacturacionScreen() {
             {previewInvoice && (
               <ScrollView style={styles.previewScrollView} showsVerticalScrollIndicator={false}>
                 <View style={styles.previewInvoice}>
-                  {/* Header */}
                   <View style={styles.previewHeader}>
                     <View>
                       <Text style={styles.previewCompanyName}>{fiscalData?.company_name || 'Barlive'}</Text>
@@ -713,7 +855,6 @@ export default function FacturacionScreen() {
                     </View>
                   </View>
 
-                  {/* Customer Info */}
                   <View style={styles.previewSection}>
                     <Text style={styles.previewSectionTitle}>Facturar a:</Text>
                     <Text style={styles.previewCustomerInfo}>
@@ -724,7 +865,6 @@ export default function FacturacionScreen() {
                     </Text>
                   </View>
 
-                  {/* Invoice Details */}
                   <View style={styles.previewSection}>
                     <View style={styles.previewRow}>
                       <Text style={styles.previewLabel}>Fecha de emisión:</Text>
@@ -742,7 +882,6 @@ export default function FacturacionScreen() {
                     )}
                   </View>
 
-                  {/* Items Table */}
                   <View style={styles.previewTable}>
                     <View style={styles.previewTableHeader}>
                       <Text style={[styles.previewTableHeaderText, { flex: 2 }]}>Descripción</Text>
@@ -758,7 +897,6 @@ export default function FacturacionScreen() {
                     </View>
                   </View>
 
-                  {/* Totals */}
                   <View style={styles.previewTotals}>
                     <View style={styles.previewTotalRow}>
                       <Text style={styles.previewTotalLabel}>Subtotal:</Text>
@@ -780,7 +918,6 @@ export default function FacturacionScreen() {
                     </View>
                   </View>
 
-                  {/* Footer */}
                   {fiscalData?.invoice_footer_text && (
                     <View style={styles.previewFooter}>
                       <Text style={styles.previewFooterText}>{fiscalData.invoice_footer_text}</Text>
@@ -797,7 +934,7 @@ export default function FacturacionScreen() {
         </Pressable>
       </Modal>
 
-      {/* Fiscal Data Modal - Due to length, I'll create a simplified version */}
+      {/* Fiscal Data Modal */}
       <Modal
         visible={showFiscalDataModal}
         transparent
@@ -1144,7 +1281,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
-  downloadButton: {
+  invoiceActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  previewButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1155,10 +1297,40 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.primary + '30',
   },
-  downloadButtonText: {
+  previewButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
+  },
+  sendEmailButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  sendEmailButtonDisabled: {
+    backgroundColor: colors.cardBorder,
+    opacity: 0.5,
+  },
+  sendEmailButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  downloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: colors.primary + '10',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
   },
   configCard: {
     backgroundColor: colors.cardBackground,
@@ -1335,27 +1507,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
-  },
-  invoiceActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  previewButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.primary + '10',
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-  },
-  previewButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
   },
   testEmailSection: {
     backgroundColor: colors.cardBackground,
