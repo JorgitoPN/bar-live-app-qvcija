@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,13 @@ import { useFavorites } from '../../contexts/FavoritesContext';
 import { calcularDistancia } from '../../utils/locationUtils';
 import ParsedText from '../../components/social/ParsedText';
 import ReviewsModal from '../../components/social/ReviewsModal';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -312,6 +319,11 @@ export default function DetalleLocalScreen() {
 
   const [showReviewsModal, setShowReviewsModal] = useState(false);
 
+  // Gesture handling for swipe-to-close
+  const scrollViewRef = useRef<ScrollView>(null);
+  const translateY = useSharedValue(0);
+  const isAtTop = useSharedValue(true);
+
   useEffect(() => {
     (async () => {
       try {
@@ -535,7 +547,39 @@ export default function DetalleLocalScreen() {
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     setScrollY(offsetY);
+    isAtTop.value = offsetY <= 0;
   };
+
+  const dismissModal = () => {
+    router.back();
+  };
+
+  // Pan gesture for swipe-to-close when at top
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      // Only allow downward swipe when at the top
+      if (isAtTop.value && event.translationY > 0) {
+        translateY.value = event.translationY;
+      }
+    })
+    .onEnd((event) => {
+      // If swiped down more than 150px or velocity is high, dismiss
+      if (translateY.value > 150 || event.velocityY > 1000) {
+        runOnJS(dismissModal)();
+      } else {
+        // Spring back to original position
+        translateY.value = withSpring(0, {
+          damping: 20,
+          stiffness: 300,
+        });
+      }
+    });
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: translateY.value }],
+    };
+  });
 
   if (loading) {
     return (
@@ -676,22 +720,21 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
-  // Only allow scroll when not at the top to enable swipe-to-close
-  const scrollEnabled = scrollY > 0;
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      <ScrollView 
-        style={styles.scrollView} 
-        contentContainerStyle={styles.contentContainer} 
-        showsVerticalScrollIndicator={false} 
-        bounces={true}
-        scrollEnabled={scrollEnabled}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.animatedContainer, animatedStyle]}>
+          <ScrollView 
+            ref={scrollViewRef}
+            style={styles.scrollView} 
+            contentContainerStyle={styles.contentContainer} 
+            showsVerticalScrollIndicator={false} 
+            bounces={true}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          >
         {/* Cover image with buttons and badges inside ScrollView */}
         {allImages.length > 0 && (
           <View style={styles.coverContainer}>
@@ -747,7 +790,7 @@ export default function DetalleLocalScreen() {
               </BlurView>
             </View>
 
-            {/* Destacado badge */}
+            {/* Destacado badge - Fixed at bottom-left of cover image */}
             {local.destacado && (
               <View style={styles.destacadoBadge}>
                 <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
@@ -1124,7 +1167,9 @@ export default function DetalleLocalScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
+          </ScrollView>
+        </Animated.View>
+      </GestureDetector>
 
       {galleryVisible && <ImageGalleryModal visible={galleryVisible} images={allImages} initialIndex={galleryInitialIndex} onClose={() => setGalleryVisible(false)} />}
 
@@ -1146,6 +1191,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  animatedContainer: {
+    flex: 1,
   },
   closeButton: {
     position: 'absolute',
@@ -1303,10 +1351,16 @@ const styles = StyleSheet.create({
   },
   destacadoBadge: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 110 : 98,
-    left: 70,
+    bottom: 16,
+    left: 16,
     borderRadius: 20,
     overflow: 'hidden',
+    zIndex: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
   },
   destacadoBlur: {
     flexDirection: 'row',
@@ -1322,17 +1376,18 @@ const styles = StyleSheet.create({
   },
   favoritoButton: {
     position: 'absolute',
-    bottom: 12,
-    right: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    bottom: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     overflow: 'hidden',
+    zIndex: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
   },
   favoritoBlur: {
     width: '100%',
