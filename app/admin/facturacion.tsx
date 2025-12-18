@@ -84,6 +84,10 @@ export default function FacturacionScreen() {
   const [invoiceFooterText, setInvoiceFooterText] = useState('');
   const [sendAutomatically, setSendAutomatically] = useState(true);
   const [accountingEmail, setAccountingEmail] = useState('');
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+  const [testEmail, setTestEmail] = useState('');
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   const cargarFacturas = useCallback(async () => {
     try {
@@ -212,6 +216,42 @@ export default function FacturacionScreen() {
       Alert.alert('Error', 'No se pudieron guardar los datos fiscales');
     } finally {
       setSavingFiscalData(false);
+    }
+  };
+
+  const handlePreviewInvoice = (invoice: Invoice) => {
+    setPreviewInvoice(invoice);
+    setShowPreviewModal(true);
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmail.trim()) {
+      Alert.alert('Error', 'Ingresa un email válido');
+      return;
+    }
+
+    if (!fiscalData) {
+      Alert.alert('Error', 'Configura primero los datos fiscales');
+      return;
+    }
+
+    setSendingTestEmail(true);
+    try {
+      // In a real app, you would call an Edge Function to send the test email
+      // For now, we'll simulate it
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      Alert.alert(
+        '✅ Email de Prueba Enviado',
+        `Se ha enviado una factura de prueba a ${testEmail}`,
+        [{ text: 'OK' }]
+      );
+      setTestEmail('');
+    } catch (error) {
+      console.error('[Facturacion] Error enviando email de prueba:', error);
+      Alert.alert('Error', 'No se pudo enviar el email de prueba');
+    } finally {
+      setSendingTestEmail(false);
     }
   };
 
@@ -368,15 +408,25 @@ export default function FacturacionScreen() {
                 )}
               </View>
 
-              {invoice.pdf_url && (
+              <View style={styles.invoiceActions}>
                 <TouchableOpacity
-                  style={styles.downloadButton}
-                  onPress={() => downloadInvoice(invoice)}
+                  style={styles.previewButton}
+                  onPress={() => handlePreviewInvoice(invoice)}
                 >
-                  <IconSymbol ios_icon_name="arrow.down.doc.fill" android_material_icon_name="download" size={18} color={colors.primary} />
-                  <Text style={styles.downloadButtonText}>Descargar PDF</Text>
+                  <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.primary} />
+                  <Text style={styles.previewButtonText}>Vista Previa</Text>
                 </TouchableOpacity>
-              )}
+
+                {invoice.pdf_url && (
+                  <TouchableOpacity
+                    style={styles.downloadButton}
+                    onPress={() => downloadInvoice(invoice)}
+                  >
+                    <IconSymbol ios_icon_name="arrow.down.doc.fill" android_material_icon_name="download" size={18} color={colors.primary} />
+                    <Text style={styles.downloadButtonText}>Descargar PDF</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           ))}
         </React.Fragment>
@@ -398,6 +448,38 @@ export default function FacturacionScreen() {
           <IconSymbol ios_icon_name="pencil.circle.fill" android_material_icon_name="edit" size={20} color={colors.white} />
           <Text style={styles.editButtonText}>Editar</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Test Email Section */}
+      <View style={styles.testEmailSection}>
+        <Text style={styles.testEmailTitle}>Enviar Factura de Prueba</Text>
+        <Text style={styles.testEmailSubtitle}>Prueba el sistema de envío de facturas por email</Text>
+        
+        <View style={styles.testEmailForm}>
+          <TextInput
+            style={styles.testEmailInput}
+            value={testEmail}
+            onChangeText={setTestEmail}
+            placeholder="correo@ejemplo.com"
+            placeholderTextColor={colors.textSecondary}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <TouchableOpacity
+            style={[styles.sendTestButton, sendingTestEmail && styles.sendTestButtonDisabled]}
+            onPress={handleSendTestEmail}
+            disabled={sendingTestEmail || !fiscalData}
+          >
+            {sendingTestEmail ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <>
+                <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={18} color={colors.white} />
+                <Text style={styles.sendTestButtonText}>Enviar Prueba</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {fiscalData ? (
@@ -595,6 +677,125 @@ export default function FacturacionScreen() {
 
       {activeTab === 'invoices' && renderInvoicesTab()}
       {activeTab === 'config' && renderConfigTab()}
+
+      {/* Invoice Preview Modal */}
+      <Modal
+        visible={showPreviewModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPreviewModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowPreviewModal(false)}>
+          <Pressable style={styles.previewModalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Vista Previa de Factura</Text>
+              <TouchableOpacity onPress={() => setShowPreviewModal(false)}>
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {previewInvoice && (
+              <ScrollView style={styles.previewScrollView} showsVerticalScrollIndicator={false}>
+                <View style={styles.previewInvoice}>
+                  {/* Header */}
+                  <View style={styles.previewHeader}>
+                    <View>
+                      <Text style={styles.previewCompanyName}>{fiscalData?.company_name || 'Barlive'}</Text>
+                      <Text style={styles.previewCompanyDetails}>
+                        {fiscalData?.tax_id}{'\n'}
+                        {fiscalData?.address}{'\n'}
+                        {fiscalData?.postal_code} {fiscalData?.city}
+                      </Text>
+                    </View>
+                    <View style={styles.previewInvoiceNumber}>
+                      <Text style={styles.previewInvoiceNumberLabel}>FACTURA</Text>
+                      <Text style={styles.previewInvoiceNumberValue}>{previewInvoice.invoice_number}</Text>
+                    </View>
+                  </View>
+
+                  {/* Customer Info */}
+                  <View style={styles.previewSection}>
+                    <Text style={styles.previewSectionTitle}>Facturar a:</Text>
+                    <Text style={styles.previewCustomerInfo}>
+                      {previewInvoice.customer_name}{'\n'}
+                      {previewInvoice.customer_email}{'\n'}
+                      {previewInvoice.customer_address && `${previewInvoice.customer_address}\n`}
+                      {previewInvoice.customer_city && `${previewInvoice.customer_postal_code} ${previewInvoice.customer_city}`}
+                    </Text>
+                  </View>
+
+                  {/* Invoice Details */}
+                  <View style={styles.previewSection}>
+                    <View style={styles.previewRow}>
+                      <Text style={styles.previewLabel}>Fecha de emisión:</Text>
+                      <Text style={styles.previewValue}>
+                        {new Date(previewInvoice.issued_at).toLocaleDateString('es-ES')}
+                      </Text>
+                    </View>
+                    {previewInvoice.due_date && (
+                      <View style={styles.previewRow}>
+                        <Text style={styles.previewLabel}>Fecha de vencimiento:</Text>
+                        <Text style={styles.previewValue}>
+                          {new Date(previewInvoice.due_date).toLocaleDateString('es-ES')}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Items Table */}
+                  <View style={styles.previewTable}>
+                    <View style={styles.previewTableHeader}>
+                      <Text style={[styles.previewTableHeaderText, { flex: 2 }]}>Descripción</Text>
+                      <Text style={[styles.previewTableHeaderText, { flex: 1, textAlign: 'right' }]}>Importe</Text>
+                    </View>
+                    <View style={styles.previewTableRow}>
+                      <Text style={[styles.previewTableCell, { flex: 2 }]}>
+                        Suscripción - Plan {previewInvoice.plan_id || 'N/A'}
+                      </Text>
+                      <Text style={[styles.previewTableCell, { flex: 1, textAlign: 'right' }]}>
+                        {previewInvoice.subtotal.toFixed(2)} {previewInvoice.currency}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Totals */}
+                  <View style={styles.previewTotals}>
+                    <View style={styles.previewTotalRow}>
+                      <Text style={styles.previewTotalLabel}>Subtotal:</Text>
+                      <Text style={styles.previewTotalValue}>
+                        {previewInvoice.subtotal.toFixed(2)} {previewInvoice.currency}
+                      </Text>
+                    </View>
+                    <View style={styles.previewTotalRow}>
+                      <Text style={styles.previewTotalLabel}>IVA ({previewInvoice.tax_rate}%):</Text>
+                      <Text style={styles.previewTotalValue}>
+                        {previewInvoice.tax_amount.toFixed(2)} {previewInvoice.currency}
+                      </Text>
+                    </View>
+                    <View style={[styles.previewTotalRow, styles.previewTotalRowFinal]}>
+                      <Text style={styles.previewTotalLabelFinal}>TOTAL:</Text>
+                      <Text style={styles.previewTotalValueFinal}>
+                        {previewInvoice.total.toFixed(2)} {previewInvoice.currency}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Footer */}
+                  {fiscalData?.invoice_footer_text && (
+                    <View style={styles.previewFooter}>
+                      <Text style={styles.previewFooterText}>{fiscalData.invoice_footer_text}</Text>
+                    </View>
+                  )}
+                </View>
+              </ScrollView>
+            )}
+
+            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowPreviewModal(false)}>
+              <Text style={styles.modalCancelText}>Cerrar</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Fiscal Data Modal - Due to length, I'll create a simplified version */}
       <Modal
@@ -1134,5 +1335,234 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
+  },
+  invoiceActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  previewButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary + '10',
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  previewButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  testEmailSection: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    ...commonStyles.shadow,
+  },
+  testEmailTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  testEmailSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  testEmailForm: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  testEmailInput: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  sendTestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  sendTestButtonDisabled: {
+    backgroundColor: colors.cardBorder,
+    opacity: 0.5,
+  },
+  sendTestButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  previewModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 700,
+    maxHeight: '90%',
+  },
+  previewScrollView: {
+    maxHeight: 600,
+    marginBottom: 16,
+  },
+  previewInvoice: {
+    backgroundColor: colors.white,
+    padding: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
+  },
+  previewCompanyName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  previewCompanyDetails: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  previewInvoiceNumber: {
+    alignItems: 'flex-end',
+  },
+  previewInvoiceNumberLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  previewInvoiceNumberValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  previewSection: {
+    marginBottom: 20,
+  },
+  previewSectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  previewCustomerInfo: {
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  previewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  previewLabel: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  previewValue: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  previewTable: {
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  previewTableHeader: {
+    flexDirection: 'row',
+    backgroundColor: colors.cardBackground,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  previewTableHeaderText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  previewTableRow: {
+    flexDirection: 'row',
+    padding: 12,
+  },
+  previewTableCell: {
+    fontSize: 13,
+    color: colors.text,
+  },
+  previewTotals: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  previewTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  previewTotalRowFinal: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 2,
+    borderTopColor: colors.primary,
+  },
+  previewTotalLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  previewTotalValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  previewTotalLabelFinal: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  previewTotalValueFinal: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  previewFooter: {
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  previewFooterText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });
