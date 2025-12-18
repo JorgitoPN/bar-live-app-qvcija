@@ -18,13 +18,15 @@ import { useFavorites } from '../../contexts/FavoritesContext';
 import { calcularDistancia } from '../../utils/locationUtils';
 import ParsedText from '../../components/social/ParsedText';
 import ReviewsModal from '../../components/social/ReviewsModal';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
   withSpring, 
   runOnJS,
-  useAnimatedScrollHandler
+  useAnimatedScrollHandler,
+  interpolate,
+  Extrapolate
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -286,9 +288,10 @@ const formatOpeningHours = (hours: string[]): string => {
  * A standard modal that:
  * - Opens as an overlay (not full-screen)
  * - Shows the previous page behind it
- * - Can be closed by swiping down from anywhere in the content
+ * - Can be closed by swiping down from anywhere when at the top of the scroll
  * - Can be closed by tapping the X button
  * - Rating badge is in the top-right corner above the share button
+ * - All UI elements elevated to the top except the heart icon
  */
 
 export default function DetalleLocalScreen() {
@@ -316,15 +319,13 @@ export default function DetalleLocalScreen() {
 
   const [showReviewsModal, setShowReviewsModal] = useState(false);
 
-  // Swipe-to-close gesture
+  // Swipe-to-close gesture - works from anywhere when at the top
   const translateY = useSharedValue(0);
   const scrollY = useSharedValue(0);
-  const isAtTop = useSharedValue(true);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollY.value = event.contentOffset.y;
-      isAtTop.value = event.contentOffset.y <= 0;
     },
   });
 
@@ -334,21 +335,32 @@ export default function DetalleLocalScreen() {
 
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
-      if (isAtTop.value && event.translationY > 0) {
+      // Allow swipe down only when at the top of the scroll
+      if (scrollY.value <= 0 && event.translationY > 0) {
         translateY.value = event.translationY;
       }
     })
     .onEnd((event) => {
-      if (event.translationY > 100 || event.velocityY > 500) {
+      // Close if swiped down more than 150px or with sufficient velocity
+      if ((scrollY.value <= 0 && event.translationY > 150) || event.velocityY > 800) {
         runOnJS(closeModal)();
       } else {
-        translateY.value = withSpring(0);
+        translateY.value = withSpring(0, {
+          damping: 20,
+          stiffness: 300,
+        });
       }
     });
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateY: translateY.value }],
+      opacity: interpolate(
+        translateY.value,
+        [0, SCREEN_HEIGHT * 0.3],
+        [1, 0.5],
+        Extrapolate.CLAMP
+      ),
     };
   });
 
@@ -726,7 +738,7 @@ export default function DetalleLocalScreen() {
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       <StatusBar barStyle="light-content" />
       
       {/* Backdrop */}
@@ -739,7 +751,7 @@ export default function DetalleLocalScreen() {
       {/* Modal content with swipe gesture */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.modalContent, animatedStyle]}>
-          {/* Header with close button */}
+          {/* Header with close button, rating, and share - ALL AT THE TOP */}
           <View style={styles.header}>
             <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
               <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
@@ -802,6 +814,7 @@ export default function DetalleLocalScreen() {
                   </ScrollView>
                 </TouchableOpacity>
 
+                {/* Status badge - elevated to top */}
                 <View style={styles.statusBadge}>
                   <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
                     <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
@@ -814,6 +827,7 @@ export default function DetalleLocalScreen() {
                   </BlurView>
                 </View>
 
+                {/* Destacado badge - elevated to top */}
                 {local.destacado && (
                   <View style={styles.destacadoBadge}>
                     <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
@@ -823,6 +837,7 @@ export default function DetalleLocalScreen() {
                   </View>
                 )}
             
+                {/* Heart icon - stays at bottom right */}
                 <TouchableOpacity
                   style={styles.favoritoButton}
                   onPress={handleToggleFavorito}
@@ -1287,7 +1302,7 @@ export default function DetalleLocalScreen() {
           }}
         />
       )}
-    </View>
+    </GestureHandlerRootView>
   );
 }
 

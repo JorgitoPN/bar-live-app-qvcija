@@ -7,7 +7,7 @@ import { Stack } from 'expo-router';
  * Configured to show as an overlay modal:
  * - Opens from the bottom with slide animation
  * - Shows the previous page behind it (transparent background)
- * - Can be closed by swiping down from anywhere
+ * - Can be closed by swiping down from anywhere when at the top
  * - Standard modal behavior
  */
 export default function DetalleLayout() {
