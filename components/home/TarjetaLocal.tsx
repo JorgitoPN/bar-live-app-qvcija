@@ -25,6 +25,13 @@ interface TarjetaLocalProps {
   onVisible?: () => void;
 }
 
+interface CheckedInUser {
+  id: string;
+  nombre: string;
+  username: string | null;
+  avatar: string | null;
+}
+
 export default function TarjetaLocal({ local, destacado, userLocation, onVisible }: TarjetaLocalProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -32,6 +39,8 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   const [hasPreloaded, setHasPreloaded] = useState(false);
   const [hasSocialProfile, setHasSocialProfile] = useState(false);
   const [checkingSocialProfile, setCheckingSocialProfile] = useState(true);
+  const [isUserHere, setIsUserHere] = useState(false);
+  const [followedUsersHere, setFollowedUsersHere] = useState<CheckedInUser[]>([]);
   
   const { evento: activeEvent } = useLocalEvent(local.id);
 
@@ -83,6 +92,95 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
     checkSocialProfile();
   }, [local.id]);
+
+  // Load check-in information
+  useEffect(() => {
+    const loadCheckInInfo = async () => {
+      if (!local.id || !user) return;
+
+      try {
+        // Check if current user is here
+        const { data: userCheckIn } = await supabase
+          .from('check_ins')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .eq('local_id', local.id)
+          .single();
+
+        setIsUserHere(!!userCheckIn);
+
+        // Get followed users who are here
+        const { data: checkIns, error } = await supabase
+          .from('check_ins')
+          .select(`
+            usuario_id,
+            visibility,
+            specific_user_ids,
+            usuarios!check_ins_usuario_id_fkey(id, nombre, username, avatar)
+          `)
+          .eq('local_id', local.id)
+          .neq('usuario_id', user.id);
+
+        if (error) throw error;
+
+        const visibleUsers: CheckedInUser[] = [];
+
+        for (const checkIn of (checkIns || [])) {
+          const checkInUser = checkIn.usuarios;
+          if (!checkInUser) continue;
+
+          // Check visibility
+          if (checkIn.visibility === 'all_users') {
+            visibleUsers.push(checkInUser);
+          } else if (checkIn.visibility === 'followers') {
+            // Check if current user follows this user
+            const { data: followData } = await supabase
+              .from('seguidores')
+              .select('id')
+              .eq('seguidor_id', user.id)
+              .eq('seguido_id', checkInUser.id)
+              .single();
+
+            if (followData) {
+              visibleUsers.push(checkInUser);
+            }
+          } else if (checkIn.visibility === 'specific_users') {
+            if (checkIn.specific_user_ids?.includes(user.id)) {
+              visibleUsers.push(checkInUser);
+            }
+          }
+        }
+
+        setFollowedUsersHere(visibleUsers);
+      } catch (error) {
+        console.error('[TarjetaLocal] Error loading check-in info:', error);
+      }
+    };
+
+    loadCheckInInfo();
+
+    // Subscribe to check-in changes
+    const checkInsChannel = supabase
+      .channel(`local-check-ins-${local.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'check_ins',
+          filter: `local_id=eq.${local.id}`,
+        },
+        () => {
+          console.log('[TarjetaLocal] Check-ins changed, reloading...');
+          loadCheckInInfo();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(checkInsChannel);
+    };
+  }, [local.id, user]);
 
   const handlePress = () => {
     trackProfileView(local.id, user?.id, 'explore');
@@ -290,6 +388,26 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
             {local.nombre}
           </Text>
         </View>
+
+        {/* Check-in indicators */}
+        {(isUserHere || followedUsersHere.length > 0) && (
+          <View style={styles.checkInIndicators}>
+            {isUserHere && (
+              <View style={styles.userHereBadge}>
+                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={14} color="#10B981" />
+                <Text style={styles.userHereText}>Tú estás aquí</Text>
+              </View>
+            )}
+            {followedUsersHere.length > 0 && (
+              <View style={styles.friendsHereBadge}>
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={14} color={colors.primary} />
+                <Text style={styles.friendsHereText}>
+                  {followedUsersHere.length} {followedUsersHere.length === 1 ? 'amigo está' : 'amigos están'} aquí
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
         <View style={styles.infoRow}>
           <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
@@ -629,5 +747,43 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
+  },
+  checkInIndicators: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  userHereBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#10B981' + '20',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#10B981' + '40',
+  },
+  userHereText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  friendsHereBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '40',
+  },
+  friendsHereText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
   },
 });

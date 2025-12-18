@@ -106,8 +106,62 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     setSubmitting(true);
 
     try {
+      console.log('[CheckInModal] Checking for existing check-in...');
+
+      // Check if user is already checked in to another local
+      const { data: existingCheckIn, error: checkError } = await supabase
+        .from('check_ins')
+        .select(`
+          id,
+          local_id,
+          locales!check_ins_local_id_fkey(nombre)
+        `)
+        .eq('usuario_id', user.id)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      // If user is checked in to a different local, show confirmation
+      if (existingCheckIn && existingCheckIn.local_id !== localId) {
+        const previousLocalName = existingCheckIn.locales?.nombre || 'otro local';
+        
+        setSubmitting(false);
+        
+        Alert.alert(
+          'Cambio de Local',
+          `Estás intentando registrarte en otro local. Para confirmar, aceptarás salir de "${previousLocalName}", ya que no es posible estar en dos locales a la vez.`,
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            {
+              text: 'Confirmar',
+              onPress: async () => {
+                setSubmitting(true);
+                await performCheckIn();
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      // No existing check-in or same local, proceed
+      await performCheckIn();
+    } catch (error) {
+      console.error('[CheckInModal] Error creating check-in:', error);
+      Alert.alert('Error', 'No se pudo realizar el check-in');
+      setSubmitting(false);
+    }
+  };
+
+  const performCheckIn = async () => {
+    if (!user) return;
+
+    try {
       console.log('[CheckInModal] Creating check-in...');
 
+      // Delete any existing check-ins for this user
       const { error: deleteError } = await supabase
         .from('check_ins')
         .delete()
@@ -115,6 +169,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
       if (deleteError) throw deleteError;
 
+      // Create new check-in
       const { error: insertError } = await supabase
         .from('check_ins')
         .insert({

@@ -66,6 +66,7 @@ export default function MapaScreen() {
   const [todosLosLocales, setTodosLosLocales] = useState<LocalWithEvent[]>([]);
   const [localesFiltrados, setLocalesFiltrados] = useState<LocalWithEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [mapHTML, setMapHTML] = useState<string>('');
 
   useEffect(() => {
     (async () => {
@@ -233,6 +234,18 @@ export default function MapaScreen() {
     cargarTodosLosLocalesEnriquecidos();
   }, [cargarTodosLosLocalesEnriquecidos]);
 
+  // Generate map HTML when locals or user changes
+  useEffect(() => {
+    const generateHTML = async () => {
+      const html = await generateMapHTML();
+      setMapHTML(html);
+    };
+    
+    if (localesFiltrados.length > 0) {
+      generateHTML();
+    }
+  }, [localesFiltrados, user]);
+
   useEffect(() => {
     console.log('[MAP] 🔍 ========================================');
     console.log('[MAP] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
@@ -337,9 +350,59 @@ export default function MapaScreen() {
     }
   };
 
-  const generateMapHTML = () => {
+  const generateMapHTML = async () => {
     const centerLat = userLocation?.lat || 40.4168;
     const centerLng = userLocation?.lng || -3.7038;
+
+    // Load check-in data for all locals
+    const checkInsByLocal = new Map<string, { isUserHere: boolean; friendsCount: number }>();
+    
+    if (user) {
+      try {
+        // Get user's own check-in
+        const { data: userCheckIn } = await supabase
+          .from('check_ins')
+          .select('local_id')
+          .eq('usuario_id', user.id)
+          .single();
+
+        if (userCheckIn) {
+          checkInsByLocal.set(userCheckIn.local_id, { isUserHere: true, friendsCount: 0 });
+        }
+
+        // Get followed users
+        const { data: following } = await supabase
+          .from('seguidores')
+          .select('seguido_id')
+          .eq('seguidor_id', user.id);
+
+        const followedUserIds = following?.map(f => f.seguido_id) || [];
+
+        if (followedUserIds.length > 0) {
+          // Get check-ins from followed users
+          const { data: friendCheckIns } = await supabase
+            .from('check_ins')
+            .select('local_id, usuario_id, visibility, specific_user_ids')
+            .in('usuario_id', followedUserIds);
+
+          // Count visible friends per local
+          (friendCheckIns || []).forEach(checkIn => {
+            const isVisible = 
+              checkIn.visibility === 'all_users' ||
+              checkIn.visibility === 'followers' ||
+              (checkIn.visibility === 'specific_users' && checkIn.specific_user_ids?.includes(user.id));
+
+            if (isVisible) {
+              const existing = checkInsByLocal.get(checkIn.local_id) || { isUserHere: false, friendsCount: 0 };
+              existing.friendsCount += 1;
+              checkInsByLocal.set(checkIn.local_id, existing);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('[Mapa] Error loading check-ins:', error);
+      }
+    }
 
     const markersData = localesFiltrados.map(local => {
       const estadoCompleto = getEstadoLocal(local);
@@ -383,6 +446,8 @@ export default function MapaScreen() {
           local.coordenadas.lng
         );
       }
+
+      const checkInInfo = checkInsByLocal.get(local.id) || { isUserHere: false, friendsCount: 0 };
       
       return {
         id: local.id,
@@ -404,6 +469,8 @@ export default function MapaScreen() {
         eventTitulo: local.evento?.titulo || '',
         eventImagen: local.evento?.imagen_url || '',
         isPremium: local.plan === 'premium',
+        isUserHere: checkInInfo.isUserHere,
+        friendsHereCount: checkInInfo.friendsCount,
       };
     });
 
@@ -851,6 +918,22 @@ export default function MapaScreen() {
           categoriasHtml += '</div>';
         }
         
+        var checkInBadgesHtml = '';
+        if (data.isUserHere || data.friendsHereCount > 0) {
+          checkInBadgesHtml = '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">';
+          if (data.isUserHere) {
+            checkInBadgesHtml += '<span style="background-color: rgba(16, 185, 129, 0.2); color: #10B981; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(16, 185, 129, 0.4);">' +
+              '📍 Tú estás aquí' +
+            '</span>';
+          }
+          if (data.friendsHereCount > 0) {
+            checkInBadgesHtml += '<span style="background-color: rgba(20, 184, 166, 0.2); color: #14B8A6; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(20, 184, 166, 0.4);">' +
+              '👥 ' + data.friendsHereCount + ' ' + (data.friendsHereCount === 1 ? 'amigo' : 'amigos') +
+            '</span>';
+          }
+          checkInBadgesHtml += '</div>';
+        }
+
         var popupContent = '<div class="popup-content">' +
           '<div class="popup-image-container">' +
             '<img src="' + data.imagen + '" class="' + imageClass + '" onerror="this.src=\\'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400\\'" />' +
@@ -861,6 +944,7 @@ export default function MapaScreen() {
             eventBannerHtml +
             '<div class="popup-title">' + data.nombre + '</div>' +
             categoriasHtml +
+            checkInBadgesHtml +
             '<span class="popup-estado estado-' + data.estado + '">' + estadoText + '</span>' +
             '<div class="popup-rating">⭐ ' + data.rating.toFixed(1) + ' • ' + data.distancia.toFixed(1) + ' km</div>' +
             '<a href="#" class="popup-button" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: \\'navigate\\', id: \\'' + data.id + '\\'})); return false;">' +
@@ -939,10 +1023,10 @@ export default function MapaScreen() {
               Por favor, usa la aplicación móvil para ver el mapa.
             </Text>
           </View>
-        ) : (
+        ) : mapHTML ? (
           <WebView
             ref={webViewRef}
-            source={{ html: generateMapHTML() }}
+            source={{ html: mapHTML }}
             style={styles.webview}
             onMessage={handleWebViewMessage}
             javaScriptEnabled={true}
@@ -952,6 +1036,11 @@ export default function MapaScreen() {
               console.error('WebView error: ', nativeEvent);
             }}
           />
+        ) : (
+          <View style={styles.webNotSupported}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.webNotSupportedText}>Cargando mapa...</Text>
+          </View>
         )}
       </View>
 

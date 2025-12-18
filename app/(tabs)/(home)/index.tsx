@@ -147,9 +147,7 @@ export default function HomeScreen() {
         .from('locales')
         .select('*')
         .eq('activo', true)
-        .order('destacado', { ascending: false })
-        .order('rating', { ascending: false })
-        .limit(50);
+        .limit(200);
 
       // Aplicar filtros
       if (filtros.tipo !== 'todos') {
@@ -194,12 +192,59 @@ export default function HomeScreen() {
           return local;
         });
 
-        // Ordenar por distancia si está disponible
-        localesConDistancia.sort((a, b) => {
-          if (a.distancia && b.distancia) {
-            return a.distancia - b.distancia;
+        // ✅ FEATURED LOCALS SORTING LOGIC
+        // Separate featured and non-featured locals
+        const destacados = localesConDistancia.filter(l => l.destacado);
+        const noDestacados = localesConDistancia.filter(l => !l.destacado);
+
+        // Sort featured locals by distance
+        const destacadosCerca = destacados.filter(l => l.distancia && l.distancia <= 20);
+        const destacadosLejos = destacados.filter(l => !l.distancia || l.distancia > 20);
+
+        // Featured locals ≤ 20km: sort by relevance (rating, popularity)
+        destacadosCerca.sort((a, b) => {
+          const ratingA = a.rating || a.google_rating || 0;
+          const ratingB = b.rating || b.google_rating || 0;
+          const popularidadA = a.popularidad || 0;
+          const popularidadB = b.popularidad || 0;
+          
+          // First by rating, then by popularity
+          if (ratingB !== ratingA) {
+            return ratingB - ratingA;
           }
-          return 0;
+          return popularidadB - popularidadA;
+        });
+
+        // Featured locals > 20km: sort by distance (closest first)
+        destacadosLejos.sort((a, b) => {
+          const distA = a.distancia || 999;
+          const distB = b.distancia || 999;
+          return distA - distB;
+        });
+
+        // Sort non-featured locals by distance
+        noDestacados.sort((a, b) => {
+          const distA = a.distancia || 999;
+          const distB = b.distancia || 999;
+          return distA - distB;
+        });
+
+        // Combine: featured close, featured far, then non-featured
+        localesConDistancia = [...destacadosCerca, ...destacadosLejos, ...noDestacados];
+
+        console.log('[Home] ✅ Featured sorting applied:');
+        console.log('  - Featured ≤20km:', destacadosCerca.length);
+        console.log('  - Featured >20km:', destacadosLejos.length);
+        console.log('  - Non-featured:', noDestacados.length);
+      } else {
+        // No user location, just sort by destacado and rating
+        localesConDistancia.sort((a, b) => {
+          if (a.destacado !== b.destacado) {
+            return a.destacado ? -1 : 1;
+          }
+          const ratingA = a.rating || a.google_rating || 0;
+          const ratingB = b.rating || b.google_rating || 0;
+          return ratingB - ratingA;
         });
       }
 

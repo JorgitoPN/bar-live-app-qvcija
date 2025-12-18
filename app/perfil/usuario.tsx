@@ -490,6 +490,37 @@ export default function UsuarioPerfilScreen() {
     }
   };
 
+  const handleExitLocal = async () => {
+    if (!currentUser || !currentLocal) return;
+
+    Alert.alert(
+      'Salir del local',
+      `¿Quieres indicar que ya no estás en ${currentLocal.nombre}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Confirmar',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('check_ins')
+                .delete()
+                .eq('usuario_id', currentUser.id);
+
+              if (error) throw error;
+
+              setCurrentLocal(null);
+              Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
+            } catch (error) {
+              console.error('[UsuarioPerfil] Error exiting local:', error);
+              Alert.alert('Error', 'No se pudo realizar el check-out');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -565,16 +596,27 @@ export default function UsuarioPerfilScreen() {
           )}
 
           {currentLocal && (
-            <TouchableOpacity style={styles.currentLocalCard} onPress={handleViewLocal}>
-              <View style={styles.currentLocalContent}>
-                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={20} color="#10B981" />
-                <View style={styles.currentLocalInfo}>
-                  <Text style={styles.currentLocalLabel}>Está en:</Text>
-                  <Text style={styles.currentLocalName}>{currentLocal.nombre}</Text>
+            <View style={styles.currentLocalContainer}>
+              <TouchableOpacity style={styles.currentLocalCard} onPress={handleViewLocal}>
+                <View style={styles.currentLocalContent}>
+                  <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={20} color="#10B981" />
+                  <View style={styles.currentLocalInfo}>
+                    <Text style={styles.currentLocalLabel}>
+                      {isOwnProfile ? 'Estás en:' : 'Está en:'}
+                    </Text>
+                    <Text style={styles.currentLocalName}>{currentLocal.nombre}</Text>
+                  </View>
+                  <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.headerText} />
                 </View>
-                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.headerText} />
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+              
+              {isOwnProfile && (
+                <TouchableOpacity style={styles.exitLocalButton} onPress={handleExitLocal}>
+                  <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={18} color="#EF4444" />
+                  <Text style={styles.exitLocalButtonText}>Salir del local</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
 
           <View style={styles.statsContainer}>
@@ -724,13 +766,33 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 16,
   },
+  currentLocalContainer: {
+    marginBottom: 16,
+  },
   currentLocalCard: {
     backgroundColor: 'rgba(16, 185, 129, 0.2)',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.4)',
+  },
+  exitLocalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  exitLocalButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EF4444',
   },
   currentLocalContent: {
     flexDirection: 'row',
