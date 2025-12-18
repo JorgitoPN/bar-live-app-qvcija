@@ -158,7 +158,14 @@ export default function AdminIndexScreen() {
       route: '/admin/gestionar-eventos',
       description: 'Administra eventos y promociones',
     },
-    // ✅ RESTORED: Missing tabs
+    {
+      title: 'Locales Destacados',
+      icon: 'star.circle.fill' as const,
+      androidIcon: 'stars' as const,
+      color: '#F59E0B',
+      route: '/admin/gestionar-locales-destacados',
+      description: 'Gestiona locales destacados manualmente',
+    },
     {
       title: 'Importar Locales',
       icon: 'square.and.arrow.down.fill' as const,
