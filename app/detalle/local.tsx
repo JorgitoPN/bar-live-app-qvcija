@@ -24,6 +24,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   runOnJS,
+  useAnimatedScrollHandler,
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -280,14 +281,14 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL v19.0 - PROPER MODAL WITH SWIPE-DOWN GESTURE
+ * ✅ DETALLE LOCAL v20.0 - FIXED SWIPE-DOWN GESTURE
  * 
- * Changes from v18.0:
- * - ✅ Proper modal overlay (shows previous screen behind)
- * - ✅ Swipe-down gesture works from anywhere on the modal
- * - ✅ Modal doesn't open full-screen (has top margin)
- * - ✅ Rounded top corners
- * - ✅ Prevents content scroll when at top and swiping down
+ * Changes from v19.0:
+ * - ✅ Fixed gesture conflict between scroll and pan
+ * - ✅ Swipe-down works from entire modal content
+ * - ✅ No blank space appears when swiping
+ * - ✅ Proper layer structure
+ * - ✅ Background page visible behind modal
  */
 
 export default function DetalleLocalScreen() {
@@ -295,7 +296,6 @@ export default function DetalleLocalScreen() {
   const router = useRouter();
   const { user, ensureValidSession } = useAuth();
   const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
-  const scrollViewRef = useRef<ScrollView>(null);
   
   const [local, setLocal] = useState<Local | null>(null);
   const [loading, setLoading] = useState(true);
@@ -311,7 +311,6 @@ export default function DetalleLocalScreen() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(false);
   const [expandedDescription, setExpandedDescription] = useState(false);
-  const [scrollOffset, setScrollOffset] = useState(0);
   
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
@@ -319,28 +318,38 @@ export default function DetalleLocalScreen() {
 
   // ✅ Gesture handling for swipe-down to close
   const translateY = useSharedValue(0);
-  const context = useSharedValue({ y: 0 });
+  const scrollY = useSharedValue(0);
+  const isAtTop = useSharedValue(true);
 
   const handleClose = () => {
     router.back();
   };
 
+  // ✅ Track scroll position
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+      isAtTop.value = event.contentOffset.y <= 0;
+    },
+  });
+
+  // ✅ Pan gesture that only works when at top of scroll
   const panGesture = Gesture.Pan()
-    .onStart(() => {
-      context.value = { y: translateY.value };
-    })
     .onUpdate((event) => {
       // Only allow downward swipes when at the top of the scroll
-      if (scrollOffset <= 0 && event.translationY > 0) {
-        translateY.value = context.value.y + event.translationY;
+      if (isAtTop.value && event.translationY > 0) {
+        translateY.value = event.translationY;
       }
     })
     .onEnd((event) => {
-      // Close modal if swiped down more than 100px or with sufficient velocity
-      if (translateY.value > 100 || event.velocityY > 500) {
+      // Close modal if swiped down more than 150px or with sufficient velocity
+      if (translateY.value > 150 || event.velocityY > 800) {
         runOnJS(handleClose)();
       } else {
-        translateY.value = withSpring(0);
+        translateY.value = withSpring(0, {
+          damping: 20,
+          stiffness: 300,
+        });
       }
     });
 
@@ -764,22 +773,16 @@ export default function DetalleLocalScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {/* ✅ Overlay background */}
-      <View style={styles.overlay} />
-      
       {/* ✅ Modal content with gesture handling */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.modalContent, animatedStyle]}>
-          <ScrollView 
-            ref={scrollViewRef}
+          <Animated.ScrollView 
             style={styles.scrollView} 
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
             bounces={true}
             scrollEventThrottle={16}
-            onScroll={(event) => {
-              setScrollOffset(event.nativeEvent.contentOffset.y);
-            }}
+            onScroll={scrollHandler}
           >
             {/* Cover image with close button overlay */}
             {allImages.length > 0 && (
@@ -1296,7 +1299,7 @@ export default function DetalleLocalScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </ScrollView>
+          </Animated.ScrollView>
         </Animated.View>
       </GestureDetector>
 
@@ -1315,7 +1318,7 @@ export default function DetalleLocalScreen() {
           localId={params.id as string}
           onClose={() => setShowReviewsModal(false)}
           onReviewAdded={() => {
-            console.log('[DetalleLocal v19.0] ✅ Review added, reloading reviews');
+            console.log('[DetalleLocal v20.0] ✅ Review added, reloading reviews');
             cargarReviewsBarlive();
           }}
         />
@@ -1327,10 +1330,6 @@ export default function DetalleLocalScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
