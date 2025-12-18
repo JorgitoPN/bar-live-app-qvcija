@@ -57,6 +57,11 @@ Deno.serve(async (req: Request) => {
     console.log('[send-invoice-email] 🧪 Is test:', isTest);
     console.log('[send-invoice-email] 📝 Is manual:', isManual);
 
+    // Validate recipient email
+    if (!recipientEmail || !recipientEmail.includes('@')) {
+      throw new Error('Invalid recipient email address');
+    }
+
     let invoice: any;
     let fiscalData: any;
 
@@ -67,6 +72,7 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (fiscalError || !fiscalDataResult) {
+      console.error('[send-invoice-email] ❌ Fiscal data error:', fiscalError);
       throw new Error('Company fiscal data not configured');
     }
 
@@ -86,6 +92,7 @@ Deno.serve(async (req: Request) => {
         .single();
 
       if (invoiceError || !invoiceResult) {
+        console.error('[send-invoice-email] ❌ Invoice error:', invoiceError);
         throw new Error('Invoice not found');
       }
 
@@ -105,6 +112,9 @@ Deno.serve(async (req: Request) => {
       : `Factura ${invoice.invoice_number} - Barlive`;
 
     console.log('[send-invoice-email] 📤 Sending email via Resend...');
+    console.log('[send-invoice-email] 📧 From: Barlive <noreply@barlive.es>');
+    console.log('[send-invoice-email] 📧 To:', recipientEmail);
+    console.log('[send-invoice-email] 📧 Subject:', emailSubject);
 
     // Send email via Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -115,7 +125,7 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         from: 'Barlive <noreply@barlive.es>',
-        to: recipientEmail,
+        to: [recipientEmail],
         subject: emailSubject,
         html: emailHtml,
       }),
@@ -127,7 +137,17 @@ Deno.serve(async (req: Request) => {
 
     if (!emailResponse.ok) {
       console.error('[send-invoice-email] ❌ Resend error:', responseText);
-      throw new Error(`Failed to send email: ${responseText}`);
+      
+      // Parse error response
+      let errorMessage = 'Failed to send email';
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (e) {
+        errorMessage = responseText;
+      }
+      
+      throw new Error(`Resend API error (${emailResponse.status}): ${errorMessage}`);
     }
 
     const emailResult = JSON.parse(responseText);
@@ -164,7 +184,7 @@ Deno.serve(async (req: Request) => {
           },
           body: JSON.stringify({
             from: 'Barlive <noreply@barlive.es>',
-            to: fiscalData.accounting_email,
+            to: [fiscalData.accounting_email],
             subject: `[COPIA GESTORÍA] ${emailSubject}`,
             html: emailHtml,
           }),
@@ -173,7 +193,8 @@ Deno.serve(async (req: Request) => {
         if (accountingEmailResponse.ok) {
           console.log('[send-invoice-email] ✅ Copy sent to accounting email');
         } else {
-          console.error('[send-invoice-email] ⚠️ Failed to send copy to accounting email');
+          const errorText = await accountingEmailResponse.text();
+          console.error('[send-invoice-email] ⚠️ Failed to send copy to accounting email:', errorText);
         }
       } catch (error) {
         console.error('[send-invoice-email] ⚠️ Error sending copy to accounting:', error);
@@ -195,10 +216,13 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error: any) {
     console.error('[send-invoice-email] ❌ Error:', error);
+    console.error('[send-invoice-email] ❌ Error stack:', error.stack);
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
         error: error.message || 'Failed to send invoice email',
+        details: error.stack || 'No stack trace available',
       }),
       {
         status: 500,
@@ -874,6 +898,8 @@ function generateManualInvoiceEmailHtml(invoice: any, fiscalData: any, isTest: b
 </head>
 <body>
   <div class="email-wrapper">
+    ${isTest ? '<div class="test-banner"><p>⚠️ ESTA ES UNA FACTURA DE PRUEBA - NO VÁLIDA PARA EFECTOS FISCALES</p></div>' : ''}
+    
     <div class="email-header">
       <h1>Factura Emitida</h1>
       <p>Gracias por tu confianza en Barlive</p>

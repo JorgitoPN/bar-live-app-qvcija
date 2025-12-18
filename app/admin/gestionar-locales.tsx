@@ -28,16 +28,25 @@ interface Local {
   direccion: string;
   provincia: string;
   imagen_url?: string;
+  galeria_urls?: string[];
   activo: boolean;
   destacado: boolean;
   enriquecido: boolean;
   source_type: string;
   fecha_creacion: string;
   propietario_id?: string;
+  plan_activo?: string;
   propietario?: {
     nombre: string;
     email: string;
   };
+}
+
+interface Usuario {
+  id: string;
+  nombre: string;
+  email: string;
+  rol_app: string;
 }
 
 const LOCALES_POR_PAGINA = 20;
@@ -59,10 +68,18 @@ export default function GestionarLocalesScreen() {
 
   // Estados para los modales de selección
   const [showFiltersModal, setShowFiltersModal] = useState(false);
+  const [showAssignUserModal, setShowAssignUserModal] = useState(false);
+  const [selectedLocalForAssignment, setSelectedLocalForAssignment] = useState<Local | null>(null);
 
   // Estados para selección múltiple
   const [modoSeleccion, setModoSeleccion] = useState(false);
   const [localesSeleccionados, setLocalesSeleccionados] = useState<Set<string>>(new Set());
+
+  // User assignment
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [searchUsuario, setSearchUsuario] = useState('');
+  const [loadingUsuarios, setLoadingUsuarios] = useState(false);
+  const [assigningUser, setAssigningUser] = useState(false);
 
   // Contadores
   const [contadores, setContadores] = useState({
@@ -166,7 +183,7 @@ export default function GestionarLocalesScreen() {
       
       if (reset) {
         setLocales(data || []);
-        setPaginaActual(2); // Next page will be 2
+        setPaginaActual(2);
       } else {
         setLocales(prev => [...prev, ...(data || [])]);
         setPaginaActual(currentPage + 1);
@@ -183,15 +200,12 @@ export default function GestionarLocalesScreen() {
     }
   }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado]);
 
-  // Initial load only - runs once on mount
   useEffect(() => {
     console.log('[GestionarLocales] Initial load');
     cargarContadores();
     cargarLocales(true, 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reload when filters change - with debounce to prevent rapid calls
   useEffect(() => {
     if (!initialLoading) {
       console.log('[GestionarLocales] Filters changed, reloading...');
@@ -200,8 +214,83 @@ export default function GestionarLocalesScreen() {
       }, 500);
       return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado]);
+
+  const searchUsuarios = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setUsuarios([]);
+      return;
+    }
+
+    setLoadingUsuarios(true);
+    try {
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('id, nombre, email, rol_app')
+        .or(`nombre.ilike.%${query}%,email.ilike.%${query}%`)
+        .limit(10);
+
+      if (error) throw error;
+
+      setUsuarios(data || []);
+    } catch (error) {
+      console.error('[GestionarLocales] Error searching users:', error);
+    } finally {
+      setLoadingUsuarios(false);
+    }
+  }, []);
+
+  const assignLocalToUser = useCallback(async (userId: string, userName: string) => {
+    if (!selectedLocalForAssignment) return;
+
+    setAssigningUser(true);
+    try {
+      // Update local with new owner
+      const { error: updateError } = await supabase
+        .from('locales')
+        .update({ 
+          propietario_id: userId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', selectedLocalForAssignment.id);
+
+      if (updateError) throw updateError;
+
+      // Create entry in propietarios_locales junction table
+      const { error: junctionError } = await supabase
+        .from('propietarios_locales')
+        .insert({
+          propietario_id: userId,
+          local_id: selectedLocalForAssignment.id,
+          rol: 'propietario',
+          activo: true,
+        });
+
+      if (junctionError && junctionError.code !== '23505') { // Ignore duplicate key error
+        console.error('[GestionarLocales] Error creating junction entry:', junctionError);
+      }
+
+      Alert.alert(
+        'Éxito',
+        `Local "${selectedLocalForAssignment.nombre}" asignado a ${userName}`,
+        [{ text: 'OK' }]
+      );
+
+      setShowAssignUserModal(false);
+      setSelectedLocalForAssignment(null);
+      setSearchUsuario('');
+      setUsuarios([]);
+      
+      // Reload locales to show updated owner
+      cargarLocales(true, 1);
+      cargarContadores();
+    } catch (error) {
+      console.error('[GestionarLocales] Error assigning local:', error);
+      Alert.alert('Error', 'No se pudo asignar el local al usuario');
+    } finally {
+      setAssigningUser(false);
+    }
+  }, [selectedLocalForAssignment, cargarLocales, cargarContadores]);
 
   const toggleEstadoLocal = useCallback(async (localId: string, activo: boolean) => {
     try {
@@ -212,7 +301,6 @@ export default function GestionarLocalesScreen() {
 
       if (error) throw error;
 
-      // Update local state without reloading
       setLocales(prevLocales =>
         prevLocales.map(local =>
           local.id === localId ? { ...local, activo: !activo } : local
@@ -259,7 +347,6 @@ export default function GestionarLocalesScreen() {
 
       if (error) throw error;
 
-      // Update local state without reloading
       setLocales(prevLocales => prevLocales.filter(local => local.id !== localId));
       setTotalLocales(prev => prev - 1);
 
@@ -309,7 +396,6 @@ export default function GestionarLocalesScreen() {
             try {
               const idsArray = Array.from(localesSeleccionados);
               
-              // Eliminar en lotes de 100
               const batchSize = 100;
               for (let i = 0; i < idsArray.length; i += batchSize) {
                 const batch = idsArray.slice(i, i + batchSize);
@@ -321,7 +407,6 @@ export default function GestionarLocalesScreen() {
                 if (error) throw error;
               }
 
-              // Update local state without reloading
               setLocales(prevLocales => 
                 prevLocales.filter(local => !localesSeleccionados.has(local.id))
               );
@@ -366,8 +451,14 @@ export default function GestionarLocalesScreen() {
     }
   }, [hasMore, loadingMore, initialLoading, paginaActual, cargarLocales]);
 
+  const openAssignUserModal = useCallback((local: Local) => {
+    setSelectedLocalForAssignment(local);
+    setShowAssignUserModal(true);
+    setSearchUsuario('');
+    setUsuarios([]);
+  }, []);
+
   const LocalCard = useCallback(({ local }: { local: Local }) => {
-    // ✅ FIXED: Get cover photo from imagen_url or first image in galeria_urls
     const coverPhoto = local.imagen_url || (local.galeria_urls && local.galeria_urls.length > 0 ? local.galeria_urls[0] : null);
     
     return (
@@ -401,7 +492,6 @@ export default function GestionarLocalesScreen() {
             </View>
           )}
 
-          {/* ✅ FIXED: Show cover photo */}
           {coverPhoto ? (
             <Image 
               source={{ uri: `${coverPhoto}?v=${Date.now()}` }} 
@@ -473,9 +563,8 @@ export default function GestionarLocalesScreen() {
           </View>
         </Pressable>
 
-        {/* ✅ FIXED: Show ALL admin controls including plan assignment */}
         {!modoSeleccion && (
-          <View style={styles.localActions}>
+          <View style={styles.localActionsContainer}>
             <View style={styles.toggleRow}>
               <View style={styles.toggleItem}>
                 <Text style={styles.toggleLabel}>Activo:</Text>
@@ -510,7 +599,6 @@ export default function GestionarLocalesScreen() {
               </View>
             </View>
 
-            {/* ✅ FIXED: Show current plan */}
             {local.plan_activo && (
               <View style={styles.planInfo}>
                 <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color={colors.badgeDestacado} />
@@ -533,12 +621,18 @@ export default function GestionarLocalesScreen() {
                 <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
               </TouchableOpacity>
 
-              {/* ✅ FIXED: Add plan assignment button */}
               <TouchableOpacity
                 style={styles.planButton}
                 onPress={() => router.push(`/gestion/planes-suscripcion?localId=${local.id}`)}
               >
                 <IconSymbol ios_icon_name="creditcard.fill" android_material_icon_name="payment" size={18} color="#F59E0B" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.assignButton}
+                onPress={() => openAssignUserModal(local)}
+              >
+                <IconSymbol ios_icon_name="person.badge.plus" android_material_icon_name="person_add" size={18} color="#8B5CF6" />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -565,7 +659,7 @@ export default function GestionarLocalesScreen() {
         )}
       </View>
     );
-  }, [modoSeleccion, localesSeleccionados, toggleSeleccionLocal, router, toggleEstadoLocal, toggleDestacadoLocal, eliminarLocal]);
+  }, [modoSeleccion, localesSeleccionados, toggleSeleccionLocal, router, toggleEstadoLocal, toggleDestacadoLocal, eliminarLocal, openAssignUserModal]);
 
   const renderLocalCard = useCallback(({ item }: { item: Local }) => (
     <LocalCard local={item} />
@@ -573,7 +667,6 @@ export default function GestionarLocalesScreen() {
 
   const renderHeader = useMemo(() => (
     <React.Fragment>
-      {/* Contadores informativos */}
       <View style={styles.statsSection}>
         <Text style={styles.statsSectionTitle}>Estadísticas de Locales</Text>
         <View style={styles.statsGrid}>
@@ -596,7 +689,6 @@ export default function GestionarLocalesScreen() {
         </View>
       </View>
 
-      {/* Barra de búsqueda */}
       <View style={styles.searchContainer}>
         <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
         <TextInput
@@ -613,7 +705,6 @@ export default function GestionarLocalesScreen() {
         )}
       </View>
 
-      {/* Botones de filtros compactos */}
       <View style={styles.filterButtonsRow}>
         <TouchableOpacity
           style={[styles.filterButton, hayFiltrosActivos() && styles.filterButtonActive]}
@@ -678,7 +769,6 @@ export default function GestionarLocalesScreen() {
         )}
       </View>
 
-      {/* Indicador de resultados */}
       <View style={styles.resultsIndicator}>
         <Text style={styles.resultsText}>
           Mostrando {locales.length} de {totalLocales} locales
@@ -771,7 +861,6 @@ export default function GestionarLocalesScreen() {
             </View>
 
             <View style={styles.modalBody}>
-              {/* Filtro Enriquecido */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>Enriquecimiento</Text>
                 <View style={styles.filterOptions}>
@@ -795,7 +884,6 @@ export default function GestionarLocalesScreen() {
                 </View>
               </View>
 
-              {/* Filtro Estado */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>Estado</Text>
                 <View style={styles.filterOptions}>
@@ -819,7 +907,6 @@ export default function GestionarLocalesScreen() {
                 </View>
               </View>
 
-              {/* Filtro Propietario */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>Propietario</Text>
                 <View style={styles.filterOptions}>
@@ -843,7 +930,6 @@ export default function GestionarLocalesScreen() {
                 </View>
               </View>
 
-              {/* Filtro Tipo */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>Tipo</Text>
                 <View style={styles.filterOptions}>
@@ -867,7 +953,6 @@ export default function GestionarLocalesScreen() {
                 </View>
               </View>
 
-              {/* Filtro Destacado */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>Destacado</Text>
                 <View style={styles.filterOptions}>
@@ -909,6 +994,116 @@ export default function GestionarLocalesScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Modal Asignar Usuario */}
+      <Modal
+        visible={showAssignUserModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAssignUserModal(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowAssignUserModal(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Asignar Propietario</Text>
+              <TouchableOpacity onPress={() => setShowAssignUserModal(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.assignModalBody}>
+              {selectedLocalForAssignment && (
+                <View style={styles.selectedLocalInfo}>
+                  <Text style={styles.selectedLocalName}>{selectedLocalForAssignment.nombre}</Text>
+                  <Text style={styles.selectedLocalAddress}>{selectedLocalForAssignment.direccion}</Text>
+                  {selectedLocalForAssignment.propietario && (
+                    <View style={styles.currentOwnerInfo}>
+                      <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={14} color={colors.textSecondary} />
+                      <Text style={styles.currentOwnerText}>
+                        Propietario actual: {selectedLocalForAssignment.propietario.nombre}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              <View style={styles.searchContainer}>
+                <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Buscar usuario por nombre o email..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={searchUsuario}
+                  onChangeText={(text) => {
+                    setSearchUsuario(text);
+                    searchUsuarios(text);
+                  }}
+                />
+                {loadingUsuarios && (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                )}
+              </View>
+
+              {usuarios.length > 0 && (
+                <View style={styles.usuariosList}>
+                  {usuarios.map((usuario) => (
+                    <TouchableOpacity
+                      key={usuario.id}
+                      style={styles.usuarioItem}
+                      onPress={() => {
+                        Alert.alert(
+                          'Confirmar Asignación',
+                          `¿Asignar "${selectedLocalForAssignment?.nombre}" a ${usuario.nombre}?`,
+                          [
+                            { text: 'Cancelar', style: 'cancel' },
+                            {
+                              text: 'Asignar',
+                              onPress: () => assignLocalToUser(usuario.id, usuario.nombre),
+                            },
+                          ]
+                        );
+                      }}
+                      disabled={assigningUser}
+                    >
+                      <View style={styles.usuarioInfo}>
+                        <Text style={styles.usuarioNombre}>{usuario.nombre}</Text>
+                        <Text style={styles.usuarioEmail}>{usuario.email}</Text>
+                        <View style={styles.usuarioRolBadge}>
+                          <Text style={styles.usuarioRolText}>{usuario.rol_app}</Text>
+                        </View>
+                      </View>
+                      {assigningUser ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <IconSymbol ios_icon_name="arrow.right.circle.fill" android_material_icon_name="arrow_forward" size={24} color={colors.primary} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {searchUsuario.length >= 2 && usuarios.length === 0 && !loadingUsuarios && (
+                <View style={styles.noResultsContainer}>
+                  <IconSymbol ios_icon_name="person.crop.circle.badge.xmark" android_material_icon_name="person_off" size={48} color={colors.textSecondary} />
+                  <Text style={styles.noResultsText}>No se encontraron usuarios</Text>
+                </View>
+              )}
+
+              {searchUsuario.length < 2 && (
+                <View style={styles.searchHintContainer}>
+                  <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
+                  <Text style={styles.searchHintText}>
+                    Escribe al menos 2 caracteres para buscar usuarios
+                  </Text>
+                </View>
+              )}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -928,7 +1123,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   header: {
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -943,8 +1138,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: colors.headerText,
+    flex: 1,
+    textAlign: 'center',
   },
   listContent: {
     paddingBottom: 20,
@@ -1221,18 +1418,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
-  localActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  localActionsContainer: {
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
+    padding: 12,
   },
   toggleRow: {
     flexDirection: 'row',
     gap: 12,
+    marginBottom: 8,
   },
   toggleItem: {
     flexDirection: 'row',
@@ -1288,6 +1482,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  assignButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#8B5CF6' + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   deleteButton: {
     width: 36,
     height: 36,
@@ -1322,27 +1524,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
-  },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButton: {
-    padding: 8,
-  },
-  addButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
@@ -1437,5 +1618,107 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.headerText,
+  },
+  assignModalBody: {
+    padding: 20,
+    maxHeight: 500,
+  },
+  selectedLocalInfo: {
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  selectedLocalName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  selectedLocalAddress: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  currentOwnerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  currentOwnerText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  usuariosList: {
+    marginTop: 12,
+    gap: 8,
+  },
+  usuarioItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  usuarioInfo: {
+    flex: 1,
+  },
+  usuarioNombre: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  usuarioEmail: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 6,
+  },
+  usuarioRolBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  usuarioRolText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
+    textTransform: 'capitalize',
+  },
+  noResultsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginTop: 12,
+  },
+  searchHintContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.primary + '10',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 12,
+  },
+  searchHintText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.primary,
+    lineHeight: 20,
   },
 });

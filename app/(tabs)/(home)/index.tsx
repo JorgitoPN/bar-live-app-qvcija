@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,9 @@ import BarraFiltrosInteractiva from '@/components/home/BarraFiltrosInteractiva';
 import * as Location from 'expo-location';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// ✅ MAXIMUM DISTANCE FOR FEATURED LOCALS (in km)
+const MAX_FEATURED_DISTANCE_KM = 100;
 
 interface Local {
   id: string;
@@ -66,7 +69,6 @@ export default function HomeScreen() {
     destacado: false,
   });
 
-  // ✅ FIXED: Create filtros array for BarraFiltrosInteractiva
   const filtrosArray: Filtro[] = useMemo(() => [
     {
       id: 'todos',
@@ -133,7 +135,7 @@ export default function HomeScreen() {
   }, []);
 
   const calcularDistancia = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Radio de la Tierra en km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a =
@@ -182,10 +184,11 @@ export default function HomeScreen() {
 
       let localesConDistancia = data || [];
 
-      // Calcular distancia si tenemos ubicación
+      // ✅ FEATURED LOCALS SORTING LOGIC - FIXED v4 with MAX DISTANCE
       if (userLocation) {
         console.log('[Home] 📍 User location:', userLocation);
         
+        // Calculate distance for all locals
         localesConDistancia = localesConDistancia.map(local => {
           if (local.latitud && local.longitud) {
             const distancia = calcularDistancia(
@@ -199,7 +202,6 @@ export default function HomeScreen() {
           return { ...local, distancia: 999 };
         });
 
-        // ✅ FEATURED LOCALS SORTING LOGIC - FIXED v2
         // Separate featured and non-featured locals
         const destacados = localesConDistancia.filter(l => l.destacado === true);
         const noDestacados = localesConDistancia.filter(l => !l.destacado);
@@ -207,7 +209,7 @@ export default function HomeScreen() {
         console.log('[Home] 📊 Total destacados:', destacados.length);
         console.log('[Home] 📊 Total no destacados:', noDestacados.length);
 
-        // Sort featured locals by distance
+        // ✅ CRITICAL FIX: Filter out featured locals that are too far away
         const destacadosCerca = destacados.filter(l => {
           const dist = l.distancia !== undefined && l.distancia !== null ? l.distancia : 999;
           return dist <= 20;
@@ -215,11 +217,25 @@ export default function HomeScreen() {
         
         const destacadosLejos = destacados.filter(l => {
           const dist = l.distancia !== undefined && l.distancia !== null ? l.distancia : 999;
-          return dist > 20;
+          return dist > 20 && dist <= MAX_FEATURED_DISTANCE_KM;
+        });
+
+        // ✅ CRITICAL: Featured locals beyond MAX_FEATURED_DISTANCE_KM are NOT shown
+        const destacadosMuyLejos = destacados.filter(l => {
+          const dist = l.distancia !== undefined && l.distancia !== null ? l.distancia : 999;
+          return dist > MAX_FEATURED_DISTANCE_KM;
         });
 
         console.log('[Home] 📍 Destacados ≤20km:', destacadosCerca.length);
-        console.log('[Home] 📍 Destacados >20km:', destacadosLejos.length);
+        console.log('[Home] 📍 Destacados 20-100km:', destacadosLejos.length);
+        console.log('[Home] 🚫 Destacados >100km (EXCLUDED):', destacadosMuyLejos.length);
+
+        if (destacadosMuyLejos.length > 0) {
+          console.log('[Home] 🚫 Excluded featured locals (too far):');
+          destacadosMuyLejos.forEach(l => {
+            console.log(`  - ${l.nombre} (${l.distancia?.toFixed(1)}km) - ${l.direccion}`);
+          });
+        }
 
         // Featured locals ≤ 20km: sort by relevance (rating, then popularity)
         destacadosCerca.sort((a, b) => {
@@ -228,15 +244,13 @@ export default function HomeScreen() {
           const popularidadA = a.popularidad || 0;
           const popularidadB = b.popularidad || 0;
           
-          // First by rating (higher is better)
           if (ratingB !== ratingA) {
             return ratingB - ratingA;
           }
-          // Then by popularity (higher is better)
           return popularidadB - popularidadA;
         });
 
-        // Featured locals > 20km: sort by distance (closest first)
+        // Featured locals 20-100km: sort by distance (closest first)
         destacadosLejos.sort((a, b) => {
           const distA = a.distancia !== undefined && a.distancia !== null ? a.distancia : 999;
           const distB = b.distancia !== undefined && b.distancia !== null ? b.distancia : 999;
@@ -250,15 +264,14 @@ export default function HomeScreen() {
           return distA - distB;
         });
 
-        // Combine: featured close, featured far, then non-featured
+        // ✅ CRITICAL: Combine WITHOUT the very far featured locals
         localesConDistancia = [...destacadosCerca, ...destacadosLejos, ...noDestacados];
 
         console.log('[Home] ✅ Featured sorting applied:');
         console.log('  📍 Featured ≤20km:', destacadosCerca.length, destacadosCerca.map(l => `${l.nombre} (${l.distancia?.toFixed(1)}km, rating: ${l.rating || l.google_rating})`));
-        console.log('  📍 Featured >20km:', destacadosLejos.length, destacadosLejos.map(l => `${l.nombre} (${l.distancia?.toFixed(1)}km)`));
+        console.log('  📍 Featured 20-100km:', destacadosLejos.length, destacadosLejos.map(l => `${l.nombre} (${l.distancia?.toFixed(1)}km)`));
         console.log('  📍 Non-featured:', noDestacados.length);
         
-        // Log first 10 locals to verify order
         console.log('[Home] 🔝 First 10 locals in list:');
         localesConDistancia.slice(0, 10).forEach((l, i) => {
           console.log(`  ${i + 1}. ${l.nombre} - Destacado: ${l.destacado}, Distancia: ${l.distancia?.toFixed(1)}km, Rating: ${l.rating || l.google_rating}`);
@@ -266,13 +279,10 @@ export default function HomeScreen() {
       } else {
         console.log('[Home] ⚠️ No user location available, sorting by destacado and rating only');
         
-        // No user location, just sort by destacado and rating
         localesConDistancia.sort((a, b) => {
-          // Featured first
           if (a.destacado !== b.destacado) {
             return a.destacado ? -1 : 1;
           }
-          // Then by rating
           const ratingA = parseFloat((a.rating || a.google_rating || 0).toString());
           const ratingB = parseFloat((b.rating || b.google_rating || 0).toString());
           return ratingB - ratingA;
@@ -304,7 +314,6 @@ export default function HomeScreen() {
     cargarLocales();
   }, [cargarLocales]);
 
-  // ✅ FIXED: Handle filter press
   const handleFiltroPress = useCallback((filtroId: string) => {
     console.log('[Home] Filtro presionado:', filtroId);
     
@@ -319,10 +328,8 @@ export default function HomeScreen() {
     }
   }, []);
 
-  // ✅ FIXED: Handle more filters press
   const handleMasFiltrosPress = useCallback(() => {
     console.log('[Home] Más filtros presionado');
-    // TODO: Open advanced filters modal
   }, []);
 
   if (loading) {
