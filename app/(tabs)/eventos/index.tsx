@@ -325,7 +325,8 @@ export default function EventosScreen() {
         <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Eventos</Text>
 
         <View style={styles.searchContainer}>
-          <IconSymbol name="magnifyingglass" size={20} color="#9CA3AF" />
+          {/* ✅ FIXED: Search icon color changed to white */}
+          <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.white} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar eventos..."
@@ -334,7 +335,7 @@ export default function EventosScreen() {
             onChangeText={setBusqueda}
           />
           <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
-            <IconSymbol name="slider.horizontal.3" size={20} color={colors.white} />
+            <IconSymbol ios_icon_name="slider.horizontal.3" android_material_icon_name="tune" size={20} color={colors.white} />
           </TouchableOpacity>
         </View>
 
@@ -384,7 +385,7 @@ export default function EventosScreen() {
         >
           {eventosFiltrados.length === 0 ? (
             <View style={styles.emptyState}>
-              <IconSymbol name="calendar" size={64} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={64} color={colors.textSecondary} />
               <Text style={styles.emptyStateText}>
                 {tabActual === 'hoy' 
                   ? 'No hay eventos para hoy' 
@@ -412,7 +413,7 @@ export default function EventosScreen() {
             colors={[colors.primary, colors.secondary]}
             style={styles.fabGradient}
           >
-            <IconSymbol name="plus" size={28} color={colors.white} />
+            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={28} color={colors.white} />
           </LinearGradient>
         </TouchableOpacity>
       )}
@@ -431,7 +432,7 @@ export default function EventosScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
               <TouchableOpacity onPress={() => setMostrarFiltros(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -446,7 +447,7 @@ export default function EventosScreen() {
                       style={styles.dateButton}
                       onPress={() => setShowDatePickerInicio(true)}
                     >
-                      <IconSymbol name="calendar" size={18} color={colors.primary} />
+                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={18} color={colors.primary} />
                       <Text style={styles.dateButtonText}>
                         {formatDate(fechaInicio)}
                       </Text>
@@ -459,7 +460,7 @@ export default function EventosScreen() {
                       style={styles.dateButton}
                       onPress={() => setShowDatePickerFin(true)}
                     >
-                      <IconSymbol name="calendar" size={18} color={colors.primary} />
+                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={18} color={colors.primary} />
                       <Text style={styles.dateButtonText}>
                         {formatDate(fechaFin)}
                       </Text>
@@ -469,7 +470,7 @@ export default function EventosScreen() {
 
                 {fechaInicio && fechaFin && (
                   <View style={styles.dateRangeInfo}>
-                    <IconSymbol name="info.circle" size={16} color={colors.primary} />
+                    <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={16} color={colors.primary} />
                     <Text style={styles.dateRangeText}>
                       Filtrando eventos del {formatDate(fechaInicio)} al {formatDate(fechaFin)}
                     </Text>
@@ -491,7 +492,7 @@ export default function EventosScreen() {
                             <View style={styles.datePickerHeader}>
                               <Text style={styles.datePickerTitle}>Fecha de Inicio</Text>
                               <TouchableOpacity onPress={closeDateInicioPicker}>
-                                <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
                               </TouchableOpacity>
                             </View>
                             <DateTimePicker
@@ -534,7 +535,7 @@ export default function EventosScreen() {
                             <View style={styles.datePickerHeader}>
                               <Text style={styles.datePickerTitle}>Fecha de Fin</Text>
                               <TouchableOpacity onPress={closeDateFinPicker}>
-                                <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
                               </TouchableOpacity>
                             </View>
                             <DateTimePicker
