@@ -429,7 +429,7 @@ export default function SocialIndexScreen() {
 
       <MomentoCarousel />
 
-      {/* Friends Locations Section */}
+      {/* ✅ Friends Locations Section - Placed AFTER Momentos */}
       {friendsLocations.length > 0 && (
         <View style={styles.friendsLocationsSection}>
           <LinearGradient

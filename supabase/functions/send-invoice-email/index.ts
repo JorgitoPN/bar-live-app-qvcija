@@ -97,8 +97,8 @@ Deno.serve(async (req: Request) => {
 
     // Generate email HTML
     const emailHtml = isManual 
-      ? generateManualInvoiceEmailHtml(invoice, fiscalData)
-      : generateInvoiceEmailHtml(invoice, fiscalData);
+      ? generateManualInvoiceEmailHtml(invoice, fiscalData, isTest)
+      : generateInvoiceEmailHtml(invoice, fiscalData, isTest);
 
     const emailSubject = isTest 
       ? `[PRUEBA] Factura ${invoice.invoice_number} - Barlive`
@@ -214,7 +214,7 @@ Deno.serve(async (req: Request) => {
 /**
  * Generate HTML email template for automatic invoices (subscriptions)
  */
-function generateInvoiceEmailHtml(invoice: any, fiscalData: any): string {
+function generateInvoiceEmailHtml(invoice: any, fiscalData: any, isTest: boolean = false): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -582,7 +582,7 @@ function generateInvoiceEmailHtml(invoice: any, fiscalData: any): string {
 /**
  * Generate HTML email template for manual invoices
  */
-function generateManualInvoiceEmailHtml(invoice: any, fiscalData: any): string {
+function generateManualInvoiceEmailHtml(invoice: any, fiscalData: any, isTest: boolean = false): string {
   const items = invoice.items || [];
   const itemsHtml = items.map((item: any, index: number) => `
     <tr>

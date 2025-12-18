@@ -199,17 +199,24 @@ export default function HomeScreen() {
           return { ...local, distancia: 999 };
         });
 
-        // ✅ FEATURED LOCALS SORTING LOGIC - FIXED
+        // ✅ FEATURED LOCALS SORTING LOGIC - FIXED v2
         // Separate featured and non-featured locals
-        const destacados = localesConDistancia.filter(l => l.destacado);
+        const destacados = localesConDistancia.filter(l => l.destacado === true);
         const noDestacados = localesConDistancia.filter(l => !l.destacado);
 
         console.log('[Home] 📊 Total destacados:', destacados.length);
         console.log('[Home] 📊 Total no destacados:', noDestacados.length);
 
         // Sort featured locals by distance
-        const destacadosCerca = destacados.filter(l => l.distancia !== undefined && l.distancia <= 20);
-        const destacadosLejos = destacados.filter(l => l.distancia === undefined || l.distancia > 20);
+        const destacadosCerca = destacados.filter(l => {
+          const dist = l.distancia !== undefined && l.distancia !== null ? l.distancia : 999;
+          return dist <= 20;
+        });
+        
+        const destacadosLejos = destacados.filter(l => {
+          const dist = l.distancia !== undefined && l.distancia !== null ? l.distancia : 999;
+          return dist > 20;
+        });
 
         console.log('[Home] 📍 Destacados ≤20km:', destacadosCerca.length);
         console.log('[Home] 📍 Destacados >20km:', destacadosLejos.length);
@@ -231,15 +238,15 @@ export default function HomeScreen() {
 
         // Featured locals > 20km: sort by distance (closest first)
         destacadosLejos.sort((a, b) => {
-          const distA = a.distancia || 999;
-          const distB = b.distancia || 999;
+          const distA = a.distancia !== undefined && a.distancia !== null ? a.distancia : 999;
+          const distB = b.distancia !== undefined && b.distancia !== null ? b.distancia : 999;
           return distA - distB;
         });
 
         // Sort non-featured locals by distance
         noDestacados.sort((a, b) => {
-          const distA = a.distancia || 999;
-          const distB = b.distancia || 999;
+          const distA = a.distancia !== undefined && a.distancia !== null ? a.distancia : 999;
+          const distB = b.distancia !== undefined && b.distancia !== null ? b.distancia : 999;
           return distA - distB;
         });
 
@@ -247,13 +254,13 @@ export default function HomeScreen() {
         localesConDistancia = [...destacadosCerca, ...destacadosLejos, ...noDestacados];
 
         console.log('[Home] ✅ Featured sorting applied:');
-        console.log('  📍 Featured ≤20km:', destacadosCerca.length, destacadosCerca.map(l => `${l.nombre} (${l.distancia?.toFixed(1)}km)`));
+        console.log('  📍 Featured ≤20km:', destacadosCerca.length, destacadosCerca.map(l => `${l.nombre} (${l.distancia?.toFixed(1)}km, rating: ${l.rating || l.google_rating})`));
         console.log('  📍 Featured >20km:', destacadosLejos.length, destacadosLejos.map(l => `${l.nombre} (${l.distancia?.toFixed(1)}km)`));
         console.log('  📍 Non-featured:', noDestacados.length);
         
-        // Log first 5 locals to verify order
-        console.log('[Home] 🔝 First 5 locals in list:');
-        localesConDistancia.slice(0, 5).forEach((l, i) => {
+        // Log first 10 locals to verify order
+        console.log('[Home] 🔝 First 10 locals in list:');
+        localesConDistancia.slice(0, 10).forEach((l, i) => {
           console.log(`  ${i + 1}. ${l.nombre} - Destacado: ${l.destacado}, Distancia: ${l.distancia?.toFixed(1)}km, Rating: ${l.rating || l.google_rating}`);
         });
       } else {
