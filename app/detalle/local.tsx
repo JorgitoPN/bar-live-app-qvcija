@@ -39,9 +39,12 @@ import Animated, {
   withSpring,
   withTiming,
   runOnJS,
+  useAnimatedScrollHandler,
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const DISMISS_THRESHOLD = 150;
+const VELOCITY_THRESHOLD = 800;
 
 interface Local {
   id: string;
@@ -323,7 +326,7 @@ export default function DetalleLocalScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const translateY = useSharedValue(0);
   const scrollY = useSharedValue(0);
-  const context = useSharedValue({ y: 0 });
+  const isAtTop = useSharedValue(true);
 
   useEffect(() => {
     (async () => {
@@ -545,29 +548,38 @@ export default function DetalleLocalScreen() {
     });
   };
 
-  const handleScroll = (event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    scrollY.value = offsetY;
-  };
-
   const dismissModal = () => {
     router.back();
   };
 
+  // Animated scroll handler
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+      isAtTop.value = event.contentOffset.y <= 0;
+    },
+  });
+
   // Pan gesture for swipe-to-close when at top
   const panGesture = Gesture.Pan()
     .onStart(() => {
-      context.value = { y: translateY.value };
+      'worklet';
+      // Only start gesture if at the top
+      if (!isAtTop.value) {
+        return;
+      }
     })
     .onUpdate((event) => {
+      'worklet';
       // Only allow downward swipe when at the top of the scroll
-      if (scrollY.value <= 0 && event.translationY > 0) {
-        translateY.value = context.value.y + event.translationY;
+      if (isAtTop.value && event.translationY > 0) {
+        translateY.value = event.translationY;
       }
     })
     .onEnd((event) => {
-      // If swiped down more than 150px or velocity is high, dismiss
-      if (translateY.value > 150 || event.velocityY > 1000) {
+      'worklet';
+      // If swiped down more than threshold or velocity is high, dismiss
+      if (translateY.value > DISMISS_THRESHOLD || event.velocityY > VELOCITY_THRESHOLD) {
         // Animate out before dismissing
         translateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 }, () => {
           runOnJS(dismissModal)();
@@ -730,17 +742,17 @@ export default function DetalleLocalScreen() {
     <GestureHandlerRootView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Modal container with gesture detector - NO BACKDROP */}
+      {/* Modal container with gesture detector */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.modalContainer, animatedModalStyle]}>
-          <ScrollView 
+          <Animated.ScrollView
             ref={scrollViewRef}
-            style={styles.scrollView} 
-            contentContainerStyle={styles.contentContainer} 
-            showsVerticalScrollIndicator={false} 
-            bounces={true}
-            onScroll={handleScroll}
+            style={styles.scrollView}
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
             scrollEventThrottle={16}
+            onScroll={scrollHandler}
           >
             {/* Cover image with buttons and badges */}
             {allImages.length > 0 && (
@@ -1174,7 +1186,7 @@ export default function DetalleLocalScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </ScrollView>
+          </Animated.ScrollView>
         </Animated.View>
       </GestureDetector>
 
