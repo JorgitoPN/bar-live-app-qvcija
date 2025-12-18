@@ -37,10 +37,13 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
   runOnJS,
+  interpolate,
+  Extrapolate,
 } from 'react-native-reanimated';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Local {
   id: string;
@@ -313,7 +316,6 @@ export default function DetalleLocalScreen() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(false);
   const [expandedDescription, setExpandedDescription] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
 
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
@@ -322,7 +324,7 @@ export default function DetalleLocalScreen() {
   // Gesture handling for swipe-to-close
   const scrollViewRef = useRef<ScrollView>(null);
   const translateY = useSharedValue(0);
-  const isAtTop = useSharedValue(true);
+  const scrollY = useSharedValue(0);
 
   useEffect(() => {
     (async () => {
@@ -546,8 +548,7 @@ export default function DetalleLocalScreen() {
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
-    setScrollY(offsetY);
-    isAtTop.value = offsetY <= 0;
+    scrollY.value = offsetY;
   };
 
   const dismissModal = () => {
@@ -558,14 +559,17 @@ export default function DetalleLocalScreen() {
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
       // Only allow downward swipe when at the top
-      if (isAtTop.value && event.translationY > 0) {
+      if (scrollY.value <= 0 && event.translationY > 0) {
         translateY.value = event.translationY;
       }
     })
     .onEnd((event) => {
       // If swiped down more than 150px or velocity is high, dismiss
       if (translateY.value > 150 || event.velocityY > 1000) {
-        runOnJS(dismissModal)();
+        // Animate out before dismissing
+        translateY.value = withTiming(SCREEN_HEIGHT, { duration: 300 }, () => {
+          runOnJS(dismissModal)();
+        });
       } else {
         // Spring back to original position
         translateY.value = withSpring(0, {
@@ -575,9 +579,21 @@ export default function DetalleLocalScreen() {
       }
     });
 
-  const animatedStyle = useAnimatedStyle(() => {
+  const animatedModalStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateY: translateY.value }],
+    };
+  });
+
+  const animatedBackdropStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      translateY.value,
+      [0, SCREEN_HEIGHT],
+      [0.5, 0],
+      Extrapolate.CLAMP
+    );
+    return {
+      opacity,
     };
   });
 
@@ -724,8 +740,17 @@ export default function DetalleLocalScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
+      {/* Semi-transparent backdrop */}
+      <Animated.View style={[styles.backdrop, animatedBackdropStyle]}>
+        <TouchableOpacity 
+          style={StyleSheet.absoluteFill} 
+          activeOpacity={1} 
+          onPress={dismissModal}
+        />
+      </Animated.View>
+
       <GestureDetector gesture={panGesture}>
-        <Animated.View style={[styles.animatedContainer, animatedStyle]}>
+        <Animated.View style={[styles.modalContainer, animatedModalStyle]}>
           <ScrollView 
             ref={scrollViewRef}
             style={styles.scrollView} 
@@ -1190,10 +1215,24 @@ export default function DetalleLocalScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
   },
-  animatedContainer: {
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000',
+  },
+  modalContainer: {
     flex: 1,
+    marginTop: SCREEN_HEIGHT * 0.05,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
   },
   closeButton: {
     position: 'absolute',

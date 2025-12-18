@@ -2,11 +2,11 @@
 import { Stack } from 'expo-router';
 
 /**
- * ✅ DETALLE LAYOUT - CLEAN MODAL CONFIGURATION
+ * ✅ DETALLE LAYOUT - TRANSPARENT MODAL CONFIGURATION
  * 
- * Using formSheet presentation for native bottom-sheet behavior:
+ * Using transparentModal presentation to show the underlying page:
  * - Slides up from bottom
- * - Shows dimmed background
+ * - Shows the previous page behind with dimmed overlay
  * - Swipe down to close
  * - Proper rounded corners
  */
@@ -15,10 +15,8 @@ export default function DetalleLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        presentation: 'formSheet',
+        presentation: 'transparentModal',
         animation: 'slide_from_bottom',
-        sheetAllowedDetents: [0.95], // 95% of screen height
-        sheetCornerRadius: 24,
         contentStyle: {
           backgroundColor: 'transparent',
         },
