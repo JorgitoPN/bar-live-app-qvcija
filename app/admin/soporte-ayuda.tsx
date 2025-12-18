@@ -11,6 +11,7 @@ import {
   TextInput,
   Modal,
   Pressable,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -18,6 +19,42 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+
+interface SupportTicket {
+  id: string;
+  ticket_number: string;
+  user_id: string;
+  subject: string;
+  description: string;
+  category: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  admin_notes?: string;
+  assigned_to?: string;
+  resolved_at?: string;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: string;
+    nombre: string;
+    email: string;
+    username?: string;
+  };
+  responses?: TicketResponse[];
+}
+
+interface TicketResponse {
+  id: string;
+  ticket_id: string;
+  user_id: string;
+  message: string;
+  is_admin_response: boolean;
+  created_at: string;
+  user?: {
+    nombre: string;
+    email: string;
+  };
+}
 
 interface Reporte {
   id: string;
@@ -64,13 +101,44 @@ export default function SoporteAyudaScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'reportes' | 'solicitudes'>('reportes');
+  const [activeTab, setActiveTab] = useState<'tickets' | 'reportes' | 'solicitudes'>('tickets');
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [reportes, setReportes] = useState<Reporte[]>([]);
   const [solicitudes, setSolicitudes] = useState<SolicitudAcceso[]>([]);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [selectedReporte, setSelectedReporte] = useState<Reporte | null>(null);
-  const [notasAdmin, setNotasAdmin] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
+  const [responseMessage, setResponseMessage] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  const cargarTickets = useCallback(async () => {
+    try {
+      console.log('[SoporteAyuda] ✅ Cargando tickets...');
+      const { data, error } = await supabase
+        .from('support_tickets')
+        .select(`
+          *,
+          user:usuarios!support_tickets_user_id_fkey(
+            id,
+            nombre,
+            email,
+            username
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      console.log('[SoporteAyuda] ✅ Tickets cargados:', data?.length || 0);
+      setTickets(data || []);
+    } catch (error) {
+      console.error('[SoporteAyuda] Error cargando tickets:', error);
+      Alert.alert('Error', 'No se pudieron cargar los tickets');
+    }
+  }, []);
 
   const cargarReportes = useCallback(async () => {
     try {
@@ -120,13 +188,125 @@ export default function SoporteAyudaScreen() {
 
   const cargarDatos = useCallback(async () => {
     setLoading(true);
-    await Promise.all([cargarReportes(), cargarSolicitudes()]);
+    await Promise.all([cargarTickets(), cargarReportes(), cargarSolicitudes()]);
     setLoading(false);
-  }, [cargarReportes, cargarSolicitudes]);
+  }, [cargarTickets, cargarReportes, cargarSolicitudes]);
 
   useEffect(() => {
     cargarDatos();
   }, [cargarDatos]);
+
+  const handleUpdateTicket = async (ticketId: string, nuevoEstado: SupportTicket['status']) => {
+    setUpdating(true);
+    try {
+      const updateData: any = {
+        status: nuevoEstado,
+        admin_notes: adminNotes.trim() || null,
+        assigned_to: user?.id,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (nuevoEstado === 'resolved' || nuevoEstado === 'closed') {
+        updateData.resolved_at = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from('support_tickets')
+        .update(updateData)
+        .eq('id', ticketId);
+
+      if (error) throw error;
+
+      Alert.alert('✅ Éxito', 'Ticket actualizado correctamente');
+      setShowDetailModal(false);
+      setSelectedTicket(null);
+      setAdminNotes('');
+      await cargarTickets();
+    } catch (error) {
+      console.error('[SoporteAyuda] Error actualizando ticket:', error);
+      Alert.alert('Error', 'No se pudo actualizar el ticket');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleSendResponse = async () => {
+    if (!selectedTicket || !responseMessage.trim()) {
+      Alert.alert('Error', 'Escribe un mensaje de respuesta');
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      // Create response record
+      const { error: responseError } = await supabase
+        .from('support_ticket_responses')
+        .insert({
+          ticket_id: selectedTicket.id,
+          user_id: user?.id,
+          message: responseMessage.trim(),
+          is_admin_response: true,
+        });
+
+      if (responseError) throw responseError;
+
+      // Send email to user
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-support-ticket-email', {
+        body: {
+          ticketId: selectedTicket.id,
+          isNewTicket: false,
+          responseMessage: responseMessage.trim(),
+        },
+      });
+
+      if (emailError) {
+        console.error('[SoporteAyuda] Email error:', emailError);
+        Alert.alert('Advertencia', 'Respuesta guardada pero el email no se pudo enviar');
+      } else {
+        Alert.alert('✅ Éxito', 'Respuesta enviada por email al usuario');
+      }
+
+      setResponseMessage('');
+      await cargarTickets();
+    } catch (error) {
+      console.error('[SoporteAyuda] Error enviando respuesta:', error);
+      Alert.alert('Error', 'No se pudo enviar la respuesta');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const handleDeleteTicket = async (ticketId: string) => {
+    Alert.alert(
+      'Eliminar Ticket',
+      '¿Estás seguro de que quieres eliminar este ticket? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('support_tickets')
+                .delete()
+                .eq('id', ticketId);
+
+              if (error) throw error;
+
+              Alert.alert('✅ Éxito', 'Ticket eliminado correctamente');
+              setShowDetailModal(false);
+              setSelectedTicket(null);
+              await cargarTickets();
+            } catch (error) {
+              console.error('[SoporteAyuda] Error eliminando ticket:', error);
+              Alert.alert('Error', 'No se pudo eliminar el ticket');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleUpdateReporte = async (reporteId: string, nuevoEstado: Reporte['estado']) => {
     setUpdating(true);
@@ -135,7 +315,7 @@ export default function SoporteAyudaScreen() {
         .from('sala_virtual_reportes')
         .update({
           estado: nuevoEstado,
-          notas_admin: notasAdmin.trim() || null,
+          notas_admin: adminNotes.trim() || null,
           revisado_por: user?.id,
           updated_at: new Date().toISOString(),
         })
@@ -146,7 +326,7 @@ export default function SoporteAyudaScreen() {
       Alert.alert('✅ Éxito', 'Reporte actualizado correctamente');
       setShowDetailModal(false);
       setSelectedReporte(null);
-      setNotasAdmin('');
+      setAdminNotes('');
       await cargarReportes();
     } catch (error) {
       console.error('[SoporteAyuda] Error actualizando reporte:', error);
@@ -158,6 +338,10 @@ export default function SoporteAyudaScreen() {
 
   const getEstadoBadge = (estado: string) => {
     const badges: Record<string, { color: string; text: string }> = {
+      open: { color: '#F59E0B', text: 'Abierto' },
+      in_progress: { color: '#3B82F6', text: 'En Progreso' },
+      resolved: { color: '#10B981', text: 'Resuelto' },
+      closed: { color: '#6B7280', text: 'Cerrado' },
       pendiente: { color: '#F59E0B', text: 'Pendiente' },
       revisando: { color: '#3B82F6', text: 'Revisando' },
       accion_tomada: { color: '#10B981', text: 'Acción Tomada' },
@@ -168,13 +352,42 @@ export default function SoporteAyudaScreen() {
       revoked: { color: '#6B7280', text: 'Revocado' },
     };
 
-    const badge = badges[estado] || badges.pendiente;
+    const badge = badges[estado] || badges.open;
 
     return (
       <View style={[styles.statusBadge, { backgroundColor: badge.color + '20' }]}>
         <Text style={[styles.statusText, { color: badge.color }]}>{badge.text}</Text>
       </View>
     );
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    const badges: Record<string, { color: string; text: string }> = {
+      low: { color: '#10B981', text: 'Baja' },
+      normal: { color: '#3B82F6', text: 'Normal' },
+      high: { color: '#F59E0B', text: 'Alta' },
+      urgent: { color: '#EF4444', text: 'Urgente' },
+    };
+
+    const badge = badges[priority] || badges.normal;
+
+    return (
+      <View style={[styles.priorityBadge, { backgroundColor: badge.color + '20' }]}>
+        <Text style={[styles.priorityText, { color: badge.color }]}>{badge.text}</Text>
+      </View>
+    );
+  };
+
+  const getCategoryText = (category: string) => {
+    const categories: Record<string, string> = {
+      bug: 'Error técnico',
+      account: 'Problema con cuenta',
+      payment: 'Problema de pago',
+      content: 'Contenido inapropiado',
+      feature: 'Sugerencia de mejora',
+      other: 'Otro',
+    };
+    return categories[category] || category;
   };
 
   const getMotivoText = (motivo: string) => {
@@ -188,6 +401,95 @@ export default function SoporteAyudaScreen() {
     };
     return motivos[motivo] || motivo;
   };
+
+  const renderTicketsTab = () => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+      <View style={styles.statsRow}>
+        <View style={[styles.statCard, { backgroundColor: '#F59E0B20' }]}>
+          <Text style={[styles.statNumber, { color: '#F59E0B' }]}>
+            {tickets.filter(t => t.status === 'open').length}
+          </Text>
+          <Text style={styles.statLabel}>Abiertos</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: '#3B82F620' }]}>
+          <Text style={[styles.statNumber, { color: '#3B82F6' }]}>
+            {tickets.filter(t => t.status === 'in_progress').length}
+          </Text>
+          <Text style={styles.statLabel}>En Progreso</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: '#10B98120' }]}>
+          <Text style={[styles.statNumber, { color: '#10B981' }]}>
+            {tickets.filter(t => t.status === 'resolved').length}
+          </Text>
+          <Text style={styles.statLabel}>Resueltos</Text>
+        </View>
+      </View>
+
+      {tickets.length === 0 ? (
+        <View style={styles.emptyState}>
+          <IconSymbol ios_icon_name="ticket.fill" android_material_icon_name="confirmation_number" size={48} color={colors.textSecondary} />
+          <Text style={styles.emptyText}>No hay tickets de soporte</Text>
+        </View>
+      ) : (
+        <React.Fragment>
+          {tickets.map((ticket) => (
+            <TouchableOpacity
+              key={ticket.id}
+              style={styles.ticketCard}
+              onPress={() => {
+                setSelectedTicket(ticket);
+                setAdminNotes(ticket.admin_notes || '');
+                setShowDetailModal(true);
+              }}
+            >
+              <View style={styles.ticketHeader}>
+                <View style={styles.ticketHeaderLeft}>
+                  <View style={styles.ticketNumberRow}>
+                    <Text style={styles.ticketNumber}>{ticket.ticket_number}</Text>
+                    {getPriorityBadge(ticket.priority)}
+                  </View>
+                  <Text style={styles.ticketSubject}>{ticket.subject}</Text>
+                  <Text style={styles.ticketCategory}>{getCategoryText(ticket.category)}</Text>
+                </View>
+                {getEstadoBadge(ticket.status)}
+              </View>
+
+              <View style={styles.ticketBody}>
+                <View style={styles.ticketRow}>
+                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={16} color={colors.textSecondary} />
+                  <Text style={styles.ticketText}>
+                    {ticket.user?.nombre || 'Usuario desconocido'} (@{ticket.user?.username || 'sin-username'})
+                  </Text>
+                </View>
+                <View style={styles.ticketRow}>
+                  <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={16} color={colors.textSecondary} />
+                  <Text style={styles.ticketText}>
+                    {ticket.user?.email || 'Email desconocido'}
+                  </Text>
+                </View>
+                <Text style={styles.ticketDescription} numberOfLines={2}>
+                  {ticket.description}
+                </Text>
+              </View>
+
+              <View style={styles.ticketFooter}>
+                <Text style={styles.ticketDate}>
+                  {new Date(ticket.created_at).toLocaleDateString('es-ES', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </Text>
+                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </React.Fragment>
+      )}
+    </ScrollView>
+  );
 
   const renderReportesTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
@@ -225,7 +527,7 @@ export default function SoporteAyudaScreen() {
               style={styles.reporteCard}
               onPress={() => {
                 setSelectedReporte(reporte);
-                setNotasAdmin(reporte.notas_admin || '');
+                setAdminNotes(reporte.notas_admin || '');
                 setShowDetailModal(true);
               }}
             >
@@ -378,7 +680,7 @@ export default function SoporteAyudaScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Soporte y Ayuda</Text>
-          <Text style={styles.headerSubtitle}>Gestiona reportes y solicitudes</Text>
+          <Text style={styles.headerSubtitle}>Gestiona tickets y reportes</Text>
         </View>
         <TouchableOpacity onPress={cargarDatos}>
           <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={24} color={colors.headerText} />
@@ -386,6 +688,21 @@ export default function SoporteAyudaScreen() {
       </LinearGradient>
 
       <View style={styles.tabs}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'tickets' && styles.tabActive]}
+          onPress={() => setActiveTab('tickets')}
+        >
+          <IconSymbol
+            ios_icon_name="ticket.fill"
+            android_material_icon_name="confirmation_number"
+            size={20}
+            color={activeTab === 'tickets' ? colors.primary : colors.textSecondary}
+          />
+          <Text style={[styles.tabText, activeTab === 'tickets' && styles.tabTextActive]}>
+            Tickets ({tickets.filter(t => t.status === 'open').length})
+          </Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.tab, activeTab === 'reportes' && styles.tabActive]}
           onPress={() => setActiveTab('reportes')}
@@ -417,24 +734,180 @@ export default function SoporteAyudaScreen() {
         </TouchableOpacity>
       </View>
 
+      {activeTab === 'tickets' && renderTicketsTab()}
       {activeTab === 'reportes' && renderReportesTab()}
       {activeTab === 'solicitudes' && renderSolicitudesTab()}
 
-      {/* Detail Modal */}
+      {/* Ticket Detail Modal */}
       <Modal
-        visible={showDetailModal}
+        visible={showDetailModal && selectedTicket !== null}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowDetailModal(false)}
+        onRequestClose={() => {
+          setShowDetailModal(false);
+          setSelectedTicket(null);
+          setSelectedReporte(null);
+        }}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowDetailModal(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => {
+          setShowDetailModal(false);
+          setSelectedTicket(null);
+          setSelectedReporte(null);
+        }}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Detalle del Reporte</Text>
-              <TouchableOpacity onPress={() => setShowDetailModal(false)}>
+              <Text style={styles.modalTitle}>
+                {selectedTicket ? `Ticket ${selectedTicket.ticket_number}` : 'Detalle del Reporte'}
+              </Text>
+              <TouchableOpacity onPress={() => {
+                setShowDetailModal(false);
+                setSelectedTicket(null);
+                setSelectedReporte(null);
+              }}>
                 <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
+
+            {selectedTicket && (
+              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Usuario:</Text>
+                  <View style={styles.userInfoRow}>
+                    <Text style={styles.detailValue}>
+                      {selectedTicket.user?.nombre} (@{selectedTicket.user?.username || 'sin-username'})
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.linkButton}
+                      onPress={() => {
+                        if (selectedTicket.user?.username) {
+                          router.push(`/perfil/usuario?username=${selectedTicket.user.username}`);
+                          setShowDetailModal(false);
+                        }
+                      }}
+                    >
+                      <IconSymbol ios_icon_name="arrow.up.right.square.fill" android_material_icon_name="open_in_new" size={18} color={colors.primary} />
+                      <Text style={styles.linkButtonText}>Ver Perfil</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Email:</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (selectedTicket.user?.email) {
+                        Linking.openURL(`mailto:${selectedTicket.user.email}`);
+                      }
+                    }}
+                  >
+                    <Text style={[styles.detailValue, { color: colors.primary }]}>
+                      {selectedTicket.user?.email}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Asunto:</Text>
+                  <Text style={styles.detailValue}>{selectedTicket.subject}</Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Descripción:</Text>
+                  <Text style={styles.detailValue}>{selectedTicket.description}</Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Categoría:</Text>
+                  <Text style={styles.detailValue}>{getCategoryText(selectedTicket.category)}</Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Prioridad:</Text>
+                  {getPriorityBadge(selectedTicket.priority)}
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Estado actual:</Text>
+                  {getEstadoBadge(selectedTicket.status)}
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Responder por Email:</Text>
+                  <TextInput
+                    style={styles.textArea}
+                    value={responseMessage}
+                    onChangeText={setResponseMessage}
+                    placeholder="Escribe tu respuesta al usuario..."
+                    placeholderTextColor={colors.textSecondary}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+                  <TouchableOpacity
+                    style={[styles.sendEmailButton, (sendingEmail || !responseMessage.trim()) && styles.sendEmailButtonDisabled]}
+                    onPress={handleSendResponse}
+                    disabled={sendingEmail || !responseMessage.trim()}
+                  >
+                    {sendingEmail ? (
+                      <ActivityIndicator size="small" color={colors.white} />
+                    ) : (
+                      <>
+                        <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={18} color={colors.white} />
+                        <Text style={styles.sendEmailButtonText}>Enviar Respuesta por Email</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Notas del Administrador (internas):</Text>
+                  <TextInput
+                    style={styles.textArea}
+                    value={adminNotes}
+                    onChangeText={setAdminNotes}
+                    placeholder="Añade notas internas sobre la resolución..."
+                    placeholderTextColor={colors.textSecondary}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                  />
+                </View>
+
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
+                    onPress={() => handleUpdateTicket(selectedTicket.id, 'in_progress')}
+                    disabled={updating}
+                  >
+                    <Text style={styles.actionButtonText}>Marcar en Progreso</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: '#10B981' }]}
+                    onPress={() => handleUpdateTicket(selectedTicket.id, 'resolved')}
+                    disabled={updating}
+                  >
+                    <Text style={styles.actionButtonText}>Marcar Resuelto</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: '#6B7280' }]}
+                    onPress={() => handleUpdateTicket(selectedTicket.id, 'closed')}
+                    disabled={updating}
+                  >
+                    <Text style={styles.actionButtonText}>Cerrar Ticket</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: '#EF4444' }]}
+                    onPress={() => handleDeleteTicket(selectedTicket.id)}
+                    disabled={updating}
+                  >
+                    <Text style={styles.actionButtonText}>Eliminar Ticket</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            )}
 
             {selectedReporte && (
               <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
@@ -476,8 +949,8 @@ export default function SoporteAyudaScreen() {
                   <Text style={styles.formLabel}>Notas del Administrador:</Text>
                   <TextInput
                     style={styles.textArea}
-                    value={notasAdmin}
-                    onChangeText={setNotasAdmin}
+                    value={adminNotes}
+                    onChangeText={setAdminNotes}
                     placeholder="Añade notas sobre la resolución..."
                     placeholderTextColor={colors.textSecondary}
                     multiline
@@ -514,7 +987,11 @@ export default function SoporteAyudaScreen() {
               </ScrollView>
             )}
 
-            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowDetailModal(false)}>
+            <TouchableOpacity style={styles.modalCancelButton} onPress={() => {
+              setShowDetailModal(false);
+              setSelectedTicket(null);
+              setSelectedReporte(null);
+            }}>
               <Text style={styles.modalCancelText}>Cerrar</Text>
             </TouchableOpacity>
           </Pressable>
@@ -617,6 +1094,95 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '600',
   },
+  ticketCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    ...commonStyles.shadow,
+  },
+  ticketHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  ticketHeaderLeft: {
+    flex: 1,
+  },
+  ticketNumberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  ticketNumber: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  priorityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  priorityText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  ticketSubject: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  ticketCategory: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  ticketBody: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  ticketRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  ticketText: {
+    fontSize: 13,
+    color: colors.text,
+    flex: 1,
+  },
+  ticketDescription: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  ticketFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  ticketDate: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
   reporteCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
@@ -644,15 +1210,6 @@ const styles = StyleSheet.create({
   reporteLocal: {
     fontSize: 13,
     color: colors.textSecondary,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   reporteBody: {
     gap: 8,
@@ -753,7 +1310,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: '100%',
-    maxWidth: 500,
+    maxWidth: 600,
     maxHeight: '90%',
   },
   modalHeader: {
@@ -785,6 +1342,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
   },
+  userInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  linkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: colors.primary + '15',
+    borderRadius: 8,
+  },
+  linkButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+  },
   formGroup: {
     marginBottom: 16,
   },
@@ -804,6 +1381,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     minHeight: 100,
+  },
+  sendEmailButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  sendEmailButtonDisabled: {
+    backgroundColor: colors.cardBorder,
+    opacity: 0.5,
+  },
+  sendEmailButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.white,
   },
   actionButtons: {
     gap: 12,

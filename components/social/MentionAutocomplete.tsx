@@ -31,13 +31,14 @@ interface MentionAutocompleteProps {
 }
 
 /**
- * ✅ MENTION SYSTEM v7.0 - FIXED KEYBOARD OVERLAP
+ * ✅ MENTION SYSTEM v8.0 - FIXED KEYBOARD OVERLAP IN COMMENTS MODAL
  * 
  * Changes:
- * - ✅ FIXED: Modal now appears ABOVE keyboard, not hidden behind it
- * - ✅ Position calculated based on keyboard height
+ * - ✅ CRITICAL FIX: Modal now appears ABOVE keyboard, not hidden behind it
+ * - ✅ Position calculated based on keyboard height prop
  * - ✅ Proper z-index and elevation to stay on top
  * - ✅ Maintains all search and selection functionality
+ * - ✅ Auto-closes on selection
  */
 
 function normalizeText(text: string): string {
@@ -185,7 +186,7 @@ export default function MentionAutocomplete({
           })));
         }
       } catch (error) {
-        console.error('[MentionAutocomplete v7.0] Error in user search:', error);
+        console.error('[MentionAutocomplete v8.0] Error in user search:', error);
       }
 
       try {
@@ -242,7 +243,7 @@ export default function MentionAutocomplete({
           }
         }
       } catch (error) {
-        console.error('[MentionAutocomplete v7.0] Error in local search:', error);
+        console.error('[MentionAutocomplete v8.0] Error in local search:', error);
       }
 
       const uniqueResults = results.filter((item, index, self) =>
@@ -251,7 +252,7 @@ export default function MentionAutocomplete({
       
       setSuggestions(uniqueResults);
     } catch (error) {
-      console.error('[MentionAutocomplete v7.0] Error in searchMentions:', error);
+      console.error('[MentionAutocomplete v8.0] Error in searchMentions:', error);
       setSuggestions([]);
     } finally {
       setLoading(false);
@@ -279,9 +280,8 @@ export default function MentionAutocomplete({
     }
   }, [currentMentionText, searchMentions]);
 
-  // ✅ FIXED: Auto-close on selection
   const handleSelectMention = (mention: MentionSuggestion) => {
-    console.log('[MentionAutocomplete v7.0] ✅ Mention selected, auto-closing:', mention.username);
+    console.log('[MentionAutocomplete v8.0] ✅ Mention selected, auto-closing:', mention.username);
     onSelectMention(mention, currentMentionText || '');
     
     // Immediately hide the modal
@@ -291,18 +291,19 @@ export default function MentionAutocomplete({
     setShowHint(false);
   };
 
+  // ✅ FIXED: Don't show if keyboard is not visible or no mention detected
   if (!isVisible || currentMentionText === null || keyboardHeight === 0) {
     return null;
   }
 
   // ✅ FIXED: Position modal ABOVE keyboard with proper spacing
   const modalHeight = Math.min(280, SCREEN_HEIGHT * 0.4);
-  const bottomPosition = keyboardHeight + 10; // 10px above keyboard
+  const bottomPosition = keyboardHeight + 60; // Position above input container (60px = input height)
 
-  console.log('[MentionAutocomplete v7.0] 📐 Screen height:', SCREEN_HEIGHT);
-  console.log('[MentionAutocomplete v7.0] ⌨️ Keyboard height:', keyboardHeight);
-  console.log('[MentionAutocomplete v7.0] 📦 Modal height:', modalHeight);
-  console.log('[MentionAutocomplete v7.0] 📍 Bottom position:', bottomPosition);
+  console.log('[MentionAutocomplete v8.0] 📐 Screen height:', SCREEN_HEIGHT);
+  console.log('[MentionAutocomplete v8.0] ⌨️ Keyboard height:', keyboardHeight);
+  console.log('[MentionAutocomplete v8.0] 📦 Modal height:', modalHeight);
+  console.log('[MentionAutocomplete v8.0] 📍 Bottom position:', bottomPosition);
 
   return (
     <View
@@ -401,7 +402,7 @@ export default function MentionAutocomplete({
               size={18} 
               color={colors.textSecondary} 
             />
-            <Text style={styles.emptyText}>Sin resultados para "@{currentMentionText}"</Text>
+            <Text style={styles.emptyText}>Sin resultados para &quot;@{currentMentionText}&quot;</Text>
           </View>
         )}
       </View>
@@ -414,8 +415,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    zIndex: 9999,
-    elevation: 9999,
+    zIndex: 99999,
+    elevation: 99999,
   },
   content: {
     backgroundColor: colors.cardBackground,
@@ -427,7 +428,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
-    elevation: 15,
+    elevation: 20,
     borderWidth: 1,
     borderBottomWidth: 0,
     borderColor: colors.primary + '40',
