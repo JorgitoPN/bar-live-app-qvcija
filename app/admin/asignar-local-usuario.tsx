@@ -50,7 +50,7 @@ export default function AsignarLocalUsuarioScreen() {
   const [selectedRole, setSelectedRole] = useState<'propietario' | 'administrador' | 'editor'>('propietario');
   const [assigning, setAssigning] = useState(false);
 
-  // Search users
+  // Search users with debounce
   const searchUsers = useCallback(async (query: string) => {
     if (query.trim().length < 2) {
       setUserResults([]);
@@ -77,7 +77,7 @@ export default function AsignarLocalUsuarioScreen() {
     }
   }, []);
 
-  // Search locals
+  // Search locals with debounce
   const searchLocals = useCallback(async (query: string) => {
     if (query.trim().length < 2) {
       setLocalResults([]);
@@ -105,26 +105,35 @@ export default function AsignarLocalUsuarioScreen() {
     }
   }, []);
 
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (userQuery) {
-        searchUsers(userQuery);
-      }
-    }, 300);
+  // Handle user query change with debounce
+  const handleUserQueryChange = useCallback((text: string) => {
+    setUserQuery(text);
+    
+    if (text.trim().length >= 2) {
+      const timer = setTimeout(() => {
+        searchUsers(text);
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setUserResults([]);
+    }
+  }, [searchUsers]);
 
-    return () => clearTimeout(timer);
-  }, [userQuery, searchUsers]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (localQuery) {
-        searchLocals(localQuery);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [localQuery, searchLocals]);
+  // Handle local query change with debounce
+  const handleLocalQueryChange = useCallback((text: string) => {
+    setLocalQuery(text);
+    
+    if (text.trim().length >= 2) {
+      const timer = setTimeout(() => {
+        searchLocals(text);
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setLocalResults([]);
+    }
+  }, [searchLocals]);
 
   const handleSelectUser = (user: User) => {
     setSelectedUser(user);
@@ -297,7 +306,7 @@ export default function AsignarLocalUsuarioScreen() {
                 <TextInput
                   style={styles.searchInput}
                   value={userQuery}
-                  onChangeText={setUserQuery}
+                  onChangeText={handleUserQueryChange}
                   placeholder="Buscar por nombre, email o username..."
                   placeholderTextColor={colors.textSecondary}
                 />
@@ -373,7 +382,7 @@ export default function AsignarLocalUsuarioScreen() {
                 <TextInput
                   style={styles.searchInput}
                   value={localQuery}
-                  onChangeText={setLocalQuery}
+                  onChangeText={handleLocalQueryChange}
                   placeholder="Buscar por nombre o dirección..."
                   placeholderTextColor={colors.textSecondary}
                 />

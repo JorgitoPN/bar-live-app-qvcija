@@ -69,12 +69,14 @@ interface PerfilProfesional {
 }
 
 /**
- * ✅ PROFILE SCREEN v10.0 - CART ICON FOR OWNERS (FIXED)
+ * ✅ PROFILE SCREEN v11.0 - WITH CURRENT LOCATION SECTION
  * 
  * Changes:
- * - ✅ Cart icon now shows for propietario role AND admin in propietario mode
- * - ✅ Cart icon shows badge with item count
- * - ✅ Opens shopping cart modal
+ * - ✅ Added "Estado actual" section showing current check-in
+ * - ✅ Visual card with local photo, name, and address
+ * - ✅ "Salir del local" button for own profile
+ * - ✅ Clickable card navigates to local page
+ * - ✅ Cart icon for propietario role
  */
 
 export default function PerfilScreen() {
@@ -117,8 +119,10 @@ export default function PerfilScreen() {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [allPostIds, setAllPostIds] = useState<string[]>([]);
 
+  // ✅ Current location state
+  const [currentLocal, setCurrentLocal] = useState<any>(null);
+
   const userRole = user?.rol_app || 'cliente';
-  // ✅ FIXED: Show cart icon for propietario role OR admin in propietario mode
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
 
   console.log('[Perfil] 🛒 Cart icon visibility check:', {
@@ -128,7 +132,6 @@ export default function PerfilScreen() {
     shouldShowCart: isPropietario,
   });
 
-  // ✅ Load cart items count
   const loadCartItemsCount = useCallback(async () => {
     if (!user || !isPropietario) {
       console.log('[Perfil] 🛒 Skipping cart load - not propietario:', { user: !!user, isPropietario });
@@ -154,6 +157,37 @@ export default function PerfilScreen() {
       console.error('[Perfil] ❌ Error loading cart count:', error);
     }
   }, [user, isPropietario]);
+
+  // ✅ Load current check-in location
+  const loadCurrentLocal = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data: checkIn, error } = await supabase
+        .from('check_ins')
+        .select(`
+          local_id,
+          visibility,
+          locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
+        `)
+        .eq('usuario_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[Perfil] Error loading current local:', error);
+        return;
+      }
+
+      if (checkIn && checkIn.locales) {
+        setCurrentLocal(checkIn.locales);
+        console.log('[Perfil] ✅ User is checked in to:', checkIn.locales.nombre);
+      } else {
+        setCurrentLocal(null);
+      }
+    } catch (error) {
+      console.error('[Perfil] Error loading current local:', error);
+    }
+  }, [user]);
 
   const checkUnviewedMomentos = useCallback(async () => {
     if (!user) {
@@ -508,6 +542,7 @@ export default function PerfilScreen() {
       await loadUnreadCounts();
       await checkUnviewedMomentos();
       await loadCartItemsCount();
+      await loadCurrentLocal();
 
       console.log('[Perfil] ✅ Loading user profile with FIXED counting logic');
       
@@ -550,7 +585,7 @@ export default function PerfilScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, loadUnreadCounts, checkUnviewedMomentos, loadCartItemsCount, cargarPosts]);
+  }, [user, loadUnreadCounts, checkUnviewedMomentos, loadCartItemsCount, loadCurrentLocal, cargarPosts]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -609,15 +644,27 @@ export default function PerfilScreen() {
           checkUnviewedMomentos();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'check_ins',
+          filter: `usuario_id=eq.${user.id}`,
+        },
+        () => {
+          console.log('[Perfil] 🔄 Check-in update detected, reloading...');
+          loadCurrentLocal();
+        }
+      )
       .subscribe();
 
     return () => {
-      console.log('[Perfil] 🔄 Cleaning up momento subscriptions');
+      console.log('[Perfil] 🔄 Cleaning up subscriptions');
       supabase.removeChannel(subscription);
     };
-  }, [user, checkUnviewedMomentos]);
+  }, [user, checkUnviewedMomentos, loadCurrentLocal]);
 
-  // ✅ Subscribe to cart changes (FIXED: check isPropietario instead of userRole)
   useEffect(() => {
     if (!user || !isPropietario) {
       console.log('[Perfil] 🛒 Skipping cart subscription - not propietario');
@@ -761,16 +808,46 @@ export default function PerfilScreen() {
     setShowPostViewer(true);
   };
 
-  // ✅ Handle cart checkout
   const handleCartCheckout = async (items: any[], total: number) => {
     console.log('[Perfil] 🛒 Processing checkout:', { items: items.length, total });
     
-    // TODO: Implement Stripe payment flow
     Alert.alert(
       'Pago en Desarrollo',
       `Total a pagar: €${total.toFixed(2)}\n\nLa integración con Stripe está en desarrollo.`,
       [
         { text: 'OK', onPress: () => setShowCart(false) }
+      ]
+    );
+  };
+
+  // ✅ Handle exit local
+  const handleExitLocal = async () => {
+    if (!user || !currentLocal) return;
+
+    Alert.alert(
+      'Salir del local',
+      `¿Quieres indicar que ya no estás en ${currentLocal.nombre}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Confirmar',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('check_ins')
+                .delete()
+                .eq('usuario_id', user.id);
+
+              if (error) throw error;
+
+              setCurrentLocal(null);
+              Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
+            } catch (error) {
+              console.error('[Perfil] Error exiting local:', error);
+              Alert.alert('Error', 'No se pudo realizar el check-out');
+            }
+          },
+        },
       ]
     );
   };
@@ -929,6 +1006,69 @@ export default function PerfilScreen() {
           </TouchableOpacity>
         )}
 
+        {/* ✅ CURRENT LOCATION SECTION - "Estado actual" (OWN PROFILE) */}
+        {currentLocal && (
+          <View style={styles.currentLocalSection}>
+            <View style={styles.currentLocalHeader}>
+              <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color="#10B981" />
+              <Text style={styles.currentLocalHeaderText}>Estado actual</Text>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.currentLocalCard} 
+              onPress={() => router.push(`/detalle/local?id=${currentLocal.id}`)}
+              activeOpacity={0.9}
+            >
+              <View style={styles.currentLocalImageContainer}>
+                {currentLocal.imagen_url ? (
+                  <Image 
+                    source={{ uri: currentLocal.imagen_url }} 
+                    style={styles.currentLocalImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.currentLocalImage, styles.currentLocalImagePlaceholder]}>
+                    <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="rgba(255, 255, 255, 0.6)" />
+                  </View>
+                )}
+                <LinearGradient
+                  colors={['transparent', 'rgba(0, 0, 0, 0.6)']}
+                  style={styles.currentLocalImageGradient}
+                />
+                <View style={styles.currentLocalBadge}>
+                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={12} color="#10B981" />
+                  <Text style={styles.currentLocalBadgeText}>Ahora en...</Text>
+                </View>
+              </View>
+
+              <View style={styles.currentLocalContent}>
+                <Text style={styles.currentLocalLabel}>
+                  Actualmente en
+                </Text>
+                <Text style={styles.currentLocalName} numberOfLines={1}>
+                  {currentLocal.nombre}
+                </Text>
+                <View style={styles.currentLocalMeta}>
+                  <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={11} color="rgba(255, 255, 255, 0.8)" />
+                  <Text style={styles.currentLocalAddress} numberOfLines={1}>
+                    {currentLocal.direccion}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.currentLocalArrow}>
+                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={18} color={colors.headerText} />
+              </View>
+            </TouchableOpacity>
+            
+            {/* 🔘 "Salir del local" button */}
+            <TouchableOpacity style={styles.exitLocalButton} onPress={handleExitLocal}>
+              <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={16} color="#EF4444" />
+              <Text style={styles.exitLocalButtonText}>Salir del local</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{publicaciones}</Text>
@@ -1024,7 +1164,6 @@ export default function PerfilScreen() {
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Mi Perfil</Text>
           <View style={styles.headerActions}>
-            {/* ✅ FIXED: Icon order - Messages, Notifications, Cart (if propietario), Settings */}
             <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
               <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
               {unreadMessages > 0 && (
@@ -1046,7 +1185,6 @@ export default function PerfilScreen() {
               )}
             </TouchableOpacity>
             
-            {/* ✅ FIXED: CART ICON - Now positioned BEFORE settings icon */}
             {isPropietario && (
               <TouchableOpacity 
                 style={styles.headerButton} 
@@ -1310,7 +1448,6 @@ export default function PerfilScreen() {
         />
       )}
 
-      {/* ✅ Shopping Cart Modal */}
       <Modal
         visible={showCart}
         animationType="slide"
@@ -1525,6 +1662,115 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.headerText,
     fontWeight: '500',
+  },
+  // ✅ CURRENT LOCATION SECTION STYLES - VISUAL CARD (OWN PROFILE)
+  currentLocalSection: {
+    marginBottom: 20,
+  },
+  currentLocalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  currentLocalHeaderText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.headerText,
+  },
+  currentLocalCard: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    marginBottom: 10,
+  },
+  currentLocalImageContainer: {
+    width: 80,
+    height: 80,
+    position: 'relative',
+  },
+  currentLocalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  currentLocalImagePlaceholder: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currentLocalImageGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+  },
+  currentLocalBadge: {
+    position: 'absolute',
+    bottom: 5,
+    left: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.white,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  currentLocalBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  currentLocalContent: {
+    flex: 1,
+    padding: 10,
+    justifyContent: 'center',
+  },
+  currentLocalLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 3,
+  },
+  currentLocalName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.headerText,
+    marginBottom: 5,
+  },
+  currentLocalMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  currentLocalAddress: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    flex: 1,
+  },
+  currentLocalArrow: {
+    justifyContent: 'center',
+    paddingRight: 10,
+  },
+  exitLocalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  exitLocalButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#EF4444',
   },
   statsContainer: {
     flexDirection: 'row',

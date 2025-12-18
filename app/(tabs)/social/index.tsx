@@ -75,16 +75,16 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL FEED v4.0 - WITH FULL-WIDTH FRIENDS LOCATIONS CAROUSEL
+ * ✅ SOCIAL FEED v5.0 - FULL-WIDTH FRIENDS LOCATIONS CAROUSEL (IMPROVED)
  * 
  * Features:
- * - ✅ Full-width "¿Quieres saber dónde están tus amigos?" section
- * - ✅ Horizontal scrolling carousel (like stories)
- * - ✅ Smaller, more compact design
+ * - ✅ Full-width "¿Quieres saber dónde están tus amigos?" section (NO margins)
+ * - ✅ Horizontal scrolling carousel (like stories) - SMALLER and more compact
  * - ✅ Shows friends currently at locals
  * - ✅ Shows user's own check-in if present
  * - ✅ Beautiful visual cards with avatars, local photos, badges
  * - ✅ Clickable cards navigate to local page
+ * - ✅ Matches publication width (full width, no margins)
  */
 
 export default function SocialIndexScreen() {
@@ -99,16 +99,13 @@ export default function SocialIndexScreen() {
   const [page, setPage] = useState(1);
   const flatListRef = useRef<FlatList>(null);
 
-  // ✅ Badge counts state
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
-  // ✅ Friends locations state
   const [friendsLocations, setFriendsLocations] = useState<FriendLocation[]>([]);
   const [loadingFriendsLocations, setLoadingFriendsLocations] = useState(false);
   const [myCheckIn, setMyCheckIn] = useState<any>(null);
 
-  // ✅ Load unread counts
   const loadUnreadCounts = useCallback(async () => {
     if (!userId) return;
 
@@ -155,7 +152,6 @@ export default function SocialIndexScreen() {
     }
   }, [userId]);
 
-  // ✅ Subscribe to real-time updates
   useEffect(() => {
     if (!userId) return;
 
@@ -333,7 +329,6 @@ export default function SocialIndexScreen() {
     router.push('/crear/publicacion');
   };
 
-  // ✅ Load friends' locations AND my own check-in
   const loadFriendsLocations = useCallback(async () => {
     if (!userId) return;
 
@@ -431,7 +426,6 @@ export default function SocialIndexScreen() {
   useEffect(() => {
     loadFriendsLocations();
 
-    // Subscribe to check-in changes
     if (userId) {
       const checkInsChannel = supabase
         .channel('social-check-ins-updates')
@@ -478,11 +472,11 @@ export default function SocialIndexScreen() {
 
       <MomentoCarousel />
 
-      {/* ✅ FRIENDS LOCATIONS SECTION - FULL WIDTH, HORIZONTAL SCROLL */}
+      {/* ✅ FRIENDS LOCATIONS SECTION - FULL WIDTH, COMPACT, HORIZONTAL SCROLL (IMPROVED v2) */}
       {(myCheckIn || friendsLocations.length > 0) && (
         <View style={styles.friendsLocationsSection}>
           <View style={styles.friendsLocationsSectionHeader}>
-            <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color={colors.primary} />
+            <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color={colors.primary} />
             <Text style={styles.friendsLocationsSectionTitle}>
               ¿Quieres saber dónde están tus amigos?
             </Text>
@@ -510,17 +504,17 @@ export default function SocialIndexScreen() {
                     />
                   ) : (
                     <View style={[styles.friendLocationImage, styles.friendLocationImagePlaceholder]}>
-                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={28} color="rgba(255, 255, 255, 0.6)" />
+                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="rgba(255, 255, 255, 0.6)" />
                     </View>
                   )}
                   <LinearGradient
-                    colors={['transparent', 'rgba(0, 0, 0, 0.7)']}
+                    colors={['transparent', 'rgba(0, 0, 0, 0.75)']}
                     style={styles.friendLocationGradient}
                   />
                   
                   {/* "Tú estás aquí" badge */}
                   <View style={[styles.friendLocationBadge, { backgroundColor: '#10B981' }]}>
-                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={12} color={colors.white} />
+                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={11} color={colors.white} />
                     <Text style={styles.friendLocationBadgeText}>Tú estás aquí</Text>
                   </View>
                 </View>
@@ -530,7 +524,7 @@ export default function SocialIndexScreen() {
                     {myCheckIn.locales.nombre}
                   </Text>
                   <View style={styles.friendLocationMeta}>
-                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={10} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={9} color={colors.textSecondary} />
                     <Text style={styles.friendLocationAddress} numberOfLines={1}>
                       {myCheckIn.locales.direccion}
                     </Text>
@@ -556,11 +550,11 @@ export default function SocialIndexScreen() {
                     />
                   ) : (
                     <View style={[styles.friendLocationImage, styles.friendLocationImagePlaceholder]}>
-                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={28} color="rgba(255, 255, 255, 0.6)" />
+                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="rgba(255, 255, 255, 0.6)" />
                     </View>
                   )}
                   <LinearGradient
-                    colors={['transparent', 'rgba(0, 0, 0, 0.7)']}
+                    colors={['transparent', 'rgba(0, 0, 0, 0.75)']}
                     style={styles.friendLocationGradient}
                   />
                   
@@ -571,7 +565,7 @@ export default function SocialIndexScreen() {
                         key={user.id} 
                         style={[
                           styles.friendLocationAvatar,
-                          { marginLeft: userIndex > 0 ? -10 : 0 }
+                          { marginLeft: userIndex > 0 ? -8 : 0 }
                         ]}
                       >
                         {user.avatar ? (
@@ -581,13 +575,13 @@ export default function SocialIndexScreen() {
                           />
                         ) : (
                           <View style={styles.friendLocationAvatarPlaceholder}>
-                            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={12} color={colors.white} />
+                            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={10} color={colors.white} />
                           </View>
                         )}
                       </View>
                     ))}
                     {location.users.length > 3 && (
-                      <View style={[styles.friendLocationAvatar, styles.friendLocationAvatarMore, { marginLeft: -10 }]}>
+                      <View style={[styles.friendLocationAvatar, styles.friendLocationAvatarMore, { marginLeft: -8 }]}>
                         <Text style={styles.friendLocationAvatarMoreText}>+{location.users.length - 3}</Text>
                       </View>
                     )}
@@ -595,7 +589,7 @@ export default function SocialIndexScreen() {
 
                   {/* "Ahora en..." badge */}
                   <View style={styles.friendLocationBadge}>
-                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={12} color={colors.white} />
+                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={11} color={colors.white} />
                     <Text style={styles.friendLocationBadgeText}>
                       {location.users.length} {location.users.length === 1 ? 'amigo' : 'amigos'}
                     </Text>
@@ -607,7 +601,7 @@ export default function SocialIndexScreen() {
                     {location.local.nombre}
                   </Text>
                   <View style={styles.friendLocationMeta}>
-                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={10} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={9} color={colors.textSecondary} />
                     <Text style={styles.friendLocationAddress} numberOfLines={1}>
                       {location.local.direccion}
                     </Text>
@@ -661,7 +655,6 @@ export default function SocialIndexScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅ Header with synchronized badges */}
       <HeaderSocial
         unreadNotifications={unreadNotifications}
         unreadMessages={unreadMessages}
@@ -767,25 +760,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  // ✅ FRIENDS LOCATIONS SECTION - FULL WIDTH, COMPACT, HORIZONTAL SCROLL
+  // ✅ FRIENDS LOCATIONS SECTION - FULL WIDTH (NO MARGINS), COMPACT, HORIZONTAL SCROLL
   friendsLocationsSection: {
-    marginTop: 12,
-    marginBottom: 12,
+    marginTop: 8,
+    marginBottom: 8,
     backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: colors.cardBorder,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   friendsLocationsSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   friendsLocationsSectionTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
   },
@@ -794,10 +787,10 @@ const styles = StyleSheet.create({
   },
   friendsLocationsScroll: {
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 10,
   },
   friendLocationCard: {
-    width: 140,
+    width: 120,
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     overflow: 'hidden',
@@ -806,7 +799,7 @@ const styles = StyleSheet.create({
   },
   friendLocationImageContainer: {
     width: '100%',
-    height: 100,
+    height: 80,
     position: 'relative',
   },
   friendLocationImage: {
@@ -823,19 +816,19 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: '50%',
+    height: '60%',
   },
   friendLocationAvatars: {
     position: 'absolute',
-    top: 8,
-    left: 8,
+    top: 6,
+    left: 6,
     flexDirection: 'row',
     alignItems: 'center',
   },
   friendLocationAvatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
     borderColor: colors.white,
     overflow: 'hidden',
@@ -853,48 +846,48 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   friendLocationAvatarMore: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   friendLocationAvatarMoreText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: colors.white,
   },
   friendLocationBadge: {
     position: 'absolute',
-    bottom: 6,
-    left: 6,
+    bottom: 5,
+    left: 5,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     backgroundColor: colors.primary,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   friendLocationBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: colors.white,
   },
   friendLocationInfo: {
-    padding: 10,
+    padding: 8,
   },
   friendLocationName: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   friendLocationMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 2,
   },
   friendLocationAddress: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textSecondary,
     flex: 1,
   },

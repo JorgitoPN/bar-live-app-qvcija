@@ -363,13 +363,13 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       const now = new Date();
       const end = new Date(fechaProximoPago);
       const start = new Date(end);
-      start.setMonth(start.getMonth() - 1); // Assume 1 month period
+      start.setMonth(start.getMonth() - 1);
       
       const totalDuration = end.getTime() - start.getTime();
       const elapsed = now.getTime() - start.getTime();
       const progress = (elapsed / totalDuration) * 100;
       
-      return Math.max(0, Math.min(100, 100 - progress)); // Invert so it shows remaining time
+      return Math.max(0, Math.min(100, 100 - progress));
     } catch (error) {
       return 0;
     }
@@ -377,14 +377,58 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
   return (
     <View style={styles.card}>
-      {/* Cover Image */}
-      <TouchableOpacity onPress={() => router.push(`/detalle/local?id=${local.id}`)}>
+      {/* ✅ IMPROVED: Cover Image with Gradient Overlay */}
+      <TouchableOpacity 
+        style={styles.coverImageContainer}
+        onPress={() => router.push(`/detalle/local?id=${local.id}`)}
+        activeOpacity={0.9}
+      >
         {local.imagen_url ? (
-          <Image source={{ uri: local.imagen_url }} style={styles.coverImage} />
+          <React.Fragment>
+            <Image source={{ uri: local.imagen_url }} style={styles.coverImage} resizeMode="cover" />
+            <LinearGradient
+              colors={['transparent', 'rgba(0, 0, 0, 0.7)']}
+              style={styles.coverImageGradient}
+            />
+          </React.Fragment>
         ) : (
           <View style={[styles.coverImage, styles.coverImagePlaceholder]}>
-            <IconSymbol name="building.2" size={48} color={colors.textSecondary} />
-            <Text style={styles.coverImagePlaceholderText}>Sin imagen</Text>
+            <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={48} color="rgba(255, 255, 255, 0.5)" />
+            <Text style={styles.coverImagePlaceholderText}>Sin imagen de portada</Text>
+          </View>
+        )}
+
+        {/* Local Name Overlay on Image */}
+        <View style={styles.coverImageOverlay}>
+          <Text style={styles.coverImageLocalName} numberOfLines={1}>{local.nombre}</Text>
+          <View style={styles.coverImageMeta}>
+            <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={12} color="rgba(255, 255, 255, 0.9)" />
+            <Text style={styles.coverImageProvincia}>{local.provincia}</Text>
+          </View>
+        </View>
+
+        {/* Plan Badge on Image */}
+        {local.suscripcion ? (
+          <View
+            style={[
+              styles.planBadgeOnImage,
+              { backgroundColor: getPlanColor(local.suscripcion.plan_nombre) },
+            ]}
+          >
+            <IconSymbol
+              ios_icon_name={getPlanIcon(local.suscripcion.plan_nombre) as any}
+              android_material_icon_name="star"
+              size={12}
+              color="#FFFFFF"
+            />
+            <Text style={styles.planBadgeOnImageText}>
+              {local.suscripcion.plan_nombre.toUpperCase()}
+            </Text>
+          </View>
+        ) : (
+          <View style={[styles.planBadgeOnImage, { backgroundColor: '#6B7280' }]}>
+            <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={12} color="#FFFFFF" />
+            <Text style={styles.planBadgeOnImageText}>SIN PLAN</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -392,46 +436,16 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       {/* Selected Badge */}
       {isSelected && (
         <View style={styles.selectedBadge}>
-          <IconSymbol name="checkmark.circle.fill" size={20} color="#FFFFFF" />
+          <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={18} color="#FFFFFF" />
           <Text style={styles.selectedBadgeText}>ACTIVO</Text>
         </View>
       )}
 
       <View style={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.localInfo}>
-            <Text style={styles.localNombre}>{local.nombre}</Text>
-            <Text style={styles.localProvincia}>{local.provincia}</Text>
-          </View>
-          {local.suscripcion ? (
-            <View
-              style={[
-                styles.planBadge,
-                { backgroundColor: getPlanColor(local.suscripcion.plan_nombre) },
-              ]}
-            >
-              <IconSymbol
-                name={getPlanIcon(local.suscripcion.plan_nombre) as any}
-                size={14}
-                color="#FFFFFF"
-              />
-              <Text style={styles.planBadgeText}>
-                {local.suscripcion.plan_nombre.toUpperCase()}
-              </Text>
-            </View>
-          ) : (
-            <View style={[styles.planBadge, { backgroundColor: '#6B7280' }]}>
-              <IconSymbol name="exclamationmark.triangle" size={14} color="#FFFFFF" />
-              <Text style={styles.planBadgeText}>SIN PLAN</Text>
-            </View>
-          )}
-        </View>
-
         {/* Pending Plan Change Warning */}
         {local.suscripcion?.plan_pendiente_id && (
           <View style={styles.warningBanner}>
-            <IconSymbol name="info.circle.fill" size={18} color="#F59E0B" />
+            <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={18} color="#F59E0B" />
             <Text style={styles.warningText}>
               Cambio a {local.suscripcion.plan_pendiente_nombre?.toUpperCase()} programado para{' '}
               {local.suscripcion.fecha_cambio_plan 
@@ -444,7 +458,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
         {/* Cancellation Warning */}
         {local.suscripcion?.cancelar_al_final_periodo && (
           <View style={[styles.warningBanner, { backgroundColor: '#FEE2E2' }]}>
-            <IconSymbol name="exclamationmark.triangle.fill" size={18} color="#DC2626" />
+            <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={18} color="#DC2626" />
             <Text style={[styles.warningText, { color: '#991B1B' }]}>
               Plan cancelado. Finaliza el{' '}
               {local.suscripcion.fecha_proximo_pago
@@ -455,16 +469,16 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
         )}
 
         {local.suscripcion && (
-          <>
+          <React.Fragment>
             {/* Plan Renewal Time */}
             {local.suscripcion.plan_nombre !== 'basico' && (
               <View style={styles.timeSection}>
                 <View style={styles.timeSectionHeader}>
-                  <IconSymbol name="clock.fill" size={18} color={colors.primary} />
+                  <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={18} color={colors.primary} />
                   <Text style={styles.timeSectionTitle}>Renovación del Plan</Text>
                 </View>
                 {local.suscripcion.fecha_proximo_pago ? (
-                  <>
+                  <React.Fragment>
                     <View style={styles.timeInfo}>
                       <Text style={styles.timeLabel}>Tiempo restante:</Text>
                       <Text style={styles.timeValue}>
@@ -488,10 +502,10 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                         ]}
                       />
                     </View>
-                  </>
+                  </React.Fragment>
                 ) : (
                   <View style={styles.warningBox}>
-                    <IconSymbol name="exclamationmark.triangle" size={16} color="#F59E0B" />
+                    <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={16} color="#F59E0B" />
                     <Text style={styles.warningBoxText}>
                       Fecha de renovación no configurada. Contacta con soporte.
                     </Text>
@@ -504,7 +518,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
             {local.suscripcion.destacado_activo && local.suscripcion.destacado_fecha_fin && (
               <View style={styles.timeSection}>
                 <View style={styles.timeSectionHeader}>
-                  <IconSymbol name="star.fill" size={18} color={colors.badgeDestacado} />
+                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={18} color={colors.badgeDestacado} />
                   <Text style={styles.timeSectionTitle}>Promoción Destacada</Text>
                 </View>
                 <View style={styles.timeInfo}>
@@ -539,7 +553,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
             {/* Credits Section */}
             <View style={styles.creditsSection}>
               <View style={styles.creditsSectionHeader}>
-                <IconSymbol name="creditcard.fill" size={18} color={colors.primary} />
+                <IconSymbol ios_icon_name="creditcard.fill" android_material_icon_name="credit_card" size={18} color={colors.primary} />
                 <Text style={styles.creditsSectionTitle}>Créditos Disponibles</Text>
               </View>
 
@@ -562,7 +576,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
               {/* Renewal Date */}
               {local.suscripcion.fecha_renovacion_creditos && (
                 <View style={styles.renewalInfo}>
-                  <IconSymbol name="arrow.clockwise" size={16} color={colors.textSecondary} />
+                  <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={16} color={colors.textSecondary} />
                   <Text style={styles.renewalText}>
                     Renovación de créditos:{' '}
                     {new Date(local.suscripcion.fecha_renovacion_creditos).toLocaleDateString(
@@ -577,7 +591,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
             <View style={styles.destacadoSection}>
               <View style={styles.destacadoInfo}>
                 <View style={styles.destacadoHeader}>
-                  <IconSymbol name="star.fill" size={18} color={colors.badgeDestacado} />
+                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={18} color={colors.badgeDestacado} />
                   <Text style={styles.destacadoTitle}>Local Destacado</Text>
                 </View>
                 <Text style={styles.destacadoSubtitle}>
@@ -600,9 +614,10 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                 {updatingDestacado ? (
                   <ActivityIndicator size="small" color={colors.headerText} />
                 ) : (
-                  <>
+                  <React.Fragment>
                     <IconSymbol
-                      name={local.destacado ? 'star.fill' : 'star'}
+                      ios_icon_name={local.destacado ? 'star.fill' : 'star'}
+                      android_material_icon_name={local.destacado ? 'star' : 'star_border'}
                       size={20}
                       color={local.destacado ? '#FFFFFF' : colors.textSecondary}
                     />
@@ -614,7 +629,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                     >
                       {local.destacado ? 'Activo' : 'Activar'}
                     </Text>
-                  </>
+                  </React.Fragment>
                 )}
               </TouchableOpacity>
             </View>
@@ -630,7 +645,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                   colors={['#3B82F6', '#2563EB']}
                   style={styles.planActionGradient}
                 >
-                  <IconSymbol name="arrow.up.circle.fill" size={20} color="#FFFFFF" />
+                  <IconSymbol ios_icon_name="arrow.up.circle.fill" android_material_icon_name="arrow_upward" size={20} color="#FFFFFF" />
                   <Text style={styles.planActionText}>Cambiar Plan</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -649,22 +664,22 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                       {loading ? (
                         <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : (
-                        <>
-                          <IconSymbol name="xmark.circle.fill" size={20} color="#FFFFFF" />
+                        <React.Fragment>
+                          <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color="#FFFFFF" />
                           <Text style={styles.planActionText}>Cancelar Plan</Text>
-                        </>
+                        </React.Fragment>
                       )}
                     </LinearGradient>
                   </TouchableOpacity>
                 )}
             </View>
-          </>
+          </React.Fragment>
         )}
 
         {/* No Plan State */}
         {!local.suscripcion && (
           <View style={styles.noPlanContainer}>
-            <IconSymbol name="exclamationmark.triangle.fill" size={32} color="#F59E0B" />
+            <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={32} color="#F59E0B" />
             <Text style={styles.noPlanText}>
               Activa un plan para crear eventos y promociones
             </Text>
@@ -676,7 +691,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                 colors={['#F59E0B', '#D97706']}
                 style={styles.activarPlanButtonGradient}
               >
-                <IconSymbol name="crown.fill" size={18} color="#FFFFFF" />
+                <IconSymbol ios_icon_name="crown.fill" android_material_icon_name="workspace_premium" size={18} color="#FFFFFF" />
                 <Text style={styles.activarPlanButtonText}>Activar Plan</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -692,7 +707,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
             >
               <View style={styles.actionButtonContent}>
                 <View style={[styles.iconCircle, { backgroundColor: '#E0F2FE' }]}>
-                  <IconSymbol name="pencil" size={16} color="#0EA5E9" />
+                  <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={16} color="#0EA5E9" />
                 </View>
                 <Text style={styles.actionButtonText}>Editar</Text>
               </View>
@@ -704,7 +719,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
             >
               <View style={styles.actionButtonContent}>
                 <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
-                  <IconSymbol name="calendar.badge.plus" size={16} color="#F59E0B" />
+                  <IconSymbol ios_icon_name="calendar.badge.plus" android_material_icon_name="event" size={16} color="#F59E0B" />
                 </View>
                 <Text style={styles.actionButtonText}>Evento</Text>
               </View>
@@ -723,7 +738,8 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                   { backgroundColor: hasPremiumAccess() ? '#D1FAE5' : '#F3F4F6' }
                 ]}>
                   <IconSymbol 
-                    name="chart.bar.fill" 
+                    ios_icon_name="chart.bar.fill" 
+                    android_material_icon_name="bar_chart"
                     size={16} 
                     color={hasPremiumAccess() ? '#10B981' : '#9CA3AF'}
                   />
@@ -748,7 +764,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                 colors={[colors.headerGradientStart, colors.headerGradientEnd]}
                 style={styles.selectButtonGradient}
               >
-                <IconSymbol name="checkmark.circle.fill" size={20} color="#FFFFFF" />
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#FFFFFF" />
                 <Text style={styles.selectButtonText}>Seleccionar Local</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -762,90 +778,126 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  coverImageContainer: {
+    width: '100%',
+    height: 160,
+    position: 'relative',
   },
   coverImage: {
     width: '100%',
-    height: 180,
+    height: '100%',
     backgroundColor: colors.cardBorder,
   },
   coverImagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
+    backgroundColor: '#1F2937',
   },
   coverImagePlaceholderText: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '500',
+  },
+  coverImageGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '60%',
+  },
+  coverImageOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    right: 12,
+  },
+  coverImageLocalName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  coverImageMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  coverImageProvincia: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  planBadgeOnImage: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  planBadgeOnImageText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   selectedBadge: {
     position: 'absolute',
-    top: 16,
-    right: 16,
+    top: 12,
+    left: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.primary,
+    backgroundColor: '#10B981',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   selectedBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   content: {
     padding: 16,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  localInfo: {
-    flex: 1,
-  },
-  localNombre: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  localProvincia: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  planBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-  },
-  planBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
   warningBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: '#FEF3C7',
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 12,
     marginBottom: 16,
   },
@@ -872,7 +924,7 @@ const styles = StyleSheet.create({
   timeSection: {
     backgroundColor: colors.background,
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -881,11 +933,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   timeSectionTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
   },
   timeInfo: {
@@ -906,7 +958,7 @@ const styles = StyleSheet.create({
   creditsSection: {
     backgroundColor: colors.background,
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -919,7 +971,7 @@ const styles = StyleSheet.create({
   },
   creditsSectionTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
   },
   progressContainer: {
@@ -934,6 +986,7 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontSize: 13,
     color: colors.textSecondary,
+    fontWeight: '500',
   },
   progressValue: {
     fontSize: 13,
@@ -966,7 +1019,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: colors.background,
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -982,7 +1035,7 @@ const styles = StyleSheet.create({
   },
   destacadoTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
   },
   destacadoSubtitle: {
@@ -994,8 +1047,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
     backgroundColor: colors.cardBorder,
   },
   destacadoButtonActive: {
@@ -1006,7 +1059,7 @@ const styles = StyleSheet.create({
   },
   destacadoButtonText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.textSecondary,
   },
   destacadoButtonTextActive: {
@@ -1027,7 +1080,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
   planActionText: {
     fontSize: 14,
@@ -1037,7 +1090,7 @@ const styles = StyleSheet.create({
   noPlanContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    padding: 24,
     backgroundColor: '#FEF3C7',
     borderRadius: 12,
     marginBottom: 16,
@@ -1084,7 +1137,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
     borderRadius: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 6,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -1104,15 +1157,15 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionButtonText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     color: colors.text,
     textAlign: 'center',
   },
