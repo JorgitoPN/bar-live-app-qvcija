@@ -3,15 +3,16 @@ import { Stack } from 'expo-router';
 
 /**
  * ============================================================================
- * DETALLE LAYOUT - STANDARD MODAL CONFIGURATION v2.0
+ * DETALLE LAYOUT - STANDARD MODAL CONFIGURATION v3.0
  * ============================================================================
  * 
  * ✅ Standard modal behavior:
- * - Uses 'modal' presentation (not 'transparentModal')
+ * - Uses 'modal' presentation
  * - Native swipe-down gesture enabled
  * - Rounded top corners (automatic)
  * - Previous screen visible behind
  * - Does NOT open full-screen
+ * - Proper overlay presentation
  */
 export default function DetalleLayout() {
   return (
@@ -22,7 +23,7 @@ export default function DetalleLayout() {
         animation: 'slide_from_bottom',
         gestureEnabled: true,
         gestureDirection: 'vertical',
-        // ✅ These options ensure proper modal behavior
+        // ✅ Transparent background to show previous screen
         contentStyle: {
           backgroundColor: 'transparent',
         },
