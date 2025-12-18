@@ -79,9 +79,9 @@ export default function PostDetailScreen() {
     loadPost();
     checkLikedStatus();
     checkSavedStatus();
-  }, [postId]);
+  }, [postId, loadPost, checkLikedStatus, checkSavedStatus]);
 
-  const loadPost = async () => {
+  const loadPost = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('posts')
@@ -102,9 +102,9 @@ export default function PostDetailScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [postId, router]);
 
-  const checkLikedStatus = async () => {
+  const checkLikedStatus = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -120,9 +120,9 @@ export default function PostDetailScreen() {
     } catch (error) {
       console.error('[PostDetail] Error checking liked status:', error);
     }
-  };
+  }, [user, postId]);
 
-  const checkSavedStatus = async () => {
+  const checkSavedStatus = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -141,7 +141,7 @@ export default function PostDetailScreen() {
     } catch (error) {
       console.error('[PostDetail] Error checking saved status:', error);
     }
-  };
+  }, [user, postId]);
 
   const handleLike = async () => {
     if (!user) {

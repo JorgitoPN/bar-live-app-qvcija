@@ -110,10 +110,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
   const MAX_IMAGES = 10;
 
-  useEffect(() => {
-    loadTaggedUsers();
-  }, [post.id]);
-
   const loadTaggedUsers = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -157,6 +153,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       console.error('[PublicacionCard] Error loading tagged users:', error);
     }
   }, [post.id]);
+
+  useEffect(() => {
+    loadTaggedUsers();
+  }, [loadTaggedUsers]);
 
   const handleLike = useCallback(async () => {
     if (!user) {

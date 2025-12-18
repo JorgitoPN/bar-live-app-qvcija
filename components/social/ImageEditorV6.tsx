@@ -106,7 +106,7 @@ export default function ImageEditorV6({
         }
       );
     }
-  }, [visible, imageUri]);
+  }, [visible, imageUri, savedScale, scale]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {

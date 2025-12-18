@@ -127,7 +127,7 @@ export default function EditarPublicacionScreen() {
     if (postId) {
       loadPost();
     }
-  }, [postId]);
+  }, [postId, loadPost]);
 
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
@@ -150,7 +150,7 @@ export default function EditarPublicacionScreen() {
     };
   }, []);
 
-  const loadPost = async () => {
+  const loadPost = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -214,7 +214,7 @@ export default function EditarPublicacionScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [postId, router]);
 
   const handleSelectInlineMention = (mention: MentionSuggestion, mentionText: string) => {
     const textBeforeCursor = contenido.substring(0, cursorPosition);

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -43,11 +43,7 @@ export default function ImageTaggingOverlay({
   const [alreadyTagged, setAlreadyTagged] = useState<TaggableUser[]>([]);
   const [showMessage, setShowMessage] = useState(true);
 
-  useEffect(() => {
-    loadAlreadyTagged();
-  }, []);
-
-  const loadAlreadyTagged = async () => {
+  const loadAlreadyTagged = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('post_tags')
@@ -64,12 +60,12 @@ export default function ImageTaggingOverlay({
         return;
       }
 
-      const tagged: TaggableUser[] = [];
+      const tags: TaggableUser[] = [];
       
       if (data) {
         data.forEach(tag => {
           if (tag.tipo === 'usuario' && tag.usuario) {
-            tagged.push({
+            tags.push({
               id: tag.usuario.id,
               nombre: tag.usuario.nombre,
               username: tag.usuario.username || tag.usuario.nombre,
@@ -77,7 +73,7 @@ export default function ImageTaggingOverlay({
               tipo: 'usuario',
             });
           } else if (tag.tipo === 'local' && tag.local) {
-            tagged.push({
+            tags.push({
               id: tag.local.id,
               nombre: tag.local.nombre,
               username: tag.local.nombre,
@@ -88,11 +84,15 @@ export default function ImageTaggingOverlay({
         });
       }
 
-      setAlreadyTagged(tagged);
+      setAlreadyTagged(tags);
     } catch (error) {
       console.error('[ImageTaggingOverlay] Error:', error);
     }
-  };
+  }, [postId, imageIndex]);
+
+  useEffect(() => {
+    loadAlreadyTagged();
+  }, [loadAlreadyTagged]);
 
   const handleSelectUser = async (selectedUser: TaggableUser) => {
     if (!user) return;

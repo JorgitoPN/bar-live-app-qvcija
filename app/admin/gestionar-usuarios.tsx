@@ -172,7 +172,7 @@ export default function GestionarUsuariosScreen() {
     console.log('[GestionarUsuarios] Initial load');
     cargarContadores();
     cargarUsuarios(true, 1);
-  }, []);
+  }, [cargarContadores, cargarUsuarios]);
 
   useEffect(() => {
     if (!initialLoading) {
@@ -182,7 +182,7 @@ export default function GestionarUsuariosScreen() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [busqueda, filtroRol, filtroEstado, filtroProvider]);
+  }, [busqueda, filtroRol, filtroEstado, filtroProvider, initialLoading, cargarUsuarios]);
 
   const toggleEstadoUsuario = useCallback(async (usuarioId: string, activo: boolean) => {
     try {
@@ -231,7 +231,7 @@ export default function GestionarUsuariosScreen() {
     }
   }, [hasMore, loadingMore, initialLoading, paginaActual, cargarUsuarios]);
 
-  const UsuarioCard = useCallback(({ usuario }: { usuario: Usuario }) => {
+  const UsuarioCard = ({ usuario }: { usuario: Usuario }) => {
     return (
       <View style={styles.usuarioCard}>
         <TouchableOpacity
@@ -371,11 +371,11 @@ export default function GestionarUsuariosScreen() {
         </View>
       </View>
     );
-  }, [router, toggleEstadoUsuario]);
+  };
 
-  const renderUsuarioCard = useCallback(({ item }: { item: Usuario }) => (
+  const renderUsuarioCard = ({ item }: { item: Usuario }) => (
     <UsuarioCard usuario={item} />
-  ), [UsuarioCard]);
+  );
 
   const renderHeader = () => (
     <React.Fragment>

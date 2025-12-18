@@ -204,7 +204,7 @@ export default function GestionarLocalesScreen() {
     console.log('[GestionarLocales] Initial load');
     cargarContadores();
     cargarLocales(true, 1);
-  }, []);
+  }, [cargarContadores, cargarLocales]);
 
   useEffect(() => {
     if (!initialLoading) {
@@ -214,7 +214,7 @@ export default function GestionarLocalesScreen() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado]);
+  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, initialLoading, cargarLocales]);
 
   const searchUsuarios = useCallback(async (query: string) => {
     if (query.length < 2) {

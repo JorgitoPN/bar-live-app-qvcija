@@ -234,123 +234,7 @@ export default function MapaScreen() {
     cargarTodosLosLocalesEnriquecidos();
   }, [cargarTodosLosLocalesEnriquecidos]);
 
-  // Generate map HTML when locals or user changes
-  useEffect(() => {
-    const generateHTML = async () => {
-      const html = await generateMapHTML();
-      setMapHTML(html);
-    };
-    
-    if (localesFiltrados.length > 0) {
-      generateHTML();
-    }
-  }, [localesFiltrados, user]);
-
-  useEffect(() => {
-    console.log('[MAP] 🔍 ========================================');
-    console.log('[MAP] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
-    console.log('[MAP] 🔍 Selected category:', categoriaSeleccionada);
-    console.log('[MAP] 🔍 Filter state:', filtroEstado);
-    console.log('[MAP] 📊 Total locals to filter:', todosLosLocales.length);
-    
-    const filtrados = todosLosLocales.filter(local => {
-      let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
-      localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
-      
-      let matchCategoria = false;
-      if (categoriaSeleccionada === 'todos') {
-        matchCategoria = true;
-      } else {
-        matchCategoria = localCategories.some((cat: string) => 
-          cat.toLowerCase() === categoriaSeleccionada.toLowerCase()
-        );
-      }
-      
-      let matchEstado = true;
-      if (filtroEstado === 'abiertos') {
-        const estado = getEstadoLocal(local);
-        matchEstado = estado.estaAbierto === true;
-      }
-      
-      const shouldShow = matchCategoria && matchEstado;
-      
-      if (!shouldShow) {
-        console.log(`[MAP] ❌ Filtered out "${local.nombre}"`);
-        console.log(`     - Categories: ${JSON.stringify(localCategories)}`);
-        console.log(`     - Selected category: ${categoriaSeleccionada}`);
-        console.log(`     - Match category: ${matchCategoria}`);
-        console.log(`     - Match state: ${matchEstado}`);
-      }
-      
-      return shouldShow;
-    });
-    
-    console.log(`[MAP] ✅ Filtered locals for category "${categoriaSeleccionada}": ${filtrados.length} of ${todosLosLocales.length}`);
-    
-    setLocalesFiltrados(filtrados);
-  }, [todosLosLocales, categoriaSeleccionada, filtroEstado]);
-
-  useEffect(() => {
-    if (webViewRef.current && localesFiltrados.length > 0 && categoriaSeleccionada !== 'todos') {
-      const lats = localesFiltrados.map(l => l.coordenadas.lat);
-      const lngs = localesFiltrados.map(l => l.coordenadas.lng);
-      
-      const minLat = Math.min(...lats);
-      const maxLat = Math.max(...lats);
-      const minLng = Math.min(...lngs);
-      const maxLng = Math.max(...lngs);
-      
-      webViewRef.current.injectJavaScript(`
-        if (typeof map !== 'undefined') {
-          var bounds = L.latLngBounds(
-            L.latLng(${minLat}, ${minLng}),
-            L.latLng(${maxLat}, ${maxLng})
-          );
-          map.fitBounds(bounds, { padding: [50, 50], animate: true, duration: 1 });
-        }
-        true;
-      `);
-    }
-  }, [categoriaSeleccionada, localesFiltrados]);
-
-  const centerOnUser = () => {
-    if (userLocation && webViewRef.current) {
-      webViewRef.current.injectJavaScript(`
-        if (typeof map !== 'undefined') {
-          map.setView([${userLocation.lat}, ${userLocation.lng}], 18, { animate: true, duration: 1 });
-        }
-        true;
-      `);
-    }
-  };
-
-  const handleVerDetalles = (localId: string) => {
-    console.log('[MAP] Navigating to local details:', localId);
-    trackMapInteraction(localId, 'click', user?.id);
-    router.push(`/detalle/local?id=${localId}`);
-  };
-
-  const handleWebViewMessage = (event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      console.log('📨 [MAP] Received message from WebView:', data);
-      
-      if (data.type === 'navigate' && data.id) {
-        console.log('🗺️ [MAP] Navigating to local details:', data.id);
-        handleVerDetalles(data.id);
-      } else if (data.type === 'popup_opened' && data.id) {
-        console.log('📍 [MAP] Popup opened for local:', data.id);
-        trackMapInteraction(data.id, 'view', user?.id);
-      } else if (data.type === 'zoom_close' && data.id) {
-        console.log('🔍 [MAP] Zoomed close to local:', data.id);
-        trackMapInteraction(data.id, 'zoom', user?.id);
-      }
-    } catch (error) {
-      console.error('❌ [MAP] Error parsing WebView message:', error);
-    }
-  };
-
-  const generateMapHTML = async () => {
+  const generateMapHTML = useCallback(async () => {
     const centerLat = userLocation?.lat || 40.4168;
     const centerLng = userLocation?.lng || -3.7038;
 
@@ -1008,6 +892,122 @@ export default function MapaScreen() {
 </body>
 </html>
     `;
+  }, [localesFiltrados, user, userLocation]);
+
+  // Generate map HTML when locals or user changes
+  useEffect(() => {
+    const generateHTML = async () => {
+      const html = await generateMapHTML();
+      setMapHTML(html);
+    };
+    
+    if (localesFiltrados.length > 0) {
+      generateHTML();
+    }
+  }, [localesFiltrados, user, generateMapHTML]);
+
+  useEffect(() => {
+    console.log('[MAP] 🔍 ========================================');
+    console.log('[MAP] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
+    console.log('[MAP] 🔍 Selected category:', categoriaSeleccionada);
+    console.log('[MAP] 🔍 Filter state:', filtroEstado);
+    console.log('[MAP] 📊 Total locals to filter:', todosLosLocales.length);
+    
+    const filtrados = todosLosLocales.filter(local => {
+      let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
+      localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
+      
+      let matchCategoria = false;
+      if (categoriaSeleccionada === 'todos') {
+        matchCategoria = true;
+      } else {
+        matchCategoria = localCategories.some((cat: string) => 
+          cat.toLowerCase() === categoriaSeleccionada.toLowerCase()
+        );
+      }
+      
+      let matchEstado = true;
+      if (filtroEstado === 'abiertos') {
+        const estado = getEstadoLocal(local);
+        matchEstado = estado.estaAbierto === true;
+      }
+      
+      const shouldShow = matchCategoria && matchEstado;
+      
+      if (!shouldShow) {
+        console.log(`[MAP] ❌ Filtered out "${local.nombre}"`);
+        console.log(`     - Categories: ${JSON.stringify(localCategories)}`);
+        console.log(`     - Selected category: ${categoriaSeleccionada}`);
+        console.log(`     - Match category: ${matchCategoria}`);
+        console.log(`     - Match state: ${matchEstado}`);
+      }
+      
+      return shouldShow;
+    });
+    
+    console.log(`[MAP] ✅ Filtered locals for category "${categoriaSeleccionada}": ${filtrados.length} of ${todosLosLocales.length}`);
+    
+    setLocalesFiltrados(filtrados);
+  }, [todosLosLocales, categoriaSeleccionada, filtroEstado]);
+
+  useEffect(() => {
+    if (webViewRef.current && localesFiltrados.length > 0 && categoriaSeleccionada !== 'todos') {
+      const lats = localesFiltrados.map(l => l.coordenadas.lat);
+      const lngs = localesFiltrados.map(l => l.coordenadas.lng);
+      
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+      const minLng = Math.min(...lngs);
+      const maxLng = Math.max(...lngs);
+      
+      webViewRef.current.injectJavaScript(`
+        if (typeof map !== 'undefined') {
+          var bounds = L.latLngBounds(
+            L.latLng(${minLat}, ${minLng}),
+            L.latLng(${maxLat}, ${maxLng})
+          );
+          map.fitBounds(bounds, { padding: [50, 50], animate: true, duration: 1 });
+        }
+        true;
+      `);
+    }
+  }, [categoriaSeleccionada, localesFiltrados]);
+
+  const centerOnUser = () => {
+    if (userLocation && webViewRef.current) {
+      webViewRef.current.injectJavaScript(`
+        if (typeof map !== 'undefined') {
+          map.setView([${userLocation.lat}, ${userLocation.lng}], 18, { animate: true, duration: 1 });
+        }
+        true;
+      `);
+    }
+  };
+
+  const handleVerDetalles = (localId: string) => {
+    console.log('[MAP] Navigating to local details:', localId);
+    trackMapInteraction(localId, 'click', user?.id);
+    router.push(`/detalle/local?id=${localId}`);
+  };
+
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      console.log('📨 [MAP] Received message from WebView:', data);
+      
+      if (data.type === 'navigate' && data.id) {
+        console.log('🗺️ [MAP] Navigating to local details:', data.id);
+        handleVerDetalles(data.id);
+      } else if (data.type === 'popup_opened' && data.id) {
+        console.log('📍 [MAP] Popup opened for local:', data.id);
+        trackMapInteraction(data.id, 'view', user?.id);
+      } else if (data.type === 'zoom_close' && data.id) {
+        console.log('🔍 [MAP] Zoomed close to local:', data.id);
+        trackMapInteraction(data.id, 'zoom', user?.id);
+      }
+    } catch (error) {
+      console.error('❌ [MAP] Error parsing WebView message:', error);
+    }
   };
 
   return (

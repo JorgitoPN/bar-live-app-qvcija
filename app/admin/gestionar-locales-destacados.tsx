@@ -44,7 +44,7 @@ export default function GestionarLocalesDestacadosScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [localesDestacados, setLocalesDestacados] = useState<Local[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -94,13 +94,13 @@ export default function GestionarLocalesDestacadosScreen() {
       Alert.alert('Error', 'No se pudieron cargar los locales destacados');
     } finally {
       setLoading(false);
-      setLoadingMore(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
     cargarLocalesDestacados(true, 1);
-  }, []);
+  }, [cargarLocalesDestacados]);
 
   const buscarLocales = useCallback(async (query: string) => {
     if (query.trim().length < 2) {
@@ -241,6 +241,8 @@ export default function GestionarLocalesDestacadosScreen() {
       cargarLocalesDestacados(false, paginaActual);
     }
   }, [hasMore, loadingMore, loading, paginaActual, cargarLocalesDestacados]);
+
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const renderLocalCard = ({ item }: { item: Local }) => {
     const timeRemaining = item.destacado_fin 

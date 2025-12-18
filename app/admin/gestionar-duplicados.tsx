@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -58,12 +58,7 @@ export default function GestionarDuplicadosScreen() {
   const [localDetails, setLocalDetails] = useState<Record<string, LocalDetail[]>>({});
   const [processingGroup, setProcessingGroup] = useState<string | null>(null);
 
-  useEffect(() => {
-    checkAdminAccess();
-    loadDuplicates();
-  }, []);
-
-  const checkAdminAccess = async () => {
+  const checkAdminAccess = useCallback(async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
       router.back();
@@ -80,7 +75,12 @@ export default function GestionarDuplicadosScreen() {
       Alert.alert('Acceso Denegado', 'Solo los administradores pueden acceder a esta página');
       router.back();
     }
-  };
+  }, [user, router]);
+
+  useEffect(() => {
+    checkAdminAccess();
+    loadDuplicates();
+  }, [checkAdminAccess]); // loadDuplicates is stable, doesn't need to be in deps
 
   const loadDuplicates = async () => {
     try {
@@ -132,7 +132,7 @@ export default function GestionarDuplicadosScreen() {
     }
   };
 
-  const handleRemoveDuplicates = async (group: DuplicateGroup) => {
+  const handleRemoveDuplicates = (group: DuplicateGroup) => {
     const groupKey = `${group.nombre}-${group.latitud}-${group.longitud}`;
     
     Alert.alert(

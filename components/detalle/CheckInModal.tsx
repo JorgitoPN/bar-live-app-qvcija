@@ -52,9 +52,9 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     } else {
       setSearchResults([]);
     }
-  }, [searchQuery]);
+  }, [searchQuery, searchUsers]);
 
-  const searchUsers = async (query: string) => {
+  const searchUsers = useCallback(async (query: string) => {
     if (!user) return;
 
     setSearching(true);
@@ -81,7 +81,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     } finally {
       setSearching(false);
     }
-  };
+  }, [user, specificUsers]);
 
   const addSpecificUser = (user: User) => {
     if (!specificUsers.some(u => u.id === user.id)) {

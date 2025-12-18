@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -69,15 +69,7 @@ export default function GestionarLocalesV7Screen() {
     enriquecidos: 0,
   });
 
-  useEffect(() => {
-    loadLocales();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [locales, searchQuery, filterTipo, filterProvincia, filterEstado]);
-
-  const loadLocales = async () => {
+  const loadLocales = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('locales')
@@ -95,7 +87,11 @@ export default function GestionarLocalesV7Screen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadLocales();
+  }, [loadLocales]);
 
   const calculateStats = (data: Local[]) => {
     setStats({
@@ -107,7 +103,7 @@ export default function GestionarLocalesV7Screen() {
     });
   };
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...locales];
 
     // Search filter
@@ -142,7 +138,11 @@ export default function GestionarLocalesV7Screen() {
     }
 
     setFilteredLocales(filtered);
-  };
+  }, [locales, searchQuery, filterTipo, filterProvincia, filterEstado]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -245,7 +245,7 @@ export default function GestionarLocalesV7Screen() {
     });
   };
 
-  const LocalCard = ({ local }: { local: Local }) => {
+  const LocalCard = useCallback(({ local }: { local: Local }) => {
     const isSelected = localesSeleccionados.has(local.id);
 
     return (
@@ -348,11 +348,11 @@ export default function GestionarLocalesV7Screen() {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [modoSeleccion, localesSeleccionados]);
 
   const renderLocalCard = useCallback(({ item }: { item: Local }) => (
     <LocalCard local={item} />
-  ), [modoSeleccion, localesSeleccionados]);
+  ), [LocalCard]);
 
   if (loading) {
     return (

@@ -117,9 +117,9 @@ export default function LocalDetailsModal({
       setLocal(null);
       setLoading(true);
     }
-  }, [visible, localId]);
+  }, [visible, localId, loadLocalData]);
 
-  const loadLocalData = async () => {
+  const loadLocalData = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -136,7 +136,7 @@ export default function LocalDetailsModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [localId]);
 
   const handleToggleFavorito = async (e: any) => {
     e.stopPropagation();

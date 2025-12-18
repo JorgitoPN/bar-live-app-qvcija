@@ -66,24 +66,20 @@ export default function EditarLocalScreen() {
   }, [loadLocalData]);
 
   const handleSave = async (updateData: any) => {
-    try {
-      const { error } = await supabase
-        .from('locales')
-        .update(updateData)
-        .eq('id', localId);
+    const { error } = await supabase
+      .from('locales')
+      .update(updateData)
+      .eq('id', localId);
 
-      if (error) {
-        console.error('Error updating local:', error);
-        Alert.alert('Error', 'No se pudo guardar el local. Por favor, intenta nuevamente.');
-        throw error;
-      }
-
-      Alert.alert('Éxito', 'Local actualizado correctamente', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    } catch (error) {
+    if (error) {
+      console.error('Error updating local:', error);
+      Alert.alert('Error', 'No se pudo guardar el local. Por favor, intenta nuevamente.');
       throw error;
     }
+
+    Alert.alert('Éxito', 'Local actualizado correctamente', [
+      { text: 'OK', onPress: () => router.back() },
+    ]);
   };
 
   if (loading) {
