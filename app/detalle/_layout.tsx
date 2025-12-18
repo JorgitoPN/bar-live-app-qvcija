@@ -2,21 +2,24 @@
 import { Stack } from 'expo-router';
 
 /**
- * DETALLE LAYOUT - CLEAN MODAL CONFIGURATION
+ * DETALLE LAYOUT - TRANSPARENT MODAL CONFIGURATION
  * 
- * Simple modal presentation that works as expected:
- * - Opens as a modal from the bottom
- * - Shows the previous page behind it
- * - Can be closed by swiping down
- * - No extra layers or complications
+ * Configured to show as an overlay modal:
+ * - Opens from the bottom with slide animation
+ * - Shows the previous page behind it (transparent background)
+ * - Can be closed by swiping down from anywhere
+ * - Standard modal behavior
  */
 export default function DetalleLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        presentation: 'modal',
+        presentation: 'transparentModal',
         animation: 'slide_from_bottom',
+        contentStyle: {
+          backgroundColor: 'transparent',
+        },
       }}
     />
   );
