@@ -282,18 +282,6 @@ const formatOpeningHours = (hours: string[]): string => {
   return sortedHours.join(', ');
 };
 
-/**
- * DETALLE LOCAL - MODAL WITH SWIPE-TO-CLOSE
- * 
- * A standard modal that:
- * - Opens as an overlay (not full-screen)
- * - Shows the previous page behind it
- * - Can be closed by swiping down from anywhere when at the top of the scroll
- * - Can be closed by tapping the X button
- * - Rating badge is in the top-right corner above the share button
- * - All UI elements elevated to the top except the heart icon
- */
-
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -319,9 +307,10 @@ export default function DetalleLocalScreen() {
 
   const [showReviewsModal, setShowReviewsModal] = useState(false);
 
-  // Swipe-to-close gesture - works from anywhere when at the top
+  // Swipe-to-close gesture
   const translateY = useSharedValue(0);
   const scrollY = useSharedValue(0);
+  const context = useSharedValue({ y: 0 });
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -334,15 +323,18 @@ export default function DetalleLocalScreen() {
   };
 
   const panGesture = Gesture.Pan()
+    .onStart(() => {
+      context.value = { y: translateY.value };
+    })
     .onUpdate((event) => {
-      // Allow swipe down only when at the top of the scroll
+      // Only allow swipe down when at the top of the scroll
       if (scrollY.value <= 0 && event.translationY > 0) {
-        translateY.value = event.translationY;
+        translateY.value = context.value.y + event.translationY;
       }
     })
     .onEnd((event) => {
-      // Close if swiped down more than 150px or with sufficient velocity
-      if ((scrollY.value <= 0 && event.translationY > 150) || event.velocityY > 800) {
+      // Close if swiped down more than 100px or with sufficient velocity
+      if (scrollY.value <= 0 && (event.translationY > 100 || event.velocityY > 500)) {
         runOnJS(closeModal)();
       } else {
         translateY.value = withSpring(0, {
@@ -354,7 +346,7 @@ export default function DetalleLocalScreen() {
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateY: translateY.value }],
+      transform: [{ translateY: Math.max(0, translateY.value) }],
       opacity: interpolate(
         translateY.value,
         [0, SCREEN_HEIGHT * 0.3],
@@ -751,7 +743,7 @@ export default function DetalleLocalScreen() {
       {/* Modal content with swipe gesture */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.modalContent, animatedStyle]}>
-          {/* Header with close button, rating, and share - ALL AT THE TOP */}
+          {/* Header with close button, rating, and share */}
           <View style={styles.header}>
             <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
               <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
@@ -814,7 +806,7 @@ export default function DetalleLocalScreen() {
                   </ScrollView>
                 </TouchableOpacity>
 
-                {/* Status badge - elevated to top */}
+                {/* Status badge */}
                 <View style={styles.statusBadge}>
                   <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
                     <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
@@ -827,7 +819,7 @@ export default function DetalleLocalScreen() {
                   </BlurView>
                 </View>
 
-                {/* Destacado badge - elevated to top */}
+                {/* Destacado badge */}
                 {local.destacado && (
                   <View style={styles.destacadoBadge}>
                     <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
