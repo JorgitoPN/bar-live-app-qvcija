@@ -1,6 +1,20 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare, Image as RNImage, StatusBar } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Linking,
+  Platform,
+  Alert,
+  Dimensions,
+  Share as RNShare,
+  Image as RNImage,
+  StatusBar,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../integrations/supabase/client';
@@ -19,14 +33,14 @@ import { calcularDistancia } from '../../utils/locationUtils';
 import ParsedText from '../../components/social/ParsedText';
 import ReviewsModal from '../../components/social/ReviewsModal';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
   runOnJS,
   useAnimatedScrollHandler,
   interpolate,
-  Extrapolate
+  Extrapolate,
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -115,118 +129,118 @@ interface Evento {
 
 const getCategoryIcon = (categoria?: string): { ios: string; android: string; color: string } => {
   const categoryMap: Record<string, { ios: string; android: string; color: string }> = {
-    'bar': { ios: 'wineglass.fill', android: 'local_bar', color: '#F59E0B' },
-    'restaurante': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
-    'cafe': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#8B5CF6' },
-    'cafetería': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#8B5CF6' },
-    'pub': { ios: 'wineglass', android: 'sports_bar', color: '#10B981' },
-    'discoteca': { ios: 'music.note', android: 'nightlife', color: '#EC4899' },
-    'cocteleria': { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
-    'coctelería': { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
-    'sala_conciertos': { ios: 'music.note.list', android: 'music_note', color: '#F59E0B' },
+    bar: { ios: 'wineglass.fill', android: 'local_bar', color: '#F59E0B' },
+    restaurante: { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    cafe: { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#8B5CF6' },
+    cafetería: { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#8B5CF6' },
+    pub: { ios: 'wineglass', android: 'sports_bar', color: '#10B981' },
+    discoteca: { ios: 'music.note', android: 'nightlife', color: '#EC4899' },
+    cocteleria: { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
+    coctelería: { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
+    sala_conciertos: { ios: 'music.note.list', android: 'music_note', color: '#F59E0B' },
   };
   return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
 };
 
 const getServiceIcon = (servicio: string): { ios: string; android: string; color: string } => {
   const serviceMap: Record<string, { ios: string; android: string; color: string }> = {
-    'cerveza': { ios: 'wineglass', android: 'sports_bar', color: '#F59E0B' },
-    'cócteles': { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
-    'cocteles': { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
-    'cocktails': { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
-    'efectivo': { ios: 'banknote', android: 'payments', color: '#10B981' },
-    'pago_efectivo': { ios: 'banknote', android: 'payments', color: '#10B981' },
-    'tarjetas': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
-    'pago_tarjetas': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
-    'tarjetas_credito': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
-    'tarjetas_debito': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
-    'wifi': { ios: 'wifi', android: 'wifi', color: '#8B5CF6' },
-    'wifi_gratis': { ios: 'wifi', android: 'wifi', color: '#8B5CF6' },
-    'terraza': { ios: 'sun.max.fill', android: 'wb_sunny', color: '#F59E0B' },
-    'terraza_exterior': { ios: 'sun.max.fill', android: 'wb_sunny', color: '#F59E0B' },
-    'parking': { ios: 'car.fill', android: 'local_parking', color: '#6366F1' },
-    'aparcamiento': { ios: 'car.fill', android: 'local_parking', color: '#6366F1' },
-    'accesibilidad': { ios: 'figure.roll', android: 'accessible', color: '#10B981' },
-    'accesible_silla_ruedas': { ios: 'figure.roll', android: 'accessible', color: '#10B981' },
-    'reservas': { ios: 'calendar', android: 'event', color: '#EF4444' },
-    'delivery': { ios: 'bicycle', android: 'delivery_dining', color: '#F59E0B' },
-    'entrega_domicilio': { ios: 'bicycle', android: 'delivery_dining', color: '#F59E0B' },
-    'takeaway': { ios: 'bag.fill', android: 'takeout_dining', color: '#8B5CF6' },
-    'para_llevar': { ios: 'bag.fill', android: 'takeout_dining', color: '#8B5CF6' },
-    'comida': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
-    'almuerzo': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
-    'cena': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
-    'desayuno': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
-    'bebidas': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
-    'cafe': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
-    'vino': { ios: 'wineglass.fill', android: 'wine_bar', color: '#8B5CF6' },
+    cerveza: { ios: 'wineglass', android: 'sports_bar', color: '#F59E0B' },
+    cócteles: { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
+    cocteles: { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
+    cocktails: { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
+    efectivo: { ios: 'banknote', android: 'payments', color: '#10B981' },
+    pago_efectivo: { ios: 'banknote', android: 'payments', color: '#10B981' },
+    tarjetas: { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
+    pago_tarjetas: { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
+    tarjetas_credito: { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
+    tarjetas_debito: { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
+    wifi: { ios: 'wifi', android: 'wifi', color: '#8B5CF6' },
+    wifi_gratis: { ios: 'wifi', android: 'wifi', color: '#8B5CF6' },
+    terraza: { ios: 'sun.max.fill', android: 'wb_sunny', color: '#F59E0B' },
+    terraza_exterior: { ios: 'sun.max.fill', android: 'wb_sunny', color: '#F59E0B' },
+    parking: { ios: 'car.fill', android: 'local_parking', color: '#6366F1' },
+    aparcamiento: { ios: 'car.fill', android: 'local_parking', color: '#6366F1' },
+    accesibilidad: { ios: 'figure.roll', android: 'accessible', color: '#10B981' },
+    accesible_silla_ruedas: { ios: 'figure.roll', android: 'accessible', color: '#10B981' },
+    reservas: { ios: 'calendar', android: 'event', color: '#EF4444' },
+    delivery: { ios: 'bicycle', android: 'delivery_dining', color: '#F59E0B' },
+    entrega_domicilio: { ios: 'bicycle', android: 'delivery_dining', color: '#F59E0B' },
+    takeaway: { ios: 'bag.fill', android: 'takeout_dining', color: '#8B5CF6' },
+    para_llevar: { ios: 'bag.fill', android: 'takeout_dining', color: '#8B5CF6' },
+    comida: { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    almuerzo: { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    cena: { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    desayuno: { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
+    bebidas: { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
+    cafe: { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
+    vino: { ios: 'wineglass.fill', android: 'wine_bar', color: '#8B5CF6' },
     'musica en vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
     'música en vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
-    'musica_vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
-    'karaoke': { ios: 'mic.fill', android: 'mic', color: '#8B5CF6' },
-    'tv': { ios: 'tv.fill', android: 'tv', color: '#3B82F6' },
-    'deportes_tv': { ios: 'tv.fill', android: 'tv', color: '#3B82F6' },
-    'juegos': { ios: 'gamecontroller.fill', android: 'sports_esports', color: '#10B981' },
-    'dj': { ios: 'music.note.list', android: 'music_note', color: '#EC4899' },
-    'sin_gluten': { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
-    'opciones_veganas': { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
-    'comida_vegetariana': { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
+    musica_vivo: { ios: 'music.note', android: 'music_note', color: '#EC4899' },
+    karaoke: { ios: 'mic.fill', android: 'mic', color: '#8B5CF6' },
+    tv: { ios: 'tv.fill', android: 'tv', color: '#3B82F6' },
+    deportes_tv: { ios: 'tv.fill', android: 'tv', color: '#3B82F6' },
+    juegos: { ios: 'gamecontroller.fill', android: 'sports_esports', color: '#10B981' },
+    dj: { ios: 'music.note.list', android: 'music_note', color: '#EC4899' },
+    sin_gluten: { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
+    opciones_veganas: { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
+    comida_vegetariana: { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
   };
-  
+
   const lowerServicio = servicio.toLowerCase().replace(/ /g, '_');
   for (const [key, value] of Object.entries(serviceMap)) {
     if (lowerServicio.includes(key) || key.includes(lowerServicio)) {
       return value;
     }
   }
-  
+
   return { ios: 'checkmark.circle.fill', android: 'check_circle', color: colors.primary };
 };
 
 const getAmbienteIcon = (ambiente: string): { ios: string; android: string; color: string } => {
   const ambienteMap: Record<string, { ios: string; android: string; color: string }> = {
-    'familiar': { ios: 'person.3.fill', android: 'family_restroom', color: '#14B8A6' },
-    'tranquilo': { ios: 'leaf.fill', android: 'spa', color: '#06B6D4' },
-    'animado': { ios: 'bolt.fill', android: 'celebration', color: '#F59E0B' },
-    'romántico': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
-    'romantico': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
-    'moderno': { ios: 'sparkles', android: 'auto_awesome', color: '#8B5CF6' },
-    'elegante': { ios: 'star.fill', android: 'star', color: '#F59E0B' },
-    'acogedor': { ios: 'house.fill', android: 'home', color: '#F59E0B' },
-    'de_moda': { ios: 'sparkles', android: 'auto_awesome', color: '#EC4899' },
-    'juvenil': { ios: 'bolt.fill', android: 'celebration', color: '#3B82F6' },
-    'tematico': { ios: 'star.fill', android: 'star', color: '#8B5CF6' },
+    familiar: { ios: 'person.3.fill', android: 'family_restroom', color: '#14B8A6' },
+    tranquilo: { ios: 'leaf.fill', android: 'spa', color: '#06B6D4' },
+    animado: { ios: 'bolt.fill', android: 'celebration', color: '#F59E0B' },
+    romántico: { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
+    romantico: { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
+    moderno: { ios: 'sparkles', android: 'auto_awesome', color: '#8B5CF6' },
+    elegante: { ios: 'star.fill', android: 'star', color: '#F59E0B' },
+    acogedor: { ios: 'house.fill', android: 'home', color: '#F59E0B' },
+    de_moda: { ios: 'sparkles', android: 'auto_awesome', color: '#EC4899' },
+    juvenil: { ios: 'bolt.fill', android: 'celebration', color: '#3B82F6' },
+    tematico: { ios: 'star.fill', android: 'star', color: '#8B5CF6' },
   };
-  
+
   const lowerAmbiente = ambiente.toLowerCase().replace(/ /g, '_');
   for (const [key, value] of Object.entries(ambienteMap)) {
     if (lowerAmbiente.includes(key) || key.includes(lowerAmbiente)) {
       return value;
     }
   }
-  
+
   return { ios: 'sparkles', android: 'auto_awesome', color: colors.primary };
 };
 
 const getClientelaIcon = (clientela: string): { ios: string; android: string; color: string } => {
   const clientelaMap: Record<string, { ios: string; android: string; color: string }> = {
-    'grupos': { ios: 'person.3.fill', android: 'groups', color: '#10B981' },
-    'familias': { ios: 'house.fill', android: 'family_restroom', color: '#059669' },
-    'parejas': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
-    'estudiantes': { ios: 'book.fill', android: 'school', color: '#3B82F6' },
-    'turistas': { ios: 'airplane', android: 'flight', color: '#F59E0B' },
-    'ninos_bienvenidos': { ios: 'figure.2.and.child.holdinghands', android: 'child_care', color: '#14B8A6' },
-    'lgtbi_friendly': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
-    'locales': { ios: 'person.2.fill', android: 'people', color: '#8B5CF6' },
+    grupos: { ios: 'person.3.fill', android: 'groups', color: '#10B981' },
+    familias: { ios: 'house.fill', android: 'family_restroom', color: '#059669' },
+    parejas: { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
+    estudiantes: { ios: 'book.fill', android: 'school', color: '#3B82F6' },
+    turistas: { ios: 'airplane', android: 'flight', color: '#F59E0B' },
+    ninos_bienvenidos: { ios: 'figure.2.and.child.holdinghands', android: 'child_care', color: '#14B8A6' },
+    lgtbi_friendly: { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
+    locales: { ios: 'person.2.fill', android: 'people', color: '#8B5CF6' },
   };
-  
+
   const lowerClientela = clientela.toLowerCase().replace(/ /g, '_');
   for (const [key, value] of Object.entries(clientelaMap)) {
     if (lowerClientela.includes(key) || key.includes(lowerClientela)) {
       return value;
     }
   }
-  
+
   return { ios: 'person.2.fill', android: 'people', color: colors.primary };
 };
 
@@ -234,7 +248,7 @@ const summarizeText = (text: string, maxLength: number = 120): { summary: string
   if (!text || text.length <= maxLength) {
     return { summary: text, needsExpansion: false };
   }
-  
+
   const summary = text.substring(0, maxLength).trim() + '...';
   return { summary, needsExpansion: true };
 };
@@ -255,15 +269,15 @@ const calculateSentiment = (rating: number): { sentiment: string; color: string 
 
 const normalizeDayName = (day: string): string => {
   const normalizations: Record<string, string> = {
-    'lunes': 'lunes',
-    'martes': 'martes',
-    'miércoles': 'miercoles',
-    'miercoles': 'miercoles',
-    'jueves': 'jueves',
-    'viernes': 'viernes',
-    'sábado': 'sabado',
-    'sabado': 'sabado',
-    'domingo': 'domingo',
+    lunes: 'lunes',
+    martes: 'martes',
+    miércoles: 'miercoles',
+    miercoles: 'miercoles',
+    jueves: 'jueves',
+    viernes: 'viernes',
+    sábado: 'sabado',
+    sabado: 'sabado',
+    domingo: 'domingo',
   };
   return normalizations[day.toLowerCase()] || day;
 };
@@ -272,13 +286,13 @@ const formatOpeningHours = (hours: string[]): string => {
   if (!hours || hours.length === 0) {
     return 'Cerrado';
   }
-  
+
   const sortedHours = [...hours].sort((a, b) => {
     const timeA = a.split('–')[0]?.trim() || a.split('-')[0]?.trim() || '';
     const timeB = b.split('–')[0]?.trim() || b.split('-')[0]?.trim() || '';
     return timeA.localeCompare(timeB);
   });
-  
+
   return sortedHours.join(', ');
 };
 
@@ -287,7 +301,7 @@ export default function DetalleLocalScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
-  
+
   const [local, setLocal] = useState<Local | null>(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -302,12 +316,12 @@ export default function DetalleLocalScreen() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(false);
   const [expandedDescription, setExpandedDescription] = useState(false);
-  
+
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
   const [showReviewsModal, setShowReviewsModal] = useState(false);
 
-  // Swipe-to-close gesture
+  // Animation values
   const translateY = useSharedValue(0);
   const scrollY = useSharedValue(0);
   const context = useSharedValue({ y: 0 });
@@ -327,14 +341,12 @@ export default function DetalleLocalScreen() {
       context.value = { y: translateY.value };
     })
     .onUpdate((event) => {
-      // Only allow swipe down when at the top of the scroll
       if (scrollY.value <= 0 && event.translationY > 0) {
         translateY.value = context.value.y + event.translationY;
       }
     })
     .onEnd((event) => {
-      // Close if swiped down more than 100px or with sufficient velocity
-      if (scrollY.value <= 0 && (event.translationY > 100 || event.velocityY > 500)) {
+      if (scrollY.value <= 0 && (event.translationY > 150 || event.velocityY > 800)) {
         runOnJS(closeModal)();
       } else {
         translateY.value = withSpring(0, {
@@ -347,12 +359,7 @@ export default function DetalleLocalScreen() {
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateY: Math.max(0, translateY.value) }],
-      opacity: interpolate(
-        translateY.value,
-        [0, SCREEN_HEIGHT * 0.3],
-        [1, 0.5],
-        Extrapolate.CLAMP
-      ),
+      opacity: interpolate(translateY.value, [0, SCREEN_HEIGHT * 0.3], [1, 0.5], Extrapolate.CLAMP),
     };
   });
 
@@ -375,17 +382,10 @@ export default function DetalleLocalScreen() {
 
   useEffect(() => {
     if (userLocation && local?.latitud && local?.longitud) {
-      const distKm = calcularDistancia(
-        userLocation.latitude,
-        userLocation.longitude,
-        Number(local.latitud),
-        Number(local.longitud)
-      );
-      
-      const dist = distKm < 1 
-        ? `${Math.round(distKm * 1000)} m` 
-        : `${distKm.toFixed(1)} km`;
-      
+      const distKm = calcularDistancia(userLocation.latitude, userLocation.longitude, Number(local.latitud), Number(local.longitud));
+
+      const dist = distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`;
+
       setDistance(dist);
     }
   }, [userLocation, local]);
@@ -395,13 +395,15 @@ export default function DetalleLocalScreen() {
       setLoadingReviews(true);
       const { data, error } = await supabase
         .from('reviews_barlive')
-        .select(`
+        .select(
+          `
           *,
           usuario:usuario_id (
             nombre,
             avatar
           )
-        `)
+        `
+        )
         .eq('local_id', params.id)
         .order('created_at', { ascending: false })
         .limit(3);
@@ -412,12 +414,12 @@ export default function DetalleLocalScreen() {
       }
 
       setReviews(data || []);
-      
+
       if (data && data.length > 0) {
         const avg = data.reduce((sum, r) => sum + r.rating, 0) / data.length;
         setAverageRating(avg);
       }
-      
+
       setLoadingReviews(false);
     } catch (error) {
       console.error('[DetalleLocal] Error loading reviews:', error);
@@ -453,18 +455,14 @@ export default function DetalleLocalScreen() {
   const cargarLocal = useCallback(async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('locales')
-        .select('*')
-        .eq('id', params.id)
-        .single();
+      const { data, error } = await supabase.from('locales').select('*').eq('id', params.id).single();
 
       if (error) {
         console.error('[DetalleLocal] Error loading local:', error);
         setLoading(false);
         return;
       }
-      
+
       setLocal(data);
       setLoading(false);
       cargarReviewsBarlive();
@@ -496,60 +494,56 @@ export default function DetalleLocalScreen() {
 
   const handleDirections = () => {
     if (local?.latitud && local?.longitud) {
-      Alert.alert(
-        'Cómo llegar',
-        'Elige tu aplicación de navegación',
-        [
-          {
-            text: 'Google Maps',
-            onPress: () => {
-              const url = Platform.select({
-                ios: `comgooglemaps://?q=${local.latitud},${local.longitud}`,
-                android: `google.navigation:q=${local.latitud},${local.longitud}`,
-                default: `https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`
-              });
-              Linking.canOpenURL(url).then(supported => {
-                if (supported) {
-                  Linking.openURL(url);
-                } else {
-                  Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`);
-                }
-              });
-            }
+      Alert.alert('Cómo llegar', 'Elige tu aplicación de navegación', [
+        {
+          text: 'Google Maps',
+          onPress: () => {
+            const url = Platform.select({
+              ios: `comgooglemaps://?q=${local.latitud},${local.longitud}`,
+              android: `google.navigation:q=${local.latitud},${local.longitud}`,
+              default: `https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`,
+            });
+            Linking.canOpenURL(url).then((supported) => {
+              if (supported) {
+                Linking.openURL(url);
+              } else {
+                Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`);
+              }
+            });
           },
-          {
-            text: 'Apple Maps',
-            onPress: () => {
-              const url = `maps:0,0?q=${local.latitud},${local.longitud}`;
-              Linking.openURL(url);
-            }
+        },
+        {
+          text: 'Apple Maps',
+          onPress: () => {
+            const url = `maps:0,0?q=${local.latitud},${local.longitud}`;
+            Linking.openURL(url);
           },
-          {
-            text: 'Waze',
-            onPress: () => {
-              const url = `waze://?ll=${local.latitud},${local.longitud}&navigate=yes`;
-              Linking.canOpenURL(url).then(supported => {
-                if (supported) {
-                  Linking.openURL(url);
-                } else {
-                  Alert.alert('Error', 'Waze no está instalado');
-                }
-              });
-            }
+        },
+        {
+          text: 'Waze',
+          onPress: () => {
+            const url = `waze://?ll=${local.latitud},${local.longitud}&navigate=yes`;
+            Linking.canOpenURL(url).then((supported) => {
+              if (supported) {
+                Linking.openURL(url);
+              } else {
+                Alert.alert('Error', 'Waze no está instalado');
+              }
+            });
           },
-          {
-            text: 'Cancelar',
-            style: 'cancel'
-          }
-        ]
-      );
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ]);
     }
   };
 
   const handleSocialProfile = () => {
     router.push({
       pathname: '/perfil/local',
-      params: { localId: params.id }
+      params: { localId: params.id },
     });
   };
 
@@ -578,7 +572,7 @@ export default function DetalleLocalScreen() {
   };
 
   const toggleReviewExpansion = (reviewId: string) => {
-    setExpandedReviews(prev => {
+    setExpandedReviews((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(reviewId)) {
         newSet.delete(reviewId);
@@ -610,11 +604,9 @@ export default function DetalleLocalScreen() {
     );
   }
 
-  const allImages = [
-    local.imagen_url || local.foto_principal,
-    ...(local.fotos || []),
-    ...(local.galeria_urls || [])
-  ].filter(Boolean).map(img => `${img}?v=${Date.now()}`);
+  const allImages = [local.imagen_url || local.foto_principal, ...(local.fotos || []), ...(local.galeria_urls || [])]
+    .filter(Boolean)
+    .map((img) => `${img}?v=${Date.now()}`);
 
   const estadoLocal = getEstadoLocal(local);
   const isOpen = estadoLocal.estaAbierto === true;
@@ -622,7 +614,7 @@ export default function DetalleLocalScreen() {
 
   const allServices: string[] = [];
   const serviceSet = new Set<string>();
-  
+
   if (local.servicios_disponibles) {
     Object.entries(local.servicios_disponibles).forEach(([key, value]) => {
       if (value === true) {
@@ -634,16 +626,16 @@ export default function DetalleLocalScreen() {
       }
     });
   }
-  
+
   if (local.servicios && local.servicios.length > 0) {
-    local.servicios.forEach(servicio => {
+    local.servicios.forEach((servicio) => {
       if (!serviceSet.has(servicio.toLowerCase())) {
         serviceSet.add(servicio.toLowerCase());
         allServices.push(servicio);
       }
     });
   }
-  
+
   if (local.metodos_pago_completos) {
     Object.entries(local.metodos_pago_completos).forEach(([key, value]) => {
       if (value === true) {
@@ -658,7 +650,7 @@ export default function DetalleLocalScreen() {
 
   const ambienteTags: string[] = [];
   const ambienteSet = new Set<string>();
-  
+
   if (local.ambiente_completo) {
     Object.entries(local.ambiente_completo).forEach(([key, value]) => {
       if (value === true) {
@@ -670,7 +662,7 @@ export default function DetalleLocalScreen() {
       }
     });
   }
-  
+
   if (local.ambiente && !ambienteTags.length) {
     if (!ambienteSet.has(local.ambiente.toLowerCase())) {
       ambienteSet.add(local.ambiente.toLowerCase());
@@ -680,7 +672,7 @@ export default function DetalleLocalScreen() {
 
   const clientelaTags: string[] = [];
   const clientelaSet = new Set<string>();
-  
+
   if (local.clientela) {
     Object.entries(local.clientela).forEach(([key, value]) => {
       if (value === true) {
@@ -697,32 +689,33 @@ export default function DetalleLocalScreen() {
 
   const displayRating = local.rating || local.google_rating || averageRating || 0;
 
-  const allReviewsForSentiment = [
-    ...reviews,
-    ...(local.reviews_google || [])
-  ];
-  
-  const averageRatingForSentiment = allReviewsForSentiment.length > 0
-    ? allReviewsForSentiment.reduce((sum, r) => sum + (r.rating || 0), 0) / allReviewsForSentiment.length
-    : displayRating;
+  const allReviewsForSentiment = [...reviews, ...(local.reviews_google || [])];
+
+  const averageRatingForSentiment =
+    allReviewsForSentiment.length > 0
+      ? allReviewsForSentiment.reduce((sum, r) => sum + (r.rating || 0), 0) / allReviewsForSentiment.length
+      : displayRating;
 
   const allReviews = [
-    ...reviews.map(r => ({ ...r, isGoogle: false })),
-    ...(local.reviews_google || []).slice(0, 3 - reviews.length).map((r: any) => ({
-      ...r,
-      isGoogle: true,
-      id: r.time?.toString() || Math.random().toString(),
-    }))
+    ...reviews.map((r) => ({ ...r, isGoogle: false })),
+    ...(local.reviews_google || [])
+      .slice(0, 3 - reviews.length)
+      .map((r: any) => ({
+        ...r,
+        isGoogle: true,
+        id: r.time?.toString() || Math.random().toString(),
+      })),
   ].slice(0, 3);
 
-  const allCategories = (local.barlive_types && local.barlive_types.length > 0 
-    ? local.barlive_types 
-    : local.barlive_type 
-      ? [local.barlive_type] 
-      : local.categoria 
-        ? [local.categoria] 
-        : []
-  ).filter(cat => !CATEGORIAS_EXCLUIDAS.some(excluded => cat.toLowerCase().includes(excluded.toLowerCase())));
+  const allCategories = (
+    local.barlive_types && local.barlive_types.length > 0
+      ? local.barlive_types
+      : local.barlive_type
+      ? [local.barlive_type]
+      : local.categoria
+      ? [local.categoria]
+      : []
+  ).filter((cat) => !CATEGORIAS_EXCLUIDAS.some((excluded) => cat.toLowerCase().includes(excluded.toLowerCase())));
 
   const description = local.descripcion_google || local.descripcion || '';
   const { summary: descriptionSummary, needsExpansion: needsDescriptionExpansion } = summarizeText(description, 150);
@@ -731,46 +724,45 @@ export default function DetalleLocalScreen() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+
       {/* Backdrop */}
-      <TouchableOpacity 
-        style={styles.backdrop} 
-        activeOpacity={1} 
-        onPress={closeModal}
-      />
-      
-      {/* Modal content with swipe gesture */}
+      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={closeModal} />
+
+      {/* Modal content */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.modalContent, animatedStyle]}>
-          {/* Header with close button, rating, and share */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
-              <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
-              </BlurView>
-            </TouchableOpacity>
-            
-            <View style={styles.headerRight}>
-              {displayRating > 0 && (
-                <View style={styles.ratingBadge}>
-                  <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
-                    <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
-                    <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
-                  </BlurView>
-                </View>
-              )}
-              
-              <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-                <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
-                  <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
-                </BlurView>
-              </TouchableOpacity>
-            </View>
+          {/* Drag indicator */}
+          <View style={styles.dragIndicatorContainer}>
+            <View style={styles.dragIndicator} />
           </View>
 
-          <Animated.ScrollView 
-            style={styles.scrollView} 
+          {/* Close button */}
+          <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
+            <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
+              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
+            </BlurView>
+          </TouchableOpacity>
+
+          {/* Share button */}
+          <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+            <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+              <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
+            </BlurView>
+          </TouchableOpacity>
+
+          {/* Rating badge */}
+          {displayRating > 0 && (
+            <View style={styles.ratingBadge}>
+              <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
+                <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
+              </BlurView>
+            </View>
+          )}
+
+          <Animated.ScrollView
+            style={styles.scrollView}
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
             bounces={true}
@@ -780,10 +772,7 @@ export default function DetalleLocalScreen() {
             {/* Cover image */}
             {allImages.length > 0 && (
               <View style={styles.coverContainer}>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={() => handleOpenGallery(currentImageIndex)}
-                >
+                <TouchableOpacity activeOpacity={0.9} onPress={() => handleOpenGallery(currentImageIndex)}>
                   <ScrollView
                     horizontal
                     pagingEnabled
@@ -796,11 +785,7 @@ export default function DetalleLocalScreen() {
                   >
                     {allImages.map((image, index) => (
                       <View key={index} style={{ width: SCREEN_WIDTH, height: 300 }}>
-                        <OptimizedImage
-                          source={{ uri: image }}
-                          style={styles.coverImage}
-                          resizeMode="cover"
-                        />
+                        <OptimizedImage source={{ uri: image }} style={styles.coverImage} resizeMode="cover" />
                       </View>
                     ))}
                   </ScrollView>
@@ -810,12 +795,8 @@ export default function DetalleLocalScreen() {
                 <View style={styles.statusBadge}>
                   <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
                     <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
-                    <Text style={styles.statusText}>
-                      {estadoLocal.badge}
-                    </Text>
-                    {estadoLocal.tiempoRestante && (
-                      <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>
-                    )}
+                    <Text style={styles.statusText}>{estadoLocal.badge}</Text>
+                    {estadoLocal.tiempoRestante && <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>}
                   </BlurView>
                 </View>
 
@@ -828,22 +809,18 @@ export default function DetalleLocalScreen() {
                     </BlurView>
                   </View>
                 )}
-            
-                {/* Heart icon - stays at bottom right */}
-                <TouchableOpacity
-                  style={styles.favoritoButton}
-                  onPress={handleToggleFavorito}
-                  disabled={loadingFavorite}
-                >
+
+                {/* Heart icon */}
+                <TouchableOpacity style={styles.favoritoButton} onPress={handleToggleFavorito} disabled={loadingFavorite}>
                   <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
                     {loadingFavorite ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <IconSymbol
-                        ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
-                        android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
+                        ios_icon_name={localIsFavorite ? 'heart.fill' : 'heart'}
+                        android_material_icon_name={localIsFavorite ? 'favorite' : 'favorite_border'}
                         size={22}
-                        color={localIsFavorite ? "#EF4444" : "#FFFFFF"}
+                        color={localIsFavorite ? '#EF4444' : '#FFFFFF'}
                       />
                     )}
                   </BlurView>
@@ -855,28 +832,13 @@ export default function DetalleLocalScreen() {
               <View style={styles.gallerySection}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
                   {allImages.slice(1, 6).map((image, index) => (
-                    <TouchableOpacity 
-                      key={index} 
-                      style={styles.galleryItem}
-                      onPress={() => handleOpenGallery(index + 1)}
-                    >
-                      <OptimizedImage
-                        source={{ uri: image }}
-                        style={styles.galleryImage}
-                        resizeMode="cover"
-                      />
+                    <TouchableOpacity key={index} style={styles.galleryItem} onPress={() => handleOpenGallery(index + 1)}>
+                      <OptimizedImage source={{ uri: image }} style={styles.galleryImage} resizeMode="cover" />
                     </TouchableOpacity>
                   ))}
                   {allImages.length > 6 && (
-                    <TouchableOpacity 
-                      style={styles.galleryItem}
-                      onPress={() => handleOpenGallery(6)}
-                    >
-                      <OptimizedImage
-                        source={{ uri: allImages[6] }}
-                        style={styles.galleryImage}
-                        resizeMode="cover"
-                      />
+                    <TouchableOpacity style={styles.galleryItem} onPress={() => handleOpenGallery(6)}>
+                      <OptimizedImage source={{ uri: allImages[6] }} style={styles.galleryImage} resizeMode="cover" />
                       <View style={styles.galleryOverlay}>
                         <Text style={styles.galleryOverlayText}>+{allImages.length - 6}</Text>
                       </View>
@@ -896,12 +858,7 @@ export default function DetalleLocalScreen() {
                       const icon = getCategoryIcon(categoria);
                       return (
                         <View key={index} style={[styles.categoryChipHighlighted, { backgroundColor: icon.color }]}>
-                          <IconSymbol 
-                            ios_icon_name={icon.ios} 
-                            android_material_icon_name={icon.android} 
-                            size={18} 
-                            color="#fff" 
-                          />
+                          <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={18} color="#fff" />
                           <Text style={styles.categoryChipTextHighlighted}>{categoria.toUpperCase()}</Text>
                         </View>
                       );
@@ -928,14 +885,10 @@ export default function DetalleLocalScreen() {
 
               {description && (
                 <View style={styles.descriptionSection}>
-                  <Text style={styles.descriptionText}>
-                    {expandedDescription ? description : descriptionSummary}
-                  </Text>
+                  <Text style={styles.descriptionText}>{expandedDescription ? description : descriptionSummary}</Text>
                   {needsDescriptionExpansion && (
                     <TouchableOpacity onPress={() => setExpandedDescription(!expandedDescription)}>
-                      <Text style={styles.expandButton}>
-                        {expandedDescription ? 'Ver menos' : 'Ver más'}
-                      </Text>
+                      <Text style={styles.expandButton}>{expandedDescription ? 'Ver menos' : 'Ver más'}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -944,26 +897,16 @@ export default function DetalleLocalScreen() {
               <View style={styles.actionsRow}>
                 {local.telefono && (
                   <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
-                    <LinearGradient
-                      colors={['#10B981', '#059669']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.actionBtnGradient}
-                    >
+                    <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtnGradient}>
                       <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
                       <Text style={styles.actionBtnText}>Llamar</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 )}
-            
+
                 {local.latitud && local.longitud && (
                   <TouchableOpacity style={styles.actionBtn} onPress={handleDirections}>
-                    <LinearGradient
-                      colors={[colors.primary, colors.secondary]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.actionBtnGradient}
-                    >
+                    <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtnGradient}>
                       <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
                       <Text style={styles.actionBtnText}>Cómo llegar</Text>
                     </LinearGradient>
@@ -973,12 +916,7 @@ export default function DetalleLocalScreen() {
 
               {hasSocialProfile && (
                 <TouchableOpacity style={styles.specialButton} onPress={handleSocialProfile}>
-                  <LinearGradient
-                    colors={[colors.primary, colors.secondary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.specialButtonGradient}
-                  >
+                  <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.specialButtonGradient}>
                     <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
                     <Text style={styles.specialButtonText}>Ver Perfil Social</Text>
                     <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
@@ -987,16 +925,11 @@ export default function DetalleLocalScreen() {
               )}
 
               {isOpen && (
-                <TouchableOpacity 
-                  style={styles.virtualRoomButton} 
+                <TouchableOpacity
+                  style={styles.virtualRoomButton}
                   onPress={() => router.push({ pathname: '/detalle/sala-virtual', params: { localId: params.id } })}
                 >
-                  <LinearGradient
-                    colors={['#8B5CF6', '#7C3AED']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.virtualRoomButtonGradient}
-                  >
+                  <LinearGradient colors={['#8B5CF6', '#7C3AED']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.virtualRoomButtonGradient}>
                     <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={22} color="#fff" />
                     <Text style={styles.virtualRoomButtonText}>Ver Sala Virtual</Text>
                     <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
@@ -1020,14 +953,12 @@ export default function DetalleLocalScreen() {
                         onPress={() => router.push({ pathname: '/detalle/evento', params: { id: evento.id } })}
                       >
                         {evento.imagen_url && (
-                          <OptimizedImage
-                            source={{ uri: `${evento.imagen_url}?v=${Date.now()}` }}
-                            style={styles.eventImage}
-                            resizeMode="cover"
-                          />
+                          <OptimizedImage source={{ uri: `${evento.imagen_url}?v=${Date.now()}` }} style={styles.eventImage} resizeMode="cover" />
                         )}
                         <View style={styles.eventContent}>
-                          <Text style={styles.eventTitle} numberOfLines={2}>{evento.titulo}</Text>
+                          <Text style={styles.eventTitle} numberOfLines={2}>
+                            {evento.titulo}
+                          </Text>
                           <Text style={styles.eventDate}>
                             {new Date(evento.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                           </Text>
@@ -1051,9 +982,9 @@ export default function DetalleLocalScreen() {
                       const dayNormalized = normalizeDayName(dayDisplay);
                       const hours = local.horarios_completos?.[dayNormalized] || [];
                       const isToday = dayNormalized.toLowerCase() === normalizeDayName(diaLogicoParaResaltar).toLowerCase();
-                    
+
                       const formattedHours = formatOpeningHours(hours);
-                    
+
                       return (
                         <View key={dayDisplay} style={[styles.scheduleRow, isToday && styles.scheduleRowToday]}>
                           <View style={styles.scheduleDayContainer}>
@@ -1085,12 +1016,7 @@ export default function DetalleLocalScreen() {
                       const icon = getServiceIcon(servicio);
                       return (
                         <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
-                          <IconSymbol 
-                            ios_icon_name={icon.ios} 
-                            android_material_icon_name={icon.android} 
-                            size={16} 
-                            color={icon.color} 
-                          />
+                          <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
                           <Text style={[styles.tagText, { color: icon.color }]}>{servicio}</Text>
                         </View>
                       );
@@ -1112,12 +1038,7 @@ export default function DetalleLocalScreen() {
                       const icon = getAmbienteIcon(tag);
                       return (
                         <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
-                          <IconSymbol 
-                            ios_icon_name={icon.ios} 
-                            android_material_icon_name={icon.android} 
-                            size={16} 
-                            color={icon.color} 
-                          />
+                          <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
                           <Text style={[styles.tagText, { color: icon.color }]}>{tag}</Text>
                         </View>
                       );
@@ -1139,11 +1060,7 @@ export default function DetalleLocalScreen() {
                       const icon = getClientelaIcon(tag);
                       return (
                         <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
-                          <IconSymbol 
-                            ios_icon_name={icon.ios} 
-                            android_material_icon_name={icon.android} 
-                            size={16} 
-                            color={icon.color} />
+                          <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
                           <Text style={[styles.tagText, { color: icon.color }]}>{tag}</Text>
                         </View>
                       );
@@ -1208,9 +1125,9 @@ export default function DetalleLocalScreen() {
                       const reviewText = review.text || review.texto || '';
                       const { summary, needsExpansion } = summarizeText(reviewText);
                       const displayText = isExpanded ? reviewText : summary;
-                    
+
                       const isOwner = user && !review.isGoogle && review.usuario_id === user.id;
-                    
+
                       return (
                         <View key={review.id} style={styles.reviewCard}>
                           <View style={styles.reviewHeader}>
@@ -1224,9 +1141,7 @@ export default function DetalleLocalScreen() {
                               )}
                             </View>
                             <View style={styles.reviewInfo}>
-                              <Text style={styles.reviewAuthor}>
-                                {isOwner ? 'Tu reseña' : 'Cliente del local'}
-                              </Text>
+                              <Text style={styles.reviewAuthor}>{isOwner ? 'Tu reseña' : 'Cliente del local'}</Text>
                               <View style={styles.reviewRating}>
                                 <Ionicons name="star" size={14} color="#FFD700" />
                                 <Text style={styles.reviewRatingText}>{review.rating}</Text>
@@ -1238,9 +1153,7 @@ export default function DetalleLocalScreen() {
                               <ParsedText text={displayText} style={styles.reviewText} />
                               {needsExpansion && (
                                 <TouchableOpacity onPress={() => toggleReviewExpansion(review.id)}>
-                                  <Text style={styles.expandButton}>
-                                    {isExpanded ? 'Ver menos' : 'Ver más'}
-                                  </Text>
+                                  <Text style={styles.expandButton}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
                                 </TouchableOpacity>
                               )}
                             </React.Fragment>
@@ -1257,16 +1170,9 @@ export default function DetalleLocalScreen() {
                 )}
 
                 <TouchableOpacity style={styles.addReviewBtn} onPress={handleAddReview}>
-                  <LinearGradient
-                    colors={[colors.primary, colors.secondary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.addReviewGradient}
-                  >
+                  <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addReviewGradient}>
                     <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color="#fff" />
-                    <Text style={styles.addReviewText}>
-                      {reviews.some(r => r.usuario_id === user?.id) ? 'Editar Reseña' : 'Añadir Reseña'}
-                    </Text>
+                    <Text style={styles.addReviewText}>{reviews.some((r) => r.usuario_id === user?.id) ? 'Editar Reseña' : 'Añadir Reseña'}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
@@ -1275,14 +1181,7 @@ export default function DetalleLocalScreen() {
         </Animated.View>
       </GestureDetector>
 
-      {galleryVisible && (
-        <ImageGalleryModal
-          visible={galleryVisible}
-          images={allImages}
-          initialIndex={galleryInitialIndex}
-          onClose={() => setGalleryVisible(false)}
-        />
-      )}
+      {galleryVisible && <ImageGalleryModal visible={galleryVisible} images={allImages} initialIndex={galleryInitialIndex} onClose={() => setGalleryVisible(false)} />}
 
       {showReviewsModal && (
         <ReviewsModal
@@ -1312,30 +1211,42 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: SCREEN_HEIGHT * 0.92,
+    height: SCREEN_HEIGHT * 0.95,
     backgroundColor: colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 20,
   },
-  header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
+  dragIndicatorContainer: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 60 : 48,
-    paddingBottom: 16,
-    zIndex: 100,
+    paddingVertical: 12,
+    backgroundColor: colors.background,
+  },
+  dragIndicator: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.textSecondary + '40',
   },
   closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    position: 'absolute',
+    top: 24,
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     overflow: 'hidden',
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   closeButtonBlur: {
     width: '100%',
@@ -1343,14 +1254,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerRight: {
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: 8,
+  shareButton: {
+    position: 'absolute',
+    top: 24,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  buttonBlur: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   ratingBadge: {
+    position: 'absolute',
+    top: 80,
+    right: 16,
     borderRadius: 20,
     overflow: 'hidden',
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   ratingBlur: {
     flexDirection: 'row',
@@ -1363,18 +1299,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#fff',
-  },
-  shareButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    overflow: 'hidden',
-  },
-  buttonBlur: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   scrollView: {
     flex: 1,
@@ -1428,7 +1352,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 116 : 104,
+    top: 16,
     left: 16,
     borderRadius: 20,
     overflow: 'hidden',
@@ -1465,7 +1389,7 @@ const styles = StyleSheet.create({
   },
   destacadoBadge: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 166 : 154,
+    top: 66,
     left: 16,
     borderRadius: 20,
     overflow: 'hidden',
