@@ -284,14 +284,15 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL v22.0 - FIXED MOBILE MODAL BEHAVIOR
+ * ✅ DETALLE LOCAL v23.0 - UNIFIED MODAL EXPERIENCE
  * 
- * Changes from v21.0:
- * - ✅ Fixed white layer on mobile - proper transparent background
- * - ✅ Modal opens as overlay, not separate page
- * - ✅ Backdrop properly shows previous screen
- * - ✅ Gesture handling works consistently on mobile
- * - ✅ No intermediate layers or blank spaces
+ * Changes from v22.0:
+ * - ✅ Removed white drag indicator bar
+ * - ✅ Cover photo extends to top of modal
+ * - ✅ Unified scroll - no separate layers
+ * - ✅ Transparent background shows underlying page
+ * - ✅ Gesture closes modal when at scroll top
+ * - ✅ No white spaces or intermediate layers
  */
 
 export default function DetalleLocalScreen() {
@@ -323,29 +324,30 @@ export default function DetalleLocalScreen() {
   const translateY = useSharedValue(0);
   const scrollY = useSharedValue(0);
   const context = useSharedValue({ y: 0 });
+  const isAtTop = useSharedValue(true);
 
   const handleClose = () => {
-    // ✅ Animate out before closing
     translateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 }, () => {
       runOnJS(router.back)();
     });
   };
 
-  // ✅ Track scroll position
+  // ✅ Track scroll position to enable/disable gesture
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollY.value = event.contentOffset.y;
+      isAtTop.value = event.contentOffset.y <= 0;
     },
   });
 
-  // ✅ Pan gesture that works with scroll
+  // ✅ Pan gesture that only works when at top of scroll
   const panGesture = Gesture.Pan()
     .onStart(() => {
       context.value = { y: translateY.value };
     })
     .onUpdate((event) => {
       // Only allow downward swipes when at the top of scroll
-      if (scrollY.value <= 0 && event.translationY > 0) {
+      if (isAtTop.value && event.translationY > 0) {
         translateY.value = context.value.y + event.translationY;
       }
     })
@@ -372,7 +374,7 @@ export default function DetalleLocalScreen() {
     const opacity = interpolate(
       translateY.value,
       [0, SCREEN_HEIGHT / 2],
-      [0.5, 0],
+      [0.4, 0],
       Extrapolate.CLAMP
     );
     return {
@@ -803,11 +805,6 @@ export default function DetalleLocalScreen() {
       {/* ✅ Modal content with unified gesture handling */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.modalContent, animatedStyle]}>
-          {/* ✅ Drag indicator for mobile */}
-          <View style={styles.dragIndicatorContainer}>
-            <View style={styles.dragIndicator} />
-          </View>
-
           <Animated.ScrollView 
             style={styles.scrollView} 
             contentContainerStyle={styles.contentContainer}
@@ -816,7 +813,7 @@ export default function DetalleLocalScreen() {
             scrollEventThrottle={16}
             onScroll={scrollHandler}
           >
-            {/* Cover image with close button overlay */}
+            {/* ✅ Cover image extends to top - no white bar */}
             {allImages.length > 0 && (
               <View style={styles.coverContainer}>
                 <TouchableOpacity
@@ -1350,7 +1347,7 @@ export default function DetalleLocalScreen() {
           localId={params.id as string}
           onClose={() => setShowReviewsModal(false)}
           onReviewAdded={() => {
-            console.log('[DetalleLocal v22.0] ✅ Review added, reloading reviews');
+            console.log('[DetalleLocal v23.0] ✅ Review added, reloading reviews');
             cargarReviewsBarlive();
           }}
         />
@@ -1375,17 +1372,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
-  },
-  dragIndicatorContainer: {
-    alignItems: 'center',
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  dragIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.cardBorder,
-    borderRadius: 2,
   },
   scrollView: {
     flex: 1,
