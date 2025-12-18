@@ -143,6 +143,14 @@ export default function AdminIndexScreen() {
       description: 'Administra planes y suscripciones',
     },
     {
+      title: 'Configurar Stripe',
+      icon: 'creditcard.and.123' as const,
+      androidIcon: 'credit_card' as const,
+      color: '#6366F1',
+      route: '/admin/gestionar-pagos-stripe',
+      description: 'Configura Stripe para pagos',
+    },
+    {
       title: 'Gestión de Eventos',
       icon: 'calendar.badge.plus' as const,
       androidIcon: 'event' as const,

@@ -264,6 +264,8 @@ export default function GestionarPlanesV7Screen() {
       if (!plan) throw new Error('Plan no encontrado');
 
       const fechaInicio = new Date();
+      const nextMonth = new Date(fechaInicio);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
 
       // ✅ FIXED: Get propietario_id from local or use current user
       const propietarioId = selectedLocal.propietario_id || user.id;
@@ -277,20 +279,68 @@ export default function GestionarPlanesV7Screen() {
         fecha_inicio: fechaInicio.toISOString(),
       });
 
-      const { error: subscriptionError } = await supabase
+      // ✅ FIXED: Check for existing subscription first to avoid duplicate key error
+      const { data: existingActive, error: checkError } = await supabase
         .from('suscripciones_locales')
-        .insert({
-          usuario_id: propietarioId, // ✅ FIXED: Now properly set
-          propietario_id: propietarioId, // ✅ FIXED: Also set propietario_id
-          local_id: selectedLocal.id,
-          plan_id: selectedPlan,
-          estado: 'activa',
-          fecha_inicio: fechaInicio.toISOString(),
-        });
+        .select('id, estado')
+        .eq('usuario_id', propietarioId)
+        .eq('local_id', selectedLocal.id)
+        .maybeSingle();
 
-      if (subscriptionError) {
-        console.error('[GestionarPlanesV7] Subscription error:', subscriptionError);
-        throw subscriptionError;
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('[GestionarPlanesV7] Error checking existing subscription:', checkError);
+        throw checkError;
+      }
+
+      if (existingActive) {
+        // Update existing subscription instead of creating new one
+        console.log('[GestionarPlanesV7] Updating existing subscription:', existingActive.id);
+        
+        const { error: updateError } = await supabase
+          .from('suscripciones_locales')
+          .update({
+            plan_id: selectedPlan,
+            estado: 'activa',
+            fecha_inicio: fechaInicio.toISOString(),
+            fecha_proximo_pago: nextMonth.toISOString(),
+            fecha_renovacion_creditos: nextMonth.toISOString(),
+            eventos_usados_mes: 0,
+            promos_usadas_mes: 0,
+            creditos_destacados_restantes: plan.promos_destacadas || 0,
+            creditos_eventos_restantes: plan.eventos_mes || 0,
+            ultimo_reset_contador: fechaInicio.toISOString(),
+            updated_at: fechaInicio.toISOString(),
+          })
+          .eq('id', existingActive.id);
+
+        if (updateError) {
+          console.error('[GestionarPlanesV7] Update error:', updateError);
+          throw updateError;
+        }
+      } else {
+        // Create new subscription
+        const { error: subscriptionError } = await supabase
+          .from('suscripciones_locales')
+          .insert({
+            usuario_id: propietarioId, // ✅ FIXED: Now properly set
+            propietario_id: propietarioId, // ✅ FIXED: Also set propietario_id
+            local_id: selectedLocal.id,
+            plan_id: selectedPlan,
+            estado: 'activa',
+            fecha_inicio: fechaInicio.toISOString(),
+            fecha_proximo_pago: nextMonth.toISOString(),
+            fecha_renovacion_creditos: nextMonth.toISOString(),
+            eventos_usados_mes: 0,
+            promos_usadas_mes: 0,
+            creditos_destacados_restantes: plan.promos_destacadas || 0,
+            creditos_eventos_restantes: plan.eventos_mes || 0,
+            ultimo_reset_contador: fechaInicio.toISOString(),
+          });
+
+        if (subscriptionError) {
+          console.error('[GestionarPlanesV7] Subscription error:', subscriptionError);
+          throw subscriptionError;
+        }
       }
 
       // ✅ FIXED: Convert boolean properly
@@ -1163,8 +1213,369 @@ export default function GestionarPlanesV7Screen() {
         </View>
       </Modal>
 
-      {/* EDIT PLAN MODAL - Keeping the same structure as before */}
-      {/* CREATE PLAN MODAL - Keeping the same structure as before */}
+      {/* EDIT PLAN MODAL */}
+      <Modal
+        visible={showEditPlanModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowEditPlanModal(false)}
+      >
+        <View style={styles.fullScreenModal}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.fullScreenModalHeader}
+          >
+            <TouchableOpacity
+              style={styles.fullScreenModalClose}
+              onPress={() => setShowEditPlanModal(false)}
+            >
+              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="close" size={32} color={colors.headerText} />
+            </TouchableOpacity>
+            <View style={styles.fullScreenModalHeaderContent}>
+              <Text style={styles.fullScreenModalTitle}>Editar Plan</Text>
+              <Text style={styles.fullScreenModalSubtitle}>Modifica los detalles del plan de suscripción</Text>
+            </View>
+          </LinearGradient>
+
+          <ScrollView style={styles.fullScreenModalContent} contentContainerStyle={styles.fullScreenModalContentContainer}>
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Nombre del Plan *</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="Ej: Básico, Premium, etc."
+                placeholderTextColor={colors.textSecondary}
+                value={editPlanNombre}
+                onChangeText={setEditPlanNombre}
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Descripción</Text>
+              <TextInput
+                style={[styles.formInput, styles.formTextArea]}
+                placeholder="Describe las características del plan"
+                placeholderTextColor={colors.textSecondary}
+                value={editPlanDescripcion}
+                onChangeText={setEditPlanDescripcion}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Precio Mensual (€)</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="0.00"
+                placeholderTextColor={colors.textSecondary}
+                value={editPlanPrecio}
+                onChangeText={setEditPlanPrecio}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Eventos por Mes</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="0"
+                placeholderTextColor={colors.textSecondary}
+                value={editPlanEventos}
+                onChangeText={setEditPlanEventos}
+                keyboardType="number-pad"
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Promos Destacadas</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="0"
+                placeholderTextColor={colors.textSecondary}
+                value={editPlanPromos}
+                onChangeText={setEditPlanPromos}
+                keyboardType="number-pad"
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Plan Activo</Text>
+                <Switch
+                  value={editPlanActivo}
+                  onValueChange={setEditPlanActivo}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
+                  thumbColor={editPlanActivo ? colors.primary : colors.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Perfil Social</Text>
+                <Switch
+                  value={editPlanPerfilSocial}
+                  onValueChange={setEditPlanPerfilSocial}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
+                  thumbColor={editPlanPerfilSocial ? colors.primary : colors.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Panel de Análisis</Text>
+                <Switch
+                  value={editPlanPanelAnalisis}
+                  onValueChange={setEditPlanPanelAnalisis}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
+                  thumbColor={editPlanPanelAnalisis ? colors.primary : colors.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Soporte Prioritario</Text>
+                <Switch
+                  value={editPlanSoportePrioritario}
+                  onValueChange={setEditPlanSoportePrioritario}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
+                  thumbColor={editPlanSoportePrioritario ? colors.primary : colors.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Visibilidad Extra</Text>
+                <Switch
+                  value={editPlanVisibilidadExtra}
+                  onValueChange={setEditPlanVisibilidadExtra}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
+                  thumbColor={editPlanVisibilidadExtra ? colors.primary : colors.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Visibilidad Máxima</Text>
+                <Switch
+                  value={editPlanVisibilidadMaxima}
+                  onValueChange={setEditPlanVisibilidadMaxima}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
+                  thumbColor={editPlanVisibilidadMaxima ? colors.primary : colors.textSecondary}
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.fullScreenModalFooter}>
+            <TouchableOpacity
+              style={[styles.fullScreenModalButton]}
+              onPress={handleSavePlan}
+              disabled={savingPlan}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.primary + 'DD']}
+                style={styles.fullScreenModalButtonGradient}
+              >
+                {savingPlan ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <React.Fragment>
+                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.white} />
+                    <Text style={styles.fullScreenModalButtonText}>Guardar Cambios</Text>
+                  </React.Fragment>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* CREATE PLAN MODAL */}
+      <Modal
+        visible={showCreatePlanModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCreatePlanModal(false)}
+      >
+        <View style={styles.fullScreenModal}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.fullScreenModalHeader}
+          >
+            <TouchableOpacity
+              style={styles.fullScreenModalClose}
+              onPress={() => setShowCreatePlanModal(false)}
+            >
+              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="close" size={32} color={colors.headerText} />
+            </TouchableOpacity>
+            <View style={styles.fullScreenModalHeaderContent}>
+              <Text style={styles.fullScreenModalTitle}>Crear Nuevo Plan</Text>
+              <Text style={styles.fullScreenModalSubtitle}>Define un nuevo plan de suscripción</Text>
+            </View>
+          </LinearGradient>
+
+          <ScrollView style={styles.fullScreenModalContent} contentContainerStyle={styles.fullScreenModalContentContainer}>
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Nombre del Plan *</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="Ej: Básico, Premium, etc."
+                placeholderTextColor={colors.textSecondary}
+                value={createPlanNombre}
+                onChangeText={setCreatePlanNombre}
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Descripción</Text>
+              <TextInput
+                style={[styles.formInput, styles.formTextArea]}
+                placeholder="Describe las características del plan"
+                placeholderTextColor={colors.textSecondary}
+                value={createPlanDescripcion}
+                onChangeText={setCreatePlanDescripcion}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Precio Mensual (€)</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="0.00"
+                placeholderTextColor={colors.textSecondary}
+                value={createPlanPrecio}
+                onChangeText={setCreatePlanPrecio}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Eventos por Mes</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="0"
+                placeholderTextColor={colors.textSecondary}
+                value={createPlanEventos}
+                onChangeText={setCreatePlanEventos}
+                keyboardType="number-pad"
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Promos Destacadas</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="0"
+                placeholderTextColor={colors.textSecondary}
+                value={createPlanPromos}
+                onChangeText={setCreatePlanPromos}
+                keyboardType="number-pad"
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Plan Activo</Text>
+                <Switch
+                  value={createPlanActivo}
+                  onValueChange={setCreatePlanActivo}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
+                  thumbColor={createPlanActivo ? colors.primary : colors.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Perfil Social</Text>
+                <Switch
+                  value={createPlanPerfilSocial}
+                  onValueChange={setCreatePlanPerfilSocial}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
+                  thumbColor={createPlanPerfilSocial ? colors.primary : colors.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Panel de Análisis</Text>
+                <Switch
+                  value={createPlanPanelAnalisis}
+                  onValueChange={setCreatePlanPanelAnalisis}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
+                  thumbColor={createPlanPanelAnalisis ? colors.primary : colors.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Soporte Prioritario</Text>
+                <Switch
+                  value={createPlanSoportePrioritario}
+                  onValueChange={setCreatePlanSoportePrioritario}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
+                  thumbColor={createPlanSoportePrioritario ? colors.primary : colors.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Visibilidad Extra</Text>
+                <Switch
+                  value={createPlanVisibilidadExtra}
+                  onValueChange={setCreatePlanVisibilidadExtra}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
+                  thumbColor={createPlanVisibilidadExtra ? colors.primary : colors.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Visibilidad Máxima</Text>
+                <Switch
+                  value={createPlanVisibilidadMaxima}
+                  onValueChange={setCreatePlanVisibilidadMaxima}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
+                  thumbColor={createPlanVisibilidadMaxima ? colors.primary : colors.textSecondary}
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.fullScreenModalFooter}>
+            <TouchableOpacity
+              style={[styles.fullScreenModalButton]}
+              onPress={handleCreatePlan}
+              disabled={creatingPlan}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.primary + 'DD']}
+                style={styles.fullScreenModalButtonGradient}
+              >
+                {creatingPlan ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <React.Fragment>
+                    <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={24} color={colors.white} />
+                    <Text style={styles.fullScreenModalButtonText}>Crear Plan</Text>
+                  </React.Fragment>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1882,5 +2293,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
+  },
+  // FORM STYLES
+  formSection: {
+    marginBottom: 24,
+  },
+  formLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 10,
+  },
+  formInput: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  formTextArea: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  switchLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.text,
   },
 });
