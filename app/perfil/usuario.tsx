@@ -38,6 +38,7 @@ export default function UsuarioPerfilScreen() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [currentLocal, setCurrentLocal] = useState<any>(null);
+  const [canViewLocation, setCanViewLocation] = useState(false);
   const [stats, setStats] = useState({
     posts: 0,
     seguidores: 0,
@@ -76,6 +77,8 @@ export default function UsuarioPerfilScreen() {
         .from('check_ins')
         .select(`
           local_id,
+          visibility,
+          specific_user_ids,
           locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
         `)
         .eq('usuario_id', userId)
@@ -88,14 +91,48 @@ export default function UsuarioPerfilScreen() {
 
       if (checkIn && checkIn.locales) {
         setCurrentLocal(checkIn.locales);
+        
+        // 🔐 Determine if current user can view this location
+        if (isOwnProfile) {
+          // User always sees their own location
+          setCanViewLocation(true);
+          console.log('[UsuarioPerfil] ✅ Own profile - can view location');
+        } else if (currentUser) {
+          // Check visibility settings
+          if (checkIn.visibility === 'all_users') {
+            setCanViewLocation(true);
+            console.log('[UsuarioPerfil] ✅ Visibility: all_users - can view');
+          } else if (checkIn.visibility === 'followers') {
+            // Check if current user follows this user
+            const { data: followData } = await supabase
+              .from('seguidores')
+              .select('id')
+              .eq('seguidor_id', currentUser.id)
+              .eq('seguido_id', userId)
+              .single();
+            
+            setCanViewLocation(!!followData);
+            console.log('[UsuarioPerfil] ✅ Visibility: followers - can view:', !!followData);
+          } else if (checkIn.visibility === 'specific_users') {
+            const canView = checkIn.specific_user_ids?.includes(currentUser.id) || false;
+            setCanViewLocation(canView);
+            console.log('[UsuarioPerfil] ✅ Visibility: specific_users - can view:', canView);
+          } else {
+            setCanViewLocation(false);
+          }
+        } else {
+          setCanViewLocation(false);
+        }
+
         console.log('[UsuarioPerfil] ✅ User is checked in to:', checkIn.locales.nombre);
       } else {
         setCurrentLocal(null);
+        setCanViewLocation(false);
       }
     } catch (error) {
       console.error('[UsuarioPerfil] Error loading current local:', error);
     }
-  }, [userId]);
+  }, [userId, isOwnProfile, currentUser]);
 
   const loadFollowerCounts = useCallback(async (targetUserId: string) => {
     try {
@@ -510,6 +547,7 @@ export default function UsuarioPerfilScreen() {
               if (error) throw error;
 
               setCurrentLocal(null);
+              setCanViewLocation(false);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
               console.error('[UsuarioPerfil] Error exiting local:', error);
@@ -595,21 +633,59 @@ export default function UsuarioPerfilScreen() {
             <Text style={styles.profileBio}>{usuario.bio}</Text>
           )}
 
-          {currentLocal && (
-            <View style={styles.currentLocalContainer}>
-              <TouchableOpacity style={styles.currentLocalCard} onPress={handleViewLocal}>
-                <View style={styles.currentLocalContent}>
-                  <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={20} color="#10B981" />
-                  <View style={styles.currentLocalInfo}>
-                    <Text style={styles.currentLocalLabel}>
-                      {isOwnProfile ? 'Estás en:' : 'Está en:'}
-                    </Text>
-                    <Text style={styles.currentLocalName}>{currentLocal.nombre}</Text>
+          {/* ✅ CURRENT LOCATION SECTION - "Estado actual" */}
+          {currentLocal && canViewLocation && (
+            <View style={styles.currentLocalSection}>
+              <View style={styles.currentLocalHeader}>
+                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={20} color="#10B981" />
+                <Text style={styles.currentLocalHeaderText}>Estado actual</Text>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.currentLocalCard} 
+                onPress={handleViewLocal}
+                activeOpacity={0.9}
+              >
+                <View style={styles.currentLocalImageContainer}>
+                  {currentLocal.imagen_url ? (
+                    <Image 
+                      source={{ uri: currentLocal.imagen_url }} 
+                      style={styles.currentLocalImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[styles.currentLocalImage, styles.currentLocalImagePlaceholder]}>
+                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={28} color="rgba(255, 255, 255, 0.6)" />
+                    </View>
+                  )}
+                  <View style={styles.currentLocalImageOverlay} />
+                  <View style={styles.currentLocalBadge}>
+                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={14} color="#10B981" />
+                    <Text style={styles.currentLocalBadgeText}>Ahora en...</Text>
                   </View>
+                </View>
+
+                <View style={styles.currentLocalContent}>
+                  <Text style={styles.currentLocalLabel}>
+                    {isOwnProfile ? 'Actualmente en' : 'Actualmente en'}
+                  </Text>
+                  <Text style={styles.currentLocalName} numberOfLines={1}>
+                    {currentLocal.nombre}
+                  </Text>
+                  <View style={styles.currentLocalMeta}>
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={12} color="rgba(255, 255, 255, 0.8)" />
+                    <Text style={styles.currentLocalAddress} numberOfLines={1}>
+                      {currentLocal.direccion}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.currentLocalArrow}>
                   <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.headerText} />
                 </View>
               </TouchableOpacity>
               
+              {/* 🔘 "Salir del local" button - ONLY for own profile */}
               {isOwnProfile && (
                 <TouchableOpacity style={styles.exitLocalButton} onPress={handleExitLocal}>
                   <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={18} color="#EF4444" />
@@ -766,16 +842,98 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 16,
   },
-  currentLocalContainer: {
-    marginBottom: 16,
+  // ✅ CURRENT LOCATION SECTION STYLES
+  currentLocalSection: {
+    marginBottom: 20,
+  },
+  currentLocalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  currentLocalHeaderText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.headerText,
   },
   currentLocalCard: {
+    flexDirection: 'row',
     backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    borderRadius: 14,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.4)',
+    marginBottom: 10,
+  },
+  currentLocalImageContainer: {
+    width: 90,
+    height: 90,
+    position: 'relative',
+  },
+  currentLocalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  currentLocalImagePlaceholder: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currentLocalImageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+  },
+  currentLocalBadge: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.white,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  currentLocalBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  currentLocalContent: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'center',
+  },
+  currentLocalLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
+  },
+  currentLocalName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.headerText,
+    marginBottom: 6,
+  },
+  currentLocalMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  currentLocalAddress: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    flex: 1,
+  },
+  currentLocalArrow: {
+    justifyContent: 'center',
+    paddingRight: 12,
   },
   exitLocalButton: {
     flexDirection: 'row',
@@ -783,34 +941,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   exitLocalButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#EF4444',
-  },
-  currentLocalContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  currentLocalInfo: {
-    flex: 1,
-  },
-  currentLocalLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 2,
-  },
-  currentLocalName: {
-    fontSize: 15,
     fontWeight: '700',
-    color: colors.headerText,
+    color: '#EF4444',
   },
   statsContainer: {
     flexDirection: 'row',

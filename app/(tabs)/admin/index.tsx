@@ -135,6 +135,14 @@ export default function AdminIndexScreen() {
       description: 'Gestiona locales, propietarios y estados',
     },
     {
+      title: 'Asignar Local a Usuario',
+      icon: 'person.badge.key.fill' as const,
+      androidIcon: 'admin_panel_settings' as const,
+      color: '#8B5CF6',
+      route: '/admin/asignar-local-usuario',
+      description: 'Asigna locales a usuarios con roles específicos',
+    },
+    {
       title: 'Gestión de Planes',
       icon: 'star.fill' as const,
       androidIcon: 'star' as const,

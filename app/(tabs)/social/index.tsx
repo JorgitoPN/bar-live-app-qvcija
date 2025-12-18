@@ -53,14 +53,33 @@ interface Post {
   user_has_saved?: boolean;
 }
 
+interface FriendLocation {
+  local: {
+    id: string;
+    nombre: string;
+    imagen_url?: string;
+    tipo: string;
+    direccion: string;
+  };
+  users: Array<{
+    id: string;
+    nombre: string;
+    username?: string;
+    avatar?: string;
+  }>;
+}
+
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL FEED v2.0 - SYNCHRONIZED BADGES
+ * ✅ SOCIAL FEED v3.0 - WITH FRIENDS LOCATIONS
  * 
- * Changes:
- * - ✅ Uses HeaderSocial component with synchronized notification/message badges
- * - ✅ Real-time updates for badge counts
+ * Features:
+ * - ✅ "¿Quieres saber dónde están tus amigos?" section
+ * - ✅ Shows friends currently at locals
+ * - ✅ Shows user's own check-in if present
+ * - ✅ Beautiful visual cards with avatars, local photos, badges
+ * - ✅ Clickable cards navigate to local page
  */
 
 export default function SocialIndexScreen() {
@@ -78,6 +97,11 @@ export default function SocialIndexScreen() {
   // ✅ Badge counts state
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+
+  // ✅ Friends locations state
+  const [friendsLocations, setFriendsLocations] = useState<FriendLocation[]>([]);
+  const [loadingFriendsLocations, setLoadingFriendsLocations] = useState(false);
+  const [myCheckIn, setMyCheckIn] = useState<any>(null);
 
   // ✅ Load unread counts
   const loadUnreadCounts = useCallback(async () => {
@@ -287,6 +311,7 @@ export default function SocialIndexScreen() {
 
   const handleRefresh = useCallback(() => {
     cargarPosts(1, true);
+    loadFriendsLocations();
   }, [cargarPosts]);
 
   const handleLoadMore = useCallback(() => {
@@ -303,17 +328,36 @@ export default function SocialIndexScreen() {
     router.push('/crear/publicacion');
   };
 
-  const [friendsLocations, setFriendsLocations] = useState<any[]>([]);
-  const [loadingFriendsLocations, setLoadingFriendsLocations] = useState(false);
-
-  // Load friends' locations
+  // ✅ Load friends' locations AND my own check-in
   const loadFriendsLocations = useCallback(async () => {
     if (!userId) return;
 
     try {
       setLoadingFriendsLocations(true);
 
-      // Get all users that current user follows
+      // 1. Get my own check-in first
+      const { data: myCheckInData, error: myCheckInError } = await supabase
+        .from('check_ins')
+        .select(`
+          local_id,
+          visibility,
+          locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
+        `)
+        .eq('usuario_id', userId)
+        .single();
+
+      if (myCheckInError && myCheckInError.code !== 'PGRST116') {
+        console.error('[Social] Error loading my check-in:', myCheckInError);
+      }
+
+      if (myCheckInData && myCheckInData.locales) {
+        setMyCheckIn(myCheckInData);
+        console.log('[Social] ✅ I am checked in to:', myCheckInData.locales.nombre);
+      } else {
+        setMyCheckIn(null);
+      }
+
+      // 2. Get all users that current user follows
       const { data: following, error: followingError } = await supabase
         .from('seguidores')
         .select('seguido_id')
@@ -329,7 +373,7 @@ export default function SocialIndexScreen() {
         return;
       }
 
-      // Get check-ins from followed users
+      // 3. Get check-ins from followed users
       const { data: checkIns, error: checkInsError } = await supabase
         .from('check_ins')
         .select(`
@@ -344,7 +388,7 @@ export default function SocialIndexScreen() {
 
       if (checkInsError) throw checkInsError;
 
-      // Filter by visibility
+      // 4. Filter by visibility
       const visibleCheckIns = (checkIns || []).filter(checkIn => {
         if (checkIn.visibility === 'all_users') return true;
         if (checkIn.visibility === 'followers') return true;
@@ -354,8 +398,8 @@ export default function SocialIndexScreen() {
         return false;
       });
 
-      // Group by local
-      const locationsByLocal = new Map<string, any>();
+      // 5. Group by local
+      const locationsByLocal = new Map<string, FriendLocation>();
       visibleCheckIns.forEach(checkIn => {
         if (!checkIn.locales) return;
 
@@ -366,7 +410,7 @@ export default function SocialIndexScreen() {
             users: [],
           });
         }
-        locationsByLocal.get(localId).users.push(checkIn.usuarios);
+        locationsByLocal.get(localId)!.users.push(checkIn.usuarios);
       });
 
       const locations = Array.from(locationsByLocal.values());
@@ -429,7 +473,65 @@ export default function SocialIndexScreen() {
 
       <MomentoCarousel />
 
-      {/* ✅ Friends Locations Section - Placed AFTER Momentos */}
+      {/* ✅ MY CHECK-IN SECTION - Show if I'm checked in */}
+      {myCheckIn && myCheckIn.locales && (
+        <View style={styles.myCheckInSection}>
+          <LinearGradient
+            colors={['#10B981', '#059669']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.myCheckInGradient}
+          >
+            <View style={styles.myCheckInHeader}>
+              <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={24} color={colors.white} />
+              <Text style={styles.myCheckInTitle}>Estás en:</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.myCheckInCard}
+              onPress={() => router.push(`/detalle/local?id=${myCheckIn.locales.id}`)}
+              activeOpacity={0.9}
+            >
+              <View style={styles.myCheckInImageContainer}>
+                {myCheckIn.locales.imagen_url ? (
+                  <Image 
+                    source={{ uri: myCheckIn.locales.imagen_url }} 
+                    style={styles.myCheckInImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.myCheckInImage, styles.myCheckInImagePlaceholder]}>
+                    <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={40} color={colors.white} />
+                  </View>
+                )}
+                <View style={styles.myCheckInOverlay} />
+                <View style={styles.myCheckInBadge}>
+                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color="#10B981" />
+                  <Text style={styles.myCheckInBadgeText}>Ahora aquí</Text>
+                </View>
+              </View>
+
+              <View style={styles.myCheckInInfo}>
+                <Text style={styles.myCheckInLocalName} numberOfLines={1}>
+                  {myCheckIn.locales.nombre}
+                </Text>
+                <View style={styles.myCheckInMeta}>
+                  <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={12} color="rgba(255, 255, 255, 0.9)" />
+                  <Text style={styles.myCheckInAddress} numberOfLines={1}>
+                    {myCheckIn.locales.direccion}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.myCheckInArrow}>
+                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={24} color={colors.white} />
+              </View>
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
+      )}
+
+      {/* ✅ FRIENDS LOCATIONS SECTION - "¿Quieres saber dónde están tus amigos?" */}
       {friendsLocations.length > 0 && (
         <View style={styles.friendsLocationsSection}>
           <LinearGradient
@@ -440,7 +542,7 @@ export default function SocialIndexScreen() {
           >
             <View style={styles.friendsLocationsSectionHeader}>
               <View style={styles.friendsLocationsSectionTitleContainer}>
-                <IconSymbol ios_icon_name="mappin.and.ellipse" android_material_icon_name="location_on" size={28} color={colors.white} />
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={28} color={colors.white} />
                 <View>
                   <Text style={styles.friendsLocationsSectionTitle}>
                     ¿Quieres saber dónde están tus amigos?
@@ -457,7 +559,7 @@ export default function SocialIndexScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.friendsLocationsScroll}
             >
-              {friendsLocations.map((location, index) => (
+              {friendsLocations.map((location) => (
                 <TouchableOpacity
                   key={location.local.id}
                   style={styles.friendLocationCard}
@@ -480,7 +582,7 @@ export default function SocialIndexScreen() {
                     
                     {/* User avatars */}
                     <View style={styles.friendLocationAvatars}>
-                      {location.users.slice(0, 3).map((user: any, userIndex: number) => (
+                      {location.users.slice(0, 3).map((user, userIndex) => (
                         <View 
                           key={user.id} 
                           style={[
@@ -506,6 +608,12 @@ export default function SocialIndexScreen() {
                         </View>
                       )}
                     </View>
+
+                    {/* "Ahora en..." badge */}
+                    <View style={styles.friendLocationBadge}>
+                      <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={14} color="#14B8A6" />
+                      <Text style={styles.friendLocationBadgeText}>Ahora en...</Text>
+                    </View>
                   </View>
 
                   <View style={styles.friendLocationInfo}>
@@ -521,7 +629,8 @@ export default function SocialIndexScreen() {
                     <View style={styles.friendLocationUsers}>
                       <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={14} color={colors.white} />
                       <Text style={styles.friendLocationUsersText}>
-                        {location.users.length} {location.users.length === 1 ? 'amigo' : 'amigos'}
+                        {location.users.slice(0, 2).map(u => u.nombre.split(' ')[0]).join(', ')}
+                        {location.users.length > 2 && ` +${location.users.length - 2}`}
                       </Text>
                     </View>
                   </View>
@@ -536,7 +645,7 @@ export default function SocialIndexScreen() {
         </View>
       )}
     </React.Fragment>
-  ), [isImpersonating, impersonationSession, friendsLocations, router]);
+  ), [isImpersonating, impersonationSession, friendsLocations, myCheckIn, router]);
 
   const renderPost = useCallback(({ item }: { item: Post }) => (
     <PublicacionCard post={item} onUpdate={handleRefresh} />
@@ -684,6 +793,101 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
+  // ✅ MY CHECK-IN STYLES
+  myCheckInSection: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  myCheckInGradient: {
+    padding: 16,
+  },
+  myCheckInHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  myCheckInTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.white,
+  },
+  myCheckInCard: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  myCheckInImageContainer: {
+    width: 100,
+    height: 100,
+    position: 'relative',
+  },
+  myCheckInImage: {
+    width: '100%',
+    height: '100%',
+  },
+  myCheckInImagePlaceholder: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  myCheckInOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  myCheckInBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.white,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  myCheckInBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  myCheckInInfo: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'center',
+  },
+  myCheckInLocalName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.white,
+    marginBottom: 6,
+  },
+  myCheckInMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  myCheckInAddress: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    flex: 1,
+  },
+  myCheckInArrow: {
+    justifyContent: 'center',
+    paddingRight: 12,
+  },
+  // ✅ FRIENDS LOCATIONS STYLES
   friendsLocationsSection: {
     marginHorizontal: 16,
     marginTop: 12,
@@ -723,10 +927,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    flexDirection: 'row',
   },
   friendLocationImageContainer: {
-    width: '100%',
-    height: 140,
+    width: 100,
+    height: 120,
     position: 'relative',
   },
   friendLocationImage: {
@@ -782,8 +987,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.white,
   },
+  friendLocationBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.white,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  friendLocationBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#14B8A6',
+  },
   friendLocationInfo: {
+    flex: 1,
     padding: 12,
+    justifyContent: 'center',
   },
   friendLocationName: {
     fontSize: 16,
@@ -806,21 +1030,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
   },
   friendLocationUsersText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.white,
+    flex: 1,
   },
   friendLocationArrow: {
-    position: 'absolute',
-    right: 12,
-    top: '50%',
-    marginTop: -10,
+    justifyContent: 'center',
+    paddingRight: 12,
   },
 });
