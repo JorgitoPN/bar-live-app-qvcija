@@ -32,6 +32,7 @@ import { useFavorites } from '../../contexts/FavoritesContext';
 import { calcularDistancia } from '../../utils/locationUtils';
 import ParsedText from '../../components/social/ParsedText';
 import ReviewsModal from '../../components/social/ReviewsModal';
+import CheckInModal from '../../components/detalle/CheckInModal';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -40,8 +41,6 @@ import Animated, {
   withTiming,
   runOnJS,
   useAnimatedScrollHandler,
-  interpolate,
-  Extrapolate,
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -128,6 +127,13 @@ interface Evento {
   hora_fin?: string;
   imagen_url?: string;
   precio?: number;
+}
+
+interface CheckedInUser {
+  id: string;
+  nombre: string;
+  username: string | null;
+  avatar: string | null;
 }
 
 const getCategoryIcon = (categoria?: string): { ios: string; android: string; color: string } => {
@@ -319,12 +325,15 @@ export default function DetalleLocalScreen() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(false);
   const [expandedDescription, setExpandedDescription] = useState(false);
+  const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [checkedInUsers, setCheckedInUsers] = useState<CheckedInUser[]>([]);
+  const [loadingCheckIns, setLoadingCheckIns] = useState(false);
 
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
   const [showReviewsModal, setShowReviewsModal] = useState(false);
 
-  // Gesture handling for swipe-to-close
   const scrollY = useSharedValue(0);
   const translateY = useSharedValue(0);
   const contextY = useSharedValue(0);
@@ -355,6 +364,82 @@ export default function DetalleLocalScreen() {
       setDistance(dist);
     }
   }, [userLocation, local]);
+
+  const loadCheckedInUsers = useCallback(async () => {
+    if (!params.id) return;
+
+    try {
+      setLoadingCheckIns(true);
+      
+      const { data: checkIns, error } = await supabase
+        .from('check_ins')
+        .select(`
+          usuario_id,
+          visibility,
+          specific_user_ids,
+          usuarios!check_ins_usuario_id_fkey(id, nombre, username, avatar)
+        `)
+        .eq('local_id', params.id);
+
+      if (error) throw error;
+
+      const visibleUsers: CheckedInUser[] = [];
+
+      checkIns?.forEach((checkIn: any) => {
+        const checkInUser = checkIn.usuarios;
+        if (!checkInUser) return;
+
+        if (checkIn.visibility === 'all_users') {
+          visibleUsers.push(checkInUser);
+        } else if (checkIn.visibility === 'followers' && user) {
+          supabase
+            .from('seguidores')
+            .select('id')
+            .eq('seguidor_id', user.id)
+            .eq('seguido_id', checkInUser.id)
+            .single()
+            .then(({ data }) => {
+              if (data) {
+                visibleUsers.push(checkInUser);
+              }
+            });
+        } else if (checkIn.visibility === 'specific_users' && user) {
+          if (checkIn.specific_user_ids?.includes(user.id)) {
+            visibleUsers.push(checkInUser);
+          }
+        }
+      });
+
+      setCheckedInUsers(visibleUsers);
+      console.log('[DetalleLocal] ✅ Loaded checked-in users:', visibleUsers.length);
+    } catch (error) {
+      console.error('[DetalleLocal] Error loading checked-in users:', error);
+    } finally {
+      setLoadingCheckIns(false);
+    }
+  }, [params.id, user]);
+
+  const checkUserCheckInStatus = useCallback(async () => {
+    if (!user || !params.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('check_ins')
+        .select('id')
+        .eq('usuario_id', user.id)
+        .eq('local_id', params.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[DetalleLocal] Error checking check-in status:', error);
+        return;
+      }
+
+      setIsCheckedIn(!!data);
+    } catch (error) {
+      console.error('[DetalleLocal] Error checking check-in status:', error);
+    }
+  }, [user, params.id]);
 
   const cargarReviewsBarlive = useCallback(async () => {
     try {
@@ -433,17 +518,45 @@ export default function DetalleLocalScreen() {
       setLoading(false);
       cargarReviewsBarlive();
       cargarEventos();
+      checkUserCheckInStatus();
+      loadCheckedInUsers();
     } catch (error) {
       console.error('[DetalleLocal] Error:', error);
       setLoading(false);
     }
-  }, [params.id, cargarReviewsBarlive, cargarEventos]);
+  }, [params.id, cargarReviewsBarlive, cargarEventos, checkUserCheckInStatus, loadCheckedInUsers]);
 
   useEffect(() => {
     if (params.id) {
       cargarLocal();
     }
   }, [params.id, cargarLocal]);
+
+  useEffect(() => {
+    if (!params.id || !user) return;
+
+    const checkInsChannel = supabase
+      .channel(`local-check-ins-${params.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'check_ins',
+          filter: `local_id=eq.${params.id}`,
+        },
+        () => {
+          console.log('[DetalleLocal] Check-ins changed, reloading...');
+          loadCheckedInUsers();
+          checkUserCheckInStatus();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(checkInsChannel);
+    };
+  }, [params.id, user, loadCheckedInUsers, checkUserCheckInStatus]);
 
   const handleToggleFavorito = async (e: any) => {
     e.stopPropagation();
@@ -549,18 +662,57 @@ export default function DetalleLocalScreen() {
     });
   };
 
+  const handleCheckIn = () => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para hacer check-in');
+      return;
+    }
+    setShowCheckInModal(true);
+  };
+
+  const handleCheckOut = async () => {
+    if (!user) return;
+
+    Alert.alert(
+      'Salir del local',
+      '¿Quieres indicar que ya no estás en este local?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Confirmar',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('check_ins')
+                .delete()
+                .eq('usuario_id', user.id)
+                .eq('local_id', params.id);
+
+              if (error) throw error;
+
+              setIsCheckedIn(false);
+              Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
+              loadCheckedInUsers();
+            } catch (error) {
+              console.error('[DetalleLocal] Error checking out:', error);
+              Alert.alert('Error', 'No se pudo realizar el check-out');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const dismissModal = () => {
     router.back();
   };
 
-  // Animated scroll handler
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollY.value = event.contentOffset.y;
     },
   });
 
-  // Pan gesture for swipe-to-close
   const panGesture = Gesture.Pan()
     .onBegin(() => {
       'worklet';
@@ -568,16 +720,13 @@ export default function DetalleLocalScreen() {
     })
     .onUpdate((event) => {
       'worklet';
-      // Only allow downward swipe when at the top of the scroll
       if (scrollY.value <= 0 && event.translationY > 0) {
         translateY.value = contextY.value + event.translationY;
       }
     })
     .onEnd((event) => {
       'worklet';
-      // If swiped down more than threshold or velocity is high, dismiss
       if (translateY.value > DISMISS_THRESHOLD || event.velocityY > VELOCITY_THRESHOLD) {
-        // Animate out before dismissing
         translateY.value = withTiming(
           SCREEN_HEIGHT,
           { duration: 300 },
@@ -588,7 +737,6 @@ export default function DetalleLocalScreen() {
           }
         );
       } else {
-        // Spring back to original position
         translateY.value = withSpring(0, {
           damping: 25,
           stiffness: 400,
@@ -745,7 +893,6 @@ export default function DetalleLocalScreen() {
     <GestureHandlerRootView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Modal container with gesture detector */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.modalContainer, animatedModalStyle]}>
           <Animated.ScrollView
@@ -756,7 +903,6 @@ export default function DetalleLocalScreen() {
             scrollEventThrottle={16}
             onScroll={scrollHandler}
           >
-            {/* Cover image with buttons and badges */}
             {allImages.length > 0 && (
               <View style={styles.coverContainer}>
                 <TouchableOpacity activeOpacity={0.9} onPress={() => handleOpenGallery(currentImageIndex)}>
@@ -778,21 +924,18 @@ export default function DetalleLocalScreen() {
                   </ScrollView>
                 </TouchableOpacity>
 
-                {/* Close button */}
                 <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
                   <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
                     <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
                   </BlurView>
                 </TouchableOpacity>
 
-                {/* Share button */}
                 <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
                   <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
                     <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
                   </BlurView>
                 </TouchableOpacity>
 
-                {/* Rating badge */}
                 {displayRating > 0 && (
                   <View style={styles.ratingBadge}>
                     <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
@@ -802,7 +945,6 @@ export default function DetalleLocalScreen() {
                   </View>
                 )}
 
-                {/* Status badge */}
                 <View style={styles.statusBadge}>
                   <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
                     <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
@@ -811,7 +953,6 @@ export default function DetalleLocalScreen() {
                   </BlurView>
                 </View>
 
-                {/* Destacado badge - Fixed at bottom-left of cover image */}
                 {local.destacado && (
                   <View style={styles.destacadoBadge}>
                     <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
@@ -821,7 +962,6 @@ export default function DetalleLocalScreen() {
                   </View>
                 )}
 
-                {/* Heart icon */}
                 <TouchableOpacity style={styles.favoritoButton} onPress={handleToggleFavorito} disabled={loadingFavorite}>
                   <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
                     {loadingFavorite ? (
@@ -893,6 +1033,57 @@ export default function DetalleLocalScreen() {
                   </View>
                 )}
               </View>
+
+              {checkedInUsers.length > 0 && (
+                <View style={styles.checkedInSection}>
+                  <View style={styles.checkedInHeader}>
+                    <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color={colors.primary} />
+                    <Text style={styles.checkedInTitle}>
+                      {checkedInUsers.length} {checkedInUsers.length === 1 ? 'persona está' : 'personas están'} en este local
+                    </Text>
+                  </View>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.checkedInUsersScroll}>
+                    {checkedInUsers.map((checkedUser) => (
+                      <TouchableOpacity
+                        key={checkedUser.id}
+                        style={styles.checkedInUserCard}
+                        onPress={() => router.push(`/perfil/usuario?userId=${checkedUser.id}`)}
+                      >
+                        <View style={styles.checkedInUserAvatar}>
+                          {checkedUser.avatar ? (
+                            <RNImage source={{ uri: checkedUser.avatar }} style={styles.checkedInUserAvatarImage} />
+                          ) : (
+                            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.headerText} />
+                          )}
+                        </View>
+                        <Text style={styles.checkedInUserName} numberOfLines={1}>
+                          {checkedUser.nombre}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              {user && (
+                <View style={styles.checkInButtonsContainer}>
+                  {!isCheckedIn ? (
+                    <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
+                      <LinearGradient colors={['#10B981', '#059669']} style={styles.checkInButtonGradient}>
+                        <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="add_location" size={22} color="#fff" />
+                        <Text style={styles.checkInButtonText}>Estoy en este local</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity style={styles.checkOutButton} onPress={handleCheckOut}>
+                      <LinearGradient colors={['#EF4444', '#DC2626']} style={styles.checkInButtonGradient}>
+                        <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={22} color="#fff" />
+                        <Text style={styles.checkInButtonText}>Ya no estoy en este local</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
 
               {description && (
                 <View style={styles.descriptionSection}>
@@ -1201,6 +1392,19 @@ export default function DetalleLocalScreen() {
           onClose={() => setShowReviewsModal(false)}
           onReviewAdded={() => {
             cargarReviewsBarlive();
+          }}
+        />
+      )}
+
+      {showCheckInModal && (
+        <CheckInModal
+          visible={showCheckInModal}
+          localId={params.id as string}
+          localName={local?.nombre || ''}
+          onClose={() => setShowCheckInModal(false)}
+          onCheckInComplete={() => {
+            setIsCheckedIn(true);
+            loadCheckedInUsers();
           }}
         />
       )}
@@ -1519,6 +1723,77 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '700',
+  },
+  checkedInSection: {
+    backgroundColor: colors.primary + '10',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  checkedInHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  checkedInTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  checkedInUsersScroll: {
+    gap: 12,
+  },
+  checkedInUserCard: {
+    alignItems: 'center',
+    width: 80,
+  },
+  checkedInUserAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  checkedInUserAvatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  checkedInUserName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  checkInButtonsContainer: {
+    marginBottom: 16,
+  },
+  checkInButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  checkOutButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  checkInButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  checkInButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
   },
   descriptionSection: {
     marginBottom: 16,

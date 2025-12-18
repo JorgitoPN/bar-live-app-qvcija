@@ -66,7 +66,6 @@ export default function AnalisisIngresosScreen() {
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      // Transacciones totales
       const { data: allTransactions, error: allError } = await supabase
         .from('payment_transactions')
         .select('amount')
@@ -76,7 +75,6 @@ export default function AnalisisIngresosScreen() {
 
       const ingresosTotales = allTransactions?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
 
-      // Transacciones de hoy
       const { data: todayTransactions, error: todayError } = await supabase
         .from('payment_transactions')
         .select('amount')
@@ -88,7 +86,6 @@ export default function AnalisisIngresosScreen() {
       const ingresosHoy = todayTransactions?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
       const transaccionesHoy = todayTransactions?.length || 0;
 
-      // Transacciones del mes
       const { data: monthTransactions, error: monthError } = await supabase
         .from('payment_transactions')
         .select('amount')
@@ -100,7 +97,6 @@ export default function AnalisisIngresosScreen() {
       const ingresosMes = monthTransactions?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
       const transaccionesMes = monthTransactions?.length || 0;
 
-      // Suscripciones activas
       const { count: suscripcionesActivas, error: subsError } = await supabase
         .from('suscripciones_locales')
         .select('*', { count: 'exact', head: true })
@@ -108,12 +104,11 @@ export default function AnalisisIngresosScreen() {
 
       if (subsError) throw subsError;
 
-      // Calcular ingresos recurrentes mensuales (MRR)
       const { data: planes, error: planesError } = await supabase
         .from('suscripciones_locales')
         .select(`
           plan_id,
-          planes_suscripcion!inner(precio_mensual)
+          planes_suscripcion!suscripciones_locales_plan_id_fkey(precio_mensual)
         `)
         .eq('estado', 'activa');
 
@@ -123,7 +118,6 @@ export default function AnalisisIngresosScreen() {
         return sum + (Number(s.planes_suscripcion?.precio_mensual) || 0);
       }, 0) || 0;
 
-      // Tasa de conversión (simplificada)
       const { count: totalLocales } = await supabase
         .from('locales')
         .select('*', { count: 'exact', head: true });
@@ -178,7 +172,6 @@ export default function AnalisisIngresosScreen() {
     cargarDatos();
   }, [cargarDatos]);
 
-  // Auto-refresh cada 30 segundos
   useEffect(() => {
     if (!autoRefresh) return;
 
@@ -251,7 +244,6 @@ export default function AnalisisIngresosScreen() {
       </LinearGradient>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {/* Auto-refresh toggle */}
         <TouchableOpacity
           style={[styles.autoRefreshCard, autoRefresh && styles.autoRefreshCardActive]}
           onPress={() => setAutoRefresh(!autoRefresh)}
@@ -267,7 +259,6 @@ export default function AnalisisIngresosScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Main Stats */}
         <View style={styles.mainStatsGrid}>
           <View style={styles.mainStatCard}>
             <LinearGradient colors={['#10B981', '#059669']} style={styles.mainStatGradient}>
@@ -305,7 +296,6 @@ export default function AnalisisIngresosScreen() {
           </View>
         </View>
 
-        {/* Secondary Stats */}
         <View style={styles.secondaryStatsRow}>
           <View style={styles.secondaryStatCard}>
             <Text style={styles.secondaryStatNumber}>{analytics.suscripcionesActivas}</Text>
@@ -317,7 +307,6 @@ export default function AnalisisIngresosScreen() {
           </View>
         </View>
 
-        {/* Recent Transactions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Transacciones Recientes</Text>
           {recentTransactions.length === 0 ? (

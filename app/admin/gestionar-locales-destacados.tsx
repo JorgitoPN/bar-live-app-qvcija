@@ -139,14 +139,12 @@ export default function GestionarLocalesDestacadosScreen() {
     }
   }, [searchQuery, buscarLocales]);
 
-  // ✅ NEW: Show hour selector for manual highlighting
   const handleDestacarLocal = (local: Local) => {
     setSelectedLocal(local);
-    setSelectedHours(24); // Default 24 hours
+    setSelectedHours(24);
     setShowHourSelector(true);
   };
 
-  // ✅ NEW: Confirm and apply manual highlight
   const confirmarDestacado = async () => {
     if (!selectedLocal) return;
 
@@ -166,7 +164,7 @@ export default function GestionarLocalesDestacadosScreen() {
         .from('locales')
         .update({
           destacado: true,
-          destacado_manual: true, // ✅ Mark as manual (no credit deduction)
+          destacado_manual: true,
           destacado_horas: selectedHours,
           destacado_inicio: now.toISOString(),
           destacado_fin: endDate.toISOString(),
@@ -452,7 +450,6 @@ export default function GestionarLocalesDestacadosScreen() {
       </LinearGradient>
 
       <View style={styles.content}>
-        {/* Search Section */}
         <View style={styles.searchSection}>
           <Text style={styles.sectionTitle}>Buscar Locales</Text>
           <Text style={styles.sectionSubtitle}>Busca locales para destacar o quitar el destacado</Text>
@@ -487,7 +484,6 @@ export default function GestionarLocalesDestacadosScreen() {
           )}
         </View>
 
-        {/* Featured Locals Section */}
         <View style={styles.featuredSection}>
           <View style={styles.sectionHeader}>
             <View>
@@ -512,24 +508,8 @@ export default function GestionarLocalesDestacadosScreen() {
             windowSize={10}
           />
         </View>
-
-        <View style={styles.infoCard}>
-          <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={24} color={colors.primary} />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>Sobre los Locales Destacados</Text>
-            <Text style={styles.infoText}>
-              - Los locales destacados aparecen primero en los resultados de búsqueda{'\n'}
-              - Tienen mayor visibilidad en el mapa y en la página de explorar{'\n'}
-              - Por defecto se destacan durante 24 horas{'\n'}
-              - Cada crédito de destacado equivale a 24 horas{'\n'}
-              - Los destacados manuales NO descuentan créditos al propietario{'\n'}
-              - Solo los locales activos pueden ser destacados
-            </Text>
-          </View>
-        </View>
       </View>
 
-      {/* Hour Selector Modal */}
       <Modal
         visible={showHourSelector}
         transparent
@@ -899,32 +879,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
-  },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    backgroundColor: colors.primary + '10',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-    margin: 20,
-    marginTop: 0,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 22,
   },
   modalOverlay: {
     flex: 1,

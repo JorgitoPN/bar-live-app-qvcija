@@ -37,6 +37,7 @@ export default function UsuarioPerfilScreen() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
+  const [currentLocal, setCurrentLocal] = useState<any>(null);
   const [stats, setStats] = useState({
     posts: 0,
     seguidores: 0,
@@ -66,6 +67,35 @@ export default function UsuarioPerfilScreen() {
       }),
     ]).start();
   }, [fadeAnim, scaleAnim]);
+
+  const loadCurrentLocal = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      const { data: checkIn, error } = await supabase
+        .from('check_ins')
+        .select(`
+          local_id,
+          locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
+        `)
+        .eq('usuario_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[UsuarioPerfil] Error loading current local:', error);
+        return;
+      }
+
+      if (checkIn && checkIn.locales) {
+        setCurrentLocal(checkIn.locales);
+        console.log('[UsuarioPerfil] ✅ User is checked in to:', checkIn.locales.nombre);
+      } else {
+        setCurrentLocal(null);
+      }
+    } catch (error) {
+      console.error('[UsuarioPerfil] Error loading current local:', error);
+    }
+  }, [userId]);
 
   const loadFollowerCounts = useCallback(async (targetUserId: string) => {
     try {
@@ -176,12 +206,14 @@ export default function UsuarioPerfilScreen() {
 
         setIsBlocked(!!blockData);
       }
+
+      await loadCurrentLocal();
     } catch (error) {
       console.error('[UsuarioPerfil] Error loading data:', error);
     } finally {
       setLoading(false);
     }
-  }, [userId, currentUser, router, loadFollowerCounts]);
+  }, [userId, currentUser, router, loadFollowerCounts, loadCurrentLocal]);
 
   useEffect(() => {
     loadUserData();
@@ -236,13 +268,26 @@ export default function UsuarioPerfilScreen() {
             await loadUserData();
           }
         )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'check_ins',
+            filter: `usuario_id=eq.${userId}`,
+          },
+          async () => {
+            console.log('[UsuarioPerfil] ⚡ INSTANT update - Check-in changed');
+            await loadCurrentLocal();
+          }
+        )
         .subscribe();
 
       return () => {
         supabase.removeChannel(seguidoresChannel);
       };
     }
-  }, [loadUserData, userId, loadFollowerCounts]);
+  }, [loadUserData, userId, loadFollowerCounts, loadCurrentLocal]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -439,6 +484,12 @@ export default function UsuarioPerfilScreen() {
     setShowMomentoViewer(true);
   };
 
+  const handleViewLocal = () => {
+    if (currentLocal) {
+      router.push(`/detalle/local?id=${currentLocal.id}`);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -511,6 +562,19 @@ export default function UsuarioPerfilScreen() {
 
           {usuario.bio && (
             <Text style={styles.profileBio}>{usuario.bio}</Text>
+          )}
+
+          {currentLocal && (
+            <TouchableOpacity style={styles.currentLocalCard} onPress={handleViewLocal}>
+              <View style={styles.currentLocalContent}>
+                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={20} color="#10B981" />
+                <View style={styles.currentLocalInfo}>
+                  <Text style={styles.currentLocalLabel}>Está en:</Text>
+                  <Text style={styles.currentLocalName}>{currentLocal.nombre}</Text>
+                </View>
+                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.headerText} />
+              </View>
+            </TouchableOpacity>
           )}
 
           <View style={styles.statsContainer}>
@@ -659,6 +723,32 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     lineHeight: 22,
     marginBottom: 16,
+  },
+  currentLocalCard: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+  },
+  currentLocalContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  currentLocalInfo: {
+    flex: 1,
+  },
+  currentLocalLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 2,
+  },
+  currentLocalName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.headerText,
   },
   statsContainer: {
     flexDirection: 'row',
