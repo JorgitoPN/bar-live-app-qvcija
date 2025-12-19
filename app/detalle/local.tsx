@@ -703,6 +703,10 @@ export default function DetalleLocalScreen() {
     );
   };
 
+  const handleClaimOrCreateLocal = () => {
+    router.push('/auth/local-ownership-request' as any);
+  };
+
   const dismissModal = () => {
     router.back();
   };
@@ -1033,6 +1037,45 @@ export default function DetalleLocalScreen() {
                   </View>
                 )}
               </View>
+
+              {/* NEW: Claim or Create Local Section in Local Details */}
+              <TouchableOpacity 
+                style={styles.claimLocalBannerDetails}
+                onPress={handleClaimOrCreateLocal}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={[colors.primary + '15', colors.primary + '08']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.claimLocalGradientDetails}
+                >
+                  <View style={styles.claimLocalContentDetails}>
+                    <View style={styles.claimLocalIconContainerDetails}>
+                      <IconSymbol 
+                        ios_icon_name="building.2.fill" 
+                        android_material_icon_name="business" 
+                        size={22} 
+                        color={colors.primary} 
+                      />
+                    </View>
+                    <View style={styles.claimLocalTextContainerDetails}>
+                      <Text style={styles.claimLocalTitleDetails}>¿Es tu local?</Text>
+                      <Text style={styles.claimLocalSubtitleDetails}>
+                        Reclámalo o crea uno nuevo
+                      </Text>
+                    </View>
+                    <View style={styles.claimLocalArrowDetails}>
+                      <IconSymbol 
+                        ios_icon_name="chevron.right" 
+                        android_material_icon_name="chevron_right" 
+                        size={20} 
+                        color={colors.primary} 
+                      />
+                    </View>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
 
               {checkedInUsers.length > 0 && (
                 <View style={styles.checkedInSection}>
@@ -1723,6 +1766,61 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '700',
+  },
+  claimLocalBannerDetails: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  claimLocalGradientDetails: {
+    borderWidth: 1.5,
+    borderColor: colors.primary + '30',
+    borderRadius: 12,
+  },
+  claimLocalContentDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  claimLocalIconContainerDetails: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.primary + '30',
+  },
+  claimLocalTextContainerDetails: {
+    flex: 1,
+  },
+  claimLocalTitleDetails: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 2,
+    letterSpacing: -0.2,
+  },
+  claimLocalSubtitleDetails: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 16,
+  },
+  claimLocalArrowDetails: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkedInSection: {
     backgroundColor: colors.primary + '10',

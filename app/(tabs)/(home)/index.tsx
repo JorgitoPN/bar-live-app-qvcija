@@ -184,7 +184,7 @@ export default function HomeScreen() {
 
       let localesConDistancia = data || [];
 
-      // ✅ CRITICAL FIX v9 - IMPLEMENT EXACT MANDATORY ALGORITHM
+      // ✅ CRITICAL FIX v10 - CORRECTED MANDATORY ALGORITHM
       if (userLocation) {
         console.log('[Home] 📍 User location:', userLocation);
         
@@ -202,9 +202,14 @@ export default function HomeScreen() {
           return { ...local, distancia: 999999 }; // Very high distance for locals without coordinates
         });
 
-        console.log('[Home] 🧠 Applying MANDATORY sorting algorithm (NON-INTERPRETABLE)...');
+        console.log('[Home] 🧠 Applying CORRECTED MANDATORY sorting algorithm...');
+        console.log('[Home] 📋 CORRECT ORDER:');
+        console.log('[Home]    1. Group A (≤100km) - NON-FEATURED sorted by distance');
+        console.log('[Home]    2. Group A (≤100km) - FEATURED sorted by distance');
+        console.log('[Home]    3. Group B (>100km) - NON-FEATURED sorted by distance');
+        console.log('[Home]    4. Group B (>100km) - FEATURED sorted by distance');
 
-        // 🧠 MANDATORY ALGORITHM (NON-INTERPRETABLE)
+        // 🧠 MANDATORY ALGORITHM (CORRECTED)
         // groupA = locales with distance <= 100km
         const groupA = localesConDistancia.filter(l => 
           l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
@@ -219,41 +224,39 @@ export default function HomeScreen() {
         console.log('  - Group A (≤100km):', groupA.length, 'locals');
         console.log('  - Group B (>100km):', groupB.length, 'locals');
 
-        // groupA_destacados = groupA where destacado == true sorted by distance
-        const groupA_destacados = groupA
-          .filter(l => l.destacado === true)
-          .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
-
-        // groupA_no_destacados = groupA where destacado == false sorted by distance
+        // ✅ CORRECTED: Group A NON-FEATURED first, then FEATURED
         const groupA_no_destacados = groupA
           .filter(l => l.destacado === false)
           .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-        // groupB_no_destacados = groupB where destacado == false sorted by distance
+        const groupA_destacados = groupA
+          .filter(l => l.destacado === true)
+          .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
+
+        // Group B NON-FEATURED first, then FEATURED
         const groupB_no_destacados = groupB
           .filter(l => l.destacado === false)
           .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-        // groupB_destacados = groupB where destacado == true sorted by distance
         const groupB_destacados = groupB
           .filter(l => l.destacado === true)
           .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-        console.log('[Home] 📊 Sub-groups created:');
-        console.log('  1. Group A Featured (≤100km, destacado=true):', groupA_destacados.length);
-        console.log('  2. Group A Non-Featured (≤100km, destacado=false):', groupA_no_destacados.length);
+        console.log('[Home] 📊 Sub-groups created (CORRECTED ORDER):');
+        console.log('  1. Group A Non-Featured (≤100km, destacado=false):', groupA_no_destacados.length);
+        console.log('  2. Group A Featured (≤100km, destacado=true):', groupA_destacados.length);
         console.log('  3. Group B Non-Featured (>100km, destacado=false):', groupB_no_destacados.length);
         console.log('  4. Group B Featured (>100km, destacado=true):', groupB_destacados.length);
 
-        // resultado_final = groupA_destacados + groupA_no_destacados + groupB_no_destacados + groupB_destacados
+        // ✅ CORRECTED FINAL ORDER
         localesConDistancia = [
-          ...groupA_destacados,
-          ...groupA_no_destacados,
-          ...groupB_no_destacados,
-          ...groupB_destacados,
+          ...groupA_no_destacados,      // 1. Nearby non-featured
+          ...groupA_destacados,          // 2. Nearby featured
+          ...groupB_no_destacados,       // 3. Distant non-featured
+          ...groupB_destacados,          // 4. Distant featured (Casa Paco should be here)
         ];
 
-        console.log('[Home] ✅ FINAL SORTING APPLIED - Total locals:', localesConDistancia.length);
+        console.log('[Home] ✅ CORRECTED FINAL SORTING APPLIED - Total locals:', localesConDistancia.length);
         console.log('[Home] 🔝 First 20 locals in final list:');
         localesConDistancia.slice(0, 20).forEach((l, i) => {
           const group = l.distancia! <= MAX_FEATURED_DISTANCE_KM ? 'A' : 'B';
@@ -285,7 +288,7 @@ export default function HomeScreen() {
           console.log(`[Home] 📌 Expected Position: LAST BLOCK (Group B Featured)`);
           
           // Count how many locals should be before Casa Paco
-          const expectedPosition = groupA_destacados.length + groupA_no_destacados.length + groupB_no_destacados.length;
+          const expectedPosition = groupA_no_destacados.length + groupA_destacados.length + groupB_no_destacados.length;
           
           console.log(`[Home] 📌 Expected minimum position: #${expectedPosition + 1}`);
           console.log(`[Home] 📌 Actual position: #${casaPacoIndex + 1}`);
@@ -406,7 +409,7 @@ export default function HomeScreen() {
         onMasFiltrosPress={handleMasFiltrosPress}
       />
 
-      {/* NEW: Claim or Create Local Section - Enhanced Design */}
+      {/* Claim or Create Local Section - Enhanced Design */}
       <TouchableOpacity 
         style={styles.claimLocalBanner}
         onPress={handleClaimOrCreateLocal}
