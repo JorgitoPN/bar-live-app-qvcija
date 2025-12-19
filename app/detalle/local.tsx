@@ -152,106 +152,118 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
   return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
 };
 
+// ✅ FIXED: Consistent color for all services section - GREEN
+const SERVICES_SECTION_COLOR = '#10B981';
+
 const getServiceIcon = (servicio: string): { ios: string; android: string; color: string } => {
-  const serviceMap: Record<string, { ios: string; android: string; color: string }> = {
-    cerveza: { ios: 'wineglass', android: 'sports_bar', color: '#F59E0B' },
-    cócteles: { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
-    cocteles: { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
-    cocktails: { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
-    efectivo: { ios: 'banknote', android: 'payments', color: '#10B981' },
-    pago_efectivo: { ios: 'banknote', android: 'payments', color: '#10B981' },
-    tarjetas: { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
-    pago_tarjetas: { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
-    tarjetas_credito: { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
-    tarjetas_debito: { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
-    wifi: { ios: 'wifi', android: 'wifi', color: '#8B5CF6' },
-    wifi_gratis: { ios: 'wifi', android: 'wifi', color: '#8B5CF6' },
-    terraza: { ios: 'sun.max.fill', android: 'wb_sunny', color: '#F59E0B' },
-    terraza_exterior: { ios: 'sun.max.fill', android: 'wb_sunny', color: '#F59E0B' },
-    parking: { ios: 'car.fill', android: 'local_parking', color: '#6366F1' },
-    aparcamiento: { ios: 'car.fill', android: 'local_parking', color: '#6366F1' },
-    accesibilidad: { ios: 'figure.roll', android: 'accessible', color: '#10B981' },
-    accesible_silla_ruedas: { ios: 'figure.roll', android: 'accessible', color: '#10B981' },
-    reservas: { ios: 'calendar', android: 'event', color: '#EF4444' },
-    delivery: { ios: 'bicycle', android: 'delivery_dining', color: '#F59E0B' },
-    entrega_domicilio: { ios: 'bicycle', android: 'delivery_dining', color: '#F59E0B' },
-    takeaway: { ios: 'bag.fill', android: 'takeout_dining', color: '#8B5CF6' },
-    para_llevar: { ios: 'bag.fill', android: 'takeout_dining', color: '#8B5CF6' },
-    comida: { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
-    almuerzo: { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
-    cena: { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
-    desayuno: { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
-    bebidas: { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
-    cafe: { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
-    vino: { ios: 'wineglass.fill', android: 'wine_bar', color: '#8B5CF6' },
-    'musica en vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
-    'música en vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
-    musica_vivo: { ios: 'music.note', android: 'music_note', color: '#EC4899' },
-    karaoke: { ios: 'mic.fill', android: 'mic', color: '#8B5CF6' },
-    tv: { ios: 'tv.fill', android: 'tv', color: '#3B82F6' },
-    deportes_tv: { ios: 'tv.fill', android: 'tv', color: '#3B82F6' },
-    juegos: { ios: 'gamecontroller.fill', android: 'sports_esports', color: '#10B981' },
-    dj: { ios: 'music.note.list', android: 'music_note', color: '#EC4899' },
-    sin_gluten: { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
-    opciones_veganas: { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
-    comida_vegetariana: { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
+  const serviceMap: Record<string, { ios: string; android: string }> = {
+    cerveza: { ios: 'wineglass', android: 'sports_bar' },
+    cócteles: { ios: 'wineglass.fill', android: 'local_bar' },
+    cocteles: { ios: 'wineglass.fill', android: 'local_bar' },
+    cocktails: { ios: 'wineglass.fill', android: 'local_bar' },
+    efectivo: { ios: 'banknote', android: 'payments' },
+    pago_efectivo: { ios: 'banknote', android: 'payments' },
+    tarjetas: { ios: 'creditcard.fill', android: 'credit_card' },
+    pago_tarjetas: { ios: 'creditcard.fill', android: 'credit_card' },
+    tarjetas_credito: { ios: 'creditcard.fill', android: 'credit_card' },
+    tarjetas_debito: { ios: 'creditcard.fill', android: 'credit_card' },
+    wifi: { ios: 'wifi', android: 'wifi' },
+    wifi_gratis: { ios: 'wifi', android: 'wifi' },
+    terraza: { ios: 'sun.max.fill', android: 'wb_sunny' },
+    terraza_exterior: { ios: 'sun.max.fill', android: 'wb_sunny' },
+    parking: { ios: 'car.fill', android: 'local_parking' },
+    aparcamiento: { ios: 'car.fill', android: 'local_parking' },
+    accesibilidad: { ios: 'figure.roll', android: 'accessible' },
+    accesible_silla_ruedas: { ios: 'figure.roll', android: 'accessible' },
+    reservas: { ios: 'calendar', android: 'event' },
+    delivery: { ios: 'bicycle', android: 'delivery_dining' },
+    entrega_domicilio: { ios: 'bicycle', android: 'delivery_dining' },
+    takeaway: { ios: 'bag.fill', android: 'takeout_dining' },
+    para_llevar: { ios: 'bag.fill', android: 'takeout_dining' },
+    comida: { ios: 'fork.knife', android: 'restaurant' },
+    almuerzo: { ios: 'fork.knife', android: 'restaurant' },
+    cena: { ios: 'fork.knife', android: 'restaurant' },
+    desayuno: { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
+    bebidas: { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
+    cafe: { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
+    vino: { ios: 'wineglass.fill', android: 'wine_bar' },
+    'musica en vivo': { ios: 'music.note', android: 'music_note' },
+    'música en vivo': { ios: 'music.note', android: 'music_note' },
+    musica_vivo: { ios: 'music.note', android: 'music_note' },
+    karaoke: { ios: 'mic.fill', android: 'mic' },
+    tv: { ios: 'tv.fill', android: 'tv' },
+    deportes_tv: { ios: 'tv.fill', android: 'tv' },
+    juegos: { ios: 'gamecontroller.fill', android: 'sports_esports' },
+    dj: { ios: 'music.note.list', android: 'music_note' },
+    sin_gluten: { ios: 'leaf.fill', android: 'eco' },
+    opciones_veganas: { ios: 'leaf.fill', android: 'eco' },
+    comida_vegetariana: { ios: 'leaf.fill', android: 'eco' },
   };
 
   const lowerServicio = servicio.toLowerCase().replace(/ /g, '_');
   for (const [key, value] of Object.entries(serviceMap)) {
     if (lowerServicio.includes(key) || key.includes(lowerServicio)) {
-      return value;
+      // ✅ FIXED: All services use the same color
+      return { ...value, color: SERVICES_SECTION_COLOR };
     }
   }
 
-  return { ios: 'checkmark.circle.fill', android: 'check_circle', color: colors.primary };
+  return { ios: 'checkmark.circle.fill', android: 'check_circle', color: SERVICES_SECTION_COLOR };
 };
 
+// ✅ FIXED: Consistent color for all ambiente section - PURPLE
+const AMBIENTE_SECTION_COLOR = '#8B5CF6';
+
 const getAmbienteIcon = (ambiente: string): { ios: string; android: string; color: string } => {
-  const ambienteMap: Record<string, { ios: string; android: string; color: string }> = {
-    familiar: { ios: 'person.3.fill', android: 'family_restroom', color: '#14B8A6' },
-    tranquilo: { ios: 'leaf.fill', android: 'spa', color: '#06B6D4' },
-    animado: { ios: 'bolt.fill', android: 'celebration', color: '#F59E0B' },
-    romántico: { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
-    romantico: { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
-    moderno: { ios: 'sparkles', android: 'auto_awesome', color: '#8B5CF6' },
-    elegante: { ios: 'star.fill', android: 'star', color: '#F59E0B' },
-    acogedor: { ios: 'house.fill', android: 'home', color: '#F59E0B' },
-    de_moda: { ios: 'sparkles', android: 'auto_awesome', color: '#EC4899' },
-    juvenil: { ios: 'bolt.fill', android: 'celebration', color: '#3B82F6' },
-    tematico: { ios: 'star.fill', android: 'star', color: '#8B5CF6' },
+  const ambienteMap: Record<string, { ios: string; android: string }> = {
+    familiar: { ios: 'person.3.fill', android: 'family_restroom' },
+    tranquilo: { ios: 'leaf.fill', android: 'spa' },
+    animado: { ios: 'bolt.fill', android: 'celebration' },
+    romántico: { ios: 'heart.fill', android: 'favorite' },
+    romantico: { ios: 'heart.fill', android: 'favorite' },
+    moderno: { ios: 'sparkles', android: 'auto_awesome' },
+    elegante: { ios: 'star.fill', android: 'star' },
+    acogedor: { ios: 'house.fill', android: 'home' },
+    de_moda: { ios: 'sparkles', android: 'auto_awesome' },
+    juvenil: { ios: 'bolt.fill', android: 'celebration' },
+    tematico: { ios: 'star.fill', android: 'star' },
   };
 
   const lowerAmbiente = ambiente.toLowerCase().replace(/ /g, '_');
   for (const [key, value] of Object.entries(ambienteMap)) {
     if (lowerAmbiente.includes(key) || key.includes(lowerAmbiente)) {
-      return value;
+      // ✅ FIXED: All ambiente tags use the same color
+      return { ...value, color: AMBIENTE_SECTION_COLOR };
     }
   }
 
-  return { ios: 'sparkles', android: 'auto_awesome', color: colors.primary };
+  return { ios: 'sparkles', android: 'auto_awesome', color: AMBIENTE_SECTION_COLOR };
 };
 
+// ✅ FIXED: Consistent color for all clientela section - PINK
+const CLIENTELA_SECTION_COLOR = '#EC4899';
+
 const getClientelaIcon = (clientela: string): { ios: string; android: string; color: string } => {
-  const clientelaMap: Record<string, { ios: string; android: string; color: string }> = {
-    grupos: { ios: 'person.3.fill', android: 'groups', color: '#10B981' },
-    familias: { ios: 'house.fill', android: 'family_restroom', color: '#059669' },
-    parejas: { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
-    estudiantes: { ios: 'book.fill', android: 'school', color: '#3B82F6' },
-    turistas: { ios: 'airplane', android: 'flight', color: '#F59E0B' },
-    ninos_bienvenidos: { ios: 'figure.2.and.child.holdinghands', android: 'child_care', color: '#14B8A6' },
-    lgtbi_friendly: { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
-    locales: { ios: 'person.2.fill', android: 'people', color: '#8B5CF6' },
+  const clientelaMap: Record<string, { ios: string; android: string }> = {
+    grupos: { ios: 'person.3.fill', android: 'groups' },
+    familias: { ios: 'house.fill', android: 'family_restroom' },
+    parejas: { ios: 'heart.fill', android: 'favorite' },
+    estudiantes: { ios: 'book.fill', android: 'school' },
+    turistas: { ios: 'airplane', android: 'flight' },
+    ninos_bienvenidos: { ios: 'figure.2.and.child.holdinghands', android: 'child_care' },
+    lgtbi_friendly: { ios: 'heart.fill', android: 'favorite' },
+    locales: { ios: 'person.2.fill', android: 'people' },
   };
 
   const lowerClientela = clientela.toLowerCase().replace(/ /g, '_');
   for (const [key, value] of Object.entries(clientelaMap)) {
     if (lowerClientela.includes(key) || key.includes(lowerClientela)) {
-      return value;
+      // ✅ FIXED: All clientela tags use the same color
+      return { ...value, color: CLIENTELA_SECTION_COLOR };
     }
   }
 
-  return { ios: 'person.2.fill', android: 'people', color: colors.primary };
+  return { ios: 'person.2.fill', android: 'people', color: CLIENTELA_SECTION_COLOR };
 };
 
 const summarizeText = (text: string, maxLength: number = 120): { summary: string; needsExpansion: boolean } => {

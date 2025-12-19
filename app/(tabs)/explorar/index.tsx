@@ -48,14 +48,10 @@ const CATEGORIAS_HEIGHT = 110;
 const CATEGORIAS_TOP_POSITION = 170;
 const SPACING_BETWEEN_FILTERS_AND_LIST = 24;
 
-// ✅ MAXIMUM DISTANCE FOR FEATURED LOCALS (in km)
 const MAX_FEATURED_DISTANCE_KM = 100;
 
-/**
- * Calculate distance between two coordinates using Haversine formula
- */
 function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a =
@@ -87,6 +83,10 @@ export default function ExplorarScreen() {
   const [activePromotions, setActivePromotions] = useState<Set<string>>(new Set());
   const [mostrarSelectorModo, setMostrarSelectorModo] = useState(false);
   
+  // ✅ NEW: Scroll indicator state
+  const [showScrollIndicator, setShowScrollIndicator] = useState(true);
+  const scrollIndicatorOpacity = useRef(new Animated.Value(1)).current;
+  
   const lastScrollY = useRef(0);
   const scrollDirection = useRef<'up' | 'down'>('down');
   const headerTranslateY = useRef(new Animated.Value(0)).current;
@@ -111,30 +111,35 @@ export default function ExplorarScreen() {
     }, [])
   );
 
-  // ✅ FIXED: Apply category filter with dynamic PUB category support AND USER REQUESTED SORTING
+  // ✅ NEW: Hide scroll indicator after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      Animated.timing(scrollIndicatorOpacity, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }).start(() => setShowScrollIndicator(false));
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const localesFiltradosCompletos = useMemo(() => {
     console.log('[ExplorarScreen] ⚡ Applying filters...');
     console.log('[ExplorarScreen] 📊 Total locales:', todosLosLocales.length);
     console.log('[ExplorarScreen] 🔍 Selected category:', categoriaSeleccionada);
 
-    // ✅ CRITICAL FIX: Filter by activo = true to match map behavior
     let localesFiltrados = todosLosLocales.filter(local => local.activo === true);
     console.log('[ExplorarScreen] ✅ After activo filter:', localesFiltrados.length);
 
-    // ✅ FIXED: Apply category filter with dynamic PUB category support
     if (categoriaSeleccionada !== 'todos') {
       console.log('[ExplorarScreen] 🔍 Filtering by category:', categoriaSeleccionada);
       
       localesFiltrados = localesFiltrados.filter(local => {
-        // Get barlive_types array
         const barliveTypes = local.barlive_types || [];
         
-        // ✅ CRITICAL FIX: For "pub" category, check if venue should have pub category based on closing time
         if (categoriaSeleccionada === 'pub') {
-          // Check if venue already has "pub" in barlive_types
           const hasPubInTypes = barliveTypes.includes('pub');
-          
-          // Check if venue should have pub category based on closing time (closes after 2:30 AM)
           const shouldBePub = shouldHavePubCategory(local.horarios_completos);
           
           console.log(`[ExplorarScreen] 🍺 Checking "${local.nombre}":`, {
@@ -144,11 +149,9 @@ export default function ExplorarScreen() {
             horarios: local.horarios_completos,
           });
           
-          // Include venue if it has "pub" in types OR if it should be categorized as pub based on closing time
           return hasPubInTypes || shouldBePub;
         }
         
-        // ✅ FIXED: For "discoteca" category, only show locales with "discoteca" or "sala_conciertos"
         if (categoriaSeleccionada === 'discoteca') {
           const hasDiscoteca = barliveTypes.includes('discoteca') || barliveTypes.includes('sala_conciertos');
           console.log(`[ExplorarScreen] 💃 Checking "${local.nombre}":`, {
@@ -158,7 +161,6 @@ export default function ExplorarScreen() {
           return hasDiscoteca;
         }
         
-        // For other categories, check if the category is in barlive_types
         const hasCategory = barliveTypes.includes(categoriaSeleccionada);
         return hasCategory;
       });
@@ -166,7 +168,6 @@ export default function ExplorarScreen() {
       console.log(`[ExplorarScreen] ✅ After category filter: ${localesFiltrados.length} locales`);
     }
 
-    // Apply search filter
     if (busqueda) {
       const searchLower = busqueda.toLowerCase();
       localesFiltrados = localesFiltrados.filter(local =>
@@ -177,11 +178,9 @@ export default function ExplorarScreen() {
       console.log(`[ExplorarScreen] 🔍 After search filter: ${localesFiltrados.length} locales`);
     }
 
-    // ✅ USER REQUESTED SORTING ALGORITHM
     if (userLocation) {
       console.log('[ExplorarScreen] 📍 User location:', userLocation);
       
-      // Calculate distance for all locals
       localesFiltrados = localesFiltrados.map(local => {
         if (local.latitud && local.longitud) {
           const distancia = calcularDistancia(
@@ -192,7 +191,7 @@ export default function ExplorarScreen() {
           );
           return { ...local, distancia };
         }
-        return { ...local, distancia: 999999 }; // Very high distance for locals without coordinates
+        return { ...local, distancia: 999999 };
       });
 
       console.log('[ExplorarScreen] 🧠 Applying USER REQUESTED sorting algorithm...');
@@ -202,13 +201,10 @@ export default function ExplorarScreen() {
       console.log('[ExplorarScreen]    3. Group B (>100km) - NON-FEATURED sorted by distance');
       console.log('[ExplorarScreen]    4. Group B (>100km) - FEATURED sorted by distance');
 
-      // 🧠 USER REQUESTED ALGORITHM
-      // groupA = locales with distance <= 100km
       const groupA = localesFiltrados.filter(l => 
         l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
       );
       
-      // groupB = locales with distance > 100km
       const groupB = localesFiltrados.filter(l => 
         l.distancia !== undefined && l.distancia > MAX_FEATURED_DISTANCE_KM
       );
@@ -217,7 +213,6 @@ export default function ExplorarScreen() {
       console.log('  - Group A (≤100km):', groupA.length, 'locals');
       console.log('  - Group B (>100km):', groupB.length, 'locals');
 
-      // ✅ USER REQUESTED ORDER: Group A FEATURED first, then NON-FEATURED
       const groupA_destacados = groupA
         .filter(l => l.destacado === true || activePromotions.has(l.id))
         .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
@@ -226,7 +221,6 @@ export default function ExplorarScreen() {
         .filter(l => l.destacado !== true && !activePromotions.has(l.id))
         .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-      // Group B NON-FEATURED first, then FEATURED
       const groupB_no_destacados = groupB
         .filter(l => l.destacado !== true && !activePromotions.has(l.id))
         .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
@@ -241,61 +235,14 @@ export default function ExplorarScreen() {
       console.log('  3. Group B Non-Featured (>100km, destacado=false):', groupB_no_destacados.length);
       console.log('  4. Group B Featured (>100km, destacado=true):', groupB_destacados.length);
 
-      // ✅ USER REQUESTED FINAL ORDER
       localesFiltrados = [
-        ...groupA_destacados,          // 1. Nearby featured
-        ...groupA_no_destacados,       // 2. Nearby non-featured
-        ...groupB_no_destacados,       // 3. Distant non-featured
-        ...groupB_destacados,          // 4. Distant featured (Casa Paco should be here)
+        ...groupA_destacados,
+        ...groupA_no_destacados,
+        ...groupB_no_destacados,
+        ...groupB_destacados,
       ];
 
       console.log('[ExplorarScreen] ✅ USER REQUESTED SORTING APPLIED - Total locals:', localesFiltrados.length);
-      console.log('[ExplorarScreen] 🔝 First 20 locals in final list:');
-      localesFiltrados.slice(0, 20).forEach((l, i) => {
-        const group = l.distancia! <= MAX_FEATURED_DISTANCE_KM ? 'A' : 'B';
-        const featured = (l.destacado || activePromotions.has(l.id)) ? '⭐ DESTACADO' : '   NORMAL   ';
-        console.log(`  ${String(i + 1).padStart(2, '0')}. [Group ${group}] ${featured} | ${l.nombre}`);
-        console.log(`      📍 Distancia: ${l.distancia?.toFixed(1)}km | 📌 Dirección: ${l.direccion}`);
-      });
-
-      // 📌 CRITICAL VERIFICATION: Find Casa Paco position
-      const casaPacoIndex = localesFiltrados.findIndex(l => 
-        l.nombre.toLowerCase().includes('casa paco') || 
-        l.direccion?.toLowerCase().includes('rincón de san nicolás')
-      );
-      
-      if (casaPacoIndex !== -1) {
-        const casaPaco = localesFiltrados[casaPacoIndex];
-        const expectedGroup = casaPaco.distancia! > MAX_FEATURED_DISTANCE_KM ? 'B' : 'A';
-        const expectedSubgroup = (casaPaco.destacado || activePromotions.has(casaPaco.id)) ? 'Featured' : 'Non-Featured';
-        
-        console.log('[ExplorarScreen] 📌 ========================================');
-        console.log('[ExplorarScreen] 📌 CASA PACO VERIFICATION:');
-        console.log('[ExplorarScreen] 📌 ========================================');
-        console.log(`[ExplorarScreen] 📌 Position in list: #${casaPacoIndex + 1} of ${localesFiltrados.length}`);
-        console.log(`[ExplorarScreen] 📌 Name: ${casaPaco.nombre}`);
-        console.log(`[ExplorarScreen] 📌 Address: ${casaPaco.direccion}`);
-        console.log(`[ExplorarScreen] 📌 Featured: ${casaPaco.destacado || activePromotions.has(casaPaco.id)}`);
-        console.log(`[ExplorarScreen] 📌 Distance: ${casaPaco.distancia?.toFixed(1)}km`);
-        console.log(`[ExplorarScreen] 📌 Expected Group: ${expectedGroup} (${expectedSubgroup})`);
-        console.log(`[ExplorarScreen] 📌 Expected Position: LAST BLOCK (Group B Featured)`);
-        
-        // Count how many locals should be before Casa Paco
-        const expectedPosition = groupA_destacados.length + groupA_no_destacados.length + groupB_no_destacados.length;
-        
-        console.log(`[ExplorarScreen] 📌 Expected minimum position: #${expectedPosition + 1}`);
-        console.log(`[ExplorarScreen] 📌 Actual position: #${casaPacoIndex + 1}`);
-        
-        if (casaPacoIndex < expectedPosition) {
-          console.error('[ExplorarScreen] ❌❌❌ CRITICAL ERROR: Casa Paco is NOT in the correct position!');
-          console.error(`[ExplorarScreen] ❌ It should be at position #${expectedPosition + 1} or later, but it's at #${casaPacoIndex + 1}`);
-        } else {
-          console.log('[ExplorarScreen] ✅✅✅ Casa Paco is CORRECTLY positioned in the last block (Group B Featured)');
-        }
-        console.log('[ExplorarScreen] 📌 ========================================');
-      } else {
-        console.log('[ExplorarScreen] ℹ️ Casa Paco not found in current results');
-      }
     } else {
       console.log('[ExplorarScreen] ⚠️ No user location available, sorting by destacado and rating only');
       
@@ -324,7 +271,6 @@ export default function ExplorarScreen() {
     const localIdsToPreload = newVisibleLocals.slice(0, 10).map(l => l.id);
     localPreloader.preloadMultiple(localIdsToPreload);
 
-    // Track search appearances for visible locals
     if (busqueda && newVisibleLocals.length > 0) {
       newVisibleLocals.forEach((local, index) => {
         trackSearchAppearance(local.id, busqueda, index + 1, false, user?.id);
@@ -360,7 +306,6 @@ export default function ExplorarScreen() {
     try {
       console.log('[ExplorarScreen] 🔄 Loading active promotions...');
       
-      // FIXED: Use a simpler query approach - first get active subscriptions
       const { data: suscripciones, error: subsError } = await supabase
         .from('suscripciones_locales')
         .select('local_id, plan_id')
@@ -377,10 +322,8 @@ export default function ExplorarScreen() {
         return;
       }
 
-      // Get the plan IDs
       const planIds = [...new Set(suscripciones.map(s => s.plan_id))];
       
-      // FIXED: Now get the plans with promotions
       const { data: planes, error: planesError } = await supabase
         .from('planes_suscripcion')
         .select('id, promos_destacadas')
@@ -398,10 +341,8 @@ export default function ExplorarScreen() {
         return;
       }
 
-      // Create a set of plan IDs that have promotions
       const planIdsWithPromos = new Set(planes.map(p => p.id));
 
-      // Filter subscriptions to only those with promotional plans
       const promotedLocalIds = new Set(
         suscripciones
           .filter(s => planIdsWithPromos.has(s.plan_id))
@@ -639,6 +580,22 @@ export default function ExplorarScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+          
+          {/* ✅ NEW: Subtle scroll indicator */}
+          {showScrollIndicator && (
+            <Animated.View 
+              style={[
+                styles.scrollIndicator,
+                { opacity: scrollIndicatorOpacity }
+              ]}
+            >
+              <IconSymbol 
+                name="chevron.right" 
+                size={16} 
+                color={colors.textSecondary} 
+              />
+            </Animated.View>
+          )}
         </View>
       </Animated.View>
 
@@ -661,7 +618,6 @@ export default function ExplorarScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* ✅ CLAIM OR CREATE LOCAL SECTION - COMPACT SINGLE LINE DESIGN */}
         <TouchableOpacity 
           style={styles.claimLocalBanner}
           onPress={handleClaimOrCreateLocal}
@@ -863,6 +819,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
+    position: 'relative',
   },
   categoriasScroll: {
     flexDirection: 'row',
@@ -898,6 +855,21 @@ const styles = StyleSheet.create({
   categoriaLabelActive: {
     color: colors.primary,
     fontWeight: '700',
+  },
+  // ✅ NEW: Scroll indicator styles
+  scrollIndicator: {
+    position: 'absolute',
+    right: 8,
+    top: '50%',
+    transform: [{ translateY: -12 }],
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   scrollView: {
     flex: 1,

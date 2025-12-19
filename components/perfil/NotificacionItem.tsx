@@ -10,7 +10,7 @@ interface NotificacionItemProps {
   onPress?: () => void;
   onAprobar?: () => void;
   onRechazar?: () => void;
-  onDelete?: () => void; // ✅ NEW: Delete callback
+  onDelete?: () => void;
 }
 
 export default function NotificacionItem({
@@ -18,7 +18,7 @@ export default function NotificacionItem({
   onPress,
   onAprobar,
   onRechazar,
-  onDelete, // ✅ NEW
+  onDelete,
 }: NotificacionItemProps) {
   const getIcono = () => {
     switch (notificacion.tipo) {
@@ -38,26 +38,41 @@ export default function NotificacionItem({
   };
 
   const formatearFecha = (fecha: string) => {
-    const date = new Date(fecha);
-    const ahora = new Date();
-    const diff = ahora.getTime() - date.getTime();
-    const minutos = Math.floor(diff / 60000);
-    const horas = Math.floor(diff / 3600000);
-    const dias = Math.floor(diff / 86400000);
+    try {
+      // ✅ FIXED: Proper date parsing and validation
+      if (!fecha) return 'Recientemente';
+      
+      const date = new Date(fecha);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.error('[NotificacionItem] Invalid date:', fecha);
+        return 'Recientemente';
+      }
+      
+      const ahora = new Date();
+      const diff = ahora.getTime() - date.getTime();
+      const minutos = Math.floor(diff / 60000);
+      const horas = Math.floor(diff / 3600000);
+      const dias = Math.floor(diff / 86400000);
 
-    if (minutos < 1) return 'Ahora';
-    if (minutos < 60) return `Hace ${minutos}m`;
-    if (horas < 24) return `Hace ${horas}h`;
-    if (dias < 7) return `Hace ${dias}d`;
-    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+      if (minutos < 1) return 'Ahora';
+      if (minutos < 60) return `Hace ${minutos}m`;
+      if (horas < 24) return `Hace ${horas}h`;
+      if (dias < 7) return `Hace ${dias}d`;
+      return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    } catch (error) {
+      console.error('[NotificacionItem] Error formatting date:', error);
+      return 'Recientemente';
+    }
   };
 
   const icono = getIcono();
 
-  // ✅ FIXED: Display username without @ symbol, prioritize username over full name
+  // ✅ FIXED: Proper username and name display with fallback
   const displayName = notificacion.usuarioUsername 
     ? notificacion.usuarioUsername.replace(/^@/, '') 
-    : (notificacion.usuarioNombre || 'Usuario').replace(/^@/, '');
+    : (notificacion.usuarioNombre || 'Usuario');
 
   return (
     <View style={[styles.container, !notificacion.leida && styles.containerNoLeida]}>
@@ -71,7 +86,7 @@ export default function NotificacionItem({
             <Image source={{ uri: notificacion.usuarioAvatar }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.headerText} />
             </View>
           )}
           <View style={[styles.iconoBadge, { backgroundColor: icono.color }]}>
@@ -102,7 +117,6 @@ export default function NotificacionItem({
         {!notificacion.leida && <View style={styles.indicadorNoLeida} />}
       </TouchableOpacity>
 
-      {/* ✅ NEW: Delete button */}
       {onDelete && (
         <TouchableOpacity
           style={styles.deleteButton}
@@ -151,7 +165,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.background,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },

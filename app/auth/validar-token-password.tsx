@@ -29,7 +29,6 @@ export default function ValidarTokenPasswordScreen() {
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
-    // Focus on first input when component mounts
     setTimeout(() => {
       if (inputRefs.current[0]) {
         inputRefs.current[0].focus();
@@ -38,14 +37,12 @@ export default function ValidarTokenPasswordScreen() {
   }, []);
 
   const handleTokenChange = (value: string, index: number) => {
-    // Only allow digits
     if (value && !/^\d$/.test(value)) {
       return;
     }
 
     const newToken = [...token];
     
-    // If user is pasting multiple digits
     if (value.length > 1) {
       const digits = value.replace(/\D/g, '').split('').slice(0, 6);
       digits.forEach((digit, i) => {
@@ -55,7 +52,6 @@ export default function ValidarTokenPasswordScreen() {
       });
       setToken(newToken);
       
-      // Focus on the next empty field or the last field
       const nextEmptyIndex = newToken.findIndex((digit, i) => i > index && !digit);
       if (nextEmptyIndex !== -1) {
         inputRefs.current[nextEmptyIndex]?.focus();
@@ -65,11 +61,9 @@ export default function ValidarTokenPasswordScreen() {
       return;
     }
 
-    // Single digit input
     newToken[index] = value;
     setToken(newToken);
 
-    // Move to next field if value was entered
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -78,13 +72,11 @@ export default function ValidarTokenPasswordScreen() {
   const handleKeyPress = (e: any, index: number) => {
     if (e.nativeEvent.key === 'Backspace') {
       if (!token[index] && index > 0) {
-        // If current field is empty and backspace is pressed, move to previous field
         const newToken = [...token];
         newToken[index - 1] = '';
         setToken(newToken);
         inputRefs.current[index - 1]?.focus();
       } else if (token[index]) {
-        // If current field has value, just clear it
         const newToken = [...token];
         newToken[index] = '';
         setToken(newToken);
@@ -93,7 +85,6 @@ export default function ValidarTokenPasswordScreen() {
   };
 
   const handleFocus = (index: number) => {
-    // When a field is focused, select its content for easy replacement
     if (token[index]) {
       inputRefs.current[index]?.setNativeProps({
         selection: { start: 0, end: 1 }
@@ -119,14 +110,25 @@ export default function ValidarTokenPasswordScreen() {
       console.log('[ValidarTokenPassword] 🔢 Token:', fullToken);
       console.log('[ValidarTokenPassword] 🔐 Google User:', isGoogleUser);
 
-      // Get the Supabase project URL from environment variables
-      const functionsUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
+      // ✅ FIXED: Use environment variable for Supabase URL
+      const functionsUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      
+      if (!functionsUrl) {
+        throw new Error('EXPO_PUBLIC_SUPABASE_URL is not defined');
+      }
+
+      // ✅ FIXED: Get current session token for authorization
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token || '';
+
+      console.log('[ValidarTokenPassword] 🌐 Functions URL:', functionsUrl);
+      console.log('[ValidarTokenPassword] 🔑 Has access token:', !!accessToken);
 
       const response = await fetch(`${functionsUrl}/functions/v1/validate-password-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ 
           email: email.trim().toLowerCase(), 
@@ -134,9 +136,12 @@ export default function ValidarTokenPasswordScreen() {
         }),
       });
 
-      const result = await response.json();
+      console.log('[ValidarTokenPassword] 📡 Response status:', response.status);
 
-      if (!result.valid) {
+      const result = await response.json();
+      console.log('[ValidarTokenPassword] 📦 Response data:', result);
+
+      if (!response.ok || !result.valid) {
         console.error('[ValidarTokenPassword] ❌ Token inválido:', result.error);
         Alert.alert(
           'Código inválido',
