@@ -356,6 +356,10 @@ export default function HomeScreen() {
     console.log('[Home] Más filtros presionado');
   }, []);
 
+  const handleClaimOrCreateLocal = useCallback(() => {
+    router.push('/auth/local-ownership-request' as any);
+  }, [router]);
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -401,6 +405,36 @@ export default function HomeScreen() {
         onFiltroPress={handleFiltroPress}
         onMasFiltrosPress={handleMasFiltrosPress}
       />
+
+      {/* NEW: Claim or Create Local Section */}
+      <TouchableOpacity 
+        style={styles.claimLocalBanner}
+        onPress={handleClaimOrCreateLocal}
+        activeOpacity={0.8}
+      >
+        <View style={styles.claimLocalContent}>
+          <View style={styles.claimLocalIconContainer}>
+            <IconSymbol 
+              ios_icon_name="building.2.fill" 
+              android_material_icon_name="business" 
+              size={24} 
+              color={colors.primary} 
+            />
+          </View>
+          <View style={styles.claimLocalTextContainer}>
+            <Text style={styles.claimLocalTitle}>Reclama tu local o crea uno nuevo</Text>
+            <Text style={styles.claimLocalSubtitle}>
+              ¿Eres propietario? Gestiona tu local en BarLive
+            </Text>
+          </View>
+          <IconSymbol 
+            ios_icon_name="chevron.right" 
+            android_material_icon_name="chevron_right" 
+            size={20} 
+            color={colors.textSecondary} 
+          />
+        </View>
+      </TouchableOpacity>
 
       <ScrollView
         style={styles.content}
@@ -487,6 +521,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.white,
+  },
+  claimLocalBanner: {
+    backgroundColor: colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  claimLocalContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  claimLocalIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  claimLocalTextContainer: {
+    flex: 1,
+  },
+  claimLocalTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  claimLocalSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   content: {
     flex: 1,
