@@ -676,7 +676,7 @@ export default function UsuarioPerfilScreen() {
                     {currentLocal.nombre}
                   </Text>
                   <View style={styles.currentLocalMeta}>
-                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={11} color="rgba(255, 255, 255, 0.8)" />
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={11} color="#6B7280" />
                     <Text style={styles.currentLocalAddress} numberOfLines={1}>
                       {currentLocal.direccion}
                     </Text>
@@ -684,7 +684,7 @@ export default function UsuarioPerfilScreen() {
                 </View>
 
                 <View style={styles.currentLocalArrow}>
-                  <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={18} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={18} color="#6B7280" />
                 </View>
               </TouchableOpacity>
               
@@ -845,7 +845,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 16,
   },
-  // ✅ CURRENT LOCATION SECTION STYLES - VISUAL CARD
+  // ✅ CURRENT LOCATION SECTION STYLES - VISUAL CARD WITH IMPROVED CONTRAST
   currentLocalSection: {
     marginBottom: 20,
   },
@@ -862,12 +862,17 @@ const styles = StyleSheet.create({
   },
   currentLocalCard: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)', // Changed to white with high opacity for better contrast
     borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderWidth: 2, // Increased border width
+    borderColor: '#10B981', // Solid green border for better visibility
     marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   currentLocalImageContainer: {
     width: 80,
@@ -897,15 +902,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: colors.white,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
+    backgroundColor: '#10B981', // Changed to solid green background
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: 8,
   },
   currentLocalBadgeText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#10B981',
+    color: '#FFFFFF', // White text on green background
   },
   currentLocalContent: {
     flex: 1,
@@ -914,13 +919,13 @@ const styles = StyleSheet.create({
   },
   currentLocalLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#6B7280', // Changed to gray for better readability on white background
     marginBottom: 3,
   },
   currentLocalName: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.headerText,
+    color: '#1F2937', // Dark gray/black for maximum contrast
     marginBottom: 5,
   },
   currentLocalMeta: {
@@ -930,7 +935,7 @@ const styles = StyleSheet.create({
   },
   currentLocalAddress: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#6B7280', // Changed to gray for better readability
     flex: 1,
   },
   currentLocalArrow: {
