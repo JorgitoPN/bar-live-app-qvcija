@@ -152,6 +152,101 @@ export default function SocialIndexScreen() {
     }
   }, [userId]);
 
+  // ✅ FIX: Define loadFriendsLocations BEFORE using it in useEffect
+  const loadFriendsLocations = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      setLoadingFriendsLocations(true);
+
+      // 1. Get my own check-in first
+      const { data: myCheckInData, error: myCheckInError } = await supabase
+        .from('check_ins')
+        .select(`
+          local_id,
+          visibility,
+          locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
+        `)
+        .eq('usuario_id', userId)
+        .single();
+
+      if (myCheckInError && myCheckInError.code !== 'PGRST116') {
+        console.error('[Social] Error loading my check-in:', myCheckInError);
+      }
+
+      if (myCheckInData && myCheckInData.locales) {
+        setMyCheckIn(myCheckInData);
+        console.log('[Social] ✅ I am checked in to:', myCheckInData.locales.nombre);
+      } else {
+        setMyCheckIn(null);
+      }
+
+      // 2. Get all users that current user follows
+      const { data: following, error: followingError } = await supabase
+        .from('seguidores')
+        .select('seguido_id')
+        .eq('seguidor_id', userId);
+
+      if (followingError) throw followingError;
+
+      const followedUserIds = following?.map(f => f.seguido_id) || [];
+
+      if (followedUserIds.length === 0) {
+        setFriendsLocations([]);
+        setLoadingFriendsLocations(false);
+        return;
+      }
+
+      // 3. Get check-ins from followed users
+      const { data: checkIns, error: checkInsError } = await supabase
+        .from('check_ins')
+        .select(`
+          usuario_id,
+          local_id,
+          visibility,
+          specific_user_ids,
+          usuarios!check_ins_usuario_id_fkey(id, nombre, username, avatar),
+          locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion, latitud, longitud)
+        `)
+        .in('usuario_id', followedUserIds);
+
+      if (checkInsError) throw checkInsError;
+
+      // 4. Filter by visibility
+      const visibleCheckIns = (checkIns || []).filter(checkIn => {
+        if (checkIn.visibility === 'all_users') return true;
+        if (checkIn.visibility === 'followers') return true;
+        if (checkIn.visibility === 'specific_users') {
+          return checkIn.specific_user_ids?.includes(userId);
+        }
+        return false;
+      });
+
+      // 5. Group by local
+      const locationsByLocal = new Map<string, FriendLocation>();
+      visibleCheckIns.forEach(checkIn => {
+        if (!checkIn.locales) return;
+
+        const localId = checkIn.locales.id;
+        if (!locationsByLocal.has(localId)) {
+          locationsByLocal.set(localId, {
+            local: checkIn.locales,
+            users: [],
+          });
+        }
+        locationsByLocal.get(localId)!.users.push(checkIn.usuarios);
+      });
+
+      const locations = Array.from(locationsByLocal.values());
+      setFriendsLocations(locations);
+      console.log('[Social] ✅ Loaded friends locations:', locations.length);
+    } catch (error) {
+      console.error('[Social] Error loading friends locations:', error);
+    } finally {
+      setLoadingFriendsLocations(false);
+    }
+  }, [userId]);
+
   useEffect(() => {
     if (!userId) return;
 
@@ -304,11 +399,13 @@ export default function SocialIndexScreen() {
     }
   }, [userId, isImpersonating]);
 
+  // ✅ FIX: Now cargarPosts and loadFriendsLocations are both defined before this useEffect
   useEffect(() => {
     if (userId) {
       cargarPosts(1, false);
+      loadFriendsLocations();
     }
-  }, [userId, cargarPosts]);
+  }, [userId, cargarPosts, loadFriendsLocations]);
 
   const handleRefresh = useCallback(() => {
     cargarPosts(1, true);
@@ -328,100 +425,6 @@ export default function SocialIndexScreen() {
   const handleCreatePost = () => {
     router.push('/crear/publicacion');
   };
-
-  const loadFriendsLocations = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      setLoadingFriendsLocations(true);
-
-      // 1. Get my own check-in first
-      const { data: myCheckInData, error: myCheckInError } = await supabase
-        .from('check_ins')
-        .select(`
-          local_id,
-          visibility,
-          locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
-        `)
-        .eq('usuario_id', userId)
-        .single();
-
-      if (myCheckInError && myCheckInError.code !== 'PGRST116') {
-        console.error('[Social] Error loading my check-in:', myCheckInError);
-      }
-
-      if (myCheckInData && myCheckInData.locales) {
-        setMyCheckIn(myCheckInData);
-        console.log('[Social] ✅ I am checked in to:', myCheckInData.locales.nombre);
-      } else {
-        setMyCheckIn(null);
-      }
-
-      // 2. Get all users that current user follows
-      const { data: following, error: followingError } = await supabase
-        .from('seguidores')
-        .select('seguido_id')
-        .eq('seguidor_id', userId);
-
-      if (followingError) throw followingError;
-
-      const followedUserIds = following?.map(f => f.seguido_id) || [];
-
-      if (followedUserIds.length === 0) {
-        setFriendsLocations([]);
-        setLoadingFriendsLocations(false);
-        return;
-      }
-
-      // 3. Get check-ins from followed users
-      const { data: checkIns, error: checkInsError } = await supabase
-        .from('check_ins')
-        .select(`
-          usuario_id,
-          local_id,
-          visibility,
-          specific_user_ids,
-          usuarios!check_ins_usuario_id_fkey(id, nombre, username, avatar),
-          locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion, latitud, longitud)
-        `)
-        .in('usuario_id', followedUserIds);
-
-      if (checkInsError) throw checkInsError;
-
-      // 4. Filter by visibility
-      const visibleCheckIns = (checkIns || []).filter(checkIn => {
-        if (checkIn.visibility === 'all_users') return true;
-        if (checkIn.visibility === 'followers') return true;
-        if (checkIn.visibility === 'specific_users') {
-          return checkIn.specific_user_ids?.includes(userId);
-        }
-        return false;
-      });
-
-      // 5. Group by local
-      const locationsByLocal = new Map<string, FriendLocation>();
-      visibleCheckIns.forEach(checkIn => {
-        if (!checkIn.locales) return;
-
-        const localId = checkIn.locales.id;
-        if (!locationsByLocal.has(localId)) {
-          locationsByLocal.set(localId, {
-            local: checkIn.locales,
-            users: [],
-          });
-        }
-        locationsByLocal.get(localId)!.users.push(checkIn.usuarios);
-      });
-
-      const locations = Array.from(locationsByLocal.values());
-      setFriendsLocations(locations);
-      console.log('[Social] ✅ Loaded friends locations:', locations.length);
-    } catch (error) {
-      console.error('[Social] Error loading friends locations:', error);
-    } finally {
-      setLoadingFriendsLocations(false);
-    }
-  }, [userId]);
 
   useEffect(() => {
     loadFriendsLocations();
