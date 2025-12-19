@@ -103,6 +103,7 @@ interface Local {
   descripcion_google?: string;
   rango_precios?: string;
   nivel_precio_google?: number;
+  propietario_id?: string;
 }
 
 interface Review {
@@ -703,8 +704,11 @@ export default function DetalleLocalScreen() {
     );
   };
 
-  const handleClaimOrCreateLocal = () => {
-    router.push('/auth/local-ownership-request' as any);
+  const handleClaimLocal = () => {
+    router.push({
+      pathname: '/auth/local-ownership-request',
+      params: { localId: params.id, mode: 'claim' },
+    } as any);
   };
 
   const dismissModal = () => {
@@ -782,6 +786,9 @@ export default function DetalleLocalScreen() {
   const estadoLocal = getEstadoLocal(local);
   const isOpen = estadoLocal.estaAbierto === true;
   const hasSocialProfile = local.plan_activo === 'estandar' || local.plan_activo === 'premium';
+  
+  // ✅ Check if local has owner
+  const hasOwner = !!local.propietario_id;
 
   const allServices: string[] = [];
   const serviceSet = new Set<string>();
@@ -1038,44 +1045,32 @@ export default function DetalleLocalScreen() {
                 )}
               </View>
 
-              {/* PROMINENT: Claim or Create Local Section - Positioned after header */}
-              <TouchableOpacity 
-                style={styles.claimLocalBannerDetails}
-                onPress={handleClaimOrCreateLocal}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={[colors.primary + '20', colors.primary + '10']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.claimLocalGradientDetails}
+              {/* ✅ NEW: Only show claim card if local doesn't have owner */}
+              {!hasOwner && (
+                <TouchableOpacity 
+                  style={styles.claimLocalCard}
+                  onPress={handleClaimLocal}
+                  activeOpacity={0.8}
                 >
-                  <View style={styles.claimLocalContentDetails}>
-                    <View style={styles.claimLocalIconContainerDetails}>
-                      <IconSymbol 
-                        ios_icon_name="building.2.fill" 
-                        android_material_icon_name="business" 
-                        size={24} 
-                        color={colors.primary} 
-                      />
-                    </View>
-                    <View style={styles.claimLocalTextContainerDetails}>
-                      <Text style={styles.claimLocalTitleDetails}>¿Es tu local?</Text>
-                      <Text style={styles.claimLocalSubtitleDetails}>
-                        Reclámalo o crea uno nuevo en BarLive
-                      </Text>
-                    </View>
-                    <View style={styles.claimLocalArrowDetails}>
-                      <IconSymbol 
-                        ios_icon_name="chevron.right" 
-                        android_material_icon_name="chevron_right" 
-                        size={22} 
-                        color={colors.primary} 
-                      />
-                    </View>
+                  <View style={styles.claimLocalCardContent}>
+                    <IconSymbol 
+                      ios_icon_name="building.2" 
+                      android_material_icon_name="business" 
+                      size={16} 
+                      color={colors.primary} 
+                    />
+                    <Text style={styles.claimLocalCardText}>
+                      ¿Este es tu local? Reclámalo ahora
+                    </Text>
+                    <IconSymbol 
+                      ios_icon_name="chevron.right" 
+                      android_material_icon_name="chevron_right" 
+                      size={14} 
+                      color={colors.textSecondary} 
+                    />
                   </View>
-                </LinearGradient>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              )}
 
               {checkedInUsers.length > 0 && (
                 <View style={styles.checkedInSection}>
@@ -1767,61 +1762,26 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '700',
   },
-  claimLocalBannerDetails: {
-    marginBottom: 20,
-    borderRadius: 14,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+  // ✅ NEW: Smaller, discreet claim local card
+  claimLocalCard: {
+    marginBottom: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary + '20',
   },
-  claimLocalGradientDetails: {
-    borderWidth: 2,
-    borderColor: colors.primary + '40',
-    borderRadius: 14,
-  },
-  claimLocalContentDetails: {
+  claimLocalCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
   },
-  claimLocalIconContainerDetails: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.primary + '25',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary + '40',
-  },
-  claimLocalTextContainerDetails: {
+  claimLocalCardText: {
     flex: 1,
-  },
-  claimLocalTitleDetails: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 4,
-    letterSpacing: -0.3,
-  },
-  claimLocalSubtitleDetails: {
     fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
-    fontWeight: '500',
-  },
-  claimLocalArrowDetails: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontWeight: '600',
+    color: colors.text,
   },
   checkedInSection: {
     backgroundColor: colors.primary + '10',

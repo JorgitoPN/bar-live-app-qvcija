@@ -409,43 +409,27 @@ export default function HomeScreen() {
         onMasFiltrosPress={handleMasFiltrosPress}
       />
 
-      {/* Claim or Create Local Section - Enhanced Design */}
+      {/* ✅ IMPROVED: Smaller, more discreet "Reclama tu local" card */}
       <TouchableOpacity 
         style={styles.claimLocalBanner}
         onPress={handleClaimOrCreateLocal}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
       >
-        <LinearGradient
-          colors={[colors.primary + '15', colors.primary + '08']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.claimLocalGradient}
-        >
-          <View style={styles.claimLocalContent}>
-            <View style={styles.claimLocalIconContainer}>
-              <IconSymbol 
-                ios_icon_name="building.2.fill" 
-                android_material_icon_name="business" 
-                size={26} 
-                color={colors.primary} 
-              />
-            </View>
-            <View style={styles.claimLocalTextContainer}>
-              <Text style={styles.claimLocalTitle}>Reclama tu local o crea uno nuevo</Text>
-              <Text style={styles.claimLocalSubtitle}>
-                ¿Eres propietario? Gestiona tu local en BarLive
-              </Text>
-            </View>
-            <View style={styles.claimLocalArrow}>
-              <IconSymbol 
-                ios_icon_name="chevron.right" 
-                android_material_icon_name="chevron_right" 
-                size={22} 
-                color={colors.primary} 
-              />
-            </View>
-          </View>
-        </LinearGradient>
+        <View style={styles.claimLocalContent}>
+          <IconSymbol 
+            ios_icon_name="building.2" 
+            android_material_icon_name="business" 
+            size={16} 
+            color={colors.primary} 
+          />
+          <Text style={styles.claimLocalText}>Reclama tu local o crea uno nuevo</Text>
+          <IconSymbol 
+            ios_icon_name="chevron.right" 
+            android_material_icon_name="chevron_right" 
+            size={14} 
+            color={colors.textSecondary} 
+          />
+        </View>
       </TouchableOpacity>
 
       <ScrollView
@@ -534,62 +518,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.white,
   },
+  // ✅ NEW: Smaller, more discreet claim local banner
   claimLocalBanner: {
     marginHorizontal: 16,
-    marginTop: 12,
+    marginTop: 8,
     marginBottom: 8,
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-  },
-  claimLocalGradient: {
-    borderWidth: 1.5,
-    borderColor: colors.primary + '30',
-    borderRadius: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary + '20',
   },
   claimLocalContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
   },
-  claimLocalIconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary + '30',
-  },
-  claimLocalTextContainer: {
+  claimLocalText: {
     flex: 1,
-  },
-  claimLocalTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 3,
-    letterSpacing: -0.2,
-  },
-  claimLocalSubtitle: {
     fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
-  claimLocalArrow: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontWeight: '600',
+    color: colors.text,
   },
   content: {
     flex: 1,

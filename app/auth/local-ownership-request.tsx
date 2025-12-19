@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -19,9 +19,12 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function LocalOwnershipRequestScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { user } = useAuth();
 
-  const [requestType, setRequestType] = useState<'reclamar_local' | 'nuevo_local'>('reclamar_local');
+  const [requestType, setRequestType] = useState<'reclamar_local' | 'nuevo_local'>(
+    params.mode === 'claim' ? 'reclamar_local' : 'reclamar_local'
+  );
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -36,6 +39,32 @@ export default function LocalOwnershipRequestScreen() {
   const [emailContacto, setEmailContacto] = useState(user?.email || '');
   const [mensaje, setMensaje] = useState('');
 
+  // If coming from local details page, pre-select the local
+  useEffect(() => {
+    if (params.localId && params.mode === 'claim') {
+      loadLocalDetails(params.localId as string);
+    }
+  }, [params.localId, params.mode]);
+
+  const loadLocalDetails = async (localId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('locales')
+        .select('id, nombre, direccion, provincia, imagen_url, tipo')
+        .eq('id', localId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setSelectedLocal(data);
+        setSearchQuery(data.nombre);
+      }
+    } catch (error) {
+      console.error('[LocalOwnershipRequest] Error loading local:', error);
+    }
+  };
+
   const searchLocals = async (query: string) => {
     if (query.length < 3) {
       setSearchResults([]);
@@ -46,7 +75,7 @@ export default function LocalOwnershipRequestScreen() {
     try {
       const { data, error } = await supabase
         .from('locales')
-        .select('id, nombre, direccion, provincia, imagen_url, tipo')
+        .select('id, nombre, direccion, provincia, imagen_url, tipo, propietario_id')
         .ilike('nombre', `%${query}%`)
         .eq('activo', true)
         .limit(10);
@@ -55,7 +84,7 @@ export default function LocalOwnershipRequestScreen() {
 
       setSearchResults(data || []);
     } catch (error) {
-      console.error('Error searching locals:', error);
+      console.error('[LocalOwnershipRequest] Error searching locals:', error);
     } finally {
       setSearching(false);
     }
@@ -63,13 +92,13 @@ export default function LocalOwnershipRequestScreen() {
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (requestType === 'reclamar_local') {
+      if (requestType === 'reclamar_local' && !params.localId) {
         searchLocals(searchQuery);
       }
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, requestType]);
+  }, [searchQuery, requestType, params.localId]);
 
   const handleSubmitRequest = async () => {
     if (!user) {
@@ -85,6 +114,36 @@ export default function LocalOwnershipRequestScreen() {
     if (requestType === 'nuevo_local') {
       if (!nombreLocal.trim() || !direccionLocal.trim() || !provinciaLocal.trim()) {
         Alert.alert('Error', 'Debes completar todos los campos obligatorios (nombre, dirección y provincia)');
+        return;
+      }
+    }
+
+    // ✅ Check if local already has owner
+    if (requestType === 'reclamar_local' && selectedLocal.propietario_id) {
+      Alert.alert(
+        'Local ya reclamado',
+        'Este local ya tiene un propietario. Si crees que esto es un error, contacta con soporte.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // ✅ Check if user already has a pending request for this local
+    if (requestType === 'reclamar_local') {
+      const { data: existingRequest } = await supabase
+        .from('solicitudes_propietario')
+        .select('id, estado')
+        .eq('usuario_id', user.id)
+        .eq('local_id', selectedLocal.id)
+        .in('estado', ['pendiente', 'en_revision', 'informacion_adicional'])
+        .single();
+
+      if (existingRequest) {
+        Alert.alert(
+          'Solicitud existente',
+          'Ya tienes una solicitud pendiente para este local. Puedes ver su estado en tu perfil.',
+          [{ text: 'OK' }]
+        );
         return;
       }
     }
@@ -120,8 +179,8 @@ export default function LocalOwnershipRequestScreen() {
       Alert.alert(
         '✅ Solicitud enviada',
         requestType === 'reclamar_local'
-          ? `Tu solicitud para reclamar "${selectedLocal.nombre}" ha sido enviada. Te notificaremos cuando sea revisada por nuestro equipo.`
-          : `Tu solicitud para crear el local "${nombreLocal}" ha sido enviada. Te notificaremos cuando sea revisada por nuestro equipo.`,
+          ? `Tu solicitud para reclamar "${selectedLocal.nombre}" ha sido enviada. Te notificaremos cuando sea revisada por nuestro equipo. Puedes ver el estado de tu solicitud en tu perfil.`
+          : `Tu solicitud para crear el local "${nombreLocal}" ha sido enviada. Te notificaremos cuando sea revisada por nuestro equipo. Puedes ver el estado de tu solicitud en tu perfil.`,
         [
           {
             text: 'OK',
@@ -130,7 +189,7 @@ export default function LocalOwnershipRequestScreen() {
         ]
       );
     } catch (error) {
-      console.error('Error submitting request:', error);
+      console.error('[LocalOwnershipRequest] Error submitting request:', error);
       Alert.alert('Error', 'No se pudo enviar la solicitud. Por favor, intenta nuevamente.');
     } finally {
       setLoading(false);
@@ -166,147 +225,172 @@ export default function LocalOwnershipRequestScreen() {
           />
           <Text style={styles.infoText}>
             Solicita el rol de propietario para gestionar tu local en BarLive. 
-            Podrás publicar eventos, promociones y mucho más.
+            El rol se activará solo tras la aprobación del administrador.
           </Text>
         </View>
 
-        <Text style={styles.sectionTitle}>Tipo de solicitud</Text>
-        <View style={styles.requestTypeContainer}>
-          <TouchableOpacity
-            style={[
-              styles.requestTypeButton,
-              requestType === 'reclamar_local' && styles.requestTypeButtonActive,
-            ]}
-            onPress={() => {
-              setRequestType('reclamar_local');
-              setSelectedLocal(null);
-              setSearchQuery('');
-            }}
-          >
-            <IconSymbol
-              ios_icon_name="building.2.fill"
-              android_material_icon_name="business"
-              size={28}
-              color={requestType === 'reclamar_local' ? colors.primary : colors.textSecondary}
-            />
-            <Text
-              style={[
-                styles.requestTypeText,
-                requestType === 'reclamar_local' && styles.requestTypeTextActive,
-              ]}
-            >
-              Reclamar local existente
-            </Text>
-            <Text style={styles.requestTypeDescription}>
-              Si tu local ya está en BarLive
-            </Text>
-          </TouchableOpacity>
+        {!params.localId && (
+          <React.Fragment>
+            <Text style={styles.sectionTitle}>Tipo de solicitud</Text>
+            <View style={styles.requestTypeContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.requestTypeButton,
+                  requestType === 'reclamar_local' && styles.requestTypeButtonActive,
+                ]}
+                onPress={() => {
+                  setRequestType('reclamar_local');
+                  setSelectedLocal(null);
+                  setSearchQuery('');
+                }}
+              >
+                <IconSymbol
+                  ios_icon_name="building.2.fill"
+                  android_material_icon_name="business"
+                  size={28}
+                  color={requestType === 'reclamar_local' ? colors.primary : colors.textSecondary}
+                />
+                <Text
+                  style={[
+                    styles.requestTypeText,
+                    requestType === 'reclamar_local' && styles.requestTypeTextActive,
+                  ]}
+                >
+                  Reclamar local existente
+                </Text>
+                <Text style={styles.requestTypeDescription}>
+                  Si tu local ya está en BarLive
+                </Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.requestTypeButton,
-              requestType === 'nuevo_local' && styles.requestTypeButtonActive,
-            ]}
-            onPress={() => {
-              setRequestType('nuevo_local');
-              setSelectedLocal(null);
-              setSearchQuery('');
-            }}
-          >
-            <IconSymbol
-              ios_icon_name="plus.circle.fill"
-              android_material_icon_name="add_circle"
-              size={28}
-              color={requestType === 'nuevo_local' ? colors.primary : colors.textSecondary}
-            />
-            <Text
-              style={[
-                styles.requestTypeText,
-                requestType === 'nuevo_local' && styles.requestTypeTextActive,
-              ]}
-            >
-              Crear nuevo local
-            </Text>
-            <Text style={styles.requestTypeDescription}>
-              Si tu local no existe en BarLive
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity
+                style={[
+                  styles.requestTypeButton,
+                  requestType === 'nuevo_local' && styles.requestTypeButtonActive,
+                ]}
+                onPress={() => {
+                  setRequestType('nuevo_local');
+                  setSelectedLocal(null);
+                  setSearchQuery('');
+                }}
+              >
+                <IconSymbol
+                  ios_icon_name="plus.circle.fill"
+                  android_material_icon_name="add_circle"
+                  size={28}
+                  color={requestType === 'nuevo_local' ? colors.primary : colors.textSecondary}
+                />
+                <Text
+                  style={[
+                    styles.requestTypeText,
+                    requestType === 'nuevo_local' && styles.requestTypeTextActive,
+                  ]}
+                >
+                  Crear nuevo local
+                </Text>
+                <Text style={styles.requestTypeDescription}>
+                  Si tu local no existe en BarLive
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </React.Fragment>
+        )}
 
         {requestType === 'reclamar_local' ? (
           <View>
-            <Text style={styles.sectionTitle}>Buscar tu local</Text>
-            <Text style={styles.sectionDescription}>
-              Escribe el nombre de tu local para buscarlo en nuestra base de datos
-            </Text>
-            <View style={styles.searchContainer}>
-              <IconSymbol 
-                ios_icon_name="magnifyingglass" 
-                android_material_icon_name="search" 
-                size={20} 
-                color={colors.textSecondary} 
-              />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Nombre del local"
-                placeholderTextColor={colors.textSecondary}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              {searching && <ActivityIndicator size="small" color={colors.primary} />}
-            </View>
+            {!params.localId && (
+              <React.Fragment>
+                <Text style={styles.sectionTitle}>Buscar tu local</Text>
+                <Text style={styles.sectionDescription}>
+                  Escribe el nombre de tu local para buscarlo en nuestra base de datos
+                </Text>
+                <View style={styles.searchContainer}>
+                  <IconSymbol 
+                    ios_icon_name="magnifyingglass" 
+                    android_material_icon_name="search" 
+                    size={20} 
+                    color={colors.textSecondary} 
+                  />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Nombre del local"
+                    placeholderTextColor={colors.textSecondary}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
+                  {searching && <ActivityIndicator size="small" color={colors.primary} />}
+                </View>
 
-            {searchQuery.length >= 3 && searchResults.length === 0 && !searching && (
-              <View style={styles.noResultsContainer}>
-                <IconSymbol 
-                  ios_icon_name="exclamationmark.triangle" 
-                  android_material_icon_name="warning" 
-                  size={32} 
-                  color={colors.textSecondary} 
-                />
-                <Text style={styles.noResultsText}>
-                  No se encontraron locales con ese nombre
-                </Text>
-                <Text style={styles.noResultsSubtext}>
-                  Intenta con otro nombre o crea un nuevo local
-                </Text>
-              </View>
-            )}
+                {searchQuery.length >= 3 && searchResults.length === 0 && !searching && (
+                  <View style={styles.noResultsContainer}>
+                    <IconSymbol 
+                      ios_icon_name="exclamationmark.triangle" 
+                      android_material_icon_name="warning" 
+                      size={32} 
+                      color={colors.textSecondary} 
+                    />
+                    <Text style={styles.noResultsText}>
+                      No se encontraron locales con ese nombre
+                    </Text>
+                    <Text style={styles.noResultsSubtext}>
+                      Intenta con otro nombre o crea un nuevo local
+                    </Text>
+                  </View>
+                )}
 
-            {searchResults.length > 0 && (
-              <View style={styles.searchResults}>
-                <Text style={styles.resultsTitle}>
-                  {searchResults.length} {searchResults.length === 1 ? 'resultado' : 'resultados'}
-                </Text>
-                {searchResults.map((local) => (
-                  <TouchableOpacity
-                    key={local.id}
-                    style={[
-                      styles.searchResultItem,
-                      selectedLocal?.id === local.id && styles.searchResultItemActive,
-                    ]}
-                    onPress={() => setSelectedLocal(local)}
-                  >
-                    <View style={styles.searchResultInfo}>
-                      <Text style={styles.searchResultName}>{local.nombre}</Text>
-                      <Text style={styles.searchResultAddress}>
-                        {local.direccion}
-                      </Text>
-                      <Text style={styles.searchResultProvince}>
-                        {local.provincia} • {local.tipo}
-                      </Text>
-                    </View>
-                    {selectedLocal?.id === local.id && (
-                      <IconSymbol
-                        ios_icon_name="checkmark.circle.fill"
-                        android_material_icon_name="check_circle"
-                        size={28}
-                        color={colors.primary}
-                      />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
+                {searchResults.length > 0 && (
+                  <View style={styles.searchResults}>
+                    <Text style={styles.resultsTitle}>
+                      {searchResults.length} {searchResults.length === 1 ? 'resultado' : 'resultados'}
+                    </Text>
+                    {searchResults.map((local) => (
+                      <TouchableOpacity
+                        key={local.id}
+                        style={[
+                          styles.searchResultItem,
+                          selectedLocal?.id === local.id && styles.searchResultItemActive,
+                          local.propietario_id && styles.searchResultItemDisabled,
+                        ]}
+                        onPress={() => {
+                          if (!local.propietario_id) {
+                            setSelectedLocal(local);
+                          }
+                        }}
+                        disabled={!!local.propietario_id}
+                      >
+                        <View style={styles.searchResultInfo}>
+                          <Text style={styles.searchResultName}>{local.nombre}</Text>
+                          <Text style={styles.searchResultAddress}>
+                            {local.direccion}
+                          </Text>
+                          <Text style={styles.searchResultProvince}>
+                            {local.provincia} • {local.tipo}
+                          </Text>
+                          {local.propietario_id && (
+                            <View style={styles.ownedBadge}>
+                              <IconSymbol 
+                                ios_icon_name="person.fill.checkmark" 
+                                android_material_icon_name="verified_user" 
+                                size={12} 
+                                color="#10B981" 
+                              />
+                              <Text style={styles.ownedBadgeText}>Ya tiene propietario</Text>
+                            </View>
+                          )}
+                        </View>
+                        {selectedLocal?.id === local.id && !local.propietario_id && (
+                          <IconSymbol
+                            ios_icon_name="checkmark.circle.fill"
+                            android_material_icon_name="check_circle"
+                            size={28}
+                            color={colors.primary}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </React.Fragment>
             )}
 
             {selectedLocal && (
@@ -577,6 +661,9 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primary + '10',
   },
+  searchResultItemDisabled: {
+    opacity: 0.6,
+  },
   searchResultInfo: {
     flex: 1,
   },
@@ -594,6 +681,22 @@ const styles = StyleSheet.create({
   searchResultProvince: {
     fontSize: 13,
     color: colors.textSecondary,
+  },
+  ownedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+    backgroundColor: '#10B981' + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  ownedBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#10B981',
   },
   selectedLocalCard: {
     backgroundColor: colors.success + '10',
