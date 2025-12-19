@@ -20,15 +20,18 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import MessageBubble from '@/components/chat/MessageBubble';
+import MomentoMessageBubble from '@/components/chat/MomentoMessageBubble';
 
 interface Message {
   id: string;
   chat_id: string;
   remitente_id: string;
   contenido: string;
-  tipo_mensaje: 'texto' | 'post_compartido' | 'imagen';
+  tipo_mensaje: 'texto' | 'post_compartido' | 'imagen' | 'momento';
   post_compartido_id?: string;
   post_imagen?: string;
+  momento_id?: string;
+  momento_screenshot_url?: string;
   leido: boolean;
   created_at: string;
 }
@@ -51,6 +54,8 @@ export default function ConversacionScreen() {
 
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
+  const momentoIdFromParams = params.momentoId as string | undefined;
+  const momentoScreenshotFromParams = params.momentoScreenshot as string | undefined;
 
   const loadMessages = useCallback(async (chatIdToLoad: string) => {
     try {
@@ -91,7 +96,7 @@ export default function ConversacionScreen() {
       setLoading(true);
 
       if (localId) {
-        console.log('[Conversacion] 🔥🔥🔥 Loading LOCAL-SPECIFIC chat for local:', localId);
+        console.log('[Conversacion] 🔥 Loading LOCAL-SPECIFIC chat for local:', localId);
         
         const { data: localData, error: localError } = await supabase
           .from('locales')
@@ -280,13 +285,19 @@ export default function ConversacionScreen() {
 
         setOtroUsuario(userData);
       }
+
+      // ✅ NEW: If coming from momento viewer, send momento message automatically
+      if (momentoIdFromParams && momentoScreenshotFromParams && chatId) {
+        console.log('[Conversacion] 📸 Auto-sending momento message');
+        await enviarMensajeMomento(chatId, momentoIdFromParams, momentoScreenshotFromParams);
+      }
     } catch (error) {
       console.error('[Conversacion] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar la conversación');
     } finally {
       setLoading(false);
     }
-  }, [user, params.chatId, params.userId, localId, loadMessages, router]);
+  }, [user, params.chatId, params.userId, localId, momentoIdFromParams, momentoScreenshotFromParams, loadMessages, router]);
 
   useEffect(() => {
     loadOrCreateChat();
@@ -442,6 +453,47 @@ export default function ConversacionScreen() {
     }
   };
 
+  // ✅ NEW: Send momento message with screenshot
+  const enviarMensajeMomento = async (targetChatId: string, momentoId: string, screenshotUrl: string) => {
+    if (!user) return;
+
+    try {
+      const { data: insertedMessage, error } = await supabase
+        .from('mensajes')
+        .insert({
+          chat_id: targetChatId,
+          remitente_id: user.id,
+          contenido: 'Respondió a tu Momento',
+          tipo_mensaje: 'momento',
+          momento_id: momentoId,
+          momento_screenshot_url: screenshotUrl,
+          leido: false,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Conversacion] Error sending momento message:', error);
+        return;
+      }
+
+      setMensajes((prev) => [...prev, insertedMessage]);
+
+      await supabase
+        .from('chats')
+        .update({
+          ultimo_mensaje: 'Respondió a tu Momento',
+          ultimo_mensaje_fecha: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', targetChatId);
+
+      console.log('[Conversacion] ✅ Momento message sent successfully');
+    } catch (error) {
+      console.error('[Conversacion] Error sending momento message:', error);
+    }
+  };
+
   const handleDeleteMessage = async (messageId: string) => {
     if (!user) return;
 
@@ -516,6 +568,29 @@ export default function ConversacionScreen() {
           },
         },
       ]
+    );
+  };
+
+  const renderMessage = ({ item }: { item: Message }) => {
+    if (item.tipo_mensaje === 'momento' && item.momento_id) {
+      return (
+        <View style={[styles.messageContainer, item.remitente_id === user?.id && styles.messageContainerOwn]}>
+          <MomentoMessageBubble
+            momentoId={item.momento_id}
+            screenshotUrl={item.momento_screenshot_url || null}
+            mensaje={item.contenido}
+          />
+        </View>
+      );
+    }
+
+    return (
+      <MessageBubble
+        message={item}
+        isOwn={item.remitente_id === user?.id}
+        otroUsuario={isLocalChat && localInfo ? { ...localInfo, nombre: localInfo.nombre, avatar: localInfo.imagen_url } : otroUsuario}
+        onLongPress={() => handleDeleteMessage(item.id)}
+      />
     );
   };
 
@@ -598,14 +673,7 @@ export default function ConversacionScreen() {
           data={mensajes}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesList}
-          renderItem={({ item }) => (
-            <MessageBubble
-              message={item}
-              isOwn={item.remitente_id === user?.id}
-              otroUsuario={isLocalChat && localInfo ? { ...localInfo, nombre: localInfo.nombre, avatar: localInfo.imagen_url } : otroUsuario}
-              onLongPress={() => handleDeleteMessage(item.id)}
-            />
-          )}
+          renderItem={renderMessage}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <IconSymbol ios_icon_name="bubble.left.and.bubble.right" android_material_icon_name="chat" size={64} color={colors.textSecondary} />
@@ -714,6 +782,13 @@ const styles = StyleSheet.create({
   messagesList: {
     padding: 16,
     paddingBottom: 8,
+  },
+  messageContainer: {
+    marginBottom: 12,
+    alignItems: 'flex-start',
+  },
+  messageContainerOwn: {
+    alignItems: 'flex-end',
   },
   emptyState: {
     alignItems: 'center',

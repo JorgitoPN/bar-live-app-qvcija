@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+import { useRouter } from 'expo-router';
 
 interface MomentoMessageBubbleProps {
   momentoId: string;
@@ -18,11 +19,11 @@ export default function MomentoMessageBubble({
   mensaje,
   onPress,
 }: MomentoMessageBubbleProps) {
+  const router = useRouter();
   const [isExpired, setIsExpired] = useState(!screenshotUrl);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Check if momento still exists
     const checkMomentoStatus = async () => {
       if (!momentoId) return;
 
@@ -39,7 +40,6 @@ export default function MomentoMessageBubble({
           return;
         }
 
-        // Check if expired
         const expiresAt = new Date(data.expires_at);
         const now = new Date();
         
@@ -57,6 +57,48 @@ export default function MomentoMessageBubble({
     checkMomentoStatus();
   }, [momentoId]);
 
+  // ✅ NEW: Real-time subscription to detect when momento expires
+  useEffect(() => {
+    if (!momentoId) return;
+
+    const subscription = supabase
+      .channel(`momento-expiration-${momentoId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'momentos',
+          filter: `id=eq.${momentoId}`,
+        },
+        () => {
+          console.log('[MomentoMessageBubble] 🔄 Momento deleted, marking as expired');
+          setIsExpired(true);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [momentoId]);
+
+  const handlePress = () => {
+    if (isExpired || !screenshotUrl) {
+      return;
+    }
+
+    if (onPress) {
+      onPress();
+    } else {
+      // ✅ FIXED: Open momento viewer when clicking on screenshot
+      router.push({
+        pathname: '/social/post',
+        params: { momentoId },
+      });
+    }
+  };
+
   if (isExpired || !screenshotUrl) {
     return (
       <View style={styles.expiredContainer}>
@@ -68,7 +110,7 @@ export default function MomentoMessageBubble({
             color={colors.textSecondary}
           />
         </View>
-        <Text style={styles.expiredText}>Momento ya no disponible.</Text>
+        <Text style={styles.expiredText}>El momento ya no está disponible.</Text>
         <Text style={styles.expiredSubtext}>
           Este momento ha expirado después de 24 horas
         </Text>
@@ -79,9 +121,8 @@ export default function MomentoMessageBubble({
   return (
     <TouchableOpacity
       style={styles.container}
-      onPress={onPress}
+      onPress={handlePress}
       activeOpacity={0.8}
-      disabled={!onPress}
     >
       <View style={styles.screenshotContainer}>
         <Image
@@ -98,6 +139,15 @@ export default function MomentoMessageBubble({
               color="#fff"
             />
             <Text style={styles.momentoLabelText}>Momento</Text>
+          </View>
+          <View style={styles.tapToViewBadge}>
+            <IconSymbol
+              ios_icon_name="hand.tap.fill"
+              android_material_icon_name="touch_app"
+              size={14}
+              color="#fff"
+            />
+            <Text style={styles.tapToViewText}>Toca para ver</Text>
           </View>
         </View>
       </View>
@@ -128,7 +178,7 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
     padding: 12,
   },
@@ -143,6 +193,22 @@ const styles = StyleSheet.create({
   },
   momentoLabelText: {
     fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+    fontFamily: 'System',
+  },
+  tapToViewBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignSelf: 'center',
+  },
+  tapToViewText: {
+    fontSize: 12,
     fontWeight: '600',
     color: '#fff',
     fontFamily: 'System',

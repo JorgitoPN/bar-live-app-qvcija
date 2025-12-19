@@ -39,16 +39,13 @@ export default function NotificacionItem({
 
   const formatearFecha = (fecha: string) => {
     try {
-      // ✅ FIXED: Proper date parsing and validation
       if (!fecha) {
         console.log('[NotificacionItem] No date provided');
         return 'Recientemente';
       }
       
-      // Parse the date string
       const date = new Date(fecha);
       
-      // Check if date is valid
       if (isNaN(date.getTime())) {
         console.error('[NotificacionItem] Invalid date:', fecha);
         return 'Recientemente';
@@ -57,7 +54,6 @@ export default function NotificacionItem({
       const ahora = new Date();
       const diff = ahora.getTime() - date.getTime();
       
-      // Handle negative differences (future dates)
       if (diff < 0) {
         console.warn('[NotificacionItem] Future date detected:', fecha);
         return 'Ahora';
@@ -85,7 +81,6 @@ export default function NotificacionItem({
 
   const icono = getIcono();
 
-  // ✅ FIXED: Proper username and name display with fallback from usuario_origen
   const displayName = notificacion.usuario_origen?.username
     ? notificacion.usuario_origen.username.replace(/^@/, '')
     : notificacion.usuario_origen?.nombre

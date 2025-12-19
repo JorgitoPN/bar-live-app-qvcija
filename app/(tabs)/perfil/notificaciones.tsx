@@ -32,6 +32,12 @@ interface Notificacion {
   comentario_id?: string;
   leida: boolean;
   created_at: string;
+  usuario_origen?: {
+    id: string;
+    nombre: string;
+    username?: string;
+    avatar?: string;
+  };
 }
 
 interface PendingTag {
@@ -55,18 +61,6 @@ interface PendingTag {
   };
 }
 
-/**
- * ✅ NOTIFICATIONS PAGE v3.0 - WITH DELETE FUNCTIONALITY & FIXED TAG NOTIFICATIONS
- * 
- * Features:
- * - Shows regular notifications
- * - Shows pending tag requests at the top with proper user info
- * - Delete individual notifications
- * - Accept/Reject tag functionality
- * - Real-time updates
- * - Fixed "Invalid date" issue
- */
-
 export default function NotificacionesScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -81,7 +75,6 @@ export default function NotificacionesScreen() {
     try {
       setLoading(true);
 
-      // ✅ FIXED: Load regular notifications with user info
       const { data: notifData, error: notifError } = await supabase
         .from('notificaciones')
         .select(`
@@ -102,7 +95,6 @@ export default function NotificacionesScreen() {
       console.log('[Notificaciones] ✅ Loaded', notifData?.length || 0, 'notifications');
       setNotificaciones(notifData || []);
 
-      // ✅ FIXED: Load pending tag requests with proper user/local info
       const { data: tagsData, error: tagsError } = await supabase
         .from('post_tags')
         .select(`
@@ -124,7 +116,6 @@ export default function NotificacionesScreen() {
       } else {
         console.log('[Notificaciones] 🏷️ Loaded pending tags:', tagsData?.length || 0);
         
-        // ✅ FIXED: Fetch author info for each tag
         if (tagsData && tagsData.length > 0) {
           const enrichedTags = await Promise.all(
             tagsData.map(async (tag) => {
@@ -166,7 +157,6 @@ export default function NotificacionesScreen() {
     }
   }, [user, cargarNotificaciones]);
 
-  // ✅ Real-time subscriptions for tag updates
   useEffect(() => {
     if (!user) return;
 
@@ -215,7 +205,6 @@ export default function NotificacionesScreen() {
     }
   };
 
-  // ✅ NEW: Delete individual notification
   const handleDeleteNotification = async (notificationId: string) => {
     if (!user) return;
 
@@ -237,7 +226,6 @@ export default function NotificacionesScreen() {
 
               if (error) throw error;
 
-              // Update local state
               setNotificaciones(prev => prev.filter(n => n.id !== notificationId));
             } catch (error) {
               console.error('[Notificaciones] Error deleting notification:', error);
@@ -247,6 +235,48 @@ export default function NotificacionesScreen() {
         },
       ]
     );
+  };
+
+  const handleNotificationPress = async (notif: Notificacion) => {
+    try {
+      await supabase
+        .from('notificaciones')
+        .update({ leida: true, leida_at: new Date().toISOString() })
+        .eq('id', notif.id);
+
+      cargarNotificaciones();
+
+      // ✅ FIXED: Proper redirection based on notification type
+      if (notif.post_id) {
+        console.log('[Notificaciones] ✅ Redirecting to post:', notif.post_id);
+        router.push({ pathname: '/social/post', params: { id: notif.post_id } });
+      } else if (notif.comentario_id) {
+        console.log('[Notificaciones] ✅ Redirecting to comment in post');
+        const { data: comentario } = await supabase
+          .from('comentarios')
+          .select('post_id')
+          .eq('id', notif.comentario_id)
+          .single();
+        
+        if (comentario?.post_id) {
+          router.push({ pathname: '/social/post', params: { id: comentario.post_id } });
+        }
+      } else if (notif.local_origen_id) {
+        console.log('[Notificaciones] ✅ Redirecting to local:', notif.local_origen_id);
+        router.push({ pathname: '/perfil/local', params: { localId: notif.local_origen_id } });
+      } else if (notif.usuario_origen_id) {
+        console.log('[Notificaciones] ✅ Redirecting to user profile:', notif.usuario_origen_id);
+        if (notif.usuario_origen_id === user.id) {
+          router.push('/(tabs)/perfil');
+        } else {
+          router.push({ pathname: '/perfil/usuario', params: { userId: notif.usuario_origen_id } });
+        }
+      } else {
+        console.log('[Notificaciones] ⚠️ No specific redirect target, staying on notifications');
+      }
+    } catch (error) {
+      console.error('[Notificaciones] Error handling notification press:', error);
+    }
   };
 
   if (!user) {
@@ -309,7 +339,6 @@ export default function NotificacionesScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          {/* ✅ FIXED: Pending tag requests section with proper user info */}
           {pendingTags.length > 0 && (
             <View style={styles.pendingTagsSection}>
               <View style={styles.sectionHeader}>
@@ -331,7 +360,6 @@ export default function NotificacionesScreen() {
             </View>
           )}
 
-          {/* ✅ UPDATED: Regular notifications with delete functionality */}
           {notificaciones.length > 0 ? (
             <View style={styles.notificacionesSection}>
               {pendingTags.length > 0 && (
@@ -346,39 +374,12 @@ export default function NotificacionesScreen() {
                 </View>
               )}
               {notificaciones.map((notif) => (
-                <View key={notif.id} style={styles.notificationWrapper}>
-                  <NotificacionItem
-                    notificacion={notif}
-                    onPress={() => {
-                      // Mark as read
-                      supabase
-                        .from('notificaciones')
-                        .update({ leida: true, leida_at: new Date().toISOString() })
-                        .eq('id', notif.id)
-                        .then(() => cargarNotificaciones());
-
-                      // Navigate based on type
-                      if (notif.post_id) {
-                        router.push({ pathname: '/social/post', params: { id: notif.post_id } });
-                      } else if (notif.usuario_origen_id) {
-                        router.push({ pathname: '/perfil/usuario', params: { userId: notif.usuario_origen_id } });
-                      }
-                    }}
-                  />
-                  {/* ✅ NEW: Delete button */}
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDeleteNotification(notif.id)}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol
-                      ios_icon_name="trash.fill"
-                      android_material_icon_name="delete"
-                      size={18}
-                      color={colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                </View>
+                <NotificacionItem
+                  key={notif.id}
+                  notificacion={notif}
+                  onPress={() => handleNotificationPress(notif)}
+                  onDelete={() => handleDeleteNotification(notif.id)}
+                />
               ))}
             </View>
           ) : pendingTags.length === 0 ? (
@@ -446,19 +447,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.text,
-  },
-  notificationWrapper: {
-    position: 'relative',
-  },
-  deleteButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    padding: 8,
-    backgroundColor: colors.background,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
   },
   emptyContainer: {
     flex: 1,

@@ -21,20 +21,6 @@ interface LikeUser {
   tipo: 'usuario' | 'local';
 }
 
-/**
- * ✅ POST LIKES AVATARS v4.0 - FIXED USER REDIRECTION
- * 
- * Features:
- * - ✅ Show 3 overlapping mini-avatars
- * - ✅ Remove @ symbol from usernames
- * - ✅ Dynamic text based on like count
- * - ✅ Clickable avatars and text to open likes modal
- * - ✅ Clickable usernames to navigate to profiles
- * - ✅ "más personas" text opens modal with full list
- * - ✅ NO neon borders (removed momento detection)
- * - ✅ FIXED: Redirect to own profile if user clicks on themselves
- */
-
 export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatarsProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -42,10 +28,10 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
   const [showModal, setShowModal] = useState(false);
   const [allLikes, setAllLikes] = useState<LikeUser[]>([]);
   const [loadingModal, setLoadingModal] = useState(false);
+  const [currentTotalLikes, setCurrentTotalLikes] = useState(totalLikes);
 
   const loadLikeUsers = useCallback(async () => {
     try {
-      // Load first 3 users for display
       const { data, error } = await supabase
         .from('likes')
         .select(`
@@ -108,6 +94,49 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     loadLikeUsers();
   }, [loadLikeUsers]);
 
+  // ✅ NEW: Real-time subscription for like updates
+  useEffect(() => {
+    console.log('[PostLikesAvatars] 🔄 Setting up real-time subscription for post:', postId);
+
+    const subscription = supabase
+      .channel(`post-likes-avatars-${postId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'likes',
+          filter: `post_id=eq.${postId}`,
+        },
+        async (payload) => {
+          console.log('[PostLikesAvatars] 🔄 Real-time like update detected:', payload);
+          
+          // Reload like users and count
+          await loadLikeUsers();
+          
+          // Update total likes count
+          const { count } = await supabase
+            .from('likes')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', postId);
+          
+          setCurrentTotalLikes(count || 0);
+          console.log('[PostLikesAvatars] ✅ Updated likes count:', count);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[PostLikesAvatars] 🔄 Cleaning up subscription');
+      supabase.removeChannel(subscription);
+    };
+  }, [postId, loadLikeUsers]);
+
+  // ✅ NEW: Update total likes when prop changes
+  useEffect(() => {
+    setCurrentTotalLikes(totalLikes);
+  }, [totalLikes]);
+
   const handleOpenModal = () => {
     loadAllLikes();
     setShowModal(true);
@@ -116,9 +145,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
   const handleUserPress = (userId: string, tipo: 'usuario' | 'local') => {
     setShowModal(false);
     
-    // ✅ FIXED: Check if it's the current user
     if (tipo === 'usuario' && user && userId === user.id) {
-      // Navigate to own profile
       router.push('/(tabs)/perfil');
     } else if (tipo === 'local') {
       router.push({
@@ -133,13 +160,12 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     }
   };
 
-  if (totalLikes === 0) {
+  if (currentTotalLikes === 0) {
     return null;
   }
 
-  // ✅ Format likes text Instagram-style WITHOUT @ symbol
   const getLikesText = () => {
-    if (totalLikes === 1 && likeUsers.length > 0) {
+    if (currentTotalLikes === 1 && likeUsers.length > 0) {
       const username = likeUsers[0].username || likeUsers[0].nombre;
       return (
         <Text style={styles.likesText}>
@@ -153,7 +179,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
         </Text>
       );
     }
-    if (totalLikes === 2 && likeUsers.length >= 2) {
+    if (currentTotalLikes === 2 && likeUsers.length >= 2) {
       const user1 = likeUsers[0].username || likeUsers[0].nombre;
       const user2 = likeUsers[1].username || likeUsers[1].nombre;
       return (
@@ -175,9 +201,9 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
         </Text>
       );
     }
-    if (totalLikes >= 3 && likeUsers.length >= 1) {
+    if (currentTotalLikes >= 3 && likeUsers.length >= 1) {
       const firstUser = likeUsers[0].username || likeUsers[0].nombre;
-      const others = totalLikes - 1;
+      const others = currentTotalLikes - 1;
       return (
         <Text style={styles.likesText}>
           Les gusta a{' '}
@@ -194,7 +220,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
         </Text>
       );
     }
-    return <Text style={styles.likesText}>{totalLikes} me gusta</Text>;
+    return <Text style={styles.likesText}>{currentTotalLikes} me gusta</Text>;
   };
 
   const renderLikeUser = ({ item }: { item: LikeUser }) => (
@@ -252,7 +278,6 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
         {getLikesText()}
       </TouchableOpacity>
 
-      {/* ✅ Likes Modal */}
       <Modal
         visible={showModal}
         transparent={false}
