@@ -29,28 +29,75 @@ export default function ValidarTokenPasswordScreen() {
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
-    if (inputRefs.current[0]) {
-      inputRefs.current[0].focus();
-    }
+    // Focus on first input when component mounts
+    setTimeout(() => {
+      if (inputRefs.current[0]) {
+        inputRefs.current[0].focus();
+      }
+    }, 100);
   }, []);
 
   const handleTokenChange = (value: string, index: number) => {
+    // Only allow digits
     if (value && !/^\d$/.test(value)) {
       return;
     }
 
     const newToken = [...token];
+    
+    // If user is pasting multiple digits
+    if (value.length > 1) {
+      const digits = value.replace(/\D/g, '').split('').slice(0, 6);
+      digits.forEach((digit, i) => {
+        if (index + i < 6) {
+          newToken[index + i] = digit;
+        }
+      });
+      setToken(newToken);
+      
+      // Focus on the next empty field or the last field
+      const nextEmptyIndex = newToken.findIndex((digit, i) => i > index && !digit);
+      if (nextEmptyIndex !== -1) {
+        inputRefs.current[nextEmptyIndex]?.focus();
+      } else if (index + digits.length < 6) {
+        inputRefs.current[index + digits.length]?.focus();
+      }
+      return;
+    }
+
+    // Single digit input
     newToken[index] = value;
     setToken(newToken);
 
+    // Move to next field if value was entered
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !token[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
+    if (e.nativeEvent.key === 'Backspace') {
+      if (!token[index] && index > 0) {
+        // If current field is empty and backspace is pressed, move to previous field
+        const newToken = [...token];
+        newToken[index - 1] = '';
+        setToken(newToken);
+        inputRefs.current[index - 1]?.focus();
+      } else if (token[index]) {
+        // If current field has value, just clear it
+        const newToken = [...token];
+        newToken[index] = '';
+        setToken(newToken);
+      }
+    }
+  };
+
+  const handleFocus = (index: number) => {
+    // When a field is focused, select its content for easy replacement
+    if (token[index]) {
+      inputRefs.current[index]?.setNativeProps({
+        selection: { start: 0, end: 1 }
+      });
     }
   };
 
@@ -202,10 +249,13 @@ export default function ValidarTokenPasswordScreen() {
                 value={digit}
                 onChangeText={(value) => handleTokenChange(value, index)}
                 onKeyPress={(e) => handleKeyPress(e, index)}
+                onFocus={() => handleFocus(index)}
                 keyboardType="number-pad"
                 maxLength={1}
                 selectTextOnFocus
                 editable={!loading}
+                returnKeyType={index === 5 ? 'done' : 'next'}
+                blurOnSubmit={index === 5}
               />
             ))}
           </View>
