@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Alert,
   Image,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -35,6 +36,29 @@ interface Local {
   imagen_url?: string;
 }
 
+interface Assignment {
+  id: string;
+  local_id: string;
+  propietario_id: string;
+  rol: string;
+  activo: boolean;
+  fecha_asignacion: string;
+  locales: {
+    id: string;
+    nombre: string;
+    direccion: string;
+    tipo: string;
+    imagen_url?: string;
+  };
+  propietario: {
+    id: string;
+    nombre: string;
+    email: string;
+    username?: string;
+    avatar?: string;
+  };
+}
+
 export default function AsignarLocalUsuarioScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -49,6 +73,65 @@ export default function AsignarLocalUsuarioScreen() {
   const [selectedLocal, setSelectedLocal] = useState<Local | null>(null);
   const [selectedRole, setSelectedRole] = useState<'propietario' | 'administrador' | 'editor'>('propietario');
   const [assigning, setAssigning] = useState(false);
+
+  // ✅ NEW: Current assignments state
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // ✅ NEW: Load current assignments
+  const loadAssignments = useCallback(async () => {
+    try {
+      console.log('[AsignarLocal] Loading current assignments...');
+      
+      const { data, error } = await supabase
+        .from('propietarios_locales')
+        .select(`
+          id,
+          local_id,
+          propietario_id,
+          rol,
+          activo,
+          fecha_asignacion,
+          locales!propietarios_locales_local_id_fkey(
+            id,
+            nombre,
+            direccion,
+            tipo,
+            imagen_url
+          ),
+          propietario:usuarios!propietarios_locales_propietario_id_fkey(
+            id,
+            nombre,
+            email,
+            username,
+            avatar
+          )
+        `)
+        .eq('activo', true)
+        .order('fecha_asignacion', { ascending: false });
+
+      if (error) throw error;
+
+      console.log('[AsignarLocal] ✅ Loaded assignments:', data?.length || 0);
+      setAssignments(data || []);
+    } catch (error) {
+      console.error('[AsignarLocal] Error loading assignments:', error);
+      Alert.alert('Error', 'No se pudieron cargar las asignaciones');
+    } finally {
+      setLoadingAssignments(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAssignments();
+  }, [loadAssignments]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadAssignments();
+  }, [loadAssignments]);
 
   // Search users with debounce
   const searchUsers = useCallback(async (query: string) => {
@@ -238,6 +321,8 @@ export default function AsignarLocalUsuarioScreen() {
                       setSelectedUser(null);
                       setSelectedLocal(null);
                       setSelectedRole('propietario');
+                      // Reload assignments
+                      loadAssignments();
                     },
                   },
                 ]
@@ -254,6 +339,37 @@ export default function AsignarLocalUsuarioScreen() {
     );
   };
 
+  // ✅ NEW: Remove assignment
+  const handleRemoveAssignment = useCallback(async (assignmentId: string, localName: string, userName: string) => {
+    Alert.alert(
+      'Quitar Asignación',
+      `¿Estás seguro de que quieres quitar la asignación del local "${localName}" a ${userName}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Quitar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('propietarios_locales')
+                .update({ activo: false })
+                .eq('id', assignmentId);
+
+              if (error) throw error;
+
+              Alert.alert('✅ Asignación Eliminada', 'El local ahora está libre');
+              loadAssignments();
+            } catch (error) {
+              console.error('[AsignarLocal] Error removing assignment:', error);
+              Alert.alert('Error', 'No se pudo quitar la asignación');
+            }
+          },
+        },
+      ]
+    );
+  }, [loadAssignments]);
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -267,7 +383,107 @@ export default function AsignarLocalUsuarioScreen() {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* ✅ NEW: Current Assignments Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <IconSymbol ios_icon_name="list.bullet.rectangle" android_material_icon_name="list" size={24} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Locales Asignados</Text>
+          </View>
+
+          {loadingAssignments ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.loadingText}>Cargando asignaciones...</Text>
+            </View>
+          ) : assignments.length === 0 ? (
+            <View style={styles.emptyAssignments}>
+              <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={32} color={colors.textSecondary} />
+              <Text style={styles.emptyAssignmentsText}>No hay locales asignados</Text>
+            </View>
+          ) : (
+            <View style={styles.assignmentsList}>
+              {assignments.map((assignment) => (
+                <View key={assignment.id} style={styles.assignmentCard}>
+                  <View style={styles.assignmentHeader}>
+                    {assignment.locales.imagen_url ? (
+                      <Image 
+                        source={{ uri: assignment.locales.imagen_url }} 
+                        style={styles.assignmentLocalImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={[styles.assignmentLocalImage, styles.assignmentLocalImagePlaceholder]}>
+                        <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color={colors.white} />
+                      </View>
+                    )}
+                    <View style={styles.assignmentInfo}>
+                      <Text style={styles.assignmentLocalName} numberOfLines={1}>
+                        {assignment.locales.nombre}
+                      </Text>
+                      <Text style={styles.assignmentLocalAddress} numberOfLines={1}>
+                        {assignment.locales.direccion}
+                      </Text>
+                      <View style={styles.assignmentMeta}>
+                        <View style={styles.assignmentTypeBadge}>
+                          <Text style={styles.assignmentTypeText}>{assignment.locales.tipo}</Text>
+                        </View>
+                        <View style={styles.assignmentRoleBadge}>
+                          <Text style={styles.assignmentRoleText}>{assignment.rol}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.assignmentUserSection}>
+                    <View style={styles.assignmentUserHeader}>
+                      <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={14} color={colors.textSecondary} />
+                      <Text style={styles.assignmentUserLabel}>Asignado a:</Text>
+                    </View>
+                    <View style={styles.assignmentUserInfo}>
+                      {assignment.propietario.avatar ? (
+                        <Image 
+                          source={{ uri: assignment.propietario.avatar }} 
+                          style={styles.assignmentUserAvatar}
+                        />
+                      ) : (
+                        <View style={[styles.assignmentUserAvatar, styles.assignmentUserAvatarPlaceholder]}>
+                          <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={16} color={colors.white} />
+                        </View>
+                      )}
+                      <View style={styles.assignmentUserDetails}>
+                        <Text style={styles.assignmentUserName}>{assignment.propietario.nombre}</Text>
+                        <Text style={styles.assignmentUserEmail}>{assignment.propietario.email}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.removeAssignmentButton}
+                    onPress={() => handleRemoveAssignment(
+                      assignment.id,
+                      assignment.locales.nombre,
+                      assignment.propietario.nombre
+                    )}
+                  >
+                    <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={16} color="#EF4444" />
+                    <Text style={styles.removeAssignmentButtonText}>Quitar Asignación</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Divider */}
+        <View style={styles.divider} />
+
         {/* Step 1: Search and Select User */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -614,6 +830,163 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
+  },
+  // ✅ NEW: Current assignments styles
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 20,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  emptyAssignments: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 12,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  emptyAssignmentsText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  assignmentsList: {
+    gap: 12,
+  },
+  assignmentCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    ...commonStyles.shadow,
+  },
+  assignmentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  assignmentLocalImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+  },
+  assignmentLocalImagePlaceholder: {
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  assignmentInfo: {
+    flex: 1,
+  },
+  assignmentLocalName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  assignmentLocalAddress: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 6,
+  },
+  assignmentMeta: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  assignmentTypeBadge: {
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  assignmentTypeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  assignmentRoleBadge: {
+    backgroundColor: '#10B981' + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  assignmentRoleText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  assignmentUserSection: {
+    marginBottom: 12,
+  },
+  assignmentUserHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  assignmentUserLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  assignmentUserInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  assignmentUserAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  assignmentUserAvatarPlaceholder: {
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  assignmentUserDetails: {
+    flex: 1,
+  },
+  assignmentUserName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  assignmentUserEmail: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  removeAssignmentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FEE2E2',
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  removeAssignmentButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.cardBorder,
+    marginVertical: 24,
   },
   searchContainer: {
     flexDirection: 'row',

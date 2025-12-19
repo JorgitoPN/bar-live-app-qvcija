@@ -633,7 +633,7 @@ export default function UsuarioPerfilScreen() {
             <Text style={styles.profileBio}>{usuario.bio}</Text>
           )}
 
-          {/* ✅ CURRENT LOCATION SECTION - "Estado actual" */}
+          {/* ✅ IMPROVED: CURRENT LOCATION SECTION with solid background and better contrast */}
           {currentLocal && canViewLocation && (
             <View style={styles.currentLocalSection}>
               <View style={styles.currentLocalHeader}>
@@ -655,7 +655,7 @@ export default function UsuarioPerfilScreen() {
                     />
                   ) : (
                     <View style={[styles.currentLocalImage, styles.currentLocalImagePlaceholder]}>
-                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="rgba(255, 255, 255, 0.6)" />
+                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="#FFFFFF" />
                     </View>
                   )}
                   <LinearGradient
@@ -663,7 +663,7 @@ export default function UsuarioPerfilScreen() {
                     style={styles.currentLocalImageGradient}
                   />
                   <View style={styles.currentLocalBadge}>
-                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={12} color="#10B981" />
+                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={12} color="#FFFFFF" />
                     <Text style={styles.currentLocalBadgeText}>Ahora en...</Text>
                   </View>
                 </View>
@@ -688,10 +688,10 @@ export default function UsuarioPerfilScreen() {
                 </View>
               </TouchableOpacity>
               
-              {/* 🔘 "Salir del local" button - ONLY for own profile */}
+              {/* 🔘 IMPROVED: "Salir del local" button with solid background */}
               {isOwnProfile && (
                 <TouchableOpacity style={styles.exitLocalButton} onPress={handleExitLocal}>
-                  <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={16} color="#EF4444" />
+                  <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={16} color="#FFFFFF" />
                   <Text style={styles.exitLocalButtonText}>Salir del local</Text>
                 </TouchableOpacity>
               )}
@@ -845,7 +845,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 16,
   },
-  // ✅ CURRENT LOCATION SECTION STYLES - VISUAL CARD WITH IMPROVED CONTRAST
+  // ✅ IMPROVED: CURRENT LOCATION SECTION with solid white background for better contrast
   currentLocalSection: {
     marginBottom: 20,
   },
@@ -862,17 +862,17 @@ const styles = StyleSheet.create({
   },
   currentLocalCard: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)', // Changed to white with high opacity for better contrast
+    backgroundColor: '#FFFFFF', // ✅ Solid white background
     borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 2, // Increased border width
-    borderColor: '#10B981', // Solid green border for better visibility
+    borderWidth: 2,
+    borderColor: '#10B981', // ✅ Solid green border
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
   currentLocalImageContainer: {
     width: 80,
@@ -884,7 +884,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   currentLocalImagePlaceholder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -902,7 +902,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#10B981', // Changed to solid green background
+    backgroundColor: '#10B981', // ✅ Solid green background
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 8,
@@ -910,7 +910,7 @@ const styles = StyleSheet.create({
   currentLocalBadgeText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#FFFFFF', // White text on green background
+    color: '#FFFFFF',
   },
   currentLocalContent: {
     flex: 1,
@@ -919,13 +919,13 @@ const styles = StyleSheet.create({
   },
   currentLocalLabel: {
     fontSize: 11,
-    color: '#6B7280', // Changed to gray for better readability on white background
+    color: '#6B7280', // ✅ Gray for better readability on white
     marginBottom: 3,
   },
   currentLocalName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1F2937', // Dark gray/black for maximum contrast
+    color: '#1F2937', // ✅ Dark gray/black for maximum contrast
     marginBottom: 5,
   },
   currentLocalMeta: {
@@ -935,29 +935,33 @@ const styles = StyleSheet.create({
   },
   currentLocalAddress: {
     fontSize: 11,
-    color: '#6B7280', // Changed to gray for better readability
+    color: '#6B7280', // ✅ Gray for better readability
     flex: 1,
   },
   currentLocalArrow: {
     justifyContent: 'center',
     paddingRight: 10,
   },
+  // ✅ IMPROVED: "Salir del local" button with solid red background
   exitLocalButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    paddingVertical: 10,
+    backgroundColor: '#EF4444', // ✅ Solid red background
+    paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   exitLocalButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#EF4444',
+    color: '#FFFFFF', // ✅ White text on red background
   },
   statsContainer: {
     flexDirection: 'row',

@@ -200,7 +200,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     Linking.openURL(url);
   };
 
-  // ✅ FIXED: Use FavoritesContext for synchronized favorite management
   const handleToggleFavorite = async (e: any) => {
     e.stopPropagation();
     await toggleFavorite(local.id);
@@ -259,6 +258,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     return '#FFFFFF';
   };
 
+  // ✅ IMPROVED: Dim image for closed locals
   const shouldDimImage = () => {
     return estado.estaAbierto === false || estado.estaAbierto === null;
   };
@@ -317,13 +317,15 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
+        {/* ✅ IMPROVED: Dimmed overlay for closed locals */}
         {shouldDimImage() && (
           <View style={styles.dimmedOverlay} />
         )}
 
+        {/* ✅ IMPROVED: Lock icon for closed locals */}
         {overlayIcon && (
           <View style={styles.overlayIconContainer}>
-            <IconSymbol ios_icon_name={overlayIcon} android_material_icon_name={overlayIcon} size={64} color={getOverlayIconColor()} />
+            <IconSymbol ios_icon_name={overlayIcon} android_material_icon_name="lock" size={64} color={getOverlayIconColor()} />
           </View>
         )}
 
@@ -359,7 +361,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
-        {/* ✅ FIXED: Favorite button with synchronized state from FavoritesContext */}
         <TouchableOpacity
           style={styles.favoritoButton}
           onPress={handleToggleFavorite}
@@ -501,15 +502,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // ✅ IMPROVED: Dimmed overlay for closed locals (more visible)
   dimmedOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)', // ✅ Increased opacity for better visibility
     zIndex: 1,
   },
+  // ✅ IMPROVED: Lock icon container for closed locals
   overlayIconContainer: {
     position: 'absolute',
     top: '50%',
@@ -517,6 +520,10 @@ const styles = StyleSheet.create({
     marginLeft: -32,
     marginTop: -32,
     zIndex: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
   },
   imageOverlay: {
     position: 'absolute',

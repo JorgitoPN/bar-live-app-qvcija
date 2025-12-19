@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Alert,
   Platform,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,15 +32,17 @@ interface Solicitud {
     nombre: string;
     email: string;
     avatar?: string;
+    username?: string;
   };
 }
 
 export default function AdminSolicitudesPropietarioScreen() {
   const router = useRouter();
-  const [filtro, setFiltro] = useState<'todas' | 'pendiente' | 'aprobada' | 'rechazada'>('todas');
+  const [filtro, setFiltro] = useState<'todas' | 'pendiente' | 'aprobada' | 'rechazada'>('pendiente');
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadSolicitudes = useCallback(async () => {
     try {
@@ -52,13 +55,18 @@ export default function AdminSolicitudesPropietarioScreen() {
           usuario:usuarios!solicitudes_propietario_usuario_id_fkey (
             nombre,
             email,
-            avatar
+            avatar,
+            username
           )
         `)
         .order('created_at', { ascending: false });
 
       if (filtro !== 'todas') {
         query = query.eq('estado', filtro);
+      }
+
+      if (searchQuery.trim()) {
+        query = query.or(`nombre_local.ilike.%${searchQuery}%,direccion_local.ilike.%${searchQuery}%`);
       }
 
       const { data, error } = await query;
@@ -77,7 +85,7 @@ export default function AdminSolicitudesPropietarioScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filtro]);
+  }, [filtro, searchQuery]);
 
   useEffect(() => {
     loadSolicitudes();
@@ -148,6 +156,32 @@ export default function AdminSolicitudesPropietarioScreen() {
     }
   };
 
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case 'pendiente':
+        return '#F59E0B';
+      case 'aprobada':
+        return '#10B981';
+      case 'rechazada':
+        return '#EF4444';
+      default:
+        return colors.textSecondary;
+    }
+  };
+
+  const getEstadoIcon = (estado: string) => {
+    switch (estado) {
+      case 'pendiente':
+        return 'clock.fill';
+      case 'aprobada':
+        return 'checkmark.circle.fill';
+      case 'rechazada':
+        return 'xmark.circle.fill';
+      default:
+        return 'questionmark.circle.fill';
+    }
+  };
+
   const solicitudesFiltradas = filtro === 'todas' 
     ? solicitudes 
     : solicitudes.filter((s) => s.estado === filtro);
@@ -161,24 +195,63 @@ export default function AdminSolicitudesPropietarioScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Solicitudes de Propietario</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Solicitudes de Propietario</Text>
+          <Text style={styles.headerSubtitle}>Gestiona las solicitudes de acceso</Text>
+        </View>
         <View style={{ width: 40 }} />
       </LinearGradient>
 
+      {/* ✅ IMPROVED: Search bar */}
+      <View style={styles.searchSection}>
+        <View style={styles.searchContainer}>
+          <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar por nombre de local..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery !== '' && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* ✅ IMPROVED: Filter tabs with better design */}
       <View style={styles.filters}>
-        {['todas', 'pendiente', 'aprobada', 'rechazada'].map((f) => (
+        {[
+          { key: 'pendiente', label: 'Pendientes', icon: 'clock.fill', color: '#F59E0B' },
+          { key: 'aprobada', label: 'Aprobadas', icon: 'checkmark.circle.fill', color: '#10B981' },
+          { key: 'rechazada', label: 'Rechazadas', icon: 'xmark.circle.fill', color: '#EF4444' },
+          { key: 'todas', label: 'Todas', icon: 'list.bullet', color: colors.primary },
+        ].map((f) => (
           <TouchableOpacity
-            key={f}
-            style={[styles.filterButton, filtro === f && styles.filterButtonActive]}
-            onPress={() => setFiltro(f as any)}
+            key={f.key}
+            style={[
+              styles.filterButton, 
+              filtro === f.key && styles.filterButtonActive,
+              filtro === f.key && { borderColor: f.color }
+            ]}
+            onPress={() => setFiltro(f.key as any)}
           >
+            <IconSymbol 
+              ios_icon_name={f.icon as any} 
+              android_material_icon_name={f.icon.replace('.', '_')} 
+              size={18} 
+              color={filtro === f.key ? f.color : colors.textSecondary} 
+            />
             <Text
               style={[
                 styles.filterButtonText,
-                filtro === f && styles.filterButtonTextActive,
+                filtro === f.key && styles.filterButtonTextActive,
+                filtro === f.key && { color: f.color }
               ]}
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -203,37 +276,68 @@ export default function AdminSolicitudesPropietarioScreen() {
                 key={solicitud.id}
                 style={styles.solicitudCard}
               >
+                {/* ✅ IMPROVED: Card header with user info */}
                 <View style={styles.solicitudHeader}>
-                  {solicitud.usuario?.avatar ? (
-                    <Image source={{ uri: solicitud.usuario.avatar }} style={styles.avatar} />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                      <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.textSecondary} />
-                    </View>
-                  )}
-                  <View style={styles.solicitudInfo}>
-                    <Text style={styles.nombre}>{solicitud.usuario?.nombre || 'Usuario'}</Text>
-                    <Text style={styles.email}>{solicitud.usuario?.email || 'Sin email'}</Text>
-                    <Text style={styles.local}>{solicitud.nombre_local}</Text>
-                    {solicitud.direccion_local && (
-                      <Text style={styles.direccion}>{solicitud.direccion_local}</Text>
+                  <View style={styles.userSection}>
+                    {solicitud.usuario?.avatar ? (
+                      <Image source={{ uri: solicitud.usuario.avatar }} style={styles.avatar} />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={28} color={colors.white} />
+                      </View>
                     )}
-                    <Text style={styles.fecha}>
-                      {new Date(solicitud.created_at).toLocaleDateString('es-ES')}
-                    </Text>
+                    <View style={styles.userInfo}>
+                      <Text style={styles.nombre}>{solicitud.usuario?.nombre || 'Usuario'}</Text>
+                      {solicitud.usuario?.username && (
+                        <Text style={styles.username}>@{solicitud.usuario.username}</Text>
+                      )}
+                      <Text style={styles.email}>{solicitud.usuario?.email || 'Sin email'}</Text>
+                    </View>
                   </View>
+                  
                   <View
                     style={[
                       styles.estadoBadge,
-                      solicitud.estado === 'pendiente' && styles.estadoPendiente,
-                      solicitud.estado === 'aprobada' && styles.estadoAprobada,
-                      solicitud.estado === 'rechazada' && styles.estadoRechazada,
+                      { backgroundColor: getEstadoColor(solicitud.estado) + '20' }
                     ]}
                   >
-                    <Text style={styles.estadoText}>
+                    <IconSymbol 
+                      ios_icon_name={getEstadoIcon(solicitud.estado) as any} 
+                      android_material_icon_name="info" 
+                      size={14} 
+                      color={getEstadoColor(solicitud.estado)} 
+                    />
+                    <Text style={[styles.estadoText, { color: getEstadoColor(solicitud.estado) }]}>
                       {solicitud.estado.charAt(0).toUpperCase() + solicitud.estado.slice(1)}
                     </Text>
                   </View>
+                </View>
+
+                {/* ✅ IMPROVED: Local information section */}
+                <View style={styles.localSection}>
+                  <View style={styles.localSectionHeader}>
+                    <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={18} color={colors.primary} />
+                    <Text style={styles.localSectionTitle}>Información del Local</Text>
+                  </View>
+                  
+                  <View style={styles.localInfoRow}>
+                    <Text style={styles.localInfoLabel}>Nombre:</Text>
+                    <Text style={styles.localInfoValue}>{solicitud.nombre_local}</Text>
+                  </View>
+                  
+                  {solicitud.direccion_local && (
+                    <View style={styles.localInfoRow}>
+                      <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
+                      <Text style={styles.localInfoValue}>{solicitud.direccion_local}</Text>
+                    </View>
+                  )}
+                  
+                  {solicitud.telefono_local && (
+                    <View style={styles.localInfoRow}>
+                      <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={14} color={colors.textSecondary} />
+                      <Text style={styles.localInfoValue}>{solicitud.telefono_local}</Text>
+                    </View>
+                  )}
                 </View>
 
                 {solicitud.descripcion && (
@@ -243,6 +347,23 @@ export default function AdminSolicitudesPropietarioScreen() {
                   </View>
                 )}
 
+                {/* ✅ IMPROVED: Metadata section */}
+                <View style={styles.metadataSection}>
+                  <View style={styles.metadataItem}>
+                    <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={14} color={colors.textSecondary} />
+                    <Text style={styles.metadataText}>
+                      {new Date(solicitud.created_at).toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* ✅ IMPROVED: Action buttons with better design */}
                 {solicitud.estado === 'pendiente' && (
                   <View style={styles.actionsContainer}>
                     <TouchableOpacity
@@ -265,11 +386,21 @@ export default function AdminSolicitudesPropietarioScreen() {
             ))
           ) : (
             <View style={styles.emptyContainer}>
-              <IconSymbol ios_icon_name="doc.text" android_material_icon_name="description" size={64} color={colors.textSecondary} />
+              <IconSymbol 
+                ios_icon_name={filtro === 'pendiente' ? 'clock' : 'doc.text'} 
+                android_material_icon_name="description" 
+                size={64} 
+                color={colors.textSecondary} 
+              />
               <Text style={styles.emptyText}>
                 {filtro === 'todas' 
                   ? 'No hay solicitudes' 
                   : `No hay solicitudes ${filtro}s`}
+              </Text>
+              <Text style={styles.emptySubtext}>
+                {filtro === 'pendiente' 
+                  ? 'Las nuevas solicitudes aparecerán aquí' 
+                  : 'Cambia el filtro para ver otras solicitudes'}
               </Text>
             </View>
           )}
@@ -286,7 +417,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 16,
+    paddingBottom: 20,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -295,41 +426,78 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
+  headerContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
   },
+  headerSubtitle: {
+    fontSize: 14,
+    color: colors.headerText,
+    opacity: 0.9,
+    marginTop: 2,
+  },
+  // ✅ IMPROVED: Search section
+  searchSection: {
+    backgroundColor: colors.cardBackground,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.text,
+  },
+  // ✅ IMPROVED: Filter tabs with icons
   filters: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 12,
     gap: 8,
-    flexWrap: 'wrap',
     backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
   filterButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 12,
     backgroundColor: colors.background,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.cardBorder,
+    gap: 6,
   },
   filterButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 2,
   },
   filterButtonText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.textSecondary,
   },
   filterButtonTextActive: {
-    color: colors.headerText,
+    fontWeight: '700',
   },
   content: {
     flex: 1,
@@ -349,9 +517,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 16,
   },
+  // ✅ IMPROVED: Solicitud card with better structure
   solicitudCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
@@ -361,100 +530,145 @@ const styles = StyleSheet.create({
   solicitudHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  userSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 12,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
   avatarPlaceholder: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  solicitudInfo: {
+  userInfo: {
     flex: 1,
   },
   nombre: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 2,
   },
-  email: {
+  username: {
     fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  local: {
-    fontSize: 15,
+    color: colors.primary,
     fontWeight: '600',
-    color: colors.text,
     marginBottom: 2,
   },
-  direccion: {
+  email: {
     fontSize: 13,
     color: colors.textSecondary,
-    marginBottom: 2,
-  },
-  fecha: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
   },
   estadoBadge: {
-    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 12,
-    marginLeft: 8,
-  },
-  estadoPendiente: {
-    backgroundColor: colors.badgeDestacado,
-  },
-  estadoAprobada: {
-    backgroundColor: '#10B981',
-  },
-  estadoRechazada: {
-    backgroundColor: colors.badgeNuevo,
   },
   estadoText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: colors.headerText,
+    fontWeight: '700',
   },
-  descripcionContainer: {
-    marginBottom: 12,
-    padding: 12,
+  // ✅ IMPROVED: Local information section
+  localSection: {
     backgroundColor: colors.background,
-    borderRadius: 8,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
   },
-  descripcionLabel: {
+  localSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  localSectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  localInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  localInfoLabel: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
-    marginBottom: 4,
+    minWidth: 70,
+  },
+  localInfoValue: {
+    fontSize: 14,
+    color: colors.text,
+    flex: 1,
+  },
+  descripcionContainer: {
+    marginBottom: 12,
+    padding: 14,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+  },
+  descripcionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: 8,
   },
   descripcionText: {
     fontSize: 14,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 22,
   },
+  metadataSection: {
+    marginBottom: 12,
+  },
+  metadataItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metadataText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  // ✅ IMPROVED: Action buttons
   actionsContainer: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 4,
   },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   aprobarButton: {
     backgroundColor: '#10B981',
@@ -463,8 +677,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444',
   },
   actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#fff',
   },
   emptyContainer: {
@@ -474,9 +688,17 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   emptyText: {
-    fontSize: 16,
-    color: colors.textSecondary,
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
     textAlign: 'center',
     marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
   },
 });

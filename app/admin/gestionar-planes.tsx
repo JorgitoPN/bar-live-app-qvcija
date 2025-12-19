@@ -61,6 +61,12 @@ interface Local {
   imagen_url: string | null;
   provincia: string;
   tipo: string;
+  propietario_id?: string;
+  propietario?: {
+    nombre: string;
+    email: string;
+    username?: string;
+  };
 }
 
 export default function GestionarPlanesScreen() {
@@ -185,9 +191,22 @@ export default function GestionarPlanesScreen() {
 
     setSearching(true);
     try {
+      // ✅ IMPROVED: Include owner information in search results
       const { data, error } = await supabase
         .from('locales')
-        .select('id, nombre, imagen_url, provincia, tipo')
+        .select(`
+          id, 
+          nombre, 
+          imagen_url, 
+          provincia, 
+          tipo,
+          propietario_id,
+          propietario:usuarios!propietario_id(
+            nombre,
+            email,
+            username
+          )
+        `)
         .ilike('nombre', `%${query}%`)
         .eq('activo', true)
         .limit(20);
@@ -1092,12 +1111,35 @@ export default function GestionarPlanesScreen() {
                             setSearchResults([]);
                           }}
                         >
-                          <View style={styles.searchResultIcon}>
-                            <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color={colors.primary} />
-                          </View>
+                          {/* ✅ IMPROVED: Show local cover photo */}
+                          {local.imagen_url ? (
+                            <Image 
+                              source={{ uri: local.imagen_url }} 
+                              style={styles.searchResultImage}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View style={[styles.searchResultImage, styles.searchResultImagePlaceholder]}>
+                              <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color={colors.white} />
+                            </View>
+                          )}
                           <View style={styles.searchResultInfo}>
                             <Text style={styles.searchResultName}>{local.nombre}</Text>
                             <Text style={styles.searchResultDetails}>{local.tipo} • {local.provincia}</Text>
+                            {/* ✅ NEW: Show owner information */}
+                            {local.propietario ? (
+                              <View style={styles.searchResultOwner}>
+                                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={12} color={colors.primary} />
+                                <Text style={styles.searchResultOwnerText}>
+                                  {local.propietario.username ? `@${local.propietario.username}` : local.propietario.nombre}
+                                </Text>
+                              </View>
+                            ) : (
+                              <View style={styles.searchResultOwner}>
+                                <IconSymbol ios_icon_name="person.crop.circle.badge.xmark" android_material_icon_name="person_off" size={12} color={colors.textSecondary} />
+                                <Text style={styles.searchResultOwnerTextUnassigned}>Sin asignar</Text>
+                              </View>
+                            )}
                           </View>
                           <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
                         </TouchableOpacity>
@@ -2210,6 +2252,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
+  // ✅ IMPROVED: Show cover photo instead of icon
+  searchResultImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+  },
+  searchResultImagePlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   searchResultIcon: {
     width: 40,
     height: 40,
@@ -2229,6 +2282,23 @@ const styles = StyleSheet.create({
   },
   searchResultDetails: {
     fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  // ✅ NEW: Owner information in search results
+  searchResultOwner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  searchResultOwnerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  searchResultOwnerTextUnassigned: {
+    fontSize: 12,
+    fontWeight: '600',
     color: colors.textSecondary,
   },
   noResultsContainer: {
