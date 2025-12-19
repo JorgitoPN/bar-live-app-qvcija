@@ -387,6 +387,12 @@ export interface Notificacion {
   fecha: string;
   leida: boolean;
   postId?: string;
+  usuario_origen?: {
+    id: string;
+    nombre: string;
+    username?: string;
+    avatar?: string;
+  };
 }
 
 export interface Filtros {

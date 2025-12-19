@@ -81,16 +81,25 @@ export default function NotificacionesScreen() {
     try {
       setLoading(true);
 
-      // Load regular notifications
+      // ✅ FIXED: Load regular notifications with user info
       const { data: notifData, error: notifError } = await supabase
         .from('notificaciones')
-        .select('*')
+        .select(`
+          *,
+          usuario_origen:usuarios!notificaciones_usuario_origen_id_fkey(
+            id,
+            nombre,
+            username,
+            avatar
+          )
+        `)
         .eq('usuario_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (notifError) throw notifError;
 
+      console.log('[Notificaciones] ✅ Loaded', notifData?.length || 0, 'notifications');
       setNotificaciones(notifData || []);
 
       // ✅ FIXED: Load pending tag requests with proper user/local info

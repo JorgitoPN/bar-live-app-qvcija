@@ -184,24 +184,40 @@ export default function ChatsScreen() {
       return;
     }
 
-    console.log('[Chats v29.0] 🔥 Opening chat:', { chatId, isLocalChat, localId });
+    console.log('[Chats v30.0] 🔥 Opening chat:', { chatId, isLocalChat, localId });
 
+    // ✅ FIXED: Mark messages as read and update local state immediately
     try {
-      await supabase
+      const { error } = await supabase
         .from('mensajes')
         .update({ leido: true })
         .eq('chat_id', chatId)
         .eq('leido', false)
         .neq('remitente_id', user.id);
+
+      if (error) {
+        console.error('[Chats v30.0] Error marking messages as read:', error);
+      } else {
+        console.log('[Chats v30.0] ✅ Messages marked as read');
+        
+        // ✅ FIXED: Update local state to remove unread badge immediately
+        setChats(prevChats => 
+          prevChats.map(chat => 
+            chat.id === chatId 
+              ? { ...chat, mensajes_no_leidos: 0 }
+              : chat
+          )
+        );
+      }
     } catch (error) {
-      console.error('[Chats v29.0] Error marking messages as read:', error);
+      console.error('[Chats v30.0] Error marking messages as read:', error);
     }
 
     if (isLocalChat && localId) {
-      console.log('[Chats v29.0] 🏢 Navigating to LOCAL-SPECIFIC chat');
+      console.log('[Chats v30.0] 🏢 Navigating to LOCAL-SPECIFIC chat');
       router.push(`/chat/conversacion?localId=${localId}&userId=${user.id}`);
     } else {
-      console.log('[Chats v29.0] 👤 Navigating to USER-TO-USER chat');
+      console.log('[Chats v30.0] 👤 Navigating to USER-TO-USER chat');
       router.push(`/chat/conversacion?chatId=${chatId}`);
     }
   }, [user, router]);

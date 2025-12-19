@@ -1353,8 +1353,8 @@ export default function DetalleLocalScreen() {
                         <Text style={styles.analysisLabel}>Palabras Clave</Text>
                         <View style={styles.keywordsRow}>
                           {local.analisis_reviews.palabras_destacadas_google.slice(0, 5).map((keyword: string, index: number) => (
-                            <View key={index} style={styles.keywordTag}>
-                              <Text style={styles.keywordTagText}>{keyword}</Text>
+                            <View key={index} style={[styles.keywordTag, { backgroundColor: '#F59E0B' + '20', borderColor: '#F59E0B' + '30' }]}>
+                              <Text style={[styles.keywordTagText, { color: '#F59E0B' }]}>{keyword}</Text>
                             </View>
                           ))}
                         </View>
@@ -2117,14 +2117,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   keywordTag: {
-    backgroundColor: colors.primary + '20',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
+    borderWidth: 1,
   },
   keywordTagText: {
     fontSize: 12,
-    color: colors.primary,
     fontWeight: '600',
   },
   analysisSummary: {

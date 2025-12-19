@@ -40,8 +40,12 @@ export default function NotificacionItem({
   const formatearFecha = (fecha: string) => {
     try {
       // ✅ FIXED: Proper date parsing and validation
-      if (!fecha) return 'Recientemente';
+      if (!fecha) {
+        console.log('[NotificacionItem] No date provided');
+        return 'Recientemente';
+      }
       
+      // Parse the date string
       const date = new Date(fecha);
       
       // Check if date is valid
@@ -52,6 +56,13 @@ export default function NotificacionItem({
       
       const ahora = new Date();
       const diff = ahora.getTime() - date.getTime();
+      
+      // Handle negative differences (future dates)
+      if (diff < 0) {
+        console.warn('[NotificacionItem] Future date detected:', fecha);
+        return 'Ahora';
+      }
+      
       const minutos = Math.floor(diff / 60000);
       const horas = Math.floor(diff / 3600000);
       const dias = Math.floor(diff / 86400000);
@@ -60,19 +71,28 @@ export default function NotificacionItem({
       if (minutos < 60) return `Hace ${minutos}m`;
       if (horas < 24) return `Hace ${horas}h`;
       if (dias < 7) return `Hace ${dias}d`;
-      return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+      
+      return date.toLocaleDateString('es-ES', { 
+        day: 'numeric', 
+        month: 'short',
+        year: date.getFullYear() !== ahora.getFullYear() ? 'numeric' : undefined
+      });
     } catch (error) {
-      console.error('[NotificacionItem] Error formatting date:', error);
+      console.error('[NotificacionItem] Error formatting date:', error, 'fecha:', fecha);
       return 'Recientemente';
     }
   };
 
   const icono = getIcono();
 
-  // ✅ FIXED: Proper username and name display with fallback
-  const displayName = notificacion.usuarioUsername 
-    ? notificacion.usuarioUsername.replace(/^@/, '') 
-    : (notificacion.usuarioNombre || 'Usuario');
+  // ✅ FIXED: Proper username and name display with fallback from usuario_origen
+  const displayName = notificacion.usuario_origen?.username
+    ? notificacion.usuario_origen.username.replace(/^@/, '')
+    : notificacion.usuario_origen?.nombre
+    ? notificacion.usuario_origen.nombre
+    : notificacion.usuarioUsername
+    ? notificacion.usuarioUsername.replace(/^@/, '')
+    : notificacion.usuarioNombre || 'Usuario';
 
   return (
     <View style={[styles.container, !notificacion.leida && styles.containerNoLeida]}>
@@ -82,8 +102,11 @@ export default function NotificacionItem({
         activeOpacity={0.7}
       >
         <View style={styles.avatarContainer}>
-          {notificacion.usuarioAvatar ? (
-            <Image source={{ uri: notificacion.usuarioAvatar }} style={styles.avatar} />
+          {(notificacion.usuario_origen?.avatar || notificacion.usuarioAvatar) ? (
+            <Image 
+              source={{ uri: notificacion.usuario_origen?.avatar || notificacion.usuarioAvatar }} 
+              style={styles.avatar} 
+            />
           ) : (
             <View style={styles.avatarPlaceholder}>
               <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.headerText} />
