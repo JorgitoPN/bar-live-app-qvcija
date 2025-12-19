@@ -69,10 +69,11 @@ interface PerfilProfesional {
 }
 
 /**
- * ✅ PROFILE SCREEN v11.0 - WITH CURRENT LOCATION SECTION
+ * ✅ PROFILE SCREEN v11.1 - WITH IMPROVED CURRENT LOCATION SECTION
  * 
  * Changes:
- * - ✅ Added "Estado actual" section showing current check-in
+ * - ✅ Fixed "Estado actual" section background color (lighter, more visible)
+ * - ✅ Added proper contrast for text readability
  * - ✅ Visual card with local photo, name, and address
  * - ✅ "Salir del local" button for own profile
  * - ✅ Clickable card navigates to local page
@@ -1006,7 +1007,7 @@ export default function PerfilScreen() {
           </TouchableOpacity>
         )}
 
-        {/* ✅ CURRENT LOCATION SECTION - "Estado actual" (OWN PROFILE) */}
+        {/* ✅ IMPROVED CURRENT LOCATION SECTION - "Estado actual" (OWN PROFILE) */}
         {currentLocal && (
           <View style={styles.currentLocalSection}>
             <View style={styles.currentLocalHeader}>
@@ -1028,11 +1029,11 @@ export default function PerfilScreen() {
                   />
                 ) : (
                   <View style={[styles.currentLocalImage, styles.currentLocalImagePlaceholder]}>
-                    <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="rgba(255, 255, 255, 0.6)" />
+                    <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="#10B981" />
                   </View>
                 )}
                 <LinearGradient
-                  colors={['transparent', 'rgba(0, 0, 0, 0.6)']}
+                  colors={['transparent', 'rgba(16, 185, 129, 0.4)']}
                   style={styles.currentLocalImageGradient}
                 />
                 <View style={styles.currentLocalBadge}>
@@ -1049,7 +1050,7 @@ export default function PerfilScreen() {
                   {currentLocal.nombre}
                 </Text>
                 <View style={styles.currentLocalMeta}>
-                  <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={11} color="rgba(255, 255, 255, 0.8)" />
+                  <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={11} color="#10B981" />
                   <Text style={styles.currentLocalAddress} numberOfLines={1}>
                     {currentLocal.direccion}
                   </Text>
@@ -1057,7 +1058,7 @@ export default function PerfilScreen() {
               </View>
 
               <View style={styles.currentLocalArrow}>
-                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={18} color={colors.headerText} />
+                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={18} color="#10B981" />
               </View>
             </TouchableOpacity>
             
@@ -1663,7 +1664,7 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontWeight: '500',
   },
-  // ✅ CURRENT LOCATION SECTION STYLES - VISUAL CARD (OWN PROFILE)
+  // ✅ IMPROVED CURRENT LOCATION SECTION STYLES - LIGHTER BACKGROUND (OWN PROFILE)
   currentLocalSection: {
     marginBottom: 20,
   },
@@ -1680,12 +1681,17 @@ const styles = StyleSheet.create({
   },
   currentLocalCard: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)', // ✅ MUCH LIGHTER - Almost white with slight transparency
     borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderWidth: 1.5,
+    borderColor: '#10B981', // ✅ Solid green border for better visibility
     marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   currentLocalImageContainer: {
     width: 80,
@@ -1697,7 +1703,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   currentLocalImagePlaceholder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#D1FAE5', // ✅ Light green background for placeholder
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1719,6 +1725,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   currentLocalBadgeText: {
     fontSize: 9,
@@ -1732,13 +1743,13 @@ const styles = StyleSheet.create({
   },
   currentLocalLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#6B7280', // ✅ Dark gray for better readability on light background
     marginBottom: 3,
   },
   currentLocalName: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.headerText,
+    color: '#111827', // ✅ Almost black for maximum readability
     marginBottom: 5,
   },
   currentLocalMeta: {
@@ -1748,7 +1759,7 @@ const styles = StyleSheet.create({
   },
   currentLocalAddress: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#6B7280', // ✅ Dark gray for better readability
     flex: 1,
   },
   currentLocalArrow: {
@@ -1760,12 +1771,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)', // ✅ Light background
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderWidth: 1.5,
+    borderColor: '#EF4444', // ✅ Solid red border
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   exitLocalButtonText: {
     fontSize: 13,
