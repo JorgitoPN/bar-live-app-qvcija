@@ -15,6 +15,7 @@ import {
   Keyboard,
   Switch,
   Pressable,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';

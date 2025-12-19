@@ -64,12 +64,12 @@ interface FriendLocation {
     tipo: string;
     direccion: string;
   };
-  users: Array<{
+  users: {
     id: string;
     nombre: string;
     username?: string;
     avatar?: string;
-  }>;
+  }[];
 }
 
 const POSTS_PER_PAGE = 10;
@@ -313,7 +313,7 @@ export default function SocialIndexScreen() {
   const handleRefresh = useCallback(() => {
     cargarPosts(1, true);
     loadFriendsLocations();
-  }, [cargarPosts]);
+  }, [cargarPosts, loadFriendsLocations]);
 
   const handleLoadMore = useCallback(() => {
     if (hasMore && !loadingMore && !loading) {

@@ -155,7 +155,7 @@ export default function GestionarSolicitudesScreen() {
     console.log('[GestionarSolicitudes] Initial load');
     cargarContadores();
     cargarSolicitudes(true, 1);
-  }, []);
+  }, [cargarContadores, cargarSolicitudes]);
 
   useEffect(() => {
     if (!initialLoading) {
@@ -165,7 +165,7 @@ export default function GestionarSolicitudesScreen() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [busqueda, filtroEstado, initialLoading]);
+  }, [busqueda, filtroEstado, initialLoading, cargarSolicitudes]);
 
   const handleLoadMore = useCallback(() => {
     if (hasMore && !loadingMore && !initialLoading) {
@@ -504,7 +504,7 @@ export default function GestionarSolicitudesScreen() {
 
   const renderSolicitudCard = useCallback(({ item }: { item: SolicitudLocal }) => (
     <SolicitudCard solicitud={item} />
-  ), []);
+  ), [SolicitudCard]);
 
   const renderHeader = useMemo(() => (
     <React.Fragment>

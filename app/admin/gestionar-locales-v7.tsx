@@ -348,7 +348,7 @@ export default function GestionarLocalesV7Screen() {
         </View>
       </TouchableOpacity>
     );
-  }, [modoSeleccion, localesSeleccionados]);
+  }, [modoSeleccion, localesSeleccionados, handleEditLocal, handleViewLocalDetail, toggleSeleccionLocal]);
 
   const renderLocalCard = useCallback(({ item }: { item: Local }) => (
     <LocalCard local={item} />
