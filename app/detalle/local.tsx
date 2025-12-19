@@ -787,7 +787,6 @@ export default function DetalleLocalScreen() {
   const isOpen = estadoLocal.estaAbierto === true;
   const hasSocialProfile = local.plan_activo === 'estandar' || local.plan_activo === 'premium';
   
-  // ✅ Check if local has owner
   const hasOwner = !!local.propietario_id;
 
   const allServices: string[] = [];
@@ -1045,7 +1044,6 @@ export default function DetalleLocalScreen() {
                 )}
               </View>
 
-              {/* ✅ NEW: Only show claim card if local doesn't have owner */}
               {!hasOwner && (
                 <TouchableOpacity 
                   style={styles.claimLocalCard}
@@ -1169,10 +1167,20 @@ export default function DetalleLocalScreen() {
                   style={styles.virtualRoomButton}
                   onPress={() => router.push({ pathname: '/detalle/sala-virtual', params: { localId: params.id } })}
                 >
-                  <LinearGradient colors={['#8B5CF6', '#7C3AED']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.virtualRoomButtonGradient}>
-                    <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={22} color="#fff" />
-                    <Text style={styles.virtualRoomButtonText}>Ver Sala Virtual</Text>
-                    <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
+                  <LinearGradient 
+                    colors={['#8B5CF6', '#7C3AED', '#6D28D9']} 
+                    start={{ x: 0, y: 0 }} 
+                    end={{ x: 1, y: 1 }} 
+                    style={styles.virtualRoomButtonGradient}
+                  >
+                    <View style={styles.virtualRoomIconContainer}>
+                      <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={24} color="#fff" />
+                    </View>
+                    <View style={styles.virtualRoomTextContainer}>
+                      <Text style={styles.virtualRoomButtonTitle}>Sala Virtual</Text>
+                      <Text style={styles.virtualRoomButtonSubtitle}>Chatea con otros usuarios</Text>
+                    </View>
+                    <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={22} color="#fff" />
                   </LinearGradient>
                 </TouchableOpacity>
               )}
@@ -1762,7 +1770,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '700',
   },
-  // ✅ NEW: Smaller, discreet claim local card
   claimLocalCard: {
     marginBottom: 16,
     backgroundColor: colors.cardBackground,
@@ -1910,23 +1917,43 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   virtualRoomButton: {
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 10,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   virtualRoomButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    gap: 12,
   },
-  virtualRoomButtonText: {
+  virtualRoomIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  virtualRoomTextContainer: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: '700',
+  },
+  virtualRoomButtonTitle: {
+    fontSize: 17,
+    fontWeight: '800',
     color: '#fff',
-    marginLeft: 10,
+    marginBottom: 2,
+  },
+  virtualRoomButtonSubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   compactSection: {
     marginTop: 20,

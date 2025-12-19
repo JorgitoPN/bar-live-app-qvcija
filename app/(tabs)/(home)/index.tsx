@@ -24,7 +24,6 @@ import * as Location from 'expo-location';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ✅ MAXIMUM DISTANCE FOR FEATURED LOCALS (in km)
 const MAX_FEATURED_DISTANCE_KM = 100;
 
 interface Local {
@@ -156,7 +155,6 @@ export default function HomeScreen() {
         .eq('activo', true)
         .limit(200);
 
-      // Aplicar filtros
       if (filtros.tipo !== 'todos') {
         query = query.eq('tipo', filtros.tipo);
       }
@@ -184,11 +182,9 @@ export default function HomeScreen() {
 
       let localesConDistancia = data || [];
 
-      // ✅ CORRECTED SORTING ALGORITHM v11 - USER REQUESTED ORDER
       if (userLocation) {
         console.log('[Home] 📍 User location:', userLocation);
         
-        // Calculate distance for all locals
         localesConDistancia = localesConDistancia.map(local => {
           if (local.latitud && local.longitud) {
             const distancia = calcularDistancia(
@@ -199,7 +195,7 @@ export default function HomeScreen() {
             );
             return { ...local, distancia };
           }
-          return { ...local, distancia: 999999 }; // Very high distance for locals without coordinates
+          return { ...local, distancia: 999999 };
         });
 
         console.log('[Home] 🧠 Applying USER REQUESTED sorting algorithm...');
@@ -209,13 +205,10 @@ export default function HomeScreen() {
         console.log('[Home]    3. Group B (>100km) - NON-FEATURED sorted by distance');
         console.log('[Home]    4. Group B (>100km) - FEATURED sorted by distance');
 
-        // 🧠 USER REQUESTED ALGORITHM
-        // groupA = locales with distance <= 100km
         const groupA = localesConDistancia.filter(l => 
           l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
         );
         
-        // groupB = locales with distance > 100km
         const groupB = localesConDistancia.filter(l => 
           l.distancia !== undefined && l.distancia > MAX_FEATURED_DISTANCE_KM
         );
@@ -224,7 +217,6 @@ export default function HomeScreen() {
         console.log('  - Group A (≤100km):', groupA.length, 'locals');
         console.log('  - Group B (>100km):', groupB.length, 'locals');
 
-        // ✅ USER REQUESTED ORDER: Group A FEATURED first, then NON-FEATURED
         const groupA_destacados = groupA
           .filter(l => l.destacado === true)
           .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
@@ -233,7 +225,6 @@ export default function HomeScreen() {
           .filter(l => l.destacado === false)
           .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-        // Group B NON-FEATURED first, then FEATURED
         const groupB_no_destacados = groupB
           .filter(l => l.destacado === false)
           .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
@@ -248,12 +239,11 @@ export default function HomeScreen() {
         console.log('  3. Group B Non-Featured (>100km, destacado=false):', groupB_no_destacados.length);
         console.log('  4. Group B Featured (>100km, destacado=true):', groupB_destacados.length);
 
-        // ✅ USER REQUESTED FINAL ORDER
         localesConDistancia = [
-          ...groupA_destacados,          // 1. Nearby featured
-          ...groupA_no_destacados,       // 2. Nearby non-featured
-          ...groupB_no_destacados,       // 3. Distant non-featured
-          ...groupB_destacados,          // 4. Distant featured (Casa Paco should be here)
+          ...groupA_destacados,
+          ...groupA_no_destacados,
+          ...groupB_no_destacados,
+          ...groupB_destacados,
         ];
 
         console.log('[Home] ✅ USER REQUESTED SORTING APPLIED - Total locals:', localesConDistancia.length);
@@ -265,7 +255,6 @@ export default function HomeScreen() {
           console.log(`      📍 Distancia: ${l.distancia?.toFixed(1)}km | 📌 Dirección: ${l.direccion}`);
         });
 
-        // 📌 CRITICAL VERIFICATION: Find Casa Paco position
         const casaPacoIndex = localesConDistancia.findIndex(l => 
           l.nombre.toLowerCase().includes('casa paco') || 
           l.direccion?.toLowerCase().includes('rincón de san nicolás')
@@ -287,7 +276,6 @@ export default function HomeScreen() {
           console.log(`[Home] 📌 Expected Group: ${expectedGroup} (${expectedSubgroup})`);
           console.log(`[Home] 📌 Expected Position: LAST BLOCK (Group B Featured)`);
           
-          // Count how many locals should be before Casa Paco
           const expectedPosition = groupA_destacados.length + groupA_no_destacados.length + groupB_no_destacados.length;
           
           console.log(`[Home] 📌 Expected minimum position: #${expectedPosition + 1}`);
@@ -409,7 +397,6 @@ export default function HomeScreen() {
         onMasFiltrosPress={handleMasFiltrosPress}
       />
 
-      {/* ✅ IMPROVED: Smaller, more discreet "Reclama tu local" card */}
       <TouchableOpacity 
         style={styles.claimLocalBanner}
         onPress={handleClaimOrCreateLocal}
@@ -422,7 +409,9 @@ export default function HomeScreen() {
             size={16} 
             color={colors.primary} 
           />
-          <Text style={styles.claimLocalText}>Reclama tu local o crea uno nuevo</Text>
+          <Text style={styles.claimLocalText} numberOfLines={1}>
+            Reclama tu local o crea uno nuevo
+          </Text>
           <IconSymbol 
             ios_icon_name="chevron.right" 
             android_material_icon_name="chevron_right" 
@@ -518,7 +507,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.white,
   },
-  // ✅ NEW: Smaller, more discreet claim local banner
   claimLocalBanner: {
     marginHorizontal: 16,
     marginTop: 8,
