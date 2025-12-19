@@ -210,6 +210,73 @@ export default function GestionarUsuariosScreen() {
     }
   }, [cargarContadores]);
 
+  const resetearPassword = useCallback(async (usuario: Usuario) => {
+    Alert.prompt(
+      'Restablecer Contraseña',
+      `Ingresa la nueva contraseña para ${usuario.nombre}:`,
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Restablecer',
+          onPress: async (newPassword) => {
+            if (!newPassword || newPassword.length < 6) {
+              Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+              return;
+            }
+
+            try {
+              console.log('[GestionarUsuarios] Restableciendo contraseña para:', usuario.id);
+
+              // Call the Edge Function to update password
+              const { data: { session } } = await supabase.auth.getSession();
+              if (!session) {
+                Alert.alert('Error', 'No hay sesión activa');
+                return;
+              }
+
+              const response = await fetch(
+                `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/update-user-password`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    userId: usuario.id,
+                    newPassword: newPassword,
+                  }),
+                }
+              );
+
+              const result = await response.json();
+
+              if (!response.ok) {
+                throw new Error(result.error || 'Error al actualizar la contraseña');
+              }
+
+              console.log('[GestionarUsuarios] ✅ Contraseña actualizada correctamente');
+              Alert.alert(
+                'Éxito',
+                `La contraseña de ${usuario.nombre} ha sido actualizada correctamente.`
+              );
+            } catch (error) {
+              console.error('[GestionarUsuarios] Error restableciendo contraseña:', error);
+              Alert.alert(
+                'Error',
+                error instanceof Error ? error.message : 'No se pudo restablecer la contraseña'
+              );
+            }
+          },
+        },
+      ],
+      'secure-text'
+    );
+  }, []);
+
   const limpiarFiltros = useCallback(() => {
     setFiltroRol('todos');
     setFiltroEstado('todos');
@@ -329,6 +396,13 @@ export default function GestionarUsuariosScreen() {
               onPress={() => router.push(`/editar/usuario?id=${usuario.id}`)}
             >
               <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.passwordButton}
+              onPress={() => resetearPassword(usuario)}
+            >
+              <IconSymbol ios_icon_name="key.fill" android_material_icon_name="vpn_key" size={18} color="#F59E0B" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -901,6 +975,14 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 8,
     backgroundColor: colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  passwordButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#F59E0B' + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
