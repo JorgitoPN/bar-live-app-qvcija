@@ -29,6 +29,7 @@ import { useGlobalData } from '@/contexts/GlobalDataContext';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 import { trackSearchAppearance } from '@/utils/activityTracker';
 import { shouldHavePubCategory } from '@/utils/categorizeLocal';
+import { getEstadoLocal } from '@/utils/timeUtils';
 
 type ModoUsuario = 'cliente' | 'propietario' | 'admin';
 
@@ -83,7 +84,6 @@ export default function ExplorarScreen() {
   const [activePromotions, setActivePromotions] = useState<Set<string>>(new Set());
   const [mostrarSelectorModo, setMostrarSelectorModo] = useState(false);
   
-  // ✅ NEW: Scroll indicator state
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
   const scrollIndicatorOpacity = useRef(new Animated.Value(1)).current;
   
@@ -111,7 +111,6 @@ export default function ExplorarScreen() {
     }, [])
   );
 
-  // ✅ NEW: Hide scroll indicator after 3 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
       Animated.timing(scrollIndicatorOpacity, {
@@ -178,6 +177,15 @@ export default function ExplorarScreen() {
       console.log(`[ExplorarScreen] 🔍 After search filter: ${localesFiltrados.length} locales`);
     }
 
+    // ✅ FIXED: Calculate open/closed status for each local
+    localesFiltrados = localesFiltrados.map(local => {
+      const estadoLocal = getEstadoLocal(local);
+      return {
+        ...local,
+        estaAbierto: estadoLocal.estaAbierto === true,
+      };
+    });
+
     if (userLocation) {
       console.log('[ExplorarScreen] 📍 User location:', userLocation);
       
@@ -194,65 +202,117 @@ export default function ExplorarScreen() {
         return { ...local, distancia: 999999 };
       });
 
-      console.log('[ExplorarScreen] 🧠 Applying USER REQUESTED sorting algorithm...');
-      console.log('[ExplorarScreen] 📋 CORRECT ORDER (USER REQUESTED):');
-      console.log('[ExplorarScreen]    1. Group A (≤100km) - FEATURED sorted by distance');
-      console.log('[ExplorarScreen]    2. Group A (≤100km) - NON-FEATURED sorted by distance');
-      console.log('[ExplorarScreen]    3. Group B (>100km) - NON-FEATURED sorted by distance');
-      console.log('[ExplorarScreen]    4. Group B (>100km) - FEATURED sorted by distance');
+      console.log('[ExplorarScreen] 🧠 Applying FIXED sorting algorithm...');
+      console.log('[ExplorarScreen] 📋 CORRECT ORDER (OPEN FIRST):');
+      console.log('[ExplorarScreen]    1. OPEN locals (≤100km) - FEATURED sorted by distance');
+      console.log('[ExplorarScreen]    2. OPEN locals (≤100km) - NON-FEATURED sorted by distance');
+      console.log('[ExplorarScreen]    3. OPEN locals (>100km) - NON-FEATURED sorted by distance');
+      console.log('[ExplorarScreen]    4. OPEN locals (>100km) - FEATURED sorted by distance');
+      console.log('[ExplorarScreen]    5. CLOSED locals (≤100km) - FEATURED sorted by distance');
+      console.log('[ExplorarScreen]    6. CLOSED locals (≤100km) - NON-FEATURED sorted by distance');
+      console.log('[ExplorarScreen]    7. CLOSED locals (>100km) - NON-FEATURED sorted by distance');
+      console.log('[ExplorarScreen]    8. CLOSED locals (>100km) - FEATURED sorted by distance');
 
-      const groupA = localesFiltrados.filter(l => 
+      // ✅ FIXED: Separate open and closed locals
+      const openLocals = localesFiltrados.filter(l => l.estaAbierto === true);
+      const closedLocals = localesFiltrados.filter(l => l.estaAbierto !== true);
+
+      console.log('[ExplorarScreen] 📊 Open/Closed split:');
+      console.log('  - Open locals:', openLocals.length);
+      console.log('  - Closed locals:', closedLocals.length);
+
+      // Sort open locals (priority)
+      const openGroupA = openLocals.filter(l => 
         l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
       );
       
-      const groupB = localesFiltrados.filter(l => 
+      const openGroupB = openLocals.filter(l => 
         l.distancia !== undefined && l.distancia > MAX_FEATURED_DISTANCE_KM
       );
 
-      console.log('[ExplorarScreen] 📊 Groups created:');
-      console.log('  - Group A (≤100km):', groupA.length, 'locals');
-      console.log('  - Group B (>100km):', groupB.length, 'locals');
-
-      const groupA_destacados = groupA
+      const openGroupA_destacados = openGroupA
         .filter(l => l.destacado === true || activePromotions.has(l.id))
         .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-      const groupA_no_destacados = groupA
+      const openGroupA_no_destacados = openGroupA
         .filter(l => l.destacado !== true && !activePromotions.has(l.id))
         .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-      const groupB_no_destacados = groupB
+      const openGroupB_no_destacados = openGroupB
         .filter(l => l.destacado !== true && !activePromotions.has(l.id))
         .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-      const groupB_destacados = groupB
+      const openGroupB_destacados = openGroupB
         .filter(l => l.destacado === true || activePromotions.has(l.id))
         .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-      console.log('[ExplorarScreen] 📊 Sub-groups created (USER REQUESTED ORDER):');
-      console.log('  1. Group A Featured (≤100km, destacado=true):', groupA_destacados.length);
-      console.log('  2. Group A Non-Featured (≤100km, destacado=false):', groupA_no_destacados.length);
-      console.log('  3. Group B Non-Featured (>100km, destacado=false):', groupB_no_destacados.length);
-      console.log('  4. Group B Featured (>100km, destacado=true):', groupB_destacados.length);
+      // Sort closed locals (lower priority)
+      const closedGroupA = closedLocals.filter(l => 
+        l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
+      );
+      
+      const closedGroupB = closedLocals.filter(l => 
+        l.distancia !== undefined && l.distancia > MAX_FEATURED_DISTANCE_KM
+      );
 
+      const closedGroupA_destacados = closedGroupA
+        .filter(l => l.destacado === true || activePromotions.has(l.id))
+        .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
+
+      const closedGroupA_no_destacados = closedGroupA
+        .filter(l => l.destacado !== true && !activePromotions.has(l.id))
+        .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
+
+      const closedGroupB_no_destacados = closedGroupB
+        .filter(l => l.destacado !== true && !activePromotions.has(l.id))
+        .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
+
+      const closedGroupB_destacados = closedGroupB
+        .filter(l => l.destacado === true || activePromotions.has(l.id))
+        .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
+
+      console.log('[ExplorarScreen] 📊 Sub-groups created (OPEN FIRST):');
+      console.log('  1. Open Group A Featured (≤100km, destacado=true):', openGroupA_destacados.length);
+      console.log('  2. Open Group A Non-Featured (≤100km, destacado=false):', openGroupA_no_destacados.length);
+      console.log('  3. Open Group B Non-Featured (>100km, destacado=false):', openGroupB_no_destacados.length);
+      console.log('  4. Open Group B Featured (>100km, destacado=true):', openGroupB_destacados.length);
+      console.log('  5. Closed Group A Featured (≤100km, destacado=true):', closedGroupA_destacados.length);
+      console.log('  6. Closed Group A Non-Featured (≤100km, destacado=false):', closedGroupA_no_destacados.length);
+      console.log('  7. Closed Group B Non-Featured (>100km, destacado=false):', closedGroupB_no_destacados.length);
+      console.log('  8. Closed Group B Featured (>100km, destacado=true):', closedGroupB_destacados.length);
+
+      // ✅ FIXED: Open locals first, then closed locals
       localesFiltrados = [
-        ...groupA_destacados,
-        ...groupA_no_destacados,
-        ...groupB_no_destacados,
-        ...groupB_destacados,
+        ...openGroupA_destacados,
+        ...openGroupA_no_destacados,
+        ...openGroupB_no_destacados,
+        ...openGroupB_destacados,
+        ...closedGroupA_destacados,
+        ...closedGroupA_no_destacados,
+        ...closedGroupB_no_destacados,
+        ...closedGroupB_destacados,
       ];
 
-      console.log('[ExplorarScreen] ✅ USER REQUESTED SORTING APPLIED - Total locals:', localesFiltrados.length);
+      console.log('[ExplorarScreen] ✅ FIXED SORTING APPLIED (OPEN FIRST) - Total locals:', localesFiltrados.length);
     } else {
-      console.log('[ExplorarScreen] ⚠️ No user location available, sorting by destacado and rating only');
+      console.log('[ExplorarScreen] ⚠️ No user location available, sorting by open status, destacado and rating');
       
+      // ✅ FIXED: Sort by open status first, then destacado, then rating
       localesFiltrados.sort((a, b) => {
+        // First priority: Open status
+        if (a.estaAbierto !== b.estaAbierto) {
+          return a.estaAbierto ? -1 : 1;
+        }
+        
+        // Second priority: Featured status
         const aDestacado = a.destacado || activePromotions.has(a.id);
         const bDestacado = b.destacado || activePromotions.has(b.id);
         
         if (aDestacado !== bDestacado) {
           return aDestacado ? -1 : 1;
         }
+        
+        // Third priority: Rating
         const ratingA = parseFloat((a.rating || a.google_rating || 0).toString());
         const ratingB = parseFloat((b.rating || b.google_rating || 0).toString());
         return ratingB - ratingA;
@@ -581,7 +641,6 @@ export default function ExplorarScreen() {
             ))}
           </ScrollView>
           
-          {/* ✅ NEW: Subtle scroll indicator */}
           {showScrollIndicator && (
             <Animated.View 
               style={[
@@ -856,7 +915,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '700',
   },
-  // ✅ NEW: Scroll indicator styles
   scrollIndicator: {
     position: 'absolute',
     right: 8,
