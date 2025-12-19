@@ -59,7 +59,8 @@ export default function MapaScreen() {
   const { user } = useAuth();
   const webViewRef = useRef<WebView>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todos');
-  const [filtroEstado, setFiltroEstado] = useState<'todos' | 'abiertos'>('todos');
+  // ✅ FIXED: Default filter set to "abiertos"
+  const [filtroEstado, setFiltroEstado] = useState<'todos' | 'abiertos'>('abiertos');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedLocal, setSelectedLocal] = useState<Local | null>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
@@ -238,12 +239,10 @@ export default function MapaScreen() {
     const centerLat = userLocation?.lat || 40.4168;
     const centerLng = userLocation?.lng || -3.7038;
 
-    // Load check-in data for all locals
     const checkInsByLocal = new Map<string, { isUserHere: boolean; friendsCount: number }>();
     
     if (user) {
       try {
-        // Get user's own check-in
         const { data: userCheckIn } = await supabase
           .from('check_ins')
           .select('local_id')
@@ -254,7 +253,6 @@ export default function MapaScreen() {
           checkInsByLocal.set(userCheckIn.local_id, { isUserHere: true, friendsCount: 0 });
         }
 
-        // Get followed users
         const { data: following } = await supabase
           .from('seguidores')
           .select('seguido_id')
@@ -263,13 +261,11 @@ export default function MapaScreen() {
         const followedUserIds = following?.map(f => f.seguido_id) || [];
 
         if (followedUserIds.length > 0) {
-          // Get check-ins from followed users
           const { data: friendCheckIns } = await supabase
             .from('check_ins')
             .select('local_id, usuario_id, visibility, specific_user_ids')
             .in('usuario_id', followedUserIds);
 
-          // Count visible friends per local
           (friendCheckIns || []).forEach(checkIn => {
             const isVisible = 
               checkIn.visibility === 'all_users' ||
@@ -894,7 +890,6 @@ export default function MapaScreen() {
     `;
   }, [localesFiltrados, user, userLocation]);
 
-  // Generate map HTML when locals or user changes
   useEffect(() => {
     const generateHTML = async () => {
       const html = await generateMapHTML();
@@ -1103,35 +1098,38 @@ export default function MapaScreen() {
       </View>
 
       <View style={styles.controlsRight}>
-        <View style={styles.estadoSelector}>
-          <TouchableOpacity
-            style={[
-              styles.estadoOption,
-              filtroEstado === 'todos' && styles.estadoOptionActive
-            ]}
-            onPress={() => setFiltroEstado('todos')}
-          >
-            <Text style={[
-              styles.estadoOptionText,
-              filtroEstado === 'todos' && styles.estadoOptionTextActive
-            ]}>
-              Todos
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.estadoOption,
-              filtroEstado === 'abiertos' && styles.estadoOptionActive
-            ]}
-            onPress={() => setFiltroEstado('abiertos')}
-          >
-            <Text style={[
-              styles.estadoOptionText,
-              filtroEstado === 'abiertos' && styles.estadoOptionTextActive
-            ]}>
-              Abiertos
-            </Text>
-          </TouchableOpacity>
+        {/* ✅ FIXED: Toggle switch design for estado selector */}
+        <View style={styles.estadoSelectorContainer}>
+          <View style={styles.estadoSelector}>
+            <TouchableOpacity
+              style={[
+                styles.estadoOption,
+                filtroEstado === 'todos' && styles.estadoOptionActive
+              ]}
+              onPress={() => setFiltroEstado('todos')}
+            >
+              <Text style={[
+                styles.estadoOptionText,
+                filtroEstado === 'todos' && styles.estadoOptionTextActive
+              ]}>
+                Todos
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.estadoOption,
+                filtroEstado === 'abiertos' && styles.estadoOptionActive
+              ]}
+              onPress={() => setFiltroEstado('abiertos')}
+            >
+              <Text style={[
+                styles.estadoOptionText,
+                filtroEstado === 'abiertos' && styles.estadoOptionTextActive
+              ]}>
+                Abiertos
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.leyenda}>
@@ -1287,32 +1285,45 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  estadoSelector: {
-    flexDirection: 'row',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 8,
-    padding: 4,
+  // ✅ FIXED: Toggle switch design for estado selector
+  estadoSelectorContainer: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
   },
+  estadoSelector: {
+    flexDirection: 'row',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 20,
+    padding: 3,
+    borderWidth: 2,
+    borderColor: colors.primary + '30',
+  },
   estadoOption: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 17,
+    minWidth: 80,
+    alignItems: 'center',
   },
   estadoOptionActive: {
     backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
   },
   estadoOptionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.textSecondary,
   },
   estadoOptionTextActive: {
     color: colors.headerText,
+    fontWeight: '700',
   },
   leyenda: {
     flexDirection: 'row',

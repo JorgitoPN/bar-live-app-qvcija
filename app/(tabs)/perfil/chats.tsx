@@ -215,7 +215,7 @@ export default function ChatsScreen() {
     try {
       const { error } = await supabase
         .from('mensajes')
-        .update({ leido: true })
+        .update({ leido: true, leido_at: new Date().toISOString() })
         .eq('chat_id', chatId)
         .eq('leido', false)
         .neq('remitente_id', user.id);

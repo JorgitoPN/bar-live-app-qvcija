@@ -94,7 +94,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     loadLikeUsers();
   }, [loadLikeUsers]);
 
-  // ✅ NEW: Real-time subscription for like updates
+  // ✅ FIXED: Real-time subscription for like updates
   useEffect(() => {
     console.log('[PostLikesAvatars] 🔄 Setting up real-time subscription for post:', postId);
 
@@ -111,10 +111,8 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
         async (payload) => {
           console.log('[PostLikesAvatars] 🔄 Real-time like update detected:', payload);
           
-          // Reload like users and count
           await loadLikeUsers();
           
-          // Update total likes count
           const { count } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
@@ -132,7 +130,6 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     };
   }, [postId, loadLikeUsers]);
 
-  // ✅ NEW: Update total likes when prop changes
   useEffect(() => {
     setCurrentTotalLikes(totalLikes);
   }, [totalLikes]);

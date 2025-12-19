@@ -32,6 +32,8 @@ export default function NotificacionItem({
         return { name: 'at', color: colors.primary };
       case 'solicitud':
         return { name: 'person.2.fill', color: colors.primary };
+      case 'mensaje_privado':
+        return { name: 'envelope.fill', color: colors.primary };
       default:
         return { name: 'bell.fill', color: colors.primary };
     }
@@ -81,6 +83,7 @@ export default function NotificacionItem({
 
   const icono = getIcono();
 
+  // ✅ FIXED: Display username and avatar from usuario_origen
   const displayName = notificacion.usuario_origen?.username
     ? notificacion.usuario_origen.username.replace(/^@/, '')
     : notificacion.usuario_origen?.nombre
@@ -88,6 +91,8 @@ export default function NotificacionItem({
     : notificacion.usuarioUsername
     ? notificacion.usuarioUsername.replace(/^@/, '')
     : notificacion.usuarioNombre || 'Usuario';
+
+  const displayAvatar = notificacion.usuario_origen?.avatar || notificacion.usuarioAvatar;
 
   return (
     <View style={[styles.container, !notificacion.leida && styles.containerNoLeida]}>
@@ -97,9 +102,9 @@ export default function NotificacionItem({
         activeOpacity={0.7}
       >
         <View style={styles.avatarContainer}>
-          {(notificacion.usuario_origen?.avatar || notificacion.usuarioAvatar) ? (
+          {displayAvatar ? (
             <Image 
-              source={{ uri: notificacion.usuario_origen?.avatar || notificacion.usuarioAvatar }} 
+              source={{ uri: displayAvatar }} 
               style={styles.avatar} 
             />
           ) : (
@@ -116,9 +121,9 @@ export default function NotificacionItem({
           <Text style={styles.texto}>
             <Text style={styles.nombreUsuario}>{displayName}</Text>
             {' '}
-            {notificacion.contenido}
+            {notificacion.contenido || notificacion.mensaje}
           </Text>
-          <Text style={styles.fecha}>{formatearFecha(notificacion.fecha)}</Text>
+          <Text style={styles.fecha}>{formatearFecha(notificacion.fecha || notificacion.created_at)}</Text>
 
           {notificacion.tipo === 'solicitud' && onAprobar && onRechazar && (
             <View style={styles.accionesContainer}>

@@ -22,20 +22,26 @@ export default function MomentoMessageBubble({
   const router = useRouter();
   const [isExpired, setIsExpired] = useState(!screenshotUrl);
   const [loading, setLoading] = useState(false);
+  const [momentoAuthorId, setMomentoAuthorId] = useState<string | null>(null);
+  const [momentoAuthorType, setMomentoAuthorType] = useState<'usuario' | 'local'>('usuario');
 
   useEffect(() => {
     const checkMomentoStatus = async () => {
-      if (!momentoId) return;
+      if (!momentoId) {
+        setIsExpired(true);
+        return;
+      }
 
       try {
         setLoading(true);
         const { data, error } = await supabase
           .from('momentos')
-          .select('id, expires_at')
+          .select('id, expires_at, autor_id, tipo, local_id')
           .eq('id', momentoId)
           .single();
 
         if (error || !data) {
+          console.log('[MomentoMessageBubble] Momento not found or error:', error);
           setIsExpired(true);
           return;
         }
@@ -44,7 +50,12 @@ export default function MomentoMessageBubble({
         const now = new Date();
         
         if (now > expiresAt) {
+          console.log('[MomentoMessageBubble] Momento has expired');
           setIsExpired(true);
+        } else {
+          setIsExpired(false);
+          setMomentoAuthorId(data.tipo === 'local' ? data.local_id : data.autor_id);
+          setMomentoAuthorType(data.tipo);
         }
       } catch (error) {
         console.error('[MomentoMessageBubble] Error checking momento status:', error);
@@ -57,7 +68,7 @@ export default function MomentoMessageBubble({
     checkMomentoStatus();
   }, [momentoId]);
 
-  // ✅ NEW: Real-time subscription to detect when momento expires
+  // ✅ FIXED: Real-time subscription to detect when momento expires
   useEffect(() => {
     if (!momentoId) return;
 
@@ -83,22 +94,29 @@ export default function MomentoMessageBubble({
     };
   }, [momentoId]);
 
+  // ✅ FIXED: Open momento viewer when clicking on screenshot
   const handlePress = () => {
-    if (isExpired || !screenshotUrl) {
+    if (isExpired || !screenshotUrl || !momentoAuthorId) {
       return;
     }
 
     if (onPress) {
       onPress();
-    } else {
-      // ✅ FIXED: Open momento viewer when clicking on screenshot
-      router.push({
-        pathname: '/social/post',
-        params: { momentoId },
-      });
     }
+    
+    // Open momento viewer - this will show the momento if it still exists
+    console.log('[MomentoMessageBubble] Opening momento viewer for:', momentoAuthorId, momentoAuthorType);
+    router.push({
+      pathname: '/(tabs)/social',
+      params: { 
+        openMomento: 'true',
+        momentoAuthorId: momentoAuthorId,
+        momentoAuthorType: momentoAuthorType,
+      },
+    });
   };
 
+  // ✅ FIXED: Show "El momento ya no está disponible" when expired
   if (isExpired || !screenshotUrl) {
     return (
       <View style={styles.expiredContainer}>

@@ -54,8 +54,6 @@ export default function ConversacionScreen() {
 
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
-  const momentoIdFromParams = params.momentoId as string | undefined;
-  const momentoScreenshotFromParams = params.momentoScreenshot as string | undefined;
 
   const loadMessages = useCallback(async (chatIdToLoad: string) => {
     try {
@@ -75,7 +73,7 @@ export default function ConversacionScreen() {
       if (user) {
         await supabase
           .from('mensajes')
-          .update({ leido: true })
+          .update({ leido: true, leido_at: new Date().toISOString() })
           .eq('chat_id', chatIdToLoad)
           .neq('remitente_id', user.id)
           .eq('leido', false);
@@ -285,24 +283,19 @@ export default function ConversacionScreen() {
 
         setOtroUsuario(userData);
       }
-
-      // ✅ NEW: If coming from momento viewer, send momento message automatically
-      if (momentoIdFromParams && momentoScreenshotFromParams && chatId) {
-        console.log('[Conversacion] 📸 Auto-sending momento message');
-        await enviarMensajeMomento(chatId, momentoIdFromParams, momentoScreenshotFromParams);
-      }
     } catch (error) {
       console.error('[Conversacion] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar la conversación');
     } finally {
       setLoading(false);
     }
-  }, [user, params.chatId, params.userId, localId, momentoIdFromParams, momentoScreenshotFromParams, loadMessages, router]);
+  }, [user, params.chatId, params.userId, localId, loadMessages, router]);
 
   useEffect(() => {
     loadOrCreateChat();
   }, [loadOrCreateChat]);
 
+  // ✅ FIXED: Real-time subscription for new messages
   useEffect(() => {
     if (!chatId || !user) return;
 
@@ -337,7 +330,7 @@ export default function ConversacionScreen() {
           if (newMessage.remitente_id !== user.id) {
             supabase
               .from('mensajes')
-              .update({ leido: true })
+              .update({ leido: true, leido_at: new Date().toISOString() })
               .eq('id', newMessage.id)
               .then(() => console.log('[Conversacion] Message marked as read'));
           }
@@ -453,47 +446,6 @@ export default function ConversacionScreen() {
     }
   };
 
-  // ✅ NEW: Send momento message with screenshot
-  const enviarMensajeMomento = async (targetChatId: string, momentoId: string, screenshotUrl: string) => {
-    if (!user) return;
-
-    try {
-      const { data: insertedMessage, error } = await supabase
-        .from('mensajes')
-        .insert({
-          chat_id: targetChatId,
-          remitente_id: user.id,
-          contenido: 'Respondió a tu Momento',
-          tipo_mensaje: 'momento',
-          momento_id: momentoId,
-          momento_screenshot_url: screenshotUrl,
-          leido: false,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('[Conversacion] Error sending momento message:', error);
-        return;
-      }
-
-      setMensajes((prev) => [...prev, insertedMessage]);
-
-      await supabase
-        .from('chats')
-        .update({
-          ultimo_mensaje: 'Respondió a tu Momento',
-          ultimo_mensaje_fecha: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', targetChatId);
-
-      console.log('[Conversacion] ✅ Momento message sent successfully');
-    } catch (error) {
-      console.error('[Conversacion] Error sending momento message:', error);
-    }
-  };
-
   const handleDeleteMessage = async (messageId: string) => {
     if (!user) return;
 
@@ -571,6 +523,7 @@ export default function ConversacionScreen() {
     );
   };
 
+  // ✅ FIXED: Render momento messages with MomentoMessageBubble
   const renderMessage = ({ item }: { item: Message }) => {
     if (item.tipo_mensaje === 'momento' && item.momento_id) {
       return (

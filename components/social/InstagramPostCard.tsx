@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import PostViewerModal from './PostViewerModal';
 import CommentsModal from './CommentsModal';
 import SharePostModal from './SharePostModal';
+import PostLikesAvatars from './PostLikesAvatars';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -54,11 +55,13 @@ interface Post {
 interface InstagramPostCardProps {
   post: Post;
   onUpdate?: () => void;
+  hideTagIcon?: boolean;
 }
 
 export default function InstagramPostCard({
   post,
   onUpdate,
+  hideTagIcon = false,
 }: InstagramPostCardProps) {
   const { user } = useAuth();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -71,7 +74,6 @@ export default function InstagramPostCard({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showFullCaption, setShowFullCaption] = useState(false);
   
-  // Fetch author data dynamically
   const [authorAvatar, setAuthorAvatar] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState<string>('Usuario');
   const [loadingAuthor, setLoadingAuthor] = useState(true);
@@ -80,26 +82,46 @@ export default function InstagramPostCard({
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ NEW: Subscribe to real-time like updates
+  // ✅ FIXED: Subscribe to real-time like updates
   useEffect(() => {
     if (!post.id) return;
 
     console.log('[InstagramPostCard] 🔄 Setting up real-time like subscription for post:', post.id);
 
     const likesChannel = supabase
-      .channel(`post-likes-${post.id}`)
+      .channel(`post-likes-realtime-${post.id}`)
       .on(
-        'broadcast',
-        { event: 'like_update' },
-        (payload) => {
-          console.log('[InstagramPostCard] 🔄 Real-time like update received:', payload);
-          if (payload.payload.postId === post.id) {
-            setLikesCount(payload.payload.likesCount);
-            // Only update liked state if it's for the current user
-            if (user && payload.payload.userId === user.id) {
-              setIsLiked(payload.payload.liked);
-            }
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'likes',
+          filter: `post_id=eq.${post.id}`,
+        },
+        async (payload) => {
+          console.log('[InstagramPostCard] 🔄 Real-time like change detected:', payload);
+          
+          // Reload like count from database
+          const { count } = await supabase
+            .from('likes')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          setLikesCount(count || 0);
+          
+          // Check if current user has liked
+          if (user) {
+            const { data: userLike } = await supabase
+              .from('likes')
+              .select('id')
+              .eq('post_id', post.id)
+              .eq('usuario_id', user.id)
+              .single();
+            
+            setIsLiked(!!userLike);
           }
+          
+          console.log('[InstagramPostCard] ✅ Updated likes count:', count);
         }
       )
       .subscribe();
@@ -110,12 +132,10 @@ export default function InstagramPostCard({
     };
   }, [post.id, user]);
 
-  // Load author data on mount
   useEffect(() => {
     const loadAuthorData = async () => {
       try {
         if (post.tipo === 'local' && post.local_id) {
-          // Fetch local data
           const { data: localData, error } = await supabase
             .from('locales')
             .select('nombre, imagen_url')
@@ -127,7 +147,6 @@ export default function InstagramPostCard({
             setAuthorAvatar(localData.imagen_url || null);
           }
         } else if (post.autor_id) {
-          // Fetch user data
           const { data: userData, error } = await supabase
             .from('usuarios')
             .select('nombre, avatar, username')
@@ -181,7 +200,6 @@ export default function InstagramPostCard({
           usuario_id: user.id,
         });
         
-        // Update post likes count
         await supabase
           .from('posts')
           .update({ likes: newLikesCount })
@@ -193,29 +211,15 @@ export default function InstagramPostCard({
           .eq('post_id', post.id)
           .eq('usuario_id', user.id);
         
-        // Update post likes count
         await supabase
           .from('posts')
           .update({ likes: newLikesCount })
           .eq('id', post.id);
       }
 
-      // ✅ NEW: Broadcast like update to all subscribers
-      await supabase.channel(`post-likes-${post.id}`).send({
-        type: 'broadcast',
-        event: 'like_update',
-        payload: {
-          postId: post.id,
-          likesCount: newLikesCount,
-          liked: newLikedState,
-          userId: user.id,
-        },
-      });
-
-      console.log('[InstagramPostCard] ✅ Like broadcasted successfully');
+      console.log('[InstagramPostCard] ✅ Like updated successfully');
     } catch (error) {
       console.error('[InstagramPostCard] Error toggling like:', error);
-      // Revert optimistic update
       setIsLiked(!newLikedState);
       setLikesCount(newLikedState ? newLikesCount - 1 : newLikesCount + 1);
     }
@@ -284,19 +288,17 @@ export default function InstagramPostCard({
                 isOwner,
               });
               
-              // Verify ownership before deletion
               if (post.autor_id !== user.id) {
                 console.error('[InstagramPostCard] ❌ User is not the owner of this post');
                 Alert.alert('Error', 'No tienes permiso para eliminar esta publicación');
                 return;
               }
 
-              // Delete from the posts table
               const { error, data } = await supabase
                 .from('posts')
                 .delete()
                 .eq('id', post.id)
-                .eq('autor_id', user.id); // Double-check ownership in query
+                .eq('autor_id', user.id);
 
               if (error) {
                 console.error('[InstagramPostCard] ❌ Delete error:', error);
@@ -306,7 +308,6 @@ export default function InstagramPostCard({
               console.log('[InstagramPostCard] ✅ Post deleted successfully');
               Alert.alert('Éxito', 'Publicación eliminada correctamente');
 
-              // Trigger update callback
               if (onUpdate) {
                 onUpdate();
               }
@@ -361,10 +362,8 @@ export default function InstagramPostCard({
   return (
     <>
       <View style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.authorInfo} onPress={handleProfilePress}>
-            {/* Show avatar with momento border if user has unviewed momentos */}
             <MiniAvatarWithMomento
               userId={post.tipo === 'usuario' ? post.autor_id : undefined}
               localId={post.tipo === 'local' ? post.local_id : undefined}
@@ -387,7 +386,6 @@ export default function InstagramPostCard({
           )}
         </View>
 
-        {/* Images */}
         {post.imagenes.length > 0 && (
           <TouchableOpacity 
             style={styles.imagesContainer}
@@ -432,7 +430,6 @@ export default function InstagramPostCard({
           </TouchableOpacity>
         )}
 
-        {/* Actions */}
         <View style={styles.actions}>
           <View style={styles.leftActions}>
             <TouchableOpacity
@@ -450,7 +447,7 @@ export default function InstagramPostCard({
               style={styles.actionButton}
               onPress={handleComment}
             >
-              <IconSymbol name="bubble.right" size={26} color={colors.text} />
+              <IconSymbol ios_icon_name="bubble.right" android_material_icon_name="chat_bubble_outline" size={26} color={colors.text} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -473,15 +470,12 @@ export default function InstagramPostCard({
           </TouchableOpacity>
         </View>
 
-        {/* Stats & Content */}
         <View style={styles.stats}>
+          {/* ✅ FIXED: Real-time updating likes avatars */}
           {likesCount > 0 && (
-            <Text style={styles.likesText}>
-              <Text style={styles.likesBold}>{formatNumber(likesCount)}</Text> Me gusta
-            </Text>
+            <PostLikesAvatars postId={post.id} totalLikes={likesCount} />
           )}
           
-          {/* Caption */}
           {captionText && (
             <View style={styles.captionContainer}>
               <Text style={styles.caption}>
@@ -510,15 +504,14 @@ export default function InstagramPostCard({
         </View>
       </View>
 
-      {/* Post Viewer Modal */}
       <PostViewerModal
         visible={showPostViewer}
         post={post}
         onClose={() => setShowPostViewer(false)}
         onUpdate={onUpdate}
+        hideTagIcon={hideTagIcon}
       />
 
-      {/* Comments Modal */}
       <CommentsModal
         visible={showComments}
         postId={post.id}
@@ -527,7 +520,6 @@ export default function InstagramPostCard({
         onCommentAdded={handleCommentsUpdate}
       />
 
-      {/* Share Modal */}
       <SharePostModal
         visible={showShareModal}
         postId={post.id}
@@ -621,15 +613,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 4,
     paddingBottom: 12,
-  },
-  likesText: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  likesBold: {
-    fontWeight: '600',
   },
   captionContainer: {
     marginBottom: 4,

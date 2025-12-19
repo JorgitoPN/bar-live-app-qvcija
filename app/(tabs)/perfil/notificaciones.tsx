@@ -32,6 +32,7 @@ interface Notificacion {
   comentario_id?: string;
   leida: boolean;
   created_at: string;
+  leida_at?: string;
   usuario_origen?: {
     id: string;
     nombre: string;
@@ -157,11 +158,25 @@ export default function NotificacionesScreen() {
     }
   }, [user, cargarNotificaciones]);
 
+  // ✅ FIXED: Real-time subscription for notifications
   useEffect(() => {
     if (!user) return;
 
     const subscription = supabase
-      .channel('tag-notifications')
+      .channel('user-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notificaciones',
+          filter: `usuario_id=eq.${user.id}`,
+        },
+        () => {
+          console.log('[Notificaciones] 🔄 Notification update detected, reloading...');
+          cargarNotificaciones();
+        }
+      )
       .on(
         'postgres_changes',
         {
@@ -237,16 +252,25 @@ export default function NotificacionesScreen() {
     );
   };
 
+  // ✅ FIXED: Proper notification redirection
   const handleNotificationPress = async (notif: Notificacion) => {
     try {
+      // ✅ FIXED: Mark as read with leida_at timestamp
       await supabase
         .from('notificaciones')
         .update({ leida: true, leida_at: new Date().toISOString() })
         .eq('id', notif.id);
 
-      cargarNotificaciones();
+      // Update local state immediately
+      setNotificaciones(prev => 
+        prev.map(n => 
+          n.id === notif.id 
+            ? { ...n, leida: true, leida_at: new Date().toISOString() }
+            : n
+        )
+      );
 
-      // ✅ FIXED: Proper redirection based on notification type
+      // ✅ FIXED: Proper redirection based on notification type and available data
       if (notif.post_id) {
         console.log('[Notificaciones] ✅ Redirecting to post:', notif.post_id);
         router.push({ pathname: '/social/post', params: { id: notif.post_id } });

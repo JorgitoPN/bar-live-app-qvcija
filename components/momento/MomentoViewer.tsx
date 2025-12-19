@@ -291,7 +291,7 @@ export default function MomentoViewer({
     }
   };
 
-  // ✅ UPDATED: Send message with automatic screenshot capture
+  // ✅ FIXED: Send message with automatic screenshot capture
   const handleSendMessage = async () => {
     if (!user || !author || momentos.length === 0) return;
 
@@ -334,7 +334,6 @@ export default function MomentoViewer({
         }
       }
 
-      // Find or create chat
       const userId1 = user.id < author.id ? user.id : author.id;
       const userId2 = user.id < author.id ? author.id : user.id;
 
