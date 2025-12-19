@@ -89,7 +89,7 @@ export default function SalaVirtualScreen() {
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [localClosed, setLocalClosed] = useState(false);
-  const [activeTab, setActiveTab] = useState<'users' | 'chat'>('users');
+  const [activeTab, setActiveTab] = useState<'chat' | 'users'>('chat'); // ✅ FIXED: Default to 'chat' first
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   
   const flatListRef = useRef<FlatList>(null);
@@ -102,7 +102,6 @@ export default function SalaVirtualScreen() {
   const glowAnim = useRef(new Animated.Value(0)).current;
 
   // ✅ SPECTACULAR: Pulse animation for online indicators
-  // ✅ Fixed: Added glowAnim and pulseAnim to dependencies
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -222,7 +221,7 @@ export default function SalaVirtualScreen() {
     }
   }, [user, localId]);
 
-  // ✅ FIXED: Handle check-in with proper duplicate handling
+  // ✅ FIXED: Handle check-in with proper duplicate handling and auto check-in
   const handleCheckIn = async () => {
     if (!user || !localId) {
       Alert.alert('Error', 'Debes iniciar sesión para entrar en la sala');
@@ -558,8 +557,7 @@ export default function SalaVirtualScreen() {
     };
   }, [localId, user, updateActiveUsers, router]);
 
-  // Initialize
-  // ✅ Fixed: Added all missing dependencies
+  // ✅ FIXED: Auto check-in when entering the room
   useEffect(() => {
     if (!localId) {
       setLoading(false);
@@ -572,6 +570,12 @@ export default function SalaVirtualScreen() {
     const init = async () => {
       await loadLocalData();
       await checkUserCheckin();
+      
+      // ✅ NEW: Auto check-in if not already checked in and local is open
+      if (!isCheckedIn && !localClosed && user) {
+        await handleCheckIn();
+      }
+      
       await loadMessages();
       const unsubscribe = subscribeToUpdates();
       await updateActiveUsers();
@@ -589,7 +593,7 @@ export default function SalaVirtualScreen() {
     return () => {
       cleanup.then(fn => fn && fn());
     };
-  }, [localId, router, checkUserCheckin, loadLocalData, loadMessages, subscribeToUpdates, updateActiveUsers]);
+  }, [localId, router]);
 
   // Handle typing indicator
   const handleTyping = () => {
@@ -641,7 +645,7 @@ export default function SalaVirtualScreen() {
         .insert({
           usuario_id: user.id,
           local_id: localId,
-          tipo: 'mensaje',
+          tipo: 'mensaje', // ✅ FIXED: Use 'mensaje' instead of 'message_created'
           contenido: content,
         })
         .select()
@@ -720,7 +724,7 @@ export default function SalaVirtualScreen() {
         .insert({
           usuario_id: user.id,
           local_id: localId,
-          tipo: 'emoticon',
+          tipo: 'emoticon', // ✅ FIXED: Use 'emoticon' instead of other values
           contenido: emoticon,
           recipient_id: recipientId,
         })
@@ -1013,95 +1017,7 @@ export default function SalaVirtualScreen() {
     );
   }
 
-  if (!isCheckedIn) {
-    const estadoLocal = local ? getEstadoLocal(local) : null;
-    const isOpen = estadoLocal?.estaAbierto === true;
-
-    return (
-      <View style={styles.container}>
-        <Stack.Screen
-          options={{
-            title: local?.nombre || 'Sala Virtual',
-          }}
-        />
-        <View style={styles.checkInContainer}>
-          <LinearGradient
-            colors={[ROOM_COLORS.primary, ROOM_COLORS.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.checkInCard}
-          >
-            <View style={styles.checkInIconCircle}>
-              <IconSymbol
-                ios_icon_name="cube.fill"
-                android_material_icon_name="view_in_ar"
-                size={48}
-                color="#fff"
-              />
-            </View>
-            <Text style={styles.checkInTitle}>Sala Virtual</Text>
-            <Text style={styles.checkInSubtitle}>
-              {local?.nombre}
-            </Text>
-            
-            {estadoLocal && (
-              <View style={[styles.statusBadge, !isOpen && styles.statusBadgeClosed]}>
-                <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
-                <Text style={styles.statusBadgeText}>{estadoLocal.badge}</Text>
-                {estadoLocal.tiempoRestante && (
-                  <Text style={styles.statusBadgeSubtext}>• {estadoLocal.tiempoRestante}</Text>
-                )}
-              </View>
-            )}
-            
-            <Text style={styles.checkInDescription}>
-              {isOpen 
-                ? 'Entra en la sala para chatear, conocer gente y divertirte con otros usuarios que están aquí ahora mismo.'
-                : 'Este local está cerrado actualmente. Vuelve cuando esté abierto para acceder a la sala virtual.'}
-            </Text>
-            
-            <View style={styles.checkInStats}>
-              <View style={styles.checkInStat}>
-                <IconSymbol
-                  ios_icon_name="person.3.fill"
-                  android_material_icon_name="group"
-                  size={32}
-                  color="#fff"
-                />
-                <Text style={styles.checkInStatNumber}>{activeUsers.length}</Text>
-                <Text style={styles.checkInStatLabel}>Usuarios activos</Text>
-              </View>
-            </View>
-
-            {isOpen && (
-              <TouchableOpacity
-                style={styles.checkInButton}
-                onPress={handleCheckIn}
-                disabled={checkingIn}
-                activeOpacity={0.8}
-              >
-                <View style={styles.checkInButtonContent}>
-                  {checkingIn ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <React.Fragment>
-                      <IconSymbol
-                        ios_icon_name="arrow.right.circle.fill"
-                        android_material_icon_name="login"
-                        size={24}
-                        color="#fff"
-                      />
-                      <Text style={styles.checkInButtonText}>Entrar en la Sala Virtual</Text>
-                    </React.Fragment>
-                  )}
-                </View>
-              </TouchableOpacity>
-            )}
-          </LinearGradient>
-        </View>
-      </View>
-    );
-  }
+  // ✅ REMOVED: Welcome screen - users now enter directly into the chat
 
   return (
     <KeyboardAvoidingView
@@ -1129,9 +1045,45 @@ export default function SalaVirtualScreen() {
       />
 
       <View style={styles.content}>
-        {/* ✅ FIXED: Tab bar with proper rounded corners and no overflow */}
+        {/* ✅ FIXED: Tab bar with Chat Público first, then Usuarios */}
         <View style={styles.tabBarContainer}>
           <View style={styles.tabBar}>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
+              onPress={() => setActiveTab('chat')}
+              activeOpacity={0.7}
+            >
+              {activeTab === 'chat' ? (
+                <LinearGradient
+                  colors={[ROOM_COLORS.primary, ROOM_COLORS.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.tabGradient}
+                >
+                  <View style={styles.tabIconContainer}>
+                    <IconSymbol
+                      ios_icon_name="bubble.left.and.bubble.right.fill"
+                      android_material_icon_name="chat"
+                      size={22}
+                      color="#fff"
+                    />
+                  </View>
+                  <Text style={styles.tabTextActive}>Chat Público</Text>
+                </LinearGradient>
+              ) : (
+                <View style={styles.tabContent}>
+                  <View style={styles.tabIconContainer}>
+                    <IconSymbol
+                      ios_icon_name="bubble.left.and.bubble.right.fill"
+                      android_material_icon_name="chat"
+                      size={22}
+                      color={colors.textSecondary}
+                    />
+                  </View>
+                  <Text style={styles.tabText}>Chat Público</Text>
+                </View>
+              )}
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.tab, activeTab === 'users' && styles.tabActive]}
               onPress={() => setActiveTab('users')}
@@ -1178,97 +1130,10 @@ export default function SalaVirtualScreen() {
                 </View>
               )}
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
-              onPress={() => setActiveTab('chat')}
-              activeOpacity={0.7}
-            >
-              {activeTab === 'chat' ? (
-                <LinearGradient
-                  colors={[ROOM_COLORS.primary, ROOM_COLORS.secondary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.tabGradient}
-                >
-                  <View style={styles.tabIconContainer}>
-                    <IconSymbol
-                      ios_icon_name="bubble.left.and.bubble.right.fill"
-                      android_material_icon_name="chat"
-                      size={22}
-                      color="#fff"
-                    />
-                  </View>
-                  <Text style={styles.tabTextActive}>Chat Público</Text>
-                </LinearGradient>
-              ) : (
-                <View style={styles.tabContent}>
-                  <View style={styles.tabIconContainer}>
-                    <IconSymbol
-                      ios_icon_name="bubble.left.and.bubble.right.fill"
-                      android_material_icon_name="chat"
-                      size={22}
-                      color={colors.textSecondary}
-                    />
-                  </View>
-                  <Text style={styles.tabText}>Chat Público</Text>
-                </View>
-              )}
-            </TouchableOpacity>
           </View>
         </View>
 
-        {activeTab === 'users' ? (
-          <React.Fragment>
-            <FlatList
-              data={activeUsers}
-              renderItem={renderUserItem}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.usersContent}
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <LinearGradient
-                    colors={[`${ROOM_COLORS.primary}20`, `${ROOM_COLORS.secondary}20`]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.emptyIconCircle}
-                  >
-                    <IconSymbol
-                      ios_icon_name="person.3"
-                      android_material_icon_name="group"
-                      size={48}
-                      color={ROOM_COLORS.primary}
-                    />
-                  </LinearGradient>
-                  <Text style={styles.emptyText}>No hay usuarios activos</Text>
-                  <Text style={styles.emptySubtext}>Sé el primero en entrar</Text>
-                </View>
-              }
-            />
-
-            <View style={styles.usersFooter}>
-              <TouchableOpacity
-                style={styles.checkOutButtonLarge}
-                onPress={handleCheckOut}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={[ROOM_COLORS.danger, '#DC2626']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.checkOutButtonGradient}
-                >
-                  <IconSymbol
-                    ios_icon_name="rectangle.portrait.and.arrow.right"
-                    android_material_icon_name="logout"
-                    size={24}
-                    color="#fff"
-                  />
-                  <Text style={styles.checkOutButtonText}>Salir de la Sala</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </React.Fragment>
-        ) : (
+        {activeTab === 'chat' ? (
           <React.Fragment>
             <FlatList
               ref={flatListRef}
@@ -1351,6 +1216,53 @@ export default function SalaVirtualScreen() {
                     />
                   )}
                 </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            <FlatList
+              data={activeUsers}
+              renderItem={renderUserItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.usersContent}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <LinearGradient
+                    colors={[`${ROOM_COLORS.primary}20`, `${ROOM_COLORS.secondary}20`]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.emptyIconCircle}
+                  >
+                    <IconSymbol
+                      ios_icon_name="person.3"
+                      android_material_icon_name="group"
+                      size={48}
+                      color={ROOM_COLORS.primary}
+                    />
+                  </LinearGradient>
+                  <Text style={styles.emptyText}>No hay usuarios activos</Text>
+                  <Text style={styles.emptySubtext}>Sé el primero en entrar</Text>
+                </View>
+              }
+            />
+
+            {/* ✅ FIXED: Exit button with less prominent color (gray instead of red) */}
+            <View style={styles.usersFooter}>
+              <TouchableOpacity
+                style={styles.checkOutButtonLarge}
+                onPress={handleCheckOut}
+                activeOpacity={0.8}
+              >
+                <View style={styles.checkOutButtonContent}>
+                  <IconSymbol
+                    ios_icon_name="rectangle.portrait.and.arrow.right"
+                    android_material_icon_name="logout"
+                    size={24}
+                    color={colors.textSecondary}
+                  />
+                  <Text style={styles.checkOutButtonText}>Salir de la Sala</Text>
+                </View>
               </TouchableOpacity>
             </View>
           </React.Fragment>
@@ -1441,131 +1353,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   closedButtonText: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  checkInContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  checkInCard: {
-    width: '100%',
-    maxWidth: 400,
-    borderRadius: 32,
-    padding: 40,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  checkInIconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  checkInTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  checkInSubtitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 16,
-    opacity: 0.9,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginBottom: 16,
-    gap: 8,
-  },
-  statusBadgeClosed: {
-    backgroundColor: 'rgba(239, 68, 68, 0.3)',
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  statusDotOpen: {
-    backgroundColor: ROOM_COLORS.success,
-  },
-  statusDotClosed: {
-    backgroundColor: ROOM_COLORS.danger,
-  },
-  statusBadgeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  statusBadgeSubtext: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-    opacity: 0.8,
-  },
-  checkInDescription: {
-    fontSize: 15,
-    color: '#fff',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-    opacity: 0.9,
-  },
-  checkInStats: {
-    flexDirection: 'row',
-    gap: 24,
-    marginBottom: 32,
-  },
-  checkInStat: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  checkInStatNumber: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  checkInStatLabel: {
-    fontSize: 13,
-    color: '#fff',
-    opacity: 0.8,
-  },
-  checkInButton: {
-    width: '100%',
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  checkInButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-  },
-  checkInButtonText: {
     fontSize: 17,
     fontWeight: '800',
     color: '#fff',
@@ -1939,8 +1726,11 @@ const styles = StyleSheet.create({
   checkOutButtonLarge: {
     borderRadius: 16,
     overflow: 'hidden',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
-  checkOutButtonGradient: {
+  checkOutButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1951,6 +1741,6 @@ const styles = StyleSheet.create({
   checkOutButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.textSecondary,
   },
 });
