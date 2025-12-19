@@ -23,15 +23,6 @@ interface ProfileSwitcherProps {
   onClose: () => void;
 }
 
-/**
- * ✅ PROFILE SWITCHER v2.0 - WITH PROPER OWNERSHIP SYNC
- * 
- * Changes:
- * - ✅ FIXED: Properly syncs with current ownership status
- * - ✅ FIXED: Reloads owned locals when modal opens
- * - ✅ IMPROVED: Better logging for debugging
- */
-
 export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherProps) {
   const { user } = useAuth();
   const router = useRouter();
