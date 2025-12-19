@@ -21,6 +21,7 @@ import { useImpersonation } from '@/contexts/ImpersonationContext';
 import TarjetaLocal from '@/components/home/TarjetaLocal';
 import BarraFiltrosInteractiva from '@/components/home/BarraFiltrosInteractiva';
 import * as Location from 'expo-location';
+import { getEstadoLocal } from '@/utils/timeUtils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -43,6 +44,9 @@ interface Local {
   latitud?: number;
   longitud?: number;
   popularidad?: number;
+  horarios_completos?: Record<string, string[]>;
+  google_business_status?: string;
+  estado_actual?: string;
 }
 
 interface Filtro {
@@ -182,6 +186,15 @@ export default function HomeScreen() {
 
       let localesConDistancia = data || [];
 
+      // ✅ NEW: Calculate open/closed status for each local
+      localesConDistancia = localesConDistancia.map(local => {
+        const estadoLocal = getEstadoLocal(local);
+        return {
+          ...local,
+          estaAbierto: estadoLocal.estaAbierto,
+        };
+      });
+
       if (userLocation) {
         console.log('[Home] 📍 User location:', userLocation);
         
@@ -198,22 +211,31 @@ export default function HomeScreen() {
           return { ...local, distancia: 999999 };
         });
 
-        console.log('[Home] 🧠 Applying USER REQUESTED sorting algorithm...');
+        console.log('[Home] 🧠 Applying USER REQUESTED sorting algorithm with CLOSED LOCALS AT END...');
         console.log('[Home] 📋 CORRECT ORDER (USER REQUESTED):');
-        console.log('[Home]    1. Group A (≤100km) - FEATURED sorted by distance');
-        console.log('[Home]    2. Group A (≤100km) - NON-FEATURED sorted by distance');
-        console.log('[Home]    3. Group B (>100km) - NON-FEATURED sorted by distance');
-        console.log('[Home]    4. Group B (>100km) - FEATURED sorted by distance');
+        console.log('[Home]    1. Group A (≤100km) - FEATURED - OPEN sorted by distance');
+        console.log('[Home]    2. Group A (≤100km) - NON-FEATURED - OPEN sorted by distance');
+        console.log('[Home]    3. Group B (>100km) - NON-FEATURED - OPEN sorted by distance');
+        console.log('[Home]    4. Group B (>100km) - FEATURED - OPEN sorted by distance');
+        console.log('[Home]    5. CLOSED LOCALS - All closed locals at the end');
 
-        const groupA = localesConDistancia.filter(l => 
+        // ✅ NEW: Separate open and closed locals
+        const localesAbiertos = localesConDistancia.filter(l => l.estaAbierto === true);
+        const localesCerrados = localesConDistancia.filter(l => l.estaAbierto !== true);
+
+        console.log('[Home] 📊 Open locals:', localesAbiertos.length);
+        console.log('[Home] 📊 Closed locals:', localesCerrados.length);
+
+        // Sort open locals using the existing algorithm
+        const groupA = localesAbiertos.filter(l => 
           l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
         );
         
-        const groupB = localesConDistancia.filter(l => 
+        const groupB = localesAbiertos.filter(l => 
           l.distancia !== undefined && l.distancia > MAX_FEATURED_DISTANCE_KM
         );
 
-        console.log('[Home] 📊 Groups created:');
+        console.log('[Home] 📊 Groups created (OPEN ONLY):');
         console.log('  - Group A (≤100km):', groupA.length, 'locals');
         console.log('  - Group B (>100km):', groupB.length, 'locals');
 
@@ -233,68 +255,45 @@ export default function HomeScreen() {
           .filter(l => l.destacado === true)
           .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-        console.log('[Home] 📊 Sub-groups created (USER REQUESTED ORDER):');
-        console.log('  1. Group A Featured (≤100km, destacado=true):', groupA_destacados.length);
-        console.log('  2. Group A Non-Featured (≤100km, destacado=false):', groupA_no_destacados.length);
-        console.log('  3. Group B Non-Featured (>100km, destacado=false):', groupB_no_destacados.length);
-        console.log('  4. Group B Featured (>100km, destacado=true):', groupB_destacados.length);
+        // Sort closed locals by distance
+        const localesCerradosOrdenados = localesCerrados.sort((a, b) => 
+          (a.distancia || 999999) - (b.distancia || 999999)
+        );
 
+        console.log('[Home] 📊 Sub-groups created (USER REQUESTED ORDER):');
+        console.log('  1. Group A Featured (≤100km, destacado=true, OPEN):', groupA_destacados.length);
+        console.log('  2. Group A Non-Featured (≤100km, destacado=false, OPEN):', groupA_no_destacados.length);
+        console.log('  3. Group B Non-Featured (>100km, destacado=false, OPEN):', groupB_no_destacados.length);
+        console.log('  4. Group B Featured (>100km, destacado=true, OPEN):', groupB_destacados.length);
+        console.log('  5. CLOSED LOCALS (all):', localesCerradosOrdenados.length);
+
+        // ✅ NEW: Closed locals at the end
         localesConDistancia = [
           ...groupA_destacados,
           ...groupA_no_destacados,
           ...groupB_no_destacados,
           ...groupB_destacados,
+          ...localesCerradosOrdenados, // ✅ CLOSED LOCALS AT THE END
         ];
 
-        console.log('[Home] ✅ USER REQUESTED SORTING APPLIED - Total locals:', localesConDistancia.length);
+        console.log('[Home] ✅ USER REQUESTED SORTING APPLIED WITH CLOSED LOCALS AT END - Total locals:', localesConDistancia.length);
         console.log('[Home] 🔝 First 20 locals in final list:');
         localesConDistancia.slice(0, 20).forEach((l, i) => {
-          const group = l.distancia! <= MAX_FEATURED_DISTANCE_KM ? 'A' : 'B';
+          const group = l.estaAbierto !== true ? 'CLOSED' : (l.distancia! <= MAX_FEATURED_DISTANCE_KM ? 'A' : 'B');
           const featured = l.destacado ? '⭐ DESTACADO' : '   NORMAL   ';
-          console.log(`  ${String(i + 1).padStart(2, '0')}. [Group ${group}] ${featured} | ${l.nombre}`);
+          const status = l.estaAbierto === true ? '🟢 ABIERTO' : '🔴 CERRADO';
+          console.log(`  ${String(i + 1).padStart(2, '0')}. [Group ${group}] ${featured} ${status} | ${l.nombre}`);
           console.log(`      📍 Distancia: ${l.distancia?.toFixed(1)}km | 📌 Dirección: ${l.direccion}`);
         });
-
-        const casaPacoIndex = localesConDistancia.findIndex(l => 
-          l.nombre.toLowerCase().includes('casa paco') || 
-          l.direccion?.toLowerCase().includes('rincón de san nicolás')
-        );
-        
-        if (casaPacoIndex !== -1) {
-          const casaPaco = localesConDistancia[casaPacoIndex];
-          const expectedGroup = casaPaco.distancia! > MAX_FEATURED_DISTANCE_KM ? 'B' : 'A';
-          const expectedSubgroup = casaPaco.destacado ? 'Featured' : 'Non-Featured';
-          
-          console.log('[Home] 📌 ========================================');
-          console.log('[Home] 📌 CASA PACO VERIFICATION:');
-          console.log('[Home] 📌 ========================================');
-          console.log(`[Home] 📌 Position in list: #${casaPacoIndex + 1} of ${localesConDistancia.length}`);
-          console.log(`[Home] 📌 Name: ${casaPaco.nombre}`);
-          console.log(`[Home] 📌 Address: ${casaPaco.direccion}`);
-          console.log(`[Home] 📌 Featured: ${casaPaco.destacado}`);
-          console.log(`[Home] 📌 Distance: ${casaPaco.distancia?.toFixed(1)}km`);
-          console.log(`[Home] 📌 Expected Group: ${expectedGroup} (${expectedSubgroup})`);
-          console.log(`[Home] 📌 Expected Position: LAST BLOCK (Group B Featured)`);
-          
-          const expectedPosition = groupA_destacados.length + groupA_no_destacados.length + groupB_no_destacados.length;
-          
-          console.log(`[Home] 📌 Expected minimum position: #${expectedPosition + 1}`);
-          console.log(`[Home] 📌 Actual position: #${casaPacoIndex + 1}`);
-          
-          if (casaPacoIndex < expectedPosition) {
-            console.error('[Home] ❌❌❌ CRITICAL ERROR: Casa Paco is NOT in the correct position!');
-            console.error(`[Home] ❌ It should be at position #${expectedPosition + 1} or later, but it's at #${casaPacoIndex + 1}`);
-          } else {
-            console.log('[Home] ✅✅✅ Casa Paco is CORRECTLY positioned in the last block (Group B Featured)');
-          }
-          console.log('[Home] 📌 ========================================');
-        } else {
-          console.log('[Home] ℹ️ Casa Paco not found in current results');
-        }
       } else {
         console.log('[Home] ⚠️ No user location available, sorting by destacado and rating only');
         
-        localesConDistancia.sort((a, b) => {
+        // ✅ NEW: Separate open and closed locals
+        const localesAbiertos = localesConDistancia.filter(l => l.estaAbierto === true);
+        const localesCerrados = localesConDistancia.filter(l => l.estaAbierto !== true);
+
+        // Sort open locals
+        localesAbiertos.sort((a, b) => {
           if (a.destacado !== b.destacado) {
             return a.destacado ? -1 : 1;
           }
@@ -302,6 +301,19 @@ export default function HomeScreen() {
           const ratingB = parseFloat((b.rating || b.google_rating || 0).toString());
           return ratingB - ratingA;
         });
+
+        // Sort closed locals
+        localesCerrados.sort((a, b) => {
+          if (a.destacado !== b.destacado) {
+            return a.destacado ? -1 : 1;
+          }
+          const ratingA = parseFloat((a.rating || a.google_rating || 0).toString());
+          const ratingB = parseFloat((b.rating || b.google_rating || 0).toString());
+          return ratingB - ratingA;
+        });
+
+        // ✅ NEW: Closed locals at the end
+        localesConDistancia = [...localesAbiertos, ...localesCerrados];
       }
 
       console.log('[Home] ✅ Locales cargados:', localesConDistancia.length);

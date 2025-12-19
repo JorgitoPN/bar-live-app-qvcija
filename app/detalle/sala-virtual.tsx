@@ -26,13 +26,15 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ✅ SPECTACULAR: BarLive-consistent color scheme
+// ✅ UPDATED: Softer red tones for general actions, strong red only for warnings
 const ROOM_COLORS = {
   primary: colors.primary,        // Teal
   secondary: colors.secondary,    // Cyan
   accent: '#F59E0B',             // Amber
   success: '#10B981',            // Green
-  danger: '#EF4444',             // Red
+  danger: '#EF4444',             // Strong Red (only for warnings/deletions)
+  warning: '#F97316',            // Orange (for "closing soon" warnings)
+  softRed: '#FCA5A5',            // Soft Red (for general actions)
   purple: '#8B5CF6',             // Purple
   pink: '#EC4899',               // Pink
   dark: '#1F2937',               // Dark gray
@@ -75,6 +77,10 @@ interface Local {
 
 const EMOTICONS = ['❤️', '🔥', '😎', '😄', '👏', '🍹', '🎶', '😍', '🤝', '👋', '🎉', '💃', '🕺', '🎊', '🥳'];
 
+// ✅ NEW: Closing warning thresholds (in minutes)
+const CLOSING_WARNING_THRESHOLD = 30; // Warn when 30 minutes or less until closing
+const CLOSING_CRITICAL_THRESHOLD = 10; // Critical warning when 10 minutes or less
+
 export default function SalaVirtualScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -89,13 +95,18 @@ export default function SalaVirtualScreen() {
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [localClosed, setLocalClosed] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chat' | 'users'>('chat'); // ✅ FIXED: Default to 'chat' first
+  const [activeTab, setActiveTab] = useState<'chat' | 'users'>('chat');
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  
+  // ✅ NEW: Closing warning state
+  const [closingWarningShown, setClosingWarningShown] = useState(false);
+  const [minutesUntilClosing, setMinutesUntilClosing] = useState<number | null>(null);
   
   const flatListRef = useRef<FlatList>(null);
   const chatChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const closingCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const localId = params.localId as string;
   const hasShownClosedAlert = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -134,6 +145,100 @@ export default function SalaVirtualScreen() {
       ])
     ).start();
   }, [glowAnim, pulseAnim]);
+
+  // ✅ NEW: Check closing time and show warnings
+  const checkClosingTime = useCallback(() => {
+    if (!local) return;
+
+    const estadoLocal = getEstadoLocal(local);
+    
+    // If local is open and has time remaining
+    if (estadoLocal.estaAbierto && estadoLocal.tiempoRestante) {
+      // Parse time remaining to get minutes
+      const timeStr = estadoLocal.tiempoRestante;
+      let totalMinutes = 0;
+      
+      // Parse formats like "30 min", "1 h 15 min", "2 días 3 h"
+      const daysMatch = timeStr.match(/(\d+)\s*día/);
+      const hoursMatch = timeStr.match(/(\d+)\s*h(?!\s*min)/);
+      const minutesMatch = timeStr.match(/(\d+)\s*min/);
+      
+      if (daysMatch) {
+        totalMinutes += parseInt(daysMatch[1]) * 24 * 60;
+      }
+      if (hoursMatch) {
+        totalMinutes += parseInt(hoursMatch[1]) * 60;
+      }
+      if (minutesMatch) {
+        totalMinutes += parseInt(minutesMatch[1]);
+      }
+      
+      setMinutesUntilClosing(totalMinutes);
+      
+      console.log(`[SalaVirtual] ⏰ Tiempo hasta cierre: ${totalMinutes} minutos`);
+      
+      // Show warning if closing soon
+      if (totalMinutes <= CLOSING_WARNING_THRESHOLD && !closingWarningShown) {
+        setClosingWarningShown(true);
+        
+        const warningMessage = totalMinutes <= CLOSING_CRITICAL_THRESHOLD
+          ? `⚠️ El local cerrará en ${totalMinutes} minutos. La sala virtual se cerrará automáticamente.`
+          : `El local cerrará en ${totalMinutes} minutos. La sala virtual se cerrará cuando cierre el local.`;
+        
+        Alert.alert(
+          'Sala Virtual Cerrando Pronto',
+          warningMessage,
+          [{ text: 'Entendido' }]
+        );
+        
+        // Broadcast warning to all users in the room
+        if (chatChannelRef.current) {
+          chatChannelRef.current.send({
+            type: 'broadcast',
+            event: 'room_closing_soon',
+            payload: {
+              minutes: totalMinutes,
+            },
+          });
+        }
+      }
+    } else if (!estadoLocal.estaAbierto) {
+      // Local is closed, kick everyone out
+      console.log('[SalaVirtual] ❌ Local cerrado, expulsando usuarios');
+      setLocalClosed(true);
+      
+      if (chatChannelRef.current) {
+        chatChannelRef.current.send({
+          type: 'broadcast',
+          event: 'room_closed',
+          payload: {},
+        });
+      }
+      
+      Alert.alert(
+        'Sala Virtual Cerrada',
+        'El local ha cerrado. Has sido expulsado de la sala virtual.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+    }
+  }, [local, closingWarningShown, router]);
+
+  // ✅ NEW: Set up interval to check closing time every minute
+  useEffect(() => {
+    if (isCheckedIn && local) {
+      // Check immediately
+      checkClosingTime();
+      
+      // Then check every minute
+      closingCheckIntervalRef.current = setInterval(checkClosingTime, 60000);
+      
+      return () => {
+        if (closingCheckIntervalRef.current) {
+          clearInterval(closingCheckIntervalRef.current);
+        }
+      };
+    }
+  }, [isCheckedIn, local, checkClosingTime]);
 
   // Load local data
   const loadLocalData = useCallback(async () => {
@@ -1030,6 +1135,21 @@ export default function SalaVirtualScreen() {
           title: local?.nombre || 'Sala Virtual',
           headerRight: () => (
             <View style={styles.headerRight}>
+              {/* ✅ NEW: Show closing warning indicator */}
+              {minutesUntilClosing !== null && minutesUntilClosing <= CLOSING_WARNING_THRESHOLD && (
+                <View style={[
+                  styles.closingWarningIndicator,
+                  minutesUntilClosing <= CLOSING_CRITICAL_THRESHOLD && styles.closingCriticalIndicator
+                ]}>
+                  <IconSymbol
+                    ios_icon_name="clock.fill"
+                    android_material_icon_name="schedule"
+                    size={14}
+                    color="#fff"
+                  />
+                  <Text style={styles.closingWarningText}>{minutesUntilClosing} min</Text>
+                </View>
+              )}
               <View style={styles.activeUsersIndicator}>
                 <Animated.View 
                   style={[
@@ -1247,7 +1367,7 @@ export default function SalaVirtualScreen() {
               }
             />
 
-            {/* ✅ FIXED: Exit button with less prominent color (gray instead of red) */}
+            {/* ✅ UPDATED: Exit button with less prominent color (gray instead of red) */}
             <View style={styles.usersFooter}>
               <TouchableOpacity
                 style={styles.checkOutButtonLarge}
@@ -1362,6 +1482,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
     gap: 8,
+  },
+  // ✅ NEW: Closing warning indicator styles
+  closingWarningIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: ROOM_COLORS.warning,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  closingCriticalIndicator: {
+    backgroundColor: ROOM_COLORS.danger,
+  },
+  closingWarningText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
   },
   activeUsersIndicator: {
     flexDirection: 'row',
