@@ -68,16 +68,20 @@ interface PerfilProfesional {
   activo: boolean;
 }
 
+interface CheckInInfo {
+  visibility: string;
+  specific_user_ids?: string[];
+}
+
 /**
- * ✅ PROFILE SCREEN v11.1 - WITH IMPROVED CURRENT LOCATION SECTION
+ * ✅ PROFILE SCREEN v12.0 - WITH REDESIGNED CURRENT LOCATION SECTION
  * 
  * Changes:
- * - ✅ Fixed "Estado actual" section background color (lighter, more visible)
- * - ✅ Added proper contrast for text readability
- * - ✅ Visual card with local photo, name, and address
- * - ✅ "Salir del local" button for own profile
- * - ✅ Clickable card navigates to local page
- * - ✅ Cart icon for propietario role
+ * - ✅ NEW: Modern card design with gradient background
+ * - ✅ NEW: Shows sharing visibility information (e.g., "Compartido con mis seguidores")
+ * - ✅ NEW: Animated pulse effect for active check-in
+ * - ✅ NEW: Better visual hierarchy with icons and colors
+ * - ✅ IMPROVED: More attractive and informative design
  */
 
 export default function PerfilScreen() {
@@ -120,8 +124,9 @@ export default function PerfilScreen() {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [allPostIds, setAllPostIds] = useState<string[]>([]);
 
-  // ✅ Current location state
+  // ✅ Current location state with visibility info
   const [currentLocal, setCurrentLocal] = useState<any>(null);
+  const [checkInInfo, setCheckInInfo] = useState<CheckInInfo | null>(null);
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
@@ -159,7 +164,7 @@ export default function PerfilScreen() {
     }
   }, [user, isPropietario]);
 
-  // ✅ Load current check-in location
+  // ✅ Load current check-in location with visibility info
   const loadCurrentLocal = useCallback(async () => {
     if (!user) return;
 
@@ -169,6 +174,7 @@ export default function PerfilScreen() {
         .select(`
           local_id,
           visibility,
+          specific_user_ids,
           locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
         `)
         .eq('usuario_id', user.id)
@@ -181,9 +187,14 @@ export default function PerfilScreen() {
 
       if (checkIn && checkIn.locales) {
         setCurrentLocal(checkIn.locales);
-        console.log('[Perfil] ✅ User is checked in to:', checkIn.locales.nombre);
+        setCheckInInfo({
+          visibility: checkIn.visibility,
+          specific_user_ids: checkIn.specific_user_ids,
+        });
+        console.log('[Perfil] ✅ User is checked in to:', checkIn.locales.nombre, 'Visibility:', checkIn.visibility);
       } else {
         setCurrentLocal(null);
+        setCheckInInfo(null);
       }
     } catch (error) {
       console.error('[Perfil] Error loading current local:', error);
@@ -842,6 +853,7 @@ export default function PerfilScreen() {
               if (error) throw error;
 
               setCurrentLocal(null);
+              setCheckInInfo(null);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
               console.error('[Perfil] Error exiting local:', error);
@@ -851,6 +863,25 @@ export default function PerfilScreen() {
         },
       ]
     );
+  };
+
+  // ✅ Get visibility text for sharing info
+  const getVisibilityText = () => {
+    if (!checkInInfo) return '';
+    
+    switch (checkInInfo.visibility) {
+      case 'all_users':
+        return 'Compartido con todos los usuarios';
+      case 'followers':
+        return 'Compartido con mis seguidores';
+      case 'specific_users':
+        const count = checkInInfo.specific_user_ids?.length || 0;
+        return `Compartido con ${count} ${count === 1 ? 'persona' : 'personas'}`;
+      case 'only_me':
+        return 'Solo visible para mí';
+      default:
+        return 'Compartido';
+    }
   };
 
   const renderGridPost = (post: Post) => {
@@ -1007,64 +1038,140 @@ export default function PerfilScreen() {
           </TouchableOpacity>
         )}
 
-        {/* ✅ IMPROVED CURRENT LOCATION SECTION - "Estado actual" (OWN PROFILE) */}
+        {/* ✅ NEW: REDESIGNED CURRENT LOCATION SECTION - "Estado actual" */}
         {currentLocal && (
           <View style={styles.currentLocalSection}>
             <View style={styles.currentLocalHeader}>
-              <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color="#10B981" />
-              <Text style={styles.currentLocalHeaderText}>Estado actual</Text>
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.currentLocalHeaderGradient}
+              >
+                <View style={styles.currentLocalHeaderContent}>
+                  <View style={styles.currentLocalHeaderLeft}>
+                    <View style={styles.pulseContainer}>
+                      <View style={styles.pulseOuter} />
+                      <View style={styles.pulseInner} />
+                      <IconSymbol 
+                        ios_icon_name="mappin.circle.fill" 
+                        android_material_icon_name="location_on" 
+                        size={20} 
+                        color="#FFFFFF" 
+                      />
+                    </View>
+                    <View style={styles.currentLocalHeaderTextContainer}>
+                      <Text style={styles.currentLocalHeaderTitle}>Estado actual</Text>
+                      <Text style={styles.currentLocalHeaderSubtitle}>
+                        {getVisibilityText()}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.currentLocalHeaderBadge}>
+                    <View style={styles.liveDot} />
+                    <Text style={styles.currentLocalHeaderBadgeText}>EN VIVO</Text>
+                  </View>
+                </View>
+              </LinearGradient>
             </View>
 
             <TouchableOpacity 
               style={styles.currentLocalCard} 
               onPress={() => router.push(`/detalle/local?id=${currentLocal.id}`)}
-              activeOpacity={0.9}
+              activeOpacity={0.95}
             >
-              <View style={styles.currentLocalImageContainer}>
-                {currentLocal.imagen_url ? (
-                  <Image 
-                    source={{ uri: currentLocal.imagen_url }} 
-                    style={styles.currentLocalImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={[styles.currentLocalImage, styles.currentLocalImagePlaceholder]}>
-                    <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="#10B981" />
+              <LinearGradient
+                colors={['#FFFFFF', '#F9FAFB']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.currentLocalCardGradient}
+              >
+                <View style={styles.currentLocalCardContent}>
+                  <View style={styles.currentLocalImageWrapper}>
+                    {currentLocal.imagen_url ? (
+                      <Image 
+                        source={{ uri: currentLocal.imagen_url }} 
+                        style={styles.currentLocalCardImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={[styles.currentLocalCardImage, styles.currentLocalCardImagePlaceholder]}>
+                        <IconSymbol 
+                          ios_icon_name="building.2.fill" 
+                          android_material_icon_name="store" 
+                          size={32} 
+                          color="#10B981" 
+                        />
+                      </View>
+                    )}
+                    <LinearGradient
+                      colors={['transparent', 'rgba(16, 185, 129, 0.2)']}
+                      style={styles.currentLocalCardImageOverlay}
+                    />
                   </View>
-                )}
-                <LinearGradient
-                  colors={['transparent', 'rgba(16, 185, 129, 0.4)']}
-                  style={styles.currentLocalImageGradient}
-                />
-                <View style={styles.currentLocalBadge}>
-                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={12} color="#10B981" />
-                  <Text style={styles.currentLocalBadgeText}>Ahora en...</Text>
-                </View>
-              </View>
 
-              <View style={styles.currentLocalContent}>
-                <Text style={styles.currentLocalLabel}>
-                  Actualmente en
-                </Text>
-                <Text style={styles.currentLocalName} numberOfLines={1}>
-                  {currentLocal.nombre}
-                </Text>
-                <View style={styles.currentLocalMeta}>
-                  <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={11} color="#10B981" />
-                  <Text style={styles.currentLocalAddress} numberOfLines={1}>
-                    {currentLocal.direccion}
-                  </Text>
-                </View>
-              </View>
+                  <View style={styles.currentLocalCardInfo}>
+                    <View style={styles.currentLocalCardHeader}>
+                      <View style={styles.currentLocalCardBadge}>
+                        <IconSymbol 
+                          ios_icon_name="checkmark.circle.fill" 
+                          android_material_icon_name="check_circle" 
+                          size={14} 
+                          color="#10B981" 
+                        />
+                        <Text style={styles.currentLocalCardBadgeText}>Estás aquí</Text>
+                      </View>
+                    </View>
+                    
+                    <Text style={styles.currentLocalCardName} numberOfLines={2}>
+                      {currentLocal.nombre}
+                    </Text>
+                    
+                    <View style={styles.currentLocalCardMeta}>
+                      <IconSymbol 
+                        ios_icon_name="mappin" 
+                        android_material_icon_name="location_on" 
+                        size={14} 
+                        color="#6B7280" 
+                      />
+                      <Text style={styles.currentLocalCardAddress} numberOfLines={1}>
+                        {currentLocal.direccion}
+                      </Text>
+                    </View>
 
-              <View style={styles.currentLocalArrow}>
-                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={18} color="#10B981" />
-              </View>
+                    <View style={styles.currentLocalCardFooter}>
+                      <View style={styles.currentLocalCardType}>
+                        <IconSymbol 
+                          ios_icon_name="building.2" 
+                          android_material_icon_name="store" 
+                          size={12} 
+                          color="#10B981" 
+                        />
+                        <Text style={styles.currentLocalCardTypeText}>{currentLocal.tipo}</Text>
+                      </View>
+                      <View style={styles.currentLocalCardArrow}>
+                        <Text style={styles.currentLocalCardArrowText}>Ver local</Text>
+                        <IconSymbol 
+                          ios_icon_name="chevron.right" 
+                          android_material_icon_name="chevron_right" 
+                          size={16} 
+                          color="#10B981" 
+                        />
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
             
             {/* 🔘 "Salir del local" button */}
-            <TouchableOpacity style={styles.exitLocalButton} onPress={handleExitLocal}>
-              <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={16} color="#EF4444" />
+            <TouchableOpacity style={styles.exitLocalButton} onPress={handleExitLocal} activeOpacity={0.8}>
+              <IconSymbol 
+                ios_icon_name="mappin.slash.circle.fill" 
+                android_material_icon_name="location_off" 
+                size={18} 
+                color="#EF4444" 
+              />
               <Text style={styles.exitLocalButtonText}>Salir del local</Text>
             </TouchableOpacity>
           </View>
@@ -1664,129 +1771,229 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontWeight: '500',
   },
-  // ✅ IMPROVED CURRENT LOCATION SECTION STYLES - LIGHTER BACKGROUND (OWN PROFILE)
+  // ✅ NEW: REDESIGNED CURRENT LOCATION SECTION STYLES
   currentLocalSection: {
     marginBottom: 20,
   },
   currentLocalHeader: {
+    marginBottom: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  currentLocalHeaderGradient: {
+    padding: 16,
+  },
+  currentLocalHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  currentLocalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  pulseContainer: {
+    position: 'relative',
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pulseOuter: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  pulseInner: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  currentLocalHeaderTextContainer: {
+    flex: 1,
+  },
+  currentLocalHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 2,
+    letterSpacing: 0.3,
+  },
+  currentLocalHeaderSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  currentLocalHeaderBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
-  currentLocalHeaderText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.headerText,
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  currentLocalHeaderBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   currentLocalCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  currentLocalCardGradient: {
+    borderWidth: 2,
+    borderColor: '#10B981',
+    borderRadius: 16,
+  },
+  currentLocalCardContent: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)', // ✅ MUCH LIGHTER - Almost white with slight transparency
+    padding: 16,
+    gap: 16,
+  },
+  currentLocalImageWrapper: {
+    width: 100,
+    height: 100,
     borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: '#10B981', // ✅ Solid green border for better visibility
-    marginBottom: 10,
+    position: 'relative',
+  },
+  currentLocalCardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  currentLocalCardImagePlaceholder: {
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currentLocalCardImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '40%',
+  },
+  currentLocalCardInfo: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  currentLocalCardHeader: {
+    marginBottom: 6,
+  },
+  currentLocalCardBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  currentLocalCardBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#10B981',
+    letterSpacing: 0.3,
+  },
+  currentLocalCardName: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 6,
+    lineHeight: 22,
+  },
+  currentLocalCardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 8,
+  },
+  currentLocalCardAddress: {
+    fontSize: 13,
+    color: '#6B7280',
+    flex: 1,
+  },
+  currentLocalCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  currentLocalCardType: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  currentLocalCardTypeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#10B981',
+    textTransform: 'capitalize',
+  },
+  currentLocalCardArrow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  currentLocalCardArrowText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  exitLocalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#EF4444',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  currentLocalImageContainer: {
-    width: 80,
-    height: 80,
-    position: 'relative',
-  },
-  currentLocalImage: {
-    width: '100%',
-    height: '100%',
-  },
-  currentLocalImagePlaceholder: {
-    backgroundColor: '#D1FAE5', // ✅ Light green background for placeholder
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  currentLocalImageGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-  },
-  currentLocalBadge: {
-    position: 'absolute',
-    bottom: 5,
-    left: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: colors.white,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  currentLocalBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  currentLocalContent: {
-    flex: 1,
-    padding: 10,
-    justifyContent: 'center',
-  },
-  currentLocalLabel: {
-    fontSize: 11,
-    color: '#6B7280', // ✅ Dark gray for better readability on light background
-    marginBottom: 3,
-  },
-  currentLocalName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111827', // ✅ Almost black for maximum readability
-    marginBottom: 5,
-  },
-  currentLocalMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  currentLocalAddress: {
-    fontSize: 11,
-    color: '#6B7280', // ✅ Dark gray for better readability
-    flex: 1,
-  },
-  currentLocalArrow: {
-    justifyContent: 'center',
-    paddingRight: 10,
-  },
-  exitLocalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)', // ✅ Light background
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#EF4444', // ✅ Solid red border
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
   exitLocalButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: '#EF4444',
+    letterSpacing: 0.3,
   },
   statsContainer: {
     flexDirection: 'row',
