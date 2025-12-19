@@ -54,12 +54,21 @@ interface LocalWithEvent extends Local {
   plan?: string | null;
 }
 
+/**
+ * ✅ MAP SCREEN v2.0 - WITH TOGGLE SWITCH DESIGN & DEFAULT "ABIERTOS"
+ * 
+ * Changes:
+ * - ✅ NEW: Default filter set to "abiertos" (open venues)
+ * - ✅ NEW: Toggle switch design for filter (like a light switch)
+ * - ✅ IMPROVED: Better visual design for the filter selector
+ */
+
 export default function MapaScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const webViewRef = useRef<WebView>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todos');
-  const [filtroEstado, setFiltroEstado] = useState<'todos' | 'abiertos'>('todos');
+  const [filtroEstado, setFiltroEstado] = useState<'todos' | 'abiertos'>('abiertos'); // ✅ DEFAULT: "abiertos"
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedLocal, setSelectedLocal] = useState<Local | null>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
@@ -389,7 +398,7 @@ export default function MapaScreen() {
     .custom-marker {
       width: 44px;
       height: 44px;
-      border-radius: 50%;
+      borderRadius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1103,33 +1112,32 @@ export default function MapaScreen() {
       </View>
 
       <View style={styles.controlsRight}>
-        <View style={styles.estadoSelector}>
+        {/* ✅ NEW: TOGGLE SWITCH DESIGN (like a light switch) */}
+        <View style={styles.toggleSwitchContainer}>
           <TouchableOpacity
             style={[
-              styles.estadoOption,
-              filtroEstado === 'todos' && styles.estadoOptionActive
+              styles.toggleSwitch,
+              filtroEstado === 'abiertos' && styles.toggleSwitchActive
             ]}
-            onPress={() => setFiltroEstado('todos')}
+            onPress={() => setFiltroEstado(filtroEstado === 'todos' ? 'abiertos' : 'todos')}
+            activeOpacity={0.8}
           >
-            <Text style={[
-              styles.estadoOptionText,
-              filtroEstado === 'todos' && styles.estadoOptionTextActive
+            <View style={[
+              styles.toggleKnob,
+              filtroEstado === 'abiertos' && styles.toggleKnobActive
             ]}>
-              Todos
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.estadoOption,
-              filtroEstado === 'abiertos' && styles.estadoOptionActive
-            ]}
-            onPress={() => setFiltroEstado('abiertos')}
-          >
+              <IconSymbol 
+                ios_icon_name={filtroEstado === 'abiertos' ? 'checkmark' : 'xmark'}
+                android_material_icon_name={filtroEstado === 'abiertos' ? 'check' : 'close'}
+                size={16} 
+                color={filtroEstado === 'abiertos' ? '#FFFFFF' : colors.textSecondary} 
+              />
+            </View>
             <Text style={[
-              styles.estadoOptionText,
-              filtroEstado === 'abiertos' && styles.estadoOptionTextActive
+              styles.toggleLabel,
+              filtroEstado === 'abiertos' && styles.toggleLabelActive
             ]}>
-              Abiertos
+              {filtroEstado === 'abiertos' ? 'Abiertos' : 'Todos'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1287,32 +1295,51 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  estadoSelector: {
+  // ✅ NEW: TOGGLE SWITCH DESIGN (like a light switch)
+  toggleSwitchContainer: {
+    marginBottom: 8,
+  },
+  toggleSwitch: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.cardBackground,
-    borderRadius: 8,
+    borderRadius: 24,
     padding: 4,
+    paddingRight: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
+    minWidth: 120,
   },
-  estadoOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+  toggleSwitchActive: {
+    backgroundColor: '#22C55E',
   },
-  estadoOptionActive: {
-    backgroundColor: colors.primary,
+  toggleKnob: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  estadoOptionText: {
+  toggleKnobActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  toggleLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
   },
-  estadoOptionTextActive: {
-    color: colors.headerText,
+  toggleLabelActive: {
+    color: '#FFFFFF',
   },
   leyenda: {
     flexDirection: 'row',

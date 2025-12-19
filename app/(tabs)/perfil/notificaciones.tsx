@@ -56,9 +56,11 @@ interface PendingTag {
 }
 
 /**
- * ✅ NOTIFICATIONS PAGE v3.0 - WITH DELETE FUNCTIONALITY & FIXED TAG NOTIFICATIONS
+ * ✅ NOTIFICATIONS PAGE v4.0 - WITH IMPROVED REDIRECTION
  * 
  * Features:
+ * - ✅ IMPROVED: Better notification redirection based on type
+ * - ✅ IMPROVED: Navigate to post, user profile, or local profile
  * - Shows regular notifications
  * - Shows pending tag requests at the top with proper user info
  * - Delete individual notifications
@@ -249,6 +251,49 @@ export default function NotificacionesScreen() {
     );
   };
 
+  // ✅ IMPROVED: Better notification redirection
+  const handleNotificationPress = async (notif: Notificacion) => {
+    // Mark as read
+    await supabase
+      .from('notificaciones')
+      .update({ leida: true, leida_at: new Date().toISOString() })
+      .eq('id', notif.id);
+
+    cargarNotificaciones();
+
+    // ✅ IMPROVED: Navigate based on notification type
+    console.log('[Notificaciones] 🔗 Redirecting notification:', {
+      tipo: notif.tipo,
+      post_id: notif.post_id,
+      usuario_origen_id: notif.usuario_origen_id,
+      local_origen_id: notif.local_origen_id,
+    });
+
+    // Priority 1: Post-related notifications
+    if (notif.post_id) {
+      console.log('[Notificaciones] ✅ Navigating to post:', notif.post_id);
+      router.push({ pathname: '/social/post', params: { id: notif.post_id } });
+      return;
+    }
+
+    // Priority 2: User-related notifications
+    if (notif.usuario_origen_id) {
+      console.log('[Notificaciones] ✅ Navigating to user profile:', notif.usuario_origen_id);
+      router.push({ pathname: '/perfil/usuario', params: { userId: notif.usuario_origen_id } });
+      return;
+    }
+
+    // Priority 3: Local-related notifications
+    if (notif.local_origen_id) {
+      console.log('[Notificaciones] ✅ Navigating to local profile:', notif.local_origen_id);
+      router.push({ pathname: '/perfil/local', params: { localId: notif.local_origen_id } });
+      return;
+    }
+
+    // Fallback: No specific target
+    console.log('[Notificaciones] ⚠️ No specific target for notification');
+  };
+
   if (!user) {
     return (
       <View style={commonStyles.container}>
@@ -349,35 +394,9 @@ export default function NotificacionesScreen() {
                 <View key={notif.id} style={styles.notificationWrapper}>
                   <NotificacionItem
                     notificacion={notif}
-                    onPress={() => {
-                      // Mark as read
-                      supabase
-                        .from('notificaciones')
-                        .update({ leida: true, leida_at: new Date().toISOString() })
-                        .eq('id', notif.id)
-                        .then(() => cargarNotificaciones());
-
-                      // Navigate based on type
-                      if (notif.post_id) {
-                        router.push({ pathname: '/social/post', params: { id: notif.post_id } });
-                      } else if (notif.usuario_origen_id) {
-                        router.push({ pathname: '/perfil/usuario', params: { userId: notif.usuario_origen_id } });
-                      }
-                    }}
+                    onPress={() => handleNotificationPress(notif)}
+                    onDelete={() => handleDeleteNotification(notif.id)}
                   />
-                  {/* ✅ NEW: Delete button */}
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDeleteNotification(notif.id)}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol
-                      ios_icon_name="trash.fill"
-                      android_material_icon_name="delete"
-                      size={18}
-                      color={colors.textSecondary}
-                    />
-                  </TouchableOpacity>
                 </View>
               ))}
             </View>
@@ -449,16 +468,6 @@ const styles = StyleSheet.create({
   },
   notificationWrapper: {
     position: 'relative',
-  },
-  deleteButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    padding: 8,
-    backgroundColor: colors.background,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
   },
   emptyContainer: {
     flex: 1,
