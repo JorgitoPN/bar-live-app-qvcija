@@ -661,7 +661,7 @@ export default function ExplorarScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* ✅ CLAIM OR CREATE LOCAL SECTION - PROMINENT PLACEMENT */}
+        {/* ✅ CLAIM OR CREATE LOCAL SECTION - COMPACT SINGLE LINE DESIGN */}
         <TouchableOpacity 
           style={styles.claimLocalBanner}
           onPress={handleClaimOrCreateLocal}
@@ -677,20 +677,22 @@ export default function ExplorarScreen() {
               <View style={styles.claimLocalIconContainer}>
                 <IconSymbol 
                   name="building.2.fill" 
-                  size={26} 
+                  size={22} 
                   color={colors.primary} 
                 />
               </View>
               <View style={styles.claimLocalTextContainer}>
-                <Text style={styles.claimLocalTitle}>Reclama tu local o crea uno nuevo</Text>
-                <Text style={styles.claimLocalSubtitle}>
+                <Text style={styles.claimLocalTitle} numberOfLines={1} ellipsizeMode="tail">
+                  Reclama tu local o crea uno nuevo
+                </Text>
+                <Text style={styles.claimLocalSubtitle} numberOfLines={1} ellipsizeMode="tail">
                   ¿Eres propietario? Gestiona tu local en BarLive
                 </Text>
               </View>
               <View style={styles.claimLocalArrow}>
                 <IconSymbol 
                   name="chevron.right" 
-                  size={22} 
+                  size={18} 
                   color={colors.primary} 
                 />
               </View>
@@ -906,57 +908,57 @@ const styles = StyleSheet.create({
   },
   claimLocalBanner: {
     marginBottom: 20,
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
-    elevation: 3,
+    elevation: 2,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
   claimLocalGradient: {
-    borderWidth: 2,
-    borderColor: colors.primary + '40',
-    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.primary + '30',
+    borderRadius: 12,
   },
   claimLocalContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 12,
   },
   claimLocalIconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.primary + '25',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.primary + '20',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary + '40',
+    borderWidth: 1.5,
+    borderColor: colors.primary + '30',
   },
   claimLocalTextContainer: {
     flex: 1,
+    minWidth: 0,
   },
   claimLocalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '700',
     color: colors.text,
-    marginBottom: 4,
-    letterSpacing: -0.3,
+    marginBottom: 2,
+    letterSpacing: -0.2,
   },
   claimLocalSubtitle: {
-    fontSize: 13,
+    fontSize: 11.5,
     color: colors.textSecondary,
-    lineHeight: 18,
     fontWeight: '500',
   },
   claimLocalArrow: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.primary + '20',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
   },
