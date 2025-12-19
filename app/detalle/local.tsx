@@ -1038,14 +1038,14 @@ export default function DetalleLocalScreen() {
                 )}
               </View>
 
-              {/* NEW: Claim or Create Local Section in Local Details */}
+              {/* PROMINENT: Claim or Create Local Section - Positioned after header */}
               <TouchableOpacity 
                 style={styles.claimLocalBannerDetails}
                 onPress={handleClaimOrCreateLocal}
                 activeOpacity={0.7}
               >
                 <LinearGradient
-                  colors={[colors.primary + '15', colors.primary + '08']}
+                  colors={[colors.primary + '20', colors.primary + '10']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.claimLocalGradientDetails}
@@ -1055,21 +1055,21 @@ export default function DetalleLocalScreen() {
                       <IconSymbol 
                         ios_icon_name="building.2.fill" 
                         android_material_icon_name="business" 
-                        size={22} 
+                        size={24} 
                         color={colors.primary} 
                       />
                     </View>
                     <View style={styles.claimLocalTextContainerDetails}>
                       <Text style={styles.claimLocalTitleDetails}>¿Es tu local?</Text>
                       <Text style={styles.claimLocalSubtitleDetails}>
-                        Reclámalo o crea uno nuevo
+                        Reclámalo o crea uno nuevo en BarLive
                       </Text>
                     </View>
                     <View style={styles.claimLocalArrowDetails}>
                       <IconSymbol 
                         ios_icon_name="chevron.right" 
                         android_material_icon_name="chevron_right" 
-                        size={20} 
+                        size={22} 
                         color={colors.primary} 
                       />
                     </View>
@@ -1768,57 +1768,58 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   claimLocalBannerDetails: {
-    marginBottom: 16,
-    borderRadius: 12,
+    marginBottom: 20,
+    borderRadius: 14,
     overflow: 'hidden',
-    elevation: 2,
+    elevation: 3,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   claimLocalGradientDetails: {
-    borderWidth: 1.5,
-    borderColor: colors.primary + '30',
-    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary + '40',
+    borderRadius: 14,
   },
   claimLocalContentDetails: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 14,
   },
   claimLocalIconContainerDetails: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary + '20',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.primary + '25',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.primary + '30',
+    borderColor: colors.primary + '40',
   },
   claimLocalTextContainerDetails: {
     flex: 1,
   },
   claimLocalTitleDetails: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: colors.text,
-    marginBottom: 2,
-    letterSpacing: -0.2,
+    marginBottom: 4,
+    letterSpacing: -0.3,
   },
   claimLocalSubtitleDetails: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.textSecondary,
-    lineHeight: 16,
+    lineHeight: 18,
+    fontWeight: '500',
   },
   claimLocalArrowDetails: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary + '15',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.primary + '20',
     alignItems: 'center',
     justifyContent: 'center',
   },
