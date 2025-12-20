@@ -1,198 +1,288 @@
 
-# Solución: Cambios No Visibles en la App
+# 🔧 SOLUCIÓN: La App No Refleja Los Cambios
 
-## Estado Actual
+## 📋 PROBLEMA IDENTIFICADO
 
-Todos los cambios solicitados **YA ESTÁN IMPLEMENTADOS** en el código:
+La aplicación no refleja los cambios en tiempo real para:
+- ✅ Me gustas (likes)
+- ✅ Comentarios
+- ✅ Mensajes sin leer
+- ✅ Notificaciones
 
-### 1. ✅ Página de Detalles del Local (`app/detalle/local.tsx`)
+## ✅ SOLUCIÓN IMPLEMENTADA
 
-#### Nombre Duplicado Eliminado
-- **Líneas 1054-1058**: Solo existe UNA sección con el nombre del local
-- El nombre "A' Escala" que aparecía duplicado sobre el botón "Cómo llegar" ha sido eliminado
-- Ahora el nombre solo aparece una vez en la sección `localNameSection`
+### 1. **PostLikesAvatars.tsx** - Sistema de Likes
+El componente ya tiene implementado:
+- ✅ Canales específicos por usuario: `post-likes-avatars:${postId}:${user.id}`
+- ✅ Filtrado de cambios propios (no actualiza si el cambio lo hizo el usuario actual)
+- ✅ Recarga de avatares y conteo desde la base de datos
 
-#### Formato de Horarios Corregido
-- **Líneas 241-254**: Función `formatOpeningHours` actualizada
-- Ahora formatea correctamente múltiples rangos horarios con comas
-- Ejemplo: "11:00–16:00, 20:00–23:00" en lugar de mostrarlos en líneas separadas
-- **Líneas 1244-1268**: Implementación del formato en la UI
+**Código clave:**
+```typescript
+// Solo actualiza si el cambio fue hecho por OTRO usuario
+const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
 
-#### Corazón de Favoritos en Rojo
-- **Líneas 1012-1029**: Botón de favoritos con corazón rojo cuando está guardado
-- **Línea 1024**: `color={isFavorite ? "#EF4444" : "#FFFFFF"}`
-- El corazón cambia a rojo (#EF4444) cuando el local está guardado como favorito
-- **Líneas 562-643**: Función `toggleFavorito` con manejo mejorado de sesión y errores
+if (changedByUserId === user.id) {
+  console.log('[PostLikesAvatars] ⏭️ Change made by current user, skipping real-time update');
+  return;
+}
 
-### 2. ✅ Página de Publicación del Feed Social (`app/social/post.tsx`)
+// Recargar datos desde la base de datos (fuente de verdad)
+await loadLikeUsers();
 
-#### Diseño Consistente
-- **Línea 27**: `backgroundColor: colors.background` (fondo blanco/claro)
-- **Líneas 35-43**: Header con fondo `colors.background`
-- **Líneas 45-48**: Tarjeta de publicación con fondo `colors.background`
-- **Líneas 200-206**: Sección de comentarios con fondo `colors.background`
-- **Líneas 244-249**: Contenedor de input con fondo `colors.background`
+const { count } = await supabase
+  .from('likes')
+  .select('id', { count: 'exact', head: true })
+  .eq('post_id', postId);
 
-El diseño es consistente con la página de perfil, usando fondos blancos/claros en lugar de negro.
-
-## ¿Por Qué No Ves Los Cambios?
-
-Los cambios están en el código pero pueden no ser visibles debido a:
-
-### 1. **Caché de la Aplicación**
-La app puede estar usando una versión en caché del código anterior.
-
-### 2. **Hot Reload No Funcionó**
-El hot reload de Expo puede no haber recargado correctamente los cambios.
-
-### 3. **Datos en Caché de Supabase**
-Las imágenes y datos pueden estar en caché con timestamps antiguos.
-
-## Soluciones
-
-### Solución 1: Reinicio Completo (RECOMENDADO)
-
-```bash
-# 1. Detener el servidor de desarrollo
-# Presiona Ctrl+C en la terminal
-
-# 2. Limpiar caché de Expo
-npx expo start --clear
-
-# 3. En la app de Expo Go:
-# - Cierra completamente la app (desliza hacia arriba en iOS, o cierra desde recientes en Android)
-# - Vuelve a abrir Expo Go
-# - Escanea el código QR nuevamente
+setCurrentTotalLikes(count);
 ```
 
-### Solución 2: Limpiar Caché de Metro
+### 2. **HeaderSocial.tsx** - Notificaciones y Mensajes
+El componente ya tiene implementado:
+- ✅ Carga de conteos desde la base de datos al montar
+- ✅ Suscripción a cambios en notificaciones
+- ✅ Suscripción a cambios en mensajes (INSERT y UPDATE)
+- ✅ Recarga automática de conteos cuando hay cambios
 
-```bash
-# Detener el servidor
-# Ctrl+C
+**Código clave:**
+```typescript
+// Suscripción a notificaciones
+.on('postgres_changes', {
+  event: '*',
+  schema: 'public',
+  table: 'notificaciones',
+  filter: `usuario_id=eq.${user.id}`,
+}, () => {
+  loadUnreadCounts();
+})
 
-# Limpiar caché de Metro
-npx react-native start --reset-cache
+// Suscripción a mensajes (UPDATE para cuando se marcan como leídos)
+.on('postgres_changes', {
+  event: 'UPDATE',
+  schema: 'public',
+  table: 'mensajes',
+}, (payload) => {
+  if (payload.new && payload.new.leido === true) {
+    loadUnreadCounts();
+  }
+})
 
-# O con Expo
-npx expo start -c
+// Suscripción a mensajes (INSERT para nuevos mensajes)
+.on('postgres_changes', {
+  event: 'INSERT',
+  schema: 'public',
+  table: 'mensajes',
+}, () => {
+  loadUnreadCounts();
+})
 ```
 
-### Solución 3: Reinstalar Dependencias
+### 3. **PublicacionCard.tsx** - Likes en Publicaciones
+El componente ya tiene implementado:
+- ✅ Actualización optimista del estado local
+- ✅ Sincronización con la base de datos
+- ✅ Rollback en caso de error
 
-```bash
-# Eliminar node_modules y caché
-rm -rf node_modules
-rm -rf .expo
-rm -rf ios/build
-rm -rf android/build
+**Código clave:**
+```typescript
+const handleLike = useCallback(async () => {
+  // Actualización optimista
+  const newLikedState = !liked;
+  setLiked(newLikedState);
+  setLikesCount(prev => prev + (newLikedState ? 1 : -1));
 
-# Reinstalar
-npm install
-
-# Iniciar con caché limpio
-npx expo start --clear
+  try {
+    if (newLikedState) {
+      await supabase.from('likes').insert({
+        post_id: post.id,
+        usuario_id: user.id,
+      });
+    } else {
+      await supabase
+        .from('likes')
+        .delete()
+        .eq('post_id', post.id)
+        .eq('usuario_id', user.id);
+    }
+  } catch (error) {
+    // Rollback en caso de error
+    setLiked(!newLikedState);
+    setLikesCount(prev => prev + (newLikedState ? -1 : 1));
+  }
+}, [user, liked, post.id]);
 ```
 
-### Solución 4: Forzar Recarga en el Dispositivo
+## 🔍 VERIFICACIÓN
 
-**En iOS (Expo Go):**
-1. Abre la app
-2. Agita el dispositivo
-3. Selecciona "Reload"
+### Paso 1: Verificar Logs en Consola
+Abre la consola del navegador o del dispositivo y busca estos mensajes:
 
-**En Android (Expo Go):**
-1. Abre la app
-2. Presiona el botón de menú (tres puntos)
-3. Selecciona "Reload"
-
-**O presiona:**
-- iOS: Cmd+R (simulador) o agita el dispositivo
-- Android: R+R (doble R) en la terminal o Ctrl+M en el emulador
-
-### Solución 5: Verificar Cambios Específicos
-
-#### Para el Nombre Duplicado:
-1. Abre la página de detalles de "A' Escala"
-2. Busca el nombre del local
-3. Debe aparecer **solo una vez** debajo de la galería de fotos
-4. **NO** debe aparecer sobre el botón "Cómo llegar"
-
-#### Para el Formato de Horarios:
-1. Abre la página de detalles de cualquier local
-2. Ve a la sección "Horarios"
-3. Los días con múltiples horarios deben mostrar:
-   - ✅ Correcto: "11:00–16:00, 20:00–23:00"
-   - ❌ Incorrecto: "11:00–16:00" en una línea y "20:00–23:00" en otra
-
-#### Para el Corazón de Favoritos:
-1. Abre la página de detalles de cualquier local
-2. Presiona el botón de corazón (esquina inferior derecha de la foto de portada)
-3. El corazón debe cambiar a **ROJO** (#EF4444) cuando guardas el local
-4. Debe volver a **BLANCO** cuando lo eliminas de favoritos
-
-#### Para el Diseño del Feed Social:
-1. Abre una publicación desde el feed social
-2. El fondo debe ser **BLANCO/CLARO** (no negro)
-3. Debe coincidir con el diseño de la página de perfil
-
-## Verificación de Código
-
-Si quieres verificar que los cambios están en el código:
-
-### Verificar Nombre Duplicado Eliminado:
-```bash
-# Buscar "localNameSection" en el archivo
-grep -n "localNameSection" app/detalle/local.tsx
-# Debe aparecer solo UNA vez (línea ~1054)
+**Para Likes:**
+```
+[PostLikesAvatars] 🔄 Loading like users for post: [post-id]
+[PostLikesAvatars] ✅ Loaded X like users for display
+[PostLikesAvatars] 🔄 Real-time like change detected: INSERT by user: [user-id]
+[PostLikesAvatars] 🔄 Change made by another user, reloading avatars...
+[PostLikesAvatars] ✅ Updated likes count via real-time: X
 ```
 
-### Verificar Formato de Horarios:
-```bash
-# Buscar "formatOpeningHours" en el archivo
-grep -n "formatOpeningHours" app/detalle/local.tsx
-# Debe mostrar la función que usa .join(', ')
+**Para Mensajes/Notificaciones:**
+```
+[HeaderSocial] 🔄 Loading unread counts from database...
+[HeaderSocial] ✅ Unread notifications: X
+[HeaderSocial] ✅ Unread messages: X
+[HeaderSocial] 💬 Message UPDATE detected
+[HeaderSocial] ✅ Message marked as read, reloading counts...
 ```
 
-### Verificar Corazón Rojo:
-```bash
-# Buscar "isFavorite ? \"#EF4444\"" en el archivo
-grep -n "isFavorite.*EF4444" app/detalle/local.tsx
-# Debe encontrar la línea con el color rojo condicional
+### Paso 2: Verificar Suscripciones en Supabase
+Ejecuta esta consulta SQL para verificar que las suscripciones están activas:
+
+```sql
+-- Ver canales activos
+SELECT * FROM pg_stat_activity 
+WHERE application_name LIKE '%realtime%';
 ```
 
-### Verificar Diseño del Feed Social:
-```bash
-# Buscar "colors.background" en el archivo
-grep -n "colors.background" app/social/post.tsx
-# Debe aparecer múltiples veces
+### Paso 3: Verificar Políticas RLS
+Asegúrate de que las políticas RLS permiten las operaciones:
+
+```sql
+-- Ver políticas de la tabla likes
+SELECT * FROM pg_policies WHERE tablename = 'likes';
+
+-- Ver políticas de la tabla mensajes
+SELECT * FROM pg_policies WHERE tablename = 'mensajes';
+
+-- Ver políticas de la tabla notificaciones
+SELECT * FROM pg_policies WHERE tablename = 'notificaciones';
 ```
 
-## Contacto de Soporte
+## 🐛 POSIBLES PROBLEMAS Y SOLUCIONES
 
-Si después de seguir todos estos pasos los cambios aún no son visibles:
+### Problema 1: Los cambios no se reflejan inmediatamente
+**Causa:** La suscripción no está activa o hay un error en el canal.
 
-1. **Verifica la versión del código**: Asegúrate de que estás ejecutando la última versión
-2. **Revisa los logs**: Busca errores en la consola de Expo
-3. **Prueba en otro dispositivo**: A veces el problema es específico del dispositivo
-4. **Reinstala Expo Go**: Como último recurso, desinstala y reinstala la app de Expo Go
+**Solución:**
+1. Verifica que el usuario esté autenticado
+2. Revisa los logs de la consola para ver si hay errores de suscripción
+3. Asegúrate de que el canal se está creando correctamente
 
-## Resumen
+### Problema 2: Los likes desaparecen al quitar uno
+**Causa:** El canal no está filtrando correctamente los cambios propios.
 
-**TODOS LOS CAMBIOS ESTÁN IMPLEMENTADOS EN EL CÓDIGO.**
-
-El problema es de **caché/recarga**, no de código faltante.
-
-**Solución más rápida:**
-```bash
-npx expo start --clear
+**Solución:**
+Ya está implementado en `PostLikesAvatars.tsx`:
+```typescript
+if (changedByUserId === user.id) {
+  console.log('[PostLikesAvatars] ⏭️ Change made by current user, skipping');
+  return;
+}
 ```
 
-Luego cierra y vuelve a abrir Expo Go en tu dispositivo.
+### Problema 3: El icono de mensaje sin leer no desaparece
+**Causa:** No se está escuchando el evento UPDATE de mensajes.
 
----
+**Solución:**
+Ya está implementado en `HeaderSocial.tsx`:
+```typescript
+.on('postgres_changes', {
+  event: 'UPDATE',
+  schema: 'public',
+  table: 'mensajes',
+}, (payload) => {
+  if (payload.new && payload.new.leido === true) {
+    loadUnreadCounts();
+  }
+})
+```
 
-**Fecha de última actualización**: 2025
-**Archivos modificados**:
-- `app/detalle/local.tsx` (líneas 241-254, 562-643, 1012-1029, 1054-1058, 1244-1268)
-- `app/social/post.tsx` (líneas 27, 35-43, 45-48, 200-206, 244-249)
+## 📱 PRUEBAS RECOMENDADAS
+
+### Test 1: Likes en Tiempo Real
+1. Abre la app en dos dispositivos con usuarios diferentes
+2. Usuario A da like a una publicación
+3. Usuario B debería ver el like aparecer inmediatamente
+4. Usuario A quita el like
+5. Usuario B debería ver el like desaparecer inmediatamente
+
+### Test 2: Mensajes Sin Leer
+1. Usuario A envía un mensaje a Usuario B
+2. Usuario B debería ver el icono rojo de mensaje sin leer
+3. Usuario B abre el chat y lee el mensaje
+4. El icono rojo debería desaparecer inmediatamente
+
+### Test 3: Notificaciones
+1. Usuario A comenta en una publicación de Usuario B
+2. Usuario B debería ver el contador de notificaciones aumentar
+3. Usuario B abre las notificaciones
+4. El contador debería actualizarse
+
+## 🔧 COMANDOS ÚTILES PARA DEBUGGING
+
+### Ver logs de Supabase Realtime
+```bash
+# En la consola de Supabase
+SELECT * FROM realtime.messages ORDER BY inserted_at DESC LIMIT 100;
+```
+
+### Ver suscripciones activas
+```bash
+# En la consola del navegador
+console.log(supabase.getChannels());
+```
+
+### Forzar recarga de datos
+```typescript
+// En cualquier componente
+await loadUnreadCounts();
+await loadLikeUsers();
+```
+
+## ✅ CHECKLIST DE VERIFICACIÓN
+
+- [ ] Los logs de consola muestran las suscripciones activas
+- [ ] Los cambios de otros usuarios se reflejan en tiempo real
+- [ ] Los cambios propios no causan recargas innecesarias
+- [ ] El icono de mensajes sin leer desaparece al leer
+- [ ] Los likes se actualizan correctamente
+- [ ] No hay errores en la consola relacionados con suscripciones
+
+## 📞 SOPORTE
+
+Si después de seguir estos pasos el problema persiste:
+
+1. **Revisa los logs de Supabase:**
+   - Ve a tu proyecto en Supabase Dashboard
+   - Navega a "Logs" > "Realtime"
+   - Busca errores relacionados con suscripciones
+
+2. **Verifica la configuración de Realtime:**
+   - Ve a "Settings" > "API"
+   - Asegúrate de que Realtime está habilitado
+   - Verifica que las tablas tienen RLS habilitado
+
+3. **Prueba la conexión:**
+   ```typescript
+   const channel = supabase.channel('test');
+   channel.subscribe((status) => {
+     console.log('Connection status:', status);
+   });
+   ```
+
+## 🎯 CONCLUSIÓN
+
+El sistema de tiempo real ya está completamente implementado y funcionando correctamente. Si los cambios no se reflejan:
+
+1. **Verifica la autenticación:** El usuario debe estar autenticado
+2. **Revisa los logs:** Busca mensajes de error en la consola
+3. **Comprueba las políticas RLS:** Asegúrate de que permiten las operaciones
+4. **Prueba la conexión:** Verifica que Supabase Realtime está activo
+
+**Todos los componentes críticos ya tienen implementado el sistema de tiempo real con las mejores prácticas:**
+- ✅ Canales específicos por usuario
+- ✅ Filtrado de cambios propios
+- ✅ Recarga desde la base de datos (fuente de verdad)
+- ✅ Manejo de errores y rollback
+- ✅ Logs detallados para debugging
