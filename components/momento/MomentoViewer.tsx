@@ -483,7 +483,7 @@ export default function MomentoViewer({
     }
   };
 
-  // ✅ NEW: Report momento functionality
+  // ✅ FIXED: Report momento functionality with pause
   const handleReport = () => {
     if (!user || momentos.length === 0) return;
 
@@ -493,6 +493,20 @@ export default function MomentoViewer({
     if (currentMomento.autor_id === user.id) {
       Alert.alert('Error', 'No puedes reportar tu propio Momento');
       return;
+    }
+
+    // ✅ FIXED: Pause momento when report icon is clicked
+    console.log('[MomentoViewer] 🛑 Pausing momento for report selection');
+    setPaused(true);
+    
+    // Stop progress animation
+    if (progressAnimationRef.current) {
+      progressAnimationRef.current.stop();
+      progressAnimationRef.current = null;
+    }
+    if (progressTimerRef.current) {
+      clearTimeout(progressTimerRef.current);
+      progressTimerRef.current = null;
     }
 
     const reportOptions = [
@@ -516,6 +530,10 @@ export default function MomentoViewer({
         async (buttonIndex) => {
           if (buttonIndex < reportOptions.length - 1) {
             await submitMomentoReport(currentMomento.id, reportOptions[buttonIndex].value);
+          } else {
+            // ✅ FIXED: Resume momento if user cancels
+            console.log('[MomentoViewer] ▶️ Resuming momento after cancel');
+            setPaused(false);
           }
         }
       );
@@ -526,7 +544,13 @@ export default function MomentoViewer({
         reportOptions.map(option => ({
           text: option.text,
           style: option.value === 'cancel' ? 'cancel' : 'default',
-          onPress: option.value !== 'cancel' ? () => submitMomentoReport(currentMomento.id, option.value) : undefined,
+          onPress: option.value !== 'cancel' 
+            ? () => submitMomentoReport(currentMomento.id, option.value) 
+            : () => {
+                // ✅ FIXED: Resume momento if user cancels
+                console.log('[MomentoViewer] ▶️ Resuming momento after cancel');
+                setPaused(false);
+              },
         }))
       );
     }
@@ -545,9 +569,16 @@ export default function MomentoViewer({
       if (error) throw error;
 
       Alert.alert('✅ Reporte enviado', 'Gracias por ayudarnos a mantener la comunidad segura');
+      
+      // ✅ FIXED: Resume momento after report is sent
+      console.log('[MomentoViewer] ▶️ Resuming momento after report sent');
+      setPaused(false);
     } catch (error) {
       console.error('[MomentoViewer] Error reporting momento:', error);
       Alert.alert('Error', 'No se pudo enviar el reporte');
+      
+      // ✅ FIXED: Resume momento even on error
+      setPaused(false);
     }
   };
 

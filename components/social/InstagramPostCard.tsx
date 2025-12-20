@@ -85,63 +85,6 @@ export default function InstagramPostCard({
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ FIXED: Real-time subscription using broadcast (scalable approach)
-  useEffect(() => {
-    if (!post.id) return;
-
-    console.log('[InstagramPostCard] 🔄 Setting up real-time broadcast subscription for post:', post.id);
-
-    // Check if already subscribed
-    if (channelRef.current?.state === 'subscribed') {
-      console.log('[InstagramPostCard] ⚠️ Already subscribed, skipping');
-      return;
-    }
-
-    const channel = supabase.channel(`post-likes:${post.id}`, {
-      config: { broadcast: { self: true } }
-    });
-
-    channelRef.current = channel;
-
-    channel
-      .on('broadcast', { event: 'like_changed' }, async (payload) => {
-        console.log('[InstagramPostCard] 🔄 Real-time like broadcast received:', payload);
-        
-        // ✅ FIXED: Reload like count from database (source of truth)
-        const { count } = await supabase
-          .from('likes')
-          .select('id', { count: 'exact', head: true })
-          .eq('post_id', post.id);
-        
-        setLikesCount(count || 0);
-        
-        // ✅ FIXED: Check if current user has liked
-        if (user) {
-          const { data: userLike } = await supabase
-            .from('likes')
-            .select('id')
-            .eq('post_id', post.id)
-            .eq('usuario_id', user.id)
-            .single();
-          
-          setIsLiked(!!userLike);
-        }
-        
-        console.log('[InstagramPostCard] ✅ Updated likes count via broadcast:', count);
-      })
-      .subscribe((status) => {
-        console.log('[InstagramPostCard] 📡 Subscription status:', status);
-      });
-
-    return () => {
-      console.log('[InstagramPostCard] 🔄 Cleaning up real-time subscription for post:', post.id);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [post.id, user]);
-
   useEffect(() => {
     const loadAuthorData = async () => {
       try {
@@ -227,6 +170,19 @@ export default function InstagramPostCard({
         
         console.log('[InstagramPostCard] ✅ Like removed successfully');
       }
+
+      // ✅ FIXED: Broadcast like change to all subscribers (real-time updates)
+      const channel = supabase.channel(`post-likes:${post.id}`, {
+        config: { broadcast: { self: true } }
+      });
+      
+      await channel.send({
+        type: 'broadcast',
+        event: 'like_changed',
+        payload: { postId: post.id, userId: user.id, action: newLikedState ? 'add' : 'remove' },
+      });
+      
+      console.log('[InstagramPostCard] 📡 Broadcasted like change');
     } catch (error) {
       console.error('[InstagramPostCard] ❌ Error toggling like:', error);
       // ✅ FIXED: Revert to previous state on error
@@ -636,7 +592,7 @@ export default function InstagramPostCard({
         visible={showShareModal}
         postId={post.id}
         postContent={post.contenido}
-        onClose={() => setShareShareModal(false)}
+        onClose={() => setShowShareModal(false)}
       />
     </>
   );

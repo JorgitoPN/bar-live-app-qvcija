@@ -128,13 +128,15 @@ export default function ChatsScreen() {
             }
           }
 
-          // ✅ FIXED: Count unread messages from database (source of truth)
+          // ✅ FIXED: Count unread messages from database (source of truth) - only messages without leido_at
           const { count } = await supabase
             .from('mensajes')
             .select('id', { count: 'exact', head: true })
             .eq('chat_id', chat.id)
             .eq('leido', false)
             .neq('remitente_id', user.id);
+
+          console.log('[Chats] 📊 Chat', chat.id, 'has', count || 0, 'unread messages');
 
           return {
             ...chat,

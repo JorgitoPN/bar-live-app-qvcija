@@ -33,6 +33,7 @@ import { calcularDistancia } from '../../utils/locationUtils';
 import ParsedText from '../../components/social/ParsedText';
 import ReviewsModal from '../../components/social/ReviewsModal';
 import CheckInModal from '../../components/detalle/CheckInModal';
+import UsersInLocalModal from '../../components/detalle/UsersInLocalModal';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -347,7 +348,9 @@ export default function DetalleLocalScreen() {
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [checkedInUsers, setCheckedInUsers] = useState<CheckedInUser[]>([]);
   const [loadingCheckIns, setLoadingCheckIns] = useState(false);
-  const [showAllUsers, setShowAllUsers] = useState(false);
+  
+  // ✅ NEW: Modal for showing all users in local
+  const [showUsersModal, setShowUsersModal] = useState(false);
 
   // ✅ NEW: Reviews pagination state
   const [displayedReviewsCount, setDisplayedReviewsCount] = useState(5);
@@ -355,7 +358,6 @@ export default function DetalleLocalScreen() {
 
   // ✅ NEW: Google reviews state
   const [googleReviews, setGoogleReviews] = useState<GoogleReview[]>([]);
-  const [showGoogleReviews, setShowGoogleReviews] = useState(false);
 
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
@@ -970,10 +972,6 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
-  // ✅ NEW: Display first 3 users, rest in dropdown
-  const displayedUsers = showAllUsers ? checkedInUsers : checkedInUsers.slice(0, 3);
-  const hasMoreUsers = checkedInUsers.length > 3;
-
   return (
     <GestureHandlerRootView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -1145,21 +1143,30 @@ export default function DetalleLocalScreen() {
                 </TouchableOpacity>
               )}
 
-              {/* ✅ FIXED: User card with dropdown for all users */}
+              {/* ✅ FIXED: User card with clickable link to open modal */}
               {checkedInUsers.length > 0 && (
-                <View style={styles.checkedInSection}>
+                <TouchableOpacity 
+                  style={styles.checkedInSection}
+                  onPress={() => setShowUsersModal(true)}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.checkedInHeader}>
                     <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color={colors.primary} />
                     <Text style={styles.checkedInTitle}>
                       {checkedInUsers.length} {checkedInUsers.length === 1 ? 'persona está' : 'personas están'} en este local
                     </Text>
+                    <IconSymbol
+                      ios_icon_name="chevron.right"
+                      android_material_icon_name="chevron_right"
+                      size={18}
+                      color={colors.primary}
+                    />
                   </View>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.checkedInUsersScroll}>
-                    {displayedUsers.map((checkedUser) => (
-                      <TouchableOpacity
+                    {checkedInUsers.slice(0, 5).map((checkedUser) => (
+                      <View
                         key={checkedUser.id}
                         style={styles.checkedInUserCard}
-                        onPress={() => router.push(`/perfil/usuario?userId=${checkedUser.id}`)}
                       >
                         <View style={styles.checkedInUserAvatar}>
                           {checkedUser.avatar ? (
@@ -1171,28 +1178,10 @@ export default function DetalleLocalScreen() {
                         <Text style={styles.checkedInUserName} numberOfLines={1}>
                           {checkedUser.nombre}
                         </Text>
-                      </TouchableOpacity>
+                      </View>
                     ))}
                   </ScrollView>
-                  
-                  {/* ✅ NEW: Dropdown to show all users */}
-                  {hasMoreUsers && (
-                    <TouchableOpacity 
-                      style={styles.showAllUsersButton}
-                      onPress={() => setShowAllUsers(!showAllUsers)}
-                    >
-                      <Text style={styles.showAllUsersText}>
-                        {showAllUsers ? 'Ver menos' : `Ver todos (${checkedInUsers.length})`}
-                      </Text>
-                      <IconSymbol
-                        ios_icon_name={showAllUsers ? 'chevron.up' : 'chevron.down'}
-                        android_material_icon_name={showAllUsers ? 'expand_less' : 'expand_more'}
-                        size={16}
-                        color={colors.primary}
-                      />
-                    </TouchableOpacity>
-                  )}
-                </View>
+                </TouchableOpacity>
               )}
 
               {user && (
@@ -1506,7 +1495,8 @@ export default function DetalleLocalScreen() {
                             )}
                           </View>
                           <View style={styles.reviewInfo}>
-                            <Text style={styles.reviewAuthor}>{review.author_name}</Text>
+                            {/* ✅ FIXED: Anonymize Google review names */}
+                            <Text style={styles.reviewAuthor}>Cliente del local</Text>
                             <View style={styles.reviewRating}>
                               <Ionicons name="star" size={14} color="#FFD700" />
                               <Text style={styles.reviewRatingText}>{review.rating}</Text>
@@ -1527,23 +1517,6 @@ export default function DetalleLocalScreen() {
                       </View>
                     );
                   })}
-
-                  {googleReviews.length > 3 && (
-                    <TouchableOpacity 
-                      style={styles.viewAllGoogleReviewsButton}
-                      onPress={() => setShowGoogleReviews(true)}
-                    >
-                      <Text style={styles.viewAllGoogleReviewsText}>
-                        Ver todas las reseñas de Google ({googleReviews.length})
-                      </Text>
-                      <IconSymbol
-                        ios_icon_name="chevron.right"
-                        android_material_icon_name="chevron_right"
-                        size={16}
-                        color={colors.primary}
-                      />
-                    </TouchableOpacity>
-                  )}
                 </View>
               )}
 
@@ -1663,6 +1636,16 @@ export default function DetalleLocalScreen() {
             setIsCheckedIn(true);
             loadCheckedInUsers();
           }}
+        />
+      )}
+
+      {/* ✅ NEW: Users in local modal */}
+      {showUsersModal && (
+        <UsersInLocalModal
+          visible={showUsersModal}
+          onClose={() => setShowUsersModal(false)}
+          users={checkedInUsers}
+          localName={local?.nombre || ''}
         />
       )}
     </GestureHandlerRootView>
@@ -2016,6 +1999,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   checkedInTitle: {
+    flex: 1,
     fontSize: 15,
     fontWeight: '700',
     color: colors.text,
@@ -2048,21 +2032,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
-  },
-  showAllUsersButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    marginTop: 8,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 8,
-  },
-  showAllUsersText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
   },
   checkInButtonsContainer: {
     marginBottom: 16,
@@ -2388,23 +2357,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '500',
-  },
-  viewAllGoogleReviewsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    marginTop: 8,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#4285F4' + '30',
-  },
-  viewAllGoogleReviewsText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#4285F4',
   },
   reviewCard: {
     backgroundColor: colors.cardBackground,
