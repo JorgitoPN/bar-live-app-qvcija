@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { supabase } from '@/utils/supabase';
 import { colors } from '@/styles/commonStyles';
@@ -24,6 +24,7 @@ interface LikeUser {
 export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatarsProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const channelRef = useRef<any>(null);
   const [likeUsers, setLikeUsers] = useState<LikeUser[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [allLikes, setAllLikes] = useState<LikeUser[]>([]);
@@ -95,41 +96,48 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     loadLikeUsers();
   }, [loadLikeUsers]);
 
-  // ✅ FIXED: Real-time subscription for like updates (mini-avatars update automatically)
+  // ✅ FIXED: Real-time subscription using broadcast (mini-avatars update automatically)
   useEffect(() => {
-    console.log('[PostLikesAvatars] 🔄 Setting up real-time subscription for post:', postId);
+    console.log('[PostLikesAvatars] 🔄 Setting up real-time broadcast subscription for post:', postId);
 
-    const subscription = supabase
-      .channel(`post-likes-avatars-${postId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'likes',
-          filter: `post_id=eq.${postId}`,
-        },
-        async (payload) => {
-          console.log('[PostLikesAvatars] 🔄 Real-time like update detected:', payload);
-          
-          // ✅ FIXED: Reload like users immediately
-          await loadLikeUsers();
-          
-          // ✅ FIXED: Update total count from database
-          const { count } = await supabase
-            .from('likes')
-            .select('id', { count: 'exact', head: true })
-            .eq('post_id', postId);
-          
-          setCurrentTotalLikes(count || 0);
-          console.log('[PostLikesAvatars] ✅ Updated likes count:', count);
-        }
-      )
-      .subscribe();
+    // Check if already subscribed
+    if (channelRef.current?.state === 'subscribed') {
+      console.log('[PostLikesAvatars] ⚠️ Already subscribed, skipping');
+      return;
+    }
+
+    const channel = supabase.channel(`post-likes:${postId}`, {
+      config: { broadcast: { self: true } }
+    });
+
+    channelRef.current = channel;
+
+    channel
+      .on('broadcast', { event: 'like_changed' }, async (payload) => {
+        console.log('[PostLikesAvatars] 🔄 Real-time like broadcast received:', payload);
+        
+        // ✅ FIXED: Reload like users immediately (no disappearing avatars)
+        await loadLikeUsers();
+        
+        // ✅ FIXED: Update total count from database
+        const { count } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact', head: true })
+          .eq('post_id', postId);
+        
+        setCurrentTotalLikes(count || 0);
+        console.log('[PostLikesAvatars] ✅ Updated likes count via broadcast:', count);
+      })
+      .subscribe((status) => {
+        console.log('[PostLikesAvatars] 📡 Subscription status:', status);
+      });
 
     return () => {
       console.log('[PostLikesAvatars] 🔄 Cleaning up subscription');
-      supabase.removeChannel(subscription);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [postId, loadLikeUsers]);
 

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   Dimensions,
   ScrollView,
   Alert,
+  ActionSheetIOS,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -64,6 +66,7 @@ export default function InstagramPostCard({
   hideTagIcon = false,
 }: InstagramPostCardProps) {
   const { user } = useAuth();
+  const channelRef = useRef<any>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(post.user_has_liked);
   const [isSaved, setIsSaved] = useState(post.user_has_saved);
@@ -82,53 +85,60 @@ export default function InstagramPostCard({
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ FIXED: Subscribe to real-time like updates
+  // ✅ FIXED: Real-time subscription using broadcast (scalable approach)
   useEffect(() => {
     if (!post.id) return;
 
-    console.log('[InstagramPostCard] 🔄 Setting up real-time like subscription for post:', post.id);
+    console.log('[InstagramPostCard] 🔄 Setting up real-time broadcast subscription for post:', post.id);
 
-    const likesChannel = supabase
-      .channel(`post-likes-realtime-${post.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'likes',
-          filter: `post_id=eq.${post.id}`,
-        },
-        async (payload) => {
-          console.log('[InstagramPostCard] 🔄 Real-time like change detected:', payload);
-          
-          // ✅ FIXED: Reload like count from database (source of truth)
-          const { count } = await supabase
+    // Check if already subscribed
+    if (channelRef.current?.state === 'subscribed') {
+      console.log('[InstagramPostCard] ⚠️ Already subscribed, skipping');
+      return;
+    }
+
+    const channel = supabase.channel(`post-likes:${post.id}`, {
+      config: { broadcast: { self: true } }
+    });
+
+    channelRef.current = channel;
+
+    channel
+      .on('broadcast', { event: 'like_changed' }, async (payload) => {
+        console.log('[InstagramPostCard] 🔄 Real-time like broadcast received:', payload);
+        
+        // ✅ FIXED: Reload like count from database (source of truth)
+        const { count } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+        
+        setLikesCount(count || 0);
+        
+        // ✅ FIXED: Check if current user has liked
+        if (user) {
+          const { data: userLike } = await supabase
             .from('likes')
-            .select('id', { count: 'exact', head: true })
-            .eq('post_id', post.id);
+            .select('id')
+            .eq('post_id', post.id)
+            .eq('usuario_id', user.id)
+            .single();
           
-          setLikesCount(count || 0);
-          
-          // ✅ FIXED: Check if current user has liked
-          if (user) {
-            const { data: userLike } = await supabase
-              .from('likes')
-              .select('id')
-              .eq('post_id', post.id)
-              .eq('usuario_id', user.id)
-              .single();
-            
-            setIsLiked(!!userLike);
-          }
-          
-          console.log('[InstagramPostCard] ✅ Updated likes count:', count);
+          setIsLiked(!!userLike);
         }
-      )
-      .subscribe();
+        
+        console.log('[InstagramPostCard] ✅ Updated likes count via broadcast:', count);
+      })
+      .subscribe((status) => {
+        console.log('[InstagramPostCard] 📡 Subscription status:', status);
+      });
 
     return () => {
-      console.log('[InstagramPostCard] 🔄 Cleaning up real-time like subscription for post:', post.id);
-      supabase.removeChannel(likesChannel);
+      console.log('[InstagramPostCard] 🔄 Cleaning up real-time subscription for post:', post.id);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [post.id, user]);
 
@@ -266,6 +276,69 @@ export default function InstagramPostCard({
     }
   };
 
+  // ✅ NEW: Report post functionality
+  const handleReport = () => {
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
+      return;
+    }
+
+    const reportOptions = [
+      { text: 'Spam', value: 'spam' },
+      { text: 'Acoso', value: 'harassment' },
+      { text: 'Contenido inapropiado', value: 'inappropriate' },
+      { text: 'Violencia', value: 'violence' },
+      { text: 'Discurso de odio', value: 'hate_speech' },
+      { text: 'Información falsa', value: 'false_information' },
+      { text: 'Otro', value: 'other' },
+      { text: 'Cancelar', value: 'cancel' },
+    ];
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: reportOptions.map(o => o.text),
+          cancelButtonIndex: reportOptions.length - 1,
+          title: '¿Por qué reportas esta publicación?',
+        },
+        async (buttonIndex) => {
+          if (buttonIndex < reportOptions.length - 1) {
+            await submitReport(reportOptions[buttonIndex].value);
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Reportar publicación',
+        '¿Por qué reportas esta publicación?',
+        reportOptions.map(option => ({
+          text: option.text,
+          style: option.value === 'cancel' ? 'cancel' : 'default',
+          onPress: option.value !== 'cancel' ? () => submitReport(option.value) : undefined,
+        }))
+      );
+    }
+  };
+
+  const submitReport = async (reason: string) => {
+    try {
+      const { error } = await supabase.from('content_reports').insert({
+        reporter_id: user!.id,
+        content_type: 'post',
+        content_id: post.id,
+        post_id: post.id,
+        reason,
+      });
+
+      if (error) throw error;
+
+      Alert.alert('✅ Reporte enviado', 'Gracias por ayudarnos a mantener la comunidad segura');
+    } catch (error) {
+      console.error('[InstagramPostCard] Error reporting post:', error);
+      Alert.alert('Error', 'No se pudo enviar el reporte');
+    }
+  };
+
   const handleDelete = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para eliminar publicaciones');
@@ -325,6 +398,46 @@ export default function InstagramPostCard({
     );
   };
 
+  const handleMoreOptions = () => {
+    const options: string[] = [];
+    const actions: (() => void)[] = [];
+
+    if (isOwner) {
+      options.push('Eliminar');
+      actions.push(handleDelete);
+    } else {
+      options.push('Reportar');
+      actions.push(handleReport);
+    }
+
+    options.push('Cancelar');
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: options.length - 1,
+          destructiveButtonIndex: isOwner ? 0 : undefined,
+        },
+        (buttonIndex) => {
+          if (buttonIndex < actions.length) {
+            actions[buttonIndex]();
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Opciones',
+        '',
+        options.map((option, index) => ({
+          text: option,
+          style: option === 'Eliminar' ? 'destructive' : option === 'Cancelar' ? 'cancel' : 'default',
+          onPress: index < actions.length ? actions[index] : undefined,
+        }))
+      );
+    }
+  };
+
   const handleCommentsUpdate = () => {
     setCommentsCount(prev => prev + 1);
     if (onUpdate) {
@@ -380,11 +493,9 @@ export default function InstagramPostCard({
             </View>
           </TouchableOpacity>
 
-          {isOwner && (
-            <TouchableOpacity style={styles.moreButton} onPress={handleDelete}>
-              <Ionicons name="trash-outline" size={22} color={colors.text} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={styles.moreButton} onPress={handleMoreOptions}>
+            <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+          </TouchableOpacity>
         </View>
 
         {post.imagenes.length > 0 && (
@@ -525,7 +636,7 @@ export default function InstagramPostCard({
         visible={showShareModal}
         postId={post.id}
         postContent={post.contenido}
-        onClose={() => setShowShareModal(false)}
+        onClose={() => setShareShareModal(false)}
       />
     </>
   );

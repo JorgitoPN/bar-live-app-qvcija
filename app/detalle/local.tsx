@@ -119,6 +119,17 @@ interface Review {
   };
 }
 
+interface GoogleReview {
+  author_name: string;
+  author_url?: string;
+  language?: string;
+  profile_photo_url?: string;
+  rating: number;
+  relative_time_description?: string;
+  text?: string;
+  time: number;
+}
+
 interface Evento {
   id: string;
   titulo: string;
@@ -336,10 +347,15 @@ export default function DetalleLocalScreen() {
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [checkedInUsers, setCheckedInUsers] = useState<CheckedInUser[]>([]);
   const [loadingCheckIns, setLoadingCheckIns] = useState(false);
+  const [showAllUsers, setShowAllUsers] = useState(false);
 
   // ✅ NEW: Reviews pagination state
   const [displayedReviewsCount, setDisplayedReviewsCount] = useState(5);
   const [totalBarliveReviewsCount, setTotalBarliveReviewsCount] = useState(0);
+
+  // ✅ NEW: Google reviews state
+  const [googleReviews, setGoogleReviews] = useState<GoogleReview[]>([]);
+  const [showGoogleReviews, setShowGoogleReviews] = useState(false);
 
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
@@ -550,6 +566,13 @@ export default function DetalleLocalScreen() {
       }
 
       setLocal(data);
+      
+      // ✅ RESTORED: Load Google reviews from reviews_google field
+      if (data.reviews_google && Array.isArray(data.reviews_google)) {
+        console.log('[DetalleLocal] ✅ Loaded', data.reviews_google.length, 'Google reviews');
+        setGoogleReviews(data.reviews_google);
+      }
+      
       setLoading(false);
       cargarReviewsBarlive();
       cargarEventos();
@@ -947,6 +970,10 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
+  // ✅ NEW: Display first 3 users, rest in dropdown
+  const displayedUsers = showAllUsers ? checkedInUsers : checkedInUsers.slice(0, 3);
+  const hasMoreUsers = checkedInUsers.length > 3;
+
   return (
     <GestureHandlerRootView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -1118,6 +1145,7 @@ export default function DetalleLocalScreen() {
                 </TouchableOpacity>
               )}
 
+              {/* ✅ FIXED: User card with dropdown for all users */}
               {checkedInUsers.length > 0 && (
                 <View style={styles.checkedInSection}>
                   <View style={styles.checkedInHeader}>
@@ -1127,7 +1155,7 @@ export default function DetalleLocalScreen() {
                     </Text>
                   </View>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.checkedInUsersScroll}>
-                    {checkedInUsers.map((checkedUser) => (
+                    {displayedUsers.map((checkedUser) => (
                       <TouchableOpacity
                         key={checkedUser.id}
                         style={styles.checkedInUserCard}
@@ -1146,6 +1174,24 @@ export default function DetalleLocalScreen() {
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
+                  
+                  {/* ✅ NEW: Dropdown to show all users */}
+                  {hasMoreUsers && (
+                    <TouchableOpacity 
+                      style={styles.showAllUsersButton}
+                      onPress={() => setShowAllUsers(!showAllUsers)}
+                    >
+                      <Text style={styles.showAllUsersText}>
+                        {showAllUsers ? 'Ver menos' : `Ver todos (${checkedInUsers.length})`}
+                      </Text>
+                      <IconSymbol
+                        ios_icon_name={showAllUsers ? 'chevron.up' : 'chevron.down'}
+                        android_material_icon_name={showAllUsers ? 'expand_less' : 'expand_more'}
+                        size={16}
+                        color={colors.primary}
+                      />
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
 
@@ -1180,7 +1226,7 @@ export default function DetalleLocalScreen() {
                 </View>
               )}
 
-              {/* ✅ FIXED: Removed "Casa Adolfo" text between buttons */}
+              {/* ✅ FIXED: Removed "Casa Adolfo" text - actions row directly after description */}
               <View style={styles.actionsRow}>
                 {local.telefono && (
                   <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
@@ -1407,7 +1453,101 @@ export default function DetalleLocalScreen() {
                 </View>
               )}
 
-              {/* ✅ FIXED: Reviews section with "Ver más" functionality */}
+              {/* ✅ RESTORED: Google Reviews Section */}
+              {googleReviews.length > 0 && (
+                <View style={styles.compactSection}>
+                  <View style={styles.compactSectionHeader}>
+                    <View style={[styles.compactIconCircle, { backgroundColor: '#4285F4' + '20' }]}>
+                      <IconSymbol ios_icon_name="g.circle.fill" android_material_icon_name="reviews" size={20} color="#4285F4" />
+                    </View>
+                    <Text style={styles.compactSectionTitle}>Reseñas de Google</Text>
+                    {local.google_user_ratings_total && (
+                      <Text style={styles.reviewsCount}>({local.google_user_ratings_total})</Text>
+                    )}
+                  </View>
+
+                  {local.google_rating && (
+                    <View style={styles.googleRatingBox}>
+                      <View style={styles.googleRatingLeft}>
+                        <Text style={styles.googleRatingNumber}>{local.google_rating.toFixed(1)}</Text>
+                        <View style={styles.googleStarsRow}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Ionicons
+                              key={star}
+                              name={star <= Math.round(local.google_rating!) ? 'star' : 'star-outline'}
+                              size={16}
+                              color="#FFD700"
+                            />
+                          ))}
+                        </View>
+                        <Text style={styles.googleRatingCount}>
+                          {local.google_user_ratings_total} reseñas
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {googleReviews.slice(0, 3).map((review, index) => {
+                    const reviewText = review.text || '';
+                    const { summary, needsExpansion } = summarizeText(reviewText, 150);
+                    const isExpanded = expandedReviews.has(`google-${index}`);
+                    const displayText = isExpanded ? reviewText : summary;
+
+                    return (
+                      <View key={index} style={styles.googleReviewCard}>
+                        <View style={styles.reviewHeader}>
+                          <View style={styles.reviewAvatar}>
+                            {review.profile_photo_url ? (
+                              <RNImage source={{ uri: review.profile_photo_url }} style={styles.avatar} />
+                            ) : (
+                              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
+                              </View>
+                            )}
+                          </View>
+                          <View style={styles.reviewInfo}>
+                            <Text style={styles.reviewAuthor}>{review.author_name}</Text>
+                            <View style={styles.reviewRating}>
+                              <Ionicons name="star" size={14} color="#FFD700" />
+                              <Text style={styles.reviewRatingText}>{review.rating}</Text>
+                            </View>
+                          </View>
+                          <Text style={styles.googleReviewTime}>{review.relative_time_description}</Text>
+                        </View>
+                        {reviewText && (
+                          <React.Fragment>
+                            <Text style={styles.reviewText}>{displayText}</Text>
+                            {needsExpansion && (
+                              <TouchableOpacity onPress={() => toggleReviewExpansion(`google-${index}`)}>
+                                <Text style={styles.expandButton}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
+                              </TouchableOpacity>
+                            )}
+                          </React.Fragment>
+                        )}
+                      </View>
+                    );
+                  })}
+
+                  {googleReviews.length > 3 && (
+                    <TouchableOpacity 
+                      style={styles.viewAllGoogleReviewsButton}
+                      onPress={() => setShowGoogleReviews(true)}
+                    >
+                      <Text style={styles.viewAllGoogleReviewsText}>
+                        Ver todas las reseñas de Google ({googleReviews.length})
+                      </Text>
+                      <IconSymbol
+                        ios_icon_name="chevron.right"
+                        android_material_icon_name="chevron_right"
+                        size={16}
+                        color={colors.primary}
+                      />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {/* ✅ FIXED: Barlive Reviews section with "Ver más" functionality */}
               <View style={styles.compactSection}>
                 <View style={styles.compactSectionHeader}>
                   <View style={[styles.compactIconCircle, { backgroundColor: '#FFD700' + '20' }]}>
@@ -1909,6 +2049,21 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
   },
+  showAllUsersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 8,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+  },
+  showAllUsersText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
   checkInButtonsContainer: {
     marginBottom: 16,
   },
@@ -2195,6 +2350,61 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
     lineHeight: 19,
+  },
+  googleRatingBox: {
+    backgroundColor: colors.cardBackground,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  googleRatingLeft: {
+    alignItems: 'center',
+  },
+  googleRatingNumber: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  googleStarsRow: {
+    flexDirection: 'row',
+    gap: 2,
+    marginBottom: 4,
+  },
+  googleRatingCount: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  googleReviewCard: {
+    backgroundColor: '#E8F5E9',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#4CAF50' + '30',
+  },
+  googleReviewTime: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  viewAllGoogleReviewsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    marginTop: 8,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#4285F4' + '30',
+  },
+  viewAllGoogleReviewsText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#4285F4',
   },
   reviewCard: {
     backgroundColor: colors.cardBackground,

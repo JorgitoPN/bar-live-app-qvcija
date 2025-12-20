@@ -15,6 +15,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ActionSheetIOS,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -482,6 +483,74 @@ export default function MomentoViewer({
     }
   };
 
+  // ✅ NEW: Report momento functionality
+  const handleReport = () => {
+    if (!user || momentos.length === 0) return;
+
+    const currentMomento = momentos[currentIndex];
+    if (!currentMomento) return;
+
+    if (currentMomento.autor_id === user.id) {
+      Alert.alert('Error', 'No puedes reportar tu propio Momento');
+      return;
+    }
+
+    const reportOptions = [
+      { text: 'Spam', value: 'spam' },
+      { text: 'Acoso', value: 'harassment' },
+      { text: 'Contenido inapropiado', value: 'inappropriate' },
+      { text: 'Violencia', value: 'violence' },
+      { text: 'Discurso de odio', value: 'hate_speech' },
+      { text: 'Información falsa', value: 'false_information' },
+      { text: 'Otro', value: 'other' },
+      { text: 'Cancelar', value: 'cancel' },
+    ];
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: reportOptions.map(o => o.text),
+          cancelButtonIndex: reportOptions.length - 1,
+          title: '¿Por qué reportas este Momento?',
+        },
+        async (buttonIndex) => {
+          if (buttonIndex < reportOptions.length - 1) {
+            await submitMomentoReport(currentMomento.id, reportOptions[buttonIndex].value);
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Reportar Momento',
+        '¿Por qué reportas este Momento?',
+        reportOptions.map(option => ({
+          text: option.text,
+          style: option.value === 'cancel' ? 'cancel' : 'default',
+          onPress: option.value !== 'cancel' ? () => submitMomentoReport(currentMomento.id, option.value) : undefined,
+        }))
+      );
+    }
+  };
+
+  const submitMomentoReport = async (momentoId: string, reason: string) => {
+    try {
+      const { error } = await supabase.from('content_reports').insert({
+        reporter_id: user!.id,
+        content_type: 'momento',
+        content_id: momentoId,
+        momento_id: momentoId,
+        reason,
+      });
+
+      if (error) throw error;
+
+      Alert.alert('✅ Reporte enviado', 'Gracias por ayudarnos a mantener la comunidad segura');
+    } catch (error) {
+      console.error('[MomentoViewer] Error reporting momento:', error);
+      Alert.alert('Error', 'No se pudo enviar el reporte');
+    }
+  };
+
   const handleDelete = async () => {
     if (!user || momentos.length === 0) return;
 
@@ -918,7 +987,7 @@ export default function MomentoViewer({
               </TouchableOpacity>
             )}
 
-            {isAuthor && (
+            {isAuthor ? (
               <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
                 <IconSymbol
                   ios_icon_name="trash.fill"
@@ -927,6 +996,16 @@ export default function MomentoViewer({
                   color="rgba(255, 255, 255, 0.75)"
                 />
                 <Text style={styles.actionLabel}>Eliminar</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={handleReport} style={styles.actionButton}>
+                <IconSymbol
+                  ios_icon_name="exclamationmark.triangle.fill"
+                  android_material_icon_name="report"
+                  size={20}
+                  color="rgba(255, 255, 255, 0.75)"
+                />
+                <Text style={styles.actionLabel}>Reportar</Text>
               </TouchableOpacity>
             )}
           </LinearGradient>

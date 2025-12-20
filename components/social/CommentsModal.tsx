@@ -64,17 +64,6 @@ interface CommentsModalProps {
   onCommentAdded?: () => void;
 }
 
-/**
- * ✅ COMMENTS MODAL v5.0 - FIXED MENTION AUTOCOMPLETE KEYBOARD OVERLAP
- * 
- * Changes:
- * - ✅ CRITICAL FIX: Mention autocomplete now appears ABOVE keyboard
- * - ✅ Keyboard height tracked and passed to MentionAutocomplete
- * - ✅ Input container positioned above keyboard
- * - ✅ Proper z-index layering for autocomplete
- * - ✅ Maintains all existing functionality
- */
-
 export default function CommentsModal({
   visible,
   postId,
@@ -99,7 +88,7 @@ export default function CommentsModal({
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[CommentsModal v5.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[CommentsModal] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -107,7 +96,7 @@ export default function CommentsModal({
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[CommentsModal v5.0] ⌨️ Keyboard hidden');
+        console.log('[CommentsModal] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
       }
     );
@@ -197,7 +186,7 @@ export default function CommentsModal({
         setComments(commentsData || []);
       }
     } catch (error) {
-      console.error('[CommentsModal v5.0] Error loading comments:', error);
+      console.error('[CommentsModal] Error loading comments:', error);
       Alert.alert('Error', 'No se pudieron cargar los comentarios');
     } finally {
       setLoading(false);
@@ -211,7 +200,7 @@ export default function CommentsModal({
   }, [visible, postId, loadComments]);
 
   const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
-    console.log('[CommentsModal v5.0] ✅ Selected mention:', mention);
+    console.log('[CommentsModal] ✅ Selected mention:', mention);
     
     const textBeforeCursor = commentText.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
@@ -244,11 +233,11 @@ export default function CommentsModal({
     setSending(true);
 
     try {
-      console.log('[CommentsModal v5.0] 🔄 Ensuring valid session before sending comment...');
+      console.log('[CommentsModal] 🔄 Ensuring valid session before sending comment...');
       const validSession = await ensureValidSession();
       
       if (!validSession || !validSession.user) {
-        console.error('[CommentsModal v5.0] ❌ No valid session available');
+        console.error('[CommentsModal] ❌ No valid session available');
         Alert.alert(
           'Error de autenticación',
           'Tu sesión ha expirado o no tienes permisos. Por favor inicia sesión de nuevo.',
@@ -264,7 +253,7 @@ export default function CommentsModal({
         return;
       }
 
-      console.log('[CommentsModal v5.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
+      console.log('[CommentsModal] ✅ Valid session confirmed, user ID:', validSession.user.id);
 
       if (editingComment) {
         const { error } = await supabase
@@ -291,7 +280,7 @@ export default function CommentsModal({
           commentData.tipo = 'usuario';
         }
 
-        console.log('[CommentsModal v5.0] 📝 Inserting comment with data:', commentData);
+        console.log('[CommentsModal] 📝 Inserting comment with data:', commentData);
 
         const { data: newComment, error } = await supabase
           .from('comentarios')
@@ -309,19 +298,19 @@ export default function CommentsModal({
           .single();
 
         if (error) {
-          console.error('[CommentsModal v5.0] ❌ Error inserting comment:', error);
+          console.error('[CommentsModal] ❌ Error inserting comment:', error);
           throw error;
         }
 
-        console.log('[CommentsModal v5.0] ✅ Comment inserted successfully:', newComment.id);
+        console.log('[CommentsModal] ✅ Comment inserted successfully:', newComment.id);
 
         if (newComment && text) {
-          console.log('[CommentsModal v5.0] 🏷️ Processing hashtags and mentions in comment...');
+          console.log('[CommentsModal] 🏷️ Processing hashtags and mentions in comment...');
           await Promise.all([
             processCommentHashtags(newComment.id, text),
             processCommentMentions(newComment.id, text, postId),
           ]);
-          console.log('[CommentsModal v5.0] ✅ Comment hashtags and mentions processed');
+          console.log('[CommentsModal] ✅ Comment hashtags and mentions processed');
         }
 
         if (replyingTo) {
@@ -336,7 +325,7 @@ export default function CommentsModal({
         }
       }
     } catch (error: any) {
-      console.error('[CommentsModal v5.0] ❌ Error sending comment:', error);
+      console.error('[CommentsModal] ❌ Error sending comment:', error);
       
       let errorMessage = 'No se pudo enviar el comentario';
       
@@ -385,7 +374,7 @@ export default function CommentsModal({
           .eq('usuario_id', user.id);
       }
     } catch (error) {
-      console.error('[CommentsModal v5.0] Error toggling like:', error);
+      console.error('[CommentsModal] Error toggling like:', error);
       setComments(prev => prev.map(c => 
         c.id === comment.id 
           ? { 
@@ -428,7 +417,7 @@ export default function CommentsModal({
 
               await loadComments();
             } catch (error) {
-              console.error('[CommentsModal v5.0] Error deleting comment:', error);
+              console.error('[CommentsModal] Error deleting comment:', error);
               Alert.alert('Error', 'No se pudo eliminar el comentario');
             }
           },
@@ -448,36 +437,71 @@ export default function CommentsModal({
 
       await loadComments();
     } catch (error) {
-      console.error('[CommentsModal v5.0] Error pinning comment:', error);
+      console.error('[CommentsModal] Error pinning comment:', error);
       Alert.alert('Error', 'No se pudo fijar el comentario');
     }
   };
 
+  // ✅ NEW: Report comment functionality
   const handleReportComment = (comment: Comment) => {
-    Alert.alert(
-      'Denunciar comentario',
-      '¿Por qué quieres denunciar este comentario?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Spam', onPress: () => submitReport(comment.id, 'spam') },
-        { text: 'Acoso', onPress: () => submitReport(comment.id, 'harassment') },
-        { text: 'Contenido inapropiado', onPress: () => submitReport(comment.id, 'inappropriate') },
-      ]
-    );
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
+      return;
+    }
+
+    const reportOptions = [
+      { text: 'Spam', value: 'spam' },
+      { text: 'Acoso', value: 'harassment' },
+      { text: 'Contenido inapropiado', value: 'inappropriate' },
+      { text: 'Violencia', value: 'violence' },
+      { text: 'Discurso de odio', value: 'hate_speech' },
+      { text: 'Información falsa', value: 'false_information' },
+      { text: 'Otro', value: 'other' },
+      { text: 'Cancelar', value: 'cancel' },
+    ];
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: reportOptions.map(o => o.text),
+          cancelButtonIndex: reportOptions.length - 1,
+          title: '¿Por qué reportas este comentario?',
+        },
+        async (buttonIndex) => {
+          if (buttonIndex < reportOptions.length - 1) {
+            await submitCommentReport(comment.id, reportOptions[buttonIndex].value);
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Reportar comentario',
+        '¿Por qué reportas este comentario?',
+        reportOptions.map(option => ({
+          text: option.text,
+          style: option.value === 'cancel' ? 'cancel' : 'default',
+          onPress: option.value !== 'cancel' ? () => submitCommentReport(comment.id, option.value) : undefined,
+        }))
+      );
+    }
   };
 
-  const submitReport = async (commentId: string, reason: string) => {
+  const submitCommentReport = async (commentId: string, reason: string) => {
     try {
-      await supabase.from('comment_reports').insert({
+      const { error } = await supabase.from('content_reports').insert({
+        reporter_id: user!.id,
+        content_type: 'comment',
+        content_id: commentId,
         comentario_id: commentId,
-        usuario_id: user?.id,
         reason,
       });
 
-      Alert.alert('Gracias', 'Tu denuncia ha sido enviada');
+      if (error) throw error;
+
+      Alert.alert('✅ Reporte enviado', 'Gracias por ayudarnos a mantener la comunidad segura');
     } catch (error) {
-      console.error('[CommentsModal v5.0] Error reporting comment:', error);
-      Alert.alert('Error', 'No se pudo enviar la denuncia');
+      console.error('[CommentsModal] Error reporting comment:', error);
+      Alert.alert('Error', 'No se pudo enviar el reporte');
     }
   };
 
@@ -489,7 +513,7 @@ export default function CommentsModal({
     const actions: (() => void)[] = [];
 
     if (!isOwner) {
-      options.push('Denunciar');
+      options.push('Reportar');
       actions.push(() => handleReportComment(comment));
     }
 
@@ -596,15 +620,13 @@ export default function CommentsModal({
             <View style={styles.commentHeader}>
               <Text style={styles.commentUsername}>{displayName}</Text>
               <Text style={styles.commentTime}>{formatTimeAgo(item.created_at)}</Text>
-              {canDelete && (
-                <TouchableOpacity 
-                  style={styles.commentOptionsButton}
-                  onPress={() => handleDeleteComment(item)}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={16} color="rgba(0, 0, 0, 0.5)" />
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity 
+                style={styles.commentOptionsButton}
+                onPress={() => showCommentOptions(item)}
+                activeOpacity={0.7}
+              >
+                <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_horiz" size={16} color="rgba(0, 0, 0, 0.5)" />
+              </TouchableOpacity>
             </View>
             <ParsedText text={item.texto} style={styles.commentText} />
             <View style={styles.commentActions}>
@@ -673,15 +695,13 @@ export default function CommentsModal({
                     <View style={styles.commentHeader}>
                       <Text style={styles.commentUsername}>{replyDisplayName}</Text>
                       <Text style={styles.commentTime}>{formatTimeAgo(reply.created_at)}</Text>
-                      {canDeleteReply && (
-                        <TouchableOpacity 
-                          style={styles.commentOptionsButton}
-                          onPress={() => handleDeleteComment(reply)}
-                          activeOpacity={0.7}
-                        >
-                          <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={14} color="rgba(0, 0, 0, 0.5)" />
-                        </TouchableOpacity>
-                      )}
+                      <TouchableOpacity 
+                        style={styles.commentOptionsButton}
+                        onPress={() => showCommentOptions(reply)}
+                        activeOpacity={0.7}
+                      >
+                        <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_horiz" size={14} color="rgba(0, 0, 0, 0.5)" />
+                      </TouchableOpacity>
                     </View>
                     <ParsedText text={reply.texto} style={styles.commentText} />
                   </View>
@@ -753,7 +773,6 @@ export default function CommentsModal({
 
         {user && (
           <>
-            {/* ✅ FIXED: Mention autocomplete positioned ABOVE keyboard */}
             <MentionAutocomplete
               text={commentText}
               cursorPosition={cursorPosition}
@@ -806,12 +825,12 @@ export default function CommentsModal({
                   placeholderTextColor="rgba(0, 0, 0, 0.4)"
                   value={commentText}
                   onChangeText={(text) => {
-                    console.log('[CommentsModal v5.0] 📝 Text changed:', text);
+                    console.log('[CommentsModal] 📝 Text changed:', text);
                     setCommentText(text);
                   }}
                   onSelectionChange={(event) => {
                     const newPosition = event.nativeEvent.selection.start;
-                    console.log('[CommentsModal v5.0] 📍 Cursor position changed to:', newPosition);
+                    console.log('[CommentsModal] 📍 Cursor position changed to:', newPosition);
                     setCursorPosition(newPosition);
                   }}
                   multiline
