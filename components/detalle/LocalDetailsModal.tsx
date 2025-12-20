@@ -83,13 +83,6 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
   return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
 }
 
-/**
- * ✅ LOCAL DETAILS MODAL v11.1 - FIXED LINT WARNINGS
- * 
- * Changes:
- * - ✅ Wrapped loadLocalData in useCallback to fix dependency warning
- */
-
 export default function LocalDetailsModal({
   visible,
   localId,
@@ -186,7 +179,6 @@ export default function LocalDetailsModal({
 
   const displayRating = local?.rating || local?.google_rating || 0;
 
-  // ✅ FIXED: Close button position respects badge margins
   const closeButtonTop = local?.destacado 
     ? (Platform.OS === 'ios' ? 100 : 100)
     : (Platform.OS === 'ios' ? 60 : 60);
@@ -201,13 +193,11 @@ export default function LocalDetailsModal({
     >
       <StatusBar barStyle="light-content" backgroundColor="rgba(0, 0, 0, 0.7)" translucent />
       
-      {/* ✅ Dark overlay - blocks interaction with background */}
       <TouchableOpacity 
         style={styles.overlay}
         activeOpacity={1}
         onPress={onClose}
       >
-        {/* ✅ Modal container - centered, floating */}
         <TouchableOpacity 
           style={styles.modalContainer}
           activeOpacity={1}
@@ -225,7 +215,6 @@ export default function LocalDetailsModal({
               </View>
             ) : local ? (
               <React.Fragment>
-                {/* Cover Image */}
                 {allImages.length > 0 && (
                   <View style={styles.coverContainer}>
                     <OptimizedImage
@@ -234,7 +223,6 @@ export default function LocalDetailsModal({
                       resizeMode="cover"
                     />
 
-                    {/* ✅ FIXED: Close button with proper positioning - respects badge margins */}
                     <TouchableOpacity 
                       style={[styles.closeButtonFixed, { top: closeButtonTop }]} 
                       onPress={onClose}
@@ -297,7 +285,6 @@ export default function LocalDetailsModal({
                   </View>
                 )}
 
-                {/* Content */}
                 <View style={styles.contentCard}>
                   <Text style={styles.localNameText}>{local.nombre}</Text>
 
@@ -445,7 +432,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
   },
-  // ✅ FIXED: Close button with proper positioning - respects badge margins
   closeButtonFixed: {
     position: 'absolute',
     left: 16,

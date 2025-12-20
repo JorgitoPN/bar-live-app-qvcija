@@ -12,6 +12,9 @@ import {
   PanResponder,
   Alert,
   ActivityIndicator,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -73,6 +76,11 @@ export default function MomentoViewer({
   const [showStats, setShowStats] = useState(false);
   const [viewers, setViewers] = useState<any[]>([]);
   const [likers, setLikers] = useState<any[]>([]);
+  
+  // ✅ NEW: Message input state
+  const [showMessageInput, setShowMessageInput] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   const progressAnims = useRef<Animated.Value[]>([]).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -291,15 +299,46 @@ export default function MomentoViewer({
     }
   };
 
-  // ✅ FIXED: Send message with automatic screenshot capture
+  // ✅ FIXED: Open message input and pause momento
+  const handleOpenMessageInput = () => {
+    console.log('[MomentoViewer] 📝 Opening message input, pausing momento');
+    setPaused(true);
+    setShowMessageInput(true);
+    
+    // Stop progress animation
+    if (progressAnimationRef.current) {
+      progressAnimationRef.current.stop();
+      progressAnimationRef.current = null;
+    }
+    if (progressTimerRef.current) {
+      clearTimeout(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+  };
+
+  // ✅ FIXED: Close message input and resume momento
+  const handleCloseMessageInput = () => {
+    console.log('[MomentoViewer] ❌ Closing message input, resuming momento');
+    setShowMessageInput(false);
+    setMessageText('');
+    setPaused(false);
+  };
+
+  // ✅ FIXED: Send message with automatic screenshot capture and text
   const handleSendMessage = async () => {
-    if (!user || !author || momentos.length === 0) return;
+    if (!user || !author || momentos.length === 0 || !messageText.trim()) {
+      if (!messageText.trim()) {
+        Alert.alert('Error', 'Escribe un mensaje');
+      }
+      return;
+    }
 
     const currentMomento = momentos[currentIndex];
     if (!currentMomento) return;
 
     try {
-      console.log('[MomentoViewer] 📸 Starting momento message flow...');
+      setSendingMessage(true);
+      console.log('[MomentoViewer] 📸 Starting momento message flow with text...');
       
       // ✅ FIXED: Capture screenshot automatically
       const screenshotUri = await captureMomentoScreenshot();
@@ -354,7 +393,7 @@ export default function MomentoViewer({
             usuario1_id: userId1,
             usuario2_id: userId2,
             local_id: null,
-            ultimo_mensaje: 'Respondió a tu Momento',
+            ultimo_mensaje: messageText.trim(),
             ultimo_mensaje_fecha: new Date().toISOString(),
           })
           .select('id')
@@ -364,19 +403,25 @@ export default function MomentoViewer({
       }
 
       if (chatId) {
-        // ✅ FIXED: Send message with momento screenshot
+        // ✅ FIXED: Send message with momento screenshot AND user text
         await supabase.from('mensajes').insert({
           chat_id: chatId,
           remitente_id: user.id,
-          contenido: 'Respondió a tu Momento',
+          contenido: messageText.trim(),
           tipo_mensaje: 'momento',
           momento_id: currentMomento.id,
           momento_screenshot_url: screenshotUrl,
           leido: false,
         });
 
-        console.log('[MomentoViewer] ✅ Momento message sent with screenshot');
+        console.log('[MomentoViewer] ✅ Momento message sent with screenshot and text');
 
+        // Close input and resume
+        setShowMessageInput(false);
+        setMessageText('');
+        setPaused(false);
+
+        // Navigate to chat
         router.push({
           pathname: '/chat/conversacion',
           params: {
@@ -388,6 +433,8 @@ export default function MomentoViewer({
     } catch (error) {
       console.error('[MomentoViewer] Error creating chat:', error);
       Alert.alert('Error', 'No se pudo crear la conversación');
+    } finally {
+      setSendingMessage(false);
     }
   };
 
@@ -546,6 +593,8 @@ export default function MomentoViewer({
     setShowStats(false);
     setViewers([]);
     setLikers([]);
+    setShowMessageInput(false);
+    setMessageText('');
     progressAnims.forEach(anim => anim.setValue(0));
     onClose();
   };
@@ -614,8 +663,9 @@ export default function MomentoViewer({
     }
   }, [visible, authorId, authorType, fadeAnim, loadMomentos]);
 
+  // ✅ FIXED: Pause when message input is open
   useEffect(() => {
-    if (!paused && momentos.length > 0 && !loading && visible) {
+    if (!paused && !showMessageInput && momentos.length > 0 && !loading && visible) {
       console.log('[MomentoViewer] ▶️ Starting/resuming progress for momento', currentIndex);
       
       if (progressTimerRef.current) {
@@ -656,7 +706,7 @@ export default function MomentoViewer({
         }
       };
     }
-  }, [currentIndex, paused, momentos, loading, progressAnims, handleNext, visible]);
+  }, [currentIndex, paused, showMessageInput, momentos, loading, progressAnims, handleNext, visible]);
 
   if (!visible) return null;
 
@@ -777,56 +827,110 @@ export default function MomentoViewer({
           </TouchableOpacity>
         </LinearGradient>
 
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.6)']}
-          style={styles.actions}
-        >
-          <TouchableOpacity onPress={handleSendMessage} style={styles.actionButton}>
-            <IconSymbol
-              ios_icon_name="paperplane.fill"
-              android_material_icon_name="send"
-              size={20}
-              color="rgba(255, 255, 255, 0.75)"
-            />
-            <Text style={styles.actionLabel}>Mensaje</Text>
-          </TouchableOpacity>
+        {/* ✅ FIXED: Message input overlay */}
+        {showMessageInput && (
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.messageInputOverlay}
+          >
+            <View style={styles.messageInputContainer}>
+              <TouchableOpacity 
+                style={styles.messageInputClose}
+                onPress={handleCloseMessageInput}
+              >
+                <IconSymbol
+                  ios_icon_name="xmark.circle.fill"
+                  android_material_icon_name="cancel"
+                  size={28}
+                  color="rgba(255, 255, 255, 0.8)"
+                />
+              </TouchableOpacity>
+              
+              <View style={styles.messageInputBox}>
+                <TextInput
+                  style={styles.messageInput}
+                  placeholder="Escribe un mensaje..."
+                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                  value={messageText}
+                  onChangeText={setMessageText}
+                  multiline
+                  maxLength={500}
+                  autoFocus
+                  editable={!sendingMessage}
+                />
+                <TouchableOpacity
+                  style={[styles.messageSendButton, (!messageText.trim() || sendingMessage) && styles.messageSendButtonDisabled]}
+                  onPress={handleSendMessage}
+                  disabled={!messageText.trim() || sendingMessage}
+                >
+                  {sendingMessage ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <IconSymbol
+                      ios_icon_name="paperplane.fill"
+                      android_material_icon_name="send"
+                      size={20}
+                      color="#fff"
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        )}
 
-          <TouchableOpacity onPress={handleLike} style={styles.actionButton}>
-            <IconSymbol
-              ios_icon_name={currentMomento.user_has_liked ? 'heart.fill' : 'heart'}
-              android_material_icon_name={currentMomento.user_has_liked ? 'favorite' : 'favorite_border'}
-              size={20}
-              color={currentMomento.user_has_liked ? '#FF3B30' : 'rgba(255, 255, 255, 0.75)'}
-            />
-            <Text style={styles.actionLabel}>
-              {currentMomento.likes_count > 0 ? currentMomento.likes_count : 'Me gusta'}
-            </Text>
-          </TouchableOpacity>
-
-          {isAuthor && (
-            <TouchableOpacity onPress={handleShowStats} style={styles.actionButton}>
+        {!showMessageInput && (
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.6)']}
+            style={styles.actions}
+          >
+            <TouchableOpacity onPress={handleOpenMessageInput} style={styles.actionButton}>
               <IconSymbol
-                ios_icon_name="eye.fill"
-                android_material_icon_name="visibility"
+                ios_icon_name="paperplane.fill"
+                android_material_icon_name="send"
                 size={20}
                 color="rgba(255, 255, 255, 0.75)"
               />
-              <Text style={styles.actionLabel}>{currentMomento.vistas_count}</Text>
+              <Text style={styles.actionLabel}>Mensaje</Text>
             </TouchableOpacity>
-          )}
 
-          {isAuthor && (
-            <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
+            <TouchableOpacity onPress={handleLike} style={styles.actionButton}>
               <IconSymbol
-                ios_icon_name="trash.fill"
-                android_material_icon_name="delete"
+                ios_icon_name={currentMomento.user_has_liked ? 'heart.fill' : 'heart'}
+                android_material_icon_name={currentMomento.user_has_liked ? 'favorite' : 'favorite_border'}
                 size={20}
-                color="rgba(255, 255, 255, 0.75)"
+                color={currentMomento.user_has_liked ? '#FF3B30' : 'rgba(255, 255, 255, 0.75)'}
               />
-              <Text style={styles.actionLabel}>Eliminar</Text>
+              <Text style={styles.actionLabel}>
+                {currentMomento.likes_count > 0 ? currentMomento.likes_count : 'Me gusta'}
+              </Text>
             </TouchableOpacity>
-          )}
-        </LinearGradient>
+
+            {isAuthor && (
+              <TouchableOpacity onPress={handleShowStats} style={styles.actionButton}>
+                <IconSymbol
+                  ios_icon_name="eye.fill"
+                  android_material_icon_name="visibility"
+                  size={20}
+                  color="rgba(255, 255, 255, 0.75)"
+                />
+                <Text style={styles.actionLabel}>{currentMomento.vistas_count}</Text>
+              </TouchableOpacity>
+            )}
+
+            {isAuthor && (
+              <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
+                <IconSymbol
+                  ios_icon_name="trash.fill"
+                  android_material_icon_name="delete"
+                  size={20}
+                  color="rgba(255, 255, 255, 0.75)"
+                />
+                <Text style={styles.actionLabel}>Eliminar</Text>
+              </TouchableOpacity>
+            )}
+          </LinearGradient>
+        )}
 
         {showStats && (
           <View style={styles.statsModal}>
@@ -1040,6 +1144,52 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  messageInputOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 250,
+  },
+  messageInputContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+  },
+  messageInputClose: {
+    alignSelf: 'flex-end',
+    marginBottom: 12,
+  },
+  messageInputBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  messageInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#fff',
+    maxHeight: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  messageSendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  messageSendButtonDisabled: {
+    opacity: 0.5,
   },
   actions: {
     position: 'absolute',

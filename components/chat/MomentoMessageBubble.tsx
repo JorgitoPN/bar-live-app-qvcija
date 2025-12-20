@@ -94,7 +94,7 @@ export default function MomentoMessageBubble({
     };
   }, [momentoId]);
 
-  // ✅ FIXED: Open momento viewer when clicking on screenshot
+  // ✅ FIXED: Open momento viewer when clicking on screenshot (NOT social page)
   const handlePress = () => {
     if (isExpired || !screenshotUrl || !momentoAuthorId) {
       return;
@@ -104,16 +104,27 @@ export default function MomentoMessageBubble({
       onPress();
     }
     
-    // Open momento viewer - this will show the momento if it still exists
-    console.log('[MomentoMessageBubble] Opening momento viewer for:', momentoAuthorId, momentoAuthorType);
-    router.push({
-      pathname: '/(tabs)/social',
-      params: { 
-        openMomento: 'true',
-        momentoAuthorId: momentoAuthorId,
-        momentoAuthorType: momentoAuthorType,
-      },
-    });
+    // ✅ FIXED: Open momento viewer directly, NOT social page
+    console.log('[MomentoMessageBubble] ✅ Opening momento viewer for:', momentoAuthorId, momentoAuthorType);
+    
+    // Navigate to the appropriate profile and trigger momento viewer
+    if (momentoAuthorType === 'usuario') {
+      router.push({
+        pathname: '/perfil/usuario',
+        params: { 
+          userId: momentoAuthorId,
+          openMomento: 'true',
+        },
+      });
+    } else {
+      router.push({
+        pathname: '/perfil/local',
+        params: { 
+          localId: momentoAuthorId,
+          openMomento: 'true',
+        },
+      });
+    }
   };
 
   // ✅ FIXED: Show "El momento ya no está disponible" when expired
@@ -169,7 +180,7 @@ export default function MomentoMessageBubble({
           </View>
         </View>
       </View>
-      {mensaje && mensaje !== 'Respondió a tu Momento' && (
+      {mensaje && (
         <Text style={styles.mensaje}>{mensaje}</Text>
       )}
     </TouchableOpacity>
