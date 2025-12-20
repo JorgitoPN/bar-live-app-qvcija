@@ -537,7 +537,7 @@ export default function ReviewsModal({
             <TouchableOpacity onPress={onClose} style={styles.backButton}>
               <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={28} color={colors.headerText} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Reseñas de Barlive</Text>
+            <Text style={styles.headerTitle}>Reseñas</Text>
             <View style={{ width: 40 }} />
           </View>
           <Text style={styles.headerSubtitle}>

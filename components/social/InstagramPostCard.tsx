@@ -85,11 +85,11 @@ export default function InstagramPostCard({
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ FIXED: Real-time subscription using broadcast (scalable approach)
+  // ✅ FIXED: Real-time subscription for likes (immediate updates)
   useEffect(() => {
     if (!post.id) return;
 
-    console.log('[InstagramPostCard] 🔄 Setting up real-time broadcast subscription for post:', post.id);
+    console.log('[InstagramPostCard] 🔄 Setting up real-time subscription for post:', post.id);
 
     // Check if already subscribed
     if (channelRef.current?.state === 'subscribed') {
@@ -97,38 +97,45 @@ export default function InstagramPostCard({
       return;
     }
 
-    const channel = supabase.channel(`post-likes:${post.id}`, {
-      config: { broadcast: { self: true } }
-    });
+    const channel = supabase.channel(`post-likes:${post.id}`);
 
     channelRef.current = channel;
 
     channel
-      .on('broadcast', { event: 'like_changed' }, async (payload) => {
-        console.log('[InstagramPostCard] 🔄 Real-time like broadcast received:', payload);
-        
-        // ✅ FIXED: Reload like count from database (source of truth)
-        const { count } = await supabase
-          .from('likes')
-          .select('id', { count: 'exact', head: true })
-          .eq('post_id', post.id);
-        
-        setLikesCount(count || 0);
-        
-        // ✅ FIXED: Check if current user has liked
-        if (user) {
-          const { data: userLike } = await supabase
-            .from('likes')
-            .select('id')
-            .eq('post_id', post.id)
-            .eq('usuario_id', user.id)
-            .single();
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'likes',
+          filter: `post_id=eq.${post.id}`,
+        },
+        async (payload) => {
+          console.log('[InstagramPostCard] 🔄 Real-time like change detected:', payload);
           
-          setIsLiked(!!userLike);
+          // ✅ FIXED: Reload like count from database (source of truth)
+          const { count } = await supabase
+            .from('likes')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          setLikesCount(count || 0);
+          
+          // ✅ FIXED: Check if current user has liked
+          if (user) {
+            const { data: userLike } = await supabase
+              .from('likes')
+              .select('id')
+              .eq('post_id', post.id)
+              .eq('usuario_id', user.id)
+              .maybeSingle();
+            
+            setIsLiked(!!userLike);
+          }
+          
+          console.log('[InstagramPostCard] ✅ Updated likes count via real-time:', count);
         }
-        
-        console.log('[InstagramPostCard] ✅ Updated likes count via broadcast:', count);
-      })
+      )
       .subscribe((status) => {
         console.log('[InstagramPostCard] 📡 Subscription status:', status);
       });
