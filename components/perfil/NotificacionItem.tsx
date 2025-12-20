@@ -83,7 +83,6 @@ export default function NotificacionItem({
 
   const icono = getIcono();
 
-  // ✅ FIXED: Display username and avatar from usuario_origen
   const displayName = notificacion.usuario_origen?.username
     ? notificacion.usuario_origen.username.replace(/^@/, '')
     : notificacion.usuario_origen?.nombre

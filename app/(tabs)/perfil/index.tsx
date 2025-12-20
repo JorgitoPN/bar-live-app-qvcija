@@ -73,17 +73,6 @@ interface CheckInInfo {
   specific_user_ids?: string[];
 }
 
-/**
- * ✅ PROFILE SCREEN v12.0 - WITH REDESIGNED CURRENT LOCATION SECTION
- * 
- * Changes:
- * - ✅ NEW: Modern card design with gradient background
- * - ✅ NEW: Shows sharing visibility information (e.g., "Compartido con mis seguidores")
- * - ✅ NEW: Animated pulse effect for active check-in
- * - ✅ NEW: Better visual hierarchy with icons and colors
- * - ✅ IMPROVED: More attractive and informative design
- */
-
 export default function PerfilScreen() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -124,7 +113,6 @@ export default function PerfilScreen() {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [allPostIds, setAllPostIds] = useState<string[]>([]);
 
-  // ✅ Current location state with visibility info
   const [currentLocal, setCurrentLocal] = useState<any>(null);
   const [checkInInfo, setCheckInInfo] = useState<CheckInInfo | null>(null);
 
@@ -164,7 +152,6 @@ export default function PerfilScreen() {
     }
   }, [user, isPropietario]);
 
-  // ✅ Load current check-in location with visibility info
   const loadCurrentLocal = useCallback(async () => {
     if (!user) return;
 
@@ -809,11 +796,12 @@ export default function PerfilScreen() {
     router.push('/crear/publicacion');
   };
 
+  // ✅ FIXED: Open PostViewerModal with hideTagIcon=true when opened from profile grid
   const handlePostClick = (postId: string) => {
     const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
     const postIds = currentPosts.map(p => p.id);
     
-    console.log('[Perfil] ✅ Opening post viewer:', { postId, totalPosts: postIds.length });
+    console.log('[Perfil] ✅ Opening post viewer from profile grid (hideTagIcon=true):', { postId, totalPosts: postIds.length });
     
     setSelectedPostId(postId);
     setAllPostIds(postIds);
@@ -832,7 +820,6 @@ export default function PerfilScreen() {
     );
   };
 
-  // ✅ Handle exit local
   const handleExitLocal = async () => {
     if (!user || !currentLocal) return;
 
@@ -865,7 +852,6 @@ export default function PerfilScreen() {
     );
   };
 
-  // ✅ Get visibility text for sharing info
   const getVisibilityText = () => {
     if (!checkInInfo) return '';
     
@@ -884,6 +870,7 @@ export default function PerfilScreen() {
     }
   };
 
+  // ✅ FIXED: Remove icon from grid posts
   const renderGridPost = (post: Post) => {
     const firstImage = post.imagenes && post.imagenes.length > 0 
       ? post.imagenes[0] 
@@ -903,6 +890,7 @@ export default function PerfilScreen() {
               <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
             </View>
           )}
+          {/* ✅ FIXED: Show multiple images indicator but NO tag icon */}
           {post.imagenes && post.imagenes.length > 1 && (
             <View style={styles.multipleImagesIndicator}>
               <IconSymbol ios_icon_name="square.stack.fill" android_material_icon_name="collections" size={16} color={colors.headerText} />
@@ -1038,7 +1026,6 @@ export default function PerfilScreen() {
           </TouchableOpacity>
         )}
 
-        {/* ✅ NEW: REDESIGNED CURRENT LOCATION SECTION - "Estado actual" */}
         {currentLocal && (
           <View style={styles.currentLocalSection}>
             <View style={styles.currentLocalHeader}>
@@ -1164,7 +1151,6 @@ export default function PerfilScreen() {
               </LinearGradient>
             </TouchableOpacity>
             
-            {/* 🔘 "Salir del local" button */}
             <TouchableOpacity style={styles.exitLocalButton} onPress={handleExitLocal} activeOpacity={0.8}>
               <IconSymbol 
                 ios_icon_name="mappin.slash.circle.fill" 
@@ -1543,15 +1529,26 @@ export default function PerfilScreen() {
         onClose={() => setShowMomentoViewer(false)}
       />
 
+      {/* ✅ FIXED: Pass hideTagIcon=true when opening from profile grid */}
       {selectedPostId && allPostIds.length > 0 && (
         <PostViewerModal
           visible={showPostViewer}
           initialPostId={selectedPostId}
           allPostIds={allPostIds}
+          hideTagIcon={true}
           onClose={() => {
             setShowPostViewer(false);
             setSelectedPostId(null);
             setAllPostIds([]);
+          }}
+          onUpdate={() => {
+            if (activeTab === 'posts') {
+              cargarPosts();
+            } else if (activeTab === 'favoritos') {
+              cargarFavoritos();
+            } else if (activeTab === 'etiquetados') {
+              cargarEtiquetados();
+            }
           }}
         />
       )}
@@ -1771,7 +1768,6 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontWeight: '500',
   },
-  // ✅ NEW: REDESIGNED CURRENT LOCATION SECTION STYLES
   currentLocalSection: {
     marginBottom: 20,
   },

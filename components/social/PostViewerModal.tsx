@@ -66,16 +66,20 @@ interface Post {
 
 interface PostViewerModalProps {
   visible: boolean;
-  initialPostId: string;
-  allPostIds: string[];
+  initialPostId?: string;
+  post?: Post;
+  allPostIds?: string[];
   onClose: () => void;
   onPostChange?: (postId: string) => void;
+  onUpdate?: () => void;
+  hideTagIcon?: boolean;
 }
 
 /**
- * ✅ POST VIEWER MODAL v7.0 - COMPLETE TAGGING & EDITING SYSTEM
+ * ✅ POST VIEWER MODAL v8.0 - HIDE TAG ICON WHEN OPENED FROM PROFILE
  * 
  * Key changes:
+ * - ✅ NEW: hideTagIcon prop to hide the tag icon when opened from profile grid
  * - ✅ Full tagging mode support (same as profile grid)
  * - ✅ Edit description functionality
  * - ✅ Tag management (add/remove tags)
@@ -87,9 +91,12 @@ interface PostViewerModalProps {
 export default function PostViewerModal({
   visible,
   initialPostId,
+  post: singlePost,
   allPostIds,
   onClose,
   onPostChange,
+  onUpdate,
+  hideTagIcon = false,
 }: PostViewerModalProps) {
   const { user } = useAuth();
   const router = useRouter();
@@ -100,25 +107,22 @@ export default function PostViewerModal({
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
-  const [currentPostId, setCurrentPostId] = useState(initialPostId);
+  const [currentPostId, setCurrentPostId] = useState(initialPostId || singlePost?.id || '');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
   
-  // ✅ NEW: Tagging mode state
   const [taggingMode, setTaggingMode] = useState(false);
   const [taggingPostId, setTaggingPostId] = useState<string | null>(null);
   const [showTagsOnImage, setShowTagsOnImage] = useState(true);
   const [showTagModal, setShowTagModal] = useState(false);
   const [existingTags, setExistingTags] = useState<TaggableUser[]>([]);
 
-  // ✅ NEW: Edit mode state
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editedDescription, setEditedDescription] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
 
-  // ✅ NEW: Tag management modal state
   const [showTagManagementModal, setShowTagManagementModal] = useState(false);
   const [managingPostId, setManagingPostId] = useState<string | null>(null);
   const [loadingTags, setLoadingTags] = useState(false);
@@ -139,23 +143,15 @@ export default function PostViewerModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v7.0] Props received:', { 
+      console.log('[PostViewerModal v8.0] Props received:', { 
         visible, 
         initialPostId, 
+        singlePost: !!singlePost,
         allPostIds: allPostIds ? `array(${allPostIds.length})` : allPostIds,
-        allPostIdsType: typeof allPostIds,
-        allPostIdsIsArray: Array.isArray(allPostIds)
+        hideTagIcon,
       });
-      
-      if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v7.0] ❌ Invalid allPostIds - cannot load posts');
-        console.error('[PostViewerModal v7.0] allPostIds value:', allPostIds);
-        setLoading(false);
-        setPosts([]);
-        return;
-      }
     }
-  }, [visible, allPostIds, initialPostId]);
+  }, [visible, allPostIds, initialPostId, singlePost, hideTagIcon]);
 
   const checkAuthorsMomentos = useCallback(async () => {
     if (!user || posts.length === 0) return;
@@ -210,8 +206,74 @@ export default function PostViewerModal({
     try {
       setLoading(true);
       
+      // If single post is provided, use it directly
+      if (singlePost) {
+        console.log('[PostViewerModal v8.0] Using single post mode');
+        
+        let liked = false;
+        if (interactionUserId) {
+          let likeQuery = supabase
+            .from('likes')
+            .select('id')
+            .eq('post_id', singlePost.id)
+            .eq('usuario_id', interactionUserId);
+
+          if (isInteractingAsLocal && interactionLocalId) {
+            likeQuery = likeQuery.eq('local_id', interactionLocalId);
+          } else {
+            likeQuery = likeQuery.is('local_id', null);
+          }
+
+          const { data: likeData } = await likeQuery.maybeSingle();
+          liked = !!likeData;
+        }
+
+        let saved = false;
+        if (user) {
+          const { data: saveData } = await supabase
+            .from('posts_guardados')
+            .select('id')
+            .eq('post_id', singlePost.id)
+            .eq('usuario_id', user.id)
+            .single();
+          
+          saved = !!saveData;
+        }
+
+        const displayName = singlePost.tipo === 'local' && singlePost.local 
+          ? singlePost.local.nombre 
+          : singlePost.autor?.username 
+            ? singlePost.autor.username.replace(/^@/, '')
+            : singlePost.autor?.nombre || 'Usuario';
+
+        const displayAvatar = singlePost.tipo === 'local' && singlePost.local 
+          ? singlePost.local.imagen_url 
+          : singlePost.autor?.avatar || '';
+
+        const images = singlePost.imagenes && singlePost.imagenes.length > 0 
+          ? singlePost.imagenes 
+          : singlePost.imagen 
+            ? [singlePost.imagen] 
+            : [];
+
+        const enrichedPost = {
+          ...singlePost,
+          autorNombre: displayName,
+          autorAvatar: displayAvatar,
+          liked,
+          saved,
+          images,
+        };
+
+        setPosts([enrichedPost]);
+        setCurrentIndex(0);
+        setCurrentPostId(singlePost.id);
+        setLoading(false);
+        return;
+      }
+      
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v7.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v8.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -228,7 +290,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v7.0] Error loading posts:', error);
+        console.error('[PostViewerModal v8.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -236,14 +298,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v7.0] Invalid data received:', data);
+        console.error('[PostViewerModal v8.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v7.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v8.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -313,7 +375,7 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v7.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v8.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -324,22 +386,22 @@ export default function PostViewerModal({
       const initialIdx = sortedPosts.findIndex(p => p.id === initialPostId);
       if (initialIdx !== -1) {
         setCurrentIndex(initialIdx);
-        setCurrentPostId(initialPostId);
+        setCurrentPostId(initialPostId || '');
       }
     } catch (error) {
-      console.error('[PostViewerModal v7.0] Error:', error);
+      console.error('[PostViewerModal v8.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
       setLoading(false);
     }
-  }, [allPostIds, initialPostId, user, interactionUserId, interactionLocalId, isInteractingAsLocal]);
+  }, [allPostIds, initialPostId, singlePost, user, interactionUserId, interactionLocalId, isInteractingAsLocal]);
 
   useEffect(() => {
-    if (visible && allPostIds && Array.isArray(allPostIds) && allPostIds.length > 0) {
+    if (visible) {
       loadPosts();
     }
-  }, [visible, loadPosts, allPostIds]);
+  }, [visible, loadPosts]);
 
   useEffect(() => {
     checkAuthorsMomentos();
@@ -421,6 +483,10 @@ export default function PostViewerModal({
 
         const newLikesCount = currentLikes + 1;
         await supabase.from('posts').update({ likes: newLikesCount }).eq('id', post.id);
+      }
+      
+      if (onUpdate) {
+        onUpdate();
       }
     } catch (error) {
       console.error('[PostViewerModal] Error toggling like:', error);
@@ -509,6 +575,10 @@ export default function PostViewerModal({
           const newLikesCount = currentLikes + 1;
           await supabase.from('posts').update({ likes: newLikesCount }).eq('id', post.id);
         }
+        
+        if (onUpdate) {
+          onUpdate();
+        }
       } catch (error) {
         console.error('[PostViewerModal] Error toggling like:', error);
         setPosts(prevPosts =>
@@ -521,7 +591,7 @@ export default function PostViewerModal({
         Alert.alert('Error', 'No se pudo actualizar el me gusta');
       }
     }
-  }, [interactionUserId, interactionLocalId, isInteractingAsLocal]);
+  }, [interactionUserId, interactionLocalId, isInteractingAsLocal, onUpdate]);
 
   const toggleSave = async (post: Post) => {
     if (!user) {
@@ -552,6 +622,10 @@ export default function PostViewerModal({
         });
         if (error) throw error;
       }
+      
+      if (onUpdate) {
+        onUpdate();
+      }
     } catch (error) {
       console.error('[PostViewerModal] Error toggling save:', error);
       setPosts(prevPosts =>
@@ -563,7 +637,6 @@ export default function PostViewerModal({
     }
   };
 
-  // ✅ NEW: Load existing tags for a post
   const loadExistingTags = useCallback(async (postId: string) => {
     setLoadingTags(true);
     try {
@@ -610,14 +683,12 @@ export default function PostViewerModal({
     }
   }, []);
 
-  // ✅ NEW: Handle edit description
   const handleEditDescription = useCallback((post: Post) => {
     setEditingPostId(post.id);
     setEditedDescription(post.contenido || '');
     setEditModalVisible(true);
   }, []);
 
-  // ✅ NEW: Save edited description
   const handleSaveEdit = useCallback(async () => {
     if (!editedDescription.trim()) {
       Alert.alert('Error', 'La descripción no puede estar vacía');
@@ -640,6 +711,9 @@ export default function PostViewerModal({
 
       setEditModalVisible(false);
       loadPosts();
+      if (onUpdate) {
+        onUpdate();
+      }
       Alert.alert('Éxito', 'Descripción actualizada correctamente');
     } catch (error) {
       console.error('[PostViewerModal] Error updating description:', error);
@@ -647,16 +721,14 @@ export default function PostViewerModal({
     } finally {
       setSavingEdit(false);
     }
-  }, [editedDescription, editingPostId, loadPosts]);
+  }, [editedDescription, editingPostId, loadPosts, onUpdate]);
 
-  // ✅ NEW: Handle manage tags
   const handleManageTags = useCallback((post: Post) => {
     setManagingPostId(post.id);
     loadExistingTags(post.id);
     setShowTagManagementModal(true);
   }, [loadExistingTags]);
 
-  // ✅ NEW: Handle remove tag
   const handleRemoveTag = useCallback(async (taggedUser: TaggableUser) => {
     if (!managingPostId) return;
 
@@ -671,13 +743,15 @@ export default function PostViewerModal({
 
       setExistingTags(prev => prev.filter(t => !(t.id === taggedUser.id && t.tipo === taggedUser.tipo)));
       loadPosts();
+      if (onUpdate) {
+        onUpdate();
+      }
     } catch (error) {
       console.error('[PostViewerModal] Error removing tag:', error);
       Alert.alert('Error', 'No se pudo eliminar la etiqueta');
     }
-  }, [managingPostId, loadPosts]);
+  }, [managingPostId, loadPosts, onUpdate]);
 
-  // ✅ NEW: Handle add new tag
   const handleAddNewTag = useCallback(async (selectedUser: TaggableUser) => {
     if (!user || !managingPostId) return;
 
@@ -735,11 +809,14 @@ export default function PostViewerModal({
 
       loadExistingTags(managingPostId);
       loadPosts();
+      if (onUpdate) {
+        onUpdate();
+      }
     } catch (error) {
       console.error('[PostViewerModal] Error adding tag:', error);
       Alert.alert('Error', 'No se pudo añadir la etiqueta');
     }
-  }, [user, managingPostId, loadExistingTags, loadPosts]);
+  }, [user, managingPostId, loadExistingTags, loadPosts, onUpdate]);
 
   const handlePostOptions = (post: Post) => {
     const isOwner = user && (
@@ -806,7 +883,12 @@ export default function PostViewerModal({
               if (error) throw error;
 
               Alert.alert('Éxito', 'Publicación eliminada correctamente', [
-                { text: 'OK', onPress: () => onClose() },
+                { text: 'OK', onPress: () => {
+                  if (onUpdate) {
+                    onUpdate();
+                  }
+                  onClose();
+                }},
               ]);
             } catch (error) {
               console.error('[PostViewerModal] Error deleting post:', error);
@@ -818,7 +900,6 @@ export default function PostViewerModal({
     );
   };
 
-  // ✅ NEW: Load tagged users for display
   const [taggedUsers, setTaggedUsers] = useState<Map<string, TaggableUser[]>>(new Map());
 
   const loadTaggedUsers = useCallback(async (postId: string) => {
@@ -898,12 +979,10 @@ export default function PostViewerModal({
 
     const anim = getDoubleTapAnimation(post.id);
 
-    // ✅ NEW: Get tagged users for this post
     const postTaggedUsers = taggedUsers.get(post.id) || [];
 
     return (
       <View style={styles.postContainer}>
-        {/* ✅ NEW: Tagged users display (above author) */}
         {postTaggedUsers.length > 0 && (
           <View style={styles.taggedUsersHeader}>
             <ScrollView 
@@ -945,7 +1024,6 @@ export default function PostViewerModal({
           </View>
         )}
 
-        {/* Header with avatar and 3-dot menu */}
         <View style={styles.postHeader}>
           <TouchableOpacity 
             style={styles.authorInfo}
@@ -965,7 +1043,8 @@ export default function PostViewerModal({
             />
             <Text style={styles.authorName}>{post.autorNombre}</Text>
           </TouchableOpacity>
-          {isOwner && (
+          {/* ✅ FIXED: Hide options button when hideTagIcon is true (opened from profile grid) */}
+          {isOwner && !hideTagIcon && (
             <TouchableOpacity 
               style={styles.optionsButton}
               onPress={() => handlePostOptions(post)}
@@ -975,7 +1054,6 @@ export default function PostViewerModal({
           )}
         </View>
 
-        {/* Images with DOUBLE-TAP LIKE + TAG DISPLAY */}
         {post.images && post.images.length > 0 && (
           <View style={styles.imageContainer}>
             <ScrollView
@@ -1027,7 +1105,7 @@ export default function PostViewerModal({
                       />
                     </Animated.View>
 
-                    {showTagsOnImage && !taggingMode && (
+                    {showTagsOnImage && !taggingMode && !hideTagIcon && (
                       <TagDisplay
                         postId={post.id}
                         imageIndex={index}
@@ -1056,7 +1134,6 @@ export default function PostViewerModal({
           </View>
         )}
 
-        {/* Actions */}
         <View style={styles.postActions}>
           <View style={styles.leftActions}>
             <TouchableOpacity style={styles.actionButton} onPress={() => toggleLike(post)}>
@@ -1095,7 +1172,6 @@ export default function PostViewerModal({
           </TouchableOpacity>
         </View>
 
-        {/* Likes count */}
         {post.likes > 0 && (
           <View style={styles.likesContainer}>
             <Text style={styles.likesText}>
@@ -1104,7 +1180,6 @@ export default function PostViewerModal({
           </View>
         )}
 
-        {/* Content with "see more" */}
         {description && (
           <View style={styles.postContent}>
             <Text style={styles.postText}>
@@ -1121,7 +1196,6 @@ export default function PostViewerModal({
           </View>
         )}
 
-        {/* Comments count */}
         {post.comentarios > 0 && (
           <TouchableOpacity 
             style={styles.commentsContainer}
@@ -1136,7 +1210,6 @@ export default function PostViewerModal({
           </TouchableOpacity>
         )}
 
-        {/* Time ago */}
         <View style={styles.timeContainer}>
           <Text style={styles.timeText}>
             {formatTimeAgo(post.created_at)}
@@ -1178,7 +1251,7 @@ export default function PostViewerModal({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={28} color={colors.headerText} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Publicaciones</Text>
+          <Text style={styles.headerTitle}>Publicación</Text>
           <View style={{ width: 40 }} />
         </LinearGradient>
 
@@ -1217,11 +1290,13 @@ export default function PostViewerModal({
             onClose={() => setCommentsModalVisible(false)}
             onCommentAdded={() => {
               loadPosts();
+              if (onUpdate) {
+                onUpdate();
+              }
             }}
           />
         )}
 
-        {/* ✅ NEW: Edit Description Modal */}
         <Modal
           visible={editModalVisible}
           transparent={true}
@@ -1267,7 +1342,6 @@ export default function PostViewerModal({
           </KeyboardAvoidingView>
         </Modal>
 
-        {/* ✅ NEW: Tag Management Modal */}
         <Modal
           visible={showTagManagementModal}
           transparent={true}
@@ -1351,7 +1425,6 @@ export default function PostViewerModal({
           </View>
         </Modal>
 
-        {/* ✅ NEW: Tagging Modal */}
         <TaggingModalV5
           visible={showTagModal}
           onClose={() => setShowTagModal(false)}
@@ -1409,7 +1482,6 @@ const styles = StyleSheet.create({
     height: 16,
     backgroundColor: colors.background,
   },
-  // ✅ NEW: Tagged users header
   taggedUsersHeader: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -1584,7 +1656,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: 'uppercase',
   },
-  // ✅ NEW: Edit modal styles
   editModalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -1643,7 +1714,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'right',
   },
-  // ✅ NEW: Tag management modal styles
   tagManagementOverlay: {
     flex: 1,
     justifyContent: 'flex-end',

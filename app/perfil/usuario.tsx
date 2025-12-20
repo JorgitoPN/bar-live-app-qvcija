@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 import MomentoViewer from '@/components/momento/MomentoViewer';
+import PostViewerModal from '@/components/social/PostViewerModal';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -44,6 +45,10 @@ export default function UsuarioPerfilScreen() {
     seguidores: 0,
     seguidos: 0,
   });
+
+  const [showPostViewer, setShowPostViewer] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [allPostIds, setAllPostIds] = useState<string[]>([]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
@@ -92,18 +97,14 @@ export default function UsuarioPerfilScreen() {
       if (checkIn && checkIn.locales) {
         setCurrentLocal(checkIn.locales);
         
-        // 🔐 Determine if current user can view this location
         if (isOwnProfile) {
-          // User always sees their own location
           setCanViewLocation(true);
           console.log('[UsuarioPerfil] ✅ Own profile - can view location');
         } else if (currentUser) {
-          // Check visibility settings
           if (checkIn.visibility === 'all_users') {
             setCanViewLocation(true);
             console.log('[UsuarioPerfil] ✅ Visibility: all_users - can view');
           } else if (checkIn.visibility === 'followers') {
-            // Check if current user follows this user
             const { data: followData } = await supabase
               .from('seguidores')
               .select('id')
@@ -504,8 +505,15 @@ export default function UsuarioPerfilScreen() {
     );
   };
 
+  // ✅ FIXED: Open PostViewerModal with hideTagIcon=true when opened from profile grid
   const handleVerPost = (postId: string) => {
-    router.push(`/social/post?id=${postId}`);
+    const postIds = posts.map(p => p.id);
+    
+    console.log('[UsuarioPerfil] ✅ Opening post viewer from profile grid (hideTagIcon=true):', { postId, totalPosts: postIds.length });
+    
+    setSelectedPostId(postId);
+    setAllPostIds(postIds);
+    setShowPostViewer(true);
   };
 
   const handleSeguidores = () => {
@@ -633,7 +641,6 @@ export default function UsuarioPerfilScreen() {
             <Text style={styles.profileBio}>{usuario.bio}</Text>
           )}
 
-          {/* ✅ IMPROVED: CURRENT LOCATION SECTION with solid background and better contrast */}
           {currentLocal && canViewLocation && (
             <View style={styles.currentLocalSection}>
               <View style={styles.currentLocalHeader}>
@@ -688,7 +695,6 @@ export default function UsuarioPerfilScreen() {
                 </View>
               </TouchableOpacity>
               
-              {/* 🔘 IMPROVED: "Salir del local" button with solid background */}
               {isOwnProfile && (
                 <TouchableOpacity style={styles.exitLocalButton} onPress={handleExitLocal}>
                   <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={16} color="#FFFFFF" />
@@ -759,6 +765,7 @@ export default function UsuarioPerfilScreen() {
                     <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
                   </View>
                 )}
+                {/* ✅ FIXED: Show multiple images indicator but NO tag icon */}
                 {post.imagenes && post.imagenes.length > 1 && (
                   <View style={styles.multipleImagesIndicator}>
                     <IconSymbol ios_icon_name="square.stack.fill" android_material_icon_name="collections" size={16} color={colors.headerText} />
@@ -781,6 +788,24 @@ export default function UsuarioPerfilScreen() {
         authorType="usuario"
         onClose={() => setShowMomentoViewer(false)}
       />
+
+      {/* ✅ FIXED: Pass hideTagIcon=true when opening from profile grid */}
+      {selectedPostId && allPostIds.length > 0 && (
+        <PostViewerModal
+          visible={showPostViewer}
+          initialPostId={selectedPostId}
+          allPostIds={allPostIds}
+          hideTagIcon={true}
+          onClose={() => {
+            setShowPostViewer(false);
+            setSelectedPostId(null);
+            setAllPostIds([]);
+          }}
+          onUpdate={() => {
+            loadUserData();
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -845,7 +870,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 16,
   },
-  // ✅ IMPROVED: CURRENT LOCATION SECTION with solid white background for better contrast
   currentLocalSection: {
     marginBottom: 20,
   },
@@ -862,11 +886,11 @@ const styles = StyleSheet.create({
   },
   currentLocalCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF', // ✅ Solid white background
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#10B981', // ✅ Solid green border
+    borderColor: '#10B981',
     marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
@@ -902,7 +926,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#10B981', // ✅ Solid green background
+    backgroundColor: '#10B981',
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 8,
@@ -919,13 +943,13 @@ const styles = StyleSheet.create({
   },
   currentLocalLabel: {
     fontSize: 11,
-    color: '#6B7280', // ✅ Gray for better readability on white
+    color: '#6B7280',
     marginBottom: 3,
   },
   currentLocalName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1F2937', // ✅ Dark gray/black for maximum contrast
+    color: '#1F2937',
     marginBottom: 5,
   },
   currentLocalMeta: {
@@ -935,20 +959,19 @@ const styles = StyleSheet.create({
   },
   currentLocalAddress: {
     fontSize: 11,
-    color: '#6B7280', // ✅ Gray for better readability
+    color: '#6B7280',
     flex: 1,
   },
   currentLocalArrow: {
     justifyContent: 'center',
     paddingRight: 10,
   },
-  // ✅ IMPROVED: "Salir del local" button with solid red background
   exitLocalButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#EF4444', // ✅ Solid red background
+    backgroundColor: '#EF4444',
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 10,
@@ -961,7 +984,7 @@ const styles = StyleSheet.create({
   exitLocalButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF', // ✅ White text on red background
+    color: '#FFFFFF',
   },
   statsContainer: {
     flexDirection: 'row',

@@ -37,7 +37,7 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
   } = useMode();
   const [switching, setSwitching] = useState(false);
 
-  // 🆕 FEATURE: Reload owned locals when modal opens
+  // ✅ FIXED: Reload owned locals when modal opens
   useEffect(() => {
     if (visible && user) {
       console.log('[ProfileSwitcher] 🔄 Modal opened, reloading owned locals');
@@ -45,7 +45,7 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
     }
   }, [visible, user, loadOwnedLocals]);
 
-  // 🆕 FEATURE: Log current active profile when modal opens or when active profile changes
+  // ✅ FIXED: Log current active profile when modal opens or when active profile changes
   useEffect(() => {
     if (visible) {
       console.log('[ProfileSwitcher] 📊 Current active profile:', {
@@ -53,9 +53,10 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
         activeProfileId,
         activeLocalName: activeLocalData?.nombre,
         userId: user?.id,
+        ownedLocalsCount: ownedLocals.length,
       });
     }
-  }, [visible, activeProfileType, activeProfileId, activeLocalData, user]);
+  }, [visible, activeProfileType, activeProfileId, activeLocalData, user, ownedLocals]);
 
   const handleSwitchToClient = async () => {
     setSwitching(true);
@@ -64,10 +65,8 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
       await switchToClientProfile();
       console.log('[ProfileSwitcher] ✅ Profile switched to client');
       
-      // Close modal first
       onClose();
       
-      // Small delay to ensure modal is closed before navigation
       setTimeout(() => {
         console.log('[ProfileSwitcher] ✅ Navigating to user profile');
         router.push('/(tabs)/perfil');
@@ -86,10 +85,8 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
       await switchToLocalProfile(localId);
       console.log('[ProfileSwitcher] ✅ Profile switched to local');
       
-      // Close modal first
       onClose();
       
-      // Small delay to ensure modal is closed before navigation
       setTimeout(() => {
         console.log('[ProfileSwitcher] ✅ Navigating to local profile');
         router.push(`/perfil/local?localId=${localId}`);
@@ -103,8 +100,7 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
 
   if (!user) return null;
 
-  // FIXED: Determine if client profile is active by checking if activeProfileType is 'cliente'
-  // AND if the activeProfileId matches the user's ID
+  // ✅ FIXED: Determine if client profile is active
   const isClientActive = activeProfileType === 'cliente' && activeProfileId === user.id;
 
   console.log('[ProfileSwitcher] 🔍 Render state:', {
@@ -127,12 +123,11 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
           <View style={styles.header}>
             <Text style={styles.title}>Cambiar Perfil</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <IconSymbol name="xmark" size={24} color={colors.text} />
+              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {/* Client Profile */}
             <TouchableOpacity
               style={[styles.profileCard, isClientActive && styles.profileCardActive]}
               onPress={handleSwitchToClient}
@@ -144,7 +139,7 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
                   <Image source={{ uri: user.avatar }} style={styles.profileAvatar} />
                 ) : (
                   <View style={[styles.profileAvatar, styles.profileAvatarPlaceholder]}>
-                    <IconSymbol name="person.fill" size={24} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.textSecondary} />
                   </View>
                 )}
                 <View style={styles.profileText}>
@@ -154,12 +149,11 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
               </View>
               {isClientActive && (
                 <View style={styles.activeIndicator}>
-                  <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
+                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
                 </View>
               )}
             </TouchableOpacity>
 
-            {/* Owned Locals */}
             {ownedLocals.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
@@ -170,7 +164,7 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
                 </View>
 
                 {ownedLocals.map((local) => {
-                  // FIXED: Check if this local is active by comparing IDs and checking profile type
+                  // ✅ FIXED: Check if this local is active
                   const isActive = activeProfileType === 'local' && activeProfileId === local.id;
                   
                   console.log('[ProfileSwitcher] 🔍 Local card:', {
@@ -194,7 +188,7 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
                           <Image source={{ uri: local.imagen_url }} style={styles.profileAvatar} />
                         ) : (
                           <View style={[styles.profileAvatar, styles.profileAvatarPlaceholder]}>
-                            <IconSymbol name="building.2" size={24} color={colors.textSecondary} />
+                            <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={24} color={colors.textSecondary} />
                           </View>
                         )}
                         <View style={styles.profileText}>
@@ -204,7 +198,7 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
                       </View>
                       {isActive && (
                         <View style={styles.activeIndicator}>
-                          <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
+                          <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
                         </View>
                       )}
                     </TouchableOpacity>
@@ -213,10 +207,9 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
               </>
             )}
 
-            {/* No Locals Message */}
             {ownedLocals.length === 0 && (
               <View style={styles.emptyState}>
-                <IconSymbol name="building.2" size={48} color={colors.textSecondary} />
+                <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={48} color={colors.textSecondary} />
                 <Text style={styles.emptyText}>No tienes locales registrados</Text>
                 <Text style={styles.emptySubtext}>
                   Solicita el rol de propietario para gestionar locales
