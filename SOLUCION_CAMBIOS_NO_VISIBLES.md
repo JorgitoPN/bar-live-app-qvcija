@@ -1,288 +1,703 @@
 
-# 🔧 SOLUCIÓN: La App No Refleja Los Cambios
+# 🔍 SOLUCIÓN DEFINITIVA: Cambios No Se Reflejan en la App
 
-## 📋 PROBLEMA IDENTIFICADO
+## 📋 DIAGNÓSTICO COMPLETO
 
-La aplicación no refleja los cambios en tiempo real para:
-- ✅ Me gustas (likes)
-- ✅ Comentarios
-- ✅ Mensajes sin leer
-- ✅ Notificaciones
+Después de una investigación exhaustiva del código y la documentación de Supabase Realtime, he identificado **MÚLTIPLES PROBLEMAS CRÍTICOS** que explican por qué los cambios no se reflejan en la app:
 
-## ✅ SOLUCIÓN IMPLEMENTADA
+---
 
-### 1. **PostLikesAvatars.tsx** - Sistema de Likes
-El componente ya tiene implementado:
-- ✅ Canales específicos por usuario: `post-likes-avatars:${postId}:${user.id}`
-- ✅ Filtrado de cambios propios (no actualiza si el cambio lo hizo el usuario actual)
-- ✅ Recarga de avatares y conteo desde la base de datos
+## ❌ PROBLEMAS IDENTIFICADOS
 
-**Código clave:**
+### 1. **USO INCORRECTO DE `postgres_changes` (DEPRECATED)**
+
+**Problema:**
+- El código actual usa `postgres_changes` que está **OBSOLETO** y tiene limitaciones de escalabilidad
+- Según la documentación oficial de Supabase, `postgres_changes` es **single-threaded** y no escala bien
+- La documentación recomienda **MIGRAR A `broadcast`** con triggers de base de datos
+
+**Archivos afectados:**
+- `components/social/InstagramPostCard.tsx` (línea 95-130)
+- `app/(tabs)/perfil/chats.tsx` (línea 150-180)
+- `components/layout/HeaderSocial.tsx` (línea 120-160)
+
+**Código problemático:**
 ```typescript
-// Solo actualiza si el cambio fue hecho por OTRO usuario
-const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
-
-if (changedByUserId === user.id) {
-  console.log('[PostLikesAvatars] ⏭️ Change made by current user, skipping real-time update');
-  return;
-}
-
-// Recargar datos desde la base de datos (fuente de verdad)
-await loadLikeUsers();
-
-const { count } = await supabase
-  .from('likes')
-  .select('id', { count: 'exact', head: true })
-  .eq('post_id', postId);
-
-setCurrentTotalLikes(count);
-```
-
-### 2. **HeaderSocial.tsx** - Notificaciones y Mensajes
-El componente ya tiene implementado:
-- ✅ Carga de conteos desde la base de datos al montar
-- ✅ Suscripción a cambios en notificaciones
-- ✅ Suscripción a cambios en mensajes (INSERT y UPDATE)
-- ✅ Recarga automática de conteos cuando hay cambios
-
-**Código clave:**
-```typescript
-// Suscripción a notificaciones
-.on('postgres_changes', {
+// ❌ OBSOLETO - No escala bien
+channel.on('postgres_changes', {
   event: '*',
   schema: 'public',
-  table: 'notificaciones',
-  filter: `usuario_id=eq.${user.id}`,
-}, () => {
-  loadUnreadCounts();
-})
-
-// Suscripción a mensajes (UPDATE para cuando se marcan como leídos)
-.on('postgres_changes', {
-  event: 'UPDATE',
-  schema: 'public',
-  table: 'mensajes',
-}, (payload) => {
-  if (payload.new && payload.new.leido === true) {
-    loadUnreadCounts();
-  }
-})
-
-// Suscripción a mensajes (INSERT para nuevos mensajes)
-.on('postgres_changes', {
-  event: 'INSERT',
-  schema: 'public',
-  table: 'mensajes',
-}, () => {
-  loadUnreadCounts();
-})
+  table: 'likes',
+  filter: `post_id=eq.${post.id}`,
+}, callback)
 ```
 
-### 3. **PublicacionCard.tsx** - Likes en Publicaciones
-El componente ya tiene implementado:
-- ✅ Actualización optimista del estado local
-- ✅ Sincronización con la base de datos
-- ✅ Rollback en caso de error
+---
 
-**Código clave:**
+### 2. **CANALES NO PRIVADOS (FALTA RLS)**
+
+**Problema:**
+- Los canales actuales NO usan `private: true`
+- Sin canales privados, las políticas RLS no se aplican correctamente
+- Esto puede causar que los usuarios no reciban actualizaciones si no tienen permisos
+
+**Código problemático:**
 ```typescript
-const handleLike = useCallback(async () => {
-  // Actualización optimista
-  const newLikedState = !liked;
-  setLiked(newLikedState);
-  setLikesCount(prev => prev + (newLikedState ? 1 : -1));
+// ❌ FALTA private: true
+const channel = supabase.channel(`post-likes:${post.id}:${user.id}`);
+```
 
-  try {
-    if (newLikedState) {
-      await supabase.from('likes').insert({
-        post_id: post.id,
-        usuario_id: user.id,
-      });
-    } else {
-      await supabase
-        .from('likes')
-        .delete()
-        .eq('post_id', post.id)
-        .eq('usuario_id', user.id);
+**Debería ser:**
+```typescript
+// ✅ CORRECTO
+const channel = supabase.channel(`post-likes:${post.id}:${user.id}`, {
+  config: { private: true }
+});
+```
+
+---
+
+### 3. **FALTA `supabase.realtime.setAuth()` ANTES DE SUSCRIBIRSE**
+
+**Problema:**
+- El código NO llama a `supabase.realtime.setAuth()` antes de suscribirse
+- Sin esto, el cliente no está autenticado para canales privados
+- Esto causa que las suscripciones fallen silenciosamente
+
+**Código problemático:**
+```typescript
+// ❌ FALTA setAuth()
+channel
+  .on('postgres_changes', {...}, callback)
+  .subscribe();
+```
+
+**Debería ser:**
+```typescript
+// ✅ CORRECTO
+await supabase.realtime.setAuth();
+channel
+  .on('broadcast', {...}, callback)
+  .subscribe();
+```
+
+---
+
+### 4. **NO HAY TRIGGERS DE BASE DE DATOS**
+
+**Problema:**
+- Para usar `broadcast` (recomendado), se necesitan triggers en la base de datos
+- Actualmente NO existen estos triggers
+- Sin triggers, los cambios en la base de datos NO se propagan a los clientes
+
+**Solución:**
+Crear triggers usando `realtime.broadcast_changes()`:
+
+```sql
+CREATE OR REPLACE FUNCTION notify_likes_changes()
+RETURNS TRIGGER AS $$
+SECURITY DEFINER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  PERFORM realtime.broadcast_changes(
+    'post-likes:' || COALESCE(NEW.post_id, OLD.post_id)::text,
+    TG_OP,
+    TG_OP,
+    TG_TABLE_NAME,
+    TG_TABLE_SCHEMA,
+    NEW,
+    OLD
+  );
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+CREATE TRIGGER likes_broadcast_trigger
+  AFTER INSERT OR UPDATE OR DELETE ON likes
+  FOR EACH ROW EXECUTE FUNCTION notify_likes_changes();
+```
+
+---
+
+### 5. **FALTA POLÍTICAS RLS EN `realtime.messages`**
+
+**Problema:**
+- Para canales privados, se necesitan políticas RLS en la tabla `realtime.messages`
+- Sin estas políticas, los usuarios no pueden recibir mensajes broadcast
+
+**Solución:**
+```sql
+-- Permitir lectura de mensajes broadcast
+CREATE POLICY "users_can_read_broadcasts" ON realtime.messages
+FOR SELECT TO authenticated
+USING (true);
+
+-- Permitir escritura de mensajes broadcast
+CREATE POLICY "users_can_write_broadcasts" ON realtime.messages
+FOR INSERT TO authenticated
+WITH CHECK (true);
+```
+
+---
+
+### 6. **SUSCRIPCIONES MÚLTIPLES SIN LIMPIEZA ADECUADA**
+
+**Problema:**
+- El código crea múltiples suscripciones sin verificar si ya existe una
+- Esto causa memory leaks y comportamiento impredecible
+
+**Código problemático:**
+```typescript
+// ❌ No verifica si ya está suscrito
+useEffect(() => {
+  const channel = supabase.channel('...');
+  channel.subscribe();
+  
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [post.id, user]);
+```
+
+**Debería ser:**
+```typescript
+// ✅ CORRECTO - Verifica estado antes de suscribirse
+useEffect(() => {
+  if (channelRef.current?.state === 'subscribed') return;
+  
+  const channel = supabase.channel('...');
+  channelRef.current = channel;
+  
+  channel.subscribe();
+  
+  return () => {
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
-  } catch (error) {
-    // Rollback en caso de error
-    setLiked(!newLikedState);
-    setLikesCount(prev => prev + (newLikedState ? -1 : 1));
+  };
+}, [post.id, user]);
+```
+
+---
+
+### 7. **NOMBRES DE CANALES GENÉRICOS (NO ESCALABLES)**
+
+**Problema:**
+- Los nombres de canales actuales son demasiado amplios
+- Esto causa que TODOS los usuarios reciban TODAS las actualizaciones
+- Reduce el rendimiento y causa actualizaciones innecesarias
+
+**Código problemático:**
+```typescript
+// ❌ Demasiado amplio - todos los usuarios reciben todas las actualizaciones
+const channel = supabase.channel('chat-messages-updates');
+```
+
+**Debería ser:**
+```typescript
+// ✅ CORRECTO - Canal específico por usuario
+const channel = supabase.channel(`user:${user.id}:messages`);
+```
+
+---
+
+### 8. **FALTA LOGGING DETALLADO**
+
+**Problema:**
+- El código actual tiene logging básico
+- No hay suficiente información para debuggear problemas de real-time
+
+**Solución:**
+Habilitar logging detallado:
+
+```typescript
+const supabase = createClient(url, key, {
+  realtime: {
+    params: { log_level: 'info' }
   }
-}, [user, liked, post.id]);
+});
 ```
 
-## 🔍 VERIFICACIÓN
+---
 
-### Paso 1: Verificar Logs en Consola
-Abre la consola del navegador o del dispositivo y busca estos mensajes:
+## ✅ SOLUCIÓN COMPLETA
 
-**Para Likes:**
-```
-[PostLikesAvatars] 🔄 Loading like users for post: [post-id]
-[PostLikesAvatars] ✅ Loaded X like users for display
-[PostLikesAvatars] 🔄 Real-time like change detected: INSERT by user: [user-id]
-[PostLikesAvatars] 🔄 Change made by another user, reloading avatars...
-[PostLikesAvatars] ✅ Updated likes count via real-time: X
-```
+### PASO 1: Migrar de `postgres_changes` a `broadcast`
 
-**Para Mensajes/Notificaciones:**
-```
-[HeaderSocial] 🔄 Loading unread counts from database...
-[HeaderSocial] ✅ Unread notifications: X
-[HeaderSocial] ✅ Unread messages: X
-[HeaderSocial] 💬 Message UPDATE detected
-[HeaderSocial] ✅ Message marked as read, reloading counts...
-```
-
-### Paso 2: Verificar Suscripciones en Supabase
-Ejecuta esta consulta SQL para verificar que las suscripciones están activas:
+**1.1. Crear triggers en la base de datos:**
 
 ```sql
--- Ver canales activos
-SELECT * FROM pg_stat_activity 
-WHERE application_name LIKE '%realtime%';
+-- Trigger para likes
+CREATE OR REPLACE FUNCTION notify_likes_changes()
+RETURNS TRIGGER AS $$
+SECURITY DEFINER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  PERFORM realtime.broadcast_changes(
+    'post-likes:' || COALESCE(NEW.post_id, OLD.post_id)::text,
+    TG_OP,
+    TG_OP,
+    TG_TABLE_NAME,
+    TG_TABLE_SCHEMA,
+    NEW,
+    OLD
+  );
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+CREATE TRIGGER likes_broadcast_trigger
+  AFTER INSERT OR UPDATE OR DELETE ON likes
+  FOR EACH ROW EXECUTE FUNCTION notify_likes_changes();
+
+-- Trigger para mensajes
+CREATE OR REPLACE FUNCTION notify_messages_changes()
+RETURNS TRIGGER AS $$
+SECURITY DEFINER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- Broadcast a canal específico del chat
+  PERFORM realtime.broadcast_changes(
+    'chat:' || COALESCE(NEW.chat_id, OLD.chat_id)::text,
+    TG_OP,
+    TG_OP,
+    TG_TABLE_NAME,
+    TG_TABLE_SCHEMA,
+    NEW,
+    OLD
+  );
+  
+  -- Broadcast a canal específico del usuario receptor
+  IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+    -- Obtener el otro usuario del chat
+    DECLARE
+      other_user_id uuid;
+    BEGIN
+      SELECT CASE 
+        WHEN c.usuario1_id = NEW.remitente_id THEN c.usuario2_id
+        ELSE c.usuario1_id
+      END INTO other_user_id
+      FROM chats c
+      WHERE c.id = NEW.chat_id;
+      
+      IF other_user_id IS NOT NULL THEN
+        PERFORM realtime.broadcast_changes(
+          'user:' || other_user_id::text || ':messages',
+          TG_OP,
+          TG_OP,
+          TG_TABLE_NAME,
+          TG_TABLE_SCHEMA,
+          NEW,
+          OLD
+        );
+      END IF;
+    END;
+  END IF;
+  
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+CREATE TRIGGER messages_broadcast_trigger
+  AFTER INSERT OR UPDATE OR DELETE ON mensajes
+  FOR EACH ROW EXECUTE FUNCTION notify_messages_changes();
+
+-- Trigger para notificaciones
+CREATE OR REPLACE FUNCTION notify_notifications_changes()
+RETURNS TRIGGER AS $$
+SECURITY DEFINER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  PERFORM realtime.broadcast_changes(
+    'user:' || COALESCE(NEW.usuario_id, OLD.usuario_id)::text || ':notifications',
+    TG_OP,
+    TG_OP,
+    TG_TABLE_NAME,
+    TG_TABLE_SCHEMA,
+    NEW,
+    OLD
+  );
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+CREATE TRIGGER notifications_broadcast_trigger
+  AFTER INSERT OR UPDATE OR DELETE ON notificaciones
+  FOR EACH ROW EXECUTE FUNCTION notify_notifications_changes();
 ```
 
-### Paso 3: Verificar Políticas RLS
-Asegúrate de que las políticas RLS permiten las operaciones:
+**1.2. Crear políticas RLS para `realtime.messages`:**
 
 ```sql
--- Ver políticas de la tabla likes
-SELECT * FROM pg_policies WHERE tablename = 'likes';
+-- Permitir lectura de mensajes broadcast
+CREATE POLICY "users_can_read_broadcasts" ON realtime.messages
+FOR SELECT TO authenticated
+USING (
+  -- Permitir leer mensajes de canales de posts
+  topic LIKE 'post-likes:%' OR
+  -- Permitir leer mensajes de canales de usuario específico
+  topic LIKE 'user:' || auth.uid()::text || ':%' OR
+  -- Permitir leer mensajes de chats donde el usuario participa
+  (topic LIKE 'chat:%' AND EXISTS (
+    SELECT 1 FROM chats c
+    WHERE c.id::text = SPLIT_PART(topic, ':', 2)
+    AND (c.usuario1_id = auth.uid() OR c.usuario2_id = auth.uid())
+  ))
+);
 
--- Ver políticas de la tabla mensajes
-SELECT * FROM pg_policies WHERE tablename = 'mensajes';
+-- Permitir escritura de mensajes broadcast
+CREATE POLICY "users_can_write_broadcasts" ON realtime.messages
+FOR INSERT TO authenticated
+WITH CHECK (
+  -- Permitir escribir en canales de posts
+  topic LIKE 'post-likes:%' OR
+  -- Permitir escribir en canales de usuario específico
+  topic LIKE 'user:' || auth.uid()::text || ':%' OR
+  -- Permitir escribir en chats donde el usuario participa
+  (topic LIKE 'chat:%' AND EXISTS (
+    SELECT 1 FROM chats c
+    WHERE c.id::text = SPLIT_PART(topic, ':', 2)
+    AND (c.usuario1_id = auth.uid() OR c.usuario2_id = auth.uid())
+  ))
+);
 
--- Ver políticas de la tabla notificaciones
-SELECT * FROM pg_policies WHERE tablename = 'notificaciones';
+-- Crear índices para mejorar rendimiento
+CREATE INDEX IF NOT EXISTS idx_chats_usuarios ON chats(usuario1_id, usuario2_id);
 ```
 
-## 🐛 POSIBLES PROBLEMAS Y SOLUCIONES
+---
 
-### Problema 1: Los cambios no se reflejan inmediatamente
-**Causa:** La suscripción no está activa o hay un error en el canal.
+### PASO 2: Actualizar código del cliente
 
-**Solución:**
-1. Verifica que el usuario esté autenticado
-2. Revisa los logs de la consola para ver si hay errores de suscripción
-3. Asegúrate de que el canal se está creando correctamente
+**2.1. Actualizar `InstagramPostCard.tsx`:**
 
-### Problema 2: Los likes desaparecen al quitar uno
-**Causa:** El canal no está filtrando correctamente los cambios propios.
-
-**Solución:**
-Ya está implementado en `PostLikesAvatars.tsx`:
 ```typescript
-if (changedByUserId === user.id) {
-  console.log('[PostLikesAvatars] ⏭️ Change made by current user, skipping');
-  return;
-}
-```
+// ✅ SOLUCIÓN COMPLETA
+useEffect(() => {
+  if (!post.id || !user) return;
 
-### Problema 3: El icono de mensaje sin leer no desaparece
-**Causa:** No se está escuchando el evento UPDATE de mensajes.
+  console.log('[InstagramPostCard] 🔄 Setting up real-time subscription for post:', post.id);
 
-**Solución:**
-Ya está implementado en `HeaderSocial.tsx`:
-```typescript
-.on('postgres_changes', {
-  event: 'UPDATE',
-  schema: 'public',
-  table: 'mensajes',
-}, (payload) => {
-  if (payload.new && payload.new.leido === true) {
-    loadUnreadCounts();
+  // ✅ Verificar si ya está suscrito
+  if (channelRef.current?.state === 'subscribed') {
+    console.log('[InstagramPostCard] ⚠️ Already subscribed, skipping');
+    return;
   }
-})
+
+  // ✅ Crear canal PRIVADO con nombre específico
+  const channel = supabase.channel(`post-likes:${post.id}`, {
+    config: { private: true }
+  });
+
+  channelRef.current = channel;
+
+  // ✅ Configurar autenticación ANTES de suscribirse
+  const setupChannel = async () => {
+    await supabase.realtime.setAuth();
+
+    channel
+      .on('broadcast', { event: 'INSERT' }, async (payload) => {
+        console.log('[InstagramPostCard] ➕ Like added by another user');
+        
+        // ✅ Fetch count from database (source of truth)
+        const { count } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+        
+        if (count !== null) {
+          setLikesCount(count);
+        }
+      })
+      .on('broadcast', { event: 'DELETE' }, async (payload) => {
+        console.log('[InstagramPostCard] ➖ Like removed by another user');
+        
+        // ✅ Fetch count from database (source of truth)
+        const { count } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+        
+        if (count !== null) {
+          setLikesCount(count);
+        }
+      })
+      .subscribe((status) => {
+        console.log('[InstagramPostCard] 📡 Subscription status:', status);
+      });
+  };
+
+  setupChannel();
+
+  return () => {
+    console.log('[InstagramPostCard] 🔄 Cleaning up subscription');
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+  };
+}, [post.id, user]);
 ```
 
-## 📱 PRUEBAS RECOMENDADAS
+**2.2. Actualizar `chats.tsx`:**
 
-### Test 1: Likes en Tiempo Real
-1. Abre la app en dos dispositivos con usuarios diferentes
-2. Usuario A da like a una publicación
-3. Usuario B debería ver el like aparecer inmediatamente
-4. Usuario A quita el like
-5. Usuario B debería ver el like desaparecer inmediatamente
-
-### Test 2: Mensajes Sin Leer
-1. Usuario A envía un mensaje a Usuario B
-2. Usuario B debería ver el icono rojo de mensaje sin leer
-3. Usuario B abre el chat y lee el mensaje
-4. El icono rojo debería desaparecer inmediatamente
-
-### Test 3: Notificaciones
-1. Usuario A comenta en una publicación de Usuario B
-2. Usuario B debería ver el contador de notificaciones aumentar
-3. Usuario B abre las notificaciones
-4. El contador debería actualizarse
-
-## 🔧 COMANDOS ÚTILES PARA DEBUGGING
-
-### Ver logs de Supabase Realtime
-```bash
-# En la consola de Supabase
-SELECT * FROM realtime.messages ORDER BY inserted_at DESC LIMIT 100;
-```
-
-### Ver suscripciones activas
-```bash
-# En la consola del navegador
-console.log(supabase.getChannels());
-```
-
-### Forzar recarga de datos
 ```typescript
-// En cualquier componente
-await loadUnreadCounts();
-await loadLikeUsers();
+// ✅ SOLUCIÓN COMPLETA
+useEffect(() => {
+  if (!user) return;
+
+  console.log('[Chats] 🔄 Setting up real-time subscription for user:', user.id);
+
+  // ✅ Canal específico por usuario
+  const subscription = supabase
+    .channel(`user:${user.id}:messages`, {
+      config: { private: true }
+    });
+
+  const setupSubscription = async () => {
+    await supabase.realtime.setAuth();
+
+    subscription
+      .on('broadcast', { event: 'INSERT' }, (payload) => {
+        console.log('[Chats] 💬 New message received');
+        loadChats(true);
+      })
+      .on('broadcast', { event: 'UPDATE' }, (payload) => {
+        console.log('[Chats] 💬 Message updated (read status changed)');
+        loadChats(true);
+      })
+      .subscribe((status) => {
+        console.log('[Chats] 📡 Subscription status:', status);
+      });
+  };
+
+  setupSubscription();
+
+  return () => {
+    console.log('[Chats] 🔄 Cleaning up subscription');
+    supabase.removeChannel(subscription);
+  };
+}, [user, loadChats]);
 ```
 
-## ✅ CHECKLIST DE VERIFICACIÓN
+**2.3. Actualizar `HeaderSocial.tsx`:**
 
-- [ ] Los logs de consola muestran las suscripciones activas
-- [ ] Los cambios de otros usuarios se reflejan en tiempo real
-- [ ] Los cambios propios no causan recargas innecesarias
-- [ ] El icono de mensajes sin leer desaparece al leer
-- [ ] Los likes se actualizan correctamente
-- [ ] No hay errores en la consola relacionados con suscripciones
+```typescript
+// ✅ SOLUCIÓN COMPLETA
+useEffect(() => {
+  if (!user) return;
 
-## 📞 SOPORTE
+  console.log('[HeaderSocial] 🔄 Setting up real-time subscriptions for user:', user.id);
 
-Si después de seguir estos pasos el problema persiste:
+  // ✅ Canal específico por usuario
+  const subscription = supabase
+    .channel(`user:${user.id}:notifications`, {
+      config: { private: true }
+    });
 
-1. **Revisa los logs de Supabase:**
-   - Ve a tu proyecto en Supabase Dashboard
-   - Navega a "Logs" > "Realtime"
-   - Busca errores relacionados con suscripciones
+  const setupSubscription = async () => {
+    await supabase.realtime.setAuth();
 
-2. **Verifica la configuración de Realtime:**
-   - Ve a "Settings" > "API"
-   - Asegúrate de que Realtime está habilitado
-   - Verifica que las tablas tienen RLS habilitado
+    subscription
+      .on('broadcast', { event: 'INSERT' }, () => {
+        console.log('[HeaderSocial] 🔔 New notification received');
+        loadUnreadCounts();
+      })
+      .on('broadcast', { event: 'UPDATE' }, () => {
+        console.log('[HeaderSocial] 🔔 Notification updated');
+        loadUnreadCounts();
+      })
+      .subscribe((status) => {
+        console.log('[HeaderSocial] 📡 Subscription status:', status);
+      });
+  };
 
-3. **Prueba la conexión:**
-   ```typescript
-   const channel = supabase.channel('test');
-   channel.subscribe((status) => {
-     console.log('Connection status:', status);
-   });
-   ```
+  setupSubscription();
 
-## 🎯 CONCLUSIÓN
+  return () => {
+    console.log('[HeaderSocial] 🔄 Cleaning up subscription');
+    supabase.removeChannel(subscription);
+  };
+}, [user, loadUnreadCounts]);
+```
 
-El sistema de tiempo real ya está completamente implementado y funcionando correctamente. Si los cambios no se reflejan:
+---
 
-1. **Verifica la autenticación:** El usuario debe estar autenticado
-2. **Revisa los logs:** Busca mensajes de error en la consola
-3. **Comprueba las políticas RLS:** Asegúrate de que permiten las operaciones
-4. **Prueba la conexión:** Verifica que Supabase Realtime está activo
+### PASO 3: Habilitar logging detallado
 
-**Todos los componentes críticos ya tienen implementado el sistema de tiempo real con las mejores prácticas:**
-- ✅ Canales específicos por usuario
-- ✅ Filtrado de cambios propios
-- ✅ Recarga desde la base de datos (fuente de verdad)
-- ✅ Manejo de errores y rollback
-- ✅ Logs detallados para debugging
+**3.1. Actualizar `utils/supabase.ts`:**
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  // ✅ Habilitar logging detallado para real-time
+  realtime: {
+    params: {
+      log_level: 'info',
+    },
+  },
+});
+```
+
+---
+
+### PASO 4: Verificar configuración de Supabase
+
+**4.1. Verificar que Realtime esté habilitado:**
+
+1. Ir a Supabase Dashboard
+2. Project Settings > API
+3. Verificar que "Realtime" esté habilitado
+4. Verificar que las tablas `likes`, `mensajes`, `notificaciones` tengan Realtime habilitado
+
+**4.2. Habilitar "Private-Only Channels" (RECOMENDADO):**
+
+1. Ir a Supabase Dashboard
+2. Project Settings > Realtime Settings
+3. Habilitar "Private-Only Channels"
+4. Esto fuerza que TODOS los canales sean privados y requieran autenticación
+
+---
+
+## 🧪 PRUEBAS
+
+### Prueba 1: Verificar triggers
+
+```sql
+-- Verificar que los triggers existen
+SELECT 
+  trigger_name,
+  event_manipulation,
+  event_object_table
+FROM information_schema.triggers
+WHERE trigger_schema = 'public'
+AND trigger_name IN ('likes_broadcast_trigger', 'messages_broadcast_trigger', 'notifications_broadcast_trigger');
+```
+
+### Prueba 2: Verificar políticas RLS
+
+```sql
+-- Verificar políticas en realtime.messages
+SELECT * FROM pg_policies WHERE tablename = 'messages' AND schemaname = 'realtime';
+```
+
+### Prueba 3: Probar broadcast manual
+
+```sql
+-- Probar broadcast manual de un like
+SELECT realtime.broadcast_changes(
+  'post-likes:test-post-id',
+  'INSERT',
+  'INSERT',
+  'likes',
+  'public',
+  '{"id": "test-id", "post_id": "test-post-id", "usuario_id": "test-user-id"}'::jsonb,
+  NULL
+);
+```
+
+---
+
+## 📊 MONITOREO
+
+### Logs del cliente
+
+Después de implementar los cambios, deberías ver en la consola:
+
+```
+[InstagramPostCard] 🔄 Setting up real-time subscription for post: abc123
+[InstagramPostCard] 📡 Subscription status: SUBSCRIBED
+[InstagramPostCard] ➕ Like added by another user
+[InstagramPostCard] ✅ Updated likes count from database: 7
+```
+
+### Logs de Supabase
+
+En Supabase Dashboard > Logs > Realtime, deberías ver:
+
+```
+[Realtime] Client connected: user-id-123
+[Realtime] Subscribed to channel: post-likes:abc123
+[Realtime] Broadcast sent: post-likes:abc123 (INSERT)
+```
+
+---
+
+## 🚀 BENEFICIOS DE LA SOLUCIÓN
+
+1. **✅ Escalabilidad:** `broadcast` escala mejor que `postgres_changes`
+2. **✅ Seguridad:** Canales privados con RLS
+3. **✅ Rendimiento:** Canales específicos reducen tráfico innecesario
+4. **✅ Confiabilidad:** Database como source of truth
+5. **✅ Debugging:** Logging detallado para troubleshooting
+6. **✅ Mantenibilidad:** Código más limpio y organizado
+
+---
+
+## 📝 CHECKLIST DE IMPLEMENTACIÓN
+
+- [ ] Crear triggers en la base de datos
+- [ ] Crear políticas RLS en `realtime.messages`
+- [ ] Actualizar `InstagramPostCard.tsx`
+- [ ] Actualizar `chats.tsx`
+- [ ] Actualizar `HeaderSocial.tsx`
+- [ ] Habilitar logging detallado en `supabase.ts`
+- [ ] Verificar configuración de Realtime en Supabase Dashboard
+- [ ] Habilitar "Private-Only Channels"
+- [ ] Probar likes en tiempo real
+- [ ] Probar mensajes en tiempo real
+- [ ] Probar notificaciones en tiempo real
+- [ ] Verificar logs del cliente
+- [ ] Verificar logs de Supabase
+
+---
+
+## 🆘 TROUBLESHOOTING
+
+### Problema: Suscripciones no se conectan
+
+**Solución:**
+1. Verificar que `supabase.realtime.setAuth()` se llama antes de suscribirse
+2. Verificar que el usuario está autenticado
+3. Verificar que las políticas RLS permiten acceso
+
+### Problema: Actualizaciones no llegan
+
+**Solución:**
+1. Verificar que los triggers existen y están habilitados
+2. Verificar que el nombre del canal coincide con el trigger
+3. Verificar logs de Supabase para ver si el broadcast se envía
+
+### Problema: Memory leaks
+
+**Solución:**
+1. Verificar que `supabase.removeChannel()` se llama en cleanup
+2. Verificar que no se crean múltiples suscripciones
+3. Usar `channelRef` para evitar suscripciones duplicadas
+
+---
+
+## 📚 REFERENCIAS
+
+- [Supabase Realtime Documentation](https://supabase.com/docs/guides/realtime)
+- [Supabase Realtime Best Practices](https://supabase.com/docs/guides/realtime/best-practices)
+- [Supabase RLS Policies](https://supabase.com/docs/guides/auth/row-level-security)
+
+---
+
+**Fecha:** 2025-01-20
+**Versión:** 1.0
+**Autor:** Natively AI Assistant
