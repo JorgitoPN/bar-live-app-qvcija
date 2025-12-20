@@ -327,6 +327,14 @@ export default function UsuarioPerfilScreen() {
     }
   }, [loadUserData, userId, loadFollowerCounts, loadCurrentLocal]);
 
+  // ✅ NEW: Auto-open momento viewer if openMomento param is present
+  useEffect(() => {
+    if (params.openMomento === 'true' && !loading && usuario) {
+      console.log('[UsuarioPerfil] 🎬 Auto-opening momento viewer from message');
+      setShowMomentoViewer(true);
+    }
+  }, [params.openMomento, loading, usuario]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadUserData();
@@ -641,64 +649,88 @@ export default function UsuarioPerfilScreen() {
             <Text style={styles.profileBio}>{usuario.bio}</Text>
           )}
 
+          {/* ✅ FIXED: Compact status card redesign */}
           {currentLocal && canViewLocation && (
-            <View style={styles.currentLocalSection}>
-              <View style={styles.currentLocalHeader}>
-                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color="#10B981" />
-                <Text style={styles.currentLocalHeaderText}>Estado actual</Text>
+            <View style={styles.statusCard}>
+              <View style={styles.statusCardHeader}>
+                <View style={styles.statusIconContainer}>
+                  <IconSymbol 
+                    ios_icon_name="mappin.circle.fill" 
+                    android_material_icon_name="location_on" 
+                    size={16} 
+                    color="#10B981" 
+                  />
+                </View>
+                <Text style={styles.statusCardTitle}>Estado actual</Text>
               </View>
 
               <TouchableOpacity 
-                style={styles.currentLocalCard} 
+                style={styles.statusCardContent} 
                 onPress={handleViewLocal}
                 activeOpacity={0.9}
               >
-                <View style={styles.currentLocalImageContainer}>
+                <View style={styles.statusLocalInfo}>
                   {currentLocal.imagen_url ? (
                     <Image 
                       source={{ uri: currentLocal.imagen_url }} 
-                      style={styles.currentLocalImage}
+                      style={styles.statusLocalImage}
                       resizeMode="cover"
                     />
                   ) : (
-                    <View style={[styles.currentLocalImage, styles.currentLocalImagePlaceholder]}>
-                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="#FFFFFF" />
+                    <View style={[styles.statusLocalImage, styles.statusLocalImagePlaceholder]}>
+                      <IconSymbol 
+                        ios_icon_name="building.2.fill" 
+                        android_material_icon_name="store" 
+                        size={20} 
+                        color="#FFFFFF" 
+                      />
                     </View>
                   )}
-                  <LinearGradient
-                    colors={['transparent', 'rgba(0, 0, 0, 0.6)']}
-                    style={styles.currentLocalImageGradient}
-                  />
-                  <View style={styles.currentLocalBadge}>
-                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={12} color="#FFFFFF" />
-                    <Text style={styles.currentLocalBadgeText}>Ahora en...</Text>
-                  </View>
-                </View>
-
-                <View style={styles.currentLocalContent}>
-                  <Text style={styles.currentLocalLabel}>
-                    Actualmente en
-                  </Text>
-                  <Text style={styles.currentLocalName} numberOfLines={1}>
-                    {currentLocal.nombre}
-                  </Text>
-                  <View style={styles.currentLocalMeta}>
-                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={11} color="#6B7280" />
-                    <Text style={styles.currentLocalAddress} numberOfLines={1}>
-                      {currentLocal.direccion}
+                  
+                  <View style={styles.statusLocalDetails}>
+                    <Text style={styles.statusLocalLabel}>Ahora en</Text>
+                    <Text style={styles.statusLocalName} numberOfLines={1}>
+                      {currentLocal.nombre}
                     </Text>
+                    {currentLocal.direccion && (
+                      <View style={styles.statusLocalAddress}>
+                        <IconSymbol 
+                          ios_icon_name="mappin" 
+                          android_material_icon_name="location_on" 
+                          size={10} 
+                          color="#6B7280" 
+                        />
+                        <Text style={styles.statusLocalAddressText} numberOfLines={1}>
+                          {currentLocal.direccion}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                </View>
 
-                <View style={styles.currentLocalArrow}>
-                  <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={18} color="#6B7280" />
+                  <View style={styles.statusLocalArrow}>
+                    <IconSymbol 
+                      ios_icon_name="chevron.right" 
+                      android_material_icon_name="chevron_right" 
+                      size={16} 
+                      color="#9CA3AF" 
+                    />
+                  </View>
                 </View>
               </TouchableOpacity>
               
               {isOwnProfile && (
-                <TouchableOpacity style={styles.exitLocalButton} onPress={handleExitLocal}>
-                  <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={16} color="#FFFFFF" />
-                  <Text style={styles.exitLocalButtonText}>Salir del local</Text>
+                <TouchableOpacity 
+                  style={styles.statusExitButton} 
+                  onPress={handleExitLocal}
+                  activeOpacity={0.8}
+                >
+                  <IconSymbol 
+                    ios_icon_name="mappin.slash.circle.fill" 
+                    android_material_icon_name="location_off" 
+                    size={14} 
+                    color="#FFFFFF" 
+                  />
+                  <Text style={styles.statusExitButtonText}>Salir del local</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -870,119 +902,98 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 16,
   },
-  currentLocalSection: {
+  // ✅ NEW: Compact status card design
+  statusCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 16,
+    padding: 14,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  currentLocalHeader: {
+  statusCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 10,
+    gap: 8,
+    marginBottom: 12,
   },
-  currentLocalHeaderText: {
-    fontSize: 14,
+  statusIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusCardTitle: {
+    fontSize: 13,
     fontWeight: '700',
     color: colors.headerText,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  currentLocalCard: {
-    flexDirection: 'row',
+  statusCardContent: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#10B981',
     marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
   },
-  currentLocalImageContainer: {
-    width: 80,
-    height: 80,
-    position: 'relative',
+  statusLocalInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
   },
-  currentLocalImage: {
-    width: '100%',
-    height: '100%',
+  statusLocalImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 10,
   },
-  currentLocalImagePlaceholder: {
+  statusLocalImagePlaceholder: {
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  currentLocalImageGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-  },
-  currentLocalBadge: {
-    position: 'absolute',
-    bottom: 5,
-    left: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#10B981',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  currentLocalBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  currentLocalContent: {
+  statusLocalDetails: {
     flex: 1,
-    padding: 10,
-    justifyContent: 'center',
+    marginLeft: 12,
   },
-  currentLocalLabel: {
+  statusLocalLabel: {
     fontSize: 11,
     color: '#6B7280',
-    marginBottom: 3,
+    marginBottom: 2,
+    fontWeight: '500',
   },
-  currentLocalName: {
+  statusLocalName: {
     fontSize: 15,
     fontWeight: '700',
     color: '#1F2937',
-    marginBottom: 5,
+    marginBottom: 4,
   },
-  currentLocalMeta: {
+  statusLocalAddress: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
   },
-  currentLocalAddress: {
+  statusLocalAddressText: {
     fontSize: 11,
     color: '#6B7280',
     flex: 1,
   },
-  currentLocalArrow: {
-    justifyContent: 'center',
-    paddingRight: 10,
+  statusLocalArrow: {
+    marginLeft: 8,
   },
-  exitLocalButton: {
+  statusExitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     backgroundColor: '#EF4444',
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  exitLocalButtonText: {
-    fontSize: 14,
+  statusExitButtonText: {
+    fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
   },

@@ -189,7 +189,7 @@ export default function InstagramPostCard({
     const newLikedState = !isLiked;
     const newLikesCount = newLikedState ? likesCount + 1 : likesCount - 1;
     
-    // ✅ FIXED: Optimistic update with proper state management
+    // ✅ FIXED: Optimistic update with proper state management (no disappearing likes)
     const previousLiked = isLiked;
     const previousCount = likesCount;
     

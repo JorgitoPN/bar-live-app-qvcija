@@ -252,10 +252,10 @@ export default function NotificacionesScreen() {
     );
   };
 
-  // ✅ FIXED: Proper notification redirection
+  // ✅ FIXED: Proper notification redirection with all content types
   const handleNotificationPress = async (notif: Notificacion) => {
     try {
-      // ✅ FIXED: Mark as read with leida_at timestamp
+      // ✅ FIXED: Mark as read with leida_at timestamp (persistent)
       await supabase
         .from('notificaciones')
         .update({ leida: true, leida_at: new Date().toISOString() })
@@ -270,11 +270,24 @@ export default function NotificacionesScreen() {
         )
       );
 
-      // ✅ FIXED: Proper redirection based on notification type and available data
+      // ✅ FIXED: Comprehensive redirection logic
+      console.log('[Notificaciones] 🔍 Processing notification:', {
+        tipo: notif.tipo,
+        post_id: notif.post_id,
+        comentario_id: notif.comentario_id,
+        local_origen_id: notif.local_origen_id,
+        usuario_origen_id: notif.usuario_origen_id,
+      });
+
+      // Priority 1: Post-related notifications
       if (notif.post_id) {
         console.log('[Notificaciones] ✅ Redirecting to post:', notif.post_id);
         router.push({ pathname: '/social/post', params: { id: notif.post_id } });
-      } else if (notif.comentario_id) {
+        return;
+      }
+
+      // Priority 2: Comment-related notifications
+      if (notif.comentario_id) {
         console.log('[Notificaciones] ✅ Redirecting to comment in post');
         const { data: comentario } = await supabase
           .from('comentarios')
@@ -284,22 +297,55 @@ export default function NotificacionesScreen() {
         
         if (comentario?.post_id) {
           router.push({ pathname: '/social/post', params: { id: comentario.post_id } });
+          return;
         }
-      } else if (notif.local_origen_id) {
+      }
+
+      // Priority 3: Message notifications
+      if (notif.tipo === 'mensaje_privado') {
+        console.log('[Notificaciones] ✅ Redirecting to messages');
+        
+        // If there's a local_origen_id, it's a local-specific chat
+        if (notif.local_origen_id) {
+          router.push({ 
+            pathname: '/chat/conversacion', 
+            params: { localId: notif.local_origen_id } 
+          });
+        } else if (notif.usuario_origen_id) {
+          router.push({ 
+            pathname: '/chat/conversacion', 
+            params: { userId: notif.usuario_origen_id } 
+          });
+        } else {
+          // Fallback to chats list
+          router.push('/(tabs)/perfil/chats');
+        }
+        return;
+      }
+
+      // Priority 4: Local-related notifications
+      if (notif.local_origen_id) {
         console.log('[Notificaciones] ✅ Redirecting to local:', notif.local_origen_id);
         router.push({ pathname: '/perfil/local', params: { localId: notif.local_origen_id } });
-      } else if (notif.usuario_origen_id) {
+        return;
+      }
+
+      // Priority 5: User profile notifications
+      if (notif.usuario_origen_id) {
         console.log('[Notificaciones] ✅ Redirecting to user profile:', notif.usuario_origen_id);
         if (notif.usuario_origen_id === user.id) {
           router.push('/(tabs)/perfil');
         } else {
           router.push({ pathname: '/perfil/usuario', params: { userId: notif.usuario_origen_id } });
         }
-      } else {
-        console.log('[Notificaciones] ⚠️ No specific redirect target, staying on notifications');
+        return;
       }
+
+      // Fallback: Stay on notifications page
+      console.log('[Notificaciones] ⚠️ No specific redirect target, staying on notifications');
     } catch (error) {
       console.error('[Notificaciones] Error handling notification press:', error);
+      Alert.alert('Error', 'No se pudo abrir la notificación');
     }
   };
 

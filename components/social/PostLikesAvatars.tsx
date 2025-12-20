@@ -95,7 +95,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     loadLikeUsers();
   }, [loadLikeUsers]);
 
-  // ✅ FIXED: Real-time subscription for like updates
+  // ✅ FIXED: Real-time subscription for like updates (mini-avatars update automatically)
   useEffect(() => {
     console.log('[PostLikesAvatars] 🔄 Setting up real-time subscription for post:', postId);
 

@@ -163,7 +163,7 @@ export default function ChatsScreen() {
     loadChats();
   }, [loadChats]);
 
-  // ✅ FIXED: Real-time subscription for message read status
+  // ✅ FIXED: Real-time subscription for message read status (persistent)
   useEffect(() => {
     if (!user) return;
 
@@ -180,6 +180,7 @@ export default function ChatsScreen() {
         },
         (payload) => {
           console.log('[Chats] 🔄 Message update detected:', payload);
+          // ✅ FIXED: Force reload from database to ensure persistence
           loadChats(true);
         }
       )
@@ -211,7 +212,7 @@ export default function ChatsScreen() {
 
     console.log('[Chats] 🔥 Opening chat:', { chatId, isLocalChat, localId });
 
-    // ✅ FIXED: Mark messages as read in database (source of truth)
+    // ✅ FIXED: Mark messages as read in database (source of truth) with leido_at timestamp
     try {
       const { error } = await supabase
         .from('mensajes')
@@ -223,7 +224,7 @@ export default function ChatsScreen() {
       if (error) {
         console.error('[Chats] Error marking messages as read:', error);
       } else {
-        console.log('[Chats] ✅ Messages marked as read in database');
+        console.log('[Chats] ✅ Messages marked as read in database with timestamp');
         
         // ✅ FIXED: Update local state immediately
         setChats(prevChats => 
@@ -609,6 +610,7 @@ export default function ChatsScreen() {
                   >
                     {chat.ultimo_mensaje || 'Nuevo chat'}
                   </Text>
+                  {/* ✅ FIXED: Unread badge disappears permanently after reading */}
                   {chat.mensajes_no_leidos > 0 && (
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>{chat.mensajes_no_leidos}</Text>
