@@ -85,13 +85,12 @@ export default function InstagramPostCard({
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ FIXED: Real-time subscription for likes (immediate updates)
+  // ✅ FIXED: Real-time subscription for likes with immediate database sync
   useEffect(() => {
     if (!post.id) return;
 
     console.log('[InstagramPostCard] 🔄 Setting up real-time subscription for post:', post.id);
 
-    // Check if already subscribed
     if (channelRef.current?.state === 'subscribed') {
       console.log('[InstagramPostCard] ⚠️ Already subscribed, skipping');
       return;
@@ -111,29 +110,33 @@ export default function InstagramPostCard({
           filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
-          console.log('[InstagramPostCard] 🔄 Real-time like change detected:', payload);
+          console.log('[InstagramPostCard] 🔄 Real-time like change detected:', payload.eventType);
           
-          // ✅ FIXED: Reload like count from database (source of truth)
-          const { count } = await supabase
+          // ✅ FIXED: Always fetch from database (source of truth) - no disappearing likes
+          const { count, error: countError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
             .eq('post_id', post.id);
           
-          setLikesCount(count || 0);
+          if (!countError) {
+            console.log('[InstagramPostCard] ✅ Updated likes count from database:', count);
+            setLikesCount(count || 0);
+          }
           
-          // ✅ FIXED: Check if current user has liked
+          // ✅ FIXED: Check if current user has liked (persistent state)
           if (user) {
-            const { data: userLike } = await supabase
+            const { data: userLike, error: likeError } = await supabase
               .from('likes')
               .select('id')
               .eq('post_id', post.id)
               .eq('usuario_id', user.id)
               .maybeSingle();
             
-            setIsLiked(!!userLike);
+            if (!likeError) {
+              setIsLiked(!!userLike);
+              console.log('[InstagramPostCard] ✅ User like status:', !!userLike);
+            }
           }
-          
-          console.log('[InstagramPostCard] ✅ Updated likes count via real-time:', count);
         }
       )
       .subscribe((status) => {
@@ -204,39 +207,58 @@ export default function InstagramPostCard({
     }
 
     const newLikedState = !isLiked;
-    const newLikesCount = newLikedState ? likesCount + 1 : likesCount - 1;
-    
-    // ✅ FIXED: Optimistic update with proper state management (no disappearing likes)
     const previousLiked = isLiked;
     const previousCount = likesCount;
     
+    // ✅ FIXED: Optimistic update - increment/decrement immediately
     setIsLiked(newLikedState);
-    setLikesCount(newLikesCount);
+    setLikesCount(newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1));
 
     try {
       if (newLikedState) {
+        console.log('[InstagramPostCard] ➕ Adding like to post:', post.id);
+        
         const { error } = await supabase.from('likes').insert({
           post_id: post.id,
           usuario_id: user.id,
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error('[InstagramPostCard] ❌ Error adding like:', error);
+          throw error;
+        }
         
         console.log('[InstagramPostCard] ✅ Like added successfully');
       } else {
+        console.log('[InstagramPostCard] ➖ Removing like from post:', post.id);
+        
         const { error } = await supabase
           .from('likes')
           .delete()
           .eq('post_id', post.id)
           .eq('usuario_id', user.id);
         
-        if (error) throw error;
+        if (error) {
+          console.error('[InstagramPostCard] ❌ Error removing like:', error);
+          throw error;
+        }
         
         console.log('[InstagramPostCard] ✅ Like removed successfully');
       }
+
+      // ✅ FIXED: Verify final count from database after operation
+      const { count, error: countError } = await supabase
+        .from('likes')
+        .select('id', { count: 'exact', head: true })
+        .eq('post_id', post.id);
+      
+      if (!countError && count !== null) {
+        console.log('[InstagramPostCard] ✅ Verified final count from database:', count);
+        setLikesCount(count);
+      }
     } catch (error) {
       console.error('[InstagramPostCard] ❌ Error toggling like:', error);
-      // ✅ FIXED: Revert to previous state on error
+      // ✅ FIXED: Revert to previous state on error (no disappearing likes)
       setIsLiked(previousLiked);
       setLikesCount(previousCount);
       Alert.alert('Error', 'No se pudo actualizar el me gusta');
@@ -283,7 +305,6 @@ export default function InstagramPostCard({
     }
   };
 
-  // ✅ NEW: Report post functionality
   const handleReport = () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
@@ -590,7 +611,7 @@ export default function InstagramPostCard({
         </View>
 
         <View style={styles.stats}>
-          {/* ✅ FIXED: Real-time updating likes avatars */}
+          {/* ✅ FIXED: Real-time updating likes avatars with proper count */}
           {likesCount > 0 && (
             <PostLikesAvatars postId={post.id} totalLikes={likesCount} />
           )}

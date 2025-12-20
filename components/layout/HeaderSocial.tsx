@@ -30,15 +30,6 @@ interface SearchResult {
   provincia?: string;
 }
 
-/**
- * ✅ HEADER SOCIAL v2.0 - SYNCHRONIZED BADGES
- * 
- * Changes:
- * - ✅ Shows notification badge with count (synchronized with profile page)
- * - ✅ Shows message badge with count (synchronized with profile page)
- * - ✅ Real-time updates via Supabase subscriptions
- */
-
 export default function HeaderSocial({
   unreadNotifications: propUnreadNotifications,
   unreadMessages: propUnreadMessages,
@@ -55,66 +46,73 @@ export default function HeaderSocial({
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   
-  // ✅ Local state for badge counts (synchronized with profile page)
   const [unreadNotifications, setUnreadNotifications] = useState(propUnreadNotifications || 0);
   const [unreadMessages, setUnreadMessages] = useState(propUnreadMessages || 0);
   
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  // ✅ Load unread counts
+  // ✅ FIXED: Load unread counts from database (source of truth)
   const loadUnreadCounts = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('[HeaderSocial] ℹ️ No user, resetting counts to 0');
+      setUnreadNotifications(0);
+      setUnreadMessages(0);
+      return;
+    }
 
     try {
-      // Load notifications count
-      const { count: notifCount } = await supabase
+      console.log('[HeaderSocial] 🔄 Loading unread counts from database...');
+      
+      // ✅ Load notifications count
+      const { count: notifCount, error: notifError } = await supabase
         .from('notificaciones')
         .select('*', { count: 'exact', head: true })
         .eq('usuario_id', user.id)
         .eq('leida', false);
 
-      setUnreadNotifications(notifCount || 0);
+      if (notifError) {
+        console.error('[HeaderSocial] ❌ Error loading notifications count:', notifError);
+      } else {
+        setUnreadNotifications(notifCount || 0);
+        console.log('[HeaderSocial] ✅ Unread notifications:', notifCount || 0);
+      }
 
-      // Load messages count
-      const { data: chatsData } = await supabase
+      // ✅ Load messages count - only messages without leido_at timestamp
+      const { data: chatsData, error: chatsError } = await supabase
         .from('chats')
         .select('id')
         .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
 
-      if (chatsData) {
+      if (chatsError) {
+        console.error('[HeaderSocial] ❌ Error loading chats:', chatsError);
+      } else if (chatsData) {
         let totalUnread = 0;
         for (const chat of chatsData) {
-          const { count } = await supabase
+          const { count, error: countError } = await supabase
             .from('mensajes')
             .select('*', { count: 'exact', head: true })
             .eq('chat_id', chat.id)
             .eq('leido', false)
             .neq('remitente_id', user.id);
           
-          totalUnread += count || 0;
+          if (!countError) {
+            totalUnread += count || 0;
+          }
         }
         setUnreadMessages(totalUnread);
-        
-        console.log('[HeaderSocial] ✅ Loaded unread counts:', {
-          notifications: notifCount || 0,
-          messages: totalUnread,
-        });
-      } else {
-        console.log('[HeaderSocial] ✅ Loaded unread counts:', {
-          notifications: notifCount || 0,
-          messages: 0,
-        });
+        console.log('[HeaderSocial] ✅ Unread messages:', totalUnread);
       }
     } catch (error) {
-      console.error('[HeaderSocial] Error loading unread counts:', error);
+      console.error('[HeaderSocial] ❌ Error loading unread counts:', error);
     }
   }, [user]);
 
-  // ✅ Load counts on mount and when props change
+  // ✅ Load counts on mount and when user changes
   useEffect(() => {
     loadUnreadCounts();
   }, [loadUnreadCounts]);
 
+  // ✅ Update from props if provided
   useEffect(() => {
     if (propUnreadNotifications !== undefined) {
       setUnreadNotifications(propUnreadNotifications);
@@ -127,11 +125,11 @@ export default function HeaderSocial({
     }
   }, [propUnreadMessages]);
 
-  // ✅ Subscribe to real-time updates
+  // ✅ FIXED: Real-time subscriptions for immediate updates (persistent badge removal)
   useEffect(() => {
     if (!user) return;
 
-    console.log('[HeaderSocial] 🔄 Setting up real-time subscriptions');
+    console.log('[HeaderSocial] 🔄 Setting up real-time subscriptions for user:', user.id);
 
     const subscription = supabase
       .channel('header-social-updates')
@@ -144,7 +142,7 @@ export default function HeaderSocial({
           filter: `usuario_id=eq.${user.id}`,
         },
         () => {
-          console.log('[HeaderSocial] 🔔 Notification update detected');
+          console.log('[HeaderSocial] 🔔 Notification update detected, reloading count...');
           loadUnreadCounts();
         }
       )
@@ -156,11 +154,13 @@ export default function HeaderSocial({
           table: 'mensajes',
         },
         () => {
-          console.log('[HeaderSocial] 💬 Message update detected');
+          console.log('[HeaderSocial] 💬 Message update detected, reloading count...');
           loadUnreadCounts();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[HeaderSocial] 📡 Subscription status:', status);
+      });
 
     return () => {
       console.log('[HeaderSocial] 🔄 Cleaning up subscriptions');
@@ -359,6 +359,7 @@ export default function HeaderSocial({
               activeOpacity={0.7}
             >
               <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
+              {/* ✅ FIXED: Badge disappears permanently after messages are read */}
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>

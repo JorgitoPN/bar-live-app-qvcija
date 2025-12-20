@@ -33,6 +33,8 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
 
   const loadLikeUsers = useCallback(async () => {
     try {
+      console.log('[PostLikesAvatars] 🔄 Loading like users for post:', postId);
+      
       const { data, error } = await supabase
         .from('likes')
         .select(`
@@ -96,11 +98,10 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     loadLikeUsers();
   }, [loadLikeUsers]);
 
-  // ✅ FIXED: Real-time subscription for likes (mini-avatars update automatically)
+  // ✅ FIXED: Real-time subscription with immediate updates (no disappearing avatars)
   useEffect(() => {
     console.log('[PostLikesAvatars] 🔄 Setting up real-time subscription for post:', postId);
 
-    // Check if already subscribed
     if (channelRef.current?.state === 'subscribed') {
       console.log('[PostLikesAvatars] ⚠️ Already subscribed, skipping');
       return;
@@ -120,19 +121,21 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
           filter: `post_id=eq.${postId}`,
         },
         async (payload) => {
-          console.log('[PostLikesAvatars] 🔄 Real-time like change detected:', payload);
+          console.log('[PostLikesAvatars] 🔄 Real-time like change detected:', payload.eventType);
           
           // ✅ FIXED: Reload like users immediately (no disappearing avatars)
           await loadLikeUsers();
           
-          // ✅ FIXED: Update total count from database
-          const { count } = await supabase
+          // ✅ FIXED: Update total count from database (source of truth)
+          const { count, error: countError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
             .eq('post_id', postId);
           
-          setCurrentTotalLikes(count || 0);
-          console.log('[PostLikesAvatars] ✅ Updated likes count via real-time:', count);
+          if (!countError && count !== null) {
+            console.log('[PostLikesAvatars] ✅ Updated likes count via real-time:', count);
+            setCurrentTotalLikes(count);
+          }
         }
       )
       .subscribe((status) => {

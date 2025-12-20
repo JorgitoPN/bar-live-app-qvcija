@@ -198,7 +198,6 @@ export default function SoporteAyudaScreen() {
       console.log('[SoporteAyuda] ✅ Reportes de sala virtual cargados:', salaReportes?.length || 0);
       setReportes(salaReportes || []);
 
-      // ✅ NEW: Load content reports (posts, momentos, comments)
       console.log('[SoporteAyuda] ✅ Cargando reportes de contenido...');
       const { data: contentReportsData, error: contentError } = await supabase
         .from('content_reports')
@@ -392,7 +391,6 @@ export default function SoporteAyudaScreen() {
     }
   };
 
-  // ✅ NEW: Handle content report updates
   const handleUpdateContentReport = async (reportId: string, nuevoEstado: ContentReport['status']) => {
     setUpdating(true);
     try {
@@ -422,7 +420,6 @@ export default function SoporteAyudaScreen() {
     }
   };
 
-  // ✅ NEW: Delete reported content
   const handleDeleteReportedContent = async (report: ContentReport) => {
     Alert.alert(
       'Eliminar contenido',
@@ -459,7 +456,6 @@ export default function SoporteAyudaScreen() {
                 if (error) throw error;
               }
 
-              // Mark report as action taken
               await supabase
                 .from('content_reports')
                 .update({
@@ -486,7 +482,6 @@ export default function SoporteAyudaScreen() {
     );
   };
 
-  // ✅ NEW: View reported content
   const handleViewReportedContent = (report: ContentReport) => {
     if (report.content_type === 'post' && report.post_id) {
       router.push(`/social/post?postId=${report.post_id}`);
@@ -1037,7 +1032,7 @@ export default function SoporteAyudaScreen() {
       {activeTab === 'reportes' && renderReportesTab()}
       {activeTab === 'solicitudes' && renderSolicitudesTab()}
 
-      {/* ✅ FIXED: Detail Modal with proper scrolling */}
+      {/* ✅ FIXED: Detail Modal with PROPER scrolling - removed nested ScrollView issue */}
       <Modal
         visible={showDetailModal}
         transparent
@@ -1049,8 +1044,16 @@ export default function SoporteAyudaScreen() {
           setSelectedContentReport(null);
         }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => {
+            setShowDetailModal(false);
+            setSelectedTicket(null);
+            setSelectedReporte(null);
+            setSelectedContentReport(null);
+          }}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {selectedTicket 
@@ -1069,16 +1072,17 @@ export default function SoporteAyudaScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* ✅ FIXED: Proper ScrollView configuration for modal content */}
+            {/* ✅ FIXED: Single ScrollView with all content - no nesting issues */}
             <ScrollView 
-              style={styles.modalScrollView} 
+              style={styles.modalScrollView}
               contentContainerStyle={styles.modalScrollContent}
               showsVerticalScrollIndicator={true}
               bounces={true}
               scrollEnabled={true}
+              nestedScrollEnabled={true}
             >
               {selectedTicket && (
-                <View style={styles.scrollableContent}>
+                <>
                   <View style={styles.detailSection}>
                     <Text style={styles.detailLabel}>Usuario:</Text>
                     <View style={styles.userInfoRow}>
@@ -1215,11 +1219,11 @@ export default function SoporteAyudaScreen() {
                       <Text style={styles.actionButtonText}>Eliminar Ticket</Text>
                     </TouchableOpacity>
                   </View>
-                </View>
+                </>
               )}
 
               {selectedReporte && (
-                <View style={styles.scrollableContent}>
+                <>
                   <View style={styles.detailSection}>
                     <Text style={styles.detailLabel}>Motivo:</Text>
                     <Text style={styles.detailValue}>{getMotivoText(selectedReporte.motivo)}</Text>
@@ -1293,11 +1297,11 @@ export default function SoporteAyudaScreen() {
                       <Text style={styles.actionButtonText}>Rechazar</Text>
                     </TouchableOpacity>
                   </View>
-                </View>
+                </>
               )}
 
               {selectedContentReport && (
-                <View style={styles.scrollableContent}>
+                <>
                   <View style={styles.detailSection}>
                     <Text style={styles.detailLabel}>Tipo de contenido:</Text>
                     <Text style={styles.detailValue}>{getContentTypeText(selectedContentReport.content_type)}</Text>
@@ -1422,20 +1426,25 @@ export default function SoporteAyudaScreen() {
                       <Text style={styles.actionButtonText}>Descartar Reporte</Text>
                     </TouchableOpacity>
                   </View>
-                </View>
+                </>
               )}
             </ScrollView>
 
-            <TouchableOpacity style={styles.modalCancelButton} onPress={() => {
-              setShowDetailModal(false);
-              setSelectedTicket(null);
-              setSelectedReporte(null);
-              setSelectedContentReport(null);
-            }}>
-              <Text style={styles.modalCancelText}>Cerrar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={styles.modalCancelButton} 
+                onPress={() => {
+                  setShowDetailModal(false);
+                  setSelectedTicket(null);
+                  setSelectedReporte(null);
+                  setSelectedContentReport(null);
+                }}
+              >
+                <Text style={styles.modalCancelText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -1795,16 +1804,16 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: colors.background,
     borderRadius: 20,
-    padding: 24,
     width: '100%',
     maxWidth: 600,
-    maxHeight: '90%',
+    maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 24,
+    paddingTop: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
@@ -1817,12 +1826,10 @@ const styles = StyleSheet.create({
   },
   modalScrollView: {
     flex: 1,
+    paddingHorizontal: 24,
   },
   modalScrollContent: {
-    paddingBottom: 20,
-  },
-  scrollableContent: {
-    flex: 1,
+    paddingVertical: 20,
   },
   detailSection: {
     marginBottom: 16,
@@ -1913,12 +1920,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.white,
   },
+  modalFooter: {
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
   modalCancelButton: {
     paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
   },
   modalCancelText: {
     fontSize: 16,

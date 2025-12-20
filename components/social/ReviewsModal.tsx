@@ -61,7 +61,6 @@ export default function ReviewsModal({
   const [userExistingReview, setUserExistingReview] = useState<Review | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   
-  // ✅ NEW: Pagination state - show 5 by default
   const [displayedReviewsCount, setDisplayedReviewsCount] = useState(5);
   const [totalReviewsCount, setTotalReviewsCount] = useState(0);
 
@@ -92,7 +91,6 @@ export default function ReviewsModal({
     try {
       setLoading(true);
       
-      // ✅ FIXED: Load only Barlive reviews (not Google reviews)
       const { data: reviewsData, error, count } = await supabase
         .from('reviews_barlive')
         .select(`
@@ -128,7 +126,6 @@ export default function ReviewsModal({
         }
       }
 
-      // ✅ FIXED: Update local rating based on ALL Barlive reviews
       const { data: allReviewsData, error: allReviewsError } = await supabase
         .from('reviews_barlive')
         .select('rating')
@@ -158,7 +155,6 @@ export default function ReviewsModal({
     }
   }, [visible, localId, loadReviews]);
 
-  // ✅ FIXED: Real-time subscription for review updates
   useEffect(() => {
     if (!visible || !localId) return;
 
@@ -187,7 +183,6 @@ export default function ReviewsModal({
     };
   }, [visible, localId, loadReviews]);
 
-  // ✅ NEW: Load more reviews
   const handleLoadMore = () => {
     console.log('[ReviewsModal] 📄 Loading more reviews...');
     setDisplayedReviewsCount(prev => prev + 10);
@@ -398,7 +393,6 @@ export default function ReviewsModal({
               
               Alert.alert('Éxito', 'Reseña eliminada correctamente');
               
-              // ✅ FIXED: Recalculate local rating after deletion
               await loadReviews();
               
               if (onReviewAdded) {
@@ -444,7 +438,7 @@ export default function ReviewsModal({
             )}
           </View>
           <View style={styles.reviewInfo}>
-            {/* ✅ FIXED: Remove "google" text, show "Cliente del local" for all reviews */}
+            {/* ✅ FIXED: Remove "google" text completely - show "Cliente del local" for all non-owner reviews */}
             <Text style={styles.reviewAuthor}>
               {isOwner ? 'Tu reseña' : 'Cliente del local'}
             </Text>
@@ -495,7 +489,6 @@ export default function ReviewsModal({
     </View>
   );
 
-  // ✅ NEW: Render "Ver más" button
   const renderFooter = () => {
     if (totalReviewsCount <= displayedReviewsCount) {
       return null;
