@@ -101,7 +101,7 @@ export default function InstagramPostCard({
         async (payload) => {
           console.log('[InstagramPostCard] 🔄 Real-time like change detected:', payload);
           
-          // Reload like count from database
+          // ✅ FIXED: Reload like count from database (source of truth)
           const { count } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
@@ -109,7 +109,7 @@ export default function InstagramPostCard({
           
           setLikesCount(count || 0);
           
-          // Check if current user has liked
+          // ✅ FIXED: Check if current user has liked
           if (user) {
             const { data: userLike } = await supabase
               .from('likes')
@@ -189,39 +189,40 @@ export default function InstagramPostCard({
     const newLikedState = !isLiked;
     const newLikesCount = newLikedState ? likesCount + 1 : likesCount - 1;
     
-    // Optimistic update
+    // ✅ FIXED: Optimistic update with proper state management
+    const previousLiked = isLiked;
+    const previousCount = likesCount;
+    
     setIsLiked(newLikedState);
     setLikesCount(newLikesCount);
 
     try {
       if (newLikedState) {
-        await supabase.from('likes').insert({
+        const { error } = await supabase.from('likes').insert({
           post_id: post.id,
           usuario_id: user.id,
         });
         
-        await supabase
-          .from('posts')
-          .update({ likes: newLikesCount })
-          .eq('id', post.id);
+        if (error) throw error;
+        
+        console.log('[InstagramPostCard] ✅ Like added successfully');
       } else {
-        await supabase
+        const { error } = await supabase
           .from('likes')
           .delete()
           .eq('post_id', post.id)
           .eq('usuario_id', user.id);
         
-        await supabase
-          .from('posts')
-          .update({ likes: newLikesCount })
-          .eq('id', post.id);
+        if (error) throw error;
+        
+        console.log('[InstagramPostCard] ✅ Like removed successfully');
       }
-
-      console.log('[InstagramPostCard] ✅ Like updated successfully');
     } catch (error) {
-      console.error('[InstagramPostCard] Error toggling like:', error);
-      setIsLiked(!newLikedState);
-      setLikesCount(newLikedState ? newLikesCount - 1 : newLikesCount + 1);
+      console.error('[InstagramPostCard] ❌ Error toggling like:', error);
+      // ✅ FIXED: Revert to previous state on error
+      setIsLiked(previousLiked);
+      setLikesCount(previousCount);
+      Alert.alert('Error', 'No se pudo actualizar el me gusta');
     }
   };
 

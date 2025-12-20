@@ -61,7 +61,7 @@ export default function ReviewsModal({
   const [userExistingReview, setUserExistingReview] = useState<Review | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   
-  // ✅ NEW: Pagination state
+  // ✅ NEW: Pagination state - show 5 by default
   const [displayedReviewsCount, setDisplayedReviewsCount] = useState(5);
   const [totalReviewsCount, setTotalReviewsCount] = useState(0);
 
@@ -128,11 +128,16 @@ export default function ReviewsModal({
         }
       }
 
-      // ✅ FIXED: Update local rating based on Barlive reviews
-      if (reviewsData && reviewsData.length > 0) {
-        const avgRating = reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length;
+      // ✅ FIXED: Update local rating based on ALL Barlive reviews
+      const { data: allReviewsData, error: allReviewsError } = await supabase
+        .from('reviews_barlive')
+        .select('rating')
+        .eq('local_id', localId);
+
+      if (!allReviewsError && allReviewsData && allReviewsData.length > 0) {
+        const avgRating = allReviewsData.reduce((sum, r) => sum + r.rating, 0) / allReviewsData.length;
         
-        console.log('[ReviewsModal] 📊 Updating local rating:', avgRating.toFixed(2));
+        console.log('[ReviewsModal] 📊 Updating local rating based on', allReviewsData.length, 'reviews:', avgRating.toFixed(2));
         
         await supabase
           .from('locales')
@@ -153,8 +158,38 @@ export default function ReviewsModal({
     }
   }, [visible, localId, loadReviews]);
 
+  // ✅ FIXED: Real-time subscription for review updates
+  useEffect(() => {
+    if (!visible || !localId) return;
+
+    console.log('[ReviewsModal] 🔄 Setting up real-time subscription for reviews');
+
+    const subscription = supabase
+      .channel(`reviews-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reviews_barlive',
+          filter: `local_id=eq.${localId}`,
+        },
+        () => {
+          console.log('[ReviewsModal] 🔄 Review update detected, reloading...');
+          loadReviews();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[ReviewsModal] 🔄 Cleaning up subscription');
+      supabase.removeChannel(subscription);
+    };
+  }, [visible, localId, loadReviews]);
+
   // ✅ NEW: Load more reviews
   const handleLoadMore = () => {
+    console.log('[ReviewsModal] 📄 Loading more reviews...');
     setDisplayedReviewsCount(prev => prev + 10);
   };
 

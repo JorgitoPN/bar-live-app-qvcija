@@ -152,7 +152,6 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
   return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
 };
 
-// ✅ FIXED: Consistent color for all services section - GREEN
 const SERVICES_SECTION_COLOR = '#10B981';
 
 const getServiceIcon = (servicio: string): { ios: string; android: string; color: string } => {
@@ -203,7 +202,6 @@ const getServiceIcon = (servicio: string): { ios: string; android: string; color
   const lowerServicio = servicio.toLowerCase().replace(/ /g, '_');
   for (const [key, value] of Object.entries(serviceMap)) {
     if (lowerServicio.includes(key) || key.includes(lowerServicio)) {
-      // ✅ FIXED: All services use the same color
       return { ...value, color: SERVICES_SECTION_COLOR };
     }
   }
@@ -211,7 +209,6 @@ const getServiceIcon = (servicio: string): { ios: string; android: string; color
   return { ios: 'checkmark.circle.fill', android: 'check_circle', color: SERVICES_SECTION_COLOR };
 };
 
-// ✅ FIXED: Consistent color for all ambiente section - PURPLE
 const AMBIENTE_SECTION_COLOR = '#8B5CF6';
 
 const getAmbienteIcon = (ambiente: string): { ios: string; android: string; color: string } => {
@@ -232,7 +229,6 @@ const getAmbienteIcon = (ambiente: string): { ios: string; android: string; colo
   const lowerAmbiente = ambiente.toLowerCase().replace(/ /g, '_');
   for (const [key, value] of Object.entries(ambienteMap)) {
     if (lowerAmbiente.includes(key) || key.includes(lowerAmbiente)) {
-      // ✅ FIXED: All ambiente tags use the same color
       return { ...value, color: AMBIENTE_SECTION_COLOR };
     }
   }
@@ -240,7 +236,6 @@ const getAmbienteIcon = (ambiente: string): { ios: string; android: string; colo
   return { ios: 'sparkles', android: 'auto_awesome', color: AMBIENTE_SECTION_COLOR };
 };
 
-// ✅ FIXED: Consistent color for all clientela section - PINK
 const CLIENTELA_SECTION_COLOR = '#EC4899';
 
 const getClientelaIcon = (clientela: string): { ios: string; android: string; color: string } => {
@@ -258,7 +253,6 @@ const getClientelaIcon = (clientela: string): { ios: string; android: string; co
   const lowerClientela = clientela.toLowerCase().replace(/ /g, '_');
   for (const [key, value] of Object.entries(clientelaMap)) {
     if (lowerClientela.includes(key) || key.includes(lowerClientela)) {
-      // ✅ FIXED: All clientela tags use the same color
       return { ...value, color: CLIENTELA_SECTION_COLOR };
     }
   }
@@ -457,6 +451,7 @@ export default function DetalleLocalScreen() {
   const cargarReviewsBarlive = useCallback(async () => {
     try {
       setLoadingReviews(true);
+      // ✅ FIXED: Load only first 5 reviews by default
       const { data, error } = await supabase
         .from('reviews_barlive')
         .select(
@@ -470,7 +465,7 @@ export default function DetalleLocalScreen() {
         )
         .eq('local_id', params.id)
         .order('created_at', { ascending: false })
-        .limit(3);
+        .limit(5);
 
       if (error) {
         console.error('[DetalleLocal] Error loading reviews:', error);
@@ -888,13 +883,13 @@ export default function DetalleLocalScreen() {
   const allReviews = [
     ...reviews.map((r) => ({ ...r, isGoogle: false })),
     ...(local.reviews_google || [])
-      .slice(0, 3 - reviews.length)
+      .slice(0, 5 - reviews.length)
       .map((r: any) => ({
         ...r,
         isGoogle: true,
         id: r.time?.toString() || Math.random().toString(),
       })),
-  ].slice(0, 3);
+  ].slice(0, 5);
 
   const allCategories = (
     local.barlive_types && local.barlive_types.length > 0

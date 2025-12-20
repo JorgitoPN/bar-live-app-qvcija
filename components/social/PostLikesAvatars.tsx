@@ -53,6 +53,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
             tipo: 'usuario' as const,
           }));
         setLikeUsers(users);
+        console.log('[PostLikesAvatars] ✅ Loaded', users.length, 'like users for display');
       }
     } catch (error) {
       console.error('[PostLikesAvatars] Error loading like users:', error);
@@ -111,8 +112,10 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
         async (payload) => {
           console.log('[PostLikesAvatars] 🔄 Real-time like update detected:', payload);
           
+          // ✅ FIXED: Reload like users immediately
           await loadLikeUsers();
           
+          // ✅ FIXED: Update total count from database
           const { count } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
