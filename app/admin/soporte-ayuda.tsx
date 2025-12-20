@@ -1037,7 +1037,7 @@ export default function SoporteAyudaScreen() {
       {activeTab === 'reportes' && renderReportesTab()}
       {activeTab === 'solicitudes' && renderSolicitudesTab()}
 
-      {/* Detail Modal */}
+      {/* ✅ FIXED: Detail Modal with proper scrolling */}
       <Modal
         visible={showDetailModal}
         transparent
@@ -1049,13 +1049,8 @@ export default function SoporteAyudaScreen() {
           setSelectedContentReport(null);
         }}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => {
-          setShowDetailModal(false);
-          setSelectedTicket(null);
-          setSelectedReporte(null);
-          setSelectedContentReport(null);
-        }}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {selectedTicket 
@@ -1074,353 +1069,362 @@ export default function SoporteAyudaScreen() {
               </TouchableOpacity>
             </View>
 
-            {selectedTicket && (
-              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={true} nestedScrollEnabled={true} scrollEnabled={true}>
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Usuario:</Text>
-                  <View style={styles.userInfoRow}>
-                    <Text style={styles.detailValue}>
-                      {selectedTicket.user?.nombre} (@{selectedTicket.user?.username || 'sin-username'})
-                    </Text>
+            {/* ✅ FIXED: Proper ScrollView configuration for modal content */}
+            <ScrollView 
+              style={styles.modalScrollView} 
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator={true}
+              bounces={true}
+              scrollEnabled={true}
+            >
+              {selectedTicket && (
+                <View style={styles.scrollableContent}>
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Usuario:</Text>
+                    <View style={styles.userInfoRow}>
+                      <Text style={styles.detailValue}>
+                        {selectedTicket.user?.nombre} (@{selectedTicket.user?.username || 'sin-username'})
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.linkButton}
+                        onPress={() => {
+                          if (selectedTicket.user?.username) {
+                            router.push(`/perfil/usuario?username=${selectedTicket.user.username}`);
+                            setShowDetailModal(false);
+                          }
+                        }}
+                      >
+                        <IconSymbol ios_icon_name="arrow.up.right.square.fill" android_material_icon_name="open_in_new" size={18} color={colors.primary} />
+                        <Text style={styles.linkButtonText}>Ver Perfil</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Email:</Text>
                     <TouchableOpacity
-                      style={styles.linkButton}
                       onPress={() => {
-                        if (selectedTicket.user?.username) {
-                          router.push(`/perfil/usuario?username=${selectedTicket.user.username}`);
-                          setShowDetailModal(false);
+                        if (selectedTicket.user?.email) {
+                          Linking.openURL(`mailto:${selectedTicket.user.email}`);
                         }
                       }}
                     >
-                      <IconSymbol ios_icon_name="arrow.up.right.square.fill" android_material_icon_name="open_in_new" size={18} color={colors.primary} />
-                      <Text style={styles.linkButtonText}>Ver Perfil</Text>
+                      <Text style={[styles.detailValue, { color: colors.primary }]}>
+                        {selectedTicket.user?.email}
+                      </Text>
                     </TouchableOpacity>
                   </View>
-                </View>
 
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Email:</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (selectedTicket.user?.email) {
-                        Linking.openURL(`mailto:${selectedTicket.user.email}`);
-                      }
-                    }}
-                  >
-                    <Text style={[styles.detailValue, { color: colors.primary }]}>
-                      {selectedTicket.user?.email}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Asunto:</Text>
-                  <Text style={styles.detailValue}>{selectedTicket.subject}</Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Descripción:</Text>
-                  <Text style={styles.detailValue}>{selectedTicket.description}</Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Categoría:</Text>
-                  <Text style={styles.detailValue}>{getCategoryText(selectedTicket.category)}</Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Prioridad:</Text>
-                  {getPriorityBadge(selectedTicket.priority)}
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Estado actual:</Text>
-                  {getEstadoBadge(selectedTicket.status)}
-                </View>
-
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Responder por Email:</Text>
-                  <TextInput
-                    style={styles.textArea}
-                    value={responseMessage}
-                    onChangeText={setResponseMessage}
-                    placeholder="Escribe tu respuesta al usuario..."
-                    placeholderTextColor={colors.textSecondary}
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                  />
-                  <TouchableOpacity
-                    style={[styles.sendEmailButton, (sendingEmail || !responseMessage.trim()) && styles.sendEmailButtonDisabled]}
-                    onPress={handleSendResponse}
-                    disabled={sendingEmail || !responseMessage.trim()}
-                  >
-                    {sendingEmail ? (
-                      <ActivityIndicator size="small" color={colors.white} />
-                    ) : (
-                      <>
-                        <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={18} color={colors.white} />
-                        <Text style={styles.sendEmailButtonText}>Enviar Respuesta por Email</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Notas del Administrador (internas):</Text>
-                  <TextInput
-                    style={styles.textArea}
-                    value={adminNotes}
-                    onChangeText={setAdminNotes}
-                    placeholder="Añade notas internas sobre la resolución..."
-                    placeholderTextColor={colors.textSecondary}
-                    multiline
-                    numberOfLines={3}
-                    textAlignVertical="top"
-                  />
-                </View>
-
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
-                    onPress={() => handleUpdateTicket(selectedTicket.id, 'in_progress')}
-                    disabled={updating}
-                  >
-                    <Text style={styles.actionButtonText}>Marcar en Progreso</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: '#10B981' }]}
-                    onPress={() => handleUpdateTicket(selectedTicket.id, 'resolved')}
-                    disabled={updating}
-                  >
-                    <Text style={styles.actionButtonText}>Marcar Resuelto</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: '#6B7280' }]}
-                    onPress={() => handleUpdateTicket(selectedTicket.id, 'closed')}
-                    disabled={updating}
-                  >
-                    <Text style={styles.actionButtonText}>Cerrar Ticket</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: '#EF4444' }]}
-                    onPress={() => handleDeleteTicket(selectedTicket.id)}
-                    disabled={updating}
-                  >
-                    <Text style={styles.actionButtonText}>Eliminar Ticket</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            )}
-
-            {selectedReporte && (
-              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={true} nestedScrollEnabled={true} scrollEnabled={true}>
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Motivo:</Text>
-                  <Text style={styles.detailValue}>{getMotivoText(selectedReporte.motivo)}</Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Descripción:</Text>
-                  <Text style={styles.detailValue}>{selectedReporte.descripcion || 'Sin descripción'}</Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Reportado por:</Text>
-                  <Text style={styles.detailValue}>
-                    {selectedReporte.reportador?.nombre} ({selectedReporte.reportador?.email})
-                  </Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Usuario reportado:</Text>
-                  <Text style={styles.detailValue}>
-                    {selectedReporte.reportado?.nombre} ({selectedReporte.reportado?.email})
-                  </Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Local:</Text>
-                  <Text style={styles.detailValue}>{selectedReporte.local?.nombre || 'Desconocido'}</Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Estado actual:</Text>
-                  {getEstadoBadge(selectedReporte.estado)}
-                </View>
-
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Notas del Administrador:</Text>
-                  <TextInput
-                    style={styles.textArea}
-                    value={adminNotes}
-                    onChangeText={setAdminNotes}
-                    placeholder="Añade notas sobre la resolución..."
-                    placeholderTextColor={colors.textSecondary}
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                  />
-                </View>
-
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
-                    onPress={() => handleUpdateReporte(selectedReporte.id, 'revisando')}
-                    disabled={updating}
-                  >
-                    <Text style={styles.actionButtonText}>Marcar en Revisión</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: '#10B981' }]}
-                    onPress={() => handleUpdateReporte(selectedReporte.id, 'accion_tomada')}
-                    disabled={updating}
-                  >
-                    <Text style={styles.actionButtonText}>Acción Tomada</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: '#EF4444' }]}
-                    onPress={() => handleUpdateReporte(selectedReporte.id, 'rechazado')}
-                    disabled={updating}
-                  >
-                    <Text style={styles.actionButtonText}>Rechazar</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            )}
-
-            {selectedContentReport && (
-              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={true} nestedScrollEnabled={true} scrollEnabled={true}>
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Tipo de contenido:</Text>
-                  <Text style={styles.detailValue}>{getContentTypeText(selectedContentReport.content_type)}</Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Motivo:</Text>
-                  <Text style={styles.detailValue}>{getMotivoText(selectedContentReport.reason)}</Text>
-                </View>
-
-                {selectedContentReport.description && (
                   <View style={styles.detailSection}>
-                    <Text style={styles.detailLabel}>Descripción adicional:</Text>
-                    <Text style={styles.detailValue}>{selectedContentReport.description}</Text>
+                    <Text style={styles.detailLabel}>Asunto:</Text>
+                    <Text style={styles.detailValue}>{selectedTicket.subject}</Text>
                   </View>
-                )}
 
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Reportado por:</Text>
-                  <Text style={styles.detailValue}>
-                    {selectedContentReport.reporter?.nombre} (@{selectedContentReport.reporter?.username || 'sin-username'})
-                  </Text>
-                  <Text style={styles.detailValue}>
-                    {selectedContentReport.reporter?.email}
-                  </Text>
-                </View>
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Descripción:</Text>
+                    <Text style={styles.detailValue}>{selectedTicket.description}</Text>
+                  </View>
 
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Contenido reportado:</Text>
-                  {selectedContentReport.content_type === 'post' && selectedContentReport.post && (
-                    <View style={styles.contentPreviewBox}>
-                      {selectedContentReport.post.imagenes && selectedContentReport.post.imagenes.length > 0 && (
-                        <Image 
-                          source={{ uri: selectedContentReport.post.imagenes[0] }} 
-                          style={styles.contentPreviewImageLarge} 
-                        />
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Categoría:</Text>
+                    <Text style={styles.detailValue}>{getCategoryText(selectedTicket.category)}</Text>
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Prioridad:</Text>
+                    {getPriorityBadge(selectedTicket.priority)}
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Estado actual:</Text>
+                    {getEstadoBadge(selectedTicket.status)}
+                  </View>
+
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Responder por Email:</Text>
+                    <TextInput
+                      style={styles.textArea}
+                      value={responseMessage}
+                      onChangeText={setResponseMessage}
+                      placeholder="Escribe tu respuesta al usuario..."
+                      placeholderTextColor={colors.textSecondary}
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                    />
+                    <TouchableOpacity
+                      style={[styles.sendEmailButton, (sendingEmail || !responseMessage.trim()) && styles.sendEmailButtonDisabled]}
+                      onPress={handleSendResponse}
+                      disabled={sendingEmail || !responseMessage.trim()}
+                    >
+                      {sendingEmail ? (
+                        <ActivityIndicator size="small" color={colors.white} />
+                      ) : (
+                        <>
+                          <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={18} color={colors.white} />
+                          <Text style={styles.sendEmailButtonText}>Enviar Respuesta por Email</Text>
+                        </>
                       )}
-                      <Text style={styles.contentPreviewTextLarge}>
-                        {selectedContentReport.post.contenido || 'Publicación sin texto'}
-                      </Text>
-                    </View>
-                  )}
-                  {selectedContentReport.content_type === 'momento' && selectedContentReport.momento && (
-                    <View style={styles.contentPreviewBox}>
-                      <Image 
-                        source={{ uri: selectedContentReport.momento.imagen_url }} 
-                        style={styles.contentPreviewImageLarge} 
-                      />
-                      <Text style={styles.contentPreviewTextLarge}>Momento reportado</Text>
-                    </View>
-                  )}
-                  {selectedContentReport.content_type === 'comment' && selectedContentReport.comentario && (
-                    <View style={styles.contentPreviewBox}>
-                      <Text style={styles.contentPreviewTextLarge}>
-                        {selectedContentReport.comentario.texto}
-                      </Text>
-                    </View>
-                  )}
-                </View>
+                    </TouchableOpacity>
+                  </View>
 
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Estado actual:</Text>
-                  {getEstadoBadge(selectedContentReport.status)}
-                </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Notas del Administrador (internas):</Text>
+                    <TextInput
+                      style={styles.textArea}
+                      value={adminNotes}
+                      onChangeText={setAdminNotes}
+                      placeholder="Añade notas internas sobre la resolución..."
+                      placeholderTextColor={colors.textSecondary}
+                      multiline
+                      numberOfLines={3}
+                      textAlignVertical="top"
+                    />
+                  </View>
 
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Notas del Administrador:</Text>
-                  <TextInput
-                    style={styles.textArea}
-                    value={adminNotes}
-                    onChangeText={setAdminNotes}
-                    placeholder="Añade notas sobre la resolución..."
-                    placeholderTextColor={colors.textSecondary}
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                  />
-                </View>
-
-                <View style={styles.actionButtons}>
-                  {selectedContentReport.content_type === 'post' && selectedContentReport.post_id && (
+                  <View style={styles.actionButtons}>
                     <TouchableOpacity
                       style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
-                      onPress={() => handleViewReportedContent(selectedContentReport)}
+                      onPress={() => handleUpdateTicket(selectedTicket.id, 'in_progress')}
                       disabled={updating}
                     >
-                      <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.white} />
-                      <Text style={styles.actionButtonText}>Ver Publicación</Text>
+                      <Text style={styles.actionButtonText}>Marcar en Progreso</Text>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#10B981' }]}
+                      onPress={() => handleUpdateTicket(selectedTicket.id, 'resolved')}
+                      disabled={updating}
+                    >
+                      <Text style={styles.actionButtonText}>Marcar Resuelto</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#6B7280' }]}
+                      onPress={() => handleUpdateTicket(selectedTicket.id, 'closed')}
+                      disabled={updating}
+                    >
+                      <Text style={styles.actionButtonText}>Cerrar Ticket</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#EF4444' }]}
+                      onPress={() => handleDeleteTicket(selectedTicket.id)}
+                      disabled={updating}
+                    >
+                      <Text style={styles.actionButtonText}>Eliminar Ticket</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {selectedReporte && (
+                <View style={styles.scrollableContent}>
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Motivo:</Text>
+                    <Text style={styles.detailValue}>{getMotivoText(selectedReporte.motivo)}</Text>
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Descripción:</Text>
+                    <Text style={styles.detailValue}>{selectedReporte.descripcion || 'Sin descripción'}</Text>
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Reportado por:</Text>
+                    <Text style={styles.detailValue}>
+                      {selectedReporte.reportador?.nombre} ({selectedReporte.reportador?.email})
+                    </Text>
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Usuario reportado:</Text>
+                    <Text style={styles.detailValue}>
+                      {selectedReporte.reportado?.nombre} ({selectedReporte.reportado?.email})
+                    </Text>
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Local:</Text>
+                    <Text style={styles.detailValue}>{selectedReporte.local?.nombre || 'Desconocido'}</Text>
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Estado actual:</Text>
+                    {getEstadoBadge(selectedReporte.estado)}
+                  </View>
+
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Notas del Administrador:</Text>
+                    <TextInput
+                      style={styles.textArea}
+                      value={adminNotes}
+                      onChangeText={setAdminNotes}
+                      placeholder="Añade notas sobre la resolución..."
+                      placeholderTextColor={colors.textSecondary}
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                    />
+                  </View>
+
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
+                      onPress={() => handleUpdateReporte(selectedReporte.id, 'revisando')}
+                      disabled={updating}
+                    >
+                      <Text style={styles.actionButtonText}>Marcar en Revisión</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#10B981' }]}
+                      onPress={() => handleUpdateReporte(selectedReporte.id, 'accion_tomada')}
+                      disabled={updating}
+                    >
+                      <Text style={styles.actionButtonText}>Acción Tomada</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#EF4444' }]}
+                      onPress={() => handleUpdateReporte(selectedReporte.id, 'rechazado')}
+                      disabled={updating}
+                    >
+                      <Text style={styles.actionButtonText}>Rechazar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {selectedContentReport && (
+                <View style={styles.scrollableContent}>
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Tipo de contenido:</Text>
+                    <Text style={styles.detailValue}>{getContentTypeText(selectedContentReport.content_type)}</Text>
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Motivo:</Text>
+                    <Text style={styles.detailValue}>{getMotivoText(selectedContentReport.reason)}</Text>
+                  </View>
+
+                  {selectedContentReport.description && (
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailLabel}>Descripción adicional:</Text>
+                      <Text style={styles.detailValue}>{selectedContentReport.description}</Text>
+                    </View>
                   )}
 
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
-                    onPress={() => handleUpdateContentReport(selectedContentReport.id, 'reviewing')}
-                    disabled={updating}
-                  >
-                    <Text style={styles.actionButtonText}>Marcar en Revisión</Text>
-                  </TouchableOpacity>
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Reportado por:</Text>
+                    <Text style={styles.detailValue}>
+                      {selectedContentReport.reporter?.nombre} (@{selectedContentReport.reporter?.username || 'sin-username'})
+                    </Text>
+                    <Text style={styles.detailValue}>
+                      {selectedContentReport.reporter?.email}
+                    </Text>
+                  </View>
 
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: '#EF4444' }]}
-                    onPress={() => handleDeleteReportedContent(selectedContentReport)}
-                    disabled={updating}
-                  >
-                    <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color={colors.white} />
-                    <Text style={styles.actionButtonText}>Eliminar Contenido</Text>
-                  </TouchableOpacity>
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Contenido reportado:</Text>
+                    {selectedContentReport.content_type === 'post' && selectedContentReport.post && (
+                      <View style={styles.contentPreviewBox}>
+                        {selectedContentReport.post.imagenes && selectedContentReport.post.imagenes.length > 0 && (
+                          <Image 
+                            source={{ uri: selectedContentReport.post.imagenes[0] }} 
+                            style={styles.contentPreviewImageLarge} 
+                          />
+                        )}
+                        <Text style={styles.contentPreviewTextLarge}>
+                          {selectedContentReport.post.contenido || 'Publicación sin texto'}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedContentReport.content_type === 'momento' && selectedContentReport.momento && (
+                      <View style={styles.contentPreviewBox}>
+                        <Image 
+                          source={{ uri: selectedContentReport.momento.imagen_url }} 
+                          style={styles.contentPreviewImageLarge} 
+                        />
+                        <Text style={styles.contentPreviewTextLarge}>Momento reportado</Text>
+                      </View>
+                    )}
+                    {selectedContentReport.content_type === 'comment' && selectedContentReport.comentario && (
+                      <View style={styles.contentPreviewBox}>
+                        <Text style={styles.contentPreviewTextLarge}>
+                          {selectedContentReport.comentario.texto}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
 
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: '#10B981' }]}
-                    onPress={() => handleUpdateContentReport(selectedContentReport.id, 'action_taken')}
-                    disabled={updating}
-                  >
-                    <Text style={styles.actionButtonText}>Acción Tomada</Text>
-                  </TouchableOpacity>
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Estado actual:</Text>
+                    {getEstadoBadge(selectedContentReport.status)}
+                  </View>
 
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: '#6B7280' }]}
-                    onPress={() => handleUpdateContentReport(selectedContentReport.id, 'dismissed')}
-                    disabled={updating}
-                  >
-                    <Text style={styles.actionButtonText}>Descartar Reporte</Text>
-                  </TouchableOpacity>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Notas del Administrador:</Text>
+                    <TextInput
+                      style={styles.textArea}
+                      value={adminNotes}
+                      onChangeText={setAdminNotes}
+                      placeholder="Añade notas sobre la resolución..."
+                      placeholderTextColor={colors.textSecondary}
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                    />
+                  </View>
+
+                  <View style={styles.actionButtons}>
+                    {selectedContentReport.content_type === 'post' && selectedContentReport.post_id && (
+                      <TouchableOpacity
+                        style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
+                        onPress={() => handleViewReportedContent(selectedContentReport)}
+                        disabled={updating}
+                      >
+                        <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.white} />
+                        <Text style={styles.actionButtonText}>Ver Publicación</Text>
+                      </TouchableOpacity>
+                    )}
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
+                      onPress={() => handleUpdateContentReport(selectedContentReport.id, 'reviewing')}
+                      disabled={updating}
+                    >
+                      <Text style={styles.actionButtonText}>Marcar en Revisión</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#EF4444' }]}
+                      onPress={() => handleDeleteReportedContent(selectedContentReport)}
+                      disabled={updating}
+                    >
+                      <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color={colors.white} />
+                      <Text style={styles.actionButtonText}>Eliminar Contenido</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#10B981' }]}
+                      onPress={() => handleUpdateContentReport(selectedContentReport.id, 'action_taken')}
+                      disabled={updating}
+                    >
+                      <Text style={styles.actionButtonText}>Acción Tomada</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#6B7280' }]}
+                      onPress={() => handleUpdateContentReport(selectedContentReport.id, 'dismissed')}
+                      disabled={updating}
+                    >
+                      <Text style={styles.actionButtonText}>Descartar Reporte</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </ScrollView>
-            )}
+              )}
+            </ScrollView>
 
             <TouchableOpacity style={styles.modalCancelButton} onPress={() => {
               setShowDetailModal(false);
@@ -1430,8 +1434,8 @@ export default function SoporteAyudaScreen() {
             }}>
               <Text style={styles.modalCancelText}>Cerrar</Text>
             </TouchableOpacity>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -1801,6 +1805,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
   modalTitle: {
     fontSize: 20,
@@ -1809,8 +1816,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalScrollView: {
-    maxHeight: 500,
-    marginBottom: 16,
+    flex: 1,
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
+  },
+  scrollableContent: {
+    flex: 1,
   },
   detailSection: {
     marginBottom: 16,
@@ -1904,6 +1916,9 @@ const styles = StyleSheet.create({
   modalCancelButton: {
     paddingVertical: 12,
     alignItems: 'center',
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
   },
   modalCancelText: {
     fontSize: 16,

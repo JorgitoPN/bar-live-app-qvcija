@@ -643,7 +643,7 @@ export default function InstagramPostCard({
         visible={showShareModal}
         postId={post.id}
         postContent={post.contenido}
-        onClose={() => setShareShareModal(false)}
+        onClose={() => setShowShareModal(false)}
       />
     </>
   );

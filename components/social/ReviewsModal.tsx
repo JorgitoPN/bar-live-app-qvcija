@@ -444,6 +444,7 @@ export default function ReviewsModal({
             )}
           </View>
           <View style={styles.reviewInfo}>
+            {/* ✅ FIXED: Remove "google" text, show "Cliente del local" for all reviews */}
             <Text style={styles.reviewAuthor}>
               {isOwner ? 'Tu reseña' : 'Cliente del local'}
             </Text>
