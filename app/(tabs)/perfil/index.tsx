@@ -612,13 +612,14 @@ export default function PerfilScreen() {
     }
   }, [activeTab, user, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarPerfilProfesional]);
 
+  // ✅ FIXED: Real-time subscriptions for all updates
   useEffect(() => {
     if (!user) return;
 
-    console.log('[Perfil] 🔄 Setting up momento subscriptions');
+    console.log('[Perfil] 🔄 Setting up real-time subscriptions');
 
     const subscription = supabase
-      .channel('momento-profile-updates')
+      .channel('profile-updates')
       .on(
         'postgres_changes',
         {
@@ -656,13 +657,38 @@ export default function PerfilScreen() {
           loadCurrentLocal();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notificaciones',
+          filter: `usuario_id=eq.${user.id}`,
+        },
+        () => {
+          console.log('[Perfil] 🔄 Notification update detected, reloading count...');
+          loadUnreadCounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'mensajes',
+        },
+        () => {
+          console.log('[Perfil] 🔄 Message update detected, reloading count...');
+          loadUnreadCounts();
+        }
+      )
       .subscribe();
 
     return () => {
       console.log('[Perfil] 🔄 Cleaning up subscriptions');
       supabase.removeChannel(subscription);
     };
-  }, [user, checkUnviewedMomentos, loadCurrentLocal]);
+  }, [user, checkUnviewedMomentos, loadCurrentLocal, loadUnreadCounts]);
 
   useEffect(() => {
     if (!user || !isPropietario) {
@@ -796,7 +822,6 @@ export default function PerfilScreen() {
     router.push('/crear/publicacion');
   };
 
-  // ✅ FIXED: Open PostViewerModal with hideTagIcon=true when opened from profile grid
   const handlePostClick = (postId: string) => {
     const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
     const postIds = currentPosts.map(p => p.id);
@@ -870,7 +895,6 @@ export default function PerfilScreen() {
     }
   };
 
-  // ✅ FIXED: Remove icon from grid posts
   const renderGridPost = (post: Post) => {
     const firstImage = post.imagenes && post.imagenes.length > 0 
       ? post.imagenes[0] 
@@ -890,7 +914,6 @@ export default function PerfilScreen() {
               <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
             </View>
           )}
-          {/* ✅ FIXED: Show multiple images indicator but NO tag icon */}
           {post.imagenes && post.imagenes.length > 1 && (
             <View style={styles.multipleImagesIndicator}>
               <IconSymbol ios_icon_name="square.stack.fill" android_material_icon_name="collections" size={16} color={colors.headerText} />
@@ -1026,140 +1049,103 @@ export default function PerfilScreen() {
           </TouchableOpacity>
         )}
 
+        {/* ✅ FIXED: Compact current local card with all info in one block */}
         {currentLocal && (
-          <View style={styles.currentLocalSection}>
-            <View style={styles.currentLocalHeader}>
-              <LinearGradient
-                colors={['#10B981', '#059669']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.currentLocalHeaderGradient}
+          <View style={styles.currentLocalCompact}>
+            <LinearGradient
+              colors={['#10B981', '#059669']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.currentLocalCompactGradient}
+            >
+              <View style={styles.currentLocalCompactHeader}>
+                <View style={styles.currentLocalCompactHeaderLeft}>
+                  <View style={styles.pulseContainer}>
+                    <View style={styles.pulseOuter} />
+                    <View style={styles.pulseInner} />
+                    <IconSymbol 
+                      ios_icon_name="mappin.circle.fill" 
+                      android_material_icon_name="location_on" 
+                      size={16} 
+                      color="#FFFFFF" 
+                    />
+                  </View>
+                  <Text style={styles.currentLocalCompactTitle}>Estado actual</Text>
+                </View>
+                <View style={styles.liveBadge}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveBadgeText}>EN VIVO</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.currentLocalCompactContent}
+                onPress={() => router.push(`/detalle/local?id=${currentLocal.id}`)}
+                activeOpacity={0.9}
               >
-                <View style={styles.currentLocalHeaderContent}>
-                  <View style={styles.currentLocalHeaderLeft}>
-                    <View style={styles.pulseContainer}>
-                      <View style={styles.pulseOuter} />
-                      <View style={styles.pulseInner} />
+                <View style={styles.currentLocalCompactImageWrapper}>
+                  {currentLocal.imagen_url ? (
+                    <Image 
+                      source={{ uri: currentLocal.imagen_url }} 
+                      style={styles.currentLocalCompactImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[styles.currentLocalCompactImage, styles.currentLocalCompactImagePlaceholder]}>
                       <IconSymbol 
-                        ios_icon_name="mappin.circle.fill" 
-                        android_material_icon_name="location_on" 
+                        ios_icon_name="building.2.fill" 
+                        android_material_icon_name="store" 
                         size={20} 
                         color="#FFFFFF" 
                       />
                     </View>
-                    <View style={styles.currentLocalHeaderTextContainer}>
-                      <Text style={styles.currentLocalHeaderTitle}>Estado actual</Text>
-                      <Text style={styles.currentLocalHeaderSubtitle}>
-                        {getVisibilityText()}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.currentLocalHeaderBadge}>
-                    <View style={styles.liveDot} />
-                    <Text style={styles.currentLocalHeaderBadgeText}>EN VIVO</Text>
-                  </View>
+                  )}
                 </View>
-              </LinearGradient>
-            </View>
 
-            <TouchableOpacity 
-              style={styles.currentLocalCard} 
-              onPress={() => router.push(`/detalle/local?id=${currentLocal.id}`)}
-              activeOpacity={0.95}
-            >
-              <LinearGradient
-                colors={['#FFFFFF', '#F9FAFB']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.currentLocalCardGradient}
-              >
-                <View style={styles.currentLocalCardContent}>
-                  <View style={styles.currentLocalImageWrapper}>
-                    {currentLocal.imagen_url ? (
-                      <Image 
-                        source={{ uri: currentLocal.imagen_url }} 
-                        style={styles.currentLocalCardImage}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View style={[styles.currentLocalCardImage, styles.currentLocalCardImagePlaceholder]}>
-                        <IconSymbol 
-                          ios_icon_name="building.2.fill" 
-                          android_material_icon_name="store" 
-                          size={32} 
-                          color="#10B981" 
-                        />
-                      </View>
-                    )}
-                    <LinearGradient
-                      colors={['transparent', 'rgba(16, 185, 129, 0.2)']}
-                      style={styles.currentLocalCardImageOverlay}
+                <View style={styles.currentLocalCompactInfo}>
+                  <Text style={styles.currentLocalCompactName} numberOfLines={1}>
+                    {currentLocal.nombre}
+                  </Text>
+                  <View style={styles.currentLocalCompactMeta}>
+                    <IconSymbol 
+                      ios_icon_name="mappin" 
+                      android_material_icon_name="location_on" 
+                      size={10} 
+                      color="rgba(255, 255, 255, 0.8)" 
                     />
-                  </View>
-
-                  <View style={styles.currentLocalCardInfo}>
-                    <View style={styles.currentLocalCardHeader}>
-                      <View style={styles.currentLocalCardBadge}>
-                        <IconSymbol 
-                          ios_icon_name="checkmark.circle.fill" 
-                          android_material_icon_name="check_circle" 
-                          size={14} 
-                          color="#10B981" 
-                        />
-                        <Text style={styles.currentLocalCardBadgeText}>Estás aquí</Text>
-                      </View>
-                    </View>
-                    
-                    <Text style={styles.currentLocalCardName} numberOfLines={2}>
-                      {currentLocal.nombre}
+                    <Text style={styles.currentLocalCompactAddress} numberOfLines={1}>
+                      {currentLocal.direccion}
                     </Text>
-                    
-                    <View style={styles.currentLocalCardMeta}>
-                      <IconSymbol 
-                        ios_icon_name="mappin" 
-                        android_material_icon_name="location_on" 
-                        size={14} 
-                        color="#6B7280" 
-                      />
-                      <Text style={styles.currentLocalCardAddress} numberOfLines={1}>
-                        {currentLocal.direccion}
-                      </Text>
-                    </View>
-
-                    <View style={styles.currentLocalCardFooter}>
-                      <View style={styles.currentLocalCardType}>
-                        <IconSymbol 
-                          ios_icon_name="building.2" 
-                          android_material_icon_name="store" 
-                          size={12} 
-                          color="#10B981" 
-                        />
-                        <Text style={styles.currentLocalCardTypeText}>{currentLocal.tipo}</Text>
-                      </View>
-                      <View style={styles.currentLocalCardArrow}>
-                        <Text style={styles.currentLocalCardArrowText}>Ver local</Text>
-                        <IconSymbol 
-                          ios_icon_name="chevron.right" 
-                          android_material_icon_name="chevron_right" 
-                          size={16} 
-                          color="#10B981" 
-                        />
-                      </View>
-                    </View>
                   </View>
+                  <Text style={styles.currentLocalCompactVisibility} numberOfLines={1}>
+                    {getVisibilityText()}
+                  </Text>
                 </View>
-              </LinearGradient>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.exitLocalButton} onPress={handleExitLocal} activeOpacity={0.8}>
-              <IconSymbol 
-                ios_icon_name="mappin.slash.circle.fill" 
-                android_material_icon_name="location_off" 
-                size={18} 
-                color="#EF4444" 
-              />
-              <Text style={styles.exitLocalButtonText}>Salir del local</Text>
-            </TouchableOpacity>
+
+                <View style={styles.currentLocalCompactArrow}>
+                  <IconSymbol 
+                    ios_icon_name="chevron.right" 
+                    android_material_icon_name="chevron_right" 
+                    size={16} 
+                    color="rgba(255, 255, 255, 0.8)" 
+                  />
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.exitLocalButtonCompact} 
+                onPress={handleExitLocal}
+                activeOpacity={0.8}
+              >
+                <IconSymbol 
+                  ios_icon_name="mappin.slash.circle.fill" 
+                  android_material_icon_name="location_off" 
+                  size={14} 
+                  color="#FFFFFF" 
+                />
+                <Text style={styles.exitLocalButtonCompactText}>Salir del local</Text>
+              </TouchableOpacity>
+            </LinearGradient>
           </View>
         )}
 
@@ -1529,7 +1515,6 @@ export default function PerfilScreen() {
         onClose={() => setShowMomentoViewer(false)}
       />
 
-      {/* ✅ FIXED: Pass hideTagIcon=true when opening from profile grid */}
       {selectedPostId && allPostIds.length > 0 && (
         <PostViewerModal
           visible={showPostViewer}
@@ -1768,227 +1753,149 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontWeight: '500',
   },
-  currentLocalSection: {
+  // ✅ FIXED: Compact current local card - all in one block
+  currentLocalCompact: {
     marginBottom: 20,
-  },
-  currentLocalHeader: {
-    marginBottom: 12,
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
   },
-  currentLocalHeaderGradient: {
-    padding: 16,
+  currentLocalCompactGradient: {
+    padding: 14,
   },
-  currentLocalHeaderContent: {
+  currentLocalCompactHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  currentLocalHeaderLeft: {
+  currentLocalCompactHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    flex: 1,
+    gap: 8,
   },
   pulseContainer: {
     position: 'relative',
-    width: 40,
-    height: 40,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pulseOuter: {
     position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   pulseInner: {
     position: 'absolute',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
-  currentLocalHeaderTextContainer: {
-    flex: 1,
-  },
-  currentLocalHeaderTitle: {
-    fontSize: 16,
+  currentLocalCompactTitle: {
+    fontSize: 13,
     fontWeight: '800',
     color: '#FFFFFF',
-    marginBottom: 2,
     letterSpacing: 0.3,
   },
-  currentLocalHeaderSubtitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  currentLocalHeaderBadge: {
+  liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.4)',
   },
   liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#FFFFFF',
   },
-  currentLocalHeaderBadgeText: {
-    fontSize: 11,
+  liveBadgeText: {
+    fontSize: 9,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
-  currentLocalCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  currentLocalCardGradient: {
-    borderWidth: 2,
-    borderColor: '#10B981',
-    borderRadius: 16,
-  },
-  currentLocalCardContent: {
+  currentLocalCompactContent: {
     flexDirection: 'row',
-    padding: 16,
-    gap: 16,
-  },
-  currentLocalImageWrapper: {
-    width: 100,
-    height: 100,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
+    padding: 10,
+    marginBottom: 10,
+    gap: 10,
   },
-  currentLocalCardImage: {
+  currentLocalCompactImageWrapper: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  currentLocalCompactImage: {
     width: '100%',
     height: '100%',
   },
-  currentLocalCardImagePlaceholder: {
-    backgroundColor: '#D1FAE5',
+  currentLocalCompactImagePlaceholder: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  currentLocalCardImageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '40%',
-  },
-  currentLocalCardInfo: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  currentLocalCardHeader: {
-    marginBottom: 6,
-  },
-  currentLocalCardBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#D1FAE5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  currentLocalCardBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#10B981',
-    letterSpacing: 0.3,
-  },
-  currentLocalCardName: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#111827',
-    marginBottom: 6,
-    lineHeight: 22,
-  },
-  currentLocalCardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
-  },
-  currentLocalCardAddress: {
-    fontSize: 13,
-    color: '#6B7280',
+  currentLocalCompactInfo: {
     flex: 1,
   },
-  currentLocalCardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  currentLocalCardType: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#D1FAE5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  currentLocalCardTypeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#10B981',
-    textTransform: 'capitalize',
-  },
-  currentLocalCardArrow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  currentLocalCardArrowText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  exitLocalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#EF4444',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  exitLocalButtonText: {
+  currentLocalCompactName: {
     fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 3,
+  },
+  currentLocalCompactMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginBottom: 3,
+  },
+  currentLocalCompactAddress: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.8)',
+    flex: 1,
+  },
+  currentLocalCompactVisibility: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '600',
+  },
+  currentLocalCompactArrow: {
+    justifyContent: 'center',
+  },
+  exitLocalButtonCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#EF4444',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  exitLocalButtonCompactText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#EF4444',
+    color: '#FFFFFF',
     letterSpacing: 0.3,
   },
   statsContainer: {
