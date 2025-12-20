@@ -98,8 +98,10 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     loadLikeUsers();
   }, [loadLikeUsers]);
 
-  // ✅ FIXED: Real-time subscription with immediate updates (no disappearing avatars)
+  // ✅ FIXED: Real-time subscription only updates for OTHER users' changes
   useEffect(() => {
+    if (!user) return;
+
     console.log('[PostLikesAvatars] 🔄 Setting up real-time subscription for post:', postId);
 
     if (channelRef.current?.state === 'subscribed') {
@@ -107,7 +109,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
       return;
     }
 
-    const channel = supabase.channel(`post-likes-avatars:${postId}`);
+    const channel = supabase.channel(`post-likes-avatars:${postId}:${user.id}`);
 
     channelRef.current = channel;
 
@@ -121,12 +123,22 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
           filter: `post_id=eq.${postId}`,
         },
         async (payload) => {
-          console.log('[PostLikesAvatars] 🔄 Real-time like change detected:', payload.eventType);
+          console.log('[PostLikesAvatars] 🔄 Real-time like change detected:', payload.eventType, 'by user:', payload.new?.usuario_id || payload.old?.usuario_id);
           
-          // ✅ FIXED: Reload like users immediately (no disappearing avatars)
+          // ✅ FIXED: Only update if the change was made by ANOTHER user
+          const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
+          
+          if (changedByUserId === user.id) {
+            console.log('[PostLikesAvatars] ⏭️ Change made by current user, skipping real-time update (already handled optimistically)');
+            return;
+          }
+          
+          console.log('[PostLikesAvatars] 🔄 Change made by another user, reloading avatars...');
+          
+          // ✅ Reload like users immediately (no disappearing avatars)
           await loadLikeUsers();
           
-          // ✅ FIXED: Update total count from database (source of truth)
+          // ✅ Update total count from database (source of truth)
           const { count, error: countError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
@@ -149,7 +161,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
         channelRef.current = null;
       }
     };
-  }, [postId, loadLikeUsers]);
+  }, [postId, user, loadLikeUsers]);
 
   useEffect(() => {
     setCurrentTotalLikes(totalLikes);

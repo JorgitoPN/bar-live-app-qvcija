@@ -85,9 +85,9 @@ export default function InstagramPostCard({
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ FIXED: Real-time subscription for likes with immediate database sync
+  // ✅ FIXED: Real-time subscription only updates count from database (no disappearing likes)
   useEffect(() => {
-    if (!post.id) return;
+    if (!post.id || !user) return;
 
     console.log('[InstagramPostCard] 🔄 Setting up real-time subscription for post:', post.id);
 
@@ -96,7 +96,7 @@ export default function InstagramPostCard({
       return;
     }
 
-    const channel = supabase.channel(`post-likes:${post.id}`);
+    const channel = supabase.channel(`post-likes:${post.id}:${user.id}`);
 
     channelRef.current = channel;
 
@@ -110,32 +110,40 @@ export default function InstagramPostCard({
           filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
-          console.log('[InstagramPostCard] 🔄 Real-time like change detected:', payload.eventType);
+          console.log('[InstagramPostCard] 🔄 Real-time like change detected:', payload.eventType, 'by user:', payload.new?.usuario_id || payload.old?.usuario_id);
           
-          // ✅ FIXED: Always fetch from database (source of truth) - no disappearing likes
+          // ✅ FIXED: Only update if the change was made by ANOTHER user (not current user)
+          const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
+          
+          if (changedByUserId === user.id) {
+            console.log('[InstagramPostCard] ⏭️ Change made by current user, skipping real-time update (already handled optimistically)');
+            return;
+          }
+          
+          console.log('[InstagramPostCard] 🔄 Change made by another user, fetching updated count from database...');
+          
+          // ✅ Fetch total count from database (source of truth)
           const { count, error: countError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
             .eq('post_id', post.id);
           
-          if (!countError) {
+          if (!countError && count !== null) {
             console.log('[InstagramPostCard] ✅ Updated likes count from database:', count);
-            setLikesCount(count || 0);
+            setLikesCount(count);
           }
           
-          // ✅ FIXED: Check if current user has liked (persistent state)
-          if (user) {
-            const { data: userLike, error: likeError } = await supabase
-              .from('likes')
-              .select('id')
-              .eq('post_id', post.id)
-              .eq('usuario_id', user.id)
-              .maybeSingle();
-            
-            if (!likeError) {
-              setIsLiked(!!userLike);
-              console.log('[InstagramPostCard] ✅ User like status:', !!userLike);
-            }
+          // ✅ Check if current user still has liked (in case of conflicts)
+          const { data: userLike, error: likeError } = await supabase
+            .from('likes')
+            .select('id')
+            .eq('post_id', post.id)
+            .eq('usuario_id', user.id)
+            .maybeSingle();
+          
+          if (!likeError) {
+            setIsLiked(!!userLike);
+            console.log('[InstagramPostCard] ✅ User like status verified:', !!userLike);
           }
         }
       )
@@ -210,7 +218,7 @@ export default function InstagramPostCard({
     const previousLiked = isLiked;
     const previousCount = likesCount;
     
-    // ✅ FIXED: Optimistic update - increment/decrement immediately
+    // ✅ FIXED: Optimistic update - only affects current user's UI
     setIsLiked(newLikedState);
     setLikesCount(newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1));
 
@@ -232,6 +240,7 @@ export default function InstagramPostCard({
       } else {
         console.log('[InstagramPostCard] ➖ Removing like from post:', post.id);
         
+        // ✅ FIXED: Delete only current user's like (not all likes)
         const { error } = await supabase
           .from('likes')
           .delete()
@@ -243,7 +252,7 @@ export default function InstagramPostCard({
           throw error;
         }
         
-        console.log('[InstagramPostCard] ✅ Like removed successfully');
+        console.log('[InstagramPostCard] ✅ Like removed successfully (only for current user)');
       }
 
       // ✅ FIXED: Verify final count from database after operation

@@ -77,7 +77,7 @@ export default function HeaderSocial({
         console.log('[HeaderSocial] ✅ Unread notifications:', notifCount || 0);
       }
 
-      // ✅ Load messages count - only messages without leido_at timestamp
+      // ✅ FIXED: Load messages count - only messages with leido = false AND no leido_at timestamp
       const { data: chatsData, error: chatsError } = await supabase
         .from('chats')
         .select('id')
@@ -88,6 +88,7 @@ export default function HeaderSocial({
       } else if (chatsData) {
         let totalUnread = 0;
         for (const chat of chatsData) {
+          // ✅ FIXED: Count only messages that are NOT read (leido = false)
           const { count, error: countError } = await supabase
             .from('mensajes')
             .select('*', { count: 'exact', head: true })
@@ -149,12 +150,28 @@ export default function HeaderSocial({
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'mensajes',
+        },
+        (payload) => {
+          console.log('[HeaderSocial] 💬 Message UPDATE detected:', payload.new);
+          // ✅ FIXED: Reload counts when messages are marked as read
+          if (payload.new && (payload.new as any).leido === true) {
+            console.log('[HeaderSocial] ✅ Message marked as read, reloading counts...');
+            loadUnreadCounts();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
           schema: 'public',
           table: 'mensajes',
         },
         () => {
-          console.log('[HeaderSocial] 💬 Message update detected, reloading count...');
+          console.log('[HeaderSocial] 💬 New message INSERT detected, reloading count...');
           loadUnreadCounts();
         }
       )
