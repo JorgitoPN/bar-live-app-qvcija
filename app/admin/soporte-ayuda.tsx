@@ -1032,7 +1032,7 @@ export default function SoporteAyudaScreen() {
       {activeTab === 'reportes' && renderReportesTab()}
       {activeTab === 'solicitudes' && renderSolicitudesTab()}
 
-      {/* ✅ FIXED: Detail Modal with PROPER scrolling - removed nested ScrollView issue */}
+      {/* ✅ FIXED: Modal with proper scrolling - single ScrollView, no nesting */}
       <Modal
         visible={showDetailModal}
         transparent
@@ -1053,7 +1053,7 @@ export default function SoporteAyudaScreen() {
             setSelectedContentReport(null);
           }}
         >
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {selectedTicket 
@@ -1072,14 +1072,12 @@ export default function SoporteAyudaScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* ✅ FIXED: Single ScrollView with all content - no nesting issues */}
+            {/* ✅ FIXED: Single ScrollView with all content - proper scrolling enabled */}
             <ScrollView 
               style={styles.modalScrollView}
               contentContainerStyle={styles.modalScrollContent}
               showsVerticalScrollIndicator={true}
               bounces={true}
-              scrollEnabled={true}
-              nestedScrollEnabled={true}
             >
               {selectedTicket && (
                 <>
@@ -1443,7 +1441,7 @@ export default function SoporteAyudaScreen() {
                 <Text style={styles.modalCancelText}>Cerrar</Text>
               </TouchableOpacity>
             </View>
-          </Pressable>
+          </View>
         </Pressable>
       </Modal>
     </View>
