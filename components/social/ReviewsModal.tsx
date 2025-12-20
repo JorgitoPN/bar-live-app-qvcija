@@ -445,7 +445,7 @@ export default function ReviewsModal({
           </View>
           <View style={styles.reviewInfo}>
             <Text style={styles.reviewAuthor}>
-              {isOwner ? 'Tu reseña' : item.usuario?.nombre || 'Usuario'}
+              {isOwner ? 'Tu reseña' : 'Cliente del local'}
             </Text>
             <View style={styles.reviewRating}>
               {[1, 2, 3, 4, 5].map((star) => (

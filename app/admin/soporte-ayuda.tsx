@@ -1075,7 +1075,7 @@ export default function SoporteAyudaScreen() {
             </View>
 
             {selectedTicket && (
-              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
+              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={true} nestedScrollEnabled={true} scrollEnabled={true}>
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Usuario:</Text>
                   <View style={styles.userInfoRow}>
@@ -1216,7 +1216,7 @@ export default function SoporteAyudaScreen() {
             )}
 
             {selectedReporte && (
-              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
+              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={true} nestedScrollEnabled={true} scrollEnabled={true}>
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Motivo:</Text>
                   <Text style={styles.detailValue}>{getMotivoText(selectedReporte.motivo)}</Text>
@@ -1294,7 +1294,7 @@ export default function SoporteAyudaScreen() {
             )}
 
             {selectedContentReport && (
-              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
+              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={true} nestedScrollEnabled={true} scrollEnabled={true}>
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Tipo de contenido:</Text>
                   <Text style={styles.detailValue}>{getContentTypeText(selectedContentReport.content_type)}</Text>
