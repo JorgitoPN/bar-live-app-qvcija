@@ -349,15 +349,11 @@ export default function DetalleLocalScreen() {
   const [checkedInUsers, setCheckedInUsers] = useState<CheckedInUser[]>([]);
   const [loadingCheckIns, setLoadingCheckIns] = useState(false);
   
-  // ✅ NEW: Modal for showing all users in local
   const [showUsersModal, setShowUsersModal] = useState(false);
 
-  // ✅ NEW: Reviews pagination state
+  // ✅ FIXED: Unified reviews - combine Google and Barlive
   const [displayedReviewsCount, setDisplayedReviewsCount] = useState(5);
-  const [totalBarliveReviewsCount, setTotalBarliveReviewsCount] = useState(0);
-
-  // ✅ NEW: Google reviews state
-  const [googleReviews, setGoogleReviews] = useState<GoogleReview[]>([]);
+  const [allReviews, setAllReviews] = useState<Array<Review | (GoogleReview & { source: 'google' })>>([]);
 
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
@@ -470,21 +466,13 @@ export default function DetalleLocalScreen() {
     }
   }, [user, params.id]);
 
-  // ✅ FIXED: Load only Barlive reviews with pagination
-  const cargarReviewsBarlive = useCallback(async () => {
+  // ✅ FIXED: Load unified reviews (Google + Barlive together)
+  const cargarReviewsUnificadas = useCallback(async () => {
     try {
       setLoadingReviews(true);
       
-      // Get total count
-      const { count: totalCount } = await supabase
-        .from('reviews_barlive')
-        .select('id', { count: 'exact', head: true })
-        .eq('local_id', params.id);
-
-      setTotalBarliveReviewsCount(totalCount || 0);
-
-      // Load reviews with pagination
-      const { data, error } = await supabase
+      // Load Barlive reviews
+      const { data: barliveReviews, error: barliveError } = await supabase
         .from('reviews_barlive')
         .select(`
           *,
@@ -494,30 +482,45 @@ export default function DetalleLocalScreen() {
           )
         `)
         .eq('local_id', params.id)
-        .order('created_at', { ascending: false })
-        .limit(displayedReviewsCount);
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('[DetalleLocal] Error loading reviews:', error);
-        return;
+      if (barliveError) {
+        console.error('[DetalleLocal] Error loading Barlive reviews:', barliveError);
       }
 
-      setReviews(data || []);
-      console.log('[DetalleLocal] ✅ Loaded', data?.length || 0, 'of', totalCount || 0, 'Barlive reviews');
+      // Load Google reviews from local data
+      const { data: localData } = await supabase
+        .from('locales')
+        .select('reviews_google')
+        .eq('id', params.id)
+        .single();
 
-      // ✅ FIXED: Calculate and update local rating based on ALL Barlive reviews
-      const { data: allReviewsData, error: allReviewsError } = await supabase
-        .from('reviews_barlive')
-        .select('rating')
-        .eq('local_id', params.id);
+      const googleReviews = (localData?.reviews_google || []) as GoogleReview[];
 
-      if (!allReviewsError && allReviewsData && allReviewsData.length > 0) {
-        const avg = allReviewsData.reduce((sum, r) => sum + r.rating, 0) / allReviewsData.length;
+      // ✅ FIXED: Combine and sort all reviews by date
+      const combinedReviews: Array<Review | (GoogleReview & { source: 'google' })> = [
+        ...(barliveReviews || []),
+        ...googleReviews.map(gr => ({ ...gr, source: 'google' as const })),
+      ].sort((a, b) => {
+        const dateA = 'created_at' in a ? new Date(a.created_at).getTime() : a.time * 1000;
+        const dateB = 'created_at' in b ? new Date(b.created_at).getTime() : b.time * 1000;
+        return dateB - dateA;
+      });
+
+      setAllReviews(combinedReviews);
+      console.log('[DetalleLocal] ✅ Loaded unified reviews:', {
+        barlive: barliveReviews?.length || 0,
+        google: googleReviews.length,
+        total: combinedReviews.length,
+      });
+
+      // ✅ FIXED: Calculate average rating from Barlive reviews only
+      if (barliveReviews && barliveReviews.length > 0) {
+        const avg = barliveReviews.reduce((sum, r) => sum + r.rating, 0) / barliveReviews.length;
         setAverageRating(avg);
         
-        console.log('[DetalleLocal] 📊 Updating local rating based on', allReviewsData.length, 'Barlive reviews:', avg.toFixed(2));
+        console.log('[DetalleLocal] 📊 Updating local rating based on', barliveReviews.length, 'Barlive reviews:', avg.toFixed(2));
         
-        // ✅ FIXED: Update local rating in database
         await supabase
           .from('locales')
           .update({ rating: avg })
@@ -529,7 +532,7 @@ export default function DetalleLocalScreen() {
       console.error('[DetalleLocal] Error loading reviews:', error);
       setLoadingReviews(false);
     }
-  }, [params.id, displayedReviewsCount]);
+  }, [params.id]);
 
   const cargarEventos = useCallback(async () => {
     try {
@@ -568,15 +571,8 @@ export default function DetalleLocalScreen() {
       }
 
       setLocal(data);
-      
-      // ✅ RESTORED: Load Google reviews from reviews_google field
-      if (data.reviews_google && Array.isArray(data.reviews_google)) {
-        console.log('[DetalleLocal] ✅ Loaded', data.reviews_google.length, 'Google reviews');
-        setGoogleReviews(data.reviews_google);
-      }
-      
       setLoading(false);
-      cargarReviewsBarlive();
+      cargarReviewsUnificadas();
       cargarEventos();
       checkUserCheckInStatus();
       loadCheckedInUsers();
@@ -584,7 +580,7 @@ export default function DetalleLocalScreen() {
       console.error('[DetalleLocal] Error:', error);
       setLoading(false);
     }
-  }, [params.id, cargarReviewsBarlive, cargarEventos, checkUserCheckInStatus, loadCheckedInUsers]);
+  }, [params.id, cargarReviewsUnificadas, cargarEventos, checkUserCheckInStatus, loadCheckedInUsers]);
 
   useEffect(() => {
     if (params.id) {
@@ -608,7 +604,7 @@ export default function DetalleLocalScreen() {
         },
         () => {
           console.log('[DetalleLocal] 🔄 Reviews changed, reloading...');
-          cargarReviewsBarlive();
+          cargarReviewsUnificadas();
         }
       )
       .subscribe();
@@ -616,7 +612,7 @@ export default function DetalleLocalScreen() {
     return () => {
       supabase.removeChannel(reviewsChannel);
     };
-  }, [params.id, cargarReviewsBarlive]);
+  }, [params.id, cargarReviewsUnificadas]);
 
   useEffect(() => {
     if (!params.id || !user) return;
@@ -972,6 +968,9 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
+  // ✅ FIXED: Display only the requested number of reviews
+  const displayedReviews = allReviews.slice(0, displayedReviewsCount);
+
   return (
     <GestureHandlerRootView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -1143,7 +1142,6 @@ export default function DetalleLocalScreen() {
                 </TouchableOpacity>
               )}
 
-              {/* ✅ FIXED: User card with clickable link to open modal */}
               {checkedInUsers.length > 0 && (
                 <TouchableOpacity 
                   style={styles.checkedInSection}
@@ -1215,7 +1213,6 @@ export default function DetalleLocalScreen() {
                 </View>
               )}
 
-              {/* ✅ FIXED: Removed "Casa Adolfo" text - actions row directly after description */}
               <View style={styles.actionsRow}>
                 {local.telefono && (
                   <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
@@ -1401,7 +1398,7 @@ export default function DetalleLocalScreen() {
                 </View>
               )}
 
-              {((local.analisis_reviews && Object.keys(local.analisis_reviews).length > 0) || reviews.length > 0) && (
+              {((local.analisis_reviews && Object.keys(local.analisis_reviews).length > 0) || allReviews.length > 0) && (
                 <View style={styles.compactSection}>
                   <View style={styles.compactSectionHeader}>
                     <View style={[styles.compactIconCircle, { backgroundColor: '#F59E0B' + '20' }]}>
@@ -1442,112 +1439,34 @@ export default function DetalleLocalScreen() {
                 </View>
               )}
 
-              {/* ✅ RESTORED: Google Reviews Section */}
-              {googleReviews.length > 0 && (
+              {/* ✅ FIXED: Unified reviews section (Google + Barlive together) */}
+              {allReviews.length > 0 && (
                 <View style={styles.compactSection}>
                   <View style={styles.compactSectionHeader}>
-                    <View style={[styles.compactIconCircle, { backgroundColor: '#4285F4' + '20' }]}>
-                      <IconSymbol ios_icon_name="g.circle.fill" android_material_icon_name="reviews" size={20} color="#4285F4" />
+                    <View style={[styles.compactIconCircle, { backgroundColor: '#FFD700' + '20' }]}>
+                      <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color="#FFD700" />
                     </View>
-                    <Text style={styles.compactSectionTitle}>Reseñas de Google</Text>
-                    {local.google_user_ratings_total && (
-                      <Text style={styles.reviewsCount}>({local.google_user_ratings_total})</Text>
-                    )}
+                    <Text style={styles.compactSectionTitle}>Reseñas</Text>
+                    <Text style={styles.reviewsCount}>({allReviews.length})</Text>
                   </View>
 
-                  {local.google_rating && (
-                    <View style={styles.googleRatingBox}>
-                      <View style={styles.googleRatingLeft}>
-                        <Text style={styles.googleRatingNumber}>{local.google_rating.toFixed(1)}</Text>
-                        <View style={styles.googleStarsRow}>
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Ionicons
-                              key={star}
-                              name={star <= Math.round(local.google_rating!) ? 'star' : 'star-outline'}
-                              size={16}
-                              color="#FFD700"
-                            />
-                          ))}
-                        </View>
-                        <Text style={styles.googleRatingCount}>
-                          {local.google_user_ratings_total} reseñas
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-
-                  {googleReviews.slice(0, 3).map((review, index) => {
-                    const reviewText = review.text || '';
-                    const { summary, needsExpansion } = summarizeText(reviewText, 150);
-                    const isExpanded = expandedReviews.has(`google-${index}`);
-                    const displayText = isExpanded ? reviewText : summary;
-
-                    return (
-                      <View key={index} style={styles.googleReviewCard}>
-                        <View style={styles.reviewHeader}>
-                          <View style={styles.reviewAvatar}>
-                            {review.profile_photo_url ? (
-                              <RNImage source={{ uri: review.profile_photo_url }} style={styles.avatar} />
-                            ) : (
-                              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
-                              </View>
-                            )}
-                          </View>
-                          <View style={styles.reviewInfo}>
-                            {/* ✅ FIXED: Anonymize Google review names */}
-                            <Text style={styles.reviewAuthor}>Cliente del local</Text>
-                            <View style={styles.reviewRating}>
-                              <Ionicons name="star" size={14} color="#FFD700" />
-                              <Text style={styles.reviewRatingText}>{review.rating}</Text>
-                            </View>
-                          </View>
-                          <Text style={styles.googleReviewTime}>{review.relative_time_description}</Text>
-                        </View>
-                        {reviewText && (
-                          <React.Fragment>
-                            <Text style={styles.reviewText}>{displayText}</Text>
-                            {needsExpansion && (
-                              <TouchableOpacity onPress={() => toggleReviewExpansion(`google-${index}`)}>
-                                <Text style={styles.expandButton}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
-                              </TouchableOpacity>
-                            )}
-                          </React.Fragment>
-                        )}
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-
-              {/* ✅ FIXED: Barlive Reviews section with "Ver más" functionality */}
-              <View style={styles.compactSection}>
-                <View style={styles.compactSectionHeader}>
-                  <View style={[styles.compactIconCircle, { backgroundColor: '#FFD700' + '20' }]}>
-                    <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color="#FFD700" />
-                  </View>
-                  <Text style={styles.compactSectionTitle}>Reseñas de Barlive</Text>
-                  {totalBarliveReviewsCount > 0 && (
-                    <Text style={styles.reviewsCount}>({totalBarliveReviewsCount})</Text>
-                  )}
-                </View>
-
-                {reviews.length > 0 ? (
-                  <React.Fragment>
-                    {reviews.map((review: any) => {
-                      const isExpanded = expandedReviews.has(review.id);
-                      const reviewText = review.texto || '';
-                      const { summary, needsExpansion } = summarizeText(reviewText);
+                  {displayedReviews.map((review, index) => {
+                    // Check if it's a Google review
+                    const isGoogleReview = 'source' in review && review.source === 'google';
+                    
+                    if (isGoogleReview) {
+                      const googleReview = review as GoogleReview & { source: 'google' };
+                      const reviewText = googleReview.text || '';
+                      const { summary, needsExpansion } = summarizeText(reviewText, 150);
+                      const isExpanded = expandedReviews.has(`google-${index}`);
                       const displayText = isExpanded ? reviewText : summary;
 
-                      const isOwner = user && review.usuario_id === user.id;
-
                       return (
-                        <View key={review.id} style={styles.reviewCard}>
+                        <View key={`google-${index}`} style={styles.googleReviewCard}>
                           <View style={styles.reviewHeader}>
                             <View style={styles.reviewAvatar}>
-                              {review.usuario?.avatar ? (
-                                <RNImage source={{ uri: review.usuario.avatar }} style={styles.avatar} />
+                              {googleReview.profile_photo_url ? (
+                                <RNImage source={{ uri: googleReview.profile_photo_url }} style={styles.avatar} />
                               ) : (
                                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
                                   <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
@@ -1555,20 +1474,25 @@ export default function DetalleLocalScreen() {
                               )}
                             </View>
                             <View style={styles.reviewInfo}>
-                              <Text style={styles.reviewAuthor}>
-                                {isOwner ? 'Tu reseña' : review.usuario?.nombre || 'Usuario de Barlive'}
-                              </Text>
+                              <View style={styles.reviewAuthorRow}>
+                                <Text style={styles.reviewAuthor}>Cliente del local</Text>
+                                <View style={styles.googleBadge}>
+                                  <IconSymbol ios_icon_name="g.circle.fill" android_material_icon_name="reviews" size={12} color="#4285F4" />
+                                  <Text style={styles.googleBadgeText}>Google</Text>
+                                </View>
+                              </View>
                               <View style={styles.reviewRating}>
                                 <Ionicons name="star" size={14} color="#FFD700" />
-                                <Text style={styles.reviewRatingText}>{review.rating}</Text>
+                                <Text style={styles.reviewRatingText}>{googleReview.rating}</Text>
                               </View>
                             </View>
+                            <Text style={styles.googleReviewTime}>{googleReview.relative_time_description}</Text>
                           </View>
                           {reviewText && (
                             <React.Fragment>
-                              <ParsedText text={displayText} style={styles.reviewText} />
+                              <Text style={styles.reviewText}>{displayText}</Text>
                               {needsExpansion && (
-                                <TouchableOpacity onPress={() => toggleReviewExpansion(review.id)}>
+                                <TouchableOpacity onPress={() => toggleReviewExpansion(`google-${index}`)}>
                                   <Text style={styles.expandButton}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
                                 </TouchableOpacity>
                               )}
@@ -1576,38 +1500,83 @@ export default function DetalleLocalScreen() {
                           )}
                         </View>
                       );
-                    })}
+                    } else {
+                      const barliveReview = review as Review;
+                      const isExpanded = expandedReviews.has(barliveReview.id);
+                      const reviewText = barliveReview.texto || '';
+                      const { summary, needsExpansion } = summarizeText(reviewText);
+                      const displayText = isExpanded ? reviewText : summary;
+                      const isOwner = user && barliveReview.usuario_id === user.id;
 
-                    {/* ✅ NEW: "Ver más" button for loading more reviews */}
-                    {totalBarliveReviewsCount > displayedReviewsCount && (
-                      <TouchableOpacity 
-                        style={styles.loadMoreReviewsButton}
-                        onPress={handleLoadMoreReviews}
-                      >
-                        <Text style={styles.loadMoreReviewsText}>Ver más</Text>
-                        <IconSymbol
-                          ios_icon_name="chevron.down"
-                          android_material_icon_name="expand_more"
-                          size={16}
-                          color={colors.primary}
-                        />
-                      </TouchableOpacity>
-                    )}
-                  </React.Fragment>
-                ) : (
-                  <View style={styles.noReviewsBox}>
-                    <Ionicons name="chatbubbles-outline" size={36} color={colors.textSecondary} />
-                    <Text style={styles.noReviewsText}>No hay reseñas todavía</Text>
-                  </View>
-                )}
+                      return (
+                        <View key={barliveReview.id} style={styles.reviewCard}>
+                          <View style={styles.reviewHeader}>
+                            <View style={styles.reviewAvatar}>
+                              {barliveReview.usuario?.avatar ? (
+                                <RNImage source={{ uri: barliveReview.usuario.avatar }} style={styles.avatar} />
+                              ) : (
+                                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
+                                </View>
+                              )}
+                            </View>
+                            <View style={styles.reviewInfo}>
+                              <View style={styles.reviewAuthorRow}>
+                                <Text style={styles.reviewAuthor}>
+                                  {isOwner ? 'Tu reseña' : barliveReview.usuario?.nombre || 'Usuario de Barlive'}
+                                </Text>
+                                <View style={styles.barliveBadge}>
+                                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color={colors.primary} />
+                                  <Text style={styles.barliveBadgeText}>Barlive</Text>
+                                </View>
+                              </View>
+                              <View style={styles.reviewRating}>
+                                <Ionicons name="star" size={14} color="#FFD700" />
+                                <Text style={styles.reviewRatingText}>{barliveReview.rating}</Text>
+                              </View>
+                            </View>
+                          </View>
+                          {reviewText && (
+                            <React.Fragment>
+                              <ParsedText text={displayText} style={styles.reviewText} />
+                              {needsExpansion && (
+                                <TouchableOpacity onPress={() => toggleReviewExpansion(barliveReview.id)}>
+                                  <Text style={styles.expandButton}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
+                                </TouchableOpacity>
+                              )}
+                            </React.Fragment>
+                          )}
+                        </View>
+                      );
+                    }
+                  })}
 
-                <TouchableOpacity style={styles.addReviewBtn} onPress={handleAddReview}>
-                  <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addReviewGradient}>
-                    <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color="#fff" />
-                    <Text style={styles.addReviewText}>{reviews.some((r) => r.usuario_id === user?.id) ? 'Editar Reseña' : 'Añadir Reseña'}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
+                  {/* ✅ NEW: "Ver más" button for loading more reviews */}
+                  {allReviews.length > displayedReviewsCount && (
+                    <TouchableOpacity 
+                      style={styles.loadMoreReviewsButton}
+                      onPress={handleLoadMoreReviews}
+                    >
+                      <Text style={styles.loadMoreReviewsText}>Ver más</Text>
+                      <IconSymbol
+                        ios_icon_name="chevron.down"
+                        android_material_icon_name="expand_more"
+                        size={16}
+                        color={colors.primary}
+                      />
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity style={styles.addReviewBtn} onPress={handleAddReview}>
+                    <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addReviewGradient}>
+                      <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color="#fff" />
+                      <Text style={styles.addReviewText}>
+                        {allReviews.some((r) => 'usuario_id' in r && r.usuario_id === user?.id) ? 'Editar Reseña' : 'Añadir Reseña'}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </Animated.ScrollView>
         </Animated.View>
@@ -1621,7 +1590,7 @@ export default function DetalleLocalScreen() {
           localId={params.id as string}
           onClose={() => setShowReviewsModal(false)}
           onReviewAdded={() => {
-            cargarReviewsBarlive();
+            cargarReviewsUnificadas();
           }}
         />
       )}
@@ -1639,7 +1608,6 @@ export default function DetalleLocalScreen() {
         />
       )}
 
-      {/* ✅ NEW: Users in local modal */}
       {showUsersModal && (
         <UsersInLocalModal
           visible={showUsersModal}
@@ -2320,31 +2288,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 19,
   },
-  googleRatingBox: {
-    backgroundColor: colors.cardBackground,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  googleRatingLeft: {
-    alignItems: 'center',
-  },
-  googleRatingNumber: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  googleStarsRow: {
-    flexDirection: 'row',
-    gap: 2,
-    marginBottom: 4,
-  },
-  googleRatingCount: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
   googleReviewCard: {
     backgroundColor: '#E8F5E9',
     padding: 12,
@@ -2391,10 +2334,43 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  reviewAuthorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   reviewAuthor: {
     fontSize: 14,
     fontWeight: '700',
     color: colors.text,
+  },
+  googleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#4285F4' + '15',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  googleBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#4285F4',
+  },
+  barliveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  barliveBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary,
   },
   reviewRating: {
     flexDirection: 'row',

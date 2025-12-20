@@ -10,10 +10,11 @@ import {
   Image,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CheckedInUser {
   id: string;
@@ -29,10 +30,6 @@ interface UsersInLocalModalProps {
   localName: string;
 }
 
-/**
- * ✅ NEW: Modal to display all users checked in to a local
- * Opens when clicking on "X personas están en este local"
- */
 export default function UsersInLocalModal({
   visible,
   onClose,
@@ -40,10 +37,19 @@ export default function UsersInLocalModal({
   localName,
 }: UsersInLocalModalProps) {
   const router = useRouter();
+  const { user } = useAuth();
 
   const handleUserPress = (userId: string) => {
     onClose();
-    router.push(`/perfil/usuario?userId=${userId}`);
+    
+    if (user && userId === user.id) {
+      router.push('/(tabs)/perfil');
+    } else {
+      router.push({
+        pathname: '/perfil/usuario',
+        params: { userId },
+      });
+    }
   };
 
   const renderUser = ({ item }: { item: CheckedInUser }) => (
@@ -57,11 +63,11 @@ export default function UsersInLocalModal({
           <Image source={{ uri: item.avatar }} style={styles.avatarImage} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <IconSymbol
-              ios_icon_name="person.fill"
-              android_material_icon_name="person"
-              size={24}
-              color={colors.headerText}
+            <IconSymbol 
+              ios_icon_name="person.fill" 
+              android_material_icon_name="person" 
+              size={24} 
+              color={colors.headerText} 
             />
           </View>
         )}
@@ -72,112 +78,97 @@ export default function UsersInLocalModal({
           <Text style={styles.userUsername}>@{item.username}</Text>
         )}
       </View>
-      <View style={styles.onlineBadge}>
-        <View style={styles.onlineDot} />
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderEmpty = () => (
-    <View style={styles.emptyState}>
-      <IconSymbol
-        ios_icon_name="person.2"
-        android_material_icon_name="people_outline"
-        size={64}
-        color={colors.textSecondary}
+      <IconSymbol 
+        ios_icon_name="chevron.right" 
+        android_material_icon_name="chevron_right" 
+        size={20} 
+        color={colors.textSecondary} 
       />
-      <Text style={styles.emptyText}>No hay usuarios en este local</Text>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
     <Modal
       visible={visible}
-      transparent
+      transparent={false}
       animationType="slide"
+      presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContent}>
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.header}
-          >
-            <View style={styles.headerTop}>
-              <View style={{ width: 40 }} />
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.header}
+        >
+          <View style={styles.headerTop}>
+            <View style={{ width: 40 }} />
+            <View style={styles.headerCenter}>
               <Text style={styles.headerTitle}>Usuarios en el local</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <IconSymbol
-                  ios_icon_name="xmark"
-                  android_material_icon_name="close"
-                  size={24}
-                  color={colors.headerText}
-                />
-              </TouchableOpacity>
+              <Text style={styles.headerSubtitle}>{localName}</Text>
             </View>
-            <Text style={styles.headerSubtitle}>{localName}</Text>
-            <View style={styles.statsRow}>
-              <View style={styles.statBadge}>
-                <IconSymbol
-                  ios_icon_name="person.2.fill"
-                  android_material_icon_name="people"
-                  size={18}
-                  color={colors.headerText}
-                />
-                <Text style={styles.statText}>
-                  {users.length} {users.length === 1 ? 'persona' : 'personas'}
-                </Text>
-              </View>
-            </View>
-          </LinearGradient>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <IconSymbol 
+                ios_icon_name="xmark" 
+                android_material_icon_name="close" 
+                size={24} 
+                color={colors.headerText} 
+              />
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
 
-          <FlatList
-            data={users}
-            renderItem={renderUser}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={renderEmpty}
-            showsVerticalScrollIndicator={false}
+        <View style={styles.countBanner}>
+          <IconSymbol 
+            ios_icon_name="person.2.fill" 
+            android_material_icon_name="people" 
+            size={20} 
+            color={colors.primary} 
           />
+          <Text style={styles.countText}>
+            {users.length} {users.length === 1 ? 'persona' : 'personas'} en este local
+          </Text>
         </View>
+
+        <FlatList
+          data={users}
+          renderItem={renderUser}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '85%',
   },
   header: {
-    paddingTop: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
     paddingBottom: 16,
     paddingHorizontal: 16,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
   },
   closeButton: {
     width: 40,
@@ -185,50 +176,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  statsRow: {
+  countBanner: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    backgroundColor: colors.primary + '10',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primary + '20',
   },
-  statBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  statText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.headerText,
+  countText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 32,
+    paddingVertical: 8,
   },
   userItem: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  userItemSelected: {
-    borderColor: colors.primary,
-    borderWidth: 2,
-  },
-  userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    backgroundColor: colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
   userAvatar: {
     width: 56,
@@ -249,72 +223,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  userDetails: {
     flex: 1,
   },
   userName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
     color: colors.text,
     marginBottom: 2,
   },
   userUsername: {
     fontSize: 14,
     color: colors.textSecondary,
-  },
-  onlineBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#10B981' + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  onlineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#10B981',
-  },
-  userActions: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    gap: 8,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary + '10',
-    borderRadius: 8,
-    padding: 12,
-    gap: 8,
-  },
-  actionButtonDanger: {
-    backgroundColor: '#EF4444' + '10',
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  actionButtonTextDanger: {
-    color: '#EF4444',
-  },
-  emptyState: {
-    padding: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginTop: 16,
-    textAlign: 'center',
   },
 });

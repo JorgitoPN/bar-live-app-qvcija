@@ -12,6 +12,7 @@ import {
   Modal,
   Pressable,
   Linking,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -82,6 +83,42 @@ interface Reporte {
   };
 }
 
+interface ContentReport {
+  id: string;
+  reporter_id: string;
+  content_type: 'post' | 'momento' | 'comment';
+  content_id: string;
+  post_id?: string;
+  momento_id?: string;
+  comentario_id?: string;
+  reason: string;
+  description?: string;
+  status: 'pending' | 'reviewing' | 'action_taken' | 'dismissed';
+  admin_notes?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  created_at: string;
+  updated_at: string;
+  reporter?: {
+    nombre: string;
+    email: string;
+    username?: string;
+  };
+  post?: {
+    contenido?: string;
+    imagenes?: string[];
+    autor_id: string;
+  };
+  momento?: {
+    imagen_url: string;
+    autor_id: string;
+  };
+  comentario?: {
+    texto: string;
+    autor_id: string;
+  };
+}
+
 interface SolicitudAcceso {
   id: string;
   admin_id: string;
@@ -104,10 +141,12 @@ export default function SoporteAyudaScreen() {
   const [activeTab, setActiveTab] = useState<'tickets' | 'reportes' | 'solicitudes'>('tickets');
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [reportes, setReportes] = useState<Reporte[]>([]);
+  const [contentReports, setContentReports] = useState<ContentReport[]>([]);
   const [solicitudes, setSolicitudes] = useState<SolicitudAcceso[]>([]);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [selectedReporte, setSelectedReporte] = useState<Reporte | null>(null);
+  const [selectedContentReport, setSelectedContentReport] = useState<ContentReport | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [responseMessage, setResponseMessage] = useState('');
   const [updating, setUpdating] = useState(false);
@@ -142,8 +181,8 @@ export default function SoporteAyudaScreen() {
 
   const cargarReportes = useCallback(async () => {
     try {
-      console.log('[SoporteAyuda] ✅ Cargando reportes...');
-      const { data, error } = await supabase
+      console.log('[SoporteAyuda] ✅ Cargando reportes de sala virtual...');
+      const { data: salaReportes, error: salaError } = await supabase
         .from('sala_virtual_reportes')
         .select(`
           *,
@@ -154,10 +193,29 @@ export default function SoporteAyudaScreen() {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      if (salaError) throw salaError;
 
-      console.log('[SoporteAyuda] ✅ Reportes cargados:', data?.length || 0);
-      setReportes(data || []);
+      console.log('[SoporteAyuda] ✅ Reportes de sala virtual cargados:', salaReportes?.length || 0);
+      setReportes(salaReportes || []);
+
+      // ✅ NEW: Load content reports (posts, momentos, comments)
+      console.log('[SoporteAyuda] ✅ Cargando reportes de contenido...');
+      const { data: contentReportsData, error: contentError } = await supabase
+        .from('content_reports')
+        .select(`
+          *,
+          reporter:reporter_id(nombre, email, username),
+          post:post_id(contenido, imagenes, autor_id),
+          momento:momento_id(imagen_url, autor_id),
+          comentario:comentario_id(texto, autor_id)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (contentError) throw contentError;
+
+      console.log('[SoporteAyuda] ✅ Reportes de contenido cargados:', contentReportsData?.length || 0);
+      setContentReports(contentReportsData || []);
     } catch (error) {
       console.error('[SoporteAyuda] Error cargando reportes:', error);
       Alert.alert('Error', 'No se pudieron cargar los reportes');
@@ -238,7 +296,6 @@ export default function SoporteAyudaScreen() {
 
     setSendingEmail(true);
     try {
-      // Create response record
       const { error: responseError } = await supabase
         .from('support_ticket_responses')
         .insert({
@@ -250,7 +307,6 @@ export default function SoporteAyudaScreen() {
 
       if (responseError) throw responseError;
 
-      // Send email to user
       const { data: emailData, error: emailError } = await supabase.functions.invoke('send-support-ticket-email', {
         body: {
           ticketId: selectedTicket.id,
@@ -336,6 +392,112 @@ export default function SoporteAyudaScreen() {
     }
   };
 
+  // ✅ NEW: Handle content report updates
+  const handleUpdateContentReport = async (reportId: string, nuevoEstado: ContentReport['status']) => {
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('content_reports')
+        .update({
+          status: nuevoEstado,
+          admin_notes: adminNotes.trim() || null,
+          reviewed_by: user?.id,
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', reportId);
+
+      if (error) throw error;
+
+      Alert.alert('✅ Éxito', 'Reporte actualizado correctamente');
+      setShowDetailModal(false);
+      setSelectedContentReport(null);
+      setAdminNotes('');
+      await cargarReportes();
+    } catch (error) {
+      console.error('[SoporteAyuda] Error actualizando reporte de contenido:', error);
+      Alert.alert('Error', 'No se pudo actualizar el reporte');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // ✅ NEW: Delete reported content
+  const handleDeleteReportedContent = async (report: ContentReport) => {
+    Alert.alert(
+      'Eliminar contenido',
+      `¿Estás seguro de que quieres eliminar este ${report.content_type === 'post' ? 'post' : report.content_type === 'momento' ? 'momento' : 'comentario'}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setUpdating(true);
+
+              if (report.content_type === 'post' && report.post_id) {
+                const { error } = await supabase
+                  .from('posts')
+                  .delete()
+                  .eq('id', report.post_id);
+                
+                if (error) throw error;
+              } else if (report.content_type === 'momento' && report.momento_id) {
+                const { error } = await supabase
+                  .from('momentos')
+                  .delete()
+                  .eq('id', report.momento_id);
+                
+                if (error) throw error;
+              } else if (report.content_type === 'comment' && report.comentario_id) {
+                const { error } = await supabase
+                  .from('comentarios')
+                  .delete()
+                  .eq('id', report.comentario_id);
+                
+                if (error) throw error;
+              }
+
+              // Mark report as action taken
+              await supabase
+                .from('content_reports')
+                .update({
+                  status: 'action_taken',
+                  admin_notes: 'Contenido eliminado por el administrador',
+                  reviewed_by: user?.id,
+                  reviewed_at: new Date().toISOString(),
+                })
+                .eq('id', report.id);
+
+              Alert.alert('✅ Éxito', 'Contenido eliminado correctamente');
+              setShowDetailModal(false);
+              setSelectedContentReport(null);
+              await cargarReportes();
+            } catch (error) {
+              console.error('[SoporteAyuda] Error eliminando contenido:', error);
+              Alert.alert('Error', 'No se pudo eliminar el contenido');
+            } finally {
+              setUpdating(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // ✅ NEW: View reported content
+  const handleViewReportedContent = (report: ContentReport) => {
+    if (report.content_type === 'post' && report.post_id) {
+      router.push(`/social/post?postId=${report.post_id}`);
+      setShowDetailModal(false);
+    } else if (report.content_type === 'momento' && report.momento_id) {
+      Alert.alert('Momento', 'Los momentos solo se pueden ver en el visor de momentos');
+    } else if (report.content_type === 'comment' && report.comentario_id) {
+      Alert.alert('Comentario', 'El comentario se muestra en el detalle del reporte');
+    }
+  };
+
   const getEstadoBadge = (estado: string) => {
     const badges: Record<string, { color: string; text: string }> = {
       open: { color: '#F59E0B', text: 'Abierto' },
@@ -347,6 +509,9 @@ export default function SoporteAyudaScreen() {
       accion_tomada: { color: '#10B981', text: 'Acción Tomada' },
       rechazado: { color: '#EF4444', text: 'Rechazado' },
       pending: { color: '#F59E0B', text: 'Pendiente' },
+      reviewing: { color: '#3B82F6', text: 'Revisando' },
+      action_taken: { color: '#10B981', text: 'Acción Tomada' },
+      dismissed: { color: '#6B7280', text: 'Descartado' },
       approved: { color: '#10B981', text: 'Aprobado' },
       denied: { color: '#EF4444', text: 'Denegado' },
       revoked: { color: '#6B7280', text: 'Revocado' },
@@ -394,12 +559,27 @@ export default function SoporteAyudaScreen() {
     const motivos: Record<string, string> = {
       spam: 'Spam',
       acoso: 'Acoso',
+      harassment: 'Acoso',
       contenido_ofensivo: 'Contenido Ofensivo',
+      inappropriate: 'Contenido Inapropiado',
       comportamiento_inapropiado: 'Comportamiento Inapropiado',
       suplantacion: 'Suplantación',
+      violence: 'Violencia',
+      hate_speech: 'Discurso de Odio',
+      false_information: 'Información Falsa',
       otro: 'Otro',
+      other: 'Otro',
     };
     return motivos[motivo] || motivo;
+  };
+
+  const getContentTypeText = (type: string) => {
+    const types: Record<string, string> = {
+      post: 'Publicación',
+      momento: 'Momento',
+      comment: 'Comentario',
+    };
+    return types[type] || type;
   };
 
   const renderTicketsTab = () => (
@@ -438,6 +618,8 @@ export default function SoporteAyudaScreen() {
               style={styles.ticketCard}
               onPress={() => {
                 setSelectedTicket(ticket);
+                setSelectedReporte(null);
+                setSelectedContentReport(null);
                 setAdminNotes(ticket.admin_notes || '');
                 setShowDetailModal(true);
               }}
@@ -491,92 +673,209 @@ export default function SoporteAyudaScreen() {
     </ScrollView>
   );
 
-  const renderReportesTab = () => (
-    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
-      <View style={styles.statsRow}>
-        <View style={[styles.statCard, { backgroundColor: '#F59E0B20' }]}>
-          <Text style={[styles.statNumber, { color: '#F59E0B' }]}>
-            {reportes.filter(r => r.estado === 'pendiente').length}
-          </Text>
-          <Text style={styles.statLabel}>Pendientes</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: '#3B82F620' }]}>
-          <Text style={[styles.statNumber, { color: '#3B82F6' }]}>
-            {reportes.filter(r => r.estado === 'revisando').length}
-          </Text>
-          <Text style={styles.statLabel}>En Revisión</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: '#10B98120' }]}>
-          <Text style={[styles.statNumber, { color: '#10B981' }]}>
-            {reportes.filter(r => r.estado === 'accion_tomada').length}
-          </Text>
-          <Text style={styles.statLabel}>Resueltos</Text>
-        </View>
-      </View>
+  const renderReportesTab = () => {
+    const allReports = [
+      ...reportes.map(r => ({ ...r, type: 'sala_virtual' as const })),
+      ...contentReports.map(r => ({ ...r, type: 'content' as const })),
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      {reportes.length === 0 ? (
-        <View style={styles.emptyState}>
-          <IconSymbol ios_icon_name="checkmark.shield.fill" android_material_icon_name="verified_user" size={48} color={colors.textSecondary} />
-          <Text style={styles.emptyText}>No hay reportes</Text>
+    const pendingCount = reportes.filter(r => r.estado === 'pendiente').length + 
+                        contentReports.filter(r => r.status === 'pending').length;
+    const reviewingCount = reportes.filter(r => r.estado === 'revisando').length + 
+                          contentReports.filter(r => r.status === 'reviewing').length;
+    const resolvedCount = reportes.filter(r => r.estado === 'accion_tomada').length + 
+                         contentReports.filter(r => r.status === 'action_taken').length;
+
+    return (
+      <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { backgroundColor: '#F59E0B20' }]}>
+            <Text style={[styles.statNumber, { color: '#F59E0B' }]}>
+              {pendingCount}
+            </Text>
+            <Text style={styles.statLabel}>Pendientes</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: '#3B82F620' }]}>
+            <Text style={[styles.statNumber, { color: '#3B82F6' }]}>
+              {reviewingCount}
+            </Text>
+            <Text style={styles.statLabel}>En Revisión</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: '#10B98120' }]}>
+            <Text style={[styles.statNumber, { color: '#10B981' }]}>
+              {resolvedCount}
+            </Text>
+            <Text style={styles.statLabel}>Resueltos</Text>
+          </View>
         </View>
-      ) : (
-        <React.Fragment>
-          {reportes.map((reporte) => (
-            <TouchableOpacity
-              key={reporte.id}
-              style={styles.reporteCard}
-              onPress={() => {
-                setSelectedReporte(reporte);
-                setAdminNotes(reporte.notas_admin || '');
-                setShowDetailModal(true);
-              }}
-            >
-              <View style={styles.reporteHeader}>
-                <View style={styles.reporteHeaderLeft}>
-                  <Text style={styles.reporteMotivo}>{getMotivoText(reporte.motivo)}</Text>
-                  <Text style={styles.reporteLocal}>{reporte.local?.nombre || 'Local desconocido'}</Text>
-                </View>
-                {getEstadoBadge(reporte.estado)}
-              </View>
 
-              <View style={styles.reporteBody}>
-                <View style={styles.reporteRow}>
-                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={16} color={colors.textSecondary} />
-                  <Text style={styles.reporteText}>
-                    Reportado por: {reporte.reportador?.nombre || 'Usuario desconocido'}
-                  </Text>
-                </View>
-                <View style={styles.reporteRow}>
-                  <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={16} color={colors.textSecondary} />
-                  <Text style={styles.reporteText}>
-                    Usuario reportado: {reporte.reportado?.nombre || 'Usuario desconocido'}
-                  </Text>
-                </View>
-                {reporte.descripcion && (
-                  <Text style={styles.reporteDescripcion} numberOfLines={2}>
-                    {reporte.descripcion}
-                  </Text>
-                )}
-              </View>
+        {allReports.length === 0 ? (
+          <View style={styles.emptyState}>
+            <IconSymbol ios_icon_name="checkmark.shield.fill" android_material_icon_name="verified_user" size={48} color={colors.textSecondary} />
+            <Text style={styles.emptyText}>No hay reportes</Text>
+          </View>
+        ) : (
+          <React.Fragment>
+            {allReports.map((reporte) => {
+              if (reporte.type === 'sala_virtual') {
+                const r = reporte as Reporte & { type: 'sala_virtual' };
+                return (
+                  <TouchableOpacity
+                    key={`sala-${r.id}`}
+                    style={styles.reporteCard}
+                    onPress={() => {
+                      setSelectedReporte(r);
+                      setSelectedTicket(null);
+                      setSelectedContentReport(null);
+                      setAdminNotes(r.notas_admin || '');
+                      setShowDetailModal(true);
+                    }}
+                  >
+                    <View style={styles.reporteHeader}>
+                      <View style={styles.reporteHeaderLeft}>
+                        <View style={styles.reportTypeRow}>
+                          <View style={[styles.reportTypeBadge, { backgroundColor: '#8B5CF6' + '20' }]}>
+                            <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={14} color="#8B5CF6" />
+                            <Text style={[styles.reportTypeText, { color: '#8B5CF6' }]}>Sala Virtual</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.reporteMotivo}>{getMotivoText(r.motivo)}</Text>
+                        <Text style={styles.reporteLocal}>{r.local?.nombre || 'Local desconocido'}</Text>
+                      </View>
+                      {getEstadoBadge(r.estado)}
+                    </View>
 
-              <View style={styles.reporteFooter}>
-                <Text style={styles.reporteDate}>
-                  {new Date(reporte.created_at).toLocaleDateString('es-ES', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </Text>
-                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
-              </View>
-            </TouchableOpacity>
-          ))}
-        </React.Fragment>
-      )}
-    </ScrollView>
-  );
+                    <View style={styles.reporteBody}>
+                      <View style={styles.reporteRow}>
+                        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={16} color={colors.textSecondary} />
+                        <Text style={styles.reporteText}>
+                          Reportado por: {r.reportador?.nombre || 'Usuario desconocido'}
+                        </Text>
+                      </View>
+                      <View style={styles.reporteRow}>
+                        <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={16} color={colors.textSecondary} />
+                        <Text style={styles.reporteText}>
+                          Usuario reportado: {r.reportado?.nombre || 'Usuario desconocido'}
+                        </Text>
+                      </View>
+                      {r.descripcion && (
+                        <Text style={styles.reporteDescripcion} numberOfLines={2}>
+                          {r.descripcion}
+                        </Text>
+                      )}
+                    </View>
+
+                    <View style={styles.reporteFooter}>
+                      <Text style={styles.reporteDate}>
+                        {new Date(r.created_at).toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Text>
+                      <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+                    </View>
+                  </TouchableOpacity>
+                );
+              } else {
+                const r = reporte as ContentReport & { type: 'content' };
+                return (
+                  <TouchableOpacity
+                    key={`content-${r.id}`}
+                    style={styles.reporteCard}
+                    onPress={() => {
+                      setSelectedContentReport(r);
+                      setSelectedTicket(null);
+                      setSelectedReporte(null);
+                      setAdminNotes(r.admin_notes || '');
+                      setShowDetailModal(true);
+                    }}
+                  >
+                    <View style={styles.reporteHeader}>
+                      <View style={styles.reporteHeaderLeft}>
+                        <View style={styles.reportTypeRow}>
+                          <View style={[styles.reportTypeBadge, { backgroundColor: colors.primary + '20' }]}>
+                            <IconSymbol 
+                              ios_icon_name={
+                                r.content_type === 'post' ? 'photo.fill' : 
+                                r.content_type === 'momento' ? 'camera.fill' : 
+                                'bubble.left.fill'
+                              }
+                              android_material_icon_name={
+                                r.content_type === 'post' ? 'photo' : 
+                                r.content_type === 'momento' ? 'camera' : 
+                                'chat_bubble'
+                              }
+                              size={14} 
+                              color={colors.primary} 
+                            />
+                            <Text style={[styles.reportTypeText, { color: colors.primary }]}>
+                              {getContentTypeText(r.content_type)}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.reporteMotivo}>{getMotivoText(r.reason)}</Text>
+                        <Text style={styles.reporteLocal}>
+                          Reportado por: {r.reporter?.nombre || 'Usuario desconocido'}
+                        </Text>
+                      </View>
+                      {getEstadoBadge(r.status)}
+                    </View>
+
+                    <View style={styles.reporteBody}>
+                      {r.content_type === 'post' && r.post && (
+                        <View style={styles.contentPreview}>
+                          {r.post.imagenes && r.post.imagenes.length > 0 && (
+                            <Image source={{ uri: r.post.imagenes[0] }} style={styles.contentPreviewImage} />
+                          )}
+                          <Text style={styles.contentPreviewText} numberOfLines={2}>
+                            {r.post.contenido || 'Publicación sin texto'}
+                          </Text>
+                        </View>
+                      )}
+                      {r.content_type === 'momento' && r.momento && (
+                        <View style={styles.contentPreview}>
+                          <Image source={{ uri: r.momento.imagen_url }} style={styles.contentPreviewImage} />
+                          <Text style={styles.contentPreviewText}>Momento reportado</Text>
+                        </View>
+                      )}
+                      {r.content_type === 'comment' && r.comentario && (
+                        <View style={styles.contentPreview}>
+                          <Text style={styles.contentPreviewText} numberOfLines={2}>
+                            {r.comentario.texto}
+                          </Text>
+                        </View>
+                      )}
+                      {r.description && (
+                        <Text style={styles.reporteDescripcion} numberOfLines={2}>
+                          Descripción: {r.description}
+                        </Text>
+                      )}
+                    </View>
+
+                    <View style={styles.reporteFooter}>
+                      <Text style={styles.reporteDate}>
+                        {new Date(r.created_at).toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Text>
+                      <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
+            })}
+          </React.Fragment>
+        )}
+      </ScrollView>
+    );
+  };
 
   const renderSolicitudesTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
@@ -714,7 +1013,7 @@ export default function SoporteAyudaScreen() {
             color={activeTab === 'reportes' ? colors.primary : colors.textSecondary}
           />
           <Text style={[styles.tabText, activeTab === 'reportes' && styles.tabTextActive]}>
-            Reportes ({reportes.filter(r => r.estado === 'pendiente').length})
+            Reportes ({reportes.filter(r => r.estado === 'pendiente').length + contentReports.filter(r => r.status === 'pending').length})
           </Text>
         </TouchableOpacity>
 
@@ -738,31 +1037,38 @@ export default function SoporteAyudaScreen() {
       {activeTab === 'reportes' && renderReportesTab()}
       {activeTab === 'solicitudes' && renderSolicitudesTab()}
 
-      {/* Ticket Detail Modal */}
+      {/* Detail Modal */}
       <Modal
-        visible={showDetailModal && selectedTicket !== null}
+        visible={showDetailModal}
         transparent
         animationType="slide"
         onRequestClose={() => {
           setShowDetailModal(false);
           setSelectedTicket(null);
           setSelectedReporte(null);
+          setSelectedContentReport(null);
         }}
       >
         <Pressable style={styles.modalOverlay} onPress={() => {
           setShowDetailModal(false);
           setSelectedTicket(null);
           setSelectedReporte(null);
+          setSelectedContentReport(null);
         }}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {selectedTicket ? `Ticket ${selectedTicket.ticket_number}` : 'Detalle del Reporte'}
+                {selectedTicket 
+                  ? `Ticket ${selectedTicket.ticket_number}` 
+                  : selectedContentReport
+                  ? `Reporte de ${getContentTypeText(selectedContentReport.content_type)}`
+                  : 'Detalle del Reporte'}
               </Text>
               <TouchableOpacity onPress={() => {
                 setShowDetailModal(false);
                 setSelectedTicket(null);
                 setSelectedReporte(null);
+                setSelectedContentReport(null);
               }}>
                 <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -987,10 +1293,140 @@ export default function SoporteAyudaScreen() {
               </ScrollView>
             )}
 
+            {selectedContentReport && (
+              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Tipo de contenido:</Text>
+                  <Text style={styles.detailValue}>{getContentTypeText(selectedContentReport.content_type)}</Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Motivo:</Text>
+                  <Text style={styles.detailValue}>{getMotivoText(selectedContentReport.reason)}</Text>
+                </View>
+
+                {selectedContentReport.description && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Descripción adicional:</Text>
+                    <Text style={styles.detailValue}>{selectedContentReport.description}</Text>
+                  </View>
+                )}
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Reportado por:</Text>
+                  <Text style={styles.detailValue}>
+                    {selectedContentReport.reporter?.nombre} (@{selectedContentReport.reporter?.username || 'sin-username'})
+                  </Text>
+                  <Text style={styles.detailValue}>
+                    {selectedContentReport.reporter?.email}
+                  </Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Contenido reportado:</Text>
+                  {selectedContentReport.content_type === 'post' && selectedContentReport.post && (
+                    <View style={styles.contentPreviewBox}>
+                      {selectedContentReport.post.imagenes && selectedContentReport.post.imagenes.length > 0 && (
+                        <Image 
+                          source={{ uri: selectedContentReport.post.imagenes[0] }} 
+                          style={styles.contentPreviewImageLarge} 
+                        />
+                      )}
+                      <Text style={styles.contentPreviewTextLarge}>
+                        {selectedContentReport.post.contenido || 'Publicación sin texto'}
+                      </Text>
+                    </View>
+                  )}
+                  {selectedContentReport.content_type === 'momento' && selectedContentReport.momento && (
+                    <View style={styles.contentPreviewBox}>
+                      <Image 
+                        source={{ uri: selectedContentReport.momento.imagen_url }} 
+                        style={styles.contentPreviewImageLarge} 
+                      />
+                      <Text style={styles.contentPreviewTextLarge}>Momento reportado</Text>
+                    </View>
+                  )}
+                  {selectedContentReport.content_type === 'comment' && selectedContentReport.comentario && (
+                    <View style={styles.contentPreviewBox}>
+                      <Text style={styles.contentPreviewTextLarge}>
+                        {selectedContentReport.comentario.texto}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Estado actual:</Text>
+                  {getEstadoBadge(selectedContentReport.status)}
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Notas del Administrador:</Text>
+                  <TextInput
+                    style={styles.textArea}
+                    value={adminNotes}
+                    onChangeText={setAdminNotes}
+                    placeholder="Añade notas sobre la resolución..."
+                    placeholderTextColor={colors.textSecondary}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+                </View>
+
+                <View style={styles.actionButtons}>
+                  {selectedContentReport.content_type === 'post' && selectedContentReport.post_id && (
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
+                      onPress={() => handleViewReportedContent(selectedContentReport)}
+                      disabled={updating}
+                    >
+                      <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.white} />
+                      <Text style={styles.actionButtonText}>Ver Publicación</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
+                    onPress={() => handleUpdateContentReport(selectedContentReport.id, 'reviewing')}
+                    disabled={updating}
+                  >
+                    <Text style={styles.actionButtonText}>Marcar en Revisión</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: '#EF4444' }]}
+                    onPress={() => handleDeleteReportedContent(selectedContentReport)}
+                    disabled={updating}
+                  >
+                    <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color={colors.white} />
+                    <Text style={styles.actionButtonText}>Eliminar Contenido</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: '#10B981' }]}
+                    onPress={() => handleUpdateContentReport(selectedContentReport.id, 'action_taken')}
+                    disabled={updating}
+                  >
+                    <Text style={styles.actionButtonText}>Acción Tomada</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: '#6B7280' }]}
+                    onPress={() => handleUpdateContentReport(selectedContentReport.id, 'dismissed')}
+                    disabled={updating}
+                  >
+                    <Text style={styles.actionButtonText}>Descartar Reporte</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            )}
+
             <TouchableOpacity style={styles.modalCancelButton} onPress={() => {
               setShowDetailModal(false);
               setSelectedTicket(null);
               setSelectedReporte(null);
+              setSelectedContentReport(null);
             }}>
               <Text style={styles.modalCancelText}>Cerrar</Text>
             </TouchableOpacity>
@@ -1201,6 +1637,22 @@ const styles = StyleSheet.create({
   reporteHeaderLeft: {
     flex: 1,
   },
+  reportTypeRow: {
+    marginBottom: 8,
+  },
+  reportTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  reportTypeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
   reporteMotivo: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -1230,6 +1682,37 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: 'italic',
     marginTop: 4,
+  },
+  contentPreview: {
+    backgroundColor: colors.background,
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  contentPreviewImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  contentPreviewText: {
+    fontSize: 13,
+    color: colors.text,
+  },
+  contentPreviewBox: {
+    backgroundColor: colors.background,
+    padding: 12,
+    borderRadius: 8,
+    gap: 12,
+  },
+  contentPreviewImageLarge: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+  },
+  contentPreviewTextLarge: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
   },
   reporteFooter: {
     flexDirection: 'row',
@@ -1406,9 +1889,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    alignItems: 'center',
   },
   actionButtonText: {
     fontSize: 15,

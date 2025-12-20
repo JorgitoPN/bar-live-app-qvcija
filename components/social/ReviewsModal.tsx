@@ -35,17 +35,6 @@ interface Review {
   };
 }
 
-interface GoogleReview {
-  author_name: string;
-  author_url?: string;
-  language?: string;
-  profile_photo_url?: string;
-  rating: number;
-  relative_time_description?: string;
-  text?: string;
-  time: number;
-}
-
 interface ReviewsModalProps {
   visible: boolean;
   localId: string;
@@ -63,7 +52,6 @@ export default function ReviewsModal({
   const textInputRef = useRef<TextInput>(null);
   
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [googleReviews, setGoogleReviews] = useState<GoogleReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewText, setReviewText] = useState('');
   const [rating, setRating] = useState(0);
@@ -138,18 +126,6 @@ export default function ReviewsModal({
           setUserExistingReview(null);
           setIsEditMode(false);
         }
-      }
-
-      // ✅ FIXED: Load Google reviews separately
-      const { data: localData } = await supabase
-        .from('locales')
-        .select('reviews_google')
-        .eq('id', localId)
-        .single();
-
-      if (localData?.reviews_google && Array.isArray(localData.reviews_google)) {
-        console.log('[ReviewsModal] ✅ Loaded', localData.reviews_google.length, 'Google reviews');
-        setGoogleReviews(localData.reviews_google);
       }
 
       // ✅ FIXED: Update local rating based on ALL Barlive reviews
@@ -505,44 +481,6 @@ export default function ReviewsModal({
     );
   };
 
-  // ✅ NEW: Render Google review with anonymized name
-  const renderGoogleReview = ({ item, index }: { item: GoogleReview; index: number }) => {
-    return (
-      <View style={styles.googleReviewCard}>
-        <View style={styles.reviewHeader}>
-          <View style={styles.reviewAvatar}>
-            {item.profile_photo_url ? (
-              <Image source={{ uri: item.profile_photo_url }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
-              </View>
-            )}
-          </View>
-          <View style={styles.reviewInfo}>
-            {/* ✅ FIXED: Anonymize Google review names */}
-            <Text style={styles.reviewAuthor}>Cliente del local</Text>
-            <View style={styles.reviewRating}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <IconSymbol
-                  key={star}
-                  ios_icon_name={star <= item.rating ? 'star.fill' : 'star'}
-                  android_material_icon_name={star <= item.rating ? 'star' : 'star_border'}
-                  size={14}
-                  color="#FFD700"
-                />
-              ))}
-            </View>
-          </View>
-          <Text style={styles.reviewTime}>{item.relative_time_description || 'Hace tiempo'}</Text>
-        </View>
-        {item.text && (
-          <ParsedText text={item.text} style={styles.reviewText} />
-        )}
-      </View>
-    );
-  };
-
   const renderEmpty = () => (
     <View style={styles.emptyState}>
       <IconSymbol
@@ -558,7 +496,7 @@ export default function ReviewsModal({
 
   // ✅ NEW: Render "Ver más" button
   const renderFooter = () => {
-    if (totalReviewsCount <= displayedReviewsCount && googleReviews.length === 0) {
+    if (totalReviewsCount <= displayedReviewsCount) {
       return null;
     }
 
@@ -581,12 +519,6 @@ export default function ReviewsModal({
   const buttonText = userExistingReview && !isEditMode ? 'Editar reseña' : 'Añadir Reseña';
   const buttonAction = userExistingReview && !isEditMode ? handleEditReview : undefined;
 
-  // ✅ FIXED: Combine Barlive and Google reviews in the same section
-  const allReviews = [
-    ...reviews.map(r => ({ type: 'barlive' as const, data: r })),
-    ...googleReviews.map((g, i) => ({ type: 'google' as const, data: g, index: i })),
-  ];
-
   return (
     <Modal
       visible={visible}
@@ -605,11 +537,11 @@ export default function ReviewsModal({
             <TouchableOpacity onPress={onClose} style={styles.backButton}>
               <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={28} color={colors.headerText} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Reseñas</Text>
+            <Text style={styles.headerTitle}>Reseñas de Barlive</Text>
             <View style={{ width: 40 }} />
           </View>
           <Text style={styles.headerSubtitle}>
-            {totalReviewsCount + googleReviews.length} {totalReviewsCount + googleReviews.length === 1 ? 'reseña' : 'reseñas'}
+            {totalReviewsCount} {totalReviewsCount === 1 ? 'reseña' : 'reseñas'}
           </Text>
         </LinearGradient>
 
@@ -619,15 +551,9 @@ export default function ReviewsModal({
           </View>
         ) : (
           <FlatList
-            data={allReviews}
-            renderItem={({ item }) => {
-              if (item.type === 'barlive') {
-                return renderReview({ item: item.data as Review });
-              } else {
-                return renderGoogleReview({ item: item.data as GoogleReview, index: item.index || 0 });
-              }
-            }}
-            keyExtractor={(item, index) => `${item.type}-${index}`}
+            data={reviews}
+            renderItem={renderReview}
+            keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={renderEmpty}
             ListFooterComponent={renderFooter}
@@ -787,15 +713,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-  },
-  googleReviewCard: {
-    backgroundColor: '#E8F5E9',
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#4CAF50' + '30',
   },
   reviewHeader: {
     flexDirection: 'row',
