@@ -134,6 +134,7 @@ export default function ChatsScreen() {
             .select('id', { count: 'exact', head: true })
             .eq('chat_id', chat.id)
             .eq('leido', false)
+            .is('leido_at', null)
             .neq('remitente_id', user.id);
 
           console.log('[Chats] 📊 Chat', chat.id, 'has', count || 0, 'unread messages');

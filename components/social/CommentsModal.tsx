@@ -199,6 +199,36 @@ export default function CommentsModal({
     }
   }, [visible, postId, loadComments]);
 
+  // ✅ FIXED: Detect if post is deleted while viewing comments
+  useEffect(() => {
+    if (!visible || !postId) return;
+    
+    const subscription = supabase
+      .channel(`post-deletion-${postId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'posts',
+          filter: `id=eq.${postId}`,
+        },
+        () => {
+          console.log('[CommentsModal] ⚠️ Post was deleted');
+          Alert.alert(
+            'Contenido Eliminado',
+            'Esta publicación ha sido eliminada por su autor',
+            [{ text: 'OK', onPress: () => onClose() }]
+          );
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [visible, postId, onClose]);
+
   const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
     console.log('[CommentsModal] ✅ Selected mention:', mention);
     

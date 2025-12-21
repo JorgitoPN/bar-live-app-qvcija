@@ -88,12 +88,13 @@ export default function HeaderSocial({
       } else if (chatsData) {
         let totalUnread = 0;
         for (const chat of chatsData) {
-          // ✅ FIXED: Count only messages that are NOT read (leido = false)
+          // ✅ FIXED: Count only messages that are NOT read (leido = false AND leido_at IS NULL)
           const { count, error: countError } = await supabase
             .from('mensajes')
             .select('*', { count: 'exact', head: true })
             .eq('chat_id', chat.id)
             .eq('leido', false)
+            .is('leido_at', null)
             .neq('remitente_id', user.id);
           
           if (!countError) {

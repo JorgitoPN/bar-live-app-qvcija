@@ -214,6 +214,19 @@ export default function InstagramPostCard({
       return;
     }
 
+    // ✅ FIXED: Validate session before critical operation
+    const { ensureValidSession } = useAuth();
+    const validSession = await ensureValidSession();
+    
+    if (!validSession) {
+      Alert.alert(
+        'Sesión Expirada',
+        'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
+        [{ text: 'OK', onPress: () => router.push('/auth/login') }]
+      );
+      return;
+    }
+
     const newLikedState = !isLiked;
     const previousLiked = isLiked;
     const previousCount = likesCount;

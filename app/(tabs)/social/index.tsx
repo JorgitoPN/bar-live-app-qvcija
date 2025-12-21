@@ -131,6 +131,7 @@ export default function SocialIndexScreen() {
             .select('*', { count: 'exact', head: true })
             .eq('chat_id', chat.id)
             .eq('leido', false)
+            .is('leido_at', null)
             .neq('remitente_id', userId);
           
           totalUnread += count || 0;

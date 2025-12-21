@@ -504,6 +504,23 @@ export default function CrearPublicacionScreen() {
         });
 
         await supabase.from('post_tags').insert(tags);
+        
+        // ✅ FIXED: Send notifications to tagged users
+        const notifications = usuariosEtiquetados
+          .filter(item => item.tipo === 'usuario') // Only users receive notifications
+          .map(item => ({
+            usuario_id: item.id,
+            tipo: 'tag_request',
+            titulo: 'Solicitud de etiqueta',
+            mensaje: `${user.nombre} quiere etiquetarte en una publicación`,
+            usuario_origen_id: user.id,
+            post_id: postData2.id,
+          }));
+        
+        if (notifications.length > 0) {
+          await supabase.from('notificaciones').insert(notifications);
+          console.log('[CrearPublicacion] ✅ Sent', notifications.length, 'tag notifications');
+        }
       }
 
       setUploadProgress(90);

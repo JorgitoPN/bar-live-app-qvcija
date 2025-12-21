@@ -534,7 +534,20 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       if (tagError) throw tagError;
 
-      console.log('[PublicacionCard] ✅ Tag request created (no notification sent)');
+      console.log('[PublicacionCard] ✅ Tag request created');
+      
+      // ✅ FIXED: Send notification to tagged user
+      if (selectedUser.tipo === 'usuario') {
+        await supabase.from('notificaciones').insert({
+          usuario_id: selectedUser.id,
+          tipo: 'tag_request',
+          titulo: 'Solicitud de etiqueta',
+          mensaje: `${user.nombre} quiere etiquetarte en una publicación`,
+          usuario_origen_id: user.id,
+          post_id: post.id,
+        });
+        console.log('[PublicacionCard] ✅ Tag notification sent to user:', selectedUser.nombre);
+      }
 
       await loadExistingTags();
       await loadTaggedUsers();
