@@ -342,7 +342,7 @@ export default function GestionarSolicitudesScreen() {
     }
   };
 
-  const SolicitudCard = ({ solicitud }: { solicitud: SolicitudLocal }) => {
+  const SolicitudCard = useCallback(({ solicitud }: { solicitud: SolicitudLocal }) => {
     const coverPhoto = solicitud.imagen_url;
     const estadoColor = getEstadoBadgeColor(solicitud.estado_solicitud);
     
@@ -500,7 +500,7 @@ export default function GestionarSolicitudesScreen() {
         </View>
       </View>
     );
-  };
+  }, [router, user, cargarSolicitudes, cargarContadores, handleMarcarEnRevision, openReviewModal]);
 
   const renderSolicitudCard = useCallback(({ item }: { item: SolicitudLocal }) => (
     <SolicitudCard solicitud={item} />

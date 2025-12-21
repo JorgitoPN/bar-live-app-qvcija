@@ -698,7 +698,7 @@ export default function SalaVirtualScreen() {
     return () => {
       cleanup.then(fn => fn && fn());
     };
-  }, [localId, router]);
+  }, [localId, router, loadLocalData, checkUserCheckin, isCheckedIn, localClosed, user, handleCheckIn, loadMessages, subscribeToUpdates, updateActiveUsers]);
 
   // Handle typing indicator
   const handleTyping = () => {

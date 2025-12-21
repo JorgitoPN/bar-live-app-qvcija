@@ -90,7 +90,7 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
       console.log('[ProfileSwitcher] 🔄 Modal opened, reloading owned locals');
       loadOwnedLocals();
     }
-  }, [visible, user]);
+  }, [visible, user, loadOwnedLocals]);
 
   // ✅ FIXED: Log current active profile when modal opens or when active profile changes
   useEffect(() => {

@@ -149,7 +149,7 @@ export default function GestionarLocalesV7Screen() {
     loadLocales();
   };
 
-  const toggleSeleccionLocal = (localId: string) => {
+  const toggleSeleccionLocal = useCallback((localId: string) => {
     const newSelection = new Set(localesSeleccionados);
     if (newSelection.has(localId)) {
       newSelection.delete(localId);
@@ -157,7 +157,7 @@ export default function GestionarLocalesV7Screen() {
       newSelection.add(localId);
     }
     setLocalesSeleccionados(newSelection);
-  };
+  }, [localesSeleccionados]);
 
   const seleccionarTodos = () => {
     if (localesSeleccionados.size === filteredLocales.length) {
@@ -227,7 +227,7 @@ export default function GestionarLocalesV7Screen() {
     }
   };
 
-  const handleViewLocalDetail = (localId: string) => {
+  const handleViewLocalDetail = useCallback((localId: string) => {
     if (modoSeleccion) {
       toggleSeleccionLocal(localId);
     } else {
@@ -236,14 +236,14 @@ export default function GestionarLocalesV7Screen() {
         params: { id: localId },
       });
     }
-  };
+  }, [modoSeleccion, toggleSeleccionLocal, router]);
 
-  const handleEditLocal = (localId: string) => {
+  const handleEditLocal = useCallback((localId: string) => {
     router.push({
       pathname: '/editar/local',
       params: { id: localId },
     });
-  };
+  }, [router]);
 
   const LocalCard = useCallback(({ local }: { local: Local }) => {
     const isSelected = localesSeleccionados.has(local.id);

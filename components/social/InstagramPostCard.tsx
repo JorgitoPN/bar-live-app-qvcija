@@ -65,7 +65,7 @@ export default function InstagramPostCard({
   onUpdate,
   hideTagIcon = false,
 }: InstagramPostCardProps) {
-  const { user } = useAuth();
+  const { user, ensureValidSession } = useAuth();
   const channelRef = useRef<any>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(post.user_has_liked);
@@ -214,8 +214,7 @@ export default function InstagramPostCard({
       return;
     }
 
-    // ✅ FIXED: Validate session before critical operation
-    const { ensureValidSession } = useAuth();
+    // ✅ FIXED: Validate session before critical operation - ensureValidSession is now from the hook at component level
     const validSession = await ensureValidSession();
     
     if (!validSession) {

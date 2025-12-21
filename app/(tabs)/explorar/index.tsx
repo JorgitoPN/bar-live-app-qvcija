@@ -121,7 +121,7 @@ export default function ExplorarScreen() {
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [scrollIndicatorOpacity]);
 
   const localesFiltradosCompletos = useMemo(() => {
     console.log('[ExplorarScreen] ⚡ Applying filters...');
@@ -321,7 +321,7 @@ export default function ExplorarScreen() {
 
     console.log(`[ExplorarScreen] ⚡ Final filtered and sorted locals: ${localesFiltrados.length}`);
     return localesFiltrados;
-  }, [todosLosLocales, busqueda, categoriaSeleccionada, filtrosActivos, userLocation, activePromotions]);
+  }, [todosLosLocales, busqueda, categoriaSeleccionada, userLocation, activePromotions]);
 
   useEffect(() => {
     setPaginaActual(1);

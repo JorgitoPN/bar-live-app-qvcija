@@ -497,8 +497,8 @@ export default function DetalleLocalScreen() {
 
       const googleReviews = (localData?.reviews_google || []) as GoogleReview[];
 
-      // ✅ FIXED: Combine and sort all reviews by date
-      const combinedReviews: Array<Review | (GoogleReview & { source: 'google' })> = [
+      // ✅ FIXED: Combine and sort all reviews by date - Changed Array<T> to T[]
+      const combinedReviews: (Review | (GoogleReview & { source: 'google' }))[] = [
         ...(barliveReviews || []),
         ...googleReviews.map(gr => ({ ...gr, source: 'google' as const })),
       ].sort((a, b) => {
@@ -968,8 +968,8 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
-  // ✅ FIXED: Display only the requested number of reviews
-  const displayedReviews = allReviews.slice(0, displayedReviewsCount);
+  // ✅ FIXED: Display only the requested number of reviews - Changed Array<T> to T[]
+  const displayedReviews: (Review | (GoogleReview & { source: 'google' }))[] = allReviews.slice(0, displayedReviewsCount);
 
   return (
     <GestureHandlerRootView style={styles.container}>
