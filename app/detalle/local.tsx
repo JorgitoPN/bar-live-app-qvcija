@@ -351,9 +351,9 @@ export default function DetalleLocalScreen() {
   
   const [showUsersModal, setShowUsersModal] = useState(false);
 
-  // ✅ FIXED: Unified reviews - combine Google and Barlive
+  // ✅ FIXED: Changed Array<T> to T[]
   const [displayedReviewsCount, setDisplayedReviewsCount] = useState(5);
-  const [allReviews, setAllReviews] = useState<Array<Review | (GoogleReview & { source: 'google' })>>([]);
+  const [allReviews, setAllReviews] = useState<(Review | (GoogleReview & { source: 'google' }))[]>([]);
 
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
@@ -466,7 +466,6 @@ export default function DetalleLocalScreen() {
     }
   }, [user, params.id]);
 
-  // ✅ FIXED: Load unified reviews (Google + Barlive together)
   const cargarReviewsUnificadas = useCallback(async () => {
     try {
       setLoadingReviews(true);
@@ -497,7 +496,7 @@ export default function DetalleLocalScreen() {
 
       const googleReviews = (localData?.reviews_google || []) as GoogleReview[];
 
-      // ✅ FIXED: Combine and sort all reviews by date - Changed Array<T> to T[]
+      // ✅ FIXED: Changed Array<T> to T[]
       const combinedReviews: (Review | (GoogleReview & { source: 'google' }))[] = [
         ...(barliveReviews || []),
         ...googleReviews.map(gr => ({ ...gr, source: 'google' as const })),
@@ -514,7 +513,6 @@ export default function DetalleLocalScreen() {
         total: combinedReviews.length,
       });
 
-      // ✅ FIXED: Calculate average rating from Barlive reviews only
       if (barliveReviews && barliveReviews.length > 0) {
         const avg = barliveReviews.reduce((sum, r) => sum + r.rating, 0) / barliveReviews.length;
         setAverageRating(avg);
@@ -588,7 +586,6 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id, cargarLocal]);
 
-  // ✅ FIXED: Real-time subscription for reviews updates
   useEffect(() => {
     if (!params.id) return;
 
@@ -792,7 +789,6 @@ export default function DetalleLocalScreen() {
     } as any);
   };
 
-  // ✅ NEW: Load more reviews
   const handleLoadMoreReviews = () => {
     console.log('[DetalleLocal] 📄 Loading more reviews...');
     setDisplayedReviewsCount(prev => prev + 5);
@@ -968,7 +964,7 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
-  // ✅ FIXED: Display only the requested number of reviews - Changed Array<T> to T[]
+  // ✅ FIXED: Changed Array<T> to T[]
   const displayedReviews: (Review | (GoogleReview & { source: 'google' }))[] = allReviews.slice(0, displayedReviewsCount);
 
   return (
@@ -1439,7 +1435,6 @@ export default function DetalleLocalScreen() {
                 </View>
               )}
 
-              {/* ✅ FIXED: Unified reviews section (Google + Barlive together) */}
               {allReviews.length > 0 && (
                 <View style={styles.compactSection}>
                   <View style={styles.compactSectionHeader}>
@@ -1451,7 +1446,6 @@ export default function DetalleLocalScreen() {
                   </View>
 
                   {displayedReviews.map((review, index) => {
-                    // Check if it's a Google review
                     const isGoogleReview = 'source' in review && review.source === 'google';
                     
                     if (isGoogleReview) {
@@ -1551,7 +1545,6 @@ export default function DetalleLocalScreen() {
                     }
                   })}
 
-                  {/* ✅ NEW: "Ver más" button for loading more reviews */}
                   {allReviews.length > displayedReviewsCount && (
                     <TouchableOpacity 
                       style={styles.loadMoreReviewsButton}

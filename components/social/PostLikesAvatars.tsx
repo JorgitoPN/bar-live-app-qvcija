@@ -11,8 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 interface PostLikesAvatarsProps {
   postId: string;
   totalLikes: number;
-  // ✅ Accept local likes array for instant updates
-  localLikes?: Array<{ id: string; usuario_id: string }>;
+  localLikes?: { id: string; usuario_id: string }[];
 }
 
 interface LikeUser {
@@ -24,19 +23,18 @@ interface LikeUser {
 }
 
 /**
- * ✅ POST LIKES AVATARS v4.0 - CRITICAL REACTIVITY FIX
+ * ✅ POST LIKES AVATARS v5.0 - CRITICAL HOOKS FIX
  * 
  * CRITICAL FIXES:
- * - ✅ FIXED: Component now properly reacts to localLikes array changes
- * - ✅ FIXED: Avatars update instantly when likes change (< 100ms)
- * - ✅ FIXED: Text updates dynamically based on real-time state
- * - ✅ FIXED: Proper dependency tracking to force re-renders
+ * - ✅ FIXED: Removed conditional useMemo calls (rules-of-hooks error)
+ * - ✅ FIXED: All hooks now called unconditionally at top level
+ * - ✅ FIXED: Proper dependency tracking for all hooks
+ * - ✅ Component now properly reacts to localLikes array changes
+ * - ✅ Avatars update instantly when likes change (< 100ms)
+ * - ✅ Text updates dynamically based on real-time state
  * - ✅ Real-time avatar updates via Supabase Realtime
  * - ✅ Optimistic UI updates
  * - ✅ Instant synchronization across all views
- * - ✅ Dynamic text generation based on who liked
- * - ✅ Smooth avatar transitions
- * - ✅ Proper profile_url fetching
  */
 
 export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }: PostLikesAvatarsProps) {
@@ -48,7 +46,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
   const [allLikes, setAllLikes] = useState<LikeUser[]>([]);
   const [loadingModal, setLoadingModal] = useState(false);
   
-  // ✅ CRITICAL: Use local state that updates instantly
   const [currentTotalLikes, setCurrentTotalLikes] = useState(totalLikes);
   const [currentUserHasLiked, setCurrentUserHasLiked] = useState(false);
 
@@ -64,10 +61,8 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       users: localLikes.map(l => l.usuario_id),
     });
 
-    // Update total count
     setCurrentTotalLikes(localLikes.length);
 
-    // Check if current user has liked
     const userLiked = user ? localLikes.some(like => like.usuario_id === user.id) : false;
     setCurrentUserHasLiked(userLiked);
 
@@ -76,7 +71,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       totalLikes: localLikes.length,
     });
 
-    // ✅ CRITICAL: Reload the display users immediately when likes change
     if (localLikes.length > 0) {
       loadLikeUsers();
     } else {
@@ -88,7 +82,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     try {
       console.log('[PostLikesAvatars] 🔄 Loading like users for post:', postId);
       
-      // ✅ CRITICAL: Always fetch latest profile_url
       const { data, error } = await supabase
         .from('likes')
         .select(`
@@ -106,7 +99,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
             id: like.usuarios.id,
             nombre: like.usuarios.nombre,
             username: like.usuarios.username,
-            avatar: like.usuarios.avatar, // ✅ Always get latest avatar URL
+            avatar: like.usuarios.avatar,
             tipo: 'usuario' as const,
           }));
         
@@ -185,10 +178,8 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
           
           console.log('[PostLikesAvatars] 🔄 Change made by another user, reloading avatars...');
           
-          // ✅ CRITICAL: Reload avatars immediately to show changes from other users
           await loadLikeUsers();
           
-          // ✅ Update total count
           const { count, error: countError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
@@ -199,7 +190,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
             setCurrentTotalLikes(count);
           }
           
-          // ✅ Check if current user still has liked
           const { data: userLike, error: likeError } = await supabase
             .from('likes')
             .select('id')
@@ -225,19 +215,18 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     };
   }, [postId, user, loadLikeUsers]);
 
-  // ✅ Update when totalLikes prop changes (fallback)
   useEffect(() => {
     if (localLikes.length === 0) {
       setCurrentTotalLikes(totalLikes);
     }
   }, [totalLikes, localLikes.length]);
 
-  const handleOpenModal = () => {
+  const handleOpenModal = useCallback(() => {
     loadAllLikes();
     setShowModal(true);
-  };
+  }, [loadAllLikes]);
 
-  const handleUserPress = (userId: string, tipo: 'usuario' | 'local') => {
+  const handleUserPress = useCallback((userId: string, tipo: 'usuario' | 'local') => {
     setShowModal(false);
     
     if (tipo === 'usuario' && user && userId === user.id) {
@@ -253,15 +242,10 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         params: { userId },
       });
     }
-  };
+  }, [user, router]);
 
-  if (currentTotalLikes === 0) {
-    return null;
-  }
-
-  // ✅ CRITICAL FIX: Memoize text generation with proper dependencies
+  // ✅ CRITICAL FIX: Memoize text generation with proper dependencies - ALWAYS called unconditionally
   const getLikesText = useMemo(() => {
-    // ✅ Filter out current user from the display array
     const otherUsers = likeUsers.filter(u => u.id !== user?.id);
     
     console.log('[PostLikesAvatars] 📊 Generating text:', {
@@ -273,17 +257,14 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       otherUsers: otherUsers.map(u => ({ id: u.id, name: u.username || u.nombre })),
     });
 
-    // ✅ Case 1: Current user HAS liked
     if (currentUserHasLiked) {
       if (currentTotalLikes === 1) {
-        // Only current user
         return (
           <Text style={styles.likesText}>
             A <Text style={styles.usernameLink}>ti</Text> te gusta esto
           </Text>
         );
       } else if (currentTotalLikes === 2 && otherUsers.length > 0) {
-        // Current user + 1 other
         const otherUser = otherUsers[0];
         const username = otherUser.username || otherUser.nombre;
         return (
@@ -299,7 +280,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
           </Text>
         );
       } else {
-        // Current user + multiple others
         const others = currentTotalLikes - 1;
         return (
           <Text style={styles.likesText}>
@@ -313,9 +293,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       }
     }
 
-    // ✅ Case 2: Current user has NOT liked
     if (currentTotalLikes === 1 && otherUsers.length > 0) {
-      // Exactly 1 person (not current user)
       const username = otherUsers[0].username || otherUsers[0].nombre;
       return (
         <Text style={styles.likesText}>
@@ -332,7 +310,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
     
     if (currentTotalLikes === 2 && otherUsers.length >= 2) {
-      // Exactly 2 people (not current user)
       const user1 = otherUsers[0].username || otherUsers[0].nombre;
       const user2 = otherUsers[1].username || otherUsers[1].nombre;
       return (
@@ -357,7 +334,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
     
     if (currentTotalLikes >= 3 && otherUsers.length >= 1) {
-      // 3+ people (not current user)
       const firstUser = otherUsers[0].username || otherUsers[0].nombre;
       const others = currentTotalLikes - 1;
       return (
@@ -378,7 +354,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       );
     }
     
-    // ✅ Fallback
     console.warn('[PostLikesAvatars] ⚠️ Fallback triggered - likeUsers not loaded yet:', {
       currentTotalLikes,
       likeUsersCount: likeUsers.length,
@@ -391,9 +366,32 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
     
     return <Text style={styles.likesText}>{currentTotalLikes} me gusta</Text>;
-  }, [currentUserHasLiked, currentTotalLikes, likeUsers, user]);
+  }, [currentUserHasLiked, currentTotalLikes, likeUsers, user, handleUserPress, handleOpenModal]);
 
-  const renderLikeUser = ({ item }: { item: LikeUser }) => (
+  // ✅ CRITICAL FIX: Memoize avatar rendering - ALWAYS called unconditionally
+  const avatarsDisplay = useMemo(() => {
+    return likeUsers.slice(0, 3).map((likeUser, index) => (
+      <View
+        key={`${likeUser.id}-${index}`}
+        style={[
+          styles.avatarWrapper,
+          index > 0 && { marginLeft: -8 },
+        ]}
+      >
+        {likeUser.avatar ? (
+          <Image source={{ uri: likeUser.avatar }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <Text style={styles.avatarText}>
+              {likeUser.nombre.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+      </View>
+    ));
+  }, [likeUsers]);
+
+  const renderLikeUser = useCallback(({ item }: { item: LikeUser }) => (
     <TouchableOpacity
       style={styles.modalUserItem}
       onPress={() => handleUserPress(item.id, item.tipo)}
@@ -420,30 +418,11 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         </View>
       )}
     </TouchableOpacity>
-  );
+  ), [user, handleUserPress]);
 
-  // ✅ CRITICAL FIX: Memoize avatar rendering with proper key to prevent flickering
-  const avatarsDisplay = useMemo(() => {
-    return likeUsers.slice(0, 3).map((likeUser, index) => (
-      <View
-        key={`${likeUser.id}-${index}`}
-        style={[
-          styles.avatarWrapper,
-          index > 0 && { marginLeft: -8 },
-        ]}
-      >
-        {likeUser.avatar ? (
-          <Image source={{ uri: likeUser.avatar }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Text style={styles.avatarText}>
-              {likeUser.nombre.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-      </View>
-    ));
-  }, [likeUsers]);
+  if (currentTotalLikes === 0) {
+    return null;
+  }
 
   return (
     <>

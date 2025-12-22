@@ -174,14 +174,15 @@ export default function GestionarSolicitudesScreen() {
     }
   }, [hasMore, loadingMore, initialLoading, paginaActual, cargarSolicitudes]);
 
-  const openReviewModal = (solicitud: SolicitudLocal) => {
+  // ✅ FIXED: Wrap openReviewModal in useCallback
+  const openReviewModal = useCallback((solicitud: SolicitudLocal) => {
     setSelectedSolicitud(solicitud);
     setMotivoDenegacion(solicitud.motivo_denegacion || '');
     setComentariosAdmin(solicitud.comentarios_admin || '');
     setShowReviewModal(true);
-  };
+  }, []);
 
-  const handleAprobar = async () => {
+  const handleAprobar = useCallback(async () => {
     if (!selectedSolicitud || !user) return;
 
     setProcessingReview(true);
@@ -223,9 +224,9 @@ export default function GestionarSolicitudesScreen() {
     } finally {
       setProcessingReview(false);
     }
-  };
+  }, [selectedSolicitud, user, comentariosAdmin, cargarSolicitudes, cargarContadores]);
 
-  const handleDenegar = async () => {
+  const handleDenegar = useCallback(async () => {
     if (!selectedSolicitud || !user) return;
 
     if (!motivoDenegacion.trim()) {
@@ -275,9 +276,10 @@ export default function GestionarSolicitudesScreen() {
     } finally {
       setProcessingReview(false);
     }
-  };
+  }, [selectedSolicitud, user, motivoDenegacion, comentariosAdmin, cargarSolicitudes, cargarContadores]);
 
-  const handleMarcarEnRevision = async (solicitudId: string) => {
+  // ✅ FIXED: Wrap handleMarcarEnRevision in useCallback
+  const handleMarcarEnRevision = useCallback(async (solicitudId: string) => {
     if (!user) return;
 
     try {
@@ -301,7 +303,7 @@ export default function GestionarSolicitudesScreen() {
       console.error('[GestionarSolicitudes] Error marcando en revisión:', error);
       Alert.alert('Error', 'No se pudo actualizar el estado');
     }
-  };
+  }, [user, cargarContadores]);
 
   const limpiarFiltros = useCallback(() => {
     setFiltroEstado('todos');

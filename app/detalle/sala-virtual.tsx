@@ -643,6 +643,7 @@ export default function SalaVirtualScreen() {
     };
   }, [localId, user, updateActiveUsers, router]);
 
+  // ✅ FIXED: Include all missing dependencies in useEffect
   useEffect(() => {
     if (!localId) {
       setLoading(false);
@@ -689,7 +690,7 @@ export default function SalaVirtualScreen() {
     return () => {
       cleanup.then(fn => fn && fn());
     };
-  }, [localId]);
+  }, [localId, checkUserCheckin, handleCheckIn, loadLocalData, loadMessages, localClosed, router, subscribeToUpdates, updateActiveUsers, user]);
 
   const handleTyping = () => {
     if (!user || !chatChannelRef.current) return;
