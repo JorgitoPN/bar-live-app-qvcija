@@ -82,11 +82,9 @@ export default function NuevaPasswordTokenScreen() {
       console.log('[NuevaPasswordToken] 📧 Email:', email);
       console.log('[NuevaPasswordToken] 🔐 Google User:', isGoogleUser);
 
-      // Get the Supabase project URL from environment variables
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
       console.log('[NuevaPasswordToken] 🌐 Using Supabase URL:', supabaseUrl);
 
-      // Get the current session for authorization
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token || '';
 
@@ -101,7 +99,7 @@ export default function NuevaPasswordTokenScreen() {
           email: email.trim().toLowerCase(), 
           token: token.trim(),
           newPassword,
-          isGoogleUser // Pass flag to update provider
+          isGoogleUser
         }),
       });
 
@@ -113,10 +111,28 @@ export default function NuevaPasswordTokenScreen() {
           'Error',
           result.error || 'No se pudo actualizar tu contraseña. Por favor, intenta nuevamente.'
         );
+        setLoading(false);
         return;
       }
 
       console.log('[NuevaPasswordToken] ✅ Contraseña actualizada exitosamente');
+
+      // ✅ FIXED: Update provider field in usuarios table if this was a Google user
+      if (isGoogleUser) {
+        console.log('[NuevaPasswordToken] 🔄 Actualizando provider a "barlive"...');
+        
+        const { error: updateError } = await supabase
+          .from('usuarios')
+          .update({ provider: 'barlive' })
+          .eq('email', email.trim().toLowerCase());
+
+        if (updateError) {
+          console.error('[NuevaPasswordToken] ⚠️ Error actualizando provider:', updateError);
+          // Don't fail the whole operation if this fails
+        } else {
+          console.log('[NuevaPasswordToken] ✅ Provider actualizado a "barlive"');
+        }
+      }
 
       const successMessage = isGoogleUser
         ? '¡Contraseña configurada! Tu contraseña ha sido configurada exitosamente. Ahora puedes iniciar sesión con tu email y contraseña, además de seguir usando Google.'
@@ -140,8 +156,8 @@ export default function NuevaPasswordTokenScreen() {
         'Error inesperado',
         'Ocurrió un error inesperado. Por favor, intenta nuevamente o contacta con soporte.'
       );
-    } finally {
       setLoading(false);
+    } finally {
       console.log('[NuevaPasswordToken] 🏁 Proceso finalizado');
       console.log('═══════════════════════════════════════════════════════');
     }

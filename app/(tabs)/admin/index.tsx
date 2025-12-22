@@ -29,7 +29,7 @@ interface AdminStats {
 
 export default function AdminIndexScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading, ensureValidSession } = useAuth();
   const { isImpersonating, impersonationSession, endImpersonation } = useImpersonation();
   const [stats, setStats] = useState<AdminStats>({
     totalUsuarios: 0,
@@ -41,19 +41,57 @@ export default function AdminIndexScreen() {
     suscripcionesActivas: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [permissionChecked, setPermissionChecked] = useState(false);
 
+  // ✅ FIXED: Better permission check with session validation
   useEffect(() => {
-    if (user?.rol_app !== 'admin') {
-      Alert.alert(
-        'Acceso Denegado',
-        'No tienes permisos para acceder al panel de administración',
-        [{ text: 'OK', onPress: () => router.replace('/(tabs)/(home)' as any) }]
-      );
-      return;
-    }
+    const checkPermissions = async () => {
+      console.log('[AdminIndex] 🔍 Checking admin permissions...');
+      
+      // Wait for auth to finish loading
+      if (authLoading) {
+        console.log('[AdminIndex] ⏳ Waiting for auth to load...');
+        return;
+      }
 
-    cargarEstadisticas();
-  }, [user, router]);
+      // If no user, ensure we have a valid session
+      if (!user) {
+        console.log('[AdminIndex] ⚠️ No user found, checking session...');
+        const session = await ensureValidSession();
+        
+        if (!session) {
+          console.error('[AdminIndex] ❌ No valid session, redirecting to login');
+          Alert.alert(
+            'Sesión Expirada',
+            'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
+            [{ text: 'OK', onPress: () => router.replace('/auth/login') }]
+          );
+          return;
+        }
+        
+        // Session is valid, wait for user to be loaded
+        console.log('[AdminIndex] ✅ Session valid, waiting for user to load...');
+        return;
+      }
+
+      // Check if user is admin
+      if (user.rol_app !== 'admin') {
+        console.error('[AdminIndex] ❌ User is not admin:', user.rol_app);
+        Alert.alert(
+          'Acceso Denegado',
+          'No tienes permisos para acceder al panel de administración',
+          [{ text: 'OK', onPress: () => router.replace('/(tabs)/(home)' as any) }]
+        );
+        return;
+      }
+
+      console.log('[AdminIndex] ✅ Admin permissions verified');
+      setPermissionChecked(true);
+      cargarEstadisticas();
+    };
+
+    checkPermissions();
+  }, [user, authLoading, router, ensureValidSession]);
 
   const cargarEstadisticas = async () => {
     try {
@@ -248,6 +286,17 @@ export default function AdminIndexScreen() {
     },
   ];
 
+  // Show loading while checking permissions
+  if (authLoading || !permissionChecked) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Verificando permisos...</Text>
+      </View>
+    );
+  }
+
+  // Show loading while fetching stats
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
