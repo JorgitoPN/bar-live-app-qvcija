@@ -838,7 +838,10 @@ export default function InstagramPostCard({
         visible={showShareModal}
         postId={post.id}
         postContent={post.contenido}
-        onClose={() => setShareShareModal(false)}
+        postImage={post.imagenes && post.imagenes.length > 0 ? post.imagenes[0] : undefined}
+        postAuthorName={displayUsername}
+        postAuthorAvatar={authorAvatar || undefined}
+        onClose={() => setShowShareModal(false)}
       />
     </>
   );

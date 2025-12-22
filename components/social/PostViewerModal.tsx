@@ -35,6 +35,7 @@ import TagDisplay from './TagDisplay';
 import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 import { TapGestureHandler, State } from 'react-native-gesture-handler';
 import PostLikesAvatars from './PostLikesAvatars';
+import SharePostModal from './SharePostModal';
 import * as Haptics from 'expo-haptics';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -126,6 +127,9 @@ export default function PostViewerModal({
   const [showTagManagementModal, setShowTagManagementModal] = useState(false);
   const [managingPostId, setManagingPostId] = useState<string | null>(null);
   const [loadingTags, setLoadingTags] = useState(false);
+
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [sharingPost, setSharingPost] = useState<Post | null>(null);
 
   const [authorsWithMomentos, setAuthorsWithMomentos] = useState<Set<string>>(new Set());
 
@@ -1321,7 +1325,17 @@ export default function PostViewerModal({
                 color={colors.text}
               />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => {
+                if (!user) {
+                  Alert.alert('Inicia sesión', 'Debes iniciar sesión para compartir publicaciones');
+                  return;
+                }
+                setSharingPost(post);
+                setShowShareModal(true);
+              }}
+            >
               <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={28} color={colors.text} />
             </TouchableOpacity>
           </View>
@@ -1596,6 +1610,21 @@ export default function PostViewerModal({
           onSelectUser={handleAddNewTag}
           alreadyTagged={existingTags}
         />
+
+        {sharingPost && (
+          <SharePostModal
+            visible={showShareModal}
+            postId={sharingPost.id}
+            postContent={sharingPost.contenido}
+            postImage={sharingPost.images && sharingPost.images.length > 0 ? sharingPost.images[0] : undefined}
+            postAuthorName={sharingPost.autorNombre}
+            postAuthorAvatar={sharingPost.autorAvatar}
+            onClose={() => {
+              setShowShareModal(false);
+              setSharingPost(null);
+            }}
+          />
+        )}
       </View>
     </Modal>
   );

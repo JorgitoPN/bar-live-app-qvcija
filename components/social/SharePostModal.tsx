@@ -47,14 +47,15 @@ interface SharePostModalProps {
 }
 
 /**
- * ✅ SHARE POST MODAL v3.0 - WITH CLICKABLE POST PREVIEW
+ * ✅ SHARE POST MODAL v3.1 - FIXED STORAGE BUCKET ERROR
  * 
  * Changes:
+ * - ✅ Fixed: Now uploads to 'posts' bucket instead of non-existent 'post-previews'
+ * - ✅ Fixed: Uses ArrayBuffer instead of Blob for React Native compatibility
  * - ✅ Includes post preview card with image
  * - ✅ Captures screenshot of post preview
  * - ✅ Sends image with message
  * - ✅ Image is clickable in chat to navigate to post
- * - ✅ Beautiful visual design matching Barlive style
  */
 
 export default function SharePostModal({
@@ -204,31 +205,37 @@ export default function SharePostModal({
     try {
       let imageUrl: string | null = null;
       
-      // Upload post preview image to Supabase Storage
+      // ✅ FIX: Upload post preview image to 'posts' bucket (which exists)
       if (postPreviewUri) {
         try {
-          // ✅ FIX: Use arrayBuffer instead of blob for React Native compatibility
           const response = await fetch(postPreviewUri);
           const arrayBuffer = await response.arrayBuffer();
-          const fileName = `post-preview-${postId}-${Date.now()}.jpg`;
+          const fileName = `shared/post-preview-${postId}-${Date.now()}.jpg`;
+          
+          console.log('[SharePostModal] 📤 Uploading to posts bucket:', fileName);
           
           const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('post-previews')
+            .from('posts')
             .upload(fileName, arrayBuffer, {
               contentType: 'image/jpeg',
               cacheControl: '3600',
+              upsert: false,
             });
 
-          if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error('[SharePostModal] ❌ Upload error:', uploadError);
+            throw uploadError;
+          }
 
           const { data: { publicUrl } } = supabase.storage
-            .from('post-previews')
+            .from('posts')
             .getPublicUrl(uploadData.path);
 
           imageUrl = publicUrl;
           console.log('[SharePostModal] ✅ Uploaded post preview:', imageUrl);
         } catch (error) {
-          console.error('[SharePostModal] Error uploading preview:', error);
+          console.error('[SharePostModal] ❌ Error uploading preview:', error);
+          // Continue without image if upload fails
         }
       }
 
