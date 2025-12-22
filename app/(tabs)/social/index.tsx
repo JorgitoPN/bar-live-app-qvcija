@@ -109,78 +109,7 @@ export default function SocialIndexScreen() {
   const [loadingFriendsLocations, setLoadingFriendsLocations] = useState(false);
   const [myCheckIn, setMyCheckIn] = useState<any>(null);
 
-  // ✅ NEW: State for post modal
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [showPostModal, setShowPostModal] = useState(false);
-
-  // ✅ NEW: Handle postId parameter from navigation
-  useEffect(() => {
-    const postId = params.postId as string;
-    if (postId && userId) {
-      console.log('[Social] 🔄 Opening post from navigation:', postId);
-      loadAndShowPost(postId);
-    }
-  }, [params.postId, userId]);
-
-  const loadAndShowPost = async (postId: string) => {
-    try {
-      console.log('[Social] 📥 Loading post with optimistic UI:', postId);
-      
-      // ✅ OPTIMIZATION: Show modal immediately with loading state
-      setShowPostModal(true);
-      
-      // ✅ OPTIMIZATION: Load post data in parallel with likes/saved status
-      const [postResult, likeResult, savedResult] = await Promise.all([
-        supabase
-          .from('posts')
-          .select(`
-            *,
-            autor:usuarios!posts_autor_id_fkey(id, nombre, username, avatar),
-            local:locales!posts_local_id_fkey(id, nombre, imagen_url)
-          `)
-          .eq('id', postId)
-          .single(),
-        supabase
-          .from('likes')
-          .select('id')
-          .eq('post_id', postId)
-          .eq('usuario_id', userId!)
-          .maybeSingle(),
-        supabase
-          .from('posts_guardados')
-          .select('id')
-          .eq('post_id', postId)
-          .eq('usuario_id', userId!)
-          .maybeSingle(),
-      ]);
-
-      if (postResult.error) {
-        console.error('[Social] ❌ Error loading post:', postResult.error);
-        setShowPostModal(false);
-        Alert.alert('Error', 'No se pudo cargar la publicación');
-        return;
-      }
-
-      if (!postResult.data) {
-        setShowPostModal(false);
-        Alert.alert('Error', 'Publicación no encontrada');
-        return;
-      }
-
-      const postWithStatus = {
-        ...postResult.data,
-        user_has_liked: !!likeResult.data,
-        user_has_saved: !!savedResult.data,
-      };
-
-      setSelectedPost(postWithStatus);
-      console.log('[Social] ✅ Post loaded and displayed (optimized)');
-    } catch (error) {
-      console.error('[Social] ❌ Error loading post:', error);
-      setShowPostModal(false);
-      Alert.alert('Error', 'No se pudo cargar la publicación');
-    }
-  };
+  // Note: postId parameter handling removed - now using dedicated /social/post route
 
   const loadUnreadCounts = useCallback(async () => {
     if (!userId) return;
@@ -754,18 +683,7 @@ export default function SocialIndexScreen() {
         windowSize={10}
       />
 
-      {/* ✅ NEW: Post Viewer Modal for shared posts */}
-      {selectedPost && (
-        <PostViewerModal
-          visible={showPostModal}
-          post={selectedPost}
-          onClose={() => {
-            setShowPostModal(false);
-            setSelectedPost(null);
-          }}
-          onUpdate={handleRefresh}
-        />
-      )}
+
     </View>
   );
 }

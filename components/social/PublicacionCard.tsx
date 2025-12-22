@@ -108,6 +108,11 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
+  // ✅ CRITICAL: Local likes array for instant updates
+  const [localLikes, setLocalLikes] = useState<Array<{ id: string; usuario_id: string }>>([]);
+  const likeDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const channelRef = useRef<any>(null);
+
   const MAX_IMAGES = 10;
 
   const loadTaggedUsers = useCallback(async () => {
@@ -158,6 +163,107 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     loadTaggedUsers();
   }, [loadTaggedUsers]);
 
+  // ✅ Load initial likes array
+  useEffect(() => {
+    const loadInitialLikes = async () => {
+      try {
+        console.log('[PublicacionCard] 🔄 Loading initial likes for post:', post.id);
+        
+        const { data, error } = await supabase
+          .from('likes')
+          .select('id, usuario_id')
+          .eq('post_id', post.id);
+
+        if (!error && data) {
+          setLocalLikes(data);
+          console.log('[PublicacionCard] ✅ Loaded initial likes:', data.length);
+        }
+      } catch (error) {
+        console.error('[PublicacionCard] ❌ Error loading initial likes:', error);
+      }
+    };
+
+    loadInitialLikes();
+  }, [post.id]);
+
+  // ✅ Real-time subscription for OTHER users' changes
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('[PublicacionCard] 🔄 Setting up real-time subscription for post:', post.id);
+
+    if (channelRef.current?.state === 'subscribed') {
+      console.log('[PublicacionCard] ⚠️ Already subscribed, skipping');
+      return;
+    }
+
+    const channel = supabase.channel(`post-likes-card:${post.id}:${user.id}`);
+    channelRef.current = channel;
+
+    channel
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'likes',
+          filter: `post_id=eq.${post.id}`,
+        },
+        async (payload) => {
+          console.log('[PublicacionCard] 🔄 Real-time like change detected:', payload.eventType);
+          
+          const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
+          
+          if (changedByUserId === user.id) {
+            console.log('[PublicacionCard] ⏭️ Change made by current user, skipping');
+            return;
+          }
+          
+          console.log('[PublicacionCard] 🔄 Change made by another user, updating...');
+          
+          // ✅ Update local likes array
+          if (payload.eventType === 'INSERT' && payload.new) {
+            setLocalLikes(prev => {
+              if (prev.some(like => like.id === payload.new.id)) {
+                return prev;
+              }
+              const newArray = [...prev, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
+              console.log('[PublicacionCard] ➕ Added like, new count:', newArray.length);
+              return newArray;
+            });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            setLocalLikes(prev => {
+              const newArray = prev.filter(like => like.id !== payload.old.id);
+              console.log('[PublicacionCard] ➖ Removed like, new count:', newArray.length);
+              return newArray;
+            });
+          }
+          
+          // ✅ Fetch updated count
+          const { count, error: countError } = await supabase
+            .from('likes')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          if (!countError && count !== null) {
+            console.log('[PublicacionCard] ✅ Updated likes count:', count);
+            setLikesCount(count);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[PublicacionCard] 📡 Subscription status:', status);
+      });
+
+    return () => {
+      console.log('[PublicacionCard] 🔄 Cleaning up subscription');
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [post.id, user]);
+
   const handleLike = useCallback(async () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
@@ -165,28 +271,84 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
 
     const newLikedState = !liked;
+    const previousLiked = liked;
+    const previousCount = likesCount;
+    const previousLocalLikes = [...localLikes];
+    
+    // ✅ INSTANT UPDATE: Modify local state immediately
     setLiked(newLikedState);
-    setLikesCount(prev => prev + (newLikedState ? 1 : -1));
-
-    try {
-      if (newLikedState) {
-        await supabase.from('likes').insert({
-          post_id: post.id,
-          usuario_id: user.id,
-        });
-      } else {
-        await supabase
-          .from('likes')
-          .delete()
-          .eq('post_id', post.id)
-          .eq('usuario_id', user.id);
-      }
-    } catch (error) {
-      console.error('[PublicacionCard] Error toggling like:', error);
-      setLiked(!newLikedState);
-      setLikesCount(prev => prev + (newLikedState ? -1 : 1));
+    setLikesCount(newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1));
+    
+    // ✅ CRITICAL: Modify local likes array INSTANTLY
+    if (newLikedState) {
+      const tempId = `temp-${Date.now()}`;
+      const newArray = [...localLikes, { id: tempId, usuario_id: user.id }];
+      setLocalLikes(newArray);
+      console.log('[PublicacionCard] ✅ Optimistic ADD: Local likes array updated, count:', newArray.length);
+    } else {
+      const newArray = localLikes.filter(like => like.usuario_id !== user.id);
+      setLocalLikes(newArray);
+      console.log('[PublicacionCard] ✅ Optimistic REMOVE: Local likes array updated, count:', newArray.length);
     }
-  }, [user, liked, post.id]);
+
+    if (likeDebounceTimer.current) {
+      clearTimeout(likeDebounceTimer.current);
+    }
+
+    likeDebounceTimer.current = setTimeout(async () => {
+      try {
+        if (newLikedState) {
+          console.log('[PublicacionCard] ➕ Adding like to database');
+          
+          const { data, error } = await supabase.from('likes').insert({
+            post_id: post.id,
+            usuario_id: user.id,
+          }).select().single();
+          
+          if (error) throw error;
+          
+          // ✅ Replace temp ID with real ID
+          setLocalLikes(prev => prev.map(like => 
+            like.usuario_id === user.id && like.id.startsWith('temp-')
+              ? { id: data.id, usuario_id: user.id }
+              : like
+          ));
+          
+          console.log('[PublicacionCard] ✅ Like added, real ID:', data.id);
+        } else {
+          console.log('[PublicacionCard] ➖ Removing like from database');
+          
+          const { error } = await supabase
+            .from('likes')
+            .delete()
+            .eq('post_id', post.id)
+            .eq('usuario_id', user.id);
+          
+          if (error) throw error;
+          
+          console.log('[PublicacionCard] ✅ Like removed');
+        }
+
+        // ✅ Verify final count
+        const { count, error: countError } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+        
+        if (!countError && count !== null) {
+          console.log('[PublicacionCard] ✅ Verified count:', count);
+          setLikesCount(count);
+        }
+      } catch (error) {
+        console.error('[PublicacionCard] ❌ Error toggling like:', error);
+        // ✅ Rollback on error
+        setLiked(previousLiked);
+        setLikesCount(previousCount);
+        setLocalLikes(previousLocalLikes);
+        Alert.alert('Error', 'No se pudo actualizar el me gusta');
+      }
+    }, 300);
+  }, [user, liked, likesCount, localLikes, post.id]);
 
   const handleDoubleTap = useCallback(async (event: any) => {
     if (event.nativeEvent.state === State.ACTIVE) {
@@ -195,47 +357,28 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         return;
       }
 
-      const newLikedState = !liked;
-      setLiked(newLikedState);
-      setLikesCount(prev => prev + (newLikedState ? 1 : -1));
+      if (!liked) {
+        scaleAnim.setValue(0);
+        opacityAnim.setValue(1);
+        
+        Animated.parallel([
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 3,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacityAnim, {
+            toValue: 0,
+            duration: 800,
+            delay: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
 
-      scaleAnim.setValue(0);
-      opacityAnim.setValue(1);
-      
-      Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 3,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 0,
-          duration: 800,
-          delay: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-
-      try {
-        if (newLikedState) {
-          await supabase.from('likes').insert({
-            post_id: post.id,
-            usuario_id: user.id,
-          });
-        } else {
-          await supabase
-            .from('likes')
-            .delete()
-            .eq('post_id', post.id)
-            .eq('usuario_id', user.id);
-        }
-      } catch (error) {
-        console.error('[PublicacionCard] Error toggling like:', error);
-        setLiked(!newLikedState);
-        setLikesCount(prev => prev + (newLikedState ? -1 : 1));
+        await handleLike();
       }
     }
-  }, [user, liked, post.id, scaleAnim, opacityAnim]);
+  }, [user, liked, handleLike, scaleAnim, opacityAnim]);
 
   const handleSave = useCallback(async () => {
     if (!user) {
@@ -833,7 +976,12 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </TouchableOpacity>
       </View>
 
-      <PostLikesAvatars postId={post.id} totalLikes={likesCount} />
+      {/* ✅ UNIFIED: Pass localLikes array for instant reactivity */}
+      <PostLikesAvatars 
+        postId={post.id} 
+        totalLikes={likesCount}
+        localLikes={localLikes}
+      />
 
       {post.contenido && (
         <View style={styles.contentContainer}>
@@ -869,6 +1017,9 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         visible={shareModalVisible}
         postId={post.id}
         postContent={post.contenido}
+        postImage={post.imagenes && post.imagenes.length > 0 ? post.imagenes[0] : undefined}
+        postAuthorName={displayName}
+        postAuthorAvatar={displayAvatar}
         onClose={() => setShareModalVisible(false)}
       />
 

@@ -46,12 +46,12 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
     return `${hours}:${minutes}`;
   };
 
-  // ✅ OPTIMIZED: Instant navigation to Social Feed with post ID
+  // ✅ OPTIMIZED: Instant navigation to Single Post View (<200ms)
   const handlePostPress = () => {
     if (message.post_compartido_id) {
-      console.log('[MessageBubble] 🚀 Navigating to Social Feed with post:', message.post_compartido_id);
-      // Navigate to Social Feed tab with post ID parameter for instant loading
-      router.push(`/(tabs)/social?postId=${message.post_compartido_id}`);
+      console.log('[MessageBubble] 🚀 Navigating to Single Post View:', message.post_compartido_id);
+      // Navigate to dedicated single post route for instant loading
+      router.push(`/social/post?postId=${message.post_compartido_id}`);
     }
   };
 

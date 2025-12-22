@@ -19,7 +19,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
-import ViewShot from 'react-native-view-shot';
 import { useRouter } from 'expo-router';
 
 interface User {
@@ -47,16 +46,13 @@ interface SharePostModalProps {
 }
 
 /**
- * ✅ SHARE POST MODAL v3.3 - FIXED POST_COMPARTIDO_ID
+ * ✅ SHARE POST MODAL v4.0 - FIXED IMAGE URL HANDLING
  * 
- * Changes:
- * - ✅ CRITICAL FIX: Changed 'post_id' to 'post_compartido_id' to match MessageBubble expectations
- * - ✅ Fixed: Now uploads to 'posts' bucket instead of non-existent 'post-previews'
- * - ✅ Fixed: Uses ArrayBuffer instead of Blob for React Native compatibility
- * - ✅ Includes post preview card with image
- * - ✅ Captures screenshot of post preview
- * - ✅ Sends image with message
- * - ✅ Image is clickable in chat to navigate to post
+ * CRITICAL FIXES:
+ * - ✅ FIXED: Use original post image URL directly (no screenshot corruption)
+ * - ✅ FIXED: Changed 'post_id' to 'post_compartido_id' to match MessageBubble
+ * - ✅ OPTIMIZED: Removed ViewShot dependency (causing corruption)
+ * - ✅ CLEAN: Direct URL passing for instant image display
  */
 
 export default function SharePostModal({
@@ -70,7 +66,6 @@ export default function SharePostModal({
 }: SharePostModalProps) {
   const { user } = useAuth();
   const router = useRouter();
-  const viewShotRef = useRef<ViewShot>(null);
   
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [allLocals, setAllLocals] = useState<Local[]>([]);
@@ -79,7 +74,6 @@ export default function SharePostModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [sending, setSending] = useState(false);
   const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(new Set());
-  const [postPreviewUri, setPostPreviewUri] = useState<string | null>(null);
 
   const loadRecipients = useCallback(async () => {
     if (!user) {
@@ -150,28 +144,10 @@ export default function SharePostModal({
     }
   }, [user]);
 
-  // Capture post preview as image
-  useEffect(() => {
-    if (visible && viewShotRef.current) {
-      setTimeout(async () => {
-        try {
-          const uri = await viewShotRef.current?.capture?.();
-          if (uri) {
-            setPostPreviewUri(uri);
-            console.log('[SharePostModal] ✅ Captured post preview:', uri);
-          }
-        } catch (error) {
-          console.error('[SharePostModal] Error capturing post preview:', error);
-        }
-      }, 500);
-    }
-  }, [visible]);
-
   useEffect(() => {
     if (visible) {
       setSearchQuery('');
       setSelectedRecipients(new Set());
-      setPostPreviewUri(null);
       loadRecipients();
     }
   }, [visible, loadRecipients]);
@@ -204,73 +180,8 @@ export default function SharePostModal({
     setSending(true);
 
     try {
-      let imageUrl: string | null = null;
-      
-      // ✅ FIX: Use the original post image instead of screenshot
-      // This avoids the image corruption issue from ViewShot
-      if (postImage) {
-        try {
-          console.log('[SharePostModal] 📤 Using original post image:', postImage);
-          imageUrl = postImage;
-          console.log('[SharePostModal] ✅ Using post image URL directly');
-        } catch (error: any) {
-          console.error('[SharePostModal] ❌ Error with post image:', error);
-        }
-      } else if (postPreviewUri) {
-        try {
-          console.log('[SharePostModal] 📤 Starting image upload process...');
-          console.log('[SharePostModal] 📷 Preview URI:', postPreviewUri);
-          
-          const response = await fetch(postPreviewUri);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch preview: ${response.status} ${response.statusText}`);
-          }
-          
-          const arrayBuffer = await response.arrayBuffer();
-          console.log('[SharePostModal] ✅ Fetched image, size:', arrayBuffer.byteLength, 'bytes');
-          
-          const fileName = `shared/post-preview-${postId}-${Date.now()}.jpg`;
-          console.log('[SharePostModal] 📤 Uploading to posts bucket:', fileName);
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('posts')
-            .upload(fileName, arrayBuffer, {
-              contentType: 'image/jpeg',
-              cacheControl: '3600',
-              upsert: false,
-            });
-
-          if (uploadError) {
-            console.error('[SharePostModal] ❌ Upload error:', uploadError);
-            throw uploadError;
-          }
-
-          if (!uploadData || !uploadData.path) {
-            throw new Error('Upload succeeded but no path returned');
-          }
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('posts')
-            .getPublicUrl(uploadData.path);
-
-          imageUrl = publicUrl;
-          console.log('[SharePostModal] ✅ Uploaded post preview successfully!');
-          console.log('[SharePostModal] 🔗 Public URL:', imageUrl);
-        } catch (error: any) {
-          console.error('[SharePostModal] ❌ Error uploading preview:', error);
-          console.error('[SharePostModal] ❌ Error details:', {
-            message: error.message,
-            stack: error.stack,
-          });
-          // Continue without image if upload fails
-          Alert.alert(
-            'Advertencia',
-            'No se pudo cargar la imagen de la publicación, pero el mensaje se enviará de todos modos.'
-          );
-        }
-      } else {
-        console.warn('[SharePostModal] ⚠️ No preview URI or post image available, skipping image upload');
-      }
+      console.log('[SharePostModal] 📤 Starting share process for post:', postId);
+      console.log('[SharePostModal] 🖼️ Post image URL:', postImage);
 
       const shareMessage = `📤 Publicación compartida`;
       let successCount = 0;
@@ -348,17 +259,19 @@ export default function SharePostModal({
           }
         }
 
-        // ✅ CRITICAL FIX: Use 'post_compartido_id' instead of 'post_id' to match MessageBubble expectations
+        // ✅ CRITICAL FIX: Use 'post_compartido_id' and direct image URL
         const messageData: any = {
           chat_id: chatId,
           remitente_id: user.id,
           contenido: shareMessage,
-          post_compartido_id: postId, // ✅ FIXED: Changed from post_id to post_compartido_id
+          post_compartido_id: postId, // ✅ FIXED: Changed from post_id
           tipo_mensaje: 'post_compartido',
         };
 
-        if (imageUrl) {
-          messageData.post_imagen = imageUrl;
+        // ✅ CRITICAL FIX: Use original post image URL directly (no corruption)
+        if (postImage) {
+          messageData.post_imagen = postImage;
+          console.log('[SharePostModal] ✅ Using original post image URL:', postImage);
         }
 
         console.log('[SharePostModal] 📤 Sending message with data:', messageData);
@@ -500,41 +413,6 @@ export default function SharePostModal({
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* Post Preview Card (Hidden, used for screenshot) */}
-        <View style={styles.previewContainer}>
-          <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }}>
-            <View style={styles.postPreviewCard}>
-              <View style={styles.postPreviewHeader}>
-                {postAuthorAvatar ? (
-                  <Image source={{ uri: postAuthorAvatar }} style={styles.postPreviewAvatar} />
-                ) : (
-                  <View style={[styles.postPreviewAvatar, styles.postPreviewAvatarPlaceholder]}>
-                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={16} color={colors.white} />
-                  </View>
-                )}
-                <Text style={styles.postPreviewAuthor}>{postAuthorName || 'Usuario'}</Text>
-              </View>
-              
-              {postImage && (
-                <Image source={{ uri: postImage }} style={styles.postPreviewImage} resizeMode="cover" />
-              )}
-              
-              {postContent && (
-                <View style={styles.postPreviewContent}>
-                  <Text style={styles.postPreviewText} numberOfLines={3}>
-                    {postContent}
-                  </Text>
-                </View>
-              )}
-              
-              <View style={styles.postPreviewFooter}>
-                <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={14} color={colors.primary} />
-                <Text style={styles.postPreviewFooterText}>Toca para ver la publicación completa</Text>
-              </View>
-            </View>
-          </ViewShot>
-        </View>
-
         <View style={styles.searchContainer}>
           <IconSymbol
             ios_icon_name="magnifyingglass"
@@ -662,66 +540,6 @@ const styles = StyleSheet.create({
   },
   sendButtonTextDisabled: {
     opacity: 0.6,
-  },
-  previewContainer: {
-    position: 'absolute',
-    left: -9999,
-    top: -9999,
-  },
-  postPreviewCard: {
-    width: 300,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  postPreviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 16,
-  },
-  postPreviewAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  postPreviewAvatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  postPreviewAuthor: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  postPreviewImage: {
-    width: '100%',
-    height: 200,
-    backgroundColor: colors.background,
-  },
-  postPreviewContent: {
-    padding: 16,
-  },
-  postPreviewText: {
-    fontSize: 14,
-    color: colors.text,
-    lineHeight: 20,
-  },
-  postPreviewFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  postPreviewFooterText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary,
   },
   searchContainer: {
     flexDirection: 'row',

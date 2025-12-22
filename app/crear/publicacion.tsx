@@ -370,6 +370,12 @@ export default function CrearPublicacionScreen() {
   };
 
   const publicar = async () => {
+    // ✅ CRITICAL: Require at least one image for publication
+    if (imagenes.length === 0) {
+      Alert.alert('Error', 'Debes agregar al menos una imagen para publicar');
+      return;
+    }
+    
     if (!contenido.trim() && imagenes.length === 0) {
       Alert.alert('Error', 'Debes agregar contenido o al menos una imagen');
       return;
@@ -563,14 +569,14 @@ export default function CrearPublicacionScreen() {
           <Text style={styles.headerTitle}>Nueva Publicación</Text>
           <TouchableOpacity 
             onPress={publicar} 
-            style={[styles.publishButton, (!contenido.trim() && imagenes.length === 0 || !canPublish) && styles.publishButtonDisabled]}
-            disabled={publishing || (!contenido.trim() && imagenes.length === 0) || !canPublish}
+            style={[styles.publishButton, (imagenes.length === 0 || !canPublish) && styles.publishButtonDisabled]}
+            disabled={publishing || imagenes.length === 0 || !canPublish}
             activeOpacity={0.7}
           >
             {publishing ? (
               <ActivityIndicator size="small" color={colors.headerText} />
             ) : (
-              <Text style={[styles.publishButtonText, (!contenido.trim() && imagenes.length === 0 || !canPublish) && styles.publishButtonTextDisabled]}>
+              <Text style={[styles.publishButtonText, (imagenes.length === 0 || !canPublish) && styles.publishButtonTextDisabled]}>
                 Publicar
               </Text>
             )}
