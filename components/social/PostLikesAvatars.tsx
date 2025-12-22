@@ -71,45 +71,57 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       totalLikes: localLikes.length,
     });
 
+    // ✅ CRITICAL FIX: Load avatars immediately when localLikes changes
     if (localLikes.length > 0) {
       loadLikeUsers();
     } else {
       setLikeUsers([]);
     }
-  }, [localLikesString, user?.id, postId]);
+  }, [localLikesString, user?.id, postId, loadLikeUsers]);
 
   const loadLikeUsers = useCallback(async () => {
     try {
-      console.log('[PostLikesAvatars] 🔄 Loading like users for post:', postId);
+      console.log('[PostLikesAvatars] 🔄 Loading like users for post:', postId, 'localLikes count:', localLikes.length);
+      
+      // ✅ CRITICAL FIX: If we have localLikes, use them to determine which users to fetch
+      // This ensures we fetch the most up-to-date user data based on the current likes
+      const userIds = localLikes.map(like => like.usuario_id).slice(0, 3);
+      
+      if (userIds.length === 0) {
+        setLikeUsers([]);
+        console.log('[PostLikesAvatars] ℹ️ No likes to display');
+        return;
+      }
+      
+      console.log('[PostLikesAvatars] 🔍 Fetching user data for:', userIds);
       
       const { data, error } = await supabase
-        .from('likes')
-        .select(`
-          usuario_id,
-          usuarios!likes_usuario_id_fkey(id, nombre, username, avatar)
-        `)
-        .eq('post_id', postId)
-        .order('created_at', { ascending: false })
-        .limit(3);
+        .from('usuarios')
+        .select('id, nombre, username, avatar')
+        .in('id', userIds);
 
       if (!error && data) {
-        const users = data
-          .filter(like => like.usuarios)
-          .map((like: any) => ({
-            id: like.usuarios.id,
-            nombre: like.usuarios.nombre,
-            username: like.usuarios.username,
-            avatar: like.usuarios.avatar,
+        // ✅ Maintain the order from localLikes
+        const orderedUsers = userIds
+          .map(userId => data.find(u => u.id === userId))
+          .filter(Boolean)
+          .map((user: any) => ({
+            id: user.id,
+            nombre: user.nombre,
+            username: user.username,
+            avatar: user.avatar,
             tipo: 'usuario' as const,
           }));
         
-        setLikeUsers(users);
-        console.log('[PostLikesAvatars] ✅ Loaded', users.length, 'like users:', users.map(u => u.username || u.nombre));
+        setLikeUsers(orderedUsers);
+        console.log('[PostLikesAvatars] ✅ Loaded', orderedUsers.length, 'like users:', orderedUsers.map(u => u.username || u.nombre));
+      } else if (error) {
+        console.error('[PostLikesAvatars] ❌ Error loading like users:', error);
       }
     } catch (error) {
-      console.error('[PostLikesAvatars] Error loading like users:', error);
+      console.error('[PostLikesAvatars] ❌ Exception loading like users:', error);
     }
-  }, [postId]);
+  }, [postId, localLikes]);
 
   const loadAllLikes = useCallback(async () => {
     try {
