@@ -34,6 +34,8 @@ import ImageTaggingOverlay from './ImageTaggingOverlay';
 import TagDisplay from './TagDisplay';
 import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 import { TapGestureHandler, State } from 'react-native-gesture-handler';
+import PostLikesAvatars from './PostLikesAvatars';
+import * as Haptics from 'expo-haptics';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -76,16 +78,13 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v8.0 - HIDE TAG ICON WHEN OPENED FROM PROFILE
+ * ✅ POST VIEWER MODAL v9.0 - UNIFIED LIKES SYSTEM
  * 
  * Key changes:
- * - ✅ NEW: hideTagIcon prop to hide the tag icon when opened from profile grid
- * - ✅ Full tagging mode support (same as profile grid)
- * - ✅ Edit description functionality
- * - ✅ Tag management (add/remove tags)
- * - ✅ Double-tap to like/unlike
- * - ✅ Tagged users display with navigation
- * - ✅ Direct tagging (no need to tap specific point)
+ * - ✅ INTEGRATED: PostLikesAvatars component for consistent likes display
+ * - ✅ UNIFIED: Same optimistic UI and real-time updates as Social Feed
+ * - ✅ CONSISTENT: Dynamic text generation with proper grammar
+ * - ✅ REUSABLE: Single source of truth for likes functionality
  */
 
 export default function PostViewerModal({
@@ -102,6 +101,7 @@ export default function PostViewerModal({
   const router = useRouter();
   const { interactionUserId, interactionLocalId, isInteractingAsLocal } = useInteractionContext();
   const flatListRef = useRef<FlatList>(null);
+  const channelRef = useRef<any>(null);
   
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,7 +129,14 @@ export default function PostViewerModal({
 
   const [authorsWithMomentos, setAuthorsWithMomentos] = useState<Set<string>>(new Set());
 
+  // ✅ NEW: Local state for instant like updates (optimistic UI)
+  const [isLiked, setIsLiked] = useState<Map<string, boolean>>(new Map());
+  const [likesCount, setLikesCount] = useState<Map<string, number>>(new Map());
+  const [localLikes, setLocalLikes] = useState<Map<string, Array<{ id: string; usuario_id: string }>>>(new Map());
+  const likeDebounceTimer = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
   const doubleTapAnimations = useRef<Map<string, { scale: Animated.Value; opacity: Animated.Value }>>(new Map());
+  const likeIconScales = useRef<Map<string, Animated.Value>>(new Map());
 
   const getDoubleTapAnimation = (postId: string) => {
     if (!doubleTapAnimations.current.has(postId)) {
@@ -141,9 +148,16 @@ export default function PostViewerModal({
     return doubleTapAnimations.current.get(postId)!;
   };
 
+  const getLikeIconScale = (postId: string) => {
+    if (!likeIconScales.current.has(postId)) {
+      likeIconScales.current.set(postId, new Animated.Value(1));
+    }
+    return likeIconScales.current.get(postId)!;
+  };
+
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v8.0] Props received:', { 
+      console.log('[PostViewerModal v9.0] Props received:', { 
         visible, 
         initialPostId, 
         singlePost: !!singlePost,
@@ -152,6 +166,114 @@ export default function PostViewerModal({
       });
     }
   }, [visible, allPostIds, initialPostId, singlePost, hideTagIcon]);
+
+  // ✅ NEW: Load initial likes for each post
+  const loadInitialLikes = useCallback(async (postId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('likes')
+        .select('id, usuario_id')
+        .eq('post_id', postId);
+
+      if (!error && data) {
+        setLocalLikes(prev => new Map(prev).set(postId, data));
+        console.log('[PostViewerModal] ✅ Loaded initial likes for post:', postId, 'count:', data.length);
+      }
+    } catch (error) {
+      console.error('[PostViewerModal] Error loading initial likes:', error);
+    }
+  }, []);
+
+  // ✅ NEW: Real-time subscription for likes updates
+  useEffect(() => {
+    if (!user || posts.length === 0) return;
+
+    console.log('[PostViewerModal] 🔄 Setting up real-time likes subscription for', posts.length, 'posts');
+
+    const postIds = posts.map(p => p.id);
+    
+    if (channelRef.current?.state === 'subscribed') {
+      console.log('[PostViewerModal] ⚠️ Already subscribed, skipping');
+      return;
+    }
+
+    const channel = supabase.channel(`post-viewer-likes:${user.id}`);
+    channelRef.current = channel;
+
+    channel
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'likes',
+        },
+        async (payload) => {
+          const postId = payload.new?.post_id || payload.old?.post_id;
+          
+          if (!postIds.includes(postId)) {
+            return;
+          }
+
+          console.log('[PostViewerModal] 🔄 Real-time like change detected:', payload.eventType, 'for post:', postId);
+          
+          const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
+          
+          if (changedByUserId === user.id) {
+            console.log('[PostViewerModal] ⏭️ Change made by current user, skipping (already handled optimistically)');
+            return;
+          }
+          
+          console.log('[PostViewerModal] 🔄 Change made by another user, updating local state...');
+          
+          // ✅ Update local likes array
+          if (payload.eventType === 'INSERT' && payload.new) {
+            setLocalLikes(prev => {
+              const current = prev.get(postId) || [];
+              if (current.some(like => like.id === payload.new.id)) {
+                return prev;
+              }
+              const newArray = [...current, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
+              const newMap = new Map(prev);
+              newMap.set(postId, newArray);
+              console.log('[PostViewerModal] ➕ Added like to local array, new count:', newArray.length);
+              return newMap;
+            });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            setLocalLikes(prev => {
+              const current = prev.get(postId) || [];
+              const newArray = current.filter(like => like.id !== payload.old.id);
+              const newMap = new Map(prev);
+              newMap.set(postId, newArray);
+              console.log('[PostViewerModal] ➖ Removed like from local array, new count:', newArray.length);
+              return newMap;
+            });
+          }
+          
+          // ✅ Fetch updated count from database
+          const { count, error: countError } = await supabase
+            .from('likes')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', postId);
+          
+          if (!countError && count !== null) {
+            console.log('[PostViewerModal] ✅ Updated likes count from database:', count);
+            setLikesCount(prev => new Map(prev).set(postId, count));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[PostViewerModal] 📡 Subscription status:', status);
+      });
+
+    return () => {
+      console.log('[PostViewerModal] 🔄 Cleaning up real-time subscription');
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [user, posts]);
 
   const checkAuthorsMomentos = useCallback(async () => {
     if (!user || posts.length === 0) return;
@@ -208,7 +330,7 @@ export default function PostViewerModal({
       
       // If single post is provided, use it directly
       if (singlePost) {
-        console.log('[PostViewerModal v8.0] Using single post mode');
+        console.log('[PostViewerModal v9.0] Using single post mode');
         
         let liked = false;
         if (interactionUserId) {
@@ -268,12 +390,18 @@ export default function PostViewerModal({
         setPosts([enrichedPost]);
         setCurrentIndex(0);
         setCurrentPostId(singlePost.id);
+        
+        // ✅ Initialize local state for likes
+        setIsLiked(new Map([[singlePost.id, liked]]));
+        setLikesCount(new Map([[singlePost.id, singlePost.likes]]));
+        await loadInitialLikes(singlePost.id);
+        
         setLoading(false);
         return;
       }
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v8.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v9.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -290,7 +418,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v8.0] Error loading posts:', error);
+        console.error('[PostViewerModal v9.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -298,14 +426,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v8.0] Invalid data received:', data);
+        console.error('[PostViewerModal v9.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v8.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v9.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -375,7 +503,7 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v8.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v9.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -383,19 +511,32 @@ export default function PostViewerModal({
 
       setPosts(sortedPosts);
       
+      // ✅ Initialize local state for all posts
+      const likedMap = new Map<string, boolean>();
+      const countMap = new Map<string, number>();
+      
+      sortedPosts.forEach(post => {
+        likedMap.set(post.id, post.liked || false);
+        countMap.set(post.id, post.likes || 0);
+        loadInitialLikes(post.id);
+      });
+      
+      setIsLiked(likedMap);
+      setLikesCount(countMap);
+      
       const initialIdx = sortedPosts.findIndex(p => p.id === initialPostId);
       if (initialIdx !== -1) {
         setCurrentIndex(initialIdx);
         setCurrentPostId(initialPostId || '');
       }
     } catch (error) {
-      console.error('[PostViewerModal v8.0] Error:', error);
+      console.error('[PostViewerModal v9.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
       setLoading(false);
     }
-  }, [allPostIds, initialPostId, singlePost, user, interactionUserId, interactionLocalId, isInteractingAsLocal]);
+  }, [allPostIds, initialPostId, singlePost, user, interactionUserId, interactionLocalId, isInteractingAsLocal, loadInitialLikes]);
 
   useEffect(() => {
     if (visible) {
@@ -429,134 +570,71 @@ export default function PostViewerModal({
     itemVisiblePercentThreshold: 50,
   };
 
-  const toggleLike = async (post: Post) => {
+  const animateLikeIcon = useCallback((postId: string) => {
+    const scale = getLikeIconScale(postId);
+    Animated.sequence([
+      Animated.timing(scale, {
+        toValue: 1.3,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // ✅ UNIFIED: Same like logic as InstagramPostCard
+  const toggleLike = useCallback(async (post: Post) => {
     if (!interactionUserId) {
       Alert.alert('Inicia sesión', 'Para dar me gusta necesitas registrarte en BarLive');
       return;
     }
 
-    const isLiked = post.liked;
-    const currentLikes = post.likes || 0;
-
-    setPosts(prevPosts =>
-      prevPosts.map(p =>
-        p.id === post.id
-          ? { ...p, liked: !isLiked, likes: isLiked ? currentLikes - 1 : currentLikes + 1 }
-          : p
-      )
-    );
-
-    try {
-      if (isLiked) {
-        let deleteQuery = supabase
-          .from('likes')
-          .delete()
-          .eq('post_id', post.id)
-          .eq('usuario_id', interactionUserId);
-
-        if (isInteractingAsLocal && interactionLocalId) {
-          deleteQuery = deleteQuery.eq('local_id', interactionLocalId);
-        } else {
-          deleteQuery = deleteQuery.is('local_id', null);
-        }
-
-        const { error: deleteError } = await deleteQuery;
-        if (deleteError) throw deleteError;
-
-        const newLikesCount = Math.max(0, currentLikes - 1);
-        await supabase.from('posts').update({ likes: newLikesCount }).eq('id', post.id);
-      } else {
-        const likeData: any = {
-          post_id: post.id,
-          usuario_id: interactionUserId,
-        };
-
-        if (isInteractingAsLocal && interactionLocalId) {
-          likeData.local_id = interactionLocalId;
-          likeData.tipo = 'local';
-        } else {
-          likeData.tipo = 'usuario';
-        }
-
-        const { error: insertError } = await supabase.from('likes').insert(likeData);
-        if (insertError) throw insertError;
-
-        const newLikesCount = currentLikes + 1;
-        await supabase.from('posts').update({ likes: newLikesCount }).eq('id', post.id);
-      }
-      
-      if (onUpdate) {
-        onUpdate();
-      }
-    } catch (error) {
-      console.error('[PostViewerModal] Error toggling like:', error);
-      setPosts(prevPosts =>
-        prevPosts.map(p =>
-          p.id === post.id
-            ? { ...p, liked: isLiked, likes: currentLikes }
-            : p
-        )
-      );
-      Alert.alert('Error', 'No se pudo actualizar el me gusta');
+    const newLikedState = !isLiked.get(post.id);
+    const previousLiked = isLiked.get(post.id) || false;
+    const previousCount = likesCount.get(post.id) || 0;
+    const previousLocalLikes = localLikes.get(post.id) || [];
+    
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else {
+      Haptics.selectionAsync();
     }
-  };
 
-  const handleDoubleTap = useCallback(async (post: Post, event: any) => {
-    if (event.nativeEvent.state === State.ACTIVE) {
-      if (!interactionUserId) {
-        Alert.alert('Inicia sesión', 'Para dar me gusta necesitas registrarte en BarLive');
-        return;
-      }
+    if (newLikedState) {
+      animateLikeIcon(post.id);
+    }
 
-      const isLiked = post.liked;
-      const currentLikes = post.likes || 0;
+    // ✅ INSTANT UPDATE: Modify local state immediately (< 100ms)
+    setIsLiked(prev => new Map(prev).set(post.id, newLikedState));
+    setLikesCount(prev => new Map(prev).set(post.id, newLikedState ? previousCount + 1 : Math.max(0, previousCount - 1)));
+    
+    // ✅ CRITICAL: Modify local likes array INSTANTLY
+    if (newLikedState) {
+      const tempId = `temp-${Date.now()}`;
+      const newArray = [...previousLocalLikes, { id: tempId, usuario_id: interactionUserId }];
+      setLocalLikes(prev => new Map(prev).set(post.id, newArray));
+      console.log('[PostViewerModal] ✅ Optimistic ADD: Local likes array updated instantly, new count:', newArray.length);
+    } else {
+      const newArray = previousLocalLikes.filter(like => like.usuario_id !== interactionUserId);
+      setLocalLikes(prev => new Map(prev).set(post.id, newArray));
+      console.log('[PostViewerModal] ✅ Optimistic REMOVE: Local likes array updated instantly, new count:', newArray.length);
+    }
 
-      setPosts(prevPosts =>
-        prevPosts.map(p =>
-          p.id === post.id
-            ? { ...p, liked: !isLiked, likes: isLiked ? currentLikes - 1 : currentLikes + 1 }
-            : p
-        )
-      );
+    // Clear existing debounce timer for this post
+    const existingTimer = likeDebounceTimer.current.get(post.id);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
 
-      const anim = getDoubleTapAnimation(post.id);
-      anim.scale.setValue(0);
-      anim.opacity.setValue(1);
-      
-      Animated.parallel([
-        Animated.spring(anim.scale, {
-          toValue: 1,
-          friction: 3,
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim.opacity, {
-          toValue: 0,
-          duration: 800,
-          delay: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-
+    const timer = setTimeout(async () => {
       try {
-        if (isLiked) {
-          let deleteQuery = supabase
-            .from('likes')
-            .delete()
-            .eq('post_id', post.id)
-            .eq('usuario_id', interactionUserId);
-
-          if (isInteractingAsLocal && interactionLocalId) {
-            deleteQuery = deleteQuery.eq('local_id', interactionLocalId);
-          } else {
-            deleteQuery = deleteQuery.is('local_id', null);
-          }
-
-          const { error: deleteError } = await deleteQuery;
-          if (deleteError) throw deleteError;
-
-          const newLikesCount = Math.max(0, currentLikes - 1);
-          await supabase.from('posts').update({ likes: newLikesCount }).eq('id', post.id);
-        } else {
+        if (newLikedState) {
+          console.log('[PostViewerModal] ➕ Adding like to database for post:', post.id);
+          
           const likeData: any = {
             post_id: post.id,
             usuario_id: interactionUserId,
@@ -569,29 +647,109 @@ export default function PostViewerModal({
             likeData.tipo = 'usuario';
           }
 
-          const { error: insertError } = await supabase.from('likes').insert(likeData);
-          if (insertError) throw insertError;
+          const { data, error } = await supabase.from('likes').insert(likeData).select().single();
+          
+          if (error) {
+            console.error('[PostViewerModal] ❌ Error adding like:', error);
+            throw error;
+          }
+          
+          // ✅ Replace temp ID with real ID from database
+          setLocalLikes(prev => {
+            const current = prev.get(post.id) || [];
+            const updated = current.map(like => 
+              like.usuario_id === interactionUserId && like.id.startsWith('temp-')
+                ? { id: data.id, usuario_id: interactionUserId }
+                : like
+            );
+            return new Map(prev).set(post.id, updated);
+          });
+          
+          console.log('[PostViewerModal] ✅ Like added successfully, real ID:', data.id);
+        } else {
+          console.log('[PostViewerModal] ➖ Removing like from database for post:', post.id);
+          
+          let deleteQuery = supabase
+            .from('likes')
+            .delete()
+            .eq('post_id', post.id)
+            .eq('usuario_id', interactionUserId);
 
-          const newLikesCount = currentLikes + 1;
-          await supabase.from('posts').update({ likes: newLikesCount }).eq('id', post.id);
+          if (isInteractingAsLocal && interactionLocalId) {
+            deleteQuery = deleteQuery.eq('local_id', interactionLocalId);
+          } else {
+            deleteQuery = deleteQuery.is('local_id', null);
+          }
+
+          const { error } = await deleteQuery;
+          
+          if (error) {
+            console.error('[PostViewerModal] ❌ Error removing like:', error);
+            throw error;
+          }
+          
+          console.log('[PostViewerModal] ✅ Like removed successfully from database');
+        }
+
+        // ✅ Verify final count from database
+        const { count, error: countError } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+        
+        if (!countError && count !== null) {
+          console.log('[PostViewerModal] ✅ Verified final count from database:', count);
+          setLikesCount(prev => new Map(prev).set(post.id, count));
         }
         
         if (onUpdate) {
           onUpdate();
         }
       } catch (error) {
-        console.error('[PostViewerModal] Error toggling like:', error);
-        setPosts(prevPosts =>
-          prevPosts.map(p =>
-            p.id === post.id
-              ? { ...p, liked: isLiked, likes: currentLikes }
-              : p
-          )
-        );
-        Alert.alert('Error', 'No se pudo actualizar el me gusta');
+        console.error('[PostViewerModal] ❌ Error toggling like:', error);
+        // ✅ Rollback on error
+        setIsLiked(prev => new Map(prev).set(post.id, previousLiked));
+        setLikesCount(prev => new Map(prev).set(post.id, previousCount));
+        setLocalLikes(prev => new Map(prev).set(post.id, previousLocalLikes));
+        Alert.alert('Error', 'No se pudo actualizar el me gusta. Intenta de nuevo.');
+      }
+    }, 300);
+
+    likeDebounceTimer.current.set(post.id, timer);
+  }, [interactionUserId, interactionLocalId, isInteractingAsLocal, isLiked, likesCount, localLikes, animateLikeIcon, onUpdate]);
+
+  const handleDoubleTap = useCallback(async (post: Post, event: any) => {
+    if (event.nativeEvent.state === State.ACTIVE) {
+      if (!interactionUserId) {
+        Alert.alert('Inicia sesión', 'Para dar me gusta necesitas registrarte en BarLive');
+        return;
+      }
+
+      const currentLiked = isLiked.get(post.id) || false;
+
+      if (!currentLiked) {
+        const anim = getDoubleTapAnimation(post.id);
+        anim.scale.setValue(0);
+        anim.opacity.setValue(1);
+        
+        Animated.parallel([
+          Animated.spring(anim.scale, {
+            toValue: 1,
+            friction: 3,
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim.opacity, {
+            toValue: 0,
+            duration: 800,
+            delay: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
+
+        await toggleLike(post);
       }
     }
-  }, [interactionUserId, interactionLocalId, isInteractingAsLocal, onUpdate]);
+  }, [interactionUserId, isLiked, toggleLike]);
 
   const toggleSave = async (post: Post) => {
     if (!user) {
@@ -978,8 +1136,12 @@ export default function PostViewerModal({
       : description;
 
     const anim = getDoubleTapAnimation(post.id);
+    const likeScale = getLikeIconScale(post.id);
 
     const postTaggedUsers = taggedUsers.get(post.id) || [];
+    const postIsLiked = isLiked.get(post.id) || false;
+    const postLikesCount = likesCount.get(post.id) || 0;
+    const postLocalLikes = localLikes.get(post.id) || [];
 
     return (
       <View style={styles.postContainer}>
@@ -1043,7 +1205,6 @@ export default function PostViewerModal({
             />
             <Text style={styles.authorName}>{post.autorNombre}</Text>
           </TouchableOpacity>
-          {/* ✅ FIXED: Hide options button when hideTagIcon is true (opened from profile grid) */}
           {isOwner && !hideTagIcon && (
             <TouchableOpacity 
               style={styles.optionsButton}
@@ -1137,12 +1298,14 @@ export default function PostViewerModal({
         <View style={styles.postActions}>
           <View style={styles.leftActions}>
             <TouchableOpacity style={styles.actionButton} onPress={() => toggleLike(post)}>
-              <IconSymbol
-                ios_icon_name={post.liked ? 'heart.fill' : 'heart'}
-                android_material_icon_name={post.liked ? 'favorite' : 'favorite_border'}
-                size={28}
-                color={post.liked ? '#EF4444' : colors.text}
-              />
+              <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+                <IconSymbol
+                  ios_icon_name={postIsLiked ? 'heart.fill' : 'heart'}
+                  android_material_icon_name={postIsLiked ? 'favorite' : 'favorite_border'}
+                  size={28}
+                  color={postIsLiked ? '#EF4444' : colors.text}
+                />
+              </Animated.View>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.actionButton}
@@ -1172,12 +1335,13 @@ export default function PostViewerModal({
           </TouchableOpacity>
         </View>
 
-        {post.likes > 0 && (
-          <View style={styles.likesContainer}>
-            <Text style={styles.likesText}>
-              <Text style={styles.likesBold}>{post.likes}</Text> Me gusta
-            </Text>
-          </View>
+        {/* ✅ UNIFIED: Use PostLikesAvatars component for consistent display */}
+        {postLikesCount > 0 && (
+          <PostLikesAvatars 
+            postId={post.id} 
+            totalLikes={postLikesCount}
+            localLikes={postLocalLikes}
+          />
         )}
 
         {description && (
@@ -1238,6 +1402,7 @@ export default function PostViewerModal({
       visible={visible}
       transparent={false}
       animationType="slide"
+      presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
       <View style={styles.container}>
@@ -1606,17 +1771,6 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     padding: 8,
-  },
-  likesContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 4,
-  },
-  likesText: {
-    fontSize: 14,
-    color: colors.text,
-  },
-  likesBold: {
-    fontWeight: '700',
   },
   postContent: {
     paddingHorizontal: 16,
