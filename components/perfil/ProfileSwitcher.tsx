@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useMode } from '@/contexts/ModeContext';
@@ -30,7 +29,6 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
   const {
     activeProfileId,
     activeProfileType,
-    activeLocalData,
     switchToClientProfile,
     switchToLocalProfile,
   } = useMode();
@@ -38,23 +36,18 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
   const [ownedLocals, setOwnedLocals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // ✅ FIXED: Removed loadOwnedLocals from dependency array to prevent infinite loop
-  useEffect(() => {
-    if (visible && user) {
-      console.log('[ProfileSwitcher] 🔄 Modal opened, loading owned locals');
-      loadOwnedLocals();
+  // ✅ CRITICAL FIX: Memoize loadOwnedLocals to prevent re-creation on every render
+  const loadOwnedLocals = useCallback(async () => {
+    if (!user?.id) {
+      console.log('[ProfileSwitcher] ⚠️ No user ID, skipping load');
+      return;
     }
-  }, [visible, user?.id]); // Only depend on visible and user.id
-
-  // ✅ FIXED: Load ONLY active owned locals from propietarios_locales table
-  const loadOwnedLocals = async () => {
-    if (!user) return;
 
     try {
       setLoading(true);
       console.log('[ProfileSwitcher] 🔄 Loading owned locals for user:', user.id);
 
-      // ✅ FIXED: Query propietarios_locales table to get ONLY active owned locals
+      // Query propietarios_locales table to get ONLY active owned locals
       const { data: propietariosData, error: propietariosError } = await supabase
         .from('propietarios_locales')
         .select(`
@@ -76,23 +69,33 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
         return;
       }
 
-      // ✅ FIXED: Filter to only include active locals
+      // Filter to only include active locals
       const activeOwnedLocals = (propietariosData || [])
         .filter(p => p.locales && p.locales.activo === true)
         .map(p => p.locales);
 
       console.log('[ProfileSwitcher] ✅ Loaded', activeOwnedLocals.length, 'active owned locals');
-      console.log('[ProfileSwitcher] 📊 Owned locals:', activeOwnedLocals.map(l => ({ id: l.id, nombre: l.nombre })));
-
       setOwnedLocals(activeOwnedLocals);
     } catch (error) {
       console.error('[ProfileSwitcher] ❌ Error loading owned locals:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]); // Only depend on user.id
 
-  const handleSwitchToClient = async () => {
+  // ✅ CRITICAL FIX: Only load when modal becomes visible
+  useEffect(() => {
+    if (visible) {
+      console.log('[ProfileSwitcher] 🔄 Modal opened, loading owned locals');
+      loadOwnedLocals();
+    } else {
+      // Reset state when modal closes to prevent stale data
+      console.log('[ProfileSwitcher] 🔄 Modal closed, resetting state');
+    }
+  }, [visible, loadOwnedLocals]);
+
+  // ✅ OPTIMIZATION: Memoize handlers to prevent re-creation
+  const handleSwitchToClient = useCallback(async () => {
     setSwitching(true);
     try {
       console.log('[ProfileSwitcher] 🔄 Switching to client profile');
@@ -110,9 +113,9 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
     } finally {
       setSwitching(false);
     }
-  };
+  }, [switchToClientProfile, onClose, router]);
 
-  const handleSwitchToLocal = async (localId: string) => {
+  const handleSwitchToLocal = useCallback(async (localId: string) => {
     setSwitching(true);
     try {
       console.log('[ProfileSwitcher] 🔄 Switching to local profile:', localId);
@@ -130,12 +133,14 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
     } finally {
       setSwitching(false);
     }
-  };
+  }, [switchToLocalProfile, onClose, router]);
+
+  // ✅ OPTIMIZATION: Memoize active profile check
+  const isClientActive = useMemo(() => {
+    return activeProfileType === 'cliente' && activeProfileId === user?.id;
+  }, [activeProfileType, activeProfileId, user?.id]);
 
   if (!user) return null;
-
-  // ✅ FIXED: Determine if client profile is active
-  const isClientActive = activeProfileType === 'cliente' && activeProfileId === user.id;
 
   return (
     <Modal
@@ -196,7 +201,6 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
                   </View>
 
                   {ownedLocals.map((local) => {
-                    // ✅ FIXED: Check if this local is active
                     const isActive = activeProfileType === 'local' && activeProfileId === local.id;
                     
                     return (
