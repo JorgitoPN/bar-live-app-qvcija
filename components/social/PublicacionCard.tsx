@@ -32,6 +32,7 @@ import SharePostModal from '@/components/social/SharePostModal';
 import PostLikesAvatars from '@/components/social/PostLikesAvatars';
 import TagDisplay from '@/components/social/TagDisplay';
 import TaggingModalV5, { TaggableUser } from '@/components/social/TaggingModalV5';
+import ReportModal from '@/components/social/ReportModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TapGestureHandler, State } from 'react-native-gesture-handler';
 
@@ -71,19 +72,20 @@ interface PublicacionCardProps {
 }
 
 /**
- * ✅ PUBLICACION CARD v8.0 - FIXED INVERTED OPTIMISTIC UI LOGIC
+ * ✅ PUBLICACION CARD v9.0 - REPORT SYSTEM INTEGRATED
  * 
- * CRITICAL FIX:
- * - ✅ FIXED: Corrected optimistic UI logic for like/unlike
- * - ✅ When liked is FALSE (user is liking): ADD avatar to array
- * - ✅ When liked is TRUE (user is unliking): REMOVE avatar from array
- * - ✅ Added detailed logging to track state changes
+ * NEW FEATURES:
+ * - ✅ Report functionality for posts
+ * - ✅ Integrated ReportModal component
+ * - ✅ Report option in post options menu
+ * - ✅ Non-owners can report posts
  * 
- * Changes:
- * - ✅ ADDED: Comment count display with proper text ("Ver comentario" / "Ver comentarios")
- * - ✅ ADDED: "Sé el primero en comentar" when no comments
- * - ✅ UNIFIED: Same comment display as InstagramPostCard and PostViewerModal
- * - ✅ Maintains all existing functionality
+ * EXISTING FEATURES:
+ * - ✅ Optimistic UI for likes
+ * - ✅ Real-time synchronization
+ * - ✅ Comment count display
+ * - ✅ Tag management
+ * - ✅ Edit and delete functionality
  */
 
 const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
@@ -113,10 +115,12 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
   const [taggedUsers, setTaggedUsers] = useState<TaggableUser[]>([]);
 
+  // ✅ NEW: Report modal state
+  const [showReportModal, setShowReportModal] = useState(false);
+
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
-  // ✅ CRITICAL: Local likes array for instant updates
   const [localLikes, setLocalLikes] = useState<{ id: string; usuario_id: string }[]>([]);
   const likeDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const channelRef = useRef<any>(null);
@@ -171,7 +175,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     loadTaggedUsers();
   }, [loadTaggedUsers]);
 
-  // ✅ Load initial likes array
   useEffect(() => {
     const loadInitialLikes = async () => {
       try {
@@ -194,7 +197,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     loadInitialLikes();
   }, [post.id]);
 
-  // ✅ Real-time subscription for OTHER users' changes
   useEffect(() => {
     if (!user) return;
 
@@ -229,7 +231,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           
           console.log('[PublicacionCard] 🔄 Change made by another user, updating...');
           
-          // ✅ Update local likes array
           if (payload.eventType === 'INSERT' && payload.new) {
             setLocalLikes(prev => {
               if (prev.some(like => like.id === payload.new.id)) {
@@ -247,7 +248,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             });
           }
           
-          // ✅ Fetch updated count
           const { count, error: countError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
@@ -270,7 +270,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         async (payload) => {
           console.log('[PublicacionCard] 🔄 Real-time comment change detected:', payload.eventType);
           
-          // ✅ Reload comment count
           const { count, error: countError } = await supabase
             .from('comentarios')
             .select('id', { count: 'exact', head: true })
@@ -295,14 +294,12 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     };
   }, [post.id, user]);
 
-  // ✅ CRITICAL FIX: Corrected optimistic UI logic
   const handleLike = useCallback(async () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
       return;
     }
 
-    // ✅ CRITICAL: Determine new state BEFORE any updates
     const newLikedState = !liked;
     const previousLiked = liked;
     const previousCount = likesCount;
@@ -317,26 +314,21 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       action: newLikedState ? 'LIKING' : 'UNLIKING',
     });
     
-    // ✅ STEP 1: Update liked state
     setLiked(newLikedState);
     console.log('[PublicacionCard] ✅ Step 1: Updated liked to:', newLikedState);
     
-    // ✅ STEP 2: Update count
     const newCount = newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1);
     setLikesCount(newCount);
     console.log('[PublicacionCard] ✅ Step 2: Updated count from', likesCount, 'to', newCount);
     
-    // ✅ STEP 3: Update local likes array based on action
     let newLocalLikes: { id: string; usuario_id: string }[];
     
     if (newLikedState) {
-      // ✅ User is LIKING → ADD avatar
       const tempId = `temp-${Date.now()}`;
       newLocalLikes = [...localLikes, { id: tempId, usuario_id: user.id }];
       console.log('[PublicacionCard] ➕ Step 3: LIKING - Adding avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
       console.log('[PublicacionCard] ➕ Added user:', user.id, 'with temp ID:', tempId);
     } else {
-      // ✅ User is UNLIKING → REMOVE avatar
       newLocalLikes = localLikes.filter(like => like.usuario_id !== user.id);
       console.log('[PublicacionCard] ➖ Step 3: UNLIKING - Removing avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
       console.log('[PublicacionCard] ➖ Removed user:', user.id);
@@ -361,7 +353,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           
           if (error) throw error;
           
-          // ✅ Replace temp ID with real ID
           setLocalLikes(prev => prev.map(like => 
             like.usuario_id === user.id && like.id.startsWith('temp-')
               ? { id: data.id, usuario_id: user.id }
@@ -383,7 +374,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           console.log('[PublicacionCard] ✅ Database: Like removed');
         }
 
-        // ✅ Verify final count
         const { count, error: countError } = await supabase
           .from('likes')
           .select('id', { count: 'exact', head: true })
@@ -395,7 +385,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         }
       } catch (error) {
         console.error('[PublicacionCard] ❌ Error toggling like:', error);
-        // ✅ Rollback on error
         console.log('[PublicacionCard] 🔄 Rolling back to previous state');
         setLiked(previousLiked);
         setLikesCount(previousCount);
@@ -734,7 +723,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       console.log('[PublicacionCard] ✅ Tag request created');
       
-      // ✅ FIXED: Send notification to tagged user
       if (selectedUser.tipo === 'usuario') {
         await supabase.from('notificaciones').insert({
           usuario_id: selectedUser.id,
@@ -761,30 +749,59 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [user, post.id, loadExistingTags, loadTaggedUsers, onUpdate]);
 
+  // ✅ NEW: Report post functionality
+  const handleReportPost = useCallback(() => {
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
+      return;
+    }
+
+    setShowReportModal(true);
+  }, [user]);
+
   const showOptions = useCallback(() => {
     const canEdit = user && (
       (post.tipo === 'usuario' && post.autor_id === user.id) ||
       (post.tipo === 'local' && interactionLocalId === post.local_id)
     );
 
-    if (!canEdit) return;
+    const isOwner = user && (
+      (post.tipo === 'usuario' && post.autor_id === user.id) ||
+      (post.tipo === 'local' && interactionLocalId === post.local_id)
+    );
 
-    const options = ['Editar descripción', 'Gestionar etiquetas', 'Eliminar publicación', 'Cancelar'];
+    const options: string[] = [];
+    const actions: (() => void)[] = [];
+
+    // ✅ NEW: Report option for non-owners
+    if (user && !isOwner) {
+      options.push('Reportar');
+      actions.push(handleReportPost);
+    }
+
+    if (canEdit) {
+      options.push('Editar descripción');
+      actions.push(handleEditDescription);
+
+      options.push('Gestionar etiquetas');
+      actions.push(handleManageTags);
+
+      options.push('Eliminar publicación');
+      actions.push(handleDeletePost);
+    }
+
+    options.push('Cancelar');
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options,
-          cancelButtonIndex: 3,
-          destructiveButtonIndex: 2,
+          cancelButtonIndex: options.length - 1,
+          destructiveButtonIndex: options.findIndex(o => o.includes('Eliminar')),
         },
         (buttonIndex) => {
-          if (buttonIndex === 0) {
-            handleEditDescription();
-          } else if (buttonIndex === 1) {
-            handleManageTags();
-          } else if (buttonIndex === 2) {
-            handleDeletePost();
+          if (buttonIndex < actions.length) {
+            actions[buttonIndex]();
           }
         }
       );
@@ -792,28 +809,14 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       Alert.alert(
         'Opciones',
         '',
-        [
-          {
-            text: 'Editar descripción',
-            onPress: handleEditDescription,
-          },
-          {
-            text: 'Gestionar etiquetas',
-            onPress: handleManageTags,
-          },
-          {
-            text: 'Eliminar publicación',
-            style: 'destructive',
-            onPress: handleDeletePost,
-          },
-          {
-            text: 'Cancelar',
-            style: 'cancel',
-          },
-        ]
+        options.map((option, index) => ({
+          text: option,
+          style: option.includes('Eliminar') ? 'destructive' : option === 'Cancelar' ? 'cancel' : 'default',
+          onPress: index < actions.length ? actions[index] : undefined,
+        }))
       );
     }
-  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription, handleManageTags]);
+  }, [user, post, interactionLocalId, handleDeletePost, handleEditDescription, handleManageTags, handleReportPost]);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -913,7 +916,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             <Text style={styles.timestamp}>{formatTimeAgo(post.created_at)}</Text>
           </View>
         </TouchableOpacity>
-        {canEdit && (
+        {(canEdit || user) && (
           <TouchableOpacity style={styles.optionsButton} onPress={showOptions} activeOpacity={0.7}>
             <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={24} color={colors.text} />
           </TouchableOpacity>
@@ -1034,7 +1037,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ UNIFIED: Pass localLikes array for instant reactivity */}
       {likesCount > 0 && (
         <PostLikesAvatars 
           postId={post.id} 
@@ -1049,7 +1051,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </View>
       )}
 
-      {/* ✅ ADDED: Comment count display with proper text */}
       <TouchableOpacity 
         style={styles.commentsContainer}
         onPress={handleComment}
@@ -1082,6 +1083,14 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         postAuthorName={displayName}
         postAuthorAvatar={displayAvatar}
         onClose={() => setShareModalVisible(false)}
+      />
+
+      {/* ✅ NEW: Report modal for posts */}
+      <ReportModal
+        visible={showReportModal}
+        contentType="post"
+        contentId={post.id}
+        onClose={() => setShowReportModal(false)}
       />
 
       <Modal
