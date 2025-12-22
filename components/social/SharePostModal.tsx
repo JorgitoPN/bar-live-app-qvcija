@@ -207,13 +207,14 @@ export default function SharePostModal({
       // Upload post preview image to Supabase Storage
       if (postPreviewUri) {
         try {
+          // ✅ FIX: Use arrayBuffer instead of blob for React Native compatibility
           const response = await fetch(postPreviewUri);
-          const blob = await response.blob();
+          const arrayBuffer = await response.arrayBuffer();
           const fileName = `post-preview-${postId}-${Date.now()}.jpg`;
           
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('post-previews')
-            .upload(fileName, blob, {
+            .upload(fileName, arrayBuffer, {
               contentType: 'image/jpeg',
               cacheControl: '3600',
             });
