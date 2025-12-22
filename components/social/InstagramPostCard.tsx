@@ -71,13 +71,13 @@ export default function InstagramPostCard({
   const channelRef = useRef<any>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  // ✅ FIXED: Local state for instant reactivity
+  // ✅ Local state for instant reactivity
   const [isLiked, setIsLiked] = useState(post.user_has_liked);
   const [isSaved, setIsSaved] = useState(post.user_has_saved);
   const [likesCount, setLikesCount] = useState(post.likes_count);
   const [commentsCount, setCommentsCount] = useState(post.comentarios_count);
   
-  // ✅ NEW: Local likes array for instant updates
+  // ✅ CRITICAL: Local likes array for instant updates
   const [localLikes, setLocalLikes] = useState<Array<{ id: string; usuario_id: string }>>([]);
   
   const [showPostViewer, setShowPostViewer] = useState(false);
@@ -99,7 +99,7 @@ export default function InstagramPostCard({
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ FIXED: Load initial likes array
+  // ✅ Load initial likes array
   useEffect(() => {
     const loadInitialLikes = async () => {
       try {
@@ -110,7 +110,7 @@ export default function InstagramPostCard({
 
         if (!error && data) {
           setLocalLikes(data);
-          console.log('[InstagramPostCard] ✅ Loaded initial likes:', data.length);
+          console.log('[InstagramPostCard] ✅ Loaded initial likes:', data.length, 'users:', data.map(l => l.usuario_id));
         }
       } catch (error) {
         console.error('[InstagramPostCard] Error loading initial likes:', error);
@@ -120,7 +120,7 @@ export default function InstagramPostCard({
     loadInitialLikes();
   }, [post.id]);
 
-  // ✅ FIXED: Real-time subscription for OTHER users' changes
+  // ✅ Real-time subscription for OTHER users' changes
   useEffect(() => {
     if (!user) return;
 
@@ -142,7 +142,7 @@ export default function InstagramPostCard({
           event: '*',
           schema: 'public',
           table: 'likes',
-          filter: `post_id=eq.${postId}`,
+          filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
           console.log('[InstagramPostCard] 🔄 Real-time like change detected:', payload.eventType, 'by user:', payload.new?.usuario_id || payload.old?.usuario_id);
@@ -162,10 +162,16 @@ export default function InstagramPostCard({
               if (prev.some(like => like.id === payload.new.id)) {
                 return prev;
               }
-              return [...prev, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
+              const newArray = [...prev, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
+              console.log('[InstagramPostCard] ➕ Added like to local array, new count:', newArray.length);
+              return newArray;
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            setLocalLikes(prev => prev.filter(like => like.id !== payload.old.id));
+            setLocalLikes(prev => {
+              const newArray = prev.filter(like => like.id !== payload.old.id);
+              console.log('[InstagramPostCard] ➖ Removed like from local array, new count:', newArray.length);
+              return newArray;
+            });
           }
           
           // ✅ Fetch updated count from database
@@ -300,7 +306,7 @@ export default function InstagramPostCard({
     setShowPostViewer(true);
   };
 
-  // ✅ FIXED: Optimistic UI with instant local state updates
+  // ✅ CRITICAL FIX: Optimistic UI with instant local state updates
   const handleLike = useCallback(async () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
@@ -337,15 +343,17 @@ export default function InstagramPostCard({
     setIsLiked(newLikedState);
     setLikesCount(newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1));
     
-    // ✅ INSTANT UPDATE: Modify local likes array
+    // ✅ CRITICAL: Modify local likes array INSTANTLY
     if (newLikedState) {
       const tempId = `temp-${Date.now()}`;
-      setLocalLikes(prev => [...prev, { id: tempId, usuario_id: user.id }]);
+      const newArray = [...localLikes, { id: tempId, usuario_id: user.id }];
+      setLocalLikes(newArray);
+      console.log('[InstagramPostCard] ✅ Optimistic ADD: Local likes array updated instantly, new count:', newArray.length);
     } else {
-      setLocalLikes(prev => prev.filter(like => like.usuario_id !== user.id));
+      const newArray = localLikes.filter(like => like.usuario_id !== user.id);
+      setLocalLikes(newArray);
+      console.log('[InstagramPostCard] ✅ Optimistic REMOVE: Local likes array updated instantly, new count:', newArray.length);
     }
-
-    console.log('[InstagramPostCard] ✅ Optimistic update applied instantly');
 
     if (likeDebounceTimer.current) {
       clearTimeout(likeDebounceTimer.current);
@@ -354,7 +362,7 @@ export default function InstagramPostCard({
     likeDebounceTimer.current = setTimeout(async () => {
       try {
         if (newLikedState) {
-          console.log('[InstagramPostCard] ➕ Adding like to post:', post.id);
+          console.log('[InstagramPostCard] ➕ Adding like to database for post:', post.id);
           
           const { data, error } = await supabase.from('likes').insert({
             post_id: post.id,
@@ -366,16 +374,16 @@ export default function InstagramPostCard({
             throw error;
           }
           
-          // ✅ Replace temp ID with real ID
+          // ✅ Replace temp ID with real ID from database
           setLocalLikes(prev => prev.map(like => 
             like.usuario_id === user.id && like.id.startsWith('temp-')
               ? { id: data.id, usuario_id: user.id }
               : like
           ));
           
-          console.log('[InstagramPostCard] ✅ Like added successfully');
+          console.log('[InstagramPostCard] ✅ Like added successfully, real ID:', data.id);
         } else {
-          console.log('[InstagramPostCard] ➖ Removing like from post:', post.id);
+          console.log('[InstagramPostCard] ➖ Removing like from database for post:', post.id);
           
           const { error } = await supabase
             .from('likes')
@@ -388,9 +396,10 @@ export default function InstagramPostCard({
             throw error;
           }
           
-          console.log('[InstagramPostCard] ✅ Like removed successfully');
+          console.log('[InstagramPostCard] ✅ Like removed successfully from database');
         }
 
+        // ✅ Verify final count from database
         const { count, error: countError } = await supabase
           .from('likes')
           .select('id', { count: 'exact', head: true })
@@ -829,7 +838,7 @@ export default function InstagramPostCard({
         visible={showShareModal}
         postId={post.id}
         postContent={post.contenido}
-        onClose={() => setShowShareModal(false)}
+        onClose={() => setShareShareModal(false)}
       />
     </>
   );

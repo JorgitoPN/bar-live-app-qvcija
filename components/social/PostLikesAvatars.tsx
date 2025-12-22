@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 interface PostLikesAvatarsProps {
   postId: string;
   totalLikes: number;
-  // ✅ NEW: Accept local likes array for instant updates
+  // ✅ Accept local likes array for instant updates
   localLikes?: Array<{ id: string; usuario_id: string }>;
 }
 
@@ -36,16 +36,21 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
   const [currentTotalLikes, setCurrentTotalLikes] = useState(totalLikes);
   const [currentUserHasLiked, setCurrentUserHasLiked] = useState(false);
 
-  // ✅ FIXED: Update from localLikes prop (instant reactivity)
+  // ✅ CRITICAL FIX: Update from localLikes prop and reload users immediately
   useEffect(() => {
     if (localLikes && user) {
       const userLiked = localLikes.some(like => like.usuario_id === user.id);
       setCurrentUserHasLiked(userLiked);
       setCurrentTotalLikes(localLikes.length);
+      
       console.log('[PostLikesAvatars] 🔄 Updated from localLikes:', {
         count: localLikes.length,
         userLiked,
+        userIds: localLikes.map(l => l.usuario_id),
       });
+      
+      // ✅ CRITICAL: Reload the display users immediately when localLikes changes
+      loadLikeUsers();
     }
   }, [localLikes, user]);
 
@@ -73,8 +78,9 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
             avatar: like.usuarios.avatar,
             tipo: 'usuario' as const,
           }));
+        
         setLikeUsers(users);
-        console.log('[PostLikesAvatars] ✅ Loaded', users.length, 'like users for display');
+        console.log('[PostLikesAvatars] ✅ Loaded', users.length, 'like users:', users.map(u => u.username || u.nombre));
       }
     } catch (error) {
       console.error('[PostLikesAvatars] Error loading like users:', error);
@@ -116,7 +122,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
     loadLikeUsers();
   }, [loadLikeUsers]);
 
-  // ✅ FIXED: Real-time subscription for OTHER users' changes
+  // ✅ Real-time subscription for OTHER users' changes
   useEffect(() => {
     if (!user) return;
 
@@ -220,34 +226,47 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
     return null;
   }
 
-  // ✅ FIXED: Instagram-like text rendering with proper Spanish grammar
+  // ✅ CRITICAL FIX: Dynamic text generation based on REAL-TIME array state
   const getLikesText = () => {
-    // ✅ Case 1: Current user has liked
+    // ✅ Filter out current user from the display array
+    const otherUsers = likeUsers.filter(u => u.id !== user?.id);
+    
+    console.log('[PostLikesAvatars] 📊 Generating text:', {
+      currentUserHasLiked,
+      currentTotalLikes,
+      likeUsersCount: likeUsers.length,
+      otherUsersCount: otherUsers.length,
+      likeUsers: likeUsers.map(u => ({ id: u.id, name: u.username || u.nombre })),
+      otherUsers: otherUsers.map(u => ({ id: u.id, name: u.username || u.nombre })),
+    });
+
+    // ✅ Case 1: Current user HAS liked
     if (currentUserHasLiked) {
       if (currentTotalLikes === 1) {
+        // Only current user
         return (
           <Text style={styles.likesText}>
             A <Text style={styles.usernameLink}>ti</Text> te gusta esto
           </Text>
         );
-      } else if (currentTotalLikes === 2) {
-        const otherUser = likeUsers.find(u => u.id !== user?.id);
-        if (otherUser) {
-          const username = otherUser.username || otherUser.nombre;
-          return (
-            <Text style={styles.likesText}>
-              A <Text style={styles.usernameLink}>ti</Text> y a{' '}
-              <Text 
-                style={styles.usernameLink}
-                onPress={() => handleUserPress(otherUser.id, otherUser.tipo)}
-              >
-                {username}
-              </Text>
-              {' '}les gusta esto
+      } else if (currentTotalLikes === 2 && otherUsers.length > 0) {
+        // Current user + 1 other
+        const otherUser = otherUsers[0];
+        const username = otherUser.username || otherUser.nombre;
+        return (
+          <Text style={styles.likesText}>
+            A <Text style={styles.usernameLink}>ti</Text> y a{' '}
+            <Text 
+              style={styles.usernameLink}
+              onPress={() => handleUserPress(otherUser.id, otherUser.tipo)}
+            >
+              {username}
             </Text>
-          );
-        }
+            {' '}les gusta esto
+          </Text>
+        );
       } else {
+        // Current user + multiple others
         const others = currentTotalLikes - 1;
         return (
           <Text style={styles.likesText}>
@@ -262,14 +281,16 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
     }
 
     // ✅ Case 2: Current user has NOT liked - FIXED GRAMMAR
-    if (currentTotalLikes === 1 && likeUsers.length > 0) {
-      const username = likeUsers[0].username || likeUsers[0].nombre;
+    // Use otherUsers array (which excludes current user) for display
+    if (currentTotalLikes === 1 && otherUsers.length > 0) {
+      // Exactly 1 person (not current user)
+      const username = otherUsers[0].username || otherUsers[0].nombre;
       return (
         <Text style={styles.likesText}>
           A{' '}
           <Text 
             style={styles.usernameLink}
-            onPress={() => handleUserPress(likeUsers[0].id, likeUsers[0].tipo)}
+            onPress={() => handleUserPress(otherUsers[0].id, otherUsers[0].tipo)}
           >
             {username}
           </Text>
@@ -277,22 +298,24 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
         </Text>
       );
     }
-    if (currentTotalLikes === 2 && likeUsers.length >= 2) {
-      const user1 = likeUsers[0].username || likeUsers[0].nombre;
-      const user2 = likeUsers[1].username || likeUsers[1].nombre;
+    
+    if (currentTotalLikes === 2 && otherUsers.length >= 2) {
+      // Exactly 2 people (not current user)
+      const user1 = otherUsers[0].username || otherUsers[0].nombre;
+      const user2 = otherUsers[1].username || otherUsers[1].nombre;
       return (
         <Text style={styles.likesText}>
           A{' '}
           <Text 
             style={styles.usernameLink}
-            onPress={() => handleUserPress(likeUsers[0].id, likeUsers[0].tipo)}
+            onPress={() => handleUserPress(otherUsers[0].id, otherUsers[0].tipo)}
           >
             {user1}
           </Text>
           {' '}y a{' '}
           <Text 
             style={styles.usernameLink}
-            onPress={() => handleUserPress(likeUsers[1].id, likeUsers[1].tipo)}
+            onPress={() => handleUserPress(otherUsers[1].id, otherUsers[1].tipo)}
           >
             {user2}
           </Text>
@@ -300,15 +323,17 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
         </Text>
       );
     }
-    if (currentTotalLikes >= 3 && likeUsers.length >= 1) {
-      const firstUser = likeUsers[0].username || likeUsers[0].nombre;
+    
+    if (currentTotalLikes >= 3 && otherUsers.length >= 1) {
+      // 3+ people (not current user)
+      const firstUser = otherUsers[0].username || otherUsers[0].nombre;
       const others = currentTotalLikes - 1;
       return (
         <Text style={styles.likesText}>
           A{' '}
           <Text 
             style={styles.usernameLink}
-            onPress={() => handleUserPress(likeUsers[0].id, likeUsers[0].tipo)}
+            onPress={() => handleUserPress(otherUsers[0].id, otherUsers[0].tipo)}
           >
             {firstUser}
           </Text>
@@ -320,6 +345,8 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
         </Text>
       );
     }
+    
+    // Fallback
     return <Text style={styles.likesText}>{currentTotalLikes} me gusta</Text>;
   };
 
