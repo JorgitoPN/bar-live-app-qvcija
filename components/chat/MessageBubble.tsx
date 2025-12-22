@@ -25,12 +25,12 @@ interface MessageBubbleProps {
 }
 
 /**
- * ✅ MESSAGE BUBBLE v3.0 - FIXED IMAGE LOADING
+ * ✅ MESSAGE BUBBLE v3.1 - FIXED IMAGE LOADING ERROR
  * 
  * FIXES APPLIED:
- * - ✅ FIXED: Better error handling for image loading
- * - ✅ FIXED: Loading state for images
- * - ✅ FIXED: Fallback UI when image fails to load
+ * - ✅ FIXED: Better error handling for corrupted/invalid image URLs
+ * - ✅ FIXED: Fallback to placeholder when image fails to load
+ * - ✅ FIXED: Added image validation before attempting to load
  * - ✅ OPTIMIZED: Instant navigation to Social Feed with post ID
  */
 
@@ -55,19 +55,40 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
     }
   };
 
+  // ✅ FIXED: Validate image URL before attempting to load
+  const isValidImageUrl = (url: string | undefined): boolean => {
+    if (!url) return false;
+    try {
+      // Check if it's a valid URL
+      const urlObj = new URL(url);
+      // Check if it has a valid protocol
+      if (!['http:', 'https:'].includes(urlObj.protocol)) return false;
+      // Check if it has a valid image extension or is from Supabase storage
+      const hasImageExtension = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(url);
+      const isSupabaseStorage = url.includes('supabase.co/storage');
+      return hasImageExtension || isSupabaseStorage;
+    } catch (error) {
+      console.error('[MessageBubble] ❌ Invalid image URL:', url, error);
+      return false;
+    }
+  };
+
   const renderContent = () => {
     if (message.tipo_mensaje === 'post_compartido' && message.post_compartido_id) {
+      const hasValidImage = isValidImageUrl(message.post_imagen);
+      
       console.log('[MessageBubble] 🖼️ Rendering shared post:', {
         postId: message.post_compartido_id,
         hasImage: !!message.post_imagen,
         imageUrl: message.post_imagen,
+        isValidUrl: hasValidImage,
         imageError,
         imageLoading,
       });
       
       return (
         <View style={styles.sharedPostContainer}>
-          {message.post_imagen && !imageError ? (
+          {hasValidImage && !imageError ? (
             <TouchableOpacity onPress={handlePostPress} activeOpacity={0.8}>
               <View style={styles.imageContainer}>
                 {imageLoading && (
@@ -90,7 +111,7 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
                     setImageError(false);
                   }}
                   onError={(error) => {
-                    console.error('[MessageBubble] ❌ Image load error:', error.nativeEvent.error);
+                    console.error('[MessageBubble] ❌ Image load error:', error.nativeEvent);
                     setImageLoading(false);
                     setImageError(true);
                   }}
@@ -106,7 +127,7 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
             <TouchableOpacity onPress={handlePostPress} activeOpacity={0.8} style={styles.postSnapshotPlaceholder}>
               <IconSymbol ios_icon_name="photo" android_material_icon_name="image" size={48} color="rgba(255, 255, 255, 0.5)" />
               <Text style={styles.postSnapshotPlaceholderText}>
-                {imageError ? 'Error al cargar imagen' : 'Publicación compartida'}
+                {imageError ? 'Error al cargar imagen' : !hasValidImage ? 'Publicación compartida' : 'Publicación compartida'}
               </Text>
               <View style={styles.tapToViewBadge}>
                 <IconSymbol ios_icon_name="hand.tap" android_material_icon_name="touch_app" size={14} color={colors.primary} />
