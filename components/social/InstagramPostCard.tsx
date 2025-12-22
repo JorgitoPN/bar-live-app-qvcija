@@ -64,14 +64,19 @@ interface InstagramPostCardProps {
 }
 
 /**
- * ✅ INSTAGRAM POST CARD v12.0 - CRITICAL REACTIVITY FIX
+ * ✅ INSTAGRAM POST CARD v13.0 - FIXED INVERTED OPTIMISTIC UI LOGIC
+ * 
+ * CRITICAL FIX:
+ * - ✅ FIXED: Corrected optimistic UI logic for like/unlike
+ * - ✅ When isLiked is FALSE (user is liking): ADD avatar to array
+ * - ✅ When isLiked is TRUE (user is unliking): REMOVE avatar from array
+ * - ✅ Added detailed logging to track state changes
  * 
  * FIXES APPLIED:
- * - ✅ CRITICAL: Simplified key generation for PostLikesAvatars
- * - ✅ CRITICAL: Removed unnecessary likesArrayLength state
- * - ✅ CRITICAL: Direct localLikes array passing for instant updates
- * - ✅ NEW: Report functionality for all posts
- * - ✅ FIXED: Comment count display with proper text
+ * - ✅ Simplified key generation for PostLikesAvatars
+ * - ✅ Direct localLikes array passing for instant updates
+ * - ✅ Report functionality for all posts
+ * - ✅ Comment count display with proper text
  * - ✅ Instant optimistic UI updates (< 100ms)
  * - ✅ Proper real-time synchronization with other users
  */
@@ -355,7 +360,7 @@ export default function InstagramPostCard({
     setShowPostViewer(true);
   };
 
-  // ✅ CRITICAL FIX: Optimistic UI with instant local state updates
+  // ✅ CRITICAL FIX: Corrected optimistic UI logic
   const handleLike = useCallback(async () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
@@ -373,10 +378,20 @@ export default function InstagramPostCard({
       return;
     }
 
+    // ✅ CRITICAL: Determine new state BEFORE any updates
     const newLikedState = !isLiked;
     const previousLiked = isLiked;
     const previousCount = likesCount;
     const previousLocalLikes = [...localLikes];
+    
+    console.log('[InstagramPostCard] 🎯 handleLike START:', {
+      postId: post.id,
+      currentIsLiked: isLiked,
+      newLikedState,
+      currentLocalLikesCount: localLikes.length,
+      userId: user.id,
+      action: newLikedState ? 'LIKING' : 'UNLIKING',
+    });
     
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -388,21 +403,33 @@ export default function InstagramPostCard({
       animateLikeIcon();
     }
 
-    // ✅ INSTANT UPDATE: Modify local state immediately (< 100ms)
+    // ✅ STEP 1: Update isLiked state
     setIsLiked(newLikedState);
-    setLikesCount(newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1));
+    console.log('[InstagramPostCard] ✅ Step 1: Updated isLiked to:', newLikedState);
     
-    // ✅ CRITICAL: Modify local likes array INSTANTLY
+    // ✅ STEP 2: Update count
+    const newCount = newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1);
+    setLikesCount(newCount);
+    console.log('[InstagramPostCard] ✅ Step 2: Updated count from', likesCount, 'to', newCount);
+    
+    // ✅ STEP 3: Update local likes array based on action
+    let newLocalLikes: Array<{ id: string; usuario_id: string }>;
+    
     if (newLikedState) {
+      // ✅ User is LIKING → ADD avatar
       const tempId = `temp-${Date.now()}`;
-      const newArray = [...localLikes, { id: tempId, usuario_id: user.id }];
-      setLocalLikes(newArray);
-      console.log('[InstagramPostCard] ✅ Optimistic ADD: Local likes array updated instantly, new count:', newArray.length);
+      newLocalLikes = [...localLikes, { id: tempId, usuario_id: user.id }];
+      console.log('[InstagramPostCard] ➕ Step 3: LIKING - Adding avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
+      console.log('[InstagramPostCard] ➕ Added user:', user.id, 'with temp ID:', tempId);
     } else {
-      const newArray = localLikes.filter(like => like.usuario_id !== user.id);
-      setLocalLikes(newArray);
-      console.log('[InstagramPostCard] ✅ Optimistic REMOVE: Local likes array updated instantly, new count:', newArray.length);
+      // ✅ User is UNLIKING → REMOVE avatar
+      newLocalLikes = localLikes.filter(like => like.usuario_id !== user.id);
+      console.log('[InstagramPostCard] ➖ Step 3: UNLIKING - Removing avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
+      console.log('[InstagramPostCard] ➖ Removed user:', user.id);
     }
+    
+    setLocalLikes(newLocalLikes);
+    console.log('[InstagramPostCard] ✅ Step 4: Local likes array updated. New array:', newLocalLikes.map(l => ({ id: l.id, userId: l.usuario_id })));
 
     if (likeDebounceTimer.current) {
       clearTimeout(likeDebounceTimer.current);
@@ -411,7 +438,7 @@ export default function InstagramPostCard({
     likeDebounceTimer.current = setTimeout(async () => {
       try {
         if (newLikedState) {
-          console.log('[InstagramPostCard] ➕ Adding like to database for post:', post.id);
+          console.log('[InstagramPostCard] 💾 Database: Adding like to database for post:', post.id);
           
           const { data, error } = await supabase.from('likes').insert({
             post_id: post.id,
@@ -419,7 +446,7 @@ export default function InstagramPostCard({
           }).select().single();
           
           if (error) {
-            console.error('[InstagramPostCard] ❌ Error adding like:', error);
+            console.error('[InstagramPostCard] ❌ Database error adding like:', error);
             throw error;
           }
           
@@ -430,9 +457,9 @@ export default function InstagramPostCard({
               : like
           ));
           
-          console.log('[InstagramPostCard] ✅ Like added successfully, real ID:', data.id);
+          console.log('[InstagramPostCard] ✅ Database: Like added successfully, real ID:', data.id);
         } else {
-          console.log('[InstagramPostCard] ➖ Removing like from database for post:', post.id);
+          console.log('[InstagramPostCard] 💾 Database: Removing like from database for post:', post.id);
           
           const { error } = await supabase
             .from('likes')
@@ -441,11 +468,11 @@ export default function InstagramPostCard({
             .eq('usuario_id', user.id);
           
           if (error) {
-            console.error('[InstagramPostCard] ❌ Error removing like:', error);
+            console.error('[InstagramPostCard] ❌ Database error removing like:', error);
             throw error;
           }
           
-          console.log('[InstagramPostCard] ✅ Like removed successfully from database');
+          console.log('[InstagramPostCard] ✅ Database: Like removed successfully');
         }
 
         // ✅ Verify final count from database
@@ -455,12 +482,13 @@ export default function InstagramPostCard({
           .eq('post_id', post.id);
         
         if (!countError && count !== null) {
-          console.log('[InstagramPostCard] ✅ Verified final count from database:', count);
+          console.log('[InstagramPostCard] ✅ Database: Verified final count:', count);
           setLikesCount(count);
         }
       } catch (error) {
         console.error('[InstagramPostCard] ❌ Error toggling like:', error);
         // ✅ Rollback on error
+        console.log('[InstagramPostCard] 🔄 Rolling back to previous state');
         setIsLiked(previousLiked);
         setLikesCount(previousCount);
         setLocalLikes(previousLocalLikes);
@@ -478,7 +506,7 @@ export default function InstagramPostCard({
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para compartir publicaciones');
       return;
     }
-    setShareModalVisible(true);
+    setShowShareModal(true);
   };
 
   const handleSave = async () => {
@@ -548,7 +576,7 @@ export default function InstagramPostCard({
                 return;
               }
 
-              const { error, data } = await supabase
+              const { error } = await supabase
                 .from('posts')
                 .delete()
                 .eq('id', post.id)
@@ -844,7 +872,7 @@ export default function InstagramPostCard({
         postImage={post.imagenes && post.imagenes.length > 0 ? post.imagenes[0] : undefined}
         postAuthorName={displayUsername}
         postAuthorAvatar={authorAvatar || undefined}
-        onClose={() => setShareModalVisible(false)}
+        onClose={() => setShowShareModal(false)}
       />
 
       {/* ✅ NEW: Report modal */}

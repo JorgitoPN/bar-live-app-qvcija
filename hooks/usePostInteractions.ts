@@ -20,13 +20,18 @@ interface Like {
 }
 
 /**
- * ✅ USE POST INTERACTIONS HOOK v1.0
+ * ✅ USE POST INTERACTIONS HOOK v1.1 - FIXED INVERTED OPTIMISTIC UI LOGIC
  * 
  * Purpose:
  * - Manages all post interactions (likes, comments, saves) with global state
  * - Provides optimistic UI updates
  * - Handles real-time synchronization
  * - Ensures consistency across all views
+ * 
+ * CRITICAL FIX:
+ * - ✅ FIXED: Corrected optimistic UI logic for like/unlike
+ * - ✅ When isLiked is FALSE (user is liking): ADD avatar to array
+ * - ✅ When isLiked is TRUE (user is unliking): REMOVE avatar from array
  * 
  * Features:
  * - ✅ Global state integration
@@ -197,10 +202,18 @@ export function usePostInteractions({
       return;
     }
 
+    // ✅ CRITICAL FIX: Determine the new state BEFORE updating
     const newLikedState = !isLiked;
     const previousLiked = isLiked;
     const previousCount = likesCount;
     const previousLocalLikes = [...localLikes];
+    
+    console.log('[usePostInteractions] 🔄 handleLike called:', {
+      currentIsLiked: isLiked,
+      newLikedState,
+      currentLocalLikesCount: localLikes.length,
+      userId: user.id,
+    });
     
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -208,18 +221,25 @@ export function usePostInteractions({
       Haptics.selectionAsync();
     }
 
-    // ✅ INSTANT UPDATE: Modify local state immediately (< 100ms)
+    // ✅ CRITICAL FIX: Update isLiked state FIRST
     setIsLiked(newLikedState);
+    
+    // ✅ CRITICAL FIX: Update count based on new state
     const newCount = newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1);
     setLikesCount(newCount);
     
-    // ✅ CRITICAL: Modify local likes array INSTANTLY
+    // ✅ CRITICAL FIX: Update local likes array based on NEW state
     let newLocalLikes: Like[];
+    
     if (newLikedState) {
+      // ✅ User is LIKING (newLikedState = TRUE) → ADD avatar
       const tempId = `temp-${Date.now()}`;
       newLocalLikes = [...localLikes, { id: tempId, usuario_id: user.id }];
+      console.log('[usePostInteractions] ➕ LIKING: Adding avatar to array, new count:', newLocalLikes.length);
     } else {
+      // ✅ User is UNLIKING (newLikedState = FALSE) → REMOVE avatar
       newLocalLikes = localLikes.filter(like => like.usuario_id !== user.id);
+      console.log('[usePostInteractions] ➖ UNLIKING: Removing avatar from array, new count:', newLocalLikes.length);
     }
     
     setLocalLikes(newLocalLikes);
@@ -227,7 +247,7 @@ export function usePostInteractions({
     // ✅ UPDATE GLOBAL STATE IMMEDIATELY
     updatePostLikes(postId, newLikedState, newCount, newLocalLikes);
     
-    console.log('[usePostInteractions] ✅ Optimistic update:', {
+    console.log('[usePostInteractions] ✅ Optimistic update complete:', {
       isLiked: newLikedState,
       count: newCount,
       localLikesCount: newLocalLikes.length,

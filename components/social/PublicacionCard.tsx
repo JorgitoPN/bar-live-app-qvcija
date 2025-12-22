@@ -71,7 +71,13 @@ interface PublicacionCardProps {
 }
 
 /**
- * ✅ PUBLICACION CARD v7.0 - COMMENT COUNT TEXT DISPLAY
+ * ✅ PUBLICACION CARD v8.0 - FIXED INVERTED OPTIMISTIC UI LOGIC
+ * 
+ * CRITICAL FIX:
+ * - ✅ FIXED: Corrected optimistic UI logic for like/unlike
+ * - ✅ When liked is FALSE (user is liking): ADD avatar to array
+ * - ✅ When liked is TRUE (user is unliking): REMOVE avatar from array
+ * - ✅ Added detailed logging to track state changes
  * 
  * Changes:
  * - ✅ ADDED: Comment count display with proper text ("Ver comentario" / "Ver comentarios")
@@ -289,32 +295,55 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     };
   }, [post.id, user]);
 
+  // ✅ CRITICAL FIX: Corrected optimistic UI logic
   const handleLike = useCallback(async () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
       return;
     }
 
+    // ✅ CRITICAL: Determine new state BEFORE any updates
     const newLikedState = !liked;
     const previousLiked = liked;
     const previousCount = likesCount;
     const previousLocalLikes = [...localLikes];
     
-    // ✅ INSTANT UPDATE: Modify local state immediately
-    setLiked(newLikedState);
-    setLikesCount(newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1));
+    console.log('[PublicacionCard] 🎯 handleLike START:', {
+      postId: post.id,
+      currentLiked: liked,
+      newLikedState,
+      currentLocalLikesCount: localLikes.length,
+      userId: user.id,
+      action: newLikedState ? 'LIKING' : 'UNLIKING',
+    });
     
-    // ✅ CRITICAL: Modify local likes array INSTANTLY
+    // ✅ STEP 1: Update liked state
+    setLiked(newLikedState);
+    console.log('[PublicacionCard] ✅ Step 1: Updated liked to:', newLikedState);
+    
+    // ✅ STEP 2: Update count
+    const newCount = newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1);
+    setLikesCount(newCount);
+    console.log('[PublicacionCard] ✅ Step 2: Updated count from', likesCount, 'to', newCount);
+    
+    // ✅ STEP 3: Update local likes array based on action
+    let newLocalLikes: Array<{ id: string; usuario_id: string }>;
+    
     if (newLikedState) {
+      // ✅ User is LIKING → ADD avatar
       const tempId = `temp-${Date.now()}`;
-      const newArray = [...localLikes, { id: tempId, usuario_id: user.id }];
-      setLocalLikes(newArray);
-      console.log('[PublicacionCard] ✅ Optimistic ADD: Local likes array updated, count:', newArray.length);
+      newLocalLikes = [...localLikes, { id: tempId, usuario_id: user.id }];
+      console.log('[PublicacionCard] ➕ Step 3: LIKING - Adding avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
+      console.log('[PublicacionCard] ➕ Added user:', user.id, 'with temp ID:', tempId);
     } else {
-      const newArray = localLikes.filter(like => like.usuario_id !== user.id);
-      setLocalLikes(newArray);
-      console.log('[PublicacionCard] ✅ Optimistic REMOVE: Local likes array updated, count:', newArray.length);
+      // ✅ User is UNLIKING → REMOVE avatar
+      newLocalLikes = localLikes.filter(like => like.usuario_id !== user.id);
+      console.log('[PublicacionCard] ➖ Step 3: UNLIKING - Removing avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
+      console.log('[PublicacionCard] ➖ Removed user:', user.id);
     }
+    
+    setLocalLikes(newLocalLikes);
+    console.log('[PublicacionCard] ✅ Step 4: Local likes array updated. New array:', newLocalLikes.map(l => ({ id: l.id, userId: l.usuario_id })));
 
     if (likeDebounceTimer.current) {
       clearTimeout(likeDebounceTimer.current);
@@ -323,7 +352,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     likeDebounceTimer.current = setTimeout(async () => {
       try {
         if (newLikedState) {
-          console.log('[PublicacionCard] ➕ Adding like to database');
+          console.log('[PublicacionCard] 💾 Database: Adding like to database');
           
           const { data, error } = await supabase.from('likes').insert({
             post_id: post.id,
@@ -339,9 +368,9 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
               : like
           ));
           
-          console.log('[PublicacionCard] ✅ Like added, real ID:', data.id);
+          console.log('[PublicacionCard] ✅ Database: Like added, real ID:', data.id);
         } else {
-          console.log('[PublicacionCard] ➖ Removing like from database');
+          console.log('[PublicacionCard] 💾 Database: Removing like from database');
           
           const { error } = await supabase
             .from('likes')
@@ -351,7 +380,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           
           if (error) throw error;
           
-          console.log('[PublicacionCard] ✅ Like removed');
+          console.log('[PublicacionCard] ✅ Database: Like removed');
         }
 
         // ✅ Verify final count
@@ -361,12 +390,13 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           .eq('post_id', post.id);
         
         if (!countError && count !== null) {
-          console.log('[PublicacionCard] ✅ Verified count:', count);
+          console.log('[PublicacionCard] ✅ Database: Verified count:', count);
           setLikesCount(count);
         }
       } catch (error) {
         console.error('[PublicacionCard] ❌ Error toggling like:', error);
         // ✅ Rollback on error
+        console.log('[PublicacionCard] 🔄 Rolling back to previous state');
         setLiked(previousLiked);
         setLikesCount(previousCount);
         setLocalLikes(previousLocalLikes);
