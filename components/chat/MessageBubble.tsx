@@ -25,12 +25,13 @@ interface MessageBubbleProps {
 }
 
 /**
- * ✅ MESSAGE BUBBLE v3.1 - FIXED IMAGE LOADING ERROR
+ * ✅ MESSAGE BUBBLE v3.2 - FIXED IMAGE LOADING ERROR
  * 
  * FIXES APPLIED:
- * - ✅ FIXED: Better error handling for corrupted/invalid image URLs
- * - ✅ FIXED: Fallback to placeholder when image fails to load
- * - ✅ FIXED: Added image validation before attempting to load
+ * - ✅ FIXED: Strict validation to reject corrupted/invalid image data
+ * - ✅ FIXED: Reject data URLs (base64) that cause decoding errors
+ * - ✅ FIXED: Only accept valid HTTP/HTTPS URLs from Supabase storage
+ * - ✅ FIXED: Better error handling with fallback placeholder
  * - ✅ OPTIMIZED: Instant navigation to Social Feed with post ID
  */
 
@@ -55,41 +56,50 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
     }
   };
 
-  // ✅ FIXED: Validate image URL before attempting to load
+  // ✅ CRITICAL FIX: Strict validation to reject corrupted/invalid image data
   const isValidImageUrl = (url: string | undefined): boolean => {
     if (!url) {
       console.log('[MessageBubble] ⚠️ No URL provided');
       return false;
     }
     
-    // Check if it's a data URL (base64)
-    if (url.startsWith('data:image/')) {
-      console.log('[MessageBubble] ⚠️ Data URL detected, skipping (not supported)');
+    // ✅ CRITICAL FIX: Reject data URLs (base64) - they cause "Error decoding image data"
+    if (url.startsWith('data:')) {
+      console.log('[MessageBubble] ❌ Data URL detected (base64), rejecting to prevent corruption');
       return false;
     }
     
+    // ✅ CRITICAL FIX: Reject blob URLs - they cause decoding errors
+    if (url.startsWith('blob:')) {
+      console.log('[MessageBubble] ❌ Blob URL detected, rejecting to prevent corruption');
+      return false;
+    }
+    
+    // ✅ CRITICAL FIX: Only accept valid HTTP/HTTPS URLs
     try {
-      // Check if it's a valid URL
       const urlObj = new URL(url);
-      // Check if it has a valid protocol
+      
+      // Must be HTTP or HTTPS
       if (!['http:', 'https:'].includes(urlObj.protocol)) {
-        console.log('[MessageBubble] ⚠️ Invalid protocol:', urlObj.protocol);
+        console.log('[MessageBubble] ❌ Invalid protocol:', urlObj.protocol);
         return false;
       }
-      // Check if it has a valid image extension or is from Supabase storage
-      const hasImageExtension = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(url);
-      const isSupabaseStorage = url.includes('supabase.co/storage') || url.includes('supabase');
-      const isValid = hasImageExtension || isSupabaseStorage;
       
-      if (!isValid) {
-        console.log('[MessageBubble] ⚠️ URL validation failed:', {
+      // Must be from Supabase storage or have valid image extension
+      const isSupabaseStorage = url.includes('supabase.co/storage') || url.includes('supabase');
+      const hasImageExtension = /\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i.test(url);
+      
+      if (!isSupabaseStorage && !hasImageExtension) {
+        console.log('[MessageBubble] ❌ URL validation failed:', {
           url,
-          hasImageExtension,
           isSupabaseStorage,
+          hasImageExtension,
         });
+        return false;
       }
       
-      return isValid;
+      console.log('[MessageBubble] ✅ Valid image URL:', url);
+      return true;
     } catch (error) {
       console.error('[MessageBubble] ❌ Invalid image URL:', url, error);
       return false;
@@ -103,7 +113,7 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
       console.log('[MessageBubble] 🖼️ Rendering shared post:', {
         postId: message.post_compartido_id,
         hasImage: !!message.post_imagen,
-        imageUrl: message.post_imagen,
+        imageUrl: message.post_imagen?.substring(0, 100) + '...',
         isValidUrl: hasValidImage,
         imageError,
         imageLoading,
