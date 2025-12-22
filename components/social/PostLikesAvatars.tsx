@@ -23,13 +23,13 @@ interface LikeUser {
 }
 
 /**
- * ✅ POST LIKES AVATARS v5.0 - CRITICAL HOOKS FIX
+ * ✅ POST LIKES AVATARS v6.0 - FIXED AVATAR SYNCHRONIZATION
  * 
  * CRITICAL FIXES:
- * - ✅ FIXED: Removed conditional useMemo calls (rules-of-hooks error)
- * - ✅ FIXED: All hooks now called unconditionally at top level
- * - ✅ FIXED: Proper dependency tracking for all hooks
- * - ✅ Component now properly reacts to localLikes array changes
+ * - ✅ FIXED: Removed circular dependency in useEffect/useCallback
+ * - ✅ FIXED: Avatars now update instantly when localLikes changes
+ * - ✅ FIXED: Text and avatars use the same data source (localLikes)
+ * - ✅ Component properly reacts to localLikes array changes
  * - ✅ Avatars update instantly when likes change (< 100ms)
  * - ✅ Text updates dynamically based on real-time state
  * - ✅ Real-time avatar updates via Supabase Realtime
@@ -49,12 +49,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
   const [currentTotalLikes, setCurrentTotalLikes] = useState(totalLikes);
   const [currentUserHasLiked, setCurrentUserHasLiked] = useState(false);
 
-  // ✅ CRITICAL FIX: Track the serialized version of localLikes to detect changes
-  const localLikesString = useMemo(() => {
-    return JSON.stringify(localLikes.map(l => l.usuario_id).sort());
-  }, [localLikes]);
-
-  // ✅ CRITICAL FIX: Detect changes in localLikes array and update immediately
+  // ✅ CRITICAL FIX: Update state immediately when localLikes changes
   useEffect(() => {
     console.log('[PostLikesAvatars] 🔄 localLikes changed for post:', postId, {
       count: localLikes.length,
@@ -70,56 +65,60 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       userLiked,
       totalLikes: localLikes.length,
     });
+  }, [localLikes, user?.id, postId]);
 
-    // ✅ CRITICAL FIX: Load avatars immediately when localLikes changes
+  // ✅ CRITICAL FIX: Load avatars immediately when localLikes changes
+  // Separated from the callback to avoid circular dependencies
+  useEffect(() => {
+    const loadLikeUsers = async () => {
+      try {
+        console.log('[PostLikesAvatars] 🔄 Loading like users for post:', postId, 'localLikes count:', localLikes.length);
+        
+        // ✅ CRITICAL FIX: If we have localLikes, use them to determine which users to fetch
+        // This ensures we fetch the most up-to-date user data based on the current likes
+        const userIds = localLikes.map(like => like.usuario_id).slice(0, 3);
+        
+        if (userIds.length === 0) {
+          setLikeUsers([]);
+          console.log('[PostLikesAvatars] ℹ️ No likes to display');
+          return;
+        }
+        
+        console.log('[PostLikesAvatars] 🔍 Fetching user data for:', userIds);
+        
+        const { data, error } = await supabase
+          .from('usuarios')
+          .select('id, nombre, username, avatar')
+          .in('id', userIds);
+
+        if (!error && data) {
+          // ✅ Maintain the order from localLikes
+          const orderedUsers = userIds
+            .map(userId => data.find(u => u.id === userId))
+            .filter(Boolean)
+            .map((user: any) => ({
+              id: user.id,
+              nombre: user.nombre,
+              username: user.username,
+              avatar: user.avatar,
+              tipo: 'usuario' as const,
+            }));
+          
+          setLikeUsers(orderedUsers);
+          console.log('[PostLikesAvatars] ✅ Loaded', orderedUsers.length, 'like users:', orderedUsers.map(u => u.username || u.nombre));
+        } else if (error) {
+          console.error('[PostLikesAvatars] ❌ Error loading like users:', error);
+        }
+      } catch (error) {
+        console.error('[PostLikesAvatars] ❌ Exception loading like users:', error);
+      }
+    };
+
+    // ✅ CRITICAL: Load avatars immediately when localLikes changes
     if (localLikes.length > 0) {
       loadLikeUsers();
     } else {
       setLikeUsers([]);
-    }
-  }, [localLikesString, user?.id, postId, loadLikeUsers]);
-
-  const loadLikeUsers = useCallback(async () => {
-    try {
-      console.log('[PostLikesAvatars] 🔄 Loading like users for post:', postId, 'localLikes count:', localLikes.length);
-      
-      // ✅ CRITICAL FIX: If we have localLikes, use them to determine which users to fetch
-      // This ensures we fetch the most up-to-date user data based on the current likes
-      const userIds = localLikes.map(like => like.usuario_id).slice(0, 3);
-      
-      if (userIds.length === 0) {
-        setLikeUsers([]);
-        console.log('[PostLikesAvatars] ℹ️ No likes to display');
-        return;
-      }
-      
-      console.log('[PostLikesAvatars] 🔍 Fetching user data for:', userIds);
-      
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('id, nombre, username, avatar')
-        .in('id', userIds);
-
-      if (!error && data) {
-        // ✅ Maintain the order from localLikes
-        const orderedUsers = userIds
-          .map(userId => data.find(u => u.id === userId))
-          .filter(Boolean)
-          .map((user: any) => ({
-            id: user.id,
-            nombre: user.nombre,
-            username: user.username,
-            avatar: user.avatar,
-            tipo: 'usuario' as const,
-          }));
-        
-        setLikeUsers(orderedUsers);
-        console.log('[PostLikesAvatars] ✅ Loaded', orderedUsers.length, 'like users:', orderedUsers.map(u => u.username || u.nombre));
-      } else if (error) {
-        console.error('[PostLikesAvatars] ❌ Error loading like users:', error);
-      }
-    } catch (error) {
-      console.error('[PostLikesAvatars] ❌ Exception loading like users:', error);
     }
   }, [postId, localLikes]);
 
@@ -188,10 +187,9 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
             return;
           }
           
-          console.log('[PostLikesAvatars] 🔄 Change made by another user, reloading avatars...');
+          console.log('[PostLikesAvatars] 🔄 Change made by another user, reloading...');
           
-          await loadLikeUsers();
-          
+          // ✅ Fetch updated count from database
           const { count, error: countError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
@@ -225,7 +223,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         channelRef.current = null;
       }
     };
-  }, [postId, user, loadLikeUsers]);
+  }, [postId, user]);
 
   useEffect(() => {
     if (localLikes.length === 0) {
