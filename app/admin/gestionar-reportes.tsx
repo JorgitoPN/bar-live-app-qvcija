@@ -103,6 +103,8 @@ export default function GestionarReportesScreen() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedReports, setSelectedReports] = useState<Set<string>>(new Set());
+  const [bulkMode, setBulkMode] = useState(false);
 
   useEffect(() => {
     if (user?.rol_app === 'admin') {
@@ -157,7 +159,6 @@ export default function GestionarReportesScreen() {
               
               if (post) {
                 contentPreview = post.contenido?.substring(0, 150) || '[Sin contenido]';
-                // Get first image from imagenes array or fallback to imagen field
                 if (post.imagenes && post.imagenes.length > 0) {
                   contentImage = post.imagenes[0];
                 } else if (post.imagen) {
@@ -279,17 +280,33 @@ export default function GestionarReportesScreen() {
                 idField = selectedReport.momento_id!;
               }
 
-              const { error } = await supabase
+              // Delete the content
+              const { error: deleteError } = await supabase
                 .from(tableName)
                 .delete()
                 .eq('id', idField);
 
-              if (error) throw error;
+              if (deleteError) throw deleteError;
 
-              // Update report status
-              await updateReportStatus('action_taken');
+              // Send notification to content author
+              if (selectedReport.content_author) {
+                await supabase.from('notificaciones').insert({
+                  usuario_id: selectedReport.content_author.id,
+                  tipo: 'sistema',
+                  titulo: '🗑️ Contenido eliminado',
+                  mensaje: `Tu ${selectedReport.content_type === 'post' ? 'publicación' : selectedReport.content_type === 'comment' ? 'comentario' : 'momento'} ha sido eliminado por violar nuestras normas de la comunidad. Motivo: ${REASON_LABELS[selectedReport.reason]}.`,
+                });
+              }
+
+              // Update report status and delete it
+              await supabase
+                .from('content_reports')
+                .delete()
+                .eq('id', selectedReport.id);
 
               Alert.alert('✅ Éxito', 'Contenido eliminado correctamente');
+              setDetailsModalVisible(false);
+              loadReports();
             } catch (error) {
               console.error('[GestionarReportes] Error deleting content:', error);
               Alert.alert('Error', 'No se pudo eliminar el contenido');
@@ -329,8 +346,15 @@ export default function GestionarReportesScreen() {
                 description: selectedReport.description || 'Sin descripción adicional',
               });
 
-              await updateReportStatus('action_taken');
+              // Delete the report after action
+              await supabase
+                .from('content_reports')
+                .delete()
+                .eq('id', selectedReport.id);
+
               Alert.alert('✅ Éxito', 'Aviso enviado al usuario');
+              setDetailsModalVisible(false);
+              loadReports();
             } catch (error) {
               console.error('[GestionarReportes] Error sending warning:', error);
               Alert.alert('Error', 'No se pudo enviar el aviso');
@@ -374,8 +398,15 @@ export default function GestionarReportesScreen() {
                 mensaje: 'Tu cuenta ha sido bloqueada por 24 horas debido a violaciones de las normas de la comunidad.',
               });
 
-              await updateReportStatus('action_taken');
+              // Delete the report after action
+              await supabase
+                .from('content_reports')
+                .delete()
+                .eq('id', selectedReport.id);
+
               Alert.alert('✅ Éxito', 'Usuario bloqueado temporalmente');
+              setDetailsModalVisible(false);
+              loadReports();
             } catch (error) {
               console.error('[GestionarReportes] Error blocking user:', error);
               Alert.alert('Error', 'No se pudo bloquear al usuario');
@@ -420,8 +451,15 @@ export default function GestionarReportesScreen() {
                 mensaje: 'Tu cuenta ha sido baneada permanentemente por violaciones graves de las normas de la comunidad.',
               });
 
-              await updateReportStatus('action_taken');
+              // Delete the report after action
+              await supabase
+                .from('content_reports')
+                .delete()
+                .eq('id', selectedReport.id);
+
               Alert.alert('✅ Éxito', 'Usuario baneado permanentemente');
+              setDetailsModalVisible(false);
+              loadReports();
             } catch (error) {
               console.error('[GestionarReportes] Error banning user:', error);
               Alert.alert('Error', 'No se pudo banear al usuario');
@@ -432,19 +470,128 @@ export default function GestionarReportesScreen() {
     );
   };
 
+  const keepContent = async () => {
+    if (!selectedReport) return;
+
+    Alert.alert(
+      '✅ Mantener Contenido',
+      '¿Desestimar este reporte y mantener el contenido?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Mantener',
+          onPress: async () => {
+            try {
+              // Delete the report
+              await supabase
+                .from('content_reports')
+                .delete()
+                .eq('id', selectedReport.id);
+
+              Alert.alert('✅ Éxito', 'Reporte desestimado');
+              setDetailsModalVisible(false);
+              loadReports();
+            } catch (error) {
+              console.error('[GestionarReportes] Error dismissing report:', error);
+              Alert.alert('Error', 'No se pudo desestimar el reporte');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const deleteReport = async (reportId: string) => {
+    Alert.alert(
+      '🗑️ Eliminar Reporte',
+      '¿Estás seguro de que quieres eliminar este reporte?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await supabase
+                .from('content_reports')
+                .delete()
+                .eq('id', reportId);
+
+              Alert.alert('✅ Éxito', 'Reporte eliminado');
+              loadReports();
+            } catch (error) {
+              console.error('[GestionarReportes] Error deleting report:', error);
+              Alert.alert('Error', 'No se pudo eliminar el reporte');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const deleteBulkReports = async () => {
+    if (selectedReports.size === 0) {
+      Alert.alert('Aviso', 'No hay reportes seleccionados');
+      return;
+    }
+
+    Alert.alert(
+      '🗑️ Eliminar Reportes',
+      `¿Estás seguro de que quieres eliminar ${selectedReports.size} reporte(s)?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await supabase
+                .from('content_reports')
+                .delete()
+                .in('id', Array.from(selectedReports));
+
+              Alert.alert('✅ Éxito', `${selectedReports.size} reporte(s) eliminado(s)`);
+              setSelectedReports(new Set());
+              setBulkMode(false);
+              loadReports();
+            } catch (error) {
+              console.error('[GestionarReportes] Error deleting bulk reports:', error);
+              Alert.alert('Error', 'No se pudieron eliminar los reportes');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const toggleReportSelection = (reportId: string) => {
+    const newSelection = new Set(selectedReports);
+    if (newSelection.has(reportId)) {
+      newSelection.delete(reportId);
+    } else {
+      newSelection.add(reportId);
+    }
+    setSelectedReports(newSelection);
+  };
+
+  const selectAllReports = () => {
+    if (selectedReports.size === filteredReports.length) {
+      setSelectedReports(new Set());
+    } else {
+      setSelectedReports(new Set(filteredReports.map(r => r.id)));
+    }
+  };
+
   const inspectContent = () => {
     if (!selectedReport) return;
 
     setDetailsModalVisible(false);
 
-    // Navigate to the content with admin override for private profiles
     if (selectedReport.content_type === 'post' && selectedReport.post_id) {
       router.push(`/social/post?postId=${selectedReport.post_id}&adminView=true`);
     } else if (selectedReport.content_type === 'comment' && selectedReport.comentario_id) {
-      // Navigate to the post containing the comment
       router.push(`/social/comentar?postId=${selectedReport.post_id}&commentId=${selectedReport.comentario_id}&adminView=true`);
     } else if (selectedReport.content_type === 'momento' && selectedReport.momento_id) {
-      // Navigate to user profile with momento viewer
       if (selectedReport.content_author) {
         router.push(`/perfil/usuario?userId=${selectedReport.content_author.id}&openMomento=true&adminView=true`);
       }
@@ -454,14 +601,12 @@ export default function GestionarReportesScreen() {
   const viewReporterProfile = () => {
     if (!selectedReport || !selectedReport.reporter) return;
     setDetailsModalVisible(false);
-    // Admin can view any profile, including private ones
     router.push(`/perfil/usuario?userId=${selectedReport.reporter.id}&adminView=true`);
   };
 
   const viewAuthorProfile = () => {
     if (!selectedReport || !selectedReport.content_author) return;
     setDetailsModalVisible(false);
-    // Admin can view any profile, including private ones
     router.push(`/perfil/usuario?userId=${selectedReport.content_author.id}&adminView=true`);
   };
 
@@ -506,9 +651,25 @@ export default function GestionarReportesScreen() {
             <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Gestionar Reportes</Text>
-          <TouchableOpacity onPress={loadReports} style={styles.refreshButton}>
-            <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={24} color={colors.headerText} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              onPress={() => {
+                setBulkMode(!bulkMode);
+                setSelectedReports(new Set());
+              }} 
+              style={styles.bulkButton}
+            >
+              <IconSymbol 
+                ios_icon_name={bulkMode ? "checkmark.circle.fill" : "checkmark.circle"} 
+                android_material_icon_name={bulkMode ? "check_circle" : "radio_button_unchecked"} 
+                size={24} 
+                color={colors.headerText} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={loadReports} style={styles.refreshButton}>
+              <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Stats */}
@@ -535,6 +696,29 @@ export default function GestionarReportesScreen() {
           </View>
         </ScrollView>
       </LinearGradient>
+
+      {/* Bulk Actions Bar */}
+      {bulkMode && (
+        <View style={styles.bulkActionsBar}>
+          <TouchableOpacity onPress={selectAllReports} style={styles.bulkActionButton}>
+            <IconSymbol 
+              ios_icon_name={selectedReports.size === filteredReports.length ? "checkmark.square.fill" : "square"} 
+              android_material_icon_name={selectedReports.size === filteredReports.length ? "check_box" : "check_box_outline_blank"} 
+              size={20} 
+              color={colors.text} 
+            />
+            <Text style={styles.bulkActionText}>
+              {selectedReports.size === filteredReports.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+            </Text>
+          </TouchableOpacity>
+          {selectedReports.size > 0 && (
+            <TouchableOpacity onPress={deleteBulkReports} style={styles.bulkDeleteButton}>
+              <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color={colors.white} />
+              <Text style={styles.bulkDeleteText}>Eliminar ({selectedReports.size})</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Search and Filters */}
       <View style={styles.searchContainer}>
@@ -620,11 +804,35 @@ export default function GestionarReportesScreen() {
               key={report.id}
               style={[
                 styles.reportCard,
-                { borderLeftColor: REASON_COLORS[report.reason], borderLeftWidth: 4 }
+                { borderLeftColor: REASON_COLORS[report.reason], borderLeftWidth: 4 },
+                selectedReports.has(report.id) && styles.reportCardSelected,
               ]}
-              onPress={() => openReportDetails(report)}
+              onPress={() => {
+                if (bulkMode) {
+                  toggleReportSelection(report.id);
+                } else {
+                  openReportDetails(report);
+                }
+              }}
+              onLongPress={() => {
+                if (!bulkMode) {
+                  setBulkMode(true);
+                  toggleReportSelection(report.id);
+                }
+              }}
               activeOpacity={0.7}
             >
+              {bulkMode && (
+                <View style={styles.checkboxContainer}>
+                  <IconSymbol 
+                    ios_icon_name={selectedReports.has(report.id) ? "checkmark.circle.fill" : "circle"} 
+                    android_material_icon_name={selectedReports.has(report.id) ? "check_circle" : "radio_button_unchecked"} 
+                    size={24} 
+                    color={selectedReports.has(report.id) ? colors.primary : colors.textSecondary} 
+                  />
+                </View>
+              )}
+
               {/* Content Preview Image */}
               {report.content_image && (
                 <Image 
@@ -720,7 +928,20 @@ export default function GestionarReportesScreen() {
                 </View>
               </View>
 
-              <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+              {!bulkMode && (
+                <>
+                  <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+                  <TouchableOpacity 
+                    style={styles.deleteReportButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      deleteReport(report.id);
+                    }}
+                  >
+                    <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={18} color="#EF4444" />
+                  </TouchableOpacity>
+                </>
+              )}
             </TouchableOpacity>
           ))
         )}
@@ -895,7 +1116,7 @@ export default function GestionarReportesScreen() {
                       <View style={styles.actionsRow}>
                         <TouchableOpacity
                           style={[styles.actionButton, styles.actionButtonKeep]}
-                          onPress={() => updateReportStatus('dismissed')}
+                          onPress={keepContent}
                         >
                           <IconSymbol ios_icon_name="checkmark.circle" android_material_icon_name="check_circle" size={18} color={colors.white} />
                           <Text style={styles.actionButtonText}>Mantener</Text>
@@ -995,6 +1216,13 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  bulkButton: {
+    padding: 8,
+  },
   refreshButton: {
     padding: 8,
   },
@@ -1019,6 +1247,40 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 4,
+  },
+  bulkActionsBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  bulkActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bulkActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  bulkDeleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  bulkDeleteText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.white,
   },
   searchContainer: {
     padding: 16,
@@ -1109,6 +1371,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     ...commonStyles.shadow,
+  },
+  reportCardSelected: {
+    backgroundColor: colors.primary + '10',
+    borderColor: colors.primary,
+  },
+  checkboxContainer: {
+    marginRight: 12,
   },
   reportThumbnail: {
     width: 80,
@@ -1220,6 +1489,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.text,
+  },
+  deleteReportButton: {
+    padding: 8,
+    marginLeft: 8,
   },
   modalOverlay: {
     flex: 1,
