@@ -34,9 +34,12 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
     return `${hours}:${minutes}`;
   };
 
+  // ✅ FIX 1: Redirect to Social Feed instead of standalone post page
   const handlePostPress = () => {
     if (message.post_compartido_id) {
-      router.push(`/social/post?id=${message.post_compartido_id}`);
+      console.log('[MessageBubble] 🔄 Navigating to Social Feed with post:', message.post_compartido_id);
+      // Navigate to Social Feed tab with post ID parameter
+      router.push(`/(tabs)/social?postId=${message.post_compartido_id}`);
     }
   };
 

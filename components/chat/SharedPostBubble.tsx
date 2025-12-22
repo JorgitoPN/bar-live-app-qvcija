@@ -15,13 +15,11 @@ interface SharedPostBubbleProps {
 }
 
 /**
- * ✅ SHARED POST BUBBLE v1.0
+ * ✅ SHARED POST BUBBLE v1.1 - FIXED NAVIGATION
  * 
- * Purpose:
- * - Displays shared post preview in chat messages
- * - Clickable to navigate to full post
- * - Beautiful visual design
- * - Matches chat bubble style
+ * Changes:
+ * - ✅ Now redirects to Social Feed instead of standalone post page
+ * - ✅ Maintains context within the app
  */
 
 export default function SharedPostBubble({
@@ -34,11 +32,10 @@ export default function SharedPostBubble({
 }: SharedPostBubbleProps) {
   const router = useRouter();
 
+  // ✅ FIX 1: Redirect to Social Feed instead of standalone post page
   const handlePress = () => {
-    router.push({
-      pathname: '/social/post',
-      params: { postId },
-    });
+    console.log('[SharedPostBubble] 🔄 Navigating to Social Feed with post:', postId);
+    router.push(`/(tabs)/social?postId=${postId}`);
   };
 
   return (

@@ -14,7 +14,7 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useEffectiveUser } from '@/hooks/useEffectiveUser';
@@ -25,6 +25,7 @@ import MomentoCarousel from '@/components/momento/MomentoCarousel';
 import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
+import PostViewerModal from '@/components/social/PostViewerModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -75,7 +76,7 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL FEED v5.0 - FULL-WIDTH FRIENDS LOCATIONS CAROUSEL (IMPROVED)
+ * ✅ SOCIAL FEED v5.1 - ADDED POST NAVIGATION SUPPORT
  * 
  * Features:
  * - ✅ Full-width "¿Quieres saber dónde están tus amigos?" section (NO margins)
@@ -85,10 +86,12 @@ const POSTS_PER_PAGE = 10;
  * - ✅ Beautiful visual cards with avatars, local photos, badges
  * - ✅ Clickable cards navigate to local page
  * - ✅ Matches publication width (full width, no margins)
+ * - ✅ NEW: Supports postId parameter to open specific post in modal
  */
 
 export default function SocialIndexScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { userId, user, isImpersonating, adminUser } = useEffectiveUser();
   const { impersonationSession } = useImpersonation();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -105,6 +108,75 @@ export default function SocialIndexScreen() {
   const [friendsLocations, setFriendsLocations] = useState<FriendLocation[]>([]);
   const [loadingFriendsLocations, setLoadingFriendsLocations] = useState(false);
   const [myCheckIn, setMyCheckIn] = useState<any>(null);
+
+  // ✅ NEW: State for post modal
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [showPostModal, setShowPostModal] = useState(false);
+
+  // ✅ NEW: Handle postId parameter from navigation
+  useEffect(() => {
+    const postId = params.postId as string;
+    if (postId && userId) {
+      console.log('[Social] 🔄 Opening post from navigation:', postId);
+      loadAndShowPost(postId);
+    }
+  }, [params.postId, userId]);
+
+  const loadAndShowPost = async (postId: string) => {
+    try {
+      console.log('[Social] 📥 Loading post:', postId);
+      
+      const { data: postData, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          autor:usuarios!posts_autor_id_fkey(id, nombre, username, avatar),
+          local:locales!posts_local_id_fkey(id, nombre, imagen_url)
+        `)
+        .eq('id', postId)
+        .single();
+
+      if (error) {
+        console.error('[Social] ❌ Error loading post:', error);
+        Alert.alert('Error', 'No se pudo cargar la publicación');
+        return;
+      }
+
+      if (!postData) {
+        Alert.alert('Error', 'Publicación no encontrada');
+        return;
+      }
+
+      // Check if user has liked/saved
+      const [likeResult, savedResult] = await Promise.all([
+        supabase
+          .from('likes')
+          .select('id')
+          .eq('post_id', postId)
+          .eq('usuario_id', userId!)
+          .maybeSingle(),
+        supabase
+          .from('posts_guardados')
+          .select('id')
+          .eq('post_id', postId)
+          .eq('usuario_id', userId!)
+          .maybeSingle(),
+      ]);
+
+      const postWithStatus = {
+        ...postData,
+        user_has_liked: !!likeResult.data,
+        user_has_saved: !!savedResult.data,
+      };
+
+      setSelectedPost(postWithStatus);
+      setShowPostModal(true);
+      console.log('[Social] ✅ Post loaded and modal opened');
+    } catch (error) {
+      console.error('[Social] ❌ Error loading post:', error);
+      Alert.alert('Error', 'No se pudo cargar la publicación');
+    }
+  };
 
   const loadUnreadCounts = useCallback(async () => {
     if (!userId) return;
@@ -153,14 +225,12 @@ export default function SocialIndexScreen() {
     }
   }, [userId]);
 
-  // ✅ FIX: Define loadFriendsLocations BEFORE using it in useEffect
   const loadFriendsLocations = useCallback(async () => {
     if (!userId) return;
 
     try {
       setLoadingFriendsLocations(true);
 
-      // 1. Get my own check-in first
       const { data: myCheckInData, error: myCheckInError } = await supabase
         .from('check_ins')
         .select(`
@@ -182,7 +252,6 @@ export default function SocialIndexScreen() {
         setMyCheckIn(null);
       }
 
-      // 2. Get all users that current user follows
       const { data: following, error: followingError } = await supabase
         .from('seguidores')
         .select('seguido_id')
@@ -198,7 +267,6 @@ export default function SocialIndexScreen() {
         return;
       }
 
-      // 3. Get check-ins from followed users
       const { data: checkIns, error: checkInsError } = await supabase
         .from('check_ins')
         .select(`
@@ -213,7 +281,6 @@ export default function SocialIndexScreen() {
 
       if (checkInsError) throw checkInsError;
 
-      // 4. Filter by visibility
       const visibleCheckIns = (checkIns || []).filter(checkIn => {
         if (checkIn.visibility === 'all_users') return true;
         if (checkIn.visibility === 'followers') return true;
@@ -223,7 +290,6 @@ export default function SocialIndexScreen() {
         return false;
       });
 
-      // 5. Group by local
       const locationsByLocal = new Map<string, FriendLocation>();
       visibleCheckIns.forEach(checkIn => {
         if (!checkIn.locales) return;
@@ -400,7 +466,6 @@ export default function SocialIndexScreen() {
     }
   }, [userId, isImpersonating]);
 
-  // ✅ FIX: Now cargarPosts and loadFriendsLocations are both defined before this useEffect
   useEffect(() => {
     if (userId) {
       cargarPosts(1, false);
@@ -476,7 +541,6 @@ export default function SocialIndexScreen() {
 
       <MomentoCarousel />
 
-      {/* ✅ FRIENDS LOCATIONS SECTION - FULL WIDTH, COMPACT, HORIZONTAL SCROLL (IMPROVED v2) */}
       {(myCheckIn || friendsLocations.length > 0) && (
         <View style={styles.friendsLocationsSection}>
           <View style={styles.friendsLocationsSectionHeader}>
@@ -492,7 +556,6 @@ export default function SocialIndexScreen() {
             contentContainerStyle={styles.friendsLocationsScroll}
             style={styles.friendsLocationsScrollView}
           >
-            {/* MY CHECK-IN CARD */}
             {myCheckIn && myCheckIn.locales && (
               <TouchableOpacity
                 style={styles.friendLocationCard}
@@ -516,7 +579,6 @@ export default function SocialIndexScreen() {
                     style={styles.friendLocationGradient}
                   />
                   
-                  {/* "Tú estás aquí" badge */}
                   <View style={[styles.friendLocationBadge, { backgroundColor: '#10B981' }]}>
                     <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={11} color={colors.white} />
                     <Text style={styles.friendLocationBadgeText}>Tú estás aquí</Text>
@@ -537,7 +599,6 @@ export default function SocialIndexScreen() {
               </TouchableOpacity>
             )}
 
-            {/* FRIENDS LOCATION CARDS */}
             {friendsLocations.map((location) => (
               <TouchableOpacity
                 key={location.local.id}
@@ -562,7 +623,6 @@ export default function SocialIndexScreen() {
                     style={styles.friendLocationGradient}
                   />
                   
-                  {/* User avatars */}
                   <View style={styles.friendLocationAvatars}>
                     {location.users.slice(0, 3).map((user, userIndex) => (
                       <View 
@@ -591,7 +651,6 @@ export default function SocialIndexScreen() {
                     )}
                   </View>
 
-                  {/* "Ahora en..." badge */}
                   <View style={styles.friendLocationBadge}>
                     <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={11} color={colors.white} />
                     <Text style={styles.friendLocationBadgeText}>
@@ -690,6 +749,19 @@ export default function SocialIndexScreen() {
         updateCellsBatchingPeriod={50}
         windowSize={10}
       />
+
+      {/* ✅ NEW: Post Viewer Modal for shared posts */}
+      {selectedPost && (
+        <PostViewerModal
+          visible={showPostModal}
+          post={selectedPost}
+          onClose={() => {
+            setShowPostModal(false);
+            setSelectedPost(null);
+          }}
+          onUpdate={handleRefresh}
+        />
+      )}
     </View>
   );
 }
@@ -764,7 +836,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  // ✅ FRIENDS LOCATIONS SECTION - FULL WIDTH (NO MARGINS), COMPACT, HORIZONTAL SCROLL
   friendsLocationsSection: {
     marginTop: 8,
     marginBottom: 8,
