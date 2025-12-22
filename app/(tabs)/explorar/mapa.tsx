@@ -85,6 +85,7 @@ export default function MapaScreen() {
     })();
   }, []);
 
+  // ✅ OPTIMIZATION 1: Load essential data first (coordinates + ID) for instant marker display
   const cargarTodosLosLocalesEnriquecidos = useCallback(async () => {
     try {
       console.log('🔄 [MAP] ========================================');
@@ -95,11 +96,67 @@ export default function MapaScreen() {
       if (cachedLocales && cachedLocales.length > 0) {
         console.log('⚡ [MAP] INSTANT load from cache:', cachedLocales.length);
         setTodosLosLocales(cachedLocales);
+        setLocalesFiltrados(cachedLocales);
         setIsLoading(false);
       } else {
         setIsLoading(true);
       }
 
+      // ✅ OPTIMIZATION: Load only essential fields first for instant markers
+      const { data: essentialData, error: essentialError } = await supabase
+        .from('locales')
+        .select('id, nombre, latitud, longitud, barlive_type, barlive_types, imagen_url, destacado')
+        .eq('activo', true)
+        .not('latitud', 'is', null)
+        .not('longitud', 'is', null);
+
+      if (essentialError) {
+        console.error('❌ [MAP] Error loading essential data:', essentialError);
+      } else if (essentialData && essentialData.length > 0) {
+        console.log(`⚡ [MAP] INSTANT markers ready: ${essentialData.length} locals`);
+        
+        // Create minimal markers for instant display
+        const minimalLocales: LocalWithEvent[] = essentialData.map((local) => ({
+          id: local.id,
+          nombre: local.nombre,
+          tipo: local.barlive_type || 'bar',
+          descripcion: '',
+          direccion: '',
+          ciudad: '',
+          provincia: '',
+          coordenadas: {
+            lat: parseFloat(local.latitud),
+            lng: parseFloat(local.longitud),
+          },
+          imagenes: local.imagen_url ? [local.imagen_url] : [],
+          rating: 0,
+          precioMedio: 0,
+          horarios: [],
+          ambiente: [],
+          musica: [],
+          servicios: [],
+          metodosPago: [],
+          destacado: local.destacado || false,
+          nuevo: false,
+          abierto: false,
+          popularidad: 0,
+          checkIns: 0,
+          seguidores: 0,
+          imagen_url: local.imagen_url,
+          galeria_urls: [],
+          activo: true,
+          barlive_type: local.barlive_type,
+          barlive_types: local.barlive_types || [],
+          evento: null,
+          plan: null,
+        }));
+
+        setTodosLosLocales(minimalLocales);
+        setLocalesFiltrados(minimalLocales);
+        setIsLoading(false);
+      }
+
+      // ✅ OPTIMIZATION: Load full data in background
       const { data, error, count } = await supabase
         .from('locales')
         .select(`
@@ -117,12 +174,11 @@ export default function MapaScreen() {
         .not('longitud', 'is', null);
 
       if (error) {
-        console.error('❌ [MAP] Error loading locals:', error);
-        setIsLoading(false);
+        console.error('❌ [MAP] Error loading full data:', error);
         return;
       }
 
-      console.log(`✅ [MAP] Loaded ${data?.length || 0} active locals with location data from DB (total count: ${count})`);
+      console.log(`✅ [MAP] Loaded ${data?.length || 0} active locals with full data from DB (total count: ${count})`);
 
       const now = new Date();
       const currentDate = now.toISOString().split('T')[0];
