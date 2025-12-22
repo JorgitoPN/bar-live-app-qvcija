@@ -140,7 +140,10 @@ export default function GestionarReportesScreen() {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('[GestionarReportes] Error loading reports:', error);
+        throw error;
+      }
 
       // Load content previews, images, and author info
       const reportsWithDetails = await Promise.all(
@@ -242,7 +245,10 @@ export default function GestionarReportesScreen() {
         })
         .eq('id', selectedReport.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[GestionarReportes] Error updating report:', error);
+        throw error;
+      }
 
       Alert.alert('✅ Éxito', `Reporte marcado como: ${STATUS_LABELS[status]}`);
       setDetailsModalVisible(false);
@@ -280,36 +286,52 @@ export default function GestionarReportesScreen() {
                 idField = selectedReport.momento_id!;
               }
 
+              console.log('[GestionarReportes] Deleting content:', { tableName, idField });
+
               // Delete the content
               const { error: deleteError } = await supabase
                 .from(tableName)
                 .delete()
                 .eq('id', idField);
 
-              if (deleteError) throw deleteError;
+              if (deleteError) {
+                console.error('[GestionarReportes] Error deleting content:', deleteError);
+                throw deleteError;
+              }
+
+              console.log('[GestionarReportes] Content deleted successfully');
 
               // Send notification to content author
               if (selectedReport.content_author) {
-                await supabase.from('notificaciones').insert({
+                const { error: notifError } = await supabase.from('notificaciones').insert({
                   usuario_id: selectedReport.content_author.id,
                   tipo: 'sistema',
                   titulo: '🗑️ Contenido eliminado',
                   mensaje: `Tu ${selectedReport.content_type === 'post' ? 'publicación' : selectedReport.content_type === 'comment' ? 'comentario' : 'momento'} ha sido eliminado por violar nuestras normas de la comunidad. Motivo: ${REASON_LABELS[selectedReport.reason]}.`,
                 });
+
+                if (notifError) {
+                  console.error('[GestionarReportes] Error sending notification:', notifError);
+                }
               }
 
-              // Update report status and delete it
-              await supabase
+              // Delete the report
+              const { error: reportDeleteError } = await supabase
                 .from('content_reports')
                 .delete()
                 .eq('id', selectedReport.id);
 
+              if (reportDeleteError) {
+                console.error('[GestionarReportes] Error deleting report:', reportDeleteError);
+                // Don't throw here, content is already deleted
+              }
+
               Alert.alert('✅ Éxito', 'Contenido eliminado correctamente');
               setDetailsModalVisible(false);
               loadReports();
-            } catch (error) {
-              console.error('[GestionarReportes] Error deleting content:', error);
-              Alert.alert('Error', 'No se pudo eliminar el contenido');
+            } catch (error: any) {
+              console.error('[GestionarReportes] Error in deleteContent:', error);
+              Alert.alert('Error', `No se pudo eliminar el contenido: ${error.message || 'Error desconocido'}`);
             }
           },
         },
@@ -330,15 +352,20 @@ export default function GestionarReportesScreen() {
           onPress: async () => {
             try {
               // Create notification for the user
-              await supabase.from('notificaciones').insert({
+              const { error: notifError } = await supabase.from('notificaciones').insert({
                 usuario_id: selectedReport.content_author!.id,
                 tipo: 'sistema',
                 titulo: '⚠️ Aviso de moderación',
                 mensaje: `Tu contenido ha sido reportado por ${REASON_LABELS[selectedReport.reason].toLowerCase()}. Por favor, revisa nuestras normas de la comunidad.`,
               });
 
+              if (notifError) {
+                console.error('[GestionarReportes] Error sending notification:', notifError);
+                throw notifError;
+              }
+
               // Create penalty record
-              await supabase.from('user_penalties').insert({
+              const { error: penaltyError } = await supabase.from('user_penalties').insert({
                 admin_id: user?.id,
                 target_user_id: selectedReport.content_author!.id,
                 type_of_penalty: 'aviso',
@@ -346,18 +373,28 @@ export default function GestionarReportesScreen() {
                 description: selectedReport.description || 'Sin descripción adicional',
               });
 
+              if (penaltyError) {
+                console.error('[GestionarReportes] Error creating penalty:', penaltyError);
+                throw penaltyError;
+              }
+
               // Delete the report after action
-              await supabase
+              const { error: deleteError } = await supabase
                 .from('content_reports')
                 .delete()
                 .eq('id', selectedReport.id);
 
+              if (deleteError) {
+                console.error('[GestionarReportes] Error deleting report:', deleteError);
+                // Don't throw, action was successful
+              }
+
               Alert.alert('✅ Éxito', 'Aviso enviado al usuario');
               setDetailsModalVisible(false);
               loadReports();
-            } catch (error) {
+            } catch (error: any) {
               console.error('[GestionarReportes] Error sending warning:', error);
-              Alert.alert('Error', 'No se pudo enviar el aviso');
+              Alert.alert('Error', `No se pudo enviar el aviso: ${error.message || 'Error desconocido'}`);
             }
           },
         },
@@ -381,7 +418,7 @@ export default function GestionarReportesScreen() {
               const expiresAt = new Date();
               expiresAt.setHours(expiresAt.getHours() + 24);
 
-              await supabase.from('user_penalties').insert({
+              const { error: penaltyError } = await supabase.from('user_penalties').insert({
                 admin_id: user?.id,
                 target_user_id: selectedReport.content_author!.id,
                 type_of_penalty: 'bloqueo',
@@ -391,25 +428,38 @@ export default function GestionarReportesScreen() {
                 expires_at: expiresAt.toISOString(),
               });
 
-              await supabase.from('notificaciones').insert({
+              if (penaltyError) {
+                console.error('[GestionarReportes] Error creating penalty:', penaltyError);
+                throw penaltyError;
+              }
+
+              const { error: notifError } = await supabase.from('notificaciones').insert({
                 usuario_id: selectedReport.content_author!.id,
                 tipo: 'sistema',
                 titulo: '🚫 Cuenta bloqueada temporalmente',
                 mensaje: 'Tu cuenta ha sido bloqueada por 24 horas debido a violaciones de las normas de la comunidad.',
               });
 
+              if (notifError) {
+                console.error('[GestionarReportes] Error sending notification:', notifError);
+              }
+
               // Delete the report after action
-              await supabase
+              const { error: deleteError } = await supabase
                 .from('content_reports')
                 .delete()
                 .eq('id', selectedReport.id);
 
+              if (deleteError) {
+                console.error('[GestionarReportes] Error deleting report:', deleteError);
+              }
+
               Alert.alert('✅ Éxito', 'Usuario bloqueado temporalmente');
               setDetailsModalVisible(false);
               loadReports();
-            } catch (error) {
+            } catch (error: any) {
               console.error('[GestionarReportes] Error blocking user:', error);
-              Alert.alert('Error', 'No se pudo bloquear al usuario');
+              Alert.alert('Error', `No se pudo bloquear al usuario: ${error.message || 'Error desconocido'}`);
             }
           },
         },
@@ -430,7 +480,7 @@ export default function GestionarReportesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await supabase.from('user_penalties').insert({
+              const { error: penaltyError } = await supabase.from('user_penalties').insert({
                 admin_id: user?.id,
                 target_user_id: selectedReport.content_author!.id,
                 type_of_penalty: 'baneo',
@@ -438,31 +488,49 @@ export default function GestionarReportesScreen() {
                 description: 'Baneo permanente por violaciones graves',
               });
 
+              if (penaltyError) {
+                console.error('[GestionarReportes] Error creating penalty:', penaltyError);
+                throw penaltyError;
+              }
+
               // Deactivate user account
-              await supabase
+              const { error: updateError } = await supabase
                 .from('usuarios')
                 .update({ activo: false })
                 .eq('id', selectedReport.content_author!.id);
 
-              await supabase.from('notificaciones').insert({
+              if (updateError) {
+                console.error('[GestionarReportes] Error deactivating user:', updateError);
+                throw updateError;
+              }
+
+              const { error: notifError } = await supabase.from('notificaciones').insert({
                 usuario_id: selectedReport.content_author!.id,
                 tipo: 'sistema',
                 titulo: '⛔ Cuenta baneada',
                 mensaje: 'Tu cuenta ha sido baneada permanentemente por violaciones graves de las normas de la comunidad.',
               });
 
+              if (notifError) {
+                console.error('[GestionarReportes] Error sending notification:', notifError);
+              }
+
               // Delete the report after action
-              await supabase
+              const { error: deleteError } = await supabase
                 .from('content_reports')
                 .delete()
                 .eq('id', selectedReport.id);
 
+              if (deleteError) {
+                console.error('[GestionarReportes] Error deleting report:', deleteError);
+              }
+
               Alert.alert('✅ Éxito', 'Usuario baneado permanentemente');
               setDetailsModalVisible(false);
               loadReports();
-            } catch (error) {
+            } catch (error: any) {
               console.error('[GestionarReportes] Error banning user:', error);
-              Alert.alert('Error', 'No se pudo banear al usuario');
+              Alert.alert('Error', `No se pudo banear al usuario: ${error.message || 'Error desconocido'}`);
             }
           },
         },
@@ -483,17 +551,22 @@ export default function GestionarReportesScreen() {
           onPress: async () => {
             try {
               // Delete the report
-              await supabase
+              const { error } = await supabase
                 .from('content_reports')
                 .delete()
                 .eq('id', selectedReport.id);
 
+              if (error) {
+                console.error('[GestionarReportes] Error deleting report:', error);
+                throw error;
+              }
+
               Alert.alert('✅ Éxito', 'Reporte desestimado');
               setDetailsModalVisible(false);
               loadReports();
-            } catch (error) {
+            } catch (error: any) {
               console.error('[GestionarReportes] Error dismissing report:', error);
-              Alert.alert('Error', 'No se pudo desestimar el reporte');
+              Alert.alert('Error', `No se pudo desestimar el reporte: ${error.message || 'Error desconocido'}`);
             }
           },
         },
@@ -512,16 +585,21 @@ export default function GestionarReportesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await supabase
+              const { error } = await supabase
                 .from('content_reports')
                 .delete()
                 .eq('id', reportId);
 
+              if (error) {
+                console.error('[GestionarReportes] Error deleting report:', error);
+                throw error;
+              }
+
               Alert.alert('✅ Éxito', 'Reporte eliminado');
               loadReports();
-            } catch (error) {
+            } catch (error: any) {
               console.error('[GestionarReportes] Error deleting report:', error);
-              Alert.alert('Error', 'No se pudo eliminar el reporte');
+              Alert.alert('Error', `No se pudo eliminar el reporte: ${error.message || 'Error desconocido'}`);
             }
           },
         },
@@ -545,18 +623,23 @@ export default function GestionarReportesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await supabase
+              const { error } = await supabase
                 .from('content_reports')
                 .delete()
                 .in('id', Array.from(selectedReports));
+
+              if (error) {
+                console.error('[GestionarReportes] Error deleting bulk reports:', error);
+                throw error;
+              }
 
               Alert.alert('✅ Éxito', `${selectedReports.size} reporte(s) eliminado(s)`);
               setSelectedReports(new Set());
               setBulkMode(false);
               loadReports();
-            } catch (error) {
+            } catch (error: any) {
               console.error('[GestionarReportes] Error deleting bulk reports:', error);
-              Alert.alert('Error', 'No se pudieron eliminar los reportes');
+              Alert.alert('Error', `No se pudieron eliminar los reportes: ${error.message || 'Error desconocido'}`);
             }
           },
         },
