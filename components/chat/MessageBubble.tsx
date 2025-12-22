@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Pressable, ActivityIndicator } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useRouter } from 'expo-router';
@@ -24,8 +24,20 @@ interface MessageBubbleProps {
   onLongPress?: () => void;
 }
 
+/**
+ * ✅ MESSAGE BUBBLE v3.0 - FIXED IMAGE LOADING
+ * 
+ * FIXES APPLIED:
+ * - ✅ FIXED: Better error handling for image loading
+ * - ✅ FIXED: Loading state for images
+ * - ✅ FIXED: Fallback UI when image fails to load
+ * - ✅ OPTIMIZED: Instant navigation to Social Feed with post ID
+ */
+
 export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress }: MessageBubbleProps) {
   const router = useRouter();
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -34,11 +46,11 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
     return `${hours}:${minutes}`;
   };
 
-  // ✅ FIX 1: Redirect to Social Feed instead of standalone post page
+  // ✅ OPTIMIZED: Instant navigation to Social Feed with post ID
   const handlePostPress = () => {
     if (message.post_compartido_id) {
-      console.log('[MessageBubble] 🔄 Navigating to Social Feed with post:', message.post_compartido_id);
-      // Navigate to Social Feed tab with post ID parameter
+      console.log('[MessageBubble] 🚀 Navigating to Social Feed with post:', message.post_compartido_id);
+      // Navigate to Social Feed tab with post ID parameter for instant loading
       router.push(`/(tabs)/social?postId=${message.post_compartido_id}`);
     }
   };
@@ -49,31 +61,57 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
         postId: message.post_compartido_id,
         hasImage: !!message.post_imagen,
         imageUrl: message.post_imagen,
+        imageError,
+        imageLoading,
       });
       
       return (
         <View style={styles.sharedPostContainer}>
-          {message.post_imagen ? (
+          {message.post_imagen && !imageError ? (
             <TouchableOpacity onPress={handlePostPress} activeOpacity={0.8}>
-              <Image 
-                source={{ uri: message.post_imagen }} 
-                style={styles.postSnapshot}
-                resizeMode="cover"
-                onError={(error) => {
-                  console.error('[MessageBubble] ❌ Image load error:', error.nativeEvent.error);
-                }}
-                onLoad={() => {
-                  console.log('[MessageBubble] ✅ Image loaded successfully');
-                }}
-              />
-              <View style={styles.snapshotOverlay}>
-                <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={20} color="#fff" />
+              <View style={styles.imageContainer}>
+                {imageLoading && (
+                  <View style={styles.imageLoadingOverlay}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                )}
+                <Image 
+                  source={{ uri: message.post_imagen }} 
+                  style={styles.postSnapshot}
+                  resizeMode="cover"
+                  onLoadStart={() => {
+                    console.log('[MessageBubble] 🔄 Image loading started');
+                    setImageLoading(true);
+                    setImageError(false);
+                  }}
+                  onLoad={() => {
+                    console.log('[MessageBubble] ✅ Image loaded successfully');
+                    setImageLoading(false);
+                    setImageError(false);
+                  }}
+                  onError={(error) => {
+                    console.error('[MessageBubble] ❌ Image load error:', error.nativeEvent.error);
+                    setImageLoading(false);
+                    setImageError(true);
+                  }}
+                />
+                {!imageLoading && !imageError && (
+                  <View style={styles.snapshotOverlay}>
+                    <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={20} color="#fff" />
+                  </View>
+                )}
               </View>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={handlePostPress} activeOpacity={0.8} style={styles.postSnapshotPlaceholder}>
               <IconSymbol ios_icon_name="photo" android_material_icon_name="image" size={48} color="rgba(255, 255, 255, 0.5)" />
-              <Text style={styles.postSnapshotPlaceholderText}>Publicación compartida</Text>
+              <Text style={styles.postSnapshotPlaceholderText}>
+                {imageError ? 'Error al cargar imagen' : 'Publicación compartida'}
+              </Text>
+              <View style={styles.tapToViewBadge}>
+                <IconSymbol ios_icon_name="hand.tap" android_material_icon_name="touch_app" size={14} color={colors.primary} />
+                <Text style={styles.tapToViewText}>Toca para ver</Text>
+              </View>
             </TouchableOpacity>
           )}
           <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
@@ -162,6 +200,21 @@ const styles = StyleSheet.create({
   sharedPostContainer: {
     gap: 8,
   },
+  imageContainer: {
+    position: 'relative',
+  },
+  imageLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+    zIndex: 1,
+  },
   postSnapshot: {
     width: 200,
     height: 200,
@@ -178,12 +231,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderStyle: 'dashed',
+    gap: 8,
   },
   postSnapshotPlaceholderText: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 8,
     fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 16,
+  },
+  tapToViewBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginTop: 4,
+  },
+  tapToViewText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
   },
   snapshotOverlay: {
     position: 'absolute',
