@@ -26,19 +26,18 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ✅ UPDATED: Softer red tones for general actions, strong red only for warnings
 const ROOM_COLORS = {
-  primary: colors.primary,        // Teal
-  secondary: colors.secondary,    // Cyan
-  accent: '#F59E0B',             // Amber
-  success: '#10B981',            // Green
-  danger: '#EF4444',             // Strong Red (only for warnings/deletions)
-  warning: '#F97316',            // Orange (for "closing soon" warnings)
-  softRed: '#FCA5A5',            // Soft Red (for general actions)
-  purple: '#8B5CF6',             // Purple
-  pink: '#EC4899',               // Pink
-  dark: '#1F2937',               // Dark gray
-  light: '#F3F4F6',              // Light gray
+  primary: colors.primary,
+  secondary: colors.secondary,
+  accent: '#F59E0B',
+  success: '#10B981',
+  danger: '#EF4444',
+  warning: '#F97316',
+  softRed: '#FCA5A5',
+  purple: '#8B5CF6',
+  pink: '#EC4899',
+  dark: '#1F2937',
+  light: '#F3F4F6',
   cardBg: colors.cardBackground,
   cardBgDark: '#111827',
 };
@@ -77,9 +76,8 @@ interface Local {
 
 const EMOTICONS = ['❤️', '🔥', '😎', '😄', '👏', '🍹', '🎶', '😍', '🤝', '👋', '🎉', '💃', '🕺', '🎊', '🥳'];
 
-// ✅ NEW: Closing warning thresholds (in minutes)
-const CLOSING_WARNING_THRESHOLD = 30; // Warn when 30 minutes or less until closing
-const CLOSING_CRITICAL_THRESHOLD = 10; // Critical warning when 10 minutes or less
+const CLOSING_WARNING_THRESHOLD = 30;
+const CLOSING_CRITICAL_THRESHOLD = 10;
 
 export default function SalaVirtualScreen() {
   const params = useLocalSearchParams();
@@ -97,8 +95,6 @@ export default function SalaVirtualScreen() {
   const [localClosed, setLocalClosed] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'users'>('chat');
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
-  
-  // ✅ NEW: Closing warning state
   const [closingWarningShown, setClosingWarningShown] = useState(false);
   const [minutesUntilClosing, setMinutesUntilClosing] = useState<number | null>(null);
   
@@ -112,7 +108,6 @@ export default function SalaVirtualScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
 
-  // ✅ SPECTACULAR: Pulse animation for online indicators
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -129,7 +124,6 @@ export default function SalaVirtualScreen() {
       ])
     ).start();
 
-    // ✅ SPECTACULAR: Glow animation for current user
     Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, {
@@ -146,19 +140,15 @@ export default function SalaVirtualScreen() {
     ).start();
   }, [glowAnim, pulseAnim]);
 
-  // ✅ NEW: Check closing time and show warnings
   const checkClosingTime = useCallback(() => {
     if (!local) return;
 
     const estadoLocal = getEstadoLocal(local);
     
-    // If local is open and has time remaining
     if (estadoLocal.estaAbierto && estadoLocal.tiempoRestante) {
-      // Parse time remaining to get minutes
       const timeStr = estadoLocal.tiempoRestante;
       let totalMinutes = 0;
       
-      // Parse formats like "30 min", "1 h 15 min", "2 días 3 h"
       const daysMatch = timeStr.match(/(\d+)\s*día/);
       const hoursMatch = timeStr.match(/(\d+)\s*h(?!\s*min)/);
       const minutesMatch = timeStr.match(/(\d+)\s*min/);
@@ -177,7 +167,6 @@ export default function SalaVirtualScreen() {
       
       console.log(`[SalaVirtual] ⏰ Tiempo hasta cierre: ${totalMinutes} minutos`);
       
-      // Show warning if closing soon
       if (totalMinutes <= CLOSING_WARNING_THRESHOLD && !closingWarningShown) {
         setClosingWarningShown(true);
         
@@ -191,7 +180,6 @@ export default function SalaVirtualScreen() {
           [{ text: 'Entendido' }]
         );
         
-        // Broadcast warning to all users in the room
         if (chatChannelRef.current) {
           chatChannelRef.current.send({
             type: 'broadcast',
@@ -203,7 +191,6 @@ export default function SalaVirtualScreen() {
         }
       }
     } else if (!estadoLocal.estaAbierto) {
-      // Local is closed, kick everyone out
       console.log('[SalaVirtual] ❌ Local cerrado, expulsando usuarios');
       setLocalClosed(true);
       
@@ -223,13 +210,10 @@ export default function SalaVirtualScreen() {
     }
   }, [local, closingWarningShown, router]);
 
-  // ✅ NEW: Set up interval to check closing time every minute
   useEffect(() => {
     if (isCheckedIn && local) {
-      // Check immediately
       checkClosingTime();
       
-      // Then check every minute
       closingCheckIntervalRef.current = setInterval(checkClosingTime, 60000);
       
       return () => {
@@ -240,7 +224,6 @@ export default function SalaVirtualScreen() {
     }
   }, [isCheckedIn, local, checkClosingTime]);
 
-  // Load local data
   const loadLocalData = useCallback(async () => {
     if (!localId) {
       console.error('[SalaVirtual] No localId provided');
@@ -298,7 +281,6 @@ export default function SalaVirtualScreen() {
     }
   }, [localId, router]);
 
-  // Check if user is checked in
   const checkUserCheckin = useCallback(async () => {
     if (!user || !localId) {
       console.log('[SalaVirtual] No user or localId');
@@ -319,18 +301,22 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      setIsCheckedIn(!!data);
-      console.log('[SalaVirtual] User checked in:', !!data);
+      const checkedIn = !!data;
+      setIsCheckedIn(checkedIn);
+      console.log('[SalaVirtual] User checked in:', checkedIn);
+      
+      return checkedIn;
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
+      return false;
     }
   }, [user, localId]);
 
-  // ✅ FIXED: Handle check-in with proper duplicate handling and auto check-in
-  const handleCheckIn = async () => {
+  // ✅ FIXED: Simplified check-in with proper error handling
+  const handleCheckIn = useCallback(async () => {
     if (!user || !localId) {
       Alert.alert('Error', 'Debes iniciar sesión para entrar en la sala');
-      return;
+      return false;
     }
 
     if (local) {
@@ -343,15 +329,15 @@ export default function SalaVirtualScreen() {
           `Este local está cerrado actualmente (${estadoLocal.badge}). No puedes entrar en la sala virtual.`,
           [{ text: 'OK' }]
         );
-        return;
+        return false;
       }
     }
 
     try {
       setCheckingIn(true);
+      console.log('[SalaVirtual] 🔄 Starting check-in for user:', user.id);
 
       // ✅ FIXED: First, close ALL active check-ins for this user (any local)
-      console.log('[SalaVirtual] 🔄 Closing all active check-ins for user:', user.id);
       const { error: closeError } = await supabase
         .from('sala_virtual_checkins')
         .update({
@@ -363,12 +349,13 @@ export default function SalaVirtualScreen() {
 
       if (closeError) {
         console.error('[SalaVirtual] ❌ Error closing previous check-ins:', closeError);
-        Alert.alert('Error', 'No se pudo cerrar la sesión anterior');
-        setCheckingIn(false);
-        return;
+        throw new Error('No se pudo cerrar la sesión anterior');
       }
 
       console.log('[SalaVirtual] ✅ All previous check-ins closed');
+
+      // ✅ FIXED: Small delay to ensure database consistency
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Now insert a new check-in
       const { data, error } = await supabase
@@ -384,9 +371,7 @@ export default function SalaVirtualScreen() {
 
       if (error) {
         console.error('[SalaVirtual] ❌ Error inserting checkin:', error);
-        Alert.alert('Error', 'No se pudo entrar en la sala');
-        setCheckingIn(false);
-        return;
+        throw new Error('No se pudo entrar en la sala');
       }
 
       setIsCheckedIn(true);
@@ -409,14 +394,15 @@ export default function SalaVirtualScreen() {
       }
       
       setCheckingIn(false);
-    } catch (error) {
+      return true;
+    } catch (error: any) {
       console.error('[SalaVirtual] ❌ Unexpected error during checkin:', error);
-      Alert.alert('Error', 'Ocurrió un error inesperado al entrar en la sala');
+      Alert.alert('Error', error.message || 'Ocurrió un error inesperado al entrar en la sala');
       setCheckingIn(false);
+      return false;
     }
-  };
+  }, [user, localId, local]);
 
-  // ✅ FIXED: Handle check-out with proper UPDATE instead of INSERT
   const handleCheckOut = async () => {
     if (!user || !localId) return;
 
@@ -432,7 +418,6 @@ export default function SalaVirtualScreen() {
             try {
               console.log('[SalaVirtual] 🔄 Checking out user:', user.id, 'from local:', localId);
 
-              // ✅ FIXED: Simply UPDATE the active check-in to inactive
               const { error } = await supabase
                 .from('sala_virtual_checkins')
                 .update({
@@ -449,7 +434,6 @@ export default function SalaVirtualScreen() {
                 return;
               }
 
-              // Broadcast user left
               if (presenceChannelRef.current) {
                 try {
                   await presenceChannelRef.current.send({
@@ -477,7 +461,6 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // Load messages
   const loadMessages = useCallback(async () => {
     if (!localId) return;
 
@@ -518,7 +501,6 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // Update active users
   const updateActiveUsers = useCallback(async () => {
     if (!localId) return;
 
@@ -561,7 +543,6 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // Subscribe to real-time updates
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
@@ -662,7 +643,7 @@ export default function SalaVirtualScreen() {
     };
   }, [localId, user, updateActiveUsers, router]);
 
-  // ✅ FIXED: Auto check-in when entering the room
+  // ✅ FIXED: Improved initialization with auto check-in
   useEffect(() => {
     if (!localId) {
       setLoading(false);
@@ -674,11 +655,15 @@ export default function SalaVirtualScreen() {
 
     const init = async () => {
       await loadLocalData();
-      await checkUserCheckin();
+      const checkedIn = await checkUserCheckin();
       
-      // ✅ NEW: Auto check-in if not already checked in and local is open
-      if (!isCheckedIn && !localClosed && user) {
-        await handleCheckIn();
+      // ✅ FIXED: Auto check-in if not already checked in and local is open
+      if (!checkedIn && !localClosed && user) {
+        const success = await handleCheckIn();
+        if (!success) {
+          // If check-in failed, don't proceed
+          return;
+        }
       }
       
       await loadMessages();
@@ -698,9 +683,8 @@ export default function SalaVirtualScreen() {
     return () => {
       cleanup.then(fn => fn && fn());
     };
-  }, [localId, router, loadLocalData, checkUserCheckin, isCheckedIn, localClosed, user, handleCheckIn, loadMessages, subscribeToUpdates, updateActiveUsers]);
+  }, [localId]);
 
-  // Handle typing indicator
   const handleTyping = () => {
     if (!user || !chatChannelRef.current) return;
 
@@ -750,7 +734,7 @@ export default function SalaVirtualScreen() {
         .insert({
           usuario_id: user.id,
           local_id: localId,
-          tipo: 'mensaje', // ✅ FIXED: Use 'mensaje' instead of 'message_created'
+          tipo: 'mensaje',
           contenido: content,
         })
         .select()
@@ -784,7 +768,6 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // Delete message
   const deleteMessage = async (messageId: string) => {
     if (!user) return;
 
@@ -819,7 +802,6 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // ✅ FIXED: Send emoticon to user with correct tipo value
   const sendEmoticon = async (recipientId: string, emoticon: string) => {
     if (!user || !localId) return;
 
@@ -829,7 +811,7 @@ export default function SalaVirtualScreen() {
         .insert({
           usuario_id: user.id,
           local_id: localId,
-          tipo: 'emoticon', // ✅ FIXED: Use 'emoticon' instead of other values
+          tipo: 'emoticon',
           contenido: emoticon,
           recipient_id: recipientId,
         })
@@ -848,7 +830,6 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // Handle user selection
   const handleUserSelect = (selectedUser: ActiveUser) => {
     if (selectedUser.id === user?.id) return;
     
@@ -883,7 +864,6 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // ✅ REDESIGNED: Render message with design from attached image
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
 
@@ -894,7 +874,6 @@ export default function SalaVirtualScreen() {
           isOwnMessage ? styles.ownMessage : styles.otherMessage,
         ]}
       >
-        {/* Avatar on left for others */}
         {!isOwnMessage && (
           <TouchableOpacity
             style={styles.messageAvatar}
@@ -923,7 +902,6 @@ export default function SalaVirtualScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Message bubble */}
         <View style={{ flex: 1 }}>
           <TouchableOpacity
             style={[
@@ -948,14 +926,12 @@ export default function SalaVirtualScreen() {
             }}
             activeOpacity={isOwnMessage ? 0.7 : 1}
           >
-            {/* Username - only for other users */}
             {!isOwnMessage && (
               <Text style={styles.messageSender}>
                 {item.usuario.username || item.usuario.nombre}
               </Text>
             )}
             
-            {/* Message content */}
             <Text
               style={[
                 styles.messageText,
@@ -965,7 +941,6 @@ export default function SalaVirtualScreen() {
               {item.contenido}
             </Text>
             
-            {/* Timestamp */}
             <Text
               style={[
                 styles.messageTime,
@@ -983,7 +958,6 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // ✅ FIXED: Render user item - Display username without @ instead of full name
   const renderUserItem = ({ item }: { item: ActiveUser }) => {
     const isCurrentUser = user && item.id === user.id;
     const glowColor = glowAnim.interpolate({
@@ -991,7 +965,6 @@ export default function SalaVirtualScreen() {
       outputRange: [`${ROOM_COLORS.primary}33`, `${ROOM_COLORS.secondary}66`],
     });
 
-    // ✅ FIXED: Display username without @ if available, otherwise display nombre
     const displayName = item.username || item.nombre;
 
     return (
@@ -1122,8 +1095,6 @@ export default function SalaVirtualScreen() {
     );
   }
 
-  // ✅ REMOVED: Welcome screen - users now enter directly into the chat
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -1135,7 +1106,6 @@ export default function SalaVirtualScreen() {
           title: local?.nombre || 'Sala Virtual',
           headerRight: () => (
             <View style={styles.headerRight}>
-              {/* ✅ NEW: Show closing warning indicator */}
               {minutesUntilClosing !== null && minutesUntilClosing <= CLOSING_WARNING_THRESHOLD && (
                 <View style={[
                   styles.closingWarningIndicator,
@@ -1165,7 +1135,6 @@ export default function SalaVirtualScreen() {
       />
 
       <View style={styles.content}>
-        {/* ✅ FIXED: Tab bar with Chat Público first, then Usuarios */}
         <View style={styles.tabBarContainer}>
           <View style={styles.tabBar}>
             <TouchableOpacity
@@ -1367,7 +1336,6 @@ export default function SalaVirtualScreen() {
               }
             />
 
-            {/* ✅ UPDATED: Exit button with less prominent color (gray instead of red) */}
             <View style={styles.usersFooter}>
               <TouchableOpacity
                 style={styles.checkOutButtonLarge}
@@ -1483,7 +1451,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
     gap: 8,
   },
-  // ✅ NEW: Closing warning indicator styles
   closingWarningIndicator: {
     flexDirection: 'row',
     alignItems: 'center',

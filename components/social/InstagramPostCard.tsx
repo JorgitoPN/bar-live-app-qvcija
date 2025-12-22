@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -208,13 +208,14 @@ export default function InstagramPostCard({
     setShowPostViewer(true);
   };
 
-  const handleLike = async () => {
+  // ✅ FIXED: Moved handleLike to useCallback to fix React Hook rules
+  const handleLike = useCallback(async () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
       return;
     }
 
-    // ✅ FIXED: Validate session before critical operation - ensureValidSession is now from the hook at component level
+    // ✅ FIXED: Validate session before critical operation
     const validSession = await ensureValidSession();
     
     if (!validSession) {
@@ -284,7 +285,7 @@ export default function InstagramPostCard({
       setLikesCount(previousCount);
       Alert.alert('Error', 'No se pudo actualizar el me gusta');
     }
-  };
+  }, [user, ensureValidSession, isLiked, likesCount, post.id]);
 
   const handleComment = () => {
     setShowComments(true);
@@ -567,7 +568,7 @@ export default function InstagramPostCard({
             >
               {post.imagenes.map((imagen, index) => (
                 <Image
-                  key={index}
+                  key={`image-${post.id}-${index}`}
                   source={{ uri: imagen }}
                   style={styles.image}
                   resizeMode="cover"
@@ -579,7 +580,7 @@ export default function InstagramPostCard({
               <View style={styles.imageIndicator}>
                 {post.imagenes.map((_, index) => (
                   <View
-                    key={index}
+                    key={`indicator-${post.id}-${index}`}
                     style={[
                       styles.indicatorDot,
                       index === currentImageIndex && styles.indicatorDotActive,
