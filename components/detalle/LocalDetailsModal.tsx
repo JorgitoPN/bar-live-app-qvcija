@@ -322,7 +322,8 @@ export default function LocalDetailsModal({
                     </Text>
                   )}
 
-                  {/* ✅ FIXED: Removed redundant text between "Estoy en este local" button and action buttons */}
+                  {/* ✅ FIXED: Removed redundant local name text between buttons */}
+                  
                   <View style={styles.actionsRow}>
                     {local.telefono && (
                       <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>

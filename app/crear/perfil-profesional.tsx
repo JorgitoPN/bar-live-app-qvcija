@@ -10,6 +10,8 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,7 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const PUESTOS = ['Camarero/a', 'Cocinero/a', 'Barman', 'Gerente', 'Limpieza', 'Seguridad', 'DJ', 'Relaciones Públicas'];
 
-// ✅ FIXED: Added complete list of Spanish provinces
+// ✅ FIXED: Complete list of all 50 Spanish provinces
 const PROVINCIAS = [
   'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila',
   'Badajoz', 'Barcelona', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria',
@@ -50,6 +52,9 @@ export default function CrearPerfilProfesionalScreen() {
   const [provincia, setProvincia] = useState('');
   const [foto, setFoto] = useState<string | null>(null);
 
+  // ✅ NEW: Province dropdown modal state
+  const [showProvinciaModal, setShowProvinciaModal] = useState(false);
+
   const checkExistingProfile = useCallback(async () => {
     if (!user) {
       router.back();
@@ -74,9 +79,9 @@ export default function CrearPerfilProfesionalScreen() {
               text: 'Editar', 
               onPress: () => {
                 // Pre-fill form with existing data
-                setNombreCompleto(existingProfile.nombre_completo);
-                setPuesto(existingProfile.puesto_deseado);
-                setExperiencia(existingProfile.experiencia);
+                setNombreCompleto(existingProfile.nombre_completo || '');
+                setPuesto(existingProfile.puesto_deseado || '');
+                setExperiencia(existingProfile.experiencia || '');
                 setHabilidades(existingProfile.habilidades || '');
                 setDisponibilidad(existingProfile.disponibilidad || '');
                 setProvincia(existingProfile.provincia || '');
@@ -205,11 +210,12 @@ export default function CrearPerfilProfesionalScreen() {
           { text: 'OK', onPress: () => router.back() },
         ]);
       } else {
-        // Create new profile
+        // Create new profile - use titulo_profesional as required field
         const { error: insertError } = await supabase
           .from('perfiles_profesionales')
           .insert({
             usuario_id: user.id,
+            titulo_profesional: puesto, // Map to existing required field
             nombre_completo: nombreCompleto,
             puesto_deseado: puesto,
             experiencia,
@@ -312,33 +318,23 @@ export default function CrearPerfilProfesionalScreen() {
             </View>
           </View>
 
-          {/* ✅ FIXED: Added dropdown-style province selector with all Spanish provinces */}
+          {/* ✅ FIXED: Real dropdown selector for provinces */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Provincia</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.provinciaScrollContainer}
+            <TouchableOpacity 
+              style={styles.dropdownButton}
+              onPress={() => setShowProvinciaModal(true)}
             >
-              <View style={styles.puestoButtons}>
-                {PROVINCIAS.map((p) => (
-                  <TouchableOpacity
-                    key={p}
-                    style={[styles.puestoButton, provincia === p && styles.puestoButtonActive]}
-                    onPress={() => setProvincia(p)}
-                  >
-                    <Text
-                      style={[
-                        styles.puestoButtonText,
-                        provincia === p && styles.puestoButtonTextActive,
-                      ]}
-                    >
-                      {p}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+              <Text style={[styles.dropdownButtonText, !provincia && styles.dropdownPlaceholder]}>
+                {provincia || 'Selecciona una provincia'}
+              </Text>
+              <IconSymbol 
+                ios_icon_name="chevron.down" 
+                android_material_icon_name="arrow_drop_down" 
+                size={20} 
+                color={colors.textSecondary} 
+              />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.inputContainer}>
@@ -396,6 +392,63 @@ export default function CrearPerfilProfesionalScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* ✅ NEW: Province selection modal */}
+      <Modal
+        visible={showProvinciaModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowProvinciaModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable 
+            style={styles.modalOverlayTouchable}
+            onPress={() => setShowProvinciaModal(false)}
+          />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecciona Provincia</Text>
+              <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView 
+              style={styles.provinciaList}
+              showsVerticalScrollIndicator={false}
+            >
+              {PROVINCIAS.map((p) => (
+                <TouchableOpacity
+                  key={p}
+                  style={[
+                    styles.provinciaItem,
+                    provincia === p && styles.provinciaItemActive
+                  ]}
+                  onPress={() => {
+                    setProvincia(p);
+                    setShowProvinciaModal(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.provinciaItemText,
+                    provincia === p && styles.provinciaItemTextActive
+                  ]}>
+                    {p}
+                  </Text>
+                  {provincia === p && (
+                    <IconSymbol 
+                      ios_icon_name="checkmark" 
+                      android_material_icon_name="check" 
+                      size={20} 
+                      color={colors.primary} 
+                    />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -490,8 +543,23 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
-  provinciaScrollContainer: {
-    maxHeight: 200,
+  dropdownButton: {
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dropdownButtonText: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  dropdownPlaceholder: {
+    color: colors.textSecondary,
   },
   puestoButtons: {
     flexDirection: 'row',
@@ -532,5 +600,57 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalOverlayTouchable: {
+    flex: 1,
+  },
+  modalContent: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  provinciaList: {
+    flex: 1,
+  },
+  provinciaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  provinciaItemActive: {
+    backgroundColor: colors.primary + '10',
+  },
+  provinciaItemText: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  provinciaItemTextActive: {
+    fontWeight: '600',
+    color: colors.primary,
   },
 });

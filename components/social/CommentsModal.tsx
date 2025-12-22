@@ -66,12 +66,12 @@ interface CommentsModalProps {
 }
 
 /**
- * ✅ COMMENTS MODAL v2.0 - REPORT SYSTEM
+ * ✅ COMMENTS MODAL v2.1 - POST AUTHOR CAN DELETE ANY COMMENT
  * 
  * NEW FEATURES:
+ * - ✅ Post authors can delete comments from other users
  * - ✅ Report functionality for all comments
  * - ✅ Integrated ReportModal component
- * - ✅ Report option in comment options menu
  */
 
 export default function CommentsModal({
@@ -94,7 +94,7 @@ export default function CommentsModal({
   const [editingComment, setEditingComment] = useState<Comment | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // ✅ NEW: Report modal state
+  // Report modal state
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
 
@@ -213,7 +213,6 @@ export default function CommentsModal({
     }
   }, [visible, postId, loadComments]);
 
-  // ✅ FIXED: Detect if post is deleted while viewing comments
   useEffect(() => {
     if (!visible || !postId) return;
     
@@ -431,6 +430,7 @@ export default function CommentsModal({
     }
   };
 
+  // ✅ FIXED: Post authors can now delete any comment on their posts
   const handleDeleteComment = async (comment: Comment) => {
     const canDelete = user && (
       comment.autor_id === user.id || 
@@ -442,9 +442,14 @@ export default function CommentsModal({
       return;
     }
 
+    const isOwnComment = comment.autor_id === user.id;
+    const deleteMessage = isOwnComment 
+      ? '¿Estás seguro de que quieres eliminar tu comentario?'
+      : '¿Estás seguro de que quieres eliminar este comentario de tu publicación?';
+
     Alert.alert(
       'Eliminar comentario',
-      '¿Estás seguro de que quieres eliminar este comentario?',
+      deleteMessage,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -460,6 +465,10 @@ export default function CommentsModal({
               if (error) throw error;
 
               await loadComments();
+              
+              if (!isOwnComment) {
+                Alert.alert('Éxito', 'Comentario eliminado correctamente');
+              }
             } catch (error) {
               console.error('[CommentsModal] Error deleting comment:', error);
               Alert.alert('Error', 'No se pudo eliminar el comentario');
@@ -486,7 +495,6 @@ export default function CommentsModal({
     }
   };
 
-  // ✅ NEW: Report comment functionality
   const handleReportComment = useCallback((comment: Comment) => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
@@ -504,7 +512,7 @@ export default function CommentsModal({
     const options: string[] = [];
     const actions: (() => void)[] = [];
 
-    // ✅ NEW: Report option for non-owners
+    // Report option for non-owners
     if (!isOwner) {
       options.push('Reportar');
       actions.push(() => handleReportComment(comment));
@@ -521,6 +529,7 @@ export default function CommentsModal({
       actions.push(() => handleDeleteComment(comment));
     }
 
+    // ✅ FIXED: Post authors can delete any comment on their posts
     if (isPostOwner && !isOwner) {
       options.push('Eliminar comentario');
       actions.push(() => handleDeleteComment(comment));
@@ -852,7 +861,7 @@ export default function CommentsModal({
         </View>
       </Modal>
 
-      {/* ✅ NEW: Report modal for comments */}
+      {/* Report modal for comments */}
       {reportingCommentId && (
         <ReportModal
           visible={showReportModal}
