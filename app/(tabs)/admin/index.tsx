@@ -237,6 +237,14 @@ export default function AdminIndexScreen() {
       description: 'Gestiona solicitudes y reportes de usuarios',
     },
     {
+      title: 'Gestionar Reportes',
+      icon: 'flag.fill' as const,
+      androidIcon: 'flag' as const,
+      color: '#EF4444',
+      route: '/admin/gestionar-reportes',
+      description: 'Revisa y gestiona reportes de contenido',
+    },
+    {
       title: 'Análisis de Ingresos',
       icon: 'chart.line.uptrend.xyaxis' as const,
       androidIcon: 'trending_up' as const,
