@@ -195,7 +195,7 @@ export default function PostViewerModal({
   }, []);
 
   // ✅ NEW: Load comment count for each post
-  const loadCommentCount = useCallback(async (postId: string) => {
+  const loadCommentCount = async (postId: string) => {
     try {
       const { count, error } = await supabase
         .from('comentarios')
@@ -209,7 +209,7 @@ export default function PostViewerModal({
     } catch (error) {
       console.error('[PostViewerModal] Error loading comment count:', error);
     }
-  }, []);
+  };
 
   // ✅ Real-time subscription for likes updates
   useEffect(() => {
@@ -279,7 +279,7 @@ export default function PostViewerModal({
           
           // ✅ Fetch updated count from database
           const { count, error: countError } = await supabase
-            .from('likes')
+            .from('comentarios')
             .select('id', { count: 'exact', head: true })
             .eq('post_id', postId);
           
@@ -306,7 +306,14 @@ export default function PostViewerModal({
           console.log('[PostViewerModal] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
           
           // ✅ Reload comment count
-          await loadCommentCount(postId);
+          const { count, error: countError } = await supabase
+            .from('comentarios')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', postId);
+          
+          if (!countError && count !== null) {
+            setCommentsCount(prev => new Map(prev).set(postId, count));
+          }
         }
       )
       .subscribe((status) => {
@@ -320,7 +327,7 @@ export default function PostViewerModal({
         channelRef.current = null;
       }
     };
-  }, [user, posts, loadCommentCount]);
+  }, [user, posts]);
 
   const checkAuthorsMomentos = useCallback(async () => {
     if (!user || posts.length === 0) return;
@@ -601,7 +608,7 @@ export default function PostViewerModal({
     } finally {
       setLoading(false);
     }
-  }, [allPostIds, initialPostId, singlePost, user, interactionUserId, interactionLocalId, isInteractingAsLocal, loadInitialLikes, loadCommentCount]);
+  }, [allPostIds, initialPostId, singlePost, user, interactionUserId, interactionLocalId, isInteractingAsLocal, loadInitialLikes]);
 
   useEffect(() => {
     if (visible) {

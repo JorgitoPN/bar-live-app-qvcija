@@ -643,7 +643,7 @@ export default function SalaVirtualScreen() {
     };
   }, [localId, user, updateActiveUsers, router]);
 
-  // ✅ FIXED: Include all missing dependencies in useEffect
+  // ✅ FIXED: Simplified initialization without circular dependencies
   useEffect(() => {
     if (!localId) {
       setLoading(false);
@@ -652,6 +652,9 @@ export default function SalaVirtualScreen() {
       ]);
       return;
     }
+
+    let intervalId: NodeJS.Timeout | null = null;
+    let unsubscribeFn: (() => void) | null = null;
 
     const init = async () => {
       await loadLocalData();
@@ -673,24 +676,24 @@ export default function SalaVirtualScreen() {
       // ✅ FIXED: Load messages (empty for volatile chat)
       await loadMessages();
       
-      const unsubscribe = subscribeToUpdates();
+      unsubscribeFn = subscribeToUpdates();
       
       await updateActiveUsers();
 
-      const interval = setInterval(updateActiveUsers, 30000);
-
-      return () => {
-        clearInterval(interval);
-        unsubscribe();
-      };
+      intervalId = setInterval(updateActiveUsers, 30000);
     };
 
-    const cleanup = init();
+    init();
 
     return () => {
-      cleanup.then(fn => fn && fn());
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      if (unsubscribeFn) {
+        unsubscribeFn();
+      }
     };
-  }, [localId, checkUserCheckin, handleCheckIn, loadLocalData, loadMessages, localClosed, router, subscribeToUpdates, updateActiveUsers, user]);
+  }, [localId]);
 
   const handleTyping = () => {
     if (!user || !chatChannelRef.current) return;

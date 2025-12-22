@@ -351,7 +351,6 @@ export default function DetalleLocalScreen() {
   
   const [showUsersModal, setShowUsersModal] = useState(false);
 
-  // ✅ FIXED: Changed Array<T> to T[]
   const [displayedReviewsCount, setDisplayedReviewsCount] = useState(5);
   const [allReviews, setAllReviews] = useState<(Review | (GoogleReview & { source: 'google' }))[]>([]);
 
@@ -496,7 +495,6 @@ export default function DetalleLocalScreen() {
 
       const googleReviews = (localData?.reviews_google || []) as GoogleReview[];
 
-      // ✅ FIXED: Changed Array<T> to T[]
       const combinedReviews: (Review | (GoogleReview & { source: 'google' }))[] = [
         ...(barliveReviews || []),
         ...googleReviews.map(gr => ({ ...gr, source: 'google' as const })),
@@ -964,7 +962,6 @@ export default function DetalleLocalScreen() {
 
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
-  // ✅ FIXED: Changed Array<T> to T[]
   const displayedReviews: (Review | (GoogleReview & { source: 'google' }))[] = allReviews.slice(0, displayedReviewsCount);
 
   return (

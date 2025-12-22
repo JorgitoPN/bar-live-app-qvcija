@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 interface PostLikesAvatarsProps {
   postId: string;
   totalLikes: number;
-  localLikes?: { id: string; usuario_id: string }[];
+  localLikes?: Array<{ id: string; usuario_id: string }>;
 }
 
 interface LikeUser {
@@ -376,7 +376,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
     
     return <Text style={styles.likesText}>{currentTotalLikes} me gusta</Text>;
-  }, [currentUserHasLiked, currentTotalLikes, likeUsers, user, handleUserPress, handleOpenModal]);
+  }, [currentUserHasLiked, currentTotalLikes, likeUsers, user?.id, handleUserPress, handleOpenModal]);
 
   // ✅ CRITICAL FIX: Memoize avatar rendering - ALWAYS called unconditionally
   const avatarsDisplay = useMemo(() => {

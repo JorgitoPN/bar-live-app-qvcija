@@ -117,7 +117,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   // ✅ CRITICAL: Local likes array for instant updates
-  const [localLikes, setLocalLikes] = useState<Array<{ id: string; usuario_id: string }>>([]);
+  const [localLikes, setLocalLikes] = useState<{ id: string; usuario_id: string }[]>([]);
   const likeDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const channelRef = useRef<any>(null);
 
@@ -327,7 +327,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     console.log('[PublicacionCard] ✅ Step 2: Updated count from', likesCount, 'to', newCount);
     
     // ✅ STEP 3: Update local likes array based on action
-    let newLocalLikes: Array<{ id: string; usuario_id: string }>;
+    let newLocalLikes: { id: string; usuario_id: string }[];
     
     if (newLikedState) {
       // ✅ User is LIKING → ADD avatar

@@ -97,7 +97,7 @@ export default function InstagramPostCard({
   const [commentsCount, setCommentsCount] = useState(post.comentarios_count);
   
   // ✅ CRITICAL: Local likes array for instant updates
-  const [localLikes, setLocalLikes] = useState<Array<{ id: string; usuario_id: string }>>([]);
+  const [localLikes, setLocalLikes] = useState<{ id: string; usuario_id: string }[]>([]);
   
   const [showPostViewer, setShowPostViewer] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -413,7 +413,7 @@ export default function InstagramPostCard({
     console.log('[InstagramPostCard] ✅ Step 2: Updated count from', likesCount, 'to', newCount);
     
     // ✅ STEP 3: Update local likes array based on action
-    let newLocalLikes: Array<{ id: string; usuario_id: string }>;
+    let newLocalLikes: { id: string; usuario_id: string }[];
     
     if (newLikedState) {
       // ✅ User is LIKING → ADD avatar
@@ -497,19 +497,19 @@ export default function InstagramPostCard({
     }, 300);
   }, [user, ensureValidSession, isLiked, likesCount, localLikes, post.id, animateLikeIcon]);
 
-  const handleComment = () => {
+  const handleComment = useCallback(() => {
     setShowComments(true);
-  };
+  }, []);
 
-  const handleShare = () => {
+  const handleShare = useCallback(() => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para compartir publicaciones');
       return;
     }
     setShowShareModal(true);
-  };
+  }, [user]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para guardar publicaciones');
       return;
@@ -535,17 +535,17 @@ export default function InstagramPostCard({
       console.error('[InstagramPostCard] Error toggling save:', error);
       setIsSaved(!newSavedState);
     }
-  };
+  }, [user, isSaved, post.id]);
 
   // ✅ NEW: Report post functionality
-  const handleReport = () => {
+  const handleReport = useCallback(() => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
       return;
     }
 
     setShowReportModal(true);
-  };
+  }, [user]);
 
   const handleDelete = async () => {
     if (!user) {
@@ -606,7 +606,7 @@ export default function InstagramPostCard({
     );
   };
 
-  const handleMoreOptions = () => {
+  const handleMoreOptions = useCallback(() => {
     const options: string[] = [];
     const actions: (() => void)[] = [];
 
@@ -644,14 +644,14 @@ export default function InstagramPostCard({
         }))
       );
     }
-  };
+  }, [isOwner, handleDelete, handleReport]);
 
-  const handleCommentsUpdate = () => {
+  const handleCommentsUpdate = useCallback(() => {
     setCommentsCount(prev => prev + 1);
     if (onUpdate) {
       onUpdate();
     }
-  };
+  }, [onUpdate]);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
