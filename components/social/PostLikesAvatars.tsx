@@ -30,11 +30,27 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
   const [allLikes, setAllLikes] = useState<LikeUser[]>([]);
   const [loadingModal, setLoadingModal] = useState(false);
   const [currentTotalLikes, setCurrentTotalLikes] = useState(totalLikes);
+  const [currentUserHasLiked, setCurrentUserHasLiked] = useState(false);
 
   const loadLikeUsers = useCallback(async () => {
     try {
       console.log('[PostLikesAvatars] 🔄 Loading like users for post:', postId);
       
+      // ✅ FIXED: Check if current user has liked
+      if (user) {
+        const { data: userLike, error: userLikeError } = await supabase
+          .from('likes')
+          .select('id')
+          .eq('post_id', postId)
+          .eq('usuario_id', user.id)
+          .maybeSingle();
+
+        if (!userLikeError) {
+          setCurrentUserHasLiked(!!userLike);
+          console.log('[PostLikesAvatars] 👤 Current user has liked:', !!userLike);
+        }
+      }
+
       const { data, error } = await supabase
         .from('likes')
         .select(`
@@ -61,7 +77,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     } catch (error) {
       console.error('[PostLikesAvatars] Error loading like users:', error);
     }
-  }, [postId]);
+  }, [postId, user]);
 
   const loadAllLikes = useCallback(async () => {
     try {
@@ -194,7 +210,49 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     return null;
   }
 
+  // ✅ FIXED: Instagram-like text rendering with "Le gusta a ti..." logic
   const getLikesText = () => {
+    // ✅ Case 1: Current user has liked
+    if (currentUserHasLiked) {
+      if (currentTotalLikes === 1) {
+        // Only current user has liked
+        return (
+          <Text style={styles.likesText}>
+            Le gusta a <Text style={styles.usernameLink}>ti</Text>
+          </Text>
+        );
+      } else if (currentTotalLikes === 2) {
+        // Current user + 1 other
+        const otherUser = likeUsers.find(u => u.id !== user?.id);
+        if (otherUser) {
+          const username = otherUser.username || otherUser.nombre;
+          return (
+            <Text style={styles.likesText}>
+              Les gusta a <Text style={styles.usernameLink}>ti</Text> y a{' '}
+              <Text 
+                style={styles.usernameLink}
+                onPress={() => handleUserPress(otherUser.id, otherUser.tipo)}
+              >
+                {username}
+              </Text>
+            </Text>
+          );
+        }
+      } else {
+        // Current user + multiple others
+        const others = currentTotalLikes - 1;
+        return (
+          <Text style={styles.likesText}>
+            Les gusta a <Text style={styles.usernameLink}>ti</Text> y a{' '}
+            <Text style={styles.moreLink} onPress={handleOpenModal}>
+              {others} {others === 1 ? 'persona más' : 'personas más'}
+            </Text>
+          </Text>
+        );
+      }
+    }
+
+    // ✅ Case 2: Current user has NOT liked
     if (currentTotalLikes === 1 && likeUsers.length > 0) {
       const username = likeUsers[0].username || likeUsers[0].nombre;
       return (
@@ -221,7 +279,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
           >
             {user1}
           </Text>
-          {' '}y{' '}
+          {' '}y a{' '}
           <Text 
             style={styles.usernameLink}
             onPress={() => handleUserPress(likeUsers[1].id, likeUsers[1].tipo)}
@@ -243,7 +301,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
           >
             {firstUser}
           </Text>
-          {' '}y{' '}
+          {' '}y a{' '}
           <Text style={styles.moreLink} onPress={handleOpenModal}>
             {others} {others === 1 ? 'persona más' : 'personas más'}
           </Text>
@@ -271,9 +329,14 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
       <View style={styles.modalUserInfo}>
         <Text style={styles.modalUserName}>{item.nombre}</Text>
         {item.username && (
-          <Text style={styles.modalUsername}>{item.username}</Text>
+          <Text style={styles.modalUsername}>@{item.username}</Text>
         )}
       </View>
+      {user && item.id === user.id && (
+        <View style={styles.youBadge}>
+          <Text style={styles.youBadgeText}>Tú</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 
@@ -285,20 +348,20 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
         activeOpacity={0.7}
       >
         <View style={styles.avatarsContainer}>
-          {likeUsers.map((user, index) => (
+          {likeUsers.slice(0, 3).map((likeUser, index) => (
             <View
-              key={user.id}
+              key={likeUser.id}
               style={[
                 styles.avatarWrapper,
                 index > 0 && { marginLeft: -8 },
               ]}
             >
-              {user.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatar} />
+              {likeUser.avatar ? (
+                <Image source={{ uri: likeUser.avatar }} style={styles.avatar} />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
                   <Text style={styles.avatarText}>
-                    {user.nombre.charAt(0).toUpperCase()}
+                    {likeUser.nombre.charAt(0).toUpperCase()}
                   </Text>
                 </View>
               )}
@@ -455,5 +518,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  youBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  youBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
   },
 });

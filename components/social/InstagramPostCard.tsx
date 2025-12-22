@@ -281,7 +281,7 @@ export default function InstagramPostCard({
     setShowPostViewer(true);
   };
 
-  // ✅ Optimistic UI with debouncing and animations
+  // ✅ FIXED: Optimistic UI with debouncing, animations, and proper rollback
   const handleLike = useCallback(async () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
@@ -315,7 +315,7 @@ export default function InstagramPostCard({
       animateLikeIcon();
     }
 
-    // ✅ Optimistic update
+    // ✅ Optimistic update (instant UI response)
     setIsLiked(newLikedState);
     setLikesCount(newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1));
 
@@ -358,7 +358,7 @@ export default function InstagramPostCard({
           console.log('[InstagramPostCard] ✅ Like removed successfully');
         }
 
-        // ✅ Verify final count from database
+        // ✅ Verify final count from database (source of truth)
         const { count, error: countError } = await supabase
           .from('likes')
           .select('id', { count: 'exact', head: true })
@@ -370,7 +370,7 @@ export default function InstagramPostCard({
         }
       } catch (error) {
         console.error('[InstagramPostCard] ❌ Error toggling like:', error);
-        // ✅ Rollback on error
+        // ✅ Rollback on error (restore previous state)
         setIsLiked(previousLiked);
         setLikesCount(previousCount);
         Alert.alert('Error', 'No se pudo actualizar el me gusta. Intenta de nuevo.');
