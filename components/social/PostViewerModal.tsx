@@ -36,6 +36,7 @@ import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 import { TapGestureHandler, State } from 'react-native-gesture-handler';
 import PostLikesAvatars from './PostLikesAvatars';
 import SharePostModal from './SharePostModal';
+import ReportModal from './ReportModal';
 import * as Haptics from 'expo-haptics';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -79,13 +80,13 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v9.0 - UNIFIED LIKES SYSTEM
+ * ✅ POST VIEWER MODAL v10.0 - COMMENT COUNT & REPORT SYSTEM
  * 
  * Key changes:
+ * - ✅ FIXED: Comment count display with proper text
+ * - ✅ NEW: Report functionality for all posts
  * - ✅ INTEGRATED: PostLikesAvatars component for consistent likes display
  * - ✅ UNIFIED: Same optimistic UI and real-time updates as Social Feed
- * - ✅ CONSISTENT: Dynamic text generation with proper grammar
- * - ✅ REUSABLE: Single source of truth for likes functionality
  */
 
 export default function PostViewerModal({
@@ -133,9 +134,14 @@ export default function PostViewerModal({
 
   const [authorsWithMomentos, setAuthorsWithMomentos] = useState<Set<string>>(new Set());
 
-  // ✅ NEW: Local state for instant like updates (optimistic UI)
+  // ✅ NEW: Report modal state
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportingPostId, setReportingPostId] = useState<string | null>(null);
+
+  // ✅ Local state for instant like updates (optimistic UI)
   const [isLiked, setIsLiked] = useState<Map<string, boolean>>(new Map());
   const [likesCount, setLikesCount] = useState<Map<string, number>>(new Map());
+  const [commentsCount, setCommentsCount] = useState<Map<string, number>>(new Map());
   const [localLikes, setLocalLikes] = useState<Map<string, Array<{ id: string; usuario_id: string }>>>(new Map());
   const likeDebounceTimer = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
@@ -161,7 +167,7 @@ export default function PostViewerModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v9.0] Props received:', { 
+      console.log('[PostViewerModal v10.0] Props received:', { 
         visible, 
         initialPostId, 
         singlePost: !!singlePost,
@@ -171,7 +177,7 @@ export default function PostViewerModal({
     }
   }, [visible, allPostIds, initialPostId, singlePost, hideTagIcon]);
 
-  // ✅ NEW: Load initial likes for each post
+  // ✅ Load initial likes for each post
   const loadInitialLikes = useCallback(async (postId: string) => {
     try {
       const { data, error } = await supabase
@@ -188,7 +194,24 @@ export default function PostViewerModal({
     }
   }, []);
 
-  // ✅ NEW: Real-time subscription for likes updates
+  // ✅ NEW: Load comment count for each post
+  const loadCommentCount = useCallback(async (postId: string) => {
+    try {
+      const { count, error } = await supabase
+        .from('comentarios')
+        .select('id', { count: 'exact', head: true })
+        .eq('post_id', postId);
+
+      if (!error && count !== null) {
+        setCommentsCount(prev => new Map(prev).set(postId, count));
+        console.log('[PostViewerModal] ✅ Loaded comment count for post:', postId, 'count:', count);
+      }
+    } catch (error) {
+      console.error('[PostViewerModal] Error loading comment count:', error);
+    }
+  }, []);
+
+  // ✅ Real-time subscription for likes updates
   useEffect(() => {
     if (!user || posts.length === 0) return;
 
@@ -266,6 +289,26 @@ export default function PostViewerModal({
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comentarios',
+        },
+        async (payload) => {
+          const postId = payload.new?.post_id || payload.old?.post_id;
+          
+          if (!postIds.includes(postId)) {
+            return;
+          }
+
+          console.log('[PostViewerModal] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
+          
+          // ✅ Reload comment count
+          await loadCommentCount(postId);
+        }
+      )
       .subscribe((status) => {
         console.log('[PostViewerModal] 📡 Subscription status:', status);
       });
@@ -277,7 +320,7 @@ export default function PostViewerModal({
         channelRef.current = null;
       }
     };
-  }, [user, posts]);
+  }, [user, posts, loadCommentCount]);
 
   const checkAuthorsMomentos = useCallback(async () => {
     if (!user || posts.length === 0) return;
@@ -334,7 +377,7 @@ export default function PostViewerModal({
       
       // If single post is provided, use it directly
       if (singlePost) {
-        console.log('[PostViewerModal v9.0] Using single post mode');
+        console.log('[PostViewerModal v10.0] Using single post mode');
         
         let liked = false;
         if (interactionUserId) {
@@ -366,6 +409,12 @@ export default function PostViewerModal({
           saved = !!saveData;
         }
 
+        // ✅ FIXED: Load comment count
+        const { count: commentCount } = await supabase
+          .from('comentarios')
+          .select('id', { count: 'exact', head: true })
+          .eq('post_id', singlePost.id);
+
         const displayName = singlePost.tipo === 'local' && singlePost.local 
           ? singlePost.local.nombre 
           : singlePost.autor?.username 
@@ -389,15 +438,17 @@ export default function PostViewerModal({
           liked,
           saved,
           images,
+          comentarios: commentCount || 0,
         };
 
         setPosts([enrichedPost]);
         setCurrentIndex(0);
         setCurrentPostId(singlePost.id);
         
-        // ✅ Initialize local state for likes
+        // ✅ Initialize local state for likes and comments
         setIsLiked(new Map([[singlePost.id, liked]]));
         setLikesCount(new Map([[singlePost.id, singlePost.likes]]));
+        setCommentsCount(new Map([[singlePost.id, commentCount || 0]]));
         await loadInitialLikes(singlePost.id);
         
         setLoading(false);
@@ -405,7 +456,7 @@ export default function PostViewerModal({
       }
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v9.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v10.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -422,7 +473,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v9.0] Error loading posts:', error);
+        console.error('[PostViewerModal v10.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -430,14 +481,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v9.0] Invalid data received:', data);
+        console.error('[PostViewerModal v10.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v9.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v10.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -475,6 +526,12 @@ export default function PostViewerModal({
             saved = !!saveData;
           }
 
+          // ✅ FIXED: Load comment count for each post
+          const { count: commentCount } = await supabase
+            .from('comentarios')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+
           const displayName = post.tipo === 'local' && post.local 
             ? post.local.nombre 
             : post.autor?.username 
@@ -498,6 +555,7 @@ export default function PostViewerModal({
             liked,
             saved,
             images,
+            comentarios: commentCount || 0,
           };
         })
       );
@@ -507,7 +565,7 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v9.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v10.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -518,15 +576,18 @@ export default function PostViewerModal({
       // ✅ Initialize local state for all posts
       const likedMap = new Map<string, boolean>();
       const countMap = new Map<string, number>();
+      const commentsMap = new Map<string, number>();
       
       sortedPosts.forEach(post => {
         likedMap.set(post.id, post.liked || false);
         countMap.set(post.id, post.likes || 0);
+        commentsMap.set(post.id, post.comentarios || 0);
         loadInitialLikes(post.id);
       });
       
       setIsLiked(likedMap);
       setLikesCount(countMap);
+      setCommentsCount(commentsMap);
       
       const initialIdx = sortedPosts.findIndex(p => p.id === initialPostId);
       if (initialIdx !== -1) {
@@ -534,13 +595,13 @@ export default function PostViewerModal({
         setCurrentPostId(initialPostId || '');
       }
     } catch (error) {
-      console.error('[PostViewerModal v9.0] Error:', error);
+      console.error('[PostViewerModal v10.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
       setLoading(false);
     }
-  }, [allPostIds, initialPostId, singlePost, user, interactionUserId, interactionLocalId, isInteractingAsLocal, loadInitialLikes]);
+  }, [allPostIds, initialPostId, singlePost, user, interactionUserId, interactionLocalId, isInteractingAsLocal, loadInitialLikes, loadCommentCount]);
 
   useEffect(() => {
     if (visible) {
@@ -980,46 +1041,82 @@ export default function PostViewerModal({
     }
   }, [user, managingPostId, loadExistingTags, loadPosts, onUpdate]);
 
+  // ✅ NEW: Report post functionality
+  const handleReportPost = useCallback((post: Post) => {
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
+      return;
+    }
+
+    setReportingPostId(post.id);
+    setShowReportModal(true);
+  }, [user]);
+
   const handlePostOptions = (post: Post) => {
     const isOwner = user && (
       (post.tipo === 'usuario' && post.autor_id === user.id) ||
       (post.tipo === 'local' && interactionLocalId === post.local_id)
     );
 
-    if (!isOwner) return;
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Cancelar', 'Editar descripción', 'Gestionar etiquetas', 'Eliminar'],
-          destructiveButtonIndex: 3,
-          cancelButtonIndex: 0,
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 1) {
-            handleEditDescription(post);
-          } else if (buttonIndex === 2) {
-            handleManageTags(post);
-          } else if (buttonIndex === 3) {
-            handleDeletePost(post);
-          }
-        }
-      );
-    } else {
-      Alert.alert(
-        'Opciones de publicación',
-        '',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Editar descripción', onPress: () => handleEditDescription(post) },
-          { text: 'Gestionar etiquetas', onPress: () => handleManageTags(post) },
-          { 
-            text: 'Eliminar', 
-            style: 'destructive',
-            onPress: () => handleDeletePost(post),
+    if (isOwner) {
+      // Owner options
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: ['Cancelar', 'Editar descripción', 'Gestionar etiquetas', 'Eliminar'],
+            destructiveButtonIndex: 3,
+            cancelButtonIndex: 0,
           },
-        ]
-      );
+          (buttonIndex) => {
+            if (buttonIndex === 1) {
+              handleEditDescription(post);
+            } else if (buttonIndex === 2) {
+              handleManageTags(post);
+            } else if (buttonIndex === 3) {
+              handleDeletePost(post);
+            }
+          }
+        );
+      } else {
+        Alert.alert(
+          'Opciones de publicación',
+          '',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Editar descripción', onPress: () => handleEditDescription(post) },
+            { text: 'Gestionar etiquetas', onPress: () => handleManageTags(post) },
+            { 
+              text: 'Eliminar', 
+              style: 'destructive',
+              onPress: () => handleDeletePost(post),
+            },
+          ]
+        );
+      }
+    } else {
+      // Non-owner options - only report
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: ['Cancelar', 'Reportar'],
+            cancelButtonIndex: 0,
+          },
+          (buttonIndex) => {
+            if (buttonIndex === 1) {
+              handleReportPost(post);
+            }
+          }
+        );
+      } else {
+        Alert.alert(
+          'Opciones',
+          '',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Reportar', onPress: () => handleReportPost(post) },
+          ]
+        );
+      }
     }
   };
 
@@ -1146,6 +1243,7 @@ export default function PostViewerModal({
     const postIsLiked = isLiked.get(post.id) || false;
     const postLikesCount = likesCount.get(post.id) || 0;
     const postLocalLikes = localLikes.get(post.id) || [];
+    const postCommentsCount = commentsCount.get(post.id) || 0;
 
     return (
       <View style={styles.postContainer}>
@@ -1209,7 +1307,7 @@ export default function PostViewerModal({
             />
             <Text style={styles.authorName}>{post.autorNombre}</Text>
           </TouchableOpacity>
-          {isOwner && !hideTagIcon && (
+          {!hideTagIcon && (
             <TouchableOpacity 
               style={styles.optionsButton}
               onPress={() => handlePostOptions(post)}
@@ -1374,19 +1472,24 @@ export default function PostViewerModal({
           </View>
         )}
 
-        {post.comentarios > 0 && (
-          <TouchableOpacity 
-            style={styles.commentsContainer}
-            onPress={() => {
-              setCurrentPostId(post.id);
-              setCommentsModalVisible(true);
-            }}
-          >
+        {/* ✅ FIXED: Comment count display with proper text */}
+        <TouchableOpacity 
+          style={styles.commentsContainer}
+          onPress={() => {
+            setCurrentPostId(post.id);
+            setCommentsModalVisible(true);
+          }}
+        >
+          {postCommentsCount > 0 ? (
             <Text style={styles.commentsText}>
-              Ver {post.comentarios === 1 ? 'el comentario' : `los ${post.comentarios} comentarios`}
+              Ver {postCommentsCount === 1 ? 'el comentario' : `los ${postCommentsCount} comentarios`}
             </Text>
-          </TouchableOpacity>
-        )}
+          ) : (
+            <Text style={styles.commentsTextEmpty}>
+              Sé el primero en comentar
+            </Text>
+          )}
+        </TouchableOpacity>
 
         <View style={styles.timeContainer}>
           <Text style={styles.timeText}>
@@ -1627,6 +1730,19 @@ export default function PostViewerModal({
             }}
           />
         )}
+
+        {/* ✅ NEW: Report modal */}
+        {reportingPostId && (
+          <ReportModal
+            visible={showReportModal}
+            contentType="post"
+            contentId={reportingPostId}
+            onClose={() => {
+              setShowReportModal(false);
+              setReportingPostId(null);
+            }}
+          />
+        )}
       </View>
     </Modal>
   );
@@ -1838,6 +1954,12 @@ const styles = StyleSheet.create({
   commentsText: {
     fontSize: 14,
     color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  commentsTextEmpty: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   timeContainer: {
     paddingHorizontal: 16,

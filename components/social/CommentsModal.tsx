@@ -28,6 +28,7 @@ import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
 import { processCommentHashtags, processCommentMentions } from '@/utils/postHelpers';
 import ParsedText from '@/components/social/ParsedText';
+import ReportModal from './ReportModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -64,6 +65,15 @@ interface CommentsModalProps {
   onCommentAdded?: () => void;
 }
 
+/**
+ * ✅ COMMENTS MODAL v2.0 - REPORT SYSTEM
+ * 
+ * NEW FEATURES:
+ * - ✅ Report functionality for all comments
+ * - ✅ Integrated ReportModal component
+ * - ✅ Report option in comment options menu
+ */
+
 export default function CommentsModal({
   visible,
   postId,
@@ -83,6 +93,10 @@ export default function CommentsModal({
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [editingComment, setEditingComment] = useState<Comment | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // ✅ NEW: Report modal state
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
 
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
@@ -473,67 +487,15 @@ export default function CommentsModal({
   };
 
   // ✅ NEW: Report comment functionality
-  const handleReportComment = (comment: Comment) => {
+  const handleReportComment = useCallback((comment: Comment) => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
       return;
     }
 
-    const reportOptions = [
-      { text: 'Spam', value: 'spam' },
-      { text: 'Acoso', value: 'harassment' },
-      { text: 'Contenido inapropiado', value: 'inappropriate' },
-      { text: 'Violencia', value: 'violence' },
-      { text: 'Discurso de odio', value: 'hate_speech' },
-      { text: 'Información falsa', value: 'false_information' },
-      { text: 'Otro', value: 'other' },
-      { text: 'Cancelar', value: 'cancel' },
-    ];
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: reportOptions.map(o => o.text),
-          cancelButtonIndex: reportOptions.length - 1,
-          title: '¿Por qué reportas este comentario?',
-        },
-        async (buttonIndex) => {
-          if (buttonIndex < reportOptions.length - 1) {
-            await submitCommentReport(comment.id, reportOptions[buttonIndex].value);
-          }
-        }
-      );
-    } else {
-      Alert.alert(
-        'Reportar comentario',
-        '¿Por qué reportas este comentario?',
-        reportOptions.map(option => ({
-          text: option.text,
-          style: option.value === 'cancel' ? 'cancel' : 'default',
-          onPress: option.value !== 'cancel' ? () => submitCommentReport(comment.id, option.value) : undefined,
-        }))
-      );
-    }
-  };
-
-  const submitCommentReport = async (commentId: string, reason: string) => {
-    try {
-      const { error } = await supabase.from('content_reports').insert({
-        reporter_id: user!.id,
-        content_type: 'comment',
-        content_id: commentId,
-        comentario_id: commentId,
-        reason,
-      });
-
-      if (error) throw error;
-
-      Alert.alert('✅ Reporte enviado', 'Gracias por ayudarnos a mantener la comunidad segura');
-    } catch (error) {
-      console.error('[CommentsModal] Error reporting comment:', error);
-      Alert.alert('Error', 'No se pudo enviar el reporte');
-    }
-  };
+    setReportingCommentId(comment.id);
+    setShowReportModal(true);
+  }, [user]);
 
   const showCommentOptions = (comment: Comment) => {
     const isOwner = comment.autor_id === user?.id;
@@ -542,6 +504,7 @@ export default function CommentsModal({
     const options: string[] = [];
     const actions: (() => void)[] = [];
 
+    // ✅ NEW: Report option for non-owners
     if (!isOwner) {
       options.push('Reportar');
       actions.push(() => handleReportComment(comment));
@@ -758,135 +721,150 @@ export default function CommentsModal({
   );
 
   return (
-    <Modal
-      visible={visible}
-      transparent={false}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
-          <View style={styles.headerTop}>
-            <View style={{ width: 40 }} />
-            <Text style={styles.headerTitle}>Comentarios</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
+    <>
+      <Modal
+        visible={visible}
+        transparent={false}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={onClose}
+      >
+        <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
+        <View style={styles.container}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.header}
+          >
+            <View style={styles.headerTop}>
+              <View style={{ width: 40 }} />
+              <Text style={styles.headerTitle}>Comentarios</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
 
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        ) : (
-          <FlatList
-            data={comments}
-            renderItem={renderComment}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={[
-              styles.listContent,
-              { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 120 }
-            ]}
-            ListEmptyComponent={renderEmpty}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          />
-        )}
-
-        {user && (
-          <>
-            <MentionAutocomplete
-              text={commentText}
-              cursorPosition={cursorPosition}
-              onSelectMention={handleSelectMention}
-              keyboardHeight={keyboardHeight}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : (
+            <FlatList
+              data={comments}
+              renderItem={renderComment}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={[
+                styles.listContent,
+                { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 120 }
+              ]}
+              ListEmptyComponent={renderEmpty}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             />
+          )}
 
-            <BlurView 
-              intensity={80} 
-              tint="light" 
-              style={[styles.inputContainer, { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }]}
-            >
-              {(replyingTo || editingComment) && (
-                <View style={styles.replyingBanner}>
-                  <Text style={styles.replyingText}>
-                    {editingComment 
-                      ? 'Editando comentario' 
-                      : `Respondiendo a ${replyingTo?.usuario?.username || replyingTo?.usuario?.nombre}`}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setReplyingTo(null);
-                      setEditingComment(null);
-                      setCommentText('');
-                    }}
-                  >
-                    <IconSymbol
-                      ios_icon_name="xmark.circle.fill"
-                      android_material_icon_name="cancel"
-                      size={20}
-                      color="rgba(0, 0, 0, 0.5)"
-                    />
-                  </TouchableOpacity>
-                </View>
-              )}
-              <View style={styles.inputRow}>
-                {user.avatar ? (
-                  <Image source={{ uri: user.avatar }} style={styles.inputAvatar} />
-                ) : (
-                  <View style={[styles.inputAvatar, styles.avatarPlaceholder]}>
-                    <Text style={[styles.avatarText, { fontSize: 14 }]}>
-                      {user.nombre?.charAt(0).toUpperCase() || 'U'}
+          {user && (
+            <>
+              <MentionAutocomplete
+                text={commentText}
+                cursorPosition={cursorPosition}
+                onSelectMention={handleSelectMention}
+                keyboardHeight={keyboardHeight}
+              />
+
+              <BlurView 
+                intensity={80} 
+                tint="light" 
+                style={[styles.inputContainer, { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }]}
+              >
+                {(replyingTo || editingComment) && (
+                  <View style={styles.replyingBanner}>
+                    <Text style={styles.replyingText}>
+                      {editingComment 
+                        ? 'Editando comentario' 
+                        : `Respondiendo a ${replyingTo?.usuario?.username || replyingTo?.usuario?.nombre}`}
                     </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setReplyingTo(null);
+                        setEditingComment(null);
+                        setCommentText('');
+                      }}
+                    >
+                      <IconSymbol
+                        ios_icon_name="xmark.circle.fill"
+                        android_material_icon_name="cancel"
+                        size={20}
+                        color="rgba(0, 0, 0, 0.5)"
+                      />
+                    </TouchableOpacity>
                   </View>
                 )}
-                <TextInput
-                  ref={textInputRef}
-                  style={styles.input}
-                  placeholder={replyingTo ? 'Añade una respuesta...' : 'Añade un comentario...'}
-                  placeholderTextColor="rgba(0, 0, 0, 0.4)"
-                  value={commentText}
-                  onChangeText={(text) => {
-                    console.log('[CommentsModal] 📝 Text changed:', text);
-                    setCommentText(text);
-                  }}
-                  onSelectionChange={(event) => {
-                    const newPosition = event.nativeEvent.selection.start;
-                    console.log('[CommentsModal] 📍 Cursor position changed to:', newPosition);
-                    setCursorPosition(newPosition);
-                  }}
-                  multiline
-                  maxLength={500}
-                  editable={!sending}
-                />
-                <TouchableOpacity
-                  style={styles.sendButton}
-                  onPress={handleSendComment}
-                  disabled={!commentText.trim() || sending}
-                  activeOpacity={0.7}
-                >
-                  {sending ? (
-                    <ActivityIndicator size="small" color={colors.primary} />
+                <View style={styles.inputRow}>
+                  {user.avatar ? (
+                    <Image source={{ uri: user.avatar }} style={styles.inputAvatar} />
                   ) : (
-                    <Text style={[styles.sendButtonText, (!commentText.trim() || sending) && styles.sendButtonDisabled]}>
-                      Publicar
-                    </Text>
+                    <View style={[styles.inputAvatar, styles.avatarPlaceholder]}>
+                      <Text style={[styles.avatarText, { fontSize: 14 }]}>
+                        {user.nombre?.charAt(0).toUpperCase() || 'U'}
+                      </Text>
+                    </View>
                   )}
-                </TouchableOpacity>
-              </View>
-            </BlurView>
-          </>
-        )}
-      </View>
-    </Modal>
+                  <TextInput
+                    ref={textInputRef}
+                    style={styles.input}
+                    placeholder={replyingTo ? 'Añade una respuesta...' : 'Añade un comentario...'}
+                    placeholderTextColor="rgba(0, 0, 0, 0.4)"
+                    value={commentText}
+                    onChangeText={(text) => {
+                      console.log('[CommentsModal] 📝 Text changed:', text);
+                      setCommentText(text);
+                    }}
+                    onSelectionChange={(event) => {
+                      const newPosition = event.nativeEvent.selection.start;
+                      console.log('[CommentsModal] 📍 Cursor position changed to:', newPosition);
+                      setCursorPosition(newPosition);
+                    }}
+                    multiline
+                    maxLength={500}
+                    editable={!sending}
+                  />
+                  <TouchableOpacity
+                    style={styles.sendButton}
+                    onPress={handleSendComment}
+                    disabled={!commentText.trim() || sending}
+                    activeOpacity={0.7}
+                  >
+                    {sending ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Text style={[styles.sendButtonText, (!commentText.trim() || sending) && styles.sendButtonDisabled]}>
+                        Publicar
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </BlurView>
+            </>
+          )}
+        </View>
+      </Modal>
+
+      {/* ✅ NEW: Report modal for comments */}
+      {reportingCommentId && (
+        <ReportModal
+          visible={showReportModal}
+          contentType="comment"
+          contentId={reportingCommentId}
+          onClose={() => {
+            setShowReportModal(false);
+            setReportingCommentId(null);
+          }}
+        />
+      )}
+    </>
   );
 }
 

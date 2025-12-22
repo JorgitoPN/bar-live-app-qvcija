@@ -24,6 +24,7 @@ import PostViewerModal from './PostViewerModal';
 import CommentsModal from './CommentsModal';
 import SharePostModal from './SharePostModal';
 import PostLikesAvatars from './PostLikesAvatars';
+import ReportModal from './ReportModal';
 import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -63,14 +64,14 @@ interface InstagramPostCardProps {
 }
 
 /**
- * ✅ INSTAGRAM POST CARD v10.0 - CRITICAL REACTIVITY FIX
+ * ✅ INSTAGRAM POST CARD v11.0 - REPORT SYSTEM & COMMENT COUNT FIX
  * 
  * FIXES APPLIED:
+ * - ✅ NEW: Report functionality for all posts
+ * - ✅ FIXED: Comment count display with proper text
  * - ✅ CRITICAL: Force re-render when localLikes array changes (length tracking)
  * - ✅ CRITICAL: Instant optimistic UI updates (< 100ms)
  * - ✅ CRITICAL: Proper real-time synchronization with other users
- * - ✅ UNIFIED: Same logic as PostViewerModal for consistency
- * - ✅ FIXED: Text updates immediately without page refresh
  */
 
 export default function InstagramPostCard({
@@ -97,6 +98,9 @@ export default function InstagramPostCard({
   const [showComments, setShowComments] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showFullCaption, setShowFullCaption] = useState(false);
+  
+  // ✅ NEW: Report modal state
+  const [showReportModal, setShowReportModal] = useState(false);
   
   const [authorAvatar, setAuthorAvatar] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState<string>('Usuario');
@@ -214,6 +218,29 @@ export default function InstagramPostCard({
           if (!countError && count !== null) {
             console.log('[InstagramPostCard] ✅ Updated likes count from database:', count);
             setLikesCount(count);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comentarios',
+          filter: `post_id=eq.${post.id}`,
+        },
+        async (payload) => {
+          console.log('[InstagramPostCard] 🔄 Real-time comment change detected:', payload.eventType);
+          
+          // ✅ Reload comment count
+          const { count, error: countError } = await supabase
+            .from('comentarios')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          if (!countError && count !== null) {
+            console.log('[InstagramPostCard] ✅ Updated comments count from database:', count);
+            setCommentsCount(count);
           }
         }
       )
@@ -491,66 +518,14 @@ export default function InstagramPostCard({
     }
   };
 
+  // ✅ NEW: Report post functionality
   const handleReport = () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
       return;
     }
 
-    const reportOptions = [
-      { text: 'Spam', value: 'spam' },
-      { text: 'Acoso', value: 'harassment' },
-      { text: 'Contenido inapropiado', value: 'inappropriate' },
-      { text: 'Violencia', value: 'violence' },
-      { text: 'Discurso de odio', value: 'hate_speech' },
-      { text: 'Información falsa', value: 'false_information' },
-      { text: 'Otro', value: 'other' },
-      { text: 'Cancelar', value: 'cancel' },
-    ];
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: reportOptions.map(o => o.text),
-          cancelButtonIndex: reportOptions.length - 1,
-          title: '¿Por qué reportas esta publicación?',
-        },
-        async (buttonIndex) => {
-          if (buttonIndex < reportOptions.length - 1) {
-            await submitReport(reportOptions[buttonIndex].value);
-          }
-        }
-      );
-    } else {
-      Alert.alert(
-        'Reportar publicación',
-        '¿Por qué reportas esta publicación?',
-        reportOptions.map(option => ({
-          text: option.text,
-          style: option.value === 'cancel' ? 'cancel' : 'default',
-          onPress: option.value !== 'cancel' ? () => submitReport(option.value) : undefined,
-        }))
-      );
-    }
-  };
-
-  const submitReport = async (reason: string) => {
-    try {
-      const { error } = await supabase.from('content_reports').insert({
-        reporter_id: user!.id,
-        content_type: 'post',
-        content_id: post.id,
-        post_id: post.id,
-        reason,
-      });
-
-      if (error) throw error;
-
-      Alert.alert('✅ Reporte enviado', 'Gracias por ayudarnos a mantener la comunidad segura');
-    } catch (error) {
-      console.error('[InstagramPostCard] Error reporting post:', error);
-      Alert.alert('Error', 'No se pudo enviar el reporte');
-    }
+    setShowReportModal(true);
   };
 
   const handleDelete = async () => {
@@ -839,13 +814,18 @@ export default function InstagramPostCard({
             </View>
           )}
 
-          {commentsCount > 0 && (
-            <TouchableOpacity onPress={handleComment}>
+          {/* ✅ FIXED: Comment count display with proper text */}
+          <TouchableOpacity onPress={handleComment}>
+            {commentsCount > 0 ? (
               <Text style={styles.commentsText}>
                 Ver {commentsCount === 1 ? 'el comentario' : `los ${commentsCount} comentarios`}
               </Text>
-            </TouchableOpacity>
-          )}
+            ) : (
+              <Text style={styles.commentsTextEmpty}>
+                Sé el primero en comentar
+              </Text>
+            )}
+          </TouchableOpacity>
           
           <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
         </View>
@@ -875,6 +855,14 @@ export default function InstagramPostCard({
         postAuthorName={displayUsername}
         postAuthorAvatar={authorAvatar || undefined}
         onClose={() => setShowShareModal(false)}
+      />
+
+      {/* ✅ NEW: Report modal */}
+      <ReportModal
+        visible={showReportModal}
+        contentType="post"
+        contentId={post.id}
+        onClose={() => setShowReportModal(false)}
       />
     </>
   );
@@ -997,6 +985,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
+    fontWeight: '600',
+  },
+  commentsTextEmpty: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   timeAgo: {
     fontSize: 11,

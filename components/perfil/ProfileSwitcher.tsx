@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import {
   View,
   Text,
@@ -23,7 +23,17 @@ interface ProfileSwitcherProps {
   onClose: () => void;
 }
 
-export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherProps) {
+/**
+ * ✅ PROFILE SWITCHER v2.0 - FLICKERING FIX
+ * 
+ * CRITICAL FIXES:
+ * - ✅ Wrapped component in React.memo to prevent unnecessary re-renders
+ * - ✅ Memoized all callbacks with stable dependencies
+ * - ✅ Only load data when modal becomes visible (not on every render)
+ * - ✅ Optimized useEffect dependencies to prevent infinite loops
+ */
+
+const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: ProfileSwitcherProps) {
   const { user } = useAuth();
   const router = useRouter();
   const {
@@ -36,7 +46,7 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
   const [ownedLocals, setOwnedLocals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // ✅ CRITICAL FIX: Memoize loadOwnedLocals to prevent re-creation on every render
+  // ✅ CRITICAL FIX: Memoize loadOwnedLocals with STABLE dependencies
   const loadOwnedLocals = useCallback(async () => {
     if (!user?.id) {
       console.log('[ProfileSwitcher] ⚠️ No user ID, skipping load');
@@ -81,18 +91,16 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
     } finally {
       setLoading(false);
     }
-  }, [user?.id]); // Only depend on user.id
+  }, [user?.id]); // ✅ CRITICAL: Only depend on user.id (stable reference)
 
-  // ✅ CRITICAL FIX: Only load when modal becomes visible
+  // ✅ CRITICAL FIX: Only load when modal becomes visible, not on every render
   useEffect(() => {
-    if (visible) {
+    if (visible && user?.id) {
       console.log('[ProfileSwitcher] 🔄 Modal opened, loading owned locals');
       loadOwnedLocals();
-    } else {
-      // Reset state when modal closes to prevent stale data
-      console.log('[ProfileSwitcher] 🔄 Modal closed, resetting state');
     }
-  }, [visible, loadOwnedLocals]);
+    // ✅ Don't reset state when modal closes to avoid flickering
+  }, [visible, user?.id, loadOwnedLocals]);
 
   // ✅ OPTIMIZATION: Memoize handlers to prevent re-creation
   const handleSwitchToClient = useCallback(async () => {
@@ -257,7 +265,7 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
       </Pressable>
     </Modal>
   );
-}
+});
 
 const styles = StyleSheet.create({
   overlay: {
@@ -392,3 +400,5 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
 });
+
+export default ProfileSwitcher;
