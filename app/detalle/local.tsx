@@ -1195,6 +1195,8 @@ export default function DetalleLocalScreen() {
                 </View>
               )}
 
+              {/* ✅ FIXED: Removed redundant local name text between check-in button and action buttons */}
+
               {description && (
                 <View style={styles.descriptionSection}>
                   <Text style={styles.descriptionText}>{expandedDescription ? description : descriptionSummary}</Text>
@@ -1453,7 +1455,7 @@ export default function DetalleLocalScreen() {
                       const displayText = isExpanded ? reviewText : summary;
 
                       return (
-                        <View key={`google-${index}`} style={styles.googleReviewCard}>
+                        <View key={`google-${index}`} style={styles.reviewCard}>
                           <View style={styles.reviewHeader}>
                             <View style={styles.reviewAvatar}>
                               {googleReview.profile_photo_url ? (
@@ -1467,10 +1469,6 @@ export default function DetalleLocalScreen() {
                             <View style={styles.reviewInfo}>
                               <View style={styles.reviewAuthorRow}>
                                 <Text style={styles.reviewAuthor}>Cliente del local</Text>
-                                <View style={styles.googleBadge}>
-                                  <IconSymbol ios_icon_name="g.circle.fill" android_material_icon_name="reviews" size={12} color="#4285F4" />
-                                  <Text style={styles.googleBadgeText}>Google</Text>
-                                </View>
                               </View>
                               <View style={styles.reviewRating}>
                                 <Ionicons name="star" size={14} color="#FFD700" />
@@ -1516,10 +1514,6 @@ export default function DetalleLocalScreen() {
                                 <Text style={styles.reviewAuthor}>
                                   {isOwner ? 'Tu reseña' : barliveReview.usuario?.nombre || 'Usuario de Barlive'}
                                 </Text>
-                                <View style={styles.barliveBadge}>
-                                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color={colors.primary} />
-                                  <Text style={styles.barliveBadgeText}>Barlive</Text>
-                                </View>
                               </View>
                               <View style={styles.reviewRating}>
                                 <Ionicons name="star" size={14} color="#FFD700" />
@@ -2278,24 +2272,16 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 19,
   },
-  googleReviewCard: {
-    backgroundColor: '#E8F5E9',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#4CAF50' + '30',
-  },
-  googleReviewTime: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
   reviewCard: {
     backgroundColor: colors.cardBackground,
     padding: 12,
     borderRadius: 12,
     marginBottom: 10,
+  },
+  googleReviewTime: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -2333,34 +2319,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.text,
-  },
-  googleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#4285F4' + '15',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  googleBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#4285F4',
-  },
-  barliveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: colors.primary + '15',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  barliveBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.primary,
   },
   reviewRating: {
     flexDirection: 'row',
