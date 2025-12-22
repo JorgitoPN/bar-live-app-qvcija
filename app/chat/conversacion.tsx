@@ -123,7 +123,7 @@ export default function ConversacionScreen() {
           .eq('local_id', localId)
           .eq('usuario1_id', userId1)
           .eq('usuario2_id', userId2)
-          .single();
+          .maybeSingle();
 
         if (existingChat) {
           console.log('[Conversacion] ✅ Found existing local-specific chat:', existingChat.id);
@@ -220,7 +220,7 @@ export default function ConversacionScreen() {
           .is('local_id', null)
           .eq('usuario1_id', userId1)
           .eq('usuario2_id', userId2)
-          .single();
+          .maybeSingle();
 
         if (existingChat) {
           console.log('[Conversacion] ✅ Found existing user-to-user chat:', existingChat.id);
