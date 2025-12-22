@@ -57,7 +57,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
         setLikeUsers([]);
       }
     }
-  }, [localLikes, user, postId, loadLikeUsers]);
+  }, [localLikes?.length, user?.id, postId]);
 
   const loadLikeUsers = useCallback(async () => {
     try {

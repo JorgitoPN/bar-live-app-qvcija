@@ -206,8 +206,17 @@ export default function SharePostModal({
     try {
       let imageUrl: string | null = null;
       
-      // ✅ FIX: Upload post preview image to 'posts' bucket (which exists)
-      if (postPreviewUri) {
+      // ✅ FIX: Use the original post image instead of screenshot
+      // This avoids the image corruption issue from ViewShot
+      if (postImage) {
+        try {
+          console.log('[SharePostModal] 📤 Using original post image:', postImage);
+          imageUrl = postImage;
+          console.log('[SharePostModal] ✅ Using post image URL directly');
+        } catch (error: any) {
+          console.error('[SharePostModal] ❌ Error with post image:', error);
+        }
+      } else if (postPreviewUri) {
         try {
           console.log('[SharePostModal] 📤 Starting image upload process...');
           console.log('[SharePostModal] 📷 Preview URI:', postPreviewUri);
@@ -260,7 +269,7 @@ export default function SharePostModal({
           );
         }
       } else {
-        console.warn('[SharePostModal] ⚠️ No preview URI available, skipping image upload');
+        console.warn('[SharePostModal] ⚠️ No preview URI or post image available, skipping image upload');
       }
 
       const shareMessage = `📤 Publicación compartida`;

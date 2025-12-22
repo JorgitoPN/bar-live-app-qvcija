@@ -57,16 +57,39 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
 
   // ✅ FIXED: Validate image URL before attempting to load
   const isValidImageUrl = (url: string | undefined): boolean => {
-    if (!url) return false;
+    if (!url) {
+      console.log('[MessageBubble] ⚠️ No URL provided');
+      return false;
+    }
+    
+    // Check if it's a data URL (base64)
+    if (url.startsWith('data:image/')) {
+      console.log('[MessageBubble] ⚠️ Data URL detected, skipping (not supported)');
+      return false;
+    }
+    
     try {
       // Check if it's a valid URL
       const urlObj = new URL(url);
       // Check if it has a valid protocol
-      if (!['http:', 'https:'].includes(urlObj.protocol)) return false;
+      if (!['http:', 'https:'].includes(urlObj.protocol)) {
+        console.log('[MessageBubble] ⚠️ Invalid protocol:', urlObj.protocol);
+        return false;
+      }
       // Check if it has a valid image extension or is from Supabase storage
       const hasImageExtension = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(url);
-      const isSupabaseStorage = url.includes('supabase.co/storage');
-      return hasImageExtension || isSupabaseStorage;
+      const isSupabaseStorage = url.includes('supabase.co/storage') || url.includes('supabase');
+      const isValid = hasImageExtension || isSupabaseStorage;
+      
+      if (!isValid) {
+        console.log('[MessageBubble] ⚠️ URL validation failed:', {
+          url,
+          hasImageExtension,
+          isSupabaseStorage,
+        });
+      }
+      
+      return isValid;
     } catch (error) {
       console.error('[MessageBubble] ❌ Invalid image URL:', url, error);
       return false;
