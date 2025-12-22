@@ -1437,9 +1437,11 @@ export default function PostViewerModal({
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Cargando publicación...</Text>
           </View>
         ) : posts.length === 0 ? (
           <View style={styles.emptyContainer}>
+            <IconSymbol ios_icon_name="photo.stack" android_material_icon_name="collections" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No hay publicaciones</Text>
           </View>
         ) : (
@@ -1658,14 +1660,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 16,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
     color: colors.text,
   },
   postContainer: {

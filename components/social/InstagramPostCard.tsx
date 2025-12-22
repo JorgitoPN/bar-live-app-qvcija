@@ -99,10 +99,12 @@ export default function InstagramPostCard({
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ Load initial likes array
+  // ✅ Load initial likes array - CRITICAL FIX: Load immediately on mount
   useEffect(() => {
     const loadInitialLikes = async () => {
       try {
+        console.log('[InstagramPostCard] 🔄 Loading initial likes for post:', post.id);
+        
         const { data, error } = await supabase
           .from('likes')
           .select('id, usuario_id')
@@ -111,12 +113,19 @@ export default function InstagramPostCard({
         if (!error && data) {
           setLocalLikes(data);
           console.log('[InstagramPostCard] ✅ Loaded initial likes:', data.length, 'users:', data.map(l => l.usuario_id));
+        } else if (error) {
+          console.error('[InstagramPostCard] ❌ Error loading initial likes:', error);
+        } else {
+          console.log('[InstagramPostCard] ℹ️ No likes found for post:', post.id);
+          setLocalLikes([]);
         }
       } catch (error) {
-        console.error('[InstagramPostCard] Error loading initial likes:', error);
+        console.error('[InstagramPostCard] ❌ Exception loading initial likes:', error);
+        setLocalLikes([]);
       }
     };
 
+    // ✅ CRITICAL: Load immediately, don't wait
     loadInitialLikes();
   }, [post.id]);
 

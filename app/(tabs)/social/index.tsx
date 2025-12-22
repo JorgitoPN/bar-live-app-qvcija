@@ -124,31 +124,22 @@ export default function SocialIndexScreen() {
 
   const loadAndShowPost = async (postId: string) => {
     try {
-      console.log('[Social] 📥 Loading post:', postId);
+      console.log('[Social] 📥 Loading post with optimistic UI:', postId);
       
-      const { data: postData, error } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          autor:usuarios!posts_autor_id_fkey(id, nombre, username, avatar),
-          local:locales!posts_local_id_fkey(id, nombre, imagen_url)
-        `)
-        .eq('id', postId)
-        .single();
-
-      if (error) {
-        console.error('[Social] ❌ Error loading post:', error);
-        Alert.alert('Error', 'No se pudo cargar la publicación');
-        return;
-      }
-
-      if (!postData) {
-        Alert.alert('Error', 'Publicación no encontrada');
-        return;
-      }
-
-      // Check if user has liked/saved
-      const [likeResult, savedResult] = await Promise.all([
+      // ✅ OPTIMIZATION: Show modal immediately with loading state
+      setShowPostModal(true);
+      
+      // ✅ OPTIMIZATION: Load post data in parallel with likes/saved status
+      const [postResult, likeResult, savedResult] = await Promise.all([
+        supabase
+          .from('posts')
+          .select(`
+            *,
+            autor:usuarios!posts_autor_id_fkey(id, nombre, username, avatar),
+            local:locales!posts_local_id_fkey(id, nombre, imagen_url)
+          `)
+          .eq('id', postId)
+          .single(),
         supabase
           .from('likes')
           .select('id')
@@ -163,17 +154,30 @@ export default function SocialIndexScreen() {
           .maybeSingle(),
       ]);
 
+      if (postResult.error) {
+        console.error('[Social] ❌ Error loading post:', postResult.error);
+        setShowPostModal(false);
+        Alert.alert('Error', 'No se pudo cargar la publicación');
+        return;
+      }
+
+      if (!postResult.data) {
+        setShowPostModal(false);
+        Alert.alert('Error', 'Publicación no encontrada');
+        return;
+      }
+
       const postWithStatus = {
-        ...postData,
+        ...postResult.data,
         user_has_liked: !!likeResult.data,
         user_has_saved: !!savedResult.data,
       };
 
       setSelectedPost(postWithStatus);
-      setShowPostModal(true);
-      console.log('[Social] ✅ Post loaded and modal opened');
+      console.log('[Social] ✅ Post loaded and displayed (optimized)');
     } catch (error) {
       console.error('[Social] ❌ Error loading post:', error);
+      setShowPostModal(false);
       Alert.alert('Error', 'No se pudo cargar la publicación');
     }
   };

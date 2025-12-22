@@ -209,10 +209,18 @@ export default function SharePostModal({
       // ✅ FIX: Upload post preview image to 'posts' bucket (which exists)
       if (postPreviewUri) {
         try {
-          const response = await fetch(postPreviewUri);
-          const arrayBuffer = await response.arrayBuffer();
-          const fileName = `shared/post-preview-${postId}-${Date.now()}.jpg`;
+          console.log('[SharePostModal] 📤 Starting image upload process...');
+          console.log('[SharePostModal] 📷 Preview URI:', postPreviewUri);
           
+          const response = await fetch(postPreviewUri);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch preview: ${response.status} ${response.statusText}`);
+          }
+          
+          const arrayBuffer = await response.arrayBuffer();
+          console.log('[SharePostModal] ✅ Fetched image, size:', arrayBuffer.byteLength, 'bytes');
+          
+          const fileName = `shared/post-preview-${postId}-${Date.now()}.jpg`;
           console.log('[SharePostModal] 📤 Uploading to posts bucket:', fileName);
           
           const { data: uploadData, error: uploadError } = await supabase.storage
@@ -228,16 +236,31 @@ export default function SharePostModal({
             throw uploadError;
           }
 
+          if (!uploadData || !uploadData.path) {
+            throw new Error('Upload succeeded but no path returned');
+          }
+
           const { data: { publicUrl } } = supabase.storage
             .from('posts')
             .getPublicUrl(uploadData.path);
 
           imageUrl = publicUrl;
-          console.log('[SharePostModal] ✅ Uploaded post preview:', imageUrl);
-        } catch (error) {
+          console.log('[SharePostModal] ✅ Uploaded post preview successfully!');
+          console.log('[SharePostModal] 🔗 Public URL:', imageUrl);
+        } catch (error: any) {
           console.error('[SharePostModal] ❌ Error uploading preview:', error);
+          console.error('[SharePostModal] ❌ Error details:', {
+            message: error.message,
+            stack: error.stack,
+          });
           // Continue without image if upload fails
+          Alert.alert(
+            'Advertencia',
+            'No se pudo cargar la imagen de la publicación, pero el mensaje se enviará de todos modos.'
+          );
         }
+      } else {
+        console.warn('[SharePostModal] ⚠️ No preview URI available, skipping image upload');
       }
 
       const shareMessage = `📤 Publicación compartida`;

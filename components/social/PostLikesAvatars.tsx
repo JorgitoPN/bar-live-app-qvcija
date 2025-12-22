@@ -38,8 +38,8 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
 
   // ✅ CRITICAL FIX: Update from localLikes prop and reload users immediately
   useEffect(() => {
-    if (localLikes && user) {
-      const userLiked = localLikes.some(like => like.usuario_id === user.id);
+    if (localLikes !== undefined) {
+      const userLiked = user ? localLikes.some(like => like.usuario_id === user.id) : false;
       setCurrentUserHasLiked(userLiked);
       setCurrentTotalLikes(localLikes.length);
       
@@ -47,12 +47,17 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
         count: localLikes.length,
         userLiked,
         userIds: localLikes.map(l => l.usuario_id),
+        postId,
       });
       
       // ✅ CRITICAL: Reload the display users immediately when localLikes changes
-      loadLikeUsers();
+      if (localLikes.length > 0) {
+        loadLikeUsers();
+      } else {
+        setLikeUsers([]);
+      }
     }
-  }, [localLikes, user]);
+  }, [localLikes, user, postId, loadLikeUsers]);
 
   const loadLikeUsers = useCallback(async () => {
     try {
@@ -348,7 +353,14 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
     
     // ✅ CRITICAL FIX: Fallback should never show just a number
     // This happens when likeUsers hasn't loaded yet but we have a count
-    // Show a loading state or generic text
+    // Show a more descriptive loading state
+    console.warn('[PostLikesAvatars] ⚠️ Fallback triggered - likeUsers not loaded yet:', {
+      currentTotalLikes,
+      likeUsersCount: likeUsers.length,
+      otherUsersCount: otherUsers.length,
+      currentUserHasLiked,
+    });
+    
     if (currentTotalLikes === 1) {
       return <Text style={styles.likesText}>1 me gusta</Text>;
     }

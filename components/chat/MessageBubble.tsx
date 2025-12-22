@@ -45,18 +45,35 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
 
   const renderContent = () => {
     if (message.tipo_mensaje === 'post_compartido' && message.post_compartido_id) {
+      console.log('[MessageBubble] 🖼️ Rendering shared post:', {
+        postId: message.post_compartido_id,
+        hasImage: !!message.post_imagen,
+        imageUrl: message.post_imagen,
+      });
+      
       return (
         <View style={styles.sharedPostContainer}>
-          {message.post_imagen && (
+          {message.post_imagen ? (
             <TouchableOpacity onPress={handlePostPress} activeOpacity={0.8}>
               <Image 
                 source={{ uri: message.post_imagen }} 
                 style={styles.postSnapshot}
                 resizeMode="cover"
+                onError={(error) => {
+                  console.error('[MessageBubble] ❌ Image load error:', error.nativeEvent.error);
+                }}
+                onLoad={() => {
+                  console.log('[MessageBubble] ✅ Image loaded successfully');
+                }}
               />
               <View style={styles.snapshotOverlay}>
                 <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={20} color="#fff" />
               </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={handlePostPress} activeOpacity={0.8} style={styles.postSnapshotPlaceholder}>
+              <IconSymbol ios_icon_name="photo" android_material_icon_name="image" size={48} color="rgba(255, 255, 255, 0.5)" />
+              <Text style={styles.postSnapshotPlaceholderText}>Publicación compartida</Text>
             </TouchableOpacity>
           )}
           <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
@@ -149,6 +166,24 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 12,
+    backgroundColor: colors.background,
+  },
+  postSnapshotPlaceholder: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderStyle: 'dashed',
+  },
+  postSnapshotPlaceholderText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 8,
+    fontWeight: '600',
   },
   snapshotOverlay: {
     position: 'absolute',
