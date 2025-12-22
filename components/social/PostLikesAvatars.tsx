@@ -11,6 +11,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 interface PostLikesAvatarsProps {
   postId: string;
   totalLikes: number;
+  // ✅ NEW: Accept local likes array for instant updates
+  localLikes?: Array<{ id: string; usuario_id: string }>;
 }
 
 interface LikeUser {
@@ -21,7 +23,7 @@ interface LikeUser {
   tipo: 'usuario' | 'local';
 }
 
-export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatarsProps) {
+export default function PostLikesAvatars({ postId, totalLikes, localLikes }: PostLikesAvatarsProps) {
   const router = useRouter();
   const { user } = useAuth();
   const channelRef = useRef<any>(null);
@@ -29,28 +31,28 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
   const [showModal, setShowModal] = useState(false);
   const [allLikes, setAllLikes] = useState<LikeUser[]>([]);
   const [loadingModal, setLoadingModal] = useState(false);
+  
+  // ✅ FIXED: Use local state that updates instantly
   const [currentTotalLikes, setCurrentTotalLikes] = useState(totalLikes);
   const [currentUserHasLiked, setCurrentUserHasLiked] = useState(false);
+
+  // ✅ FIXED: Update from localLikes prop (instant reactivity)
+  useEffect(() => {
+    if (localLikes && user) {
+      const userLiked = localLikes.some(like => like.usuario_id === user.id);
+      setCurrentUserHasLiked(userLiked);
+      setCurrentTotalLikes(localLikes.length);
+      console.log('[PostLikesAvatars] 🔄 Updated from localLikes:', {
+        count: localLikes.length,
+        userLiked,
+      });
+    }
+  }, [localLikes, user]);
 
   const loadLikeUsers = useCallback(async () => {
     try {
       console.log('[PostLikesAvatars] 🔄 Loading like users for post:', postId);
       
-      // ✅ FIXED: Check if current user has liked
-      if (user) {
-        const { data: userLike, error: userLikeError } = await supabase
-          .from('likes')
-          .select('id')
-          .eq('post_id', postId)
-          .eq('usuario_id', user.id)
-          .maybeSingle();
-
-        if (!userLikeError) {
-          setCurrentUserHasLiked(!!userLike);
-          console.log('[PostLikesAvatars] 👤 Current user has liked:', !!userLike);
-        }
-      }
-
       const { data, error } = await supabase
         .from('likes')
         .select(`
@@ -77,7 +79,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     } catch (error) {
       console.error('[PostLikesAvatars] Error loading like users:', error);
     }
-  }, [postId, user]);
+  }, [postId]);
 
   const loadAllLikes = useCallback(async () => {
     try {
@@ -114,7 +116,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     loadLikeUsers();
   }, [loadLikeUsers]);
 
-  // ✅ FIXED: Real-time subscription only updates for OTHER users' changes
+  // ✅ FIXED: Real-time subscription for OTHER users' changes
   useEffect(() => {
     if (!user) return;
 
@@ -141,20 +143,17 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
         async (payload) => {
           console.log('[PostLikesAvatars] 🔄 Real-time like change detected:', payload.eventType, 'by user:', payload.new?.usuario_id || payload.old?.usuario_id);
           
-          // ✅ FIXED: Only update if the change was made by ANOTHER user
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[PostLikesAvatars] ⏭️ Change made by current user, skipping real-time update (already handled optimistically)');
+            console.log('[PostLikesAvatars] ⏭️ Change made by current user, skipping (already handled optimistically)');
             return;
           }
           
           console.log('[PostLikesAvatars] 🔄 Change made by another user, reloading avatars...');
           
-          // ✅ Reload like users immediately (no disappearing avatars)
           await loadLikeUsers();
           
-          // ✅ Update total count from database (source of truth)
           const { count, error: countError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
@@ -163,6 +162,17 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
           if (!countError && count !== null) {
             console.log('[PostLikesAvatars] ✅ Updated likes count via real-time:', count);
             setCurrentTotalLikes(count);
+          }
+          
+          const { data: userLike, error: likeError } = await supabase
+            .from('likes')
+            .select('id')
+            .eq('post_id', postId)
+            .eq('usuario_id', user.id)
+            .maybeSingle();
+          
+          if (!likeError) {
+            setCurrentUserHasLiked(!!userLike);
           }
         }
       )
@@ -215,14 +225,12 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     // ✅ Case 1: Current user has liked
     if (currentUserHasLiked) {
       if (currentTotalLikes === 1) {
-        // Only current user has liked
         return (
           <Text style={styles.likesText}>
             A <Text style={styles.usernameLink}>ti</Text> te gusta esto
           </Text>
         );
       } else if (currentTotalLikes === 2) {
-        // Current user + 1 other
         const otherUser = likeUsers.find(u => u.id !== user?.id);
         if (otherUser) {
           const username = otherUser.username || otherUser.nombre;
@@ -240,7 +248,6 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
           );
         }
       } else {
-        // Current user + multiple others
         const others = currentTotalLikes - 1;
         return (
           <Text style={styles.likesText}>

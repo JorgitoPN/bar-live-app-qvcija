@@ -70,10 +70,16 @@ export default function InstagramPostCard({
   const { user, ensureValidSession } = useAuth();
   const channelRef = useRef<any>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // ✅ FIXED: Local state for instant reactivity
   const [isLiked, setIsLiked] = useState(post.user_has_liked);
   const [isSaved, setIsSaved] = useState(post.user_has_saved);
   const [likesCount, setLikesCount] = useState(post.likes_count);
   const [commentsCount, setCommentsCount] = useState(post.comentarios_count);
+  
+  // ✅ NEW: Local likes array for instant updates
+  const [localLikes, setLocalLikes] = useState<Array<{ id: string; usuario_id: string }>>([]);
+  
   const [showPostViewer, setShowPostViewer] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -83,7 +89,6 @@ export default function InstagramPostCard({
   const [authorName, setAuthorName] = useState<string>('Usuario');
   const [loadingAuthor, setLoadingAuthor] = useState(true);
 
-  // ✅ Animation refs for Instagram-like effects
   const likeIconScale = useRef(new Animated.Value(1)).current;
   const doubleTapHeartScale = useRef(new Animated.Value(0)).current;
   const doubleTapHeartOpacity = useRef(new Animated.Value(0)).current;
@@ -94,9 +99,30 @@ export default function InstagramPostCard({
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ Real-time subscription for likes
+  // ✅ FIXED: Load initial likes array
   useEffect(() => {
-    if (!post.id || !user) return;
+    const loadInitialLikes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('likes')
+          .select('id, usuario_id')
+          .eq('post_id', post.id);
+
+        if (!error && data) {
+          setLocalLikes(data);
+          console.log('[InstagramPostCard] ✅ Loaded initial likes:', data.length);
+        }
+      } catch (error) {
+        console.error('[InstagramPostCard] Error loading initial likes:', error);
+      }
+    };
+
+    loadInitialLikes();
+  }, [post.id]);
+
+  // ✅ FIXED: Real-time subscription for OTHER users' changes
+  useEffect(() => {
+    if (!user) return;
 
     console.log('[InstagramPostCard] 🔄 Setting up real-time subscription for post:', post.id);
 
@@ -116,7 +142,7 @@ export default function InstagramPostCard({
           event: '*',
           schema: 'public',
           table: 'likes',
-          filter: `post_id=eq.${post.id}`,
+          filter: `post_id=eq.${postId}`,
         },
         async (payload) => {
           console.log('[InstagramPostCard] 🔄 Real-time like change detected:', payload.eventType, 'by user:', payload.new?.usuario_id || payload.old?.usuario_id);
@@ -124,12 +150,25 @@ export default function InstagramPostCard({
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[InstagramPostCard] ⏭️ Change made by current user, skipping real-time update (already handled optimistically)');
+            console.log('[InstagramPostCard] ⏭️ Change made by current user, skipping (already handled optimistically)');
             return;
           }
           
-          console.log('[InstagramPostCard] 🔄 Change made by another user, fetching updated count from database...');
+          console.log('[InstagramPostCard] 🔄 Change made by another user, updating local state...');
           
+          // ✅ Update local likes array
+          if (payload.eventType === 'INSERT' && payload.new) {
+            setLocalLikes(prev => {
+              if (prev.some(like => like.id === payload.new.id)) {
+                return prev;
+              }
+              return [...prev, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
+            });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            setLocalLikes(prev => prev.filter(like => like.id !== payload.old.id));
+          }
+          
+          // ✅ Fetch updated count from database
           const { count, error: countError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
@@ -138,18 +177,6 @@ export default function InstagramPostCard({
           if (!countError && count !== null) {
             console.log('[InstagramPostCard] ✅ Updated likes count from database:', count);
             setLikesCount(count);
-          }
-          
-          const { data: userLike, error: likeError } = await supabase
-            .from('likes')
-            .select('id')
-            .eq('post_id', post.id)
-            .eq('usuario_id', user.id)
-            .maybeSingle();
-          
-          if (!likeError) {
-            setIsLiked(!!userLike);
-            console.log('[InstagramPostCard] ✅ User like status verified:', !!userLike);
           }
         }
       )
@@ -210,7 +237,6 @@ export default function InstagramPostCard({
     }
   };
 
-  // ✅ Instagram-like heart animation on like button press
   const animateLikeIcon = useCallback(() => {
     Animated.sequence([
       Animated.timing(likeIconScale, {
@@ -226,7 +252,6 @@ export default function InstagramPostCard({
     ]).start();
   }, [likeIconScale]);
 
-  // ✅ Instagram-like double-tap heart animation
   const animateDoubleTapHeart = useCallback(() => {
     doubleTapHeartScale.setValue(0);
     doubleTapHeartOpacity.setValue(1);
@@ -249,27 +274,21 @@ export default function InstagramPostCard({
     ]).start();
   }, [doubleTapHeartScale, doubleTapHeartOpacity]);
 
-  // ✅ Handle double-tap on image to like
   const handleImageDoubleTap = useCallback(async () => {
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
 
     if (lastTap.current && now - lastTap.current < DOUBLE_TAP_DELAY) {
-      // Double tap detected
       lastTap.current = null;
 
       if (!isLiked) {
-        // ✅ Haptic feedback
         if (Platform.OS === 'ios') {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         } else {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         }
 
-        // ✅ Show double-tap heart animation
         animateDoubleTapHeart();
-
-        // ✅ Like the post
         await handleLike();
       }
     } else {
@@ -281,7 +300,7 @@ export default function InstagramPostCard({
     setShowPostViewer(true);
   };
 
-  // ✅ FIXED: Optimistic UI with debouncing, animations, and proper rollback
+  // ✅ FIXED: Optimistic UI with instant local state updates
   const handleLike = useCallback(async () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
@@ -302,43 +321,57 @@ export default function InstagramPostCard({
     const newLikedState = !isLiked;
     const previousLiked = isLiked;
     const previousCount = likesCount;
+    const previousLocalLikes = [...localLikes];
     
-    // ✅ Haptic feedback
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else {
       Haptics.selectionAsync();
     }
 
-    // ✅ Animate like icon
     if (newLikedState) {
       animateLikeIcon();
     }
 
-    // ✅ Optimistic update (instant UI response)
+    // ✅ INSTANT UPDATE: Modify local state immediately (< 100ms)
     setIsLiked(newLikedState);
     setLikesCount(newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1));
+    
+    // ✅ INSTANT UPDATE: Modify local likes array
+    if (newLikedState) {
+      const tempId = `temp-${Date.now()}`;
+      setLocalLikes(prev => [...prev, { id: tempId, usuario_id: user.id }]);
+    } else {
+      setLocalLikes(prev => prev.filter(like => like.usuario_id !== user.id));
+    }
 
-    // ✅ Debounce: Cancel previous request if user is rapidly tapping
+    console.log('[InstagramPostCard] ✅ Optimistic update applied instantly');
+
     if (likeDebounceTimer.current) {
       clearTimeout(likeDebounceTimer.current);
     }
 
-    // ✅ Wait 300ms before sending request (debouncing)
     likeDebounceTimer.current = setTimeout(async () => {
       try {
         if (newLikedState) {
           console.log('[InstagramPostCard] ➕ Adding like to post:', post.id);
           
-          const { error } = await supabase.from('likes').insert({
+          const { data, error } = await supabase.from('likes').insert({
             post_id: post.id,
             usuario_id: user.id,
-          });
+          }).select().single();
           
           if (error) {
             console.error('[InstagramPostCard] ❌ Error adding like:', error);
             throw error;
           }
+          
+          // ✅ Replace temp ID with real ID
+          setLocalLikes(prev => prev.map(like => 
+            like.usuario_id === user.id && like.id.startsWith('temp-')
+              ? { id: data.id, usuario_id: user.id }
+              : like
+          ));
           
           console.log('[InstagramPostCard] ✅ Like added successfully');
         } else {
@@ -358,7 +391,6 @@ export default function InstagramPostCard({
           console.log('[InstagramPostCard] ✅ Like removed successfully');
         }
 
-        // ✅ Verify final count from database (source of truth)
         const { count, error: countError } = await supabase
           .from('likes')
           .select('id', { count: 'exact', head: true })
@@ -370,13 +402,14 @@ export default function InstagramPostCard({
         }
       } catch (error) {
         console.error('[InstagramPostCard] ❌ Error toggling like:', error);
-        // ✅ Rollback on error (restore previous state)
+        // ✅ Rollback on error
         setIsLiked(previousLiked);
         setLikesCount(previousCount);
+        setLocalLikes(previousLocalLikes);
         Alert.alert('Error', 'No se pudo actualizar el me gusta. Intenta de nuevo.');
       }
     }, 300);
-  }, [user, ensureValidSession, isLiked, likesCount, post.id, animateLikeIcon]);
+  }, [user, ensureValidSession, isLiked, likesCount, localLikes, post.id, animateLikeIcon]);
 
   const handleComment = () => {
     setShowComments(true);
@@ -668,7 +701,6 @@ export default function InstagramPostCard({
               ))}
             </ScrollView>
 
-            {/* ✅ Double-tap heart animation */}
             <Animated.View
               style={[
                 styles.doubleTapHeart,
@@ -742,7 +774,11 @@ export default function InstagramPostCard({
 
         <View style={styles.stats}>
           {likesCount > 0 && (
-            <PostLikesAvatars postId={post.id} totalLikes={likesCount} />
+            <PostLikesAvatars 
+              postId={post.id} 
+              totalLikes={likesCount}
+              localLikes={localLikes}
+            />
           )}
           
           {captionText && (
