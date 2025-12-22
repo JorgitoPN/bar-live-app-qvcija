@@ -1,6 +1,6 @@
 
-import React, { useEffect } from 'react';
-import { Dimensions, Alert, InteractionManager } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Dimensions, Alert } from 'react-native';
 import { Tabs, useRouter, usePathname } from 'expo-router';
 import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,57 +13,92 @@ export default function TabLayout() {
   const { currentMode } = useMode();
   const router = useRouter();
   const pathname = usePathname();
+  
+  // ✅ FIXED: Track if we've already shown the alert to prevent duplicates
+  const hasShownAdminAlert = useRef(false);
+  const hasShownGestionAlert = useRef(false);
 
   // Determine user's actual role from database
   const userRole = user?.rol_app || 'cliente';
 
   console.log('[TabLayout] ⚡ User role:', userRole, 'Current mode:', currentMode, 'Pathname:', pathname);
 
-  // Prevent access to admin pages for non-admin users
+  // ✅ FIXED: Prevent access to admin pages for non-admin users (more specific check)
   useEffect(() => {
     // Only check if user is logged in and pathname exists
-    if (!user || !pathname) return;
+    if (!user || !pathname) {
+      hasShownAdminAlert.current = false;
+      return;
+    }
     
     // Only check if user is NOT an admin
     if (userRole !== 'admin') {
-      // Check if user is trying to access admin routes
-      // Must start with /(tabs)/admin to avoid false positives
-      if (pathname.startsWith('/(tabs)/admin') || pathname.startsWith('/admin')) {
-        console.log('[TabLayout] ⚠️ Non-admin user trying to access admin page, redirecting...');
+      // ✅ FIXED: More specific check - only trigger for actual admin index page
+      // This prevents false positives when navigating through other routes
+      const isAdminIndexPage = pathname === '/(tabs)/admin' || pathname === '/(tabs)/admin/';
+      const isAdminSubPage = pathname.startsWith('/(tabs)/admin/') || pathname.startsWith('/admin/');
+      
+      if ((isAdminIndexPage || isAdminSubPage) && !hasShownAdminAlert.current) {
+        console.log('[TabLayout] ⚠️ Non-admin user trying to access admin page:', pathname);
+        hasShownAdminAlert.current = true;
         
         // Use setTimeout to avoid multiple alerts
         setTimeout(() => {
           Alert.alert(
             'Acceso Denegado',
-            'No tienes permisos para acceder a esta sección.',
-            [{ text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }]
+            'No tienes permisos para acceder al panel de administración',
+            [{ 
+              text: 'OK', 
+              onPress: () => {
+                router.replace('/(tabs)/explorar');
+                hasShownAdminAlert.current = false;
+              }
+            }]
           );
         }, 100);
       }
+    } else {
+      // Reset flag when user is admin
+      hasShownAdminAlert.current = false;
     }
   }, [user, userRole, pathname, router]);
 
-  // Prevent access to gestion pages for non-propietario users
+  // ✅ FIXED: Prevent access to gestion pages for non-propietario users (more specific check)
   useEffect(() => {
     // Only check if user is logged in and pathname exists
-    if (!user || !pathname) return;
+    if (!user || !pathname) {
+      hasShownGestionAlert.current = false;
+      return;
+    }
     
     // Only check if user is NOT a propietario or admin
     if (userRole !== 'propietario' && userRole !== 'admin') {
-      // Check if user is trying to access gestion routes
-      // Must start with /(tabs)/gestion to avoid false positives
-      if (pathname.startsWith('/(tabs)/gestion') || pathname.startsWith('/gestion')) {
-        console.log('[TabLayout] ⚠️ Non-propietario user trying to access gestion page, redirecting...');
+      // ✅ FIXED: More specific check - only trigger for actual gestion pages
+      const isGestionIndexPage = pathname === '/(tabs)/gestion' || pathname === '/(tabs)/gestion/';
+      const isGestionSubPage = pathname.startsWith('/(tabs)/gestion/') || pathname.startsWith('/gestion/');
+      
+      if ((isGestionIndexPage || isGestionSubPage) && !hasShownGestionAlert.current) {
+        console.log('[TabLayout] ⚠️ Non-propietario user trying to access gestion page:', pathname);
+        hasShownGestionAlert.current = true;
         
         // Use setTimeout to avoid multiple alerts
         setTimeout(() => {
           Alert.alert(
             'Acceso Denegado',
             'No tienes permisos para acceder a esta sección.',
-            [{ text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }]
+            [{ 
+              text: 'OK', 
+              onPress: () => {
+                router.replace('/(tabs)/explorar');
+                hasShownGestionAlert.current = false;
+              }
+            }]
           );
         }, 100);
       }
+    } else {
+      // Reset flag when user is propietario or admin
+      hasShownGestionAlert.current = false;
     }
   }, [user, userRole, pathname, router]);
 

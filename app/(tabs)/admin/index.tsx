@@ -292,6 +292,14 @@ export default function AdminIndexScreen() {
       route: '/admin/backups',
       description: 'Copias de seguridad y restauración',
     },
+    {
+      title: 'Corregir Avatares',
+      icon: 'person.crop.circle.badge.xmark' as const,
+      androidIcon: 'account_circle' as const,
+      color: '#EF4444',
+      route: '/admin/fix-avatar-urls',
+      description: 'Corrige avatares con URLs locales inválidas',
+    },
   ];
 
   // Show loading while checking permissions

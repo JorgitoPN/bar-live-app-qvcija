@@ -492,6 +492,7 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
+  // ✅ FIXED: Real-time user list updates
   const updateActiveUsers = useCallback(async () => {
     if (!localId) return;
 
@@ -528,17 +529,17 @@ export default function SalaVirtualScreen() {
         }));
 
       setActiveUsers(users);
-      console.log('[SalaVirtual] Active users:', users.length);
+      console.log('[SalaVirtual] ⚡ Active users updated:', users.length);
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
   }, [localId]);
 
-  // ✅ FIXED: Real-time subscription using broadcast (volatile chat)
+  // ✅ FIXED: Real-time subscription using broadcast (volatile chat) + user list updates
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
-    console.log('[SalaVirtual] 📡 Subscribing to real-time updates (volatile chat mode)');
+    console.log('[SalaVirtual] 📡 Subscribing to real-time updates (volatile chat mode + user list)');
 
     // ✅ FIXED: Use broadcast for volatile messages (not persisted)
     const chatChannel = supabase
@@ -549,7 +550,7 @@ export default function SalaVirtualScreen() {
         },
       })
       .on('broadcast', { event: 'message_created' }, (payload) => {
-        console.log('[SalaVirtual] 📨 New volatile message received:', payload);
+        console.log('[SalaVirtual] ⚡ INSTANT new volatile message received:', payload);
         
         // Skip if it's our own message (already added optimistically)
         if (payload.payload.usuario_id === user.id) {
@@ -615,18 +616,45 @@ export default function SalaVirtualScreen() {
         console.log('[SalaVirtual] 📡 Chat channel status:', status);
       });
 
+    // ✅ FIXED: Real-time user list updates via postgres_changes
     const presenceChannel = supabase
       .channel(`room:${localId}:presence`, {
         config: { 
           broadcast: { self: false },
         },
       })
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'sala_virtual_checkins',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[SalaVirtual] ⚡ INSTANT user joined (postgres):', payload.new);
+          updateActiveUsers();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sala_virtual_checkins',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[SalaVirtual] ⚡ User check-in updated (postgres):', payload.new);
+          updateActiveUsers();
+        }
+      )
       .on('broadcast', { event: 'user_joined' }, () => {
-        console.log('[SalaVirtual] 👋 User joined');
+        console.log('[SalaVirtual] ⚡ User joined (broadcast)');
         updateActiveUsers();
       })
       .on('broadcast', { event: 'user_left' }, () => {
-        console.log('[SalaVirtual] 👋 User left');
+        console.log('[SalaVirtual] ⚡ User left (broadcast)');
         updateActiveUsers();
       })
       .subscribe((status) => {

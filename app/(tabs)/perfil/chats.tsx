@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface Chat {
   id: string;
@@ -52,6 +53,8 @@ export default function ChatsScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedChats, setSelectedChats] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   const loadChats = useCallback(async (forceRefresh: boolean = false) => {
     if (!user) {
@@ -166,27 +169,19 @@ export default function ChatsScreen() {
     loadChats();
   }, [loadChats]);
 
-  // ✅ FIXED: Real-time subscription for message read status (persistent)
+  // ✅ FIXED: Real-time subscription for chat updates (new messages, read status)
   useEffect(() => {
     if (!user) return;
 
-    console.log('[Chats] 🔄 Setting up real-time subscription for message updates');
+    console.log('[Chats] ⚡ Setting up real-time subscription for chat updates');
 
-    const subscription = supabase
-      .channel('chat-messages-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'mensajes',
-        },
-        (payload) => {
-          console.log('[Chats] 🔄 Message update detected:', payload);
-          // ✅ FIXED: Force reload from database to ensure persistence
-          loadChats(true);
-        }
-      )
+    // Clean up previous channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
+    const channel = supabase
+      .channel('user-chats-realtime')
       .on(
         'postgres_changes',
         {
@@ -195,15 +190,62 @@ export default function ChatsScreen() {
           table: 'mensajes',
         },
         (payload) => {
-          console.log('[Chats] 🔄 New message detected:', payload);
+          console.log('[Chats] ⚡ INSTANT new message received:', payload.new);
+          // Reload chats to update last message and unread count
           loadChats(true);
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'mensajes',
+        },
+        (payload) => {
+          console.log('[Chats] ⚡ Message updated (read status):', payload.new);
+          // Reload chats to update unread count
+          loadChats(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'chats',
+        },
+        (payload) => {
+          console.log('[Chats] ⚡ Chat updated:', payload.new);
+          // Reload chats to update last message
+          loadChats(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'chats',
+        },
+        (payload) => {
+          console.log('[Chats] ⚡ Chat deleted:', payload.old);
+          // Remove chat from list
+          setChats(prev => prev.filter(c => c.id !== payload.old.id));
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Chats] Subscription status:', status);
+      });
+
+    channelRef.current = channel;
 
     return () => {
       console.log('[Chats] 🔄 Cleaning up subscription');
-      supabase.removeChannel(subscription);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [user, loadChats]);
 

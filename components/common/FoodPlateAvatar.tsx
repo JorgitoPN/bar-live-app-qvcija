@@ -46,9 +46,11 @@ export default function FoodPlateAvatar({
   const addButtonSize = size * 0.34; // Add button is 34% of plate size
 
   // ✅ FIXED: Determine what to show
-  const shouldShowImage = !!imageUrl;
-  const shouldShowLetter = !imageUrl && (placeholderText || nombre);
-  const shouldShowDefaultAvatar = !imageUrl && !placeholderText && !nombre;
+  // Validate that imageUrl is a valid URL (not a local file path)
+  const isValidUrl = imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'));
+  const shouldShowImage = isValidUrl;
+  const shouldShowLetter = !isValidUrl && (placeholderText || nombre);
+  const shouldShowDefaultAvatar = !isValidUrl && !placeholderText && !nombre;
 
   return (
     <View style={[styles.container, { width: plateSize, height: plateSize }, style]}>
