@@ -22,9 +22,17 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const PUESTOS = ['Camarero/a', 'Cocinero/a', 'Barman', 'Gerente', 'Limpieza', 'Seguridad', 'DJ', 'Relaciones Públicas'];
 
+// ✅ FIXED: Added complete list of Spanish provinces
 const PROVINCIAS = [
-  'Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Málaga', 'Bilbao', 
-  'Alicante', 'Zaragoza', 'Murcia', 'Palma', 'Las Palmas', 'Valladolid'
+  'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila',
+  'Badajoz', 'Barcelona', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria',
+  'Castellón', 'Ciudad Real', 'Córdoba', 'Cuenca', 'Gerona', 'Granada',
+  'Guadalajara', 'Guipúzcoa', 'Huelva', 'Huesca', 'Islas Baleares', 'Jaén',
+  'La Coruña', 'La Rioja', 'Las Palmas', 'León', 'Lérida', 'Lugo',
+  'Madrid', 'Málaga', 'Murcia', 'Navarra', 'Orense', 'Palencia',
+  'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife', 'Segovia', 'Sevilla', 'Soria',
+  'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya',
+  'Zamora', 'Zaragoza'
 ];
 
 export default function CrearPerfilProfesionalScreen() {
@@ -244,7 +252,7 @@ export default function CrearPerfilProfesionalScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Perfil Profesional</Text>
         <View style={{ width: 40 }} />
@@ -254,7 +262,7 @@ export default function CrearPerfilProfesionalScreen() {
         <View style={styles.form}>
           {/* Info Banner */}
           <View style={styles.infoBanner}>
-            <IconSymbol name="info.circle" size={20} color={colors.primary} />
+            <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={20} color={colors.primary} />
             <Text style={styles.infoText}>
               Tu perfil profesional está vinculado a tu perfil social. Los propietarios podrán contactarte mediante mensajes.
             </Text>
@@ -265,7 +273,7 @@ export default function CrearPerfilProfesionalScreen() {
               <Image source={{ uri: foto }} style={styles.photo} />
             ) : (
               <View style={styles.photoPlaceholder}>
-                <IconSymbol name="person.circle" size={60} color={colors.textSecondary} />
+                <IconSymbol ios_icon_name="person.circle" android_material_icon_name="account_circle" size={60} color={colors.textSecondary} />
                 <Text style={styles.photoText}>Añadir foto</Text>
               </View>
             )}
@@ -304,26 +312,33 @@ export default function CrearPerfilProfesionalScreen() {
             </View>
           </View>
 
+          {/* ✅ FIXED: Added dropdown-style province selector with all Spanish provinces */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Provincia</Text>
-            <View style={styles.puestoButtons}>
-              {PROVINCIAS.map((p) => (
-                <TouchableOpacity
-                  key={p}
-                  style={[styles.puestoButton, provincia === p && styles.puestoButtonActive]}
-                  onPress={() => setProvincia(p)}
-                >
-                  <Text
-                    style={[
-                      styles.puestoButtonText,
-                      provincia === p && styles.puestoButtonTextActive,
-                    ]}
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.provinciaScrollContainer}
+            >
+              <View style={styles.puestoButtons}>
+                {PROVINCIAS.map((p) => (
+                  <TouchableOpacity
+                    key={p}
+                    style={[styles.puestoButton, provincia === p && styles.puestoButtonActive]}
+                    onPress={() => setProvincia(p)}
                   >
-                    {p}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    <Text
+                      style={[
+                        styles.puestoButtonText,
+                        provincia === p && styles.puestoButtonTextActive,
+                      ]}
+                    >
+                      {p}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
           </View>
 
           <View style={styles.inputContainer}>
@@ -474,6 +489,9 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 100,
     textAlignVertical: 'top',
+  },
+  provinciaScrollContainer: {
+    maxHeight: 200,
   },
   puestoButtons: {
     flexDirection: 'row',

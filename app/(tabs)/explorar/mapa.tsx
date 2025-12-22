@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -59,7 +59,6 @@ export default function MapaScreen() {
   const { user } = useAuth();
   const webViewRef = useRef<WebView>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todos');
-  // ✅ FIXED: Default filter set to "abiertos"
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'abiertos'>('abiertos');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedLocal, setSelectedLocal] = useState<Local | null>(null);
@@ -91,6 +90,7 @@ export default function MapaScreen() {
       console.log('🔄 [MAP] ========================================');
       console.log('🔄 [MAP] Loading ALL active locals with location data...');
 
+      // ✅ OPTIMIZATION: Show cached data immediately for instant display
       const cachedLocales = await performanceOptimizer.getCache<LocalWithEvent[]>('map_all_locales_with_events');
       if (cachedLocales && cachedLocales.length > 0) {
         console.log('⚡ [MAP] INSTANT load from cache:', cachedLocales.length);
@@ -235,56 +235,11 @@ export default function MapaScreen() {
     cargarTodosLosLocalesEnriquecidos();
   }, [cargarTodosLosLocalesEnriquecidos]);
 
-  const generateMapHTML = useCallback(async () => {
-    const centerLat = userLocation?.lat || 40.4168;
-    const centerLng = userLocation?.lng || -3.7038;
-
+  // ✅ OPTIMIZATION: Memoize markers data to avoid recalculation
+  const markersData = useMemo(() => {
     const checkInsByLocal = new Map<string, { isUserHere: boolean; friendsCount: number }>();
     
-    if (user) {
-      try {
-        const { data: userCheckIn } = await supabase
-          .from('check_ins')
-          .select('local_id')
-          .eq('usuario_id', user.id)
-          .single();
-
-        if (userCheckIn) {
-          checkInsByLocal.set(userCheckIn.local_id, { isUserHere: true, friendsCount: 0 });
-        }
-
-        const { data: following } = await supabase
-          .from('seguidores')
-          .select('seguido_id')
-          .eq('seguidor_id', user.id);
-
-        const followedUserIds = following?.map(f => f.seguido_id) || [];
-
-        if (followedUserIds.length > 0) {
-          const { data: friendCheckIns } = await supabase
-            .from('check_ins')
-            .select('local_id, usuario_id, visibility, specific_user_ids')
-            .in('usuario_id', followedUserIds);
-
-          (friendCheckIns || []).forEach(checkIn => {
-            const isVisible = 
-              checkIn.visibility === 'all_users' ||
-              checkIn.visibility === 'followers' ||
-              (checkIn.visibility === 'specific_users' && checkIn.specific_user_ids?.includes(user.id));
-
-            if (isVisible) {
-              const existing = checkInsByLocal.get(checkIn.local_id) || { isUserHere: false, friendsCount: 0 };
-              existing.friendsCount += 1;
-              checkInsByLocal.set(checkIn.local_id, existing);
-            }
-          });
-        }
-      } catch (error) {
-        console.error('[Mapa] Error loading check-ins:', error);
-      }
-    }
-
-    const markersData = localesFiltrados.map(local => {
+    return localesFiltrados.map(local => {
       const estadoCompleto = getEstadoLocal(local);
       const estaAbierto = estadoCompleto.estaAbierto;
       const estado = estaAbierto === true ? 'abierto' : 
@@ -353,6 +308,56 @@ export default function MapaScreen() {
         friendsHereCount: checkInInfo.friendsCount,
       };
     });
+  }, [localesFiltrados, userLocation]);
+
+  const generateMapHTML = useCallback(async () => {
+    const centerLat = userLocation?.lat || 40.4168;
+    const centerLng = userLocation?.lng || -3.7038;
+
+    const checkInsByLocal = new Map<string, { isUserHere: boolean; friendsCount: number }>();
+    
+    if (user) {
+      try {
+        const { data: userCheckIn } = await supabase
+          .from('check_ins')
+          .select('local_id')
+          .eq('usuario_id', user.id)
+          .single();
+
+        if (userCheckIn) {
+          checkInsByLocal.set(userCheckIn.local_id, { isUserHere: true, friendsCount: 0 });
+        }
+
+        const { data: following } = await supabase
+          .from('seguidores')
+          .select('seguido_id')
+          .eq('seguidor_id', user.id);
+
+        const followedUserIds = following?.map(f => f.seguido_id) || [];
+
+        if (followedUserIds.length > 0) {
+          const { data: friendCheckIns } = await supabase
+            .from('check_ins')
+            .select('local_id, usuario_id, visibility, specific_user_ids')
+            .in('usuario_id', followedUserIds);
+
+          (friendCheckIns || []).forEach(checkIn => {
+            const isVisible = 
+              checkIn.visibility === 'all_users' ||
+              checkIn.visibility === 'followers' ||
+              (checkIn.visibility === 'specific_users' && checkIn.specific_user_ids?.includes(user.id));
+
+            if (isVisible) {
+              const existing = checkInsByLocal.get(checkIn.local_id) || { isUserHere: false, friendsCount: 0 };
+              existing.friendsCount += 1;
+              checkInsByLocal.set(checkIn.local_id, existing);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('[Mapa] Error loading check-ins:', error);
+      }
+    }
 
     console.log(`[MAP] 🗺️ ========================================`);
     console.log(`[MAP] 🗺️ GENERATING MAP HTML`);
@@ -888,7 +893,7 @@ export default function MapaScreen() {
 </body>
 </html>
     `;
-  }, [localesFiltrados, user, userLocation]);
+  }, [markersData, user, userLocation]);
 
   useEffect(() => {
     const generateHTML = async () => {
@@ -1098,7 +1103,6 @@ export default function MapaScreen() {
       </View>
 
       <View style={styles.controlsRight}>
-        {/* ✅ FIXED: Toggle switch design for estado selector */}
         <View style={styles.estadoSelectorContainer}>
           <View style={styles.estadoSelector}>
             <TouchableOpacity
@@ -1285,7 +1289,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  // ✅ FIXED: Toggle switch design for estado selector
   estadoSelectorContainer: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

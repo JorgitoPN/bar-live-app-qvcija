@@ -438,7 +438,7 @@ export default function ReviewsModal({
             )}
           </View>
           <View style={styles.reviewInfo}>
-            {/* ✅ FIXED: Remove "google" text completely - show "Cliente del local" for all non-owner reviews */}
+            {/* ✅ FIXED: Unified design - removed source attribution completely */}
             <Text style={styles.reviewAuthor}>
               {isOwner ? 'Tu reseña' : 'Cliente del local'}
             </Text>
