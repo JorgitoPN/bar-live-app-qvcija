@@ -11,6 +11,7 @@ import {
   Alert,
   ActionSheetIOS,
   Platform,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -23,6 +24,7 @@ import PostViewerModal from './PostViewerModal';
 import CommentsModal from './CommentsModal';
 import SharePostModal from './SharePostModal';
 import PostLikesAvatars from './PostLikesAvatars';
+import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -81,11 +83,18 @@ export default function InstagramPostCard({
   const [authorName, setAuthorName] = useState<string>('Usuario');
   const [loadingAuthor, setLoadingAuthor] = useState(true);
 
+  // ✅ Animation refs for Instagram-like effects
+  const likeIconScale = useRef(new Animated.Value(1)).current;
+  const doubleTapHeartScale = useRef(new Animated.Value(0)).current;
+  const doubleTapHeartOpacity = useRef(new Animated.Value(0)).current;
+  const lastTap = useRef<number | null>(null);
+  const likeDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+
   const isOwner = post.tipo === 'usuario' 
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ FIXED: Real-time subscription only updates count from database (no disappearing likes)
+  // ✅ Real-time subscription for likes
   useEffect(() => {
     if (!post.id || !user) return;
 
@@ -112,7 +121,6 @@ export default function InstagramPostCard({
         async (payload) => {
           console.log('[InstagramPostCard] 🔄 Real-time like change detected:', payload.eventType, 'by user:', payload.new?.usuario_id || payload.old?.usuario_id);
           
-          // ✅ FIXED: Only update if the change was made by ANOTHER user (not current user)
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
@@ -122,7 +130,6 @@ export default function InstagramPostCard({
           
           console.log('[InstagramPostCard] 🔄 Change made by another user, fetching updated count from database...');
           
-          // ✅ Fetch total count from database (source of truth)
           const { count, error: countError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
@@ -133,7 +140,6 @@ export default function InstagramPostCard({
             setLikesCount(count);
           }
           
-          // ✅ Check if current user still has liked (in case of conflicts)
           const { data: userLike, error: likeError } = await supabase
             .from('likes')
             .select('id')
@@ -204,18 +210,84 @@ export default function InstagramPostCard({
     }
   };
 
+  // ✅ Instagram-like heart animation on like button press
+  const animateLikeIcon = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(likeIconScale, {
+        toValue: 1.3,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(likeIconScale, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [likeIconScale]);
+
+  // ✅ Instagram-like double-tap heart animation
+  const animateDoubleTapHeart = useCallback(() => {
+    doubleTapHeartScale.setValue(0);
+    doubleTapHeartOpacity.setValue(1);
+
+    Animated.parallel([
+      Animated.spring(doubleTapHeartScale, {
+        toValue: 1,
+        friction: 3,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.delay(500),
+        Animated.timing(doubleTapHeartOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, [doubleTapHeartScale, doubleTapHeartOpacity]);
+
+  // ✅ Handle double-tap on image to like
+  const handleImageDoubleTap = useCallback(async () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+
+    if (lastTap.current && now - lastTap.current < DOUBLE_TAP_DELAY) {
+      // Double tap detected
+      lastTap.current = null;
+
+      if (!isLiked) {
+        // ✅ Haptic feedback
+        if (Platform.OS === 'ios') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } else {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+
+        // ✅ Show double-tap heart animation
+        animateDoubleTapHeart();
+
+        // ✅ Like the post
+        await handleLike();
+      }
+    } else {
+      lastTap.current = now;
+    }
+  }, [isLiked, animateDoubleTapHeart]);
+
   const handleImagePress = () => {
     setShowPostViewer(true);
   };
 
-  // ✅ FIXED: Moved handleLike to useCallback to fix React Hook rules
+  // ✅ Optimistic UI with debouncing and animations
   const handleLike = useCallback(async () => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
       return;
     }
 
-    // ✅ FIXED: Validate session before critical operation
     const validSession = await ensureValidSession();
     
     if (!validSession) {
@@ -231,61 +303,80 @@ export default function InstagramPostCard({
     const previousLiked = isLiked;
     const previousCount = likesCount;
     
-    // ✅ FIXED: Optimistic update - only affects current user's UI
+    // ✅ Haptic feedback
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else {
+      Haptics.selectionAsync();
+    }
+
+    // ✅ Animate like icon
+    if (newLikedState) {
+      animateLikeIcon();
+    }
+
+    // ✅ Optimistic update
     setIsLiked(newLikedState);
     setLikesCount(newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1));
 
-    try {
-      if (newLikedState) {
-        console.log('[InstagramPostCard] ➕ Adding like to post:', post.id);
-        
-        const { error } = await supabase.from('likes').insert({
-          post_id: post.id,
-          usuario_id: user.id,
-        });
-        
-        if (error) {
-          console.error('[InstagramPostCard] ❌ Error adding like:', error);
-          throw error;
-        }
-        
-        console.log('[InstagramPostCard] ✅ Like added successfully');
-      } else {
-        console.log('[InstagramPostCard] ➖ Removing like from post:', post.id);
-        
-        // ✅ FIXED: Delete only current user's like (not all likes)
-        const { error } = await supabase
-          .from('likes')
-          .delete()
-          .eq('post_id', post.id)
-          .eq('usuario_id', user.id);
-        
-        if (error) {
-          console.error('[InstagramPostCard] ❌ Error removing like:', error);
-          throw error;
-        }
-        
-        console.log('[InstagramPostCard] ✅ Like removed successfully (only for current user)');
-      }
-
-      // ✅ FIXED: Verify final count from database after operation
-      const { count, error: countError } = await supabase
-        .from('likes')
-        .select('id', { count: 'exact', head: true })
-        .eq('post_id', post.id);
-      
-      if (!countError && count !== null) {
-        console.log('[InstagramPostCard] ✅ Verified final count from database:', count);
-        setLikesCount(count);
-      }
-    } catch (error) {
-      console.error('[InstagramPostCard] ❌ Error toggling like:', error);
-      // ✅ FIXED: Revert to previous state on error (no disappearing likes)
-      setIsLiked(previousLiked);
-      setLikesCount(previousCount);
-      Alert.alert('Error', 'No se pudo actualizar el me gusta');
+    // ✅ Debounce: Cancel previous request if user is rapidly tapping
+    if (likeDebounceTimer.current) {
+      clearTimeout(likeDebounceTimer.current);
     }
-  }, [user, ensureValidSession, isLiked, likesCount, post.id]);
+
+    // ✅ Wait 300ms before sending request (debouncing)
+    likeDebounceTimer.current = setTimeout(async () => {
+      try {
+        if (newLikedState) {
+          console.log('[InstagramPostCard] ➕ Adding like to post:', post.id);
+          
+          const { error } = await supabase.from('likes').insert({
+            post_id: post.id,
+            usuario_id: user.id,
+          });
+          
+          if (error) {
+            console.error('[InstagramPostCard] ❌ Error adding like:', error);
+            throw error;
+          }
+          
+          console.log('[InstagramPostCard] ✅ Like added successfully');
+        } else {
+          console.log('[InstagramPostCard] ➖ Removing like from post:', post.id);
+          
+          const { error } = await supabase
+            .from('likes')
+            .delete()
+            .eq('post_id', post.id)
+            .eq('usuario_id', user.id);
+          
+          if (error) {
+            console.error('[InstagramPostCard] ❌ Error removing like:', error);
+            throw error;
+          }
+          
+          console.log('[InstagramPostCard] ✅ Like removed successfully');
+        }
+
+        // ✅ Verify final count from database
+        const { count, error: countError } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+        
+        if (!countError && count !== null) {
+          console.log('[InstagramPostCard] ✅ Verified final count from database:', count);
+          setLikesCount(count);
+        }
+      } catch (error) {
+        console.error('[InstagramPostCard] ❌ Error toggling like:', error);
+        // ✅ Rollback on error
+        setIsLiked(previousLiked);
+        setLikesCount(previousCount);
+        Alert.alert('Error', 'No se pudo actualizar el me gusta. Intenta de nuevo.');
+      }
+    }, 300);
+  }, [user, ensureValidSession, isLiked, likesCount, post.id, animateLikeIcon]);
 
   const handleComment = () => {
     setShowComments(true);
@@ -551,7 +642,8 @@ export default function InstagramPostCard({
         {post.imagenes.length > 0 && (
           <TouchableOpacity 
             style={styles.imagesContainer}
-            onPress={handleImagePress}
+            onPress={handleImageDoubleTap}
+            onLongPress={handleImagePress}
             activeOpacity={0.95}
           >
             <ScrollView
@@ -576,6 +668,20 @@ export default function InstagramPostCard({
               ))}
             </ScrollView>
 
+            {/* ✅ Double-tap heart animation */}
+            <Animated.View
+              style={[
+                styles.doubleTapHeart,
+                {
+                  opacity: doubleTapHeartOpacity,
+                  transform: [{ scale: doubleTapHeartScale }],
+                },
+              ]}
+              pointerEvents="none"
+            >
+              <Ionicons name="heart" size={120} color="#fff" />
+            </Animated.View>
+
             {post.imagenes.length > 1 && (
               <View style={styles.imageIndicator}>
                 {post.imagenes.map((_, index) => (
@@ -598,11 +704,13 @@ export default function InstagramPostCard({
               style={styles.actionButton}
               onPress={handleLike}
             >
-              <Ionicons
-                name={isLiked ? 'heart' : 'heart-outline'}
-                size={28}
-                color={isLiked ? '#ff3b30' : colors.text}
-              />
+              <Animated.View style={{ transform: [{ scale: likeIconScale }] }}>
+                <Ionicons
+                  name={isLiked ? 'heart' : 'heart-outline'}
+                  size={28}
+                  color={isLiked ? '#ff3b30' : colors.text}
+                />
+              </Animated.View>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -633,7 +741,6 @@ export default function InstagramPostCard({
         </View>
 
         <View style={styles.stats}>
-          {/* ✅ FIXED: Real-time updating likes avatars with proper count */}
           {likesCount > 0 && (
             <PostLikesAvatars postId={post.id} totalLikes={likesCount} />
           )}
@@ -734,6 +841,18 @@ const styles = StyleSheet.create({
   image: {
     width: SCREEN_WIDTH,
     height: SCREEN_WIDTH,
+  },
+  doubleTapHeart: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -60,
+    marginLeft: -60,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
   },
   imageIndicator: {
     position: 'absolute',
