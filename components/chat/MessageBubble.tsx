@@ -52,7 +52,7 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
                 resizeMode="cover"
               />
               <View style={styles.snapshotOverlay}>
-                <IconSymbol name="arrow.up.right" size={20} color="#fff" />
+                <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={20} color="#fff" />
               </View>
             </TouchableOpacity>
           )}
@@ -87,7 +87,8 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
           </Text>
           {isOwn && (
             <IconSymbol
-              name={message.leido ? 'checkmark.circle.fill' : 'checkmark.circle'}
+              ios_icon_name={message.leido ? 'checkmark.circle.fill' : 'checkmark.circle'}
+              android_material_icon_name={message.leido ? 'check_circle' : 'check_circle_outline'}
               size={14}
               color={message.leido ? '#10B981' : 'rgba(255, 255, 255, 0.6)'}
             />

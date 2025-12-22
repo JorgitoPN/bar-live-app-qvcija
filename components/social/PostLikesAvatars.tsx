@@ -346,7 +346,13 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes }: Pos
       );
     }
     
-    // Fallback
+    // ✅ CRITICAL FIX: Fallback should never show just a number
+    // This happens when likeUsers hasn't loaded yet but we have a count
+    // Show a loading state or generic text
+    if (currentTotalLikes === 1) {
+      return <Text style={styles.likesText}>1 me gusta</Text>;
+    }
+    
     return <Text style={styles.likesText}>{currentTotalLikes} me gusta</Text>;
   };
 

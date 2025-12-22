@@ -47,10 +47,10 @@ interface SharePostModalProps {
 }
 
 /**
- * ✅ SHARE POST MODAL v3.2 - FIXED DATABASE COLUMN ERROR
+ * ✅ SHARE POST MODAL v3.3 - FIXED POST_COMPARTIDO_ID
  * 
  * Changes:
- * - ✅ CRITICAL FIX: Changed 'imagen_url' to 'post_imagen' to match mensajes table schema
+ * - ✅ CRITICAL FIX: Changed 'post_id' to 'post_compartido_id' to match MessageBubble expectations
  * - ✅ Fixed: Now uploads to 'posts' bucket instead of non-existent 'post-previews'
  * - ✅ Fixed: Uses ArrayBuffer instead of Blob for React Native compatibility
  * - ✅ Includes post preview card with image
@@ -316,17 +316,17 @@ export default function SharePostModal({
           }
         }
 
-        // ✅ CRITICAL FIX: Use 'post_imagen' instead of 'imagen_url' to match mensajes table schema
+        // ✅ CRITICAL FIX: Use 'post_compartido_id' instead of 'post_id' to match MessageBubble expectations
         const messageData: any = {
           chat_id: chatId,
           remitente_id: user.id,
           contenido: shareMessage,
-          post_id: postId,
+          post_compartido_id: postId, // ✅ FIXED: Changed from post_id to post_compartido_id
           tipo_mensaje: 'post_compartido',
         };
 
         if (imageUrl) {
-          messageData.post_imagen = imageUrl; // ✅ FIXED: Changed from imagen_url to post_imagen
+          messageData.post_imagen = imageUrl;
         }
 
         console.log('[SharePostModal] 📤 Sending message with data:', messageData);
