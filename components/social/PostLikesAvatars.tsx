@@ -210,7 +210,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
     return null;
   }
 
-  // ✅ FIXED: Instagram-like text rendering with "Le gusta a ti..." logic
+  // ✅ FIXED: Instagram-like text rendering with proper Spanish grammar
   const getLikesText = () => {
     // ✅ Case 1: Current user has liked
     if (currentUserHasLiked) {
@@ -218,7 +218,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
         // Only current user has liked
         return (
           <Text style={styles.likesText}>
-            Le gusta a <Text style={styles.usernameLink}>ti</Text>
+            A <Text style={styles.usernameLink}>ti</Text> te gusta esto
           </Text>
         );
       } else if (currentTotalLikes === 2) {
@@ -228,13 +228,14 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
           const username = otherUser.username || otherUser.nombre;
           return (
             <Text style={styles.likesText}>
-              Les gusta a <Text style={styles.usernameLink}>ti</Text> y a{' '}
+              A <Text style={styles.usernameLink}>ti</Text> y a{' '}
               <Text 
                 style={styles.usernameLink}
                 onPress={() => handleUserPress(otherUser.id, otherUser.tipo)}
               >
                 {username}
               </Text>
+              {' '}les gusta esto
             </Text>
           );
         }
@@ -243,27 +244,29 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
         const others = currentTotalLikes - 1;
         return (
           <Text style={styles.likesText}>
-            Les gusta a <Text style={styles.usernameLink}>ti</Text> y a{' '}
+            A <Text style={styles.usernameLink}>ti</Text> y a{' '}
             <Text style={styles.moreLink} onPress={handleOpenModal}>
               {others} {others === 1 ? 'persona más' : 'personas más'}
             </Text>
+            {' '}les gusta esto
           </Text>
         );
       }
     }
 
-    // ✅ Case 2: Current user has NOT liked
+    // ✅ Case 2: Current user has NOT liked - FIXED GRAMMAR
     if (currentTotalLikes === 1 && likeUsers.length > 0) {
       const username = likeUsers[0].username || likeUsers[0].nombre;
       return (
         <Text style={styles.likesText}>
-          Le gusta a{' '}
+          A{' '}
           <Text 
             style={styles.usernameLink}
             onPress={() => handleUserPress(likeUsers[0].id, likeUsers[0].tipo)}
           >
             {username}
           </Text>
+          {' '}le gusta esto
         </Text>
       );
     }
@@ -272,7 +275,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
       const user2 = likeUsers[1].username || likeUsers[1].nombre;
       return (
         <Text style={styles.likesText}>
-          Les gusta a{' '}
+          A{' '}
           <Text 
             style={styles.usernameLink}
             onPress={() => handleUserPress(likeUsers[0].id, likeUsers[0].tipo)}
@@ -286,6 +289,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
           >
             {user2}
           </Text>
+          {' '}les gusta esto
         </Text>
       );
     }
@@ -294,7 +298,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
       const others = currentTotalLikes - 1;
       return (
         <Text style={styles.likesText}>
-          Les gusta a{' '}
+          A{' '}
           <Text 
             style={styles.usernameLink}
             onPress={() => handleUserPress(likeUsers[0].id, likeUsers[0].tipo)}
@@ -305,6 +309,7 @@ export default function PostLikesAvatars({ postId, totalLikes }: PostLikesAvatar
           <Text style={styles.moreLink} onPress={handleOpenModal}>
             {others} {others === 1 ? 'persona más' : 'personas más'}
           </Text>
+          {' '}les gusta esto
         </Text>
       );
     }
