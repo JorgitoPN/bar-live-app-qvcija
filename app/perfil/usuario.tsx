@@ -57,6 +57,8 @@ export default function UsuarioPerfilScreen() {
 
   const userId = params.userId as string;
   const isOwnProfile = currentUser && currentUser.id === userId;
+  // ✅ NEW: Admin view mode - bypasses private profile restrictions
+  const isAdminView = params.adminView === 'true' && currentUser?.rol_app === 'admin';
 
   useEffect(() => {
     Animated.parallel([
@@ -97,7 +99,11 @@ export default function UsuarioPerfilScreen() {
       if (checkIn && checkIn.locales) {
         setCurrentLocal(checkIn.locales);
         
-        if (isOwnProfile) {
+        // ✅ Admin can always view location
+        if (isAdminView) {
+          setCanViewLocation(true);
+          console.log('[UsuarioPerfil] ✅ Admin view - can view location');
+        } else if (isOwnProfile) {
           setCanViewLocation(true);
           console.log('[UsuarioPerfil] ✅ Own profile - can view location');
         } else if (currentUser) {
@@ -133,7 +139,7 @@ export default function UsuarioPerfilScreen() {
     } catch (error) {
       console.error('[UsuarioPerfil] Error loading current local:', error);
     }
-  }, [userId, isOwnProfile, currentUser]);
+  }, [userId, isOwnProfile, currentUser, isAdminView]);
 
   const loadFollowerCounts = useCallback(async (targetUserId: string) => {
     try {
@@ -199,6 +205,31 @@ export default function UsuarioPerfilScreen() {
         return;
       }
 
+      // ✅ Check if profile is private and user doesn't have permission to view
+      if (userData.perfil_privado && !isOwnProfile && !isAdminView) {
+        // Check if current user follows this user
+        if (currentUser) {
+          const { data: followData } = await supabase
+            .from('seguidores')
+            .select('id')
+            .eq('seguidor_id', currentUser.id)
+            .eq('seguido_id', userId)
+            .single();
+
+          if (!followData) {
+            // Show private profile message
+            setUsuario(userData);
+            setLoading(false);
+            return;
+          }
+        } else {
+          // Not logged in and profile is private
+          setUsuario(userData);
+          setLoading(false);
+          return;
+        }
+      }
+
       setUsuario(userData);
 
       const { data: postsData, error: postsError } = await supabase
@@ -251,7 +282,7 @@ export default function UsuarioPerfilScreen() {
     } finally {
       setLoading(false);
     }
-  }, [userId, currentUser, router, loadFollowerCounts, loadCurrentLocal]);
+  }, [userId, currentUser, router, loadFollowerCounts, loadCurrentLocal, isOwnProfile, isAdminView]);
 
   useEffect(() => {
     loadUserData();
@@ -513,7 +544,6 @@ export default function UsuarioPerfilScreen() {
     );
   };
 
-  // ✅ FIXED: Open PostViewerModal with hideTagIcon=true when opened from profile grid
   const handleVerPost = (postId: string) => {
     const postIds = posts.map(p => p.id);
     
@@ -592,6 +622,9 @@ export default function UsuarioPerfilScreen() {
     );
   }
 
+  // ✅ Check if profile is private and user doesn't have access
+  const isPrivateAndNoAccess = usuario.perfil_privado && !isOwnProfile && !isAdminView && !isFollowing;
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -605,7 +638,7 @@ export default function UsuarioPerfilScreen() {
             <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{usuario.username || usuario.nombre}</Text>
-          {!isOwnProfile && (
+          {!isOwnProfile && !isAdminView && (
             <TouchableOpacity onPress={handleBlock} style={styles.headerButton}>
               <IconSymbol
                 ios_icon_name={isBlocked ? 'person.fill.checkmark' : 'person.fill.xmark'}
@@ -615,8 +648,16 @@ export default function UsuarioPerfilScreen() {
               />
             </TouchableOpacity>
           )}
-          {isOwnProfile && <View style={{ width: 40 }} />}
+          {(isOwnProfile || isAdminView) && <View style={{ width: 40 }} />}
         </View>
+
+        {/* ✅ Admin badge */}
+        {isAdminView && (
+          <View style={styles.adminBadge}>
+            <IconSymbol ios_icon_name="shield.fill" android_material_icon_name="admin_panel_settings" size={14} color={colors.white} />
+            <Text style={styles.adminBadgeText}>Modo Administrador</Text>
+          </View>
+        )}
 
         <Animated.View 
           style={[
@@ -642,15 +683,20 @@ export default function UsuarioPerfilScreen() {
               {usuario.username && (
                 <Text style={styles.profileUsername}>@{usuario.username}</Text>
               )}
+              {usuario.perfil_privado && (
+                <View style={styles.privateProfileBadge}>
+                  <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={12} color={colors.headerText} />
+                  <Text style={styles.privateProfileText}>Perfil Privado</Text>
+                </View>
+              )}
             </View>
           </View>
 
-          {usuario.bio && (
+          {usuario.bio && !isPrivateAndNoAccess && (
             <Text style={styles.profileBio}>{usuario.bio}</Text>
           )}
 
-          {/* ✅ FIXED: Compact status card redesign */}
-          {currentLocal && canViewLocation && (
+          {currentLocal && canViewLocation && !isPrivateAndNoAccess && (
             <View style={styles.statusCard}>
               <View style={styles.statusCardHeader}>
                 <View style={styles.statusIconContainer}>
@@ -738,22 +784,22 @@ export default function UsuarioPerfilScreen() {
 
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{stats.posts}</Text>
+              <Text style={styles.statNumber}>{isPrivateAndNoAccess ? '-' : stats.posts}</Text>
               <Text style={styles.statLabel}>Publicaciones</Text>
             </View>
             <View style={styles.statDivider} />
-            <TouchableOpacity style={styles.statItem} onPress={handleSeguidores}>
-              <Text style={styles.statNumber}>{stats.seguidores}</Text>
+            <TouchableOpacity style={styles.statItem} onPress={isPrivateAndNoAccess ? undefined : handleSeguidores} disabled={isPrivateAndNoAccess}>
+              <Text style={styles.statNumber}>{isPrivateAndNoAccess ? '-' : stats.seguidores}</Text>
               <Text style={styles.statLabel}>Seguidores</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
-            <TouchableOpacity style={styles.statItem} onPress={handleSeguidos}>
-              <Text style={styles.statNumber}>{stats.seguidos}</Text>
+            <TouchableOpacity style={styles.statItem} onPress={isPrivateAndNoAccess ? undefined : handleSeguidos} disabled={isPrivateAndNoAccess}>
+              <Text style={styles.statNumber}>{isPrivateAndNoAccess ? '-' : stats.seguidos}</Text>
               <Text style={styles.statLabel}>Seguidos</Text>
             </TouchableOpacity>
           </View>
 
-          {!isOwnProfile && (
+          {!isOwnProfile && !isAdminView && (
             <View style={styles.actionsContainer}>
               <TouchableOpacity
                 style={[styles.actionButton, isFollowing && styles.actionButtonFollowing]}
@@ -777,7 +823,15 @@ export default function UsuarioPerfilScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {posts.length > 0 ? (
+        {isPrivateAndNoAccess ? (
+          <View style={styles.privateProfileMessage}>
+            <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={64} color={colors.textSecondary} />
+            <Text style={styles.privateProfileTitle}>Este perfil es privado</Text>
+            <Text style={styles.privateProfileSubtext}>
+              Sigue a {usuario.nombre} para ver sus publicaciones
+            </Text>
+          </View>
+        ) : posts.length > 0 ? (
           <View style={styles.postsGrid}>
             {posts.map((post) => (
               <TouchableOpacity
@@ -797,7 +851,6 @@ export default function UsuarioPerfilScreen() {
                     <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
                   </View>
                 )}
-                {/* ✅ FIXED: Show multiple images indicator but NO tag icon */}
                 {post.imagenes && post.imagenes.length > 1 && (
                   <View style={styles.multipleImagesIndicator}>
                     <IconSymbol ios_icon_name="square.stack.fill" android_material_icon_name="collections" size={16} color={colors.headerText} />
@@ -821,7 +874,6 @@ export default function UsuarioPerfilScreen() {
         onClose={() => setShowMomentoViewer(false)}
       />
 
-      {/* ✅ FIXED: Pass hideTagIcon=true when opening from profile grid */}
       {selectedPostId && allPostIds.length > 0 && (
         <PostViewerModal
           visible={showPostViewer}
@@ -856,7 +908,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 28,
+    marginBottom: 12,
   },
   backButton: {
     padding: 8,
@@ -870,6 +922,22 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: 8,
+  },
+  adminBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+  },
+  adminBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.white,
   },
   profileSection: {
     paddingTop: 0,
@@ -895,6 +963,22 @@ const styles = StyleSheet.create({
   profileUsername: {
     fontSize: 15,
     color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 4,
+  },
+  privateProfileBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+  },
+  privateProfileText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.headerText,
   },
   profileBio: {
     fontSize: 15,
@@ -902,7 +986,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 16,
   },
-  // ✅ NEW: Compact status card design
   statusCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 16,
@@ -1050,6 +1133,25 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  privateProfileMessage: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
+  },
+  privateProfileTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  privateProfileSubtext: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   postsGrid: {
     flexDirection: 'row',

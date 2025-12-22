@@ -11,6 +11,8 @@ import {
   TextInput,
   Modal,
   RefreshControl,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +20,8 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
+
+const { width } = Dimensions.get('window');
 
 interface ContentReport {
   id: string;
@@ -36,14 +40,20 @@ interface ContentReport {
   created_at: string;
   updated_at: string;
   reporter?: {
+    id: string;
     nombre: string;
     email: string;
     avatar?: string;
+    perfil_privado?: boolean;
   };
   content_preview?: string;
+  content_image?: string;
   content_author?: {
+    id: string;
     nombre: string;
     email: string;
+    avatar?: string;
+    perfil_privado?: boolean;
   };
 }
 
@@ -71,6 +81,16 @@ const STATUS_COLORS: Record<string, string> = {
   dismissed: '#6B7280',
 };
 
+const REASON_COLORS: Record<string, string> = {
+  spam: '#F59E0B',
+  harassment: '#EF4444',
+  inappropriate: '#F97316',
+  violence: '#DC2626',
+  hate_speech: '#991B1B',
+  false_information: '#EA580C',
+  other: '#6B7280',
+};
+
 export default function GestionarReportesScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -81,13 +101,14 @@ export default function GestionarReportesScreen() {
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (user?.rol_app === 'admin') {
       loadReports();
     }
-  }, [user, filterStatus]);
+  }, [user, filterStatus, filterType]);
 
   const loadReports = async () => {
     try {
@@ -98,9 +119,11 @@ export default function GestionarReportesScreen() {
         .select(`
           *,
           reporter:reporter_id (
+            id,
             nombre,
             email,
-            avatar
+            avatar,
+            perfil_privado
           )
         `)
         .order('created_at', { ascending: false });
@@ -109,48 +132,63 @@ export default function GestionarReportesScreen() {
         query = query.eq('status', filterStatus);
       }
 
+      if (filterType !== 'all') {
+        query = query.eq('content_type', filterType);
+      }
+
       const { data, error } = await query;
 
       if (error) throw error;
 
-      // Load content previews and author info
+      // Load content previews, images, and author info
       const reportsWithDetails = await Promise.all(
         (data || []).map(async (report) => {
           let contentPreview = '';
+          let contentImage = '';
           let contentAuthor = null;
 
           try {
             if (report.content_type === 'post' && report.post_id) {
               const { data: post } = await supabase
                 .from('posts')
-                .select('contenido, autor_id, usuarios!posts_autor_id_fkey(nombre, email)')
+                .select('contenido, imagenes, imagen, autor_id, usuarios!posts_autor_id_fkey(id, nombre, email, avatar, perfil_privado)')
                 .eq('id', report.post_id)
                 .single();
               
               if (post) {
-                contentPreview = post.contenido?.substring(0, 100) || '[Sin contenido]';
+                contentPreview = post.contenido?.substring(0, 150) || '[Sin contenido]';
+                // Get first image from imagenes array or fallback to imagen field
+                if (post.imagenes && post.imagenes.length > 0) {
+                  contentImage = post.imagenes[0];
+                } else if (post.imagen) {
+                  contentImage = post.imagen;
+                }
                 contentAuthor = post.usuarios;
               }
             } else if (report.content_type === 'comment' && report.comentario_id) {
               const { data: comment } = await supabase
                 .from('comentarios')
-                .select('texto, autor_id, usuarios!comentarios_autor_id_fkey(nombre, email)')
+                .select('texto, imagenes, autor_id, usuarios!comentarios_autor_id_fkey(id, nombre, email, avatar, perfil_privado)')
                 .eq('id', report.comentario_id)
                 .single();
               
               if (comment) {
-                contentPreview = comment.texto?.substring(0, 100) || '[Sin contenido]';
+                contentPreview = comment.texto?.substring(0, 150) || '[Sin contenido]';
+                if (comment.imagenes && comment.imagenes.length > 0) {
+                  contentImage = comment.imagenes[0];
+                }
                 contentAuthor = comment.usuarios;
               }
             } else if (report.content_type === 'momento' && report.momento_id) {
               const { data: momento } = await supabase
                 .from('momentos')
-                .select('imagen_url, autor_id, usuarios!momentos_autor_id_fkey(nombre, email)')
+                .select('imagen_url, autor_id, usuarios!momentos_autor_id_fkey(id, nombre, email, avatar, perfil_privado)')
                 .eq('id', report.momento_id)
                 .single();
               
               if (momento) {
-                contentPreview = '[Momento - Imagen]';
+                contentPreview = '[Momento - Contenido visual]';
+                contentImage = momento.imagen_url;
                 contentAuthor = momento.usuarios;
               }
             }
@@ -161,6 +199,7 @@ export default function GestionarReportesScreen() {
           return {
             ...report,
             content_preview: contentPreview,
+            content_image: contentImage,
             content_author: contentAuthor,
           };
         })
@@ -261,6 +300,171 @@ export default function GestionarReportesScreen() {
     );
   };
 
+  const sendWarning = async () => {
+    if (!selectedReport || !selectedReport.content_author) return;
+
+    Alert.alert(
+      '⚠️ Enviar Aviso',
+      `¿Enviar un aviso a ${selectedReport.content_author.nombre}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Enviar',
+          onPress: async () => {
+            try {
+              // Create notification for the user
+              await supabase.from('notificaciones').insert({
+                usuario_id: selectedReport.content_author!.id,
+                tipo: 'sistema',
+                titulo: '⚠️ Aviso de moderación',
+                mensaje: `Tu contenido ha sido reportado por ${REASON_LABELS[selectedReport.reason].toLowerCase()}. Por favor, revisa nuestras normas de la comunidad.`,
+              });
+
+              // Create penalty record
+              await supabase.from('user_penalties').insert({
+                admin_id: user?.id,
+                target_user_id: selectedReport.content_author!.id,
+                type_of_penalty: 'aviso',
+                reason: `Contenido reportado: ${REASON_LABELS[selectedReport.reason]}`,
+                description: selectedReport.description || 'Sin descripción adicional',
+              });
+
+              await updateReportStatus('action_taken');
+              Alert.alert('✅ Éxito', 'Aviso enviado al usuario');
+            } catch (error) {
+              console.error('[GestionarReportes] Error sending warning:', error);
+              Alert.alert('Error', 'No se pudo enviar el aviso');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const blockUserTemporarily = async () => {
+    if (!selectedReport || !selectedReport.content_author) return;
+
+    Alert.alert(
+      '🚫 Bloquear Temporalmente',
+      `¿Bloquear a ${selectedReport.content_author.nombre} por 24 horas?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Bloquear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const expiresAt = new Date();
+              expiresAt.setHours(expiresAt.getHours() + 24);
+
+              await supabase.from('user_penalties').insert({
+                admin_id: user?.id,
+                target_user_id: selectedReport.content_author!.id,
+                type_of_penalty: 'bloqueo',
+                reason: `Contenido reportado: ${REASON_LABELS[selectedReport.reason]}`,
+                description: 'Bloqueo temporal de 24 horas',
+                duration_hours: 24,
+                expires_at: expiresAt.toISOString(),
+              });
+
+              await supabase.from('notificaciones').insert({
+                usuario_id: selectedReport.content_author!.id,
+                tipo: 'sistema',
+                titulo: '🚫 Cuenta bloqueada temporalmente',
+                mensaje: 'Tu cuenta ha sido bloqueada por 24 horas debido a violaciones de las normas de la comunidad.',
+              });
+
+              await updateReportStatus('action_taken');
+              Alert.alert('✅ Éxito', 'Usuario bloqueado temporalmente');
+            } catch (error) {
+              console.error('[GestionarReportes] Error blocking user:', error);
+              Alert.alert('Error', 'No se pudo bloquear al usuario');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const banUserPermanently = async () => {
+    if (!selectedReport || !selectedReport.content_author) return;
+
+    Alert.alert(
+      '⛔ Banear Permanentemente',
+      `¿Estás seguro de que quieres banear permanentemente a ${selectedReport.content_author.nombre}? Esta acción es irreversible.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Banear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await supabase.from('user_penalties').insert({
+                admin_id: user?.id,
+                target_user_id: selectedReport.content_author!.id,
+                type_of_penalty: 'baneo',
+                reason: `Contenido reportado: ${REASON_LABELS[selectedReport.reason]}`,
+                description: 'Baneo permanente por violaciones graves',
+              });
+
+              // Deactivate user account
+              await supabase
+                .from('usuarios')
+                .update({ activo: false })
+                .eq('id', selectedReport.content_author!.id);
+
+              await supabase.from('notificaciones').insert({
+                usuario_id: selectedReport.content_author!.id,
+                tipo: 'sistema',
+                titulo: '⛔ Cuenta baneada',
+                mensaje: 'Tu cuenta ha sido baneada permanentemente por violaciones graves de las normas de la comunidad.',
+              });
+
+              await updateReportStatus('action_taken');
+              Alert.alert('✅ Éxito', 'Usuario baneado permanentemente');
+            } catch (error) {
+              console.error('[GestionarReportes] Error banning user:', error);
+              Alert.alert('Error', 'No se pudo banear al usuario');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const inspectContent = () => {
+    if (!selectedReport) return;
+
+    setDetailsModalVisible(false);
+
+    // Navigate to the content with admin override for private profiles
+    if (selectedReport.content_type === 'post' && selectedReport.post_id) {
+      router.push(`/social/post?postId=${selectedReport.post_id}&adminView=true`);
+    } else if (selectedReport.content_type === 'comment' && selectedReport.comentario_id) {
+      // Navigate to the post containing the comment
+      router.push(`/social/comentar?postId=${selectedReport.post_id}&commentId=${selectedReport.comentario_id}&adminView=true`);
+    } else if (selectedReport.content_type === 'momento' && selectedReport.momento_id) {
+      // Navigate to user profile with momento viewer
+      if (selectedReport.content_author) {
+        router.push(`/perfil/usuario?userId=${selectedReport.content_author.id}&openMomento=true&adminView=true`);
+      }
+    }
+  };
+
+  const viewReporterProfile = () => {
+    if (!selectedReport || !selectedReport.reporter) return;
+    setDetailsModalVisible(false);
+    // Admin can view any profile, including private ones
+    router.push(`/perfil/usuario?userId=${selectedReport.reporter.id}&adminView=true`);
+  };
+
+  const viewAuthorProfile = () => {
+    if (!selectedReport || !selectedReport.content_author) return;
+    setDetailsModalVisible(false);
+    // Admin can view any profile, including private ones
+    router.push(`/perfil/usuario?userId=${selectedReport.content_author.id}&adminView=true`);
+  };
+
   const filteredReports = reports.filter((report) => {
     if (!searchQuery) return true;
     
@@ -346,6 +550,7 @@ export default function GestionarReportesScreen() {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          <Text style={styles.filterLabel}>Estado:</Text>
           {['all', 'pending', 'reviewing', 'action_taken', 'dismissed'].map((status) => (
             <TouchableOpacity
               key={status}
@@ -366,6 +571,29 @@ export default function GestionarReportesScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          <Text style={styles.filterLabel}>Tipo:</Text>
+          {['all', 'post', 'comment', 'momento'].map((type) => (
+            <TouchableOpacity
+              key={type}
+              style={[
+                styles.filterChip,
+                filterType === type && styles.filterChipActive,
+              ]}
+              onPress={() => setFilterType(type)}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  filterType === type && styles.filterChipTextActive,
+                ]}
+              >
+                {type === 'all' ? 'Todos' : type === 'post' ? 'Publicación' : type === 'comment' ? 'Comentario' : 'Momento'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Reports List */}
@@ -381,8 +609,8 @@ export default function GestionarReportesScreen() {
             <IconSymbol ios_icon_name="flag.slash" android_material_icon_name="flag" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyStateText}>No hay reportes</Text>
             <Text style={styles.emptyStateSubtext}>
-              {filterStatus !== 'all'
-                ? `No hay reportes con estado: ${STATUS_LABELS[filterStatus]}`
+              {filterStatus !== 'all' || filterType !== 'all'
+                ? 'No hay reportes con los filtros seleccionados'
                 : 'No se han recibido reportes aún'}
             </Text>
           </View>
@@ -390,27 +618,38 @@ export default function GestionarReportesScreen() {
           filteredReports.map((report) => (
             <TouchableOpacity
               key={report.id}
-              style={styles.reportCard}
+              style={[
+                styles.reportCard,
+                { borderLeftColor: REASON_COLORS[report.reason], borderLeftWidth: 4 }
+              ]}
               onPress={() => openReportDetails(report)}
               activeOpacity={0.7}
             >
-              <View style={styles.reportHeader}>
-                <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[report.status] + '20' }]}>
-                  <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[report.status] }]} />
-                  <Text style={[styles.statusText, { color: STATUS_COLORS[report.status] }]}>
-                    {STATUS_LABELS[report.status]}
-                  </Text>
-                </View>
-                <Text style={styles.reportDate}>
-                  {new Date(report.created_at).toLocaleDateString('es-ES', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </Text>
-              </View>
+              {/* Content Preview Image */}
+              {report.content_image && (
+                <Image 
+                  source={{ uri: report.content_image }} 
+                  style={styles.reportThumbnail}
+                  resizeMode="cover"
+                />
+              )}
 
-              <View style={styles.reportBody}>
+              <View style={styles.reportContent}>
+                <View style={styles.reportHeader}>
+                  <View style={[styles.reasonBadge, { backgroundColor: REASON_COLORS[report.reason] + '20' }]}>
+                    <View style={[styles.reasonDot, { backgroundColor: REASON_COLORS[report.reason] }]} />
+                    <Text style={[styles.reasonText, { color: REASON_COLORS[report.reason] }]}>
+                      {REASON_LABELS[report.reason]}
+                    </Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[report.status] + '20' }]}>
+                    <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[report.status] }]} />
+                    <Text style={[styles.statusText, { color: STATUS_COLORS[report.status] }]}>
+                      {STATUS_LABELS[report.status]}
+                    </Text>
+                  </View>
+                </View>
+
                 <View style={styles.reportInfo}>
                   <IconSymbol
                     ios_icon_name={
@@ -427,7 +666,7 @@ export default function GestionarReportesScreen() {
                         ? 'comment'
                         : 'camera_alt'
                     }
-                    size={20}
+                    size={16}
                     color={colors.primary}
                   />
                   <Text style={styles.reportType}>
@@ -437,8 +676,12 @@ export default function GestionarReportesScreen() {
                       ? 'Comentario'
                       : 'Momento'}
                   </Text>
-                  <Text style={styles.reportSeparator}>•</Text>
-                  <Text style={styles.reportReason}>{REASON_LABELS[report.reason]}</Text>
+                  <Text style={styles.reportDate}>
+                    • {new Date(report.created_at).toLocaleDateString('es-ES', {
+                      day: '2-digit',
+                      month: 'short',
+                    })}
+                  </Text>
                 </View>
 
                 {report.content_preview && (
@@ -448,13 +691,31 @@ export default function GestionarReportesScreen() {
                 )}
 
                 <View style={styles.reportFooter}>
-                  <Text style={styles.reporterInfo}>
-                    Reportado por: <Text style={styles.reporterName}>{report.reporter?.nombre}</Text>
-                  </Text>
+                  <View style={styles.reporterSection}>
+                    <Text style={styles.reporterLabel}>Reportado por:</Text>
+                    <View style={styles.userInfo}>
+                      {report.reporter?.avatar && (
+                        <Image source={{ uri: report.reporter.avatar }} style={styles.userAvatar} />
+                      )}
+                      <Text style={styles.userName}>{report.reporter?.nombre}</Text>
+                      {report.reporter?.perfil_privado && (
+                        <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={12} color={colors.textSecondary} />
+                      )}
+                    </View>
+                  </View>
                   {report.content_author && (
-                    <Text style={styles.authorInfo}>
-                      Autor: <Text style={styles.authorName}>{report.content_author.nombre}</Text>
-                    </Text>
+                    <View style={styles.authorSection}>
+                      <Text style={styles.authorLabel}>Autor:</Text>
+                      <View style={styles.userInfo}>
+                        {report.content_author.avatar && (
+                          <Image source={{ uri: report.content_author.avatar }} style={styles.userAvatar} />
+                        )}
+                        <Text style={styles.userName}>{report.content_author.nombre}</Text>
+                        {report.content_author.perfil_privado && (
+                          <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={12} color={colors.textSecondary} />
+                        )}
+                      </View>
+                    </View>
                   )}
                 </View>
               </View>
@@ -492,18 +753,46 @@ export default function GestionarReportesScreen() {
             <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
               {selectedReport && (
                 <React.Fragment>
-                  {/* Status */}
-                  <View style={styles.detailSection}>
-                    <Text style={styles.detailLabel}>Estado</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[selectedReport.status] + '20' }]}>
-                      <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[selectedReport.status] }]} />
-                      <Text style={[styles.statusText, { color: STATUS_COLORS[selectedReport.status] }]}>
-                        {STATUS_LABELS[selectedReport.status]}
-                      </Text>
+                  {/* Content Preview with Image */}
+                  {selectedReport.content_image && (
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailLabel}>Vista Previa</Text>
+                      <Image 
+                        source={{ uri: selectedReport.content_image }} 
+                        style={styles.contentPreviewImage}
+                        resizeMode="cover"
+                      />
+                      <TouchableOpacity style={styles.inspectButton} onPress={inspectContent}>
+                        <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.white} />
+                        <Text style={styles.inspectButtonText}>Inspeccionar Contenido</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* Status & Reason */}
+                  <View style={styles.detailRow}>
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailLabel}>Estado</Text>
+                      <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[selectedReport.status] + '20' }]}>
+                        <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[selectedReport.status] }]} />
+                        <Text style={[styles.statusText, { color: STATUS_COLORS[selectedReport.status] }]}>
+                          {STATUS_LABELS[selectedReport.status]}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailLabel}>Motivo</Text>
+                      <View style={[styles.reasonBadge, { backgroundColor: REASON_COLORS[selectedReport.reason] + '20' }]}>
+                        <View style={[styles.reasonDot, { backgroundColor: REASON_COLORS[selectedReport.reason] }]} />
+                        <Text style={[styles.reasonText, { color: REASON_COLORS[selectedReport.reason] }]}>
+                          {REASON_LABELS[selectedReport.reason]}
+                        </Text>
+                      </View>
                     </View>
                   </View>
 
-                  {/* Content Type & Reason */}
+                  {/* Content Type */}
                   <View style={styles.detailSection}>
                     <Text style={styles.detailLabel}>Tipo de contenido</Text>
                     <Text style={styles.detailValue}>
@@ -513,11 +802,6 @@ export default function GestionarReportesScreen() {
                         ? 'Comentario'
                         : 'Momento'}
                     </Text>
-                  </View>
-
-                  <View style={styles.detailSection}>
-                    <Text style={styles.detailLabel}>Motivo</Text>
-                    <Text style={styles.detailValue}>{REASON_LABELS[selectedReport.reason]}</Text>
                   </View>
 
                   {/* Description */}
@@ -538,19 +822,51 @@ export default function GestionarReportesScreen() {
                     </View>
                   )}
 
-                  {/* Reporter Info */}
+                  {/* Reporter Info with Profile Access */}
                   <View style={styles.detailSection}>
                     <Text style={styles.detailLabel}>Reportado por</Text>
-                    <Text style={styles.detailValue}>{selectedReport.reporter?.nombre}</Text>
-                    <Text style={styles.detailSubvalue}>{selectedReport.reporter?.email}</Text>
+                    <TouchableOpacity style={styles.userCard} onPress={viewReporterProfile}>
+                      {selectedReport.reporter?.avatar && (
+                        <Image source={{ uri: selectedReport.reporter.avatar }} style={styles.userCardAvatar} />
+                      )}
+                      <View style={styles.userCardInfo}>
+                        <View style={styles.userCardNameRow}>
+                          <Text style={styles.userCardName}>{selectedReport.reporter?.nombre}</Text>
+                          {selectedReport.reporter?.perfil_privado && (
+                            <View style={styles.privateLabel}>
+                              <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={10} color={colors.white} />
+                              <Text style={styles.privateLabelText}>Privado</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.userCardEmail}>{selectedReport.reporter?.email}</Text>
+                      </View>
+                      <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
                   </View>
 
-                  {/* Content Author */}
+                  {/* Content Author with Profile Access */}
                   {selectedReport.content_author && (
                     <View style={styles.detailSection}>
                       <Text style={styles.detailLabel}>Autor del contenido</Text>
-                      <Text style={styles.detailValue}>{selectedReport.content_author.nombre}</Text>
-                      <Text style={styles.detailSubvalue}>{selectedReport.content_author.email}</Text>
+                      <TouchableOpacity style={styles.userCard} onPress={viewAuthorProfile}>
+                        {selectedReport.content_author.avatar && (
+                          <Image source={{ uri: selectedReport.content_author.avatar }} style={styles.userCardAvatar} />
+                        )}
+                        <View style={styles.userCardInfo}>
+                          <View style={styles.userCardNameRow}>
+                            <Text style={styles.userCardName}>{selectedReport.content_author.nombre}</Text>
+                            {selectedReport.content_author.perfil_privado && (
+                              <View style={styles.privateLabel}>
+                                <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={10} color={colors.white} />
+                                <Text style={styles.privateLabelText}>Privado</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.userCardEmail}>{selectedReport.content_author.email}</Text>
+                        </View>
+                        <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+                      </TouchableOpacity>
                     </View>
                   )}
 
@@ -569,33 +885,70 @@ export default function GestionarReportesScreen() {
                     />
                   </View>
 
-                  {/* Actions */}
+                  {/* Quick Actions Panel */}
                   <View style={styles.actionsSection}>
-                    <Text style={styles.detailLabel}>Acciones</Text>
+                    <Text style={styles.actionsSectionTitle}>Medidas Disciplinarias</Text>
+                    
+                    {/* Content Actions */}
+                    <View style={styles.actionsGroup}>
+                      <Text style={styles.actionsGroupLabel}>Contenido</Text>
+                      <View style={styles.actionsRow}>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.actionButtonKeep]}
+                          onPress={() => updateReportStatus('dismissed')}
+                        >
+                          <IconSymbol ios_icon_name="checkmark.circle" android_material_icon_name="check_circle" size={18} color={colors.white} />
+                          <Text style={styles.actionButtonText}>Mantener</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.actionButtonDelete]}
+                          onPress={deleteContent}
+                        >
+                          <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={18} color={colors.white} />
+                          <Text style={styles.actionButtonText}>Eliminar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
 
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.actionButtonReviewing]}
-                      onPress={() => updateReportStatus('reviewing')}
-                    >
-                      <IconSymbol ios_icon_name="eye" android_material_icon_name="visibility" size={20} color={colors.white} />
-                      <Text style={styles.actionButtonText}>Marcar en revisión</Text>
-                    </TouchableOpacity>
+                    {/* User Actions */}
+                    {selectedReport.content_author && (
+                      <View style={styles.actionsGroup}>
+                        <Text style={styles.actionsGroupLabel}>Usuario</Text>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.actionButtonWarning]}
+                          onPress={sendWarning}
+                        >
+                          <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={18} color={colors.white} />
+                          <Text style={styles.actionButtonText}>Enviar Aviso</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.actionButtonBlock]}
+                          onPress={blockUserTemporarily}
+                        >
+                          <IconSymbol ios_icon_name="clock.badge.xmark" android_material_icon_name="schedule" size={18} color={colors.white} />
+                          <Text style={styles.actionButtonText}>Bloquear Temporalmente (24h)</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.actionButtonBan]}
+                          onPress={banUserPermanently}
+                        >
+                          <IconSymbol ios_icon_name="xmark.circle" android_material_icon_name="block" size={18} color={colors.white} />
+                          <Text style={styles.actionButtonText}>Banear Permanente</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
 
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.actionButtonDismiss]}
-                      onPress={() => updateReportStatus('dismissed')}
-                    >
-                      <IconSymbol ios_icon_name="xmark.circle" android_material_icon_name="cancel" size={20} color={colors.white} />
-                      <Text style={styles.actionButtonText}>Desestimar reporte</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.actionButtonDelete]}
-                      onPress={deleteContent}
-                    >
-                      <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color={colors.white} />
-                      <Text style={styles.actionButtonText}>Eliminar contenido</Text>
-                    </TouchableOpacity>
+                    {/* Review Actions */}
+                    <View style={styles.actionsGroup}>
+                      <Text style={styles.actionsGroupLabel}>Revisión</Text>
+                      <TouchableOpacity
+                        style={[styles.actionButton, styles.actionButtonReviewing]}
+                        onPress={() => updateReportStatus('reviewing')}
+                      >
+                        <IconSymbol ios_icon_name="eye" android_material_icon_name="visibility" size={18} color={colors.white} />
+                        <Text style={styles.actionButtonText}>Marcar en revisión</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </React.Fragment>
               )}
@@ -692,6 +1045,14 @@ const styles = StyleSheet.create({
   },
   filterScroll: {
     flexDirection: 'row',
+    marginBottom: 8,
+  },
+  filterLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    marginRight: 8,
+    alignSelf: 'center',
   },
   filterChip: {
     paddingHorizontal: 16,
@@ -749,35 +1110,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...commonStyles.shadow,
   },
+  reportThumbnail: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  reportContent: {
+    flex: 1,
+  },
   reportHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  reasonBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  reasonDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  reasonText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginRight: 6,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-  },
-  reportDate: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  reportBody: {
-    flex: 1,
   },
   reportInfo: {
     flexDirection: 'row',
@@ -785,43 +1167,57 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   reportType: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
-    marginLeft: 8,
+    marginLeft: 6,
   },
-  reportSeparator: {
-    fontSize: 14,
+  reportDate: {
+    fontSize: 12,
     color: colors.textSecondary,
-    marginHorizontal: 8,
-  },
-  reportReason: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    marginLeft: 4,
   },
   contentPreview: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text,
     marginBottom: 8,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   reportFooter: {
-    marginTop: 8,
+    gap: 6,
   },
-  reporterInfo: {
-    fontSize: 12,
+  reporterSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  reporterLabel: {
+    fontSize: 11,
     color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  reporterName: {
     fontWeight: '600',
-    color: colors.text,
   },
-  authorInfo: {
-    fontSize: 12,
+  authorSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  authorLabel: {
+    fontSize: 11,
     color: colors.textSecondary,
+    fontWeight: '600',
   },
-  authorName: {
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  userAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+  },
+  userName: {
+    fontSize: 12,
     fontWeight: '600',
     color: colors.text,
   },
@@ -861,10 +1257,15 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   detailSection: {
-    marginBottom: 24,
+    marginBottom: 20,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
   },
   detailLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.textSecondary,
     marginBottom: 8,
@@ -872,14 +1273,29 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   detailValue: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text,
     fontWeight: '600',
   },
-  detailSubvalue: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 4,
+  contentPreviewImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  inspectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  inspectButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.white,
   },
   contentPreviewBox: {
     backgroundColor: colors.cardBackground,
@@ -892,6 +1308,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
+  },
+  userCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  userCardAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 12,
+  },
+  userCardInfo: {
+    flex: 1,
+  },
+  userCardNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  userCardName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  privateLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.textSecondary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  privateLabelText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  userCardEmail: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   adminNotesInput: {
     backgroundColor: colors.cardBackground,
@@ -908,26 +1371,57 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 40,
   },
+  actionsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  actionsGroup: {
+    marginBottom: 20,
+  },
+  actionsGroupLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 10,
+    flex: 1,
   },
-  actionButtonReviewing: {
-    backgroundColor: '#3B82F6',
-  },
-  actionButtonDismiss: {
-    backgroundColor: '#6B7280',
+  actionButtonKeep: {
+    backgroundColor: '#10B981',
   },
   actionButtonDelete: {
     backgroundColor: '#EF4444',
   },
+  actionButtonWarning: {
+    backgroundColor: '#F59E0B',
+  },
+  actionButtonBlock: {
+    backgroundColor: '#F97316',
+  },
+  actionButtonBan: {
+    backgroundColor: '#991B1B',
+  },
+  actionButtonReviewing: {
+    backgroundColor: '#3B82F6',
+  },
   actionButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.white,
   },
