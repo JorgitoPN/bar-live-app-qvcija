@@ -47,9 +47,10 @@ interface SharePostModalProps {
 }
 
 /**
- * ✅ SHARE POST MODAL v3.1 - FIXED STORAGE BUCKET ERROR
+ * ✅ SHARE POST MODAL v3.2 - FIXED DATABASE COLUMN ERROR
  * 
  * Changes:
+ * - ✅ CRITICAL FIX: Changed 'imagen_url' to 'post_imagen' to match mensajes table schema
  * - ✅ Fixed: Now uploads to 'posts' bucket instead of non-existent 'post-previews'
  * - ✅ Fixed: Uses ArrayBuffer instead of Blob for React Native compatibility
  * - ✅ Includes post preview card with image
@@ -315,7 +316,7 @@ export default function SharePostModal({
           }
         }
 
-        // Send message with post preview image
+        // ✅ CRITICAL FIX: Use 'post_imagen' instead of 'imagen_url' to match mensajes table schema
         const messageData: any = {
           chat_id: chatId,
           remitente_id: user.id,
@@ -325,13 +326,15 @@ export default function SharePostModal({
         };
 
         if (imageUrl) {
-          messageData.imagen_url = imageUrl;
+          messageData.post_imagen = imageUrl; // ✅ FIXED: Changed from imagen_url to post_imagen
         }
+
+        console.log('[SharePostModal] 📤 Sending message with data:', messageData);
 
         const { error: messageError } = await supabase.from('mensajes').insert(messageData);
 
         if (messageError) {
-          console.error('[SharePostModal] Error sending message:', messageError);
+          console.error('[SharePostModal] ❌ Error sending message:', messageError);
           failCount++;
           continue;
         }
