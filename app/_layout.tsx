@@ -1,88 +1,63 @@
 
+import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
-import { FavoritesProvider } from '@/contexts/FavoritesContext';
-import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { ModeProvider } from '@/contexts/ModeContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
-import { WidgetProvider } from '@/contexts/WidgetContext';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
+import { FavoritesProvider } from '@/contexts/FavoritesContext';
+import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
+import { PostsProvider } from '@/contexts/PostsContext';
+import { colors } from '@/styles/commonStyles';
+import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 
-// Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useEffect(() => {
-    // Hide splash screen after a short delay
     setTimeout(() => {
       SplashScreen.hideAsync();
-    }, 1000);
+    }, 100);
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <ImpersonationProvider>
-          <GlobalDataProvider>
-            <FavoritesProvider>
-              <ModeProvider>
-                <SelectedLocalProvider>
-                  <WidgetProvider>
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        animation: Platform.OS === 'ios' ? 'default' : 'fade',
-                        contentStyle: { backgroundColor: 'transparent' },
-                      }}
-                    >
-                      <Stack.Screen name="index" />
-                      <Stack.Screen name="(tabs)" />
-                      <Stack.Screen name="auth" />
-                      <Stack.Screen name="admin" />
-                      <Stack.Screen name="detalle" />
-                      <Stack.Screen name="editar" />
-                      <Stack.Screen name="crear" />
-                      <Stack.Screen name="perfil" />
-                      <Stack.Screen name="social" />
-                      <Stack.Screen name="chat" />
-                      <Stack.Screen name="empleo" />
-                      <Stack.Screen name="gestion" />
-                      <Stack.Screen name="legal" />
-                      <Stack.Screen name="soporte" />
-                      <Stack.Screen name="solicitudes" />
-                      <Stack.Screen
-                        name="modal"
-                        options={{
-                          presentation: 'modal',
-                          animation: 'slide_from_bottom',
-                        }}
-                      />
-                      <Stack.Screen
-                        name="transparent-modal"
-                        options={{
-                          presentation: 'transparentModal',
-                          animation: 'fade',
-                        }}
-                      />
-                      <Stack.Screen
-                        name="formsheet"
-                        options={{
-                          presentation: 'formSheet',
-                          animation: 'slide_from_bottom',
-                        }}
-                      />
-                    </Stack>
-                  </WidgetProvider>
-                </SelectedLocalProvider>
-              </ModeProvider>
-            </FavoritesProvider>
-          </GlobalDataProvider>
-        </ImpersonationProvider>
-      </AuthProvider>
-    </GestureHandlerRootView>
+    <AuthProvider>
+      <ImpersonationProvider>
+        <ModeProvider>
+          <SelectedLocalProvider>
+            <GlobalDataProvider>
+              <FavoritesProvider>
+                <PostsProvider>
+                  <StatusBar style="light" />
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      contentStyle: { backgroundColor: colors.background },
+                      animation: 'slide_from_right',
+                    }}
+                  >
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="auth" options={{ headerShown: false }} />
+                    <Stack.Screen name="crear" options={{ headerShown: false }} />
+                    <Stack.Screen name="detalle" options={{ headerShown: false }} />
+                    <Stack.Screen name="editar" options={{ headerShown: false }} />
+                    <Stack.Screen name="perfil" options={{ headerShown: false }} />
+                    <Stack.Screen name="social" options={{ headerShown: false }} />
+                    <Stack.Screen name="chat" options={{ headerShown: false }} />
+                    <Stack.Screen name="admin" options={{ headerShown: false }} />
+                    <Stack.Screen name="gestion" options={{ headerShown: false }} />
+                    <Stack.Screen name="empleo" options={{ headerShown: false }} />
+                    <Stack.Screen name="legal" options={{ headerShown: false }} />
+                    <Stack.Screen name="soporte" options={{ headerShown: false }} />
+                    <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
+                  </Stack>
+                </PostsProvider>
+              </FavoritesProvider>
+            </GlobalDataProvider>
+          </SelectedLocalProvider>
+        </ModeProvider>
+      </ImpersonationProvider>
+    </AuthProvider>
   );
 }

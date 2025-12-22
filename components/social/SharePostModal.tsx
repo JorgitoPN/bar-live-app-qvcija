@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -18,6 +19,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
+import ViewShot from 'react-native-view-shot';
+import { useRouter } from 'expo-router';
 
 interface User {
   id: string;
@@ -37,27 +40,36 @@ interface SharePostModalProps {
   visible: boolean;
   postId: string;
   postContent?: string;
+  postImage?: string;
+  postAuthorName?: string;
+  postAuthorAvatar?: string;
   onClose: () => void;
 }
 
 /**
- * ✅ SHARE POST MODAL v2.0 - BARLIVE DESIGN
+ * ✅ SHARE POST MODAL v3.0 - WITH CLICKABLE POST PREVIEW
  * 
  * Changes:
- * - ✅ Updated with Barlive colors (teal/cyan gradients)
- * - ✅ Gradient header
- * - ✅ Improved visual hierarchy
- * - ✅ Better spacing and typography
- * - ✅ Modern card design
+ * - ✅ Includes post preview card with image
+ * - ✅ Captures screenshot of post preview
+ * - ✅ Sends image with message
+ * - ✅ Image is clickable in chat to navigate to post
+ * - ✅ Beautiful visual design matching Barlive style
  */
 
 export default function SharePostModal({
   visible,
   postId,
   postContent,
+  postImage,
+  postAuthorName,
+  postAuthorAvatar,
   onClose,
 }: SharePostModalProps) {
   const { user } = useAuth();
+  const router = useRouter();
+  const viewShotRef = useRef<ViewShot>(null);
+  
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [allLocals, setAllLocals] = useState<Local[]>([]);
   const [filteredResults, setFilteredResults] = useState<(User | Local)[]>([]);
@@ -65,6 +77,7 @@ export default function SharePostModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [sending, setSending] = useState(false);
   const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(new Set());
+  const [postPreviewUri, setPostPreviewUri] = useState<string | null>(null);
 
   const loadRecipients = useCallback(async () => {
     if (!user) {
@@ -135,10 +148,28 @@ export default function SharePostModal({
     }
   }, [user]);
 
+  // Capture post preview as image
+  useEffect(() => {
+    if (visible && viewShotRef.current) {
+      setTimeout(async () => {
+        try {
+          const uri = await viewShotRef.current?.capture?.();
+          if (uri) {
+            setPostPreviewUri(uri);
+            console.log('[SharePostModal] ✅ Captured post preview:', uri);
+          }
+        } catch (error) {
+          console.error('[SharePostModal] Error capturing post preview:', error);
+        }
+      }, 500);
+    }
+  }, [visible]);
+
   useEffect(() => {
     if (visible) {
       setSearchQuery('');
       setSelectedRecipients(new Set());
+      setPostPreviewUri(null);
       loadRecipients();
     }
   }, [visible, loadRecipients]);
@@ -171,7 +202,36 @@ export default function SharePostModal({
     setSending(true);
 
     try {
-      const shareMessage = `📤 Publicación compartida: ${postContent || 'Ver publicación'}`;
+      let imageUrl: string | null = null;
+      
+      // Upload post preview image to Supabase Storage
+      if (postPreviewUri) {
+        try {
+          const response = await fetch(postPreviewUri);
+          const blob = await response.blob();
+          const fileName = `post-preview-${postId}-${Date.now()}.jpg`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('post-previews')
+            .upload(fileName, blob, {
+              contentType: 'image/jpeg',
+              cacheControl: '3600',
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('post-previews')
+            .getPublicUrl(uploadData.path);
+
+          imageUrl = publicUrl;
+          console.log('[SharePostModal] ✅ Uploaded post preview:', imageUrl);
+        } catch (error) {
+          console.error('[SharePostModal] Error uploading preview:', error);
+        }
+      }
+
+      const shareMessage = `📤 Publicación compartida`;
       let successCount = 0;
       let failCount = 0;
 
@@ -181,30 +241,6 @@ export default function SharePostModal({
         let chatId: string;
         
         if (isLocal) {
-          const { data: localExists, error: localCheckError } = await supabase
-            .from('locales')
-            .select('id')
-            .eq('id', recipientId)
-            .maybeSingle();
-
-          if (localCheckError || !localExists) {
-            console.error('[SharePostModal] Local does not exist:', recipientId, localCheckError);
-            failCount++;
-            continue;
-          }
-
-          const { data: currentUserExists } = await supabase
-            .from('usuarios')
-            .select('id')
-            .eq('id', user.id)
-            .maybeSingle();
-
-          if (!currentUserExists) {
-            console.error('[SharePostModal] Current user does not exist:', user.id);
-            failCount++;
-            continue;
-          }
-
           const { data: existingChat } = await supabase
             .from('chats')
             .select('id')
@@ -236,30 +272,6 @@ export default function SharePostModal({
             chatId = newChat.id;
           }
         } else {
-          const { data: userExists, error: userCheckError } = await supabase
-            .from('usuarios')
-            .select('id')
-            .eq('id', recipientId)
-            .maybeSingle();
-
-          if (userCheckError || !userExists) {
-            console.error('[SharePostModal] User does not exist:', recipientId, userCheckError);
-            failCount++;
-            continue;
-          }
-
-          const { data: currentUserExists } = await supabase
-            .from('usuarios')
-            .select('id')
-            .eq('id', user.id)
-            .maybeSingle();
-
-          if (!currentUserExists) {
-            console.error('[SharePostModal] Current user does not exist:', user.id);
-            failCount++;
-            continue;
-          }
-
           const userId1 = user.id < recipientId ? user.id : recipientId;
           const userId2 = user.id < recipientId ? recipientId : user.id;
 
@@ -295,13 +307,20 @@ export default function SharePostModal({
           }
         }
 
-        const { error: messageError } = await supabase.from('mensajes').insert({
+        // Send message with post preview image
+        const messageData: any = {
           chat_id: chatId,
           remitente_id: user.id,
           contenido: shareMessage,
           post_id: postId,
           tipo_mensaje: 'post_compartido',
-        });
+        };
+
+        if (imageUrl) {
+          messageData.imagen_url = imageUrl;
+        }
+
+        const { error: messageError } = await supabase.from('mensajes').insert(messageData);
 
         if (messageError) {
           console.error('[SharePostModal] Error sending message:', messageError);
@@ -438,6 +457,41 @@ export default function SharePostModal({
           </TouchableOpacity>
         </LinearGradient>
 
+        {/* Post Preview Card (Hidden, used for screenshot) */}
+        <View style={styles.previewContainer}>
+          <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }}>
+            <View style={styles.postPreviewCard}>
+              <View style={styles.postPreviewHeader}>
+                {postAuthorAvatar ? (
+                  <Image source={{ uri: postAuthorAvatar }} style={styles.postPreviewAvatar} />
+                ) : (
+                  <View style={[styles.postPreviewAvatar, styles.postPreviewAvatarPlaceholder]}>
+                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={16} color={colors.white} />
+                  </View>
+                )}
+                <Text style={styles.postPreviewAuthor}>{postAuthorName || 'Usuario'}</Text>
+              </View>
+              
+              {postImage && (
+                <Image source={{ uri: postImage }} style={styles.postPreviewImage} resizeMode="cover" />
+              )}
+              
+              {postContent && (
+                <View style={styles.postPreviewContent}>
+                  <Text style={styles.postPreviewText} numberOfLines={3}>
+                    {postContent}
+                  </Text>
+                </View>
+              )}
+              
+              <View style={styles.postPreviewFooter}>
+                <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={14} color={colors.primary} />
+                <Text style={styles.postPreviewFooterText}>Toca para ver la publicación completa</Text>
+              </View>
+            </View>
+          </ViewShot>
+        </View>
+
         <View style={styles.searchContainer}>
           <IconSymbol
             ios_icon_name="magnifyingglass"
@@ -565,6 +619,66 @@ const styles = StyleSheet.create({
   },
   sendButtonTextDisabled: {
     opacity: 0.6,
+  },
+  previewContainer: {
+    position: 'absolute',
+    left: -9999,
+    top: -9999,
+  },
+  postPreviewCard: {
+    width: 300,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  postPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+  },
+  postPreviewAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  postPreviewAvatarPlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  postPreviewAuthor: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  postPreviewImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: colors.background,
+  },
+  postPreviewContent: {
+    padding: 16,
+  },
+  postPreviewText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  postPreviewFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  postPreviewFooterText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
   },
   searchContainer: {
     flexDirection: 'row',
