@@ -71,12 +71,13 @@ interface PublicacionCardProps {
 }
 
 /**
- * ✅ PUBLICACION CARD v6.0 - REMOVED EDIT PUBLICATION OPTION
+ * ✅ PUBLICACION CARD v7.0 - COMMENT COUNT TEXT DISPLAY
  * 
  * Changes:
- * - ✅ REMOVED: "Edit Publication" option from three-dot menu
- * - ✅ Only shows: Edit Description, Manage Tags, Delete Publication
- * - ✅ Maintains all other functionality
+ * - ✅ ADDED: Comment count display with proper text ("Ver comentario" / "Ver comentarios")
+ * - ✅ ADDED: "Sé el primero en comentar" when no comments
+ * - ✅ UNIFIED: Same comment display as InstagramPostCard and PostViewerModal
+ * - ✅ Maintains all existing functionality
  */
 
 const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
@@ -87,6 +88,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const [liked, setLiked] = useState(post.user_has_liked || false);
   const [saved, setSaved] = useState(post.user_has_saved || false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [commentsCount, setCommentsCount] = useState(post.comentarios_count || 0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
@@ -248,6 +250,29 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           if (!countError && count !== null) {
             console.log('[PublicacionCard] ✅ Updated likes count:', count);
             setLikesCount(count);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comentarios',
+          filter: `post_id=eq.${post.id}`,
+        },
+        async (payload) => {
+          console.log('[PublicacionCard] 🔄 Real-time comment change detected:', payload.eventType);
+          
+          // ✅ Reload comment count
+          const { count, error: countError } = await supabase
+            .from('comentarios')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          if (!countError && count !== null) {
+            console.log('[PublicacionCard] ✅ Updated comments count:', count);
+            setCommentsCount(count);
           }
         }
       )
@@ -706,9 +731,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [user, post.id, loadExistingTags, loadTaggedUsers, onUpdate]);
 
-  // ✅ REMOVED: handleEditPost function - no longer needed
-
-  // ✅ UPDATED: showOptions - removed "Edit Publication" option
   const showOptions = useCallback(() => {
     const canEdit = user && (
       (post.tipo === 'usuario' && post.autor_id === user.id) ||
@@ -717,7 +739,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
     if (!canEdit) return;
 
-    // ✅ REMOVED: "Editar publicación" option
     const options = ['Editar descripción', 'Gestionar etiquetas', 'Eliminar publicación', 'Cancelar'];
 
     if (Platform.OS === 'ios') {
@@ -795,6 +816,13 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / SCREEN_WIDTH);
     setCurrentImageIndex(index);
+  };
+
+  const handleCommentsUpdate = () => {
+    setCommentsCount(prev => prev + 1);
+    if (onUpdate) {
+      onUpdate();
+    }
   };
 
   return (
@@ -977,11 +1005,13 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       </View>
 
       {/* ✅ UNIFIED: Pass localLikes array for instant reactivity */}
-      <PostLikesAvatars 
-        postId={post.id} 
-        totalLikes={likesCount}
-        localLikes={localLikes}
-      />
+      {likesCount > 0 && (
+        <PostLikesAvatars 
+          postId={post.id} 
+          totalLikes={likesCount}
+          localLikes={localLikes}
+        />
+      )}
 
       {post.contenido && (
         <View style={styles.contentContainer}>
@@ -989,28 +1019,29 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </View>
       )}
 
-      {post.comentarios_count > 0 && (
-        <TouchableOpacity 
-          style={styles.commentsCount}
-          onPress={handleComment}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.commentsCountText}>
-            Ver {post.comentarios_count === 1 ? 'el comentario' : `los ${post.comentarios_count} comentarios`}
+      {/* ✅ ADDED: Comment count display with proper text */}
+      <TouchableOpacity 
+        style={styles.commentsContainer}
+        onPress={handleComment}
+        activeOpacity={0.7}
+      >
+        {commentsCount > 0 ? (
+          <Text style={styles.commentsText}>
+            Ver {commentsCount === 1 ? 'el comentario' : `los ${commentsCount} comentarios`}
           </Text>
-        </TouchableOpacity>
-      )}
+        ) : (
+          <Text style={styles.commentsTextEmpty}>
+            Sé el primero en comentar
+          </Text>
+        )}
+      </TouchableOpacity>
 
       <CommentsModal
         visible={commentsModalVisible}
         postId={post.id}
         postAuthorId={post.autor_id}
         onClose={() => setCommentsModalVisible(false)}
-        onCommentAdded={() => {
-          if (onUpdate) {
-            onUpdate();
-          }
-        }}
+        onCommentAdded={handleCommentsUpdate}
       />
 
       <SharePostModal
@@ -1311,13 +1342,19 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 4,
   },
-  commentsCount: {
+  commentsContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingVertical: 4,
   },
-  commentsCountText: {
+  commentsText: {
     fontSize: 14,
     color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  commentsTextEmpty: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   editModalOverlay: {
     flex: 1,
