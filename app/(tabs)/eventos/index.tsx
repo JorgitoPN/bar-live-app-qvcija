@@ -39,6 +39,17 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
+// ✅ NEW: Category filters for events
+const CATEGORIAS = [
+  { id: 'todas', nombre: 'Todas', emoji: '🎉' },
+  { id: 'cafe', nombre: 'Cafés', emoji: '☕' },
+  { id: 'restaurante', nombre: 'Restaurantes', emoji: '🍽️' },
+  { id: 'bar', nombre: 'Bares', emoji: '🍺' },
+  { id: 'pub', nombre: 'Pubs', emoji: '🍻' },
+  { id: 'cocteleria', nombre: 'Coctelería', emoji: '🍸' },
+  { id: 'discoteca', nombre: 'Discotecas', emoji: '💃' },
+];
+
 interface Evento {
   id: string;
   titulo: string;
@@ -59,6 +70,7 @@ interface Evento {
   local_ciudad?: string;
   local_latitud?: number;
   local_longitud?: number;
+  local_categories?: string[];
 }
 
 export default function EventosScreen() {
@@ -69,6 +81,7 @@ export default function EventosScreen() {
   const [busqueda, setBusqueda] = useState('');
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todas');
   
   const [fechaInicio, setFechaInicio] = useState<Date | null>(null);
   const [fechaFin, setFechaFin] = useState<Date | null>(null);
@@ -113,7 +126,9 @@ export default function EventosScreen() {
             direccion,
             ciudad,
             latitud,
-            longitud
+            longitud,
+            barlive_type,
+            barlive_types
           ),
           usuarios:propietario_id (
             nombre,
@@ -133,26 +148,37 @@ export default function EventosScreen() {
 
       console.log('[Eventos] Eventos cargados:', data?.length || 0);
 
-      const eventosTransformados: Evento[] = (data || []).map((evento: any) => ({
-        id: evento.id,
-        local_id: evento.local_id,
-        titulo: evento.titulo,
-        descripcion: evento.descripcion || '',
-        fecha: evento.fecha,
-        fecha_fin: evento.fecha_fin,
-        hora: evento.hora,
-        hora_fin: evento.hora_fin,
-        precio: evento.precio,
-        imagen_url: evento.imagen_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819',
-        local_nombre: evento.locales?.nombre || 'Local',
-        local_direccion: evento.locales?.direccion,
-        local_ciudad: evento.locales?.ciudad,
-        local_latitud: evento.locales?.latitud,
-        local_longitud: evento.locales?.longitud,
-        provincia: evento.provincia || evento.locales?.provincia || '',
-        destacado: evento.destacado || false,
-        propietario_id: evento.propietario_id,
-      }));
+      const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
+        // ✅ Get local categories for filtering
+        let localCategories: string[] = [];
+        if (evento.locales?.barlive_types && Array.isArray(evento.locales.barlive_types)) {
+          localCategories = evento.locales.barlive_types;
+        } else if (evento.locales?.barlive_type) {
+          localCategories = [evento.locales.barlive_type];
+        }
+
+        return {
+          id: evento.id,
+          local_id: evento.local_id,
+          titulo: evento.titulo,
+          descripcion: evento.descripcion || '',
+          fecha: evento.fecha,
+          fecha_fin: evento.fecha_fin,
+          hora: evento.hora,
+          hora_fin: evento.hora_fin,
+          precio: evento.precio,
+          imagen_url: evento.imagen_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819',
+          local_nombre: evento.locales?.nombre || 'Local',
+          local_direccion: evento.locales?.direccion,
+          local_ciudad: evento.locales?.ciudad,
+          local_latitud: evento.locales?.latitud,
+          local_longitud: evento.locales?.longitud,
+          provincia: evento.provincia || evento.locales?.provincia || '',
+          destacado: evento.destacado || false,
+          propietario_id: evento.propietario_id,
+          local_categories: localCategories,
+        };
+      });
 
       setEventos(eventosTransformados);
     } catch (error) {
@@ -175,6 +201,16 @@ export default function EventosScreen() {
   const eventosFiltrados = eventos.filter((evento) => {
     const matchBusqueda = evento.titulo.toLowerCase().includes(busqueda.toLowerCase());
     const matchProvincia = provinciaSeleccionada === 'Todas' || evento.provincia === provinciaSeleccionada;
+    
+    // ✅ NEW: Category filter based on local type
+    let matchCategoria = true;
+    if (categoriaSeleccionada !== 'todas') {
+      // Match category with local's barlive_types array
+      const localCategories = evento.local_categories || [];
+      matchCategoria = localCategories.some(cat => 
+        cat.toLowerCase().includes(categoriaSeleccionada.toLowerCase())
+      );
+    }
     
     let matchFecha = true;
     if (fechaInicio && fechaFin) {
@@ -200,11 +236,12 @@ export default function EventosScreen() {
 
     const matchTab = tabActual === 'hoy' ? esHoy : esProximo;
     
-    return matchBusqueda && matchProvincia && matchFecha && matchTab;
+    return matchBusqueda && matchProvincia && matchCategoria && matchFecha && matchTab;
   });
 
   const limpiarFiltros = () => {
     setProvinciaSeleccionada('Todas');
+    setCategoriaSeleccionada('todas');
     setFechaInicio(null);
     setFechaFin(null);
   };
@@ -358,6 +395,36 @@ export default function EventosScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* ✅ NEW: Category filters */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesScroll}
+          contentContainerStyle={styles.categoriesContent}
+        >
+          {CATEGORIAS.map((categoria) => (
+            <TouchableOpacity
+              key={categoria.id}
+              style={[
+                styles.categoryChip,
+                categoriaSeleccionada === categoria.id && styles.categoryChipActive,
+              ]}
+              onPress={() => setCategoriaSeleccionada(categoria.id)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.categoryEmoji}>{categoria.emoji}</Text>
+              <Text
+                style={[
+                  styles.categoryText,
+                  categoriaSeleccionada === categoria.id && styles.categoryTextActive,
+                ]}
+              >
+                {categoria.nombre}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </LinearGradient>
 
       {loading ? (
@@ -428,6 +495,33 @@ export default function EventosScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
+              {/* ✅ NEW: Category filter section */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterTitle}>Categoría de Local</Text>
+                <View style={styles.categoriesGrid}>
+                  {CATEGORIAS.map((categoria) => (
+                    <TouchableOpacity
+                      key={categoria.id}
+                      style={[
+                        styles.categoryFilterItem,
+                        categoriaSeleccionada === categoria.id && styles.categoryFilterItemActive,
+                      ]}
+                      onPress={() => setCategoriaSeleccionada(categoria.id)}
+                    >
+                      <Text style={styles.categoryFilterEmoji}>{categoria.emoji}</Text>
+                      <Text
+                        style={[
+                          styles.categoryFilterText,
+                          categoriaSeleccionada === categoria.id && styles.categoryFilterTextActive,
+                        ]}
+                      >
+                        {categoria.nombre}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Rango de Fechas</Text>
                 
@@ -875,5 +969,71 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  // ✅ NEW: Category filter styles
+  categoriesScroll: {
+    marginTop: 12,
+  },
+  categoriesContent: {
+    paddingHorizontal: 0,
+    gap: 8,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  categoryChipActive: {
+    backgroundColor: colors.white,
+    borderColor: colors.white,
+  },
+  categoryEmoji: {
+    fontSize: 16,
+  },
+  categoryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  categoryTextActive: {
+    color: colors.primary,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  categoryFilterItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    minWidth: '47%',
+  },
+  categoryFilterItemActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  categoryFilterEmoji: {
+    fontSize: 20,
+  },
+  categoryFilterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  categoryFilterTextActive: {
+    color: colors.white,
   },
 });

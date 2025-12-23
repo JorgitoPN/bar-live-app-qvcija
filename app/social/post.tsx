@@ -1,22 +1,62 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text, Alert } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text, Alert, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import PostViewerModal from '@/components/social/PostViewerModal';
 import { IconSymbol } from '@/components/IconSymbol';
+import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
+
+const { width } = Dimensions.get('window');
 
 /**
- * ✅ SINGLE POST VIEW ROUTE v1.0 - OPTIMIZED NAVIGATION
+ * ✅ SINGLE POST VIEW ROUTE v1.1 - WITH BOTTOM MENU ON ERROR
  * 
  * Features:
  * - ✅ Direct post loading with postId parameter
  * - ✅ Optimized for instant display (<200ms)
  * - ✅ Minimal data fetching (only requested post)
  * - ✅ Clean navigation from chat messages
+ * - ✅ Bottom menu on error screen for easy navigation
  */
+
+// ✅ Helper function to get tabs based on user role
+const getTabsForCurrentUser = (): TabBarItem[] => {
+  return [
+    {
+      name: 'eventos',
+      route: '/(tabs)/eventos',
+      icon: 'calendar',
+      label: 'Eventos',
+    },
+    {
+      name: 'favoritos',
+      route: '/(tabs)/favoritos',
+      icon: 'heart.fill',
+      label: 'Favoritos',
+    },
+    {
+      name: 'explorar',
+      route: '/(tabs)/explorar',
+      icon: 'sparkles',
+      label: 'Explorar',
+    },
+    {
+      name: 'social',
+      route: '/(tabs)/social',
+      icon: 'person.2.fill',
+      label: 'Social',
+    },
+    {
+      name: 'perfil',
+      route: '/(tabs)/perfil',
+      icon: 'person.fill',
+      label: 'Perfil',
+    },
+  ];
+};
 
 export default function SinglePostView() {
   const params = useLocalSearchParams();
@@ -143,6 +183,11 @@ export default function SinglePostView() {
             La publicación puede haber sido eliminada o no tienes permiso para verla
           </Text>
         </View>
+        {/* ✅ FIXED: Add bottom navigation menu so user can navigate away */}
+        <FloatingTabBar 
+          tabs={getTabsForCurrentUser()} 
+          containerWidth={width}
+        />
       </View>
     );
   }
