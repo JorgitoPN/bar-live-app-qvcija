@@ -132,19 +132,17 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v5.1 - INSTANT LOADING WITH ZERO-WAIT (FIXED)
+ * ✅ MAP SCREEN v5.2 - FIXED POPUP CENTERING & REMOVED VIDEO DEPENDENCY
  * 
  * Features:
  * - ✅ INSTANT DISPLAY: Map and markers load simultaneously (HYDRATION)
- * - ✅ NO "Cargando..." messages - zero visual delay
+ * - ✅ SIMPLE LOADING: Clean loading indicator without video dependency
+ * - ✅ FIXED POPUP: Proper centering without going off-screen
  * - ✅ SHARED DATA: Uses GlobalDataContext (same as Lista de Locales)
  * - ✅ SYNCHRONIZED FILTERS: Real-time sync with FilterContext
  * - ✅ DYNAMIC FILTERS: Only show options with actual results
  * - ✅ FLY-TO ANIMATION: Smooth map navigation on location filter
  * - ✅ MARKER CLUSTERING: Performance with many markers
- * - ✅ MEMOIZED: Prevents unnecessary re-renders
- * - ✅ OPTIMIZED: Markers pre-computed before map render
- * - ✅ FIXED: Markers now load instantly with map (no 10-second delay)
  */
 
 export default function MapaScreen() {
@@ -872,7 +870,10 @@ export default function MapaScreen() {
           maxWidth: 280,
           className: 'custom-popup',
           closeButton: true,
-          offset: [0, -10]
+          offset: [0, -10],
+          autoPan: true,
+          autoPanPadding: [50, 50],
+          keepInView: true
         });
 
         marker.on('popupopen', function(e) {
@@ -880,25 +881,18 @@ export default function MapaScreen() {
             type: 'popup_opened',
             id: data.id
           }));
+          
+          // ✅ FIXED: Proper popup centering without going off-screen
+          setTimeout(function() {
+            var px = map.project(marker.getLatLng());
+            px.y -= 140;
+            var newLatLng = map.unproject(px);
+            map.panTo(newLatLng, { animate: true, duration: 0.5 });
+          }, 100);
         });
 
         marker.on('click', function(e) {
           marker.openPopup();
-          
-          setTimeout(function() {
-            var popupHeight = 280;
-            var mapSize = map.getSize();
-            var pixelOffset = popupHeight / 2;
-            var zoom = Math.max(map.getZoom(), 16);
-            var latOffset = (pixelOffset / mapSize.y) * 0.01;
-            var newLat = data.lat + latOffset;
-            
-            map.setView([newLat, data.lng], zoom, {
-              animate: true,
-              duration: 0.5,
-              easeLinearity: 0.25
-            });
-          }, 100);
         });
 
         markers.addLayer(marker);
@@ -1151,8 +1145,19 @@ export default function MapaScreen() {
           <>
             {isLoadingMarkers && (
               <View style={styles.loadingOverlay}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>Cargando marcadores...</Text>
+                <View style={styles.loadingContent}>
+                  <View style={styles.mapIconContainer}>
+                    <IconSymbol 
+                      ios_icon_name="map.fill" 
+                      android_material_icon_name="map" 
+                      size={64} 
+                      color={colors.primary} 
+                    />
+                  </View>
+                  <ActivityIndicator size="large" color={colors.primary} style={styles.loadingSpinner} />
+                  <Text style={styles.loadingText}>Preparando mapa...</Text>
+                  <Text style={styles.loadingSubtext}>Cargando {todosLosLocales.length} locales</Text>
+                </View>
               </View>
             )}
             {mapHTML && (
@@ -1310,16 +1315,38 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
   },
+  loadingContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  mapIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  loadingSpinner: {
+    marginBottom: 16,
+  },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.text,
+    marginBottom: 8,
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textSecondary,
   },
   webNotSupported: {
     flex: 1,
