@@ -27,7 +27,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 interface MomentoUploadProps {
   visible: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
 export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUploadProps) {
@@ -287,7 +287,12 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
       Alert.alert('¡Éxito!', 'Tu Momento se ha publicado');
       
       setSelectedImage(null);
-      onSuccess();
+      
+      // ✅ FIX: Call onSuccess as a function if it exists
+      if (onSuccess && typeof onSuccess === 'function') {
+        onSuccess();
+      }
+      
       onClose();
     } catch (error) {
       console.error('[MomentoUpload] ❌ Error inesperado:', error);
