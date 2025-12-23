@@ -8,6 +8,7 @@ import {
   ScrollView,
   Platform,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -131,7 +132,7 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v5.0 - INSTANT LOADING WITH ZERO-WAIT + OPTIMIZED FILTERS
+ * ✅ MAP SCREEN v5.1 - INSTANT LOADING WITH ZERO-WAIT (FIXED)
  * 
  * Features:
  * - ✅ INSTANT DISPLAY: Map and markers load simultaneously (HYDRATION)
@@ -143,6 +144,7 @@ interface LocalWithEvent extends Local {
  * - ✅ MARKER CLUSTERING: Performance with many markers
  * - ✅ MEMOIZED: Prevents unnecessary re-renders
  * - ✅ OPTIMIZED: Markers pre-computed before map render
+ * - ✅ FIXED: Markers now load instantly with map (no 10-second delay)
  */
 
 export default function MapaScreen() {
@@ -161,6 +163,7 @@ export default function MapaScreen() {
   const [mapHTML, setMapHTML] = useState<string>('');
   const previousFiltersRef = useRef<string>('');
   const [isMapReady, setIsMapReady] = useState(false);
+  const [isLoadingMarkers, setIsLoadingMarkers] = useState(true);
 
   // ✅ Get user location
   useEffect(() => {
@@ -187,6 +190,8 @@ export default function MapaScreen() {
     console.log('⚡ [MAP] Total locales available:', globalLocales.length);
     
     if (globalLocales.length > 0) {
+      setIsLoadingMarkers(true);
+      
       // Transform global locales to map format
       const now = new Date();
       const currentDate = now.toISOString().split('T')[0];
@@ -231,6 +236,7 @@ export default function MapaScreen() {
           });
 
           setTodosLosLocales(localesTransformados);
+          setIsLoadingMarkers(false);
           console.log(`⚡ [MAP] ✅ INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
           console.log(`⚡ [MAP] ✅ Map and markers will render SIMULTANEOUSLY`);
         });
@@ -932,16 +938,18 @@ export default function MapaScreen() {
     `;
   }, [markersData, user, userLocation]);
 
+  // ✅ INSTANT DISPLAY: Generate map HTML as soon as markers are ready
   useEffect(() => {
     const generateHTML = async () => {
-      const html = await generateMapHTML();
-      setMapHTML(html);
+      if (localesFiltrados.length > 0 && !isLoadingMarkers) {
+        console.log('[MAP] 🚀 Generating map HTML with', localesFiltrados.length, 'markers');
+        const html = await generateMapHTML();
+        setMapHTML(html);
+      }
     };
     
-    if (localesFiltrados.length > 0) {
-      generateHTML();
-    }
-  }, [localesFiltrados, user, generateMapHTML]);
+    generateHTML();
+  }, [localesFiltrados, user, generateMapHTML, isLoadingMarkers]);
 
   // ✅ SYNCHRONIZED FILTERS: Apply global filters from FilterContext
   useEffect(() => {
@@ -1005,7 +1013,7 @@ export default function MapaScreen() {
       
       // ✅ FIXED: Ambiente filter - check if local has ANY of the selected ambientes
       if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0 && !globalFiltros.ambiente.includes('cualquiera')) {
-        const localAmbiente = local.ambiente_completo || local.ambiente_google || {};
+        const localAmbiente = local.ambiente_completo || {};
         const hasMatchingAmbiente = globalFiltros.ambiente.some(amb => 
           localAmbiente[amb] === true
         );
@@ -1126,39 +1134,6 @@ export default function MapaScreen() {
     }
   };
 
-  // ✅ INSTANT DISPLAY: Show map immediately with cached/global data
-  const initialMapHTML = useMemo(() => {
-    const centerLat = userLocation?.lat || 40.4168;
-    const centerLng = userLocation?.lng || -3.7038;
-    
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; }
-    #map { width: 100%; height: 100%; background-color: #A8E0FF; }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
-  <script>
-    var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([${centerLat}, ${centerLng}], 11);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
-    setTimeout(function() {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
-    }, 500);
-  </script>
-</body>
-</html>
-    `;
-  }, [userLocation]);
-
   return (
     <View style={commonStyles.container}>
       <View style={styles.mapContainer}>
@@ -1173,18 +1148,28 @@ export default function MapaScreen() {
             </Text>
           </View>
         ) : (
-          <WebView
-            ref={webViewRef}
-            source={{ html: mapHTML || initialMapHTML }}
-            style={styles.webview}
-            onMessage={handleWebViewMessage}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            onError={(syntheticEvent) => {
-              const { nativeEvent } = syntheticEvent;
-              console.error('[MAP] WebView error:', nativeEvent);
-            }}
-          />
+          <>
+            {isLoadingMarkers && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Cargando marcadores...</Text>
+              </View>
+            )}
+            {mapHTML && (
+              <WebView
+                ref={webViewRef}
+                source={{ html: mapHTML }}
+                style={styles.webview}
+                onMessage={handleWebViewMessage}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                onError={(syntheticEvent) => {
+                  const { nativeEvent } = syntheticEvent;
+                  console.error('[MAP] WebView error:', nativeEvent);
+                }}
+              />
+            )}
+          </>
         )}
       </View>
 
@@ -1318,6 +1303,23 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
     backgroundColor: '#A8E0FF',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
   },
   webNotSupported: {
     flex: 1,

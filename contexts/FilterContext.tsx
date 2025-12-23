@@ -29,7 +29,7 @@ interface FilterContextType {
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 /**
- * ✅ FILTER CONTEXT v3.0 - OPTIMIZED DYNAMIC FILTERS
+ * ✅ FILTER CONTEXT v3.1 - FIXED DYNAMIC FILTERS
  * 
  * Features:
  * - ✅ INSTANT LOADING: Uses cached data from GlobalDataContext
@@ -38,6 +38,7 @@ const FilterContext = createContext<FilterContextType | undefined>(undefined);
  * - ✅ AUTO-UPDATE: Add new options when new locals are created
  * - ✅ ZERO FRUSTRATION: No more "0 results" filters
  * - ✅ PERFORMANCE: Optimized with useMemo to prevent re-renders
+ * - ✅ FIXED: Proper handling of ambiente_completo and ambiente_google columns
  */
 
 export function FilterProvider({ children }: { children: ReactNode }) {
@@ -79,7 +80,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   }, [filtros]);
 
   /**
-   * ✅ OPTIMIZED: Query distinct values from active locals
+   * ✅ FIXED: Query distinct values from active locals
    * This ensures users only see filter options that will return results
    */
   const refreshDynamicOptions = useCallback(async () => {
@@ -90,10 +91,10 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     setIsLoadingOptions(true);
     
     try {
-      // ✅ FIXED: Query with proper filters to ensure we get active locals
+      // ✅ FIXED: Query with proper column selection
       const { data: locales, error } = await supabase
         .from('locales')
-        .select('barlive_types, servicios_disponibles, ambiente_completo, ambiente_google, comunidad, provincia')
+        .select('barlive_types, servicios_disponibles, ambiente_completo, comunidad, provincia')
         .eq('activo', true)
         .eq('estado_solicitud', 'aprobado');
 
@@ -142,20 +143,12 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         }
       });
 
-      // ✅ FIXED: Extract unique ambientes from both sources
+      // ✅ FIXED: Extract unique ambientes from ambiente_completo only
       const ambientesSet = new Set<string>();
       locales.forEach(local => {
-        // Check ambiente_completo
+        // Only check ambiente_completo (the correct column)
         if (local.ambiente_completo && typeof local.ambiente_completo === 'object') {
           Object.entries(local.ambiente_completo).forEach(([key, value]) => {
-            if (value === true && key && key.trim()) {
-              ambientesSet.add(key);
-            }
-          });
-        }
-        // Check ambiente_google
-        if (local.ambiente_google && typeof local.ambiente_google === 'object') {
-          Object.entries(local.ambiente_google).forEach(([key, value]) => {
             if (value === true && key && key.trim()) {
               ambientesSet.add(key);
             }
