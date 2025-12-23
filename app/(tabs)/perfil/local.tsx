@@ -35,7 +35,7 @@ import { useLocalEvent } from '@/hooks/useLocalEvent';
 import MomentoViewer from '@/components/momento/MomentoViewer';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 
-const SCREEN_VERSION = '10.0.0';
+const SCREEN_VERSION = '10.2.0';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -93,13 +93,15 @@ interface Seguidor {
 }
 
 /**
- * ✅ LOCAL PROFILE v10.0 - MOMENTO INTEGRATION
+ * ✅ LOCAL PROFILE v10.2 - COMPLETE MOMENTO INTEGRATION & ANALYTICS FIX
  * 
  * Changes:
- * - ✅ Added neon green border to avatar when momentos exist
+ * - ✅ Added neon green border to avatar when momentos exist (matching user profile design)
  * - ✅ Added + icon to upload momentos (owner only)
- * - ✅ Enabled momento viewer for locale profiles
+ * - ✅ Enabled momento viewer for locale profiles (tap avatar to view)
  * - ✅ Synchronized with user profile momento functionality
+ * - ✅ Fixed analytics button to check premium plan permission
+ * - ✅ Analytics button only visible if user has premium plan with panel_analisis permission
  */
 
 export default function LocalPerfilScreen() {
@@ -140,10 +142,12 @@ export default function LocalPerfilScreen() {
   const [seguidoresCount, setSeguidoresCount] = useState(0);
   const [seguidosCount, setSeguidosCount] = useState(0);
 
-  // ✅ NEW: Momento state
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [showMomentoUpload, setShowMomentoUpload] = useState(false);
   const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
+
+  // ✅ Analytics permission state
+  const [hasAnalyticsPermission, setHasAnalyticsPermission] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
@@ -177,14 +181,12 @@ export default function LocalPerfilScreen() {
     ]).start();
   }, [fadeAnim, scaleAnim]);
 
-  // ✅ NEW: Check for unviewed momentos
   const checkUnviewedMomentos = useCallback(async () => {
     if (!user || !localId) return;
 
     try {
       console.log('[LocalPerfil] 🔍 Checking momentos for local:', localId);
 
-      // Get momentos for this local
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
         .select('id')
@@ -197,7 +199,6 @@ export default function LocalPerfilScreen() {
         return;
       }
 
-      // Check if user has viewed any of these momentos
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData } = await supabase
         .from('momento_views')
@@ -221,11 +222,47 @@ export default function LocalPerfilScreen() {
     }
   }, [user, localId]);
 
+  // ✅ Check analytics permission
+  const checkAnalyticsPermission = useCallback(async () => {
+    if (!localId) return;
+
+    try {
+      console.log('[LocalPerfil] 🔍 Checking analytics permission for local:', localId);
+
+      const { data: subscriptionData, error: subscriptionError } = await supabase
+        .from('suscripciones_locales')
+        .select(`
+          id,
+          estado,
+          plan_id,
+          planes_suscripcion!suscripciones_locales_plan_id_fkey(
+            panel_analisis
+          )
+        `)
+        .eq('local_id', localId)
+        .eq('estado', 'activa')
+        .maybeSingle();
+
+      if (subscriptionError) {
+        console.error('[LocalPerfil] ❌ Error checking subscription:', subscriptionError);
+        setHasAnalyticsPermission(false);
+        return;
+      }
+
+      const hasPermission = subscriptionData?.planes_suscripcion?.panel_analisis || false;
+      console.log('[LocalPerfil] 📊 Analytics permission:', hasPermission);
+      setHasAnalyticsPermission(hasPermission);
+    } catch (error) {
+      console.error('[LocalPerfil] ❌ Error checking analytics permission:', error);
+      setHasAnalyticsPermission(false);
+    }
+  }, [localId]);
+
   useEffect(() => {
     if (localId && user) {
       checkUnviewedMomentos();
+      checkAnalyticsPermission();
 
-      // Subscribe to real-time updates
       const momentosChannel = supabase
         .channel(`local-momentos-${localId}`)
         .on(
@@ -247,7 +284,7 @@ export default function LocalPerfilScreen() {
         supabase.removeChannel(momentosChannel);
       };
     }
-  }, [localId, user, checkUnviewedMomentos]);
+  }, [localId, user, checkUnviewedMomentos, checkAnalyticsPermission]);
 
   const loadSeguidoresLocal = useCallback(async () => {
     if (!localId) return;
@@ -371,7 +408,6 @@ export default function LocalPerfilScreen() {
         return;
       }
 
-      // ✅ Check if profile is visible (subscription-based)
       if (!localData.perfil_visible && (!user || localData.propietario_id !== user.id)) {
         console.log('[LocalPerfil] ⚠️ Profile is not visible (subscription inactive)');
         Alert.alert(
@@ -508,6 +544,7 @@ export default function LocalPerfilScreen() {
       await loadEmpleoData();
     }
     await checkUnviewedMomentos();
+    await checkAnalyticsPermission();
     setRefreshing(false);
   };
 
@@ -606,14 +643,15 @@ export default function LocalPerfilScreen() {
     }
   };
 
-  // ✅ NEW: Handle avatar press
   const handleAvatarPress = () => {
-    if (isOwner) {
-      // Owner can upload momentos
-      setShowMomentoUpload(true);
-    } else {
-      // Others can view momentos
-      setShowMomentoViewer(true);
+    if (hasUnviewedMomentos || isOwner) {
+      if (isOwner) {
+        // Owner can upload or view
+        setShowMomentoUpload(true);
+      } else {
+        // Non-owner can only view
+        setShowMomentoViewer(true);
+      }
     }
   };
 
@@ -731,6 +769,22 @@ export default function LocalPerfilScreen() {
     }
     if (!isOwner) {
       Alert.alert('Error', 'Solo el propietario puede ver el análisis');
+      return;
+    }
+
+    // ✅ Check analytics permission before navigating
+    if (!hasAnalyticsPermission) {
+      Alert.alert(
+        'Plan Premium Requerido',
+        'El panel de análisis solo está disponible para locales con plan Premium. Actualiza tu plan para acceder a estadísticas detalladas.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Ver Planes',
+            onPress: () => router.push('/gestion/planes-suscripcion'),
+          },
+        ]
+      );
       return;
     }
     
@@ -1001,7 +1055,7 @@ export default function LocalPerfilScreen() {
             ]}
           >
             <View style={styles.profileHeader}>
-              {/* ✅ NEW: Avatar with momento border and + icon */}
+              {/* ✅ FIXED: Avatar with momento border and + icon - matching user profile design */}
               <TouchableOpacity 
                 style={styles.avatarContainer}
                 onPress={handleAvatarPress}
@@ -1033,7 +1087,7 @@ export default function LocalPerfilScreen() {
                     )}
                   </View>
                 )}
-                {/* ✅ NEW: + icon for owner to add momentos */}
+                {/* ✅ FIXED: + icon for owner to add momentos */}
                 {isOwner && (
                   <View style={styles.addMomentoButton}>
                     <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={16} color={colors.white} />
@@ -1119,16 +1173,19 @@ export default function LocalPerfilScreen() {
                     <Text style={styles.ownerRowButtonText}>Evento</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
-                    style={styles.ownerRowButton} 
-                    onPress={handleVerAnalisis}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.ownerButtonIconContainer}>
-                      <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={20} color={colors.primary} />
-                    </View>
-                    <Text style={styles.ownerRowButtonText}>Análisis</Text>
-                  </TouchableOpacity>
+                  {/* ✅ FIXED: Only show analytics button if user has premium plan */}
+                  {hasAnalyticsPermission && (
+                    <TouchableOpacity 
+                      style={styles.ownerRowButton} 
+                      onPress={handleVerAnalisis}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.ownerButtonIconContainer}>
+                        <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={20} color={colors.primary} />
+                      </View>
+                      <Text style={styles.ownerRowButtonText}>Análisis</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               ) : (
                 <View style={styles.visitorButtonsRow}>
@@ -1626,7 +1683,7 @@ export default function LocalPerfilScreen() {
         </View>
       </Modal>
 
-      {/* ✅ NEW: Momento Viewer */}
+      {/* ✅ FIXED: Momento Viewer with correct props */}
       {showMomentoViewer && (
         <MomentoViewer
           visible={showMomentoViewer}
@@ -1634,11 +1691,12 @@ export default function LocalPerfilScreen() {
             setShowMomentoViewer(false);
             checkUnviewedMomentos();
           }}
-          localId={localId}
+          authorId={localId}
+          authorType="local"
         />
       )}
 
-      {/* ✅ NEW: Momento Upload (owner only) */}
+      {/* ✅ FIXED: Momento Upload (owner only) with correct props */}
       {showMomentoUpload && isOwner && (
         <MomentoUpload
           visible={showMomentoUpload}
@@ -1646,8 +1704,10 @@ export default function LocalPerfilScreen() {
             setShowMomentoUpload(false);
             checkUnviewedMomentos();
           }}
-          localId={localId}
-          tipo="local"
+          onSuccess={() => {
+            console.log('[LocalPerfil] Momento uploaded successfully');
+            checkUnviewedMomentos();
+          }}
         />
       )}
 
@@ -1739,7 +1799,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: 20,
   },
-  // ✅ NEW: Momento border styles
   momentoBorder: {
     width: 96,
     height: 96,
@@ -1753,7 +1812,7 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 48,
     padding: 4,
-    backgroundColor: colors.cardBorder,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1769,7 +1828,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // ✅ NEW: Add momento button
   addMomentoButton: {
     position: 'absolute',
     bottom: 0,

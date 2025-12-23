@@ -30,6 +30,16 @@ interface MomentoUploadProps {
   onSuccess?: () => void;
 }
 
+/**
+ * ✅ MOMENTO UPLOAD v2.0 - LOCAL PROFILE SUPPORT
+ * 
+ * Features:
+ * - ✅ Supports uploading momentos as user or local profile
+ * - ✅ Automatically detects active profile type
+ * - ✅ Verifies ownership for local profiles
+ * - ✅ Proper RLS compliance with user_id in storage path
+ */
+
 export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUploadProps) {
   const { user, ensureValidSession } = useAuth();
   const { activeProfileType, activeProfileId } = useMode();
@@ -111,8 +121,6 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         activeProfileId,
       });
 
-      // CRITICAL: Ensure we have a valid session before proceeding
-      console.log('[MomentoUpload] 🔍 Verificando sesión válida...');
       const validSession = await ensureValidSession();
       
       if (!validSession) {
@@ -125,27 +133,18 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         return;
       }
 
-      console.log('[MomentoUpload] ✅ Sesión válida confirmada:', {
-        userId: validSession.user.id,
-        email: validSession.user.email,
-        role: validSession.user.role,
-        expiresAt: new Date(validSession.expires_at! * 1000).toLocaleString(),
-        accessToken: validSession.access_token ? 'presente' : 'ausente',
-      });
+      console.log('[MomentoUpload] ✅ Sesión válida confirmada');
 
-      // Get user ID from the validated session
       const currentUserId = validSession.user.id;
 
       console.log('[MomentoUpload] 👤 Usuario confirmado:', currentUserId);
 
-      // Prepare momento data
       let momentoData: any = {
         autor_id: currentUserId,
         tipo: 'usuario',
         categoria: 'general',
       };
 
-      // Verify ownership if uploading as local
       if (activeProfileType === 'local' && activeProfileId) {
         console.log('[MomentoUpload] 🏢 Verificando propiedad del local...');
         
@@ -169,14 +168,12 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
 
         console.log('[MomentoUpload] ✅ Propiedad verificada:', ownershipData);
         
-        // Set momento data for local
         momentoData.tipo = 'local';
         momentoData.local_id = activeProfileId;
       }
 
       console.log('[MomentoUpload] 📝 Datos del momento preparados:', momentoData);
 
-      // Convert image to base64 using FileSystem
       console.log('[MomentoUpload] 📸 Convirtiendo imagen a base64...');
       const base64 = await FileSystem.readAsStringAsync(selectedImage, {
         encoding: FileSystem.EncodingType.Base64,
@@ -184,17 +181,12 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
 
       console.log('[MomentoUpload] ✅ Imagen convertida, tamaño:', base64.length, 'caracteres');
 
-      // Upload to Supabase Storage with user ID in path (required by RLS)
-      // Path format: {user_id}/{filename}
       const fileName = `momento-${Date.now()}.jpg`;
       const filePath = `${currentUserId}/${fileName}`;
 
       console.log('[MomentoUpload] 📤 Subiendo a storage bucket "momentos"');
       console.log('[MomentoUpload] 📁 Ruta del archivo:', filePath);
-      console.log('[MomentoUpload] 👤 ID de usuario:', currentUserId);
 
-      // Decode base64 to ArrayBuffer for upload
-      console.log('[MomentoUpload] 🔄 Decodificando base64 a ArrayBuffer...');
       const arrayBuffer = decode(base64);
 
       console.log('[MomentoUpload] 📦 Tamaño del buffer:', arrayBuffer.byteLength, 'bytes');
@@ -208,21 +200,11 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
 
       if (uploadError) {
         console.error('[MomentoUpload] ❌ Error de subida al storage:', uploadError);
-        console.error('[MomentoUpload] 📋 Detalles del error:', {
-          message: uploadError.message,
-          statusCode: (uploadError as any).statusCode,
-          name: uploadError.name,
-        });
         
-        // Provide more specific error message
         if (uploadError.message.includes('row-level security') || uploadError.message.includes('policy')) {
           Alert.alert(
             'Error de permisos',
-            'No tienes permisos para subir archivos. Esto puede deberse a:\n\n' +
-            '1. Tu sesión ha expirado\n' +
-            '2. No estás autenticado correctamente\n' +
-            '3. Hay un problema con los permisos de almacenamiento\n\n' +
-            'Por favor, cierra sesión y vuelve a iniciar sesión.'
+            'No tienes permisos para subir archivos. Por favor, cierra sesión y vuelve a iniciar sesión.'
           );
         } else if (uploadError.message.includes('Duplicate')) {
           Alert.alert('Error', 'Ya existe un archivo con ese nombre. Intenta de nuevo.');
@@ -235,19 +217,16 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
 
       console.log('[MomentoUpload] ✅ Subida al storage exitosa:', uploadData);
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('momentos')
         .getPublicUrl(filePath);
 
       console.log('[MomentoUpload] 🔗 URL pública generada:', urlData.publicUrl);
 
-      // Add image URL to momento data
       momentoData.imagen_url = urlData.publicUrl;
 
       console.log('[MomentoUpload] 💾 Creando registro en la base de datos...');
 
-      // Insert momento record
       const { data: insertData, error: insertError } = await supabase
         .from('momentos')
         .insert(momentoData)
@@ -256,14 +235,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
 
       if (insertError) {
         console.error('[MomentoUpload] ❌ Error insertando en base de datos:', insertError);
-        console.error('[MomentoUpload] 📋 Detalles del error:', {
-          code: insertError.code,
-          message: insertError.message,
-          details: insertError.details,
-          hint: insertError.hint,
-        });
         
-        // Provide more specific error message
         if (insertError.message.includes('row-level security') || insertError.message.includes('policy')) {
           Alert.alert(
             'Error de permisos',
@@ -288,7 +260,6 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
       
       setSelectedImage(null);
       
-      // ✅ FIX: Call onSuccess as a function if it exists
       if (onSuccess && typeof onSuccess === 'function') {
         onSuccess();
       }
@@ -316,7 +287,6 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
           colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.95)']}
           style={styles.gradient}
         >
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={handleClose} disabled={uploading}>
               <IconSymbol
@@ -330,7 +300,6 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
             <View style={{ width: 28 }} />
           </View>
 
-          {/* Content */}
           <View style={styles.content}>
             {selectedImage ? (
               <View style={styles.previewContainer}>
@@ -361,7 +330,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                     {uploading ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
-                      <>
+                      <React.Fragment>
                         <IconSymbol
                           ios_icon_name="checkmark.circle.fill"
                           android_material_icon_name="check_circle"
@@ -369,7 +338,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                           color="#fff"
                         />
                         <Text style={styles.previewButtonText}>Publicar</Text>
-                      </>
+                      </React.Fragment>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -433,7 +402,9 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                     color={colors.primary}
                   />
                   <Text style={styles.infoText}>
-                    Los Momentos son visibles para tus seguidores durante 24 horas
+                    {activeProfileType === 'local' 
+                      ? 'Los Momentos de tu local son visibles para tus seguidores durante 24 horas'
+                      : 'Los Momentos son visibles para tus seguidores durante 24 horas'}
                   </Text>
                 </View>
               </View>

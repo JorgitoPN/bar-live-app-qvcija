@@ -25,12 +25,13 @@ interface ProfileSwitcherProps {
 }
 
 /**
- * ✅ PROFILE SWITCHER v3.0 - ADMIN MODE FIX
+ * ✅ PROFILE SWITCHER v3.1 - ADMIN MODE FIX
  * 
  * CRITICAL FIXES:
  * - ✅ Admin mode is ONLY shown to jorgepereznoyagh@gmail.com
  * - ✅ Uses isAdminUser() to check both role AND email
  * - ✅ Prevents unauthorized users from seeing admin mode option
+ * - ✅ Fixed: Admin mode selector removed for all users except jorgepereznoyagh@gmail.com
  */
 
 const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: ProfileSwitcherProps) {
@@ -50,10 +51,15 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
 
   // ✅ CRITICAL: Check if user is authorized admin
   const userIsAdmin = useMemo(() => {
-    return isAdminUser(user);
+    const isAdmin = isAdminUser(user);
+    console.log('[ProfileSwitcher] Admin check:', {
+      email: user?.email,
+      isAdmin,
+      shouldShowAdminMode: isAdmin,
+    });
+    return isAdmin;
   }, [user]);
 
-  // ✅ CRITICAL FIX: Memoize loadOwnedLocals with STABLE dependencies
   const loadOwnedLocals = useCallback(async () => {
     if (!user?.id) {
       console.log('[ProfileSwitcher] ⚠️ No user ID, skipping load');
@@ -64,7 +70,6 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
       setLoading(true);
       console.log('[ProfileSwitcher] 🔄 Loading owned locals for user:', user.id);
 
-      // Query propietarios_locales table to get ONLY active owned locals
       const { data: propietariosData, error: propietariosError } = await supabase
         .from('propietarios_locales')
         .select(`
@@ -86,7 +91,6 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
         return;
       }
 
-      // Filter to only include active locals
       const activeOwnedLocals = (propietariosData || [])
         .filter(p => p.locales && p.locales.activo === true)
         .map(p => p.locales);
@@ -100,7 +104,6 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     }
   }, [user?.id]);
 
-  // ✅ CRITICAL FIX: Only load when modal becomes visible, not on every render
   useEffect(() => {
     if (visible && user?.id) {
       console.log('[ProfileSwitcher] 🔄 Modal opened, loading owned locals');
@@ -108,7 +111,6 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     }
   }, [visible, user?.id, loadOwnedLocals]);
 
-  // ✅ OPTIMIZATION: Memoize handlers to prevent re-creation
   const handleSwitchToClient = useCallback(async () => {
     setSwitching(true);
     try {
@@ -149,7 +151,6 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     }
   }, [switchToLocalProfile, onClose, router]);
 
-  // ✅ NEW: Handle switching to admin mode
   const handleSwitchToAdmin = useCallback(async () => {
     if (!userIsAdmin) {
       console.error('[ProfileSwitcher] ❌ User is not authorized admin');
@@ -175,7 +176,6 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     }
   }, [userIsAdmin, setCurrentMode, onClose, router]);
 
-  // ✅ OPTIMIZATION: Memoize active profile check
   const isClientActive = useMemo(() => {
     return activeProfileType === 'cliente' && activeProfileId === user?.id;
   }, [activeProfileType, activeProfileId, user?.id]);
@@ -196,7 +196,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.container} onPress={(e) => e.stopPropagation()}>
           <View style={styles.header}>
-            <Text style={styles.title}>Cambiar Perfil</Text>
+            <Text style={styles.title}>Cambiar modo de usuario</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
             </TouchableOpacity>
@@ -209,43 +209,32 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
             </View>
           ) : (
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              {/* ✅ CRITICAL: Only show admin mode to authorized users */}
+              <Text style={styles.sectionSubtitle}>Selecciona cómo quieres usar BarLive</Text>
+
+              {/* ✅ CRITICAL FIX: Only show admin mode to jorgepereznoyagh@gmail.com */}
               {userIsAdmin && (
-                <>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Modo Administrador</Text>
-                    <Text style={styles.sectionSubtitle}>
-                      Acceso exclusivo para {user.email}
-                    </Text>
-                  </View>
-
-                  <TouchableOpacity
-                    style={[styles.profileCard, isAdminActive && styles.profileCardActive]}
-                    onPress={handleSwitchToAdmin}
-                    disabled={switching || isAdminActive}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.profileInfo}>
-                      <View style={[styles.profileAvatar, styles.adminAvatarBg]}>
-                        <IconSymbol ios_icon_name="gear" android_material_icon_name="settings" size={24} color={colors.white} />
-                      </View>
-                      <View style={styles.profileText}>
-                        <Text style={styles.profileName}>Panel de Administración</Text>
-                        <Text style={styles.profileType}>Gestión del sistema</Text>
-                      </View>
+                <TouchableOpacity
+                  style={[styles.profileCard, isAdminActive && styles.profileCardActive]}
+                  onPress={handleSwitchToAdmin}
+                  disabled={switching || isAdminActive}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.profileInfo}>
+                    <View style={[styles.profileAvatar, styles.adminAvatarBg]}>
+                      <IconSymbol ios_icon_name="gearshape.fill" android_material_icon_name="settings" size={24} color={colors.white} />
                     </View>
-                    {isAdminActive && (
-                      <View style={styles.activeIndicator}>
-                        <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                </>
+                    <View style={styles.profileText}>
+                      <Text style={styles.profileName}>Admin</Text>
+                      <Text style={styles.profileType}>Administra la plataforma</Text>
+                    </View>
+                  </View>
+                  {isAdminActive && (
+                    <View style={styles.activeIndicator}>
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
+                    </View>
+                  )}
+                </TouchableOpacity>
               )}
-
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Perfil Personal</Text>
-              </View>
 
               <TouchableOpacity
                 style={[styles.profileCard, isClientActive && styles.profileCardActive]}
@@ -254,16 +243,12 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
                 activeOpacity={0.7}
               >
                 <View style={styles.profileInfo}>
-                  {user.avatar ? (
-                    <Image source={{ uri: user.avatar }} style={styles.profileAvatar} />
-                  ) : (
-                    <View style={[styles.profileAvatar, styles.profileAvatarPlaceholder]}>
-                      <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.textSecondary} />
-                    </View>
-                  )}
+                  <View style={[styles.profileAvatar, styles.clientAvatarBg]}>
+                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.white} />
+                  </View>
                   <View style={styles.profileText}>
-                    <Text style={styles.profileName}>{user.nombre || 'Usuario'}</Text>
-                    <Text style={styles.profileType}>Perfil Personal</Text>
+                    <Text style={styles.profileName}>Cliente</Text>
+                    <Text style={styles.profileType}>Explora locales y eventos</Text>
                   </View>
                 </View>
                 {isClientActive && (
@@ -274,14 +259,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
               </TouchableOpacity>
 
               {ownedLocals.length > 0 && (
-                <>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Mis Locales</Text>
-                    <Text style={styles.sectionSubtitle}>
-                      {ownedLocals.length} {ownedLocals.length === 1 ? 'local' : 'locales'}
-                    </Text>
-                  </View>
-
+                <React.Fragment>
                   {ownedLocals.map((local) => {
                     const isActive = activeProfileType === 'local' && activeProfileId === local.id;
                     
@@ -294,16 +272,12 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
                         activeOpacity={0.7}
                       >
                         <View style={styles.profileInfo}>
-                          {local.imagen_url ? (
-                            <Image source={{ uri: local.imagen_url }} style={styles.profileAvatar} />
-                          ) : (
-                            <View style={[styles.profileAvatar, styles.profileAvatarPlaceholder]}>
-                              <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={24} color={colors.textSecondary} />
-                            </View>
-                          )}
+                          <View style={[styles.profileAvatar, styles.ownerAvatarBg]}>
+                            <IconSymbol ios_icon_name="briefcase.fill" android_material_icon_name="work" size={24} color={colors.white} />
+                          </View>
                           <View style={styles.profileText}>
-                            <Text style={styles.profileName}>{local.nombre}</Text>
-                            <Text style={styles.profileType}>{local.tipo}</Text>
+                            <Text style={styles.profileName}>Propietario</Text>
+                            <Text style={styles.profileType}>Gestiona tus locales</Text>
                           </View>
                         </View>
                         {isActive && (
@@ -314,17 +288,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
                       </TouchableOpacity>
                     );
                   })}
-                </>
-              )}
-
-              {ownedLocals.length === 0 && (
-                <View style={styles.emptyState}>
-                  <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={48} color={colors.textSecondary} />
-                  <Text style={styles.emptyText}>No tienes locales registrados</Text>
-                  <Text style={styles.emptySubtext}>
-                    Solicita el rol de propietario para gestionar locales
-                  </Text>
-                </View>
+                </React.Fragment>
               )}
             </ScrollView>
           )}
@@ -381,19 +345,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: 16,
   },
-  sectionHeader: {
-    marginTop: 24,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
   sectionSubtitle: {
     fontSize: 14,
     color: colors.textSecondary,
+    marginBottom: 20,
   },
   profileCard: {
     flexDirection: 'row',
@@ -420,18 +375,17 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     marginRight: 16,
-  },
-  profileAvatarPlaceholder: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
   },
   adminAvatarBg: {
-    backgroundColor: colors.badgeNuevo,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#8B5CF6',
+  },
+  clientAvatarBg: {
+    backgroundColor: colors.primary,
+  },
+  ownerAvatarBg: {
+    backgroundColor: colors.secondary,
   },
   profileText: {
     flex: 1,
@@ -448,23 +402,6 @@ const styles = StyleSheet.create({
   },
   activeIndicator: {
     marginLeft: 12,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: 32,
   },
   loadingOverlay: {
     position: 'absolute',
