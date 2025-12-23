@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/utils/supabase';
+import { isAdminUser } from '@/utils/adminAccess';
 
 type UserMode = 'cliente' | 'propietario' | 'admin';
 
@@ -117,16 +118,19 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           if (user) {
             const userRole = user.rol_app || 'cliente';
             
+            // ✅ CRITICAL FIX: Admin mode is ONLY available to authorized admin users
+            const userIsAdmin = isAdminUser(user);
+            
             const isValidMode = 
               (savedMode === 'cliente') ||
               (savedMode === 'propietario' && (userRole === 'propietario' || userRole === 'admin')) ||
-              (savedMode === 'admin' && userRole === 'admin');
+              (savedMode === 'admin' && userIsAdmin); // ✅ Check both role AND email
             
             if (isValidMode) {
               console.log('[ModeContext] ✅ Restored mode from storage:', savedMode);
               setCurrentModeState(savedMode as UserMode);
             } else {
-              console.log('[ModeContext] ⚠️ Invalid mode for user role, resetting to cliente');
+              console.log('[ModeContext] ⚠️ Invalid mode for user, resetting to cliente');
               setCurrentModeState('cliente');
               // Clear invalid mode from storage
               await AsyncStorage.setItem(MODE_STORAGE_KEY, 'cliente');
@@ -273,13 +277,16 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       if (user) {
         const userRole = user.rol_app || 'cliente';
         
+        // ✅ CRITICAL FIX: Admin mode is ONLY available to authorized admin users
+        const userIsAdmin = isAdminUser(user);
+        
         const isValidMode = 
           (mode === 'cliente') ||
           (mode === 'propietario' && (userRole === 'propietario' || userRole === 'admin')) ||
-          (mode === 'admin' && userRole === 'admin');
+          (mode === 'admin' && userIsAdmin); // ✅ Check both role AND email
         
         if (!isValidMode) {
-          console.warn('[ModeContext] ⚠️ Invalid mode for user role:', mode, userRole);
+          console.warn('[ModeContext] ⚠️ Invalid mode for user:', mode, userRole);
           return;
         }
       }

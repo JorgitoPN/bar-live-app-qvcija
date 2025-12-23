@@ -19,6 +19,7 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { isAdminUser } from '@/utils/adminAccess';
 
 export default function ConfiguracionScreen() {
   const router = useRouter();
@@ -38,6 +39,9 @@ export default function ConfiguracionScreen() {
   const [idioma, setIdioma] = useState('es');
   const [cacheSizeMB, setCacheSizeMB] = useState(0);
   const [showIdiomaModal, setShowIdiomaModal] = useState(false);
+
+  // ✅ Check if user is authorized admin
+  const userIsAdmin = user ? isAdminUser(user) : false;
 
   const loadUserSettings = useCallback(async () => {
     try {
@@ -280,6 +284,19 @@ export default function ConfiguracionScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* ✅ ADMIN INFO: Only show for authorized admin users */}
+        {userIsAdmin && (
+          <View style={styles.adminInfoBox}>
+            <View style={styles.adminInfoHeader}>
+              <IconSymbol ios_icon_name="shield.checkered" android_material_icon_name="admin_panel_settings" size={20} color={colors.primary} />
+              <Text style={styles.adminInfoTitle}>Acceso de Administrador</Text>
+            </View>
+            <Text style={styles.adminInfoText}>
+              Tienes acceso completo al panel de administración. El modo admin solo está disponible para tu cuenta.
+            </Text>
+          </View>
+        )}
+
         {/* Notificaciones section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notificaciones</Text>
@@ -657,6 +674,32 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 120,
+  },
+  adminInfoBox: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    padding: 16,
+    backgroundColor: colors.primary + '10',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  adminInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  adminInfoTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  adminInfoText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
   },
   section: {
     paddingVertical: 16,
