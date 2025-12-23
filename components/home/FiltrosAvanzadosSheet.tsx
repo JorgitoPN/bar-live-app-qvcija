@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -50,12 +50,12 @@ const COMUNIDADES = Object.keys(COMUNIDADES_PROVINCIAS);
 
 const TIPOS_LOCAL = [
   { id: 'todos', label: 'Todos', icon: '🏪' },
-  { id: 'cafes', label: 'Cafés', icon: '☕' },
-  { id: 'restaurantes', label: 'Restaurantes', icon: '🍽️' },
-  { id: 'bares', label: 'Bares', icon: '🍷' },
-  { id: 'pubs', label: 'Pubs', icon: '🍺' },
+  { id: 'cafe', label: 'Cafés', icon: '☕' },
+  { id: 'restaurante', label: 'Restaurantes', icon: '🍽️' },
+  { id: 'bar', label: 'Bares', icon: '🍷' },
+  { id: 'pub', label: 'Pubs', icon: '🍺' },
   { id: 'cocteleria', label: 'Coctelería', icon: '🍸' },
-  { id: 'discotecas', label: 'Discotecas', icon: '🎵' },
+  { id: 'discoteca', label: 'Discotecas', icon: '🎵' },
 ];
 
 const SERVICIOS = [
@@ -81,13 +81,15 @@ const AMBIENTES = [
 ];
 
 /**
- * ✅ ADVANCED FILTERS SHEET v3.0 - OPTIMIZED WITH LOCAL STATE
+ * ✅ ADVANCED FILTERS SHEET v4.0 - ULTRA-OPTIMIZED WITH FIXED FILTERS
  * 
  * Features:
  * - ✅ TEMPORARY LOCAL STATE: Prevents UI blocking during selection
  * - ✅ SYNCHRONIZED with FilterContext: Updates global state only on "Apply"
  * - ✅ OPTIMIZED SELECTORS: Memoized filtered lists to prevent re-renders
  * - ✅ NO UI BLOCKING: Smooth interaction even with many options
+ * - ✅ FIXED FILTERS: All filters now work correctly (tipo, servicios, ambiente)
+ * - ✅ PERFORMANCE: Uses useCallback for all handlers to prevent re-renders
  */
 
 export default function FiltrosAvanzadosSheet({
@@ -108,22 +110,49 @@ export default function FiltrosAvanzadosSheet({
   const [searchComunidad, setSearchComunidad] = useState('');
   const [searchProvincia, setSearchProvincia] = useState('');
 
+  // Reset temp filters when modal opens
   useEffect(() => {
-    setFiltrosTemp(initialFiltros);
-  }, [initialFiltros, visible]);
+    if (visible) {
+      console.log('[FiltrosAvanzados] 🔄 Modal opened, resetting temp filters');
+      setFiltrosTemp(initialFiltros);
+    }
+  }, [visible, initialFiltros]);
 
   // ✅ OPTIMIZED: Memoized toggle function to prevent re-renders
-  const toggleArrayItem = useMemo(() => {
-    return (array: string[] | undefined, item: string): string[] => {
-      const arr = array || [];
-      if (arr.includes(item)) {
-        return arr.filter((i) => i !== item);
-      }
-      return [...arr, item];
-    };
+  const toggleArrayItem = useCallback((array: string[] | undefined, item: string): string[] => {
+    const arr = array || [];
+    if (arr.includes(item)) {
+      return arr.filter((i) => i !== item);
+    }
+    return [...arr, item];
   }, []);
 
-  const handleAplicar = () => {
+  // ✅ OPTIMIZED: Memoized handlers to prevent re-renders
+  const handleTipoToggle = useCallback((tipoId: string) => {
+    console.log('[FiltrosAvanzados] 🏪 Toggling tipo:', tipoId);
+    setFiltrosTemp(prev => ({
+      ...prev,
+      tipo: tipoId === 'todos' ? undefined : toggleArrayItem(prev.tipo, tipoId),
+    }));
+  }, [toggleArrayItem]);
+
+  const handleServicioToggle = useCallback((servicioId: string) => {
+    console.log('[FiltrosAvanzados] ✅ Toggling servicio:', servicioId);
+    setFiltrosTemp(prev => ({
+      ...prev,
+      servicios: toggleArrayItem(prev.servicios, servicioId),
+    }));
+  }, [toggleArrayItem]);
+
+  const handleAmbienteToggle = useCallback((ambienteId: string) => {
+    console.log('[FiltrosAvanzados] ✨ Toggling ambiente:', ambienteId);
+    setFiltrosTemp(prev => ({
+      ...prev,
+      ambiente: ambienteId === 'cualquiera' ? undefined : toggleArrayItem(prev.ambiente, ambienteId),
+    }));
+  }, [toggleArrayItem]);
+
+  const handleAplicar = useCallback(() => {
     console.log('[FiltrosAvanzados] ✅ Applying filters:', filtrosTemp);
     
     // ✅ SYNCHRONIZED: Apply to context (global state)
@@ -135,38 +164,58 @@ export default function FiltrosAvanzadosSheet({
     }
     
     onClose();
-  };
+  }, [filtrosTemp, contextAplicarFiltros, propOnAplicarFiltros, onClose]);
 
-  const handleLimpiar = () => {
+  const handleLimpiar = useCallback(() => {
     console.log('[FiltrosAvanzados] 🧹 Clearing all filters');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     contextLimpiarFiltros();
-  };
+  }, [contextLimpiarFiltros]);
 
-  const handleComunidadSelect = (selectedComunidad: string) => {
+  const handleComunidadSelect = useCallback((selectedComunidad: string) => {
     console.log('[FiltrosAvanzados] 📍 Community selected:', selectedComunidad);
     
-    const newFiltros = {
-      ...filtrosTemp,
-      comunidad: selectedComunidad === 'Todas las Comunidades' ? undefined : selectedComunidad,
-    };
-    
-    // Reset province if it doesn't belong to the selected community
-    if (selectedComunidad !== 'Todas las Comunidades') {
-      const availableProvincias = COMUNIDADES_PROVINCIAS[selectedComunidad] || [];
-      if (filtrosTemp.provincia && !availableProvincias.includes(filtrosTemp.provincia)) {
+    setFiltrosTemp(prev => {
+      const newFiltros = {
+        ...prev,
+        comunidad: selectedComunidad === 'Todas las Comunidades' ? undefined : selectedComunidad,
+      };
+      
+      // Reset province if it doesn't belong to the selected community
+      if (selectedComunidad !== 'Todas las Comunidades') {
+        const availableProvincias = COMUNIDADES_PROVINCIAS[selectedComunidad] || [];
+        if (prev.provincia && !availableProvincias.includes(prev.provincia)) {
+          newFiltros.provincia = undefined;
+          console.log('[FiltrosAvanzados] ⚠️ Province reset because it does not belong to selected community');
+        }
+      } else {
         newFiltros.provincia = undefined;
-        console.log('[FiltrosAvanzados] ⚠️ Province reset because it does not belong to selected community');
       }
-    } else {
-      newFiltros.provincia = undefined;
-    }
+      
+      return newFiltros;
+    });
     
-    setFiltrosTemp(newFiltros);
     setShowComunidadModal(false);
     setSearchComunidad('');
-  };
+  }, []);
+
+  const handleProvinciaSelect = useCallback((provincia: string) => {
+    console.log('[FiltrosAvanzados] 📍 Province selected:', provincia);
+    setFiltrosTemp(prev => ({
+      ...prev,
+      provincia: prev.provincia === provincia ? undefined : provincia,
+    }));
+    setShowProvinciaModal(false);
+    setSearchProvincia('');
+  }, []);
+
+  const handleDistanciaChange = useCallback((text: string) => {
+    setFiltrosTemp(prev => ({
+      ...prev,
+      distancia: text ? parseFloat(text) : undefined,
+    }));
+  }, []);
 
   // ✅ OPTIMIZED: Memoized filtered communities to prevent re-renders
   const filteredComunidades = useMemo(() => {
@@ -268,12 +317,7 @@ export default function FiltrosAvanzadosSheet({
                     placeholder="km"
                     keyboardType="numeric"
                     value={filtrosTemp.distancia?.toString() || ''}
-                    onChangeText={(text) =>
-                      setFiltrosTemp({
-                        ...filtrosTemp,
-                        distancia: text ? parseFloat(text) : undefined,
-                      })
-                    }
+                    onChangeText={handleDistanciaChange}
                   />
                 </View>
               </View>
@@ -284,31 +328,32 @@ export default function FiltrosAvanzadosSheet({
                   <Text style={styles.sectionTitle}>Tipo de Local</Text>
                 </View>
                 <View style={styles.compactChipContainer}>
-                  {TIPOS_LOCAL.map((tipo) => (
-                    <TouchableOpacity
-                      key={tipo.id}
-                      style={[
-                        styles.compactChip,
-                        filtrosTemp.tipo?.includes(tipo.id) && styles.compactChipActive,
-                      ]}
-                      onPress={() =>
-                        setFiltrosTemp({
-                          ...filtrosTemp,
-                          tipo: toggleArrayItem(filtrosTemp.tipo, tipo.id),
-                        })
-                      }
-                    >
-                      <Text style={styles.chipIcon}>{tipo.icon}</Text>
-                      <Text
+                  {TIPOS_LOCAL.map((tipo) => {
+                    const isSelected = tipo.id === 'todos' 
+                      ? !filtrosTemp.tipo || filtrosTemp.tipo.length === 0
+                      : filtrosTemp.tipo?.includes(tipo.id);
+                    
+                    return (
+                      <TouchableOpacity
+                        key={tipo.id}
                         style={[
-                          styles.compactChipText,
-                          filtrosTemp.tipo?.includes(tipo.id) && styles.compactChipTextActive,
+                          styles.compactChip,
+                          isSelected && styles.compactChipActive,
                         ]}
+                        onPress={() => handleTipoToggle(tipo.id)}
                       >
-                        {tipo.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text style={styles.chipIcon}>{tipo.icon}</Text>
+                        <Text
+                          style={[
+                            styles.compactChipText,
+                            isSelected && styles.compactChipTextActive,
+                          ]}
+                        >
+                          {tipo.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
 
@@ -318,31 +363,30 @@ export default function FiltrosAvanzadosSheet({
                   <Text style={styles.sectionTitle}>Servicios</Text>
                 </View>
                 <View style={styles.compactChipContainer}>
-                  {SERVICIOS.map((servicio) => (
-                    <TouchableOpacity
-                      key={servicio.id}
-                      style={[
-                        styles.compactChip,
-                        filtrosTemp.servicios?.includes(servicio.id) && styles.compactChipActive,
-                      ]}
-                      onPress={() =>
-                        setFiltrosTemp({
-                          ...filtrosTemp,
-                          servicios: toggleArrayItem(filtrosTemp.servicios, servicio.id),
-                        })
-                      }
-                    >
-                      <Text style={styles.chipIcon}>{servicio.icon}</Text>
-                      <Text
+                  {SERVICIOS.map((servicio) => {
+                    const isSelected = filtrosTemp.servicios?.includes(servicio.id);
+                    
+                    return (
+                      <TouchableOpacity
+                        key={servicio.id}
                         style={[
-                          styles.compactChipText,
-                          filtrosTemp.servicios?.includes(servicio.id) && styles.compactChipTextActive,
+                          styles.compactChip,
+                          isSelected && styles.compactChipActive,
                         ]}
+                        onPress={() => handleServicioToggle(servicio.id)}
                       >
-                        {servicio.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text style={styles.chipIcon}>{servicio.icon}</Text>
+                        <Text
+                          style={[
+                            styles.compactChipText,
+                            isSelected && styles.compactChipTextActive,
+                          ]}
+                        >
+                          {servicio.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
 
@@ -352,31 +396,32 @@ export default function FiltrosAvanzadosSheet({
                   <Text style={styles.sectionTitle}>Ambiente</Text>
                 </View>
                 <View style={styles.compactChipContainer}>
-                  {AMBIENTES.map((ambiente) => (
-                    <TouchableOpacity
-                      key={ambiente.id}
-                      style={[
-                        styles.compactChip,
-                        filtrosTemp.ambiente?.includes(ambiente.id) && styles.compactChipActive,
-                      ]}
-                      onPress={() =>
-                        setFiltrosTemp({
-                          ...filtrosTemp,
-                          ambiente: toggleArrayItem(filtrosTemp.ambiente, ambiente.id),
-                        })
-                      }
-                    >
-                      <Text style={styles.chipIcon}>{ambiente.icon}</Text>
-                      <Text
+                  {AMBIENTES.map((ambiente) => {
+                    const isSelected = ambiente.id === 'cualquiera'
+                      ? !filtrosTemp.ambiente || filtrosTemp.ambiente.length === 0
+                      : filtrosTemp.ambiente?.includes(ambiente.id);
+                    
+                    return (
+                      <TouchableOpacity
+                        key={ambiente.id}
                         style={[
-                          styles.compactChipText,
-                          filtrosTemp.ambiente?.includes(ambiente.id) && styles.compactChipTextActive,
+                          styles.compactChip,
+                          isSelected && styles.compactChipActive,
                         ]}
+                        onPress={() => handleAmbienteToggle(ambiente.id)}
                       >
-                        {ambiente.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text style={styles.chipIcon}>{ambiente.icon}</Text>
+                        <Text
+                          style={[
+                            styles.compactChipText,
+                            isSelected && styles.compactChipTextActive,
+                          ]}
+                        >
+                          {ambiente.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
 
@@ -505,14 +550,7 @@ export default function FiltrosAvanzadosSheet({
                       styles.selectorModalOption,
                       filtrosTemp.provincia === provincia && styles.selectorModalOptionActive,
                     ]}
-                    onPress={() => {
-                      setFiltrosTemp({
-                        ...filtrosTemp,
-                        provincia: filtrosTemp.provincia === provincia ? undefined : provincia,
-                      });
-                      setShowProvinciaModal(false);
-                      setSearchProvincia('');
-                    }}
+                    onPress={() => handleProvinciaSelect(provincia)}
                   >
                     <Text
                       style={[
