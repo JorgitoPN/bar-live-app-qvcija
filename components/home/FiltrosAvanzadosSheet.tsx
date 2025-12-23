@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -80,6 +80,16 @@ const AMBIENTES = [
   { id: 'informal', label: 'Informal', icon: '👕' },
 ];
 
+/**
+ * ✅ ADVANCED FILTERS SHEET v3.0 - OPTIMIZED WITH LOCAL STATE
+ * 
+ * Features:
+ * - ✅ TEMPORARY LOCAL STATE: Prevents UI blocking during selection
+ * - ✅ SYNCHRONIZED with FilterContext: Updates global state only on "Apply"
+ * - ✅ OPTIMIZED SELECTORS: Memoized filtered lists to prevent re-renders
+ * - ✅ NO UI BLOCKING: Smooth interaction even with many options
+ */
+
 export default function FiltrosAvanzadosSheet({
   visible,
   onClose,
@@ -91,6 +101,7 @@ export default function FiltrosAvanzadosSheet({
   // Use context filters if no prop filters provided
   const initialFiltros = propFiltros || contextFiltros;
   
+  // ✅ TEMPORARY LOCAL STATE: Only updated on "Apply"
   const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(initialFiltros);
   const [showComunidadModal, setShowComunidadModal] = useState(false);
   const [showProvinciaModal, setShowProvinciaModal] = useState(false);
@@ -101,18 +112,21 @@ export default function FiltrosAvanzadosSheet({
     setFiltrosTemp(initialFiltros);
   }, [initialFiltros, visible]);
 
-  const toggleArrayItem = (array: string[] | undefined, item: string): string[] => {
-    const arr = array || [];
-    if (arr.includes(item)) {
-      return arr.filter((i) => i !== item);
-    }
-    return [...arr, item];
-  };
+  // ✅ OPTIMIZED: Memoized toggle function to prevent re-renders
+  const toggleArrayItem = useMemo(() => {
+    return (array: string[] | undefined, item: string): string[] => {
+      const arr = array || [];
+      if (arr.includes(item)) {
+        return arr.filter((i) => i !== item);
+      }
+      return [...arr, item];
+    };
+  }, []);
 
   const handleAplicar = () => {
     console.log('[FiltrosAvanzados] ✅ Applying filters:', filtrosTemp);
     
-    // Apply to context (global state)
+    // ✅ SYNCHRONIZED: Apply to context (global state)
     contextAplicarFiltros(filtrosTemp);
     
     // Also call prop callback if provided (for backward compatibility)
@@ -154,17 +168,26 @@ export default function FiltrosAvanzadosSheet({
     setSearchComunidad('');
   };
 
-  const filteredComunidades = COMUNIDADES.filter(c =>
-    c.toLowerCase().includes(searchComunidad.toLowerCase())
-  );
+  // ✅ OPTIMIZED: Memoized filtered communities to prevent re-renders
+  const filteredComunidades = useMemo(() => {
+    return COMUNIDADES.filter(c =>
+      c.toLowerCase().includes(searchComunidad.toLowerCase())
+    );
+  }, [searchComunidad]);
 
-  const availableProvincias = filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades'
-    ? COMUNIDADES_PROVINCIAS[filtrosTemp.comunidad] || []
-    : [];
+  // ✅ OPTIMIZED: Memoized available provinces to prevent re-renders
+  const availableProvincias = useMemo(() => {
+    return filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades'
+      ? COMUNIDADES_PROVINCIAS[filtrosTemp.comunidad] || []
+      : [];
+  }, [filtrosTemp.comunidad]);
     
-  const filteredProvincias = availableProvincias.filter(p =>
-    p.toLowerCase().includes(searchProvincia.toLowerCase())
-  );
+  // ✅ OPTIMIZED: Memoized filtered provinces to prevent re-renders
+  const filteredProvincias = useMemo(() => {
+    return availableProvincias.filter(p =>
+      p.toLowerCase().includes(searchProvincia.toLowerCase())
+    );
+  }, [availableProvincias, searchProvincia]);
 
   return (
     <Modal

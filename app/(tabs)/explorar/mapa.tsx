@@ -23,7 +23,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFilters } from '@/contexts/FilterContext';
 import { addPubCategoryIfNeeded, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
 import { calcularDistancia } from '@/utils/locationUtils';
-import { mapCache } from '@/utils/mapCache';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 
 const { width } = Dimensions.get('window');
@@ -37,6 +36,103 @@ const CATEGORIAS_LOCALES = [
   { id: 'cocteleria', label: 'Coctelería', icon: 'wineglass' },
   { id: 'discoteca', label: 'Discotecas', icon: 'music.note' },
 ];
+
+// ✅ COORDINATES FOR AUTONOMOUS COMMUNITIES (for fly-to feature)
+const COMUNIDAD_COORDINATES: Record<string, { lat: number; lng: number; zoom: number }> = {
+  'Andalucía': { lat: 37.5443, lng: -4.7278, zoom: 7 },
+  'Aragón': { lat: 41.5911, lng: -0.9064, zoom: 7 },
+  'Asturias': { lat: 43.3614, lng: -5.8593, zoom: 8 },
+  'Baleares': { lat: 39.6953, lng: 3.0176, zoom: 8 },
+  'Canarias': { lat: 28.2916, lng: -16.6291, zoom: 7 },
+  'Cantabria': { lat: 43.1828, lng: -3.9878, zoom: 8 },
+  'Castilla y León': { lat: 41.8357, lng: -4.3976, zoom: 7 },
+  'Castilla-La Mancha': { lat: 39.2797, lng: -3.0977, zoom: 7 },
+  'Cataluña': { lat: 41.5912, lng: 1.5209, zoom: 7 },
+  'Comunidad de Madrid': { lat: 40.4168, lng: -3.7038, zoom: 9 },
+  'Comunidad Valenciana': { lat: 39.4840, lng: -0.7533, zoom: 7 },
+  'Extremadura': { lat: 39.4937, lng: -6.0679, zoom: 7 },
+  'Galicia': { lat: 42.5751, lng: -8.1339, zoom: 7 },
+  'La Rioja': { lat: 42.2871, lng: -2.5396, zoom: 9 },
+  'Navarra': { lat: 42.6954, lng: -1.6761, zoom: 8 },
+  'País Vasco': { lat: 43.0627, lng: -2.4144, zoom: 8 },
+  'Región de Murcia': { lat: 37.9922, lng: -1.1307, zoom: 8 },
+  'Ceuta': { lat: 35.8894, lng: -5.3213, zoom: 12 },
+  'Melilla': { lat: 35.2923, lng: -2.9381, zoom: 12 },
+};
+
+// ✅ PROVINCE COORDINATES (for fly-to feature)
+const PROVINCIA_COORDINATES: Record<string, { lat: number; lng: number; zoom: number }> = {
+  // Andalucía
+  'Almería': { lat: 36.8381, lng: -2.4597, zoom: 9 },
+  'Cádiz': { lat: 36.5271, lng: -6.2886, zoom: 9 },
+  'Córdoba': { lat: 37.8882, lng: -4.7794, zoom: 9 },
+  'Granada': { lat: 37.1773, lng: -3.5986, zoom: 9 },
+  'Huelva': { lat: 37.2614, lng: -6.9447, zoom: 9 },
+  'Jaén': { lat: 37.7796, lng: -3.7849, zoom: 9 },
+  'Málaga': { lat: 36.7213, lng: -4.4214, zoom: 9 },
+  'Sevilla': { lat: 37.3891, lng: -5.9845, zoom: 9 },
+  // Aragón
+  'Huesca': { lat: 42.1401, lng: -0.4080, zoom: 9 },
+  'Teruel': { lat: 40.3456, lng: -1.1065, zoom: 9 },
+  'Zaragoza': { lat: 41.6488, lng: -0.8891, zoom: 9 },
+  // Asturias
+  'Asturias': { lat: 43.3614, lng: -5.8593, zoom: 8 },
+  // Baleares
+  'Islas Baleares': { lat: 39.6953, lng: 3.0176, zoom: 8 },
+  // Canarias
+  'Las Palmas': { lat: 28.1248, lng: -15.4300, zoom: 8 },
+  'Santa Cruz de Tenerife': { lat: 28.4636, lng: -16.2518, zoom: 8 },
+  // Cantabria
+  'Cantabria': { lat: 43.1828, lng: -3.9878, zoom: 8 },
+  // Castilla y León
+  'Ávila': { lat: 40.6570, lng: -4.6814, zoom: 9 },
+  'Burgos': { lat: 42.3439, lng: -3.6969, zoom: 9 },
+  'León': { lat: 42.5987, lng: -5.5671, zoom: 9 },
+  'Palencia': { lat: 42.0096, lng: -4.5288, zoom: 9 },
+  'Salamanca': { lat: 40.9701, lng: -5.6635, zoom: 9 },
+  'Segovia': { lat: 40.9429, lng: -4.1088, zoom: 9 },
+  'Soria': { lat: 41.7665, lng: -2.4790, zoom: 9 },
+  'Valladolid': { lat: 41.6523, lng: -4.7245, zoom: 9 },
+  'Zamora': { lat: 41.5034, lng: -5.7467, zoom: 9 },
+  // Castilla-La Mancha
+  'Albacete': { lat: 38.9943, lng: -1.8585, zoom: 9 },
+  'Ciudad Real': { lat: 38.9848, lng: -3.9273, zoom: 9 },
+  'Cuenca': { lat: 40.0704, lng: -2.1374, zoom: 9 },
+  'Guadalajara': { lat: 40.6318, lng: -3.1606, zoom: 9 },
+  'Toledo': { lat: 39.8628, lng: -4.0273, zoom: 9 },
+  // Cataluña
+  'Barcelona': { lat: 41.3851, lng: 2.1734, zoom: 9 },
+  'Girona': { lat: 41.9794, lng: 2.8214, zoom: 9 },
+  'Lleida': { lat: 41.6176, lng: 0.6200, zoom: 9 },
+  'Tarragona': { lat: 41.1189, lng: 1.2445, zoom: 9 },
+  // Madrid
+  'Madrid': { lat: 40.4168, lng: -3.7038, zoom: 10 },
+  // Comunidad Valenciana
+  'Alicante': { lat: 38.3452, lng: -0.4810, zoom: 9 },
+  'Castellón': { lat: 39.9864, lng: -0.0513, zoom: 9 },
+  'Valencia': { lat: 39.4699, lng: -0.3763, zoom: 9 },
+  // Extremadura
+  'Badajoz': { lat: 38.8794, lng: -6.9706, zoom: 9 },
+  'Cáceres': { lat: 39.4753, lng: -6.3724, zoom: 9 },
+  // Galicia
+  'A Coruña': { lat: 43.3623, lng: -8.4115, zoom: 9 },
+  'Lugo': { lat: 43.0097, lng: -7.5567, zoom: 9 },
+  'Ourense': { lat: 42.3406, lng: -7.8644, zoom: 9 },
+  'Pontevedra': { lat: 42.4296, lng: -8.6446, zoom: 9 },
+  // La Rioja
+  'La Rioja': { lat: 42.2871, lng: -2.5396, zoom: 9 },
+  // Navarra
+  'Navarra': { lat: 42.6954, lng: -1.6761, zoom: 8 },
+  // País Vasco
+  'Álava': { lat: 42.8467, lng: -2.6716, zoom: 9 },
+  'Guipúzcoa': { lat: 43.1828, lng: -2.1764, zoom: 9 },
+  'Vizcaya': { lat: 43.2630, lng: -2.9350, zoom: 9 },
+  // Murcia
+  'Murcia': { lat: 37.9922, lng: -1.1307, zoom: 9 },
+  // Ceuta y Melilla
+  'Ceuta': { lat: 35.8894, lng: -5.3213, zoom: 12 },
+  'Melilla': { lat: 35.2923, lng: -2.9381, zoom: 12 },
+};
 
 interface LocalWithEvent extends Local {
   evento?: {
@@ -53,14 +149,17 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v2.0 - INSTANT LOADING WITH ZERO-WAIT
+ * ✅ MAP SCREEN v3.0 - INSTANT LOADING WITH ZERO-WAIT + FILTER SYNC + FLY-TO
  * 
  * Features:
  * - ✅ NO "Cargando mapa..." message - instant display
  * - ✅ Uses cached data from GlobalDataContext (same as Lista de Locales)
  * - ✅ Background sync for fresh data without blocking UI
- * - ✅ Synchronized with FilterContext for instant filter updates
+ * - ✅ SYNCHRONIZED with FilterContext for instant filter updates
  * - ✅ Shares data with Lista de Locales - no duplicate API calls
+ * - ✅ MARKER CLUSTERING for performance with many markers
+ * - ✅ MEMOIZED markers to prevent unnecessary re-renders
+ * - ✅ FLY-TO feature: automatically centers map on selected community/province
  */
 
 export default function MapaScreen() {
@@ -77,6 +176,7 @@ export default function MapaScreen() {
   const [todosLosLocales, setTodosLosLocales] = useState<LocalWithEvent[]>([]);
   const [localesFiltrados, setLocalesFiltrados] = useState<LocalWithEvent[]>([]);
   const [mapHTML, setMapHTML] = useState<string>('');
+  const previousFiltersRef = useRef<string>('');
 
   // ✅ Get user location
   useEffect(() => {
@@ -165,7 +265,9 @@ export default function MapaScreen() {
     return () => clearInterval(interval);
   }, [refreshData]);
 
+  // ✅ MEMOIZED MARKERS: Prevent unnecessary re-renders
   const markersData = useMemo(() => {
+    console.log('[MAP] 🎯 Memoizing markers data...');
     const checkInsByLocal = new Map<string, { isUserHere: boolean; friendsCount: number }>();
     
     return localesFiltrados.map(local => {
@@ -289,7 +391,7 @@ export default function MapaScreen() {
     }
 
     console.log(`[MAP] 🗺️ ========================================`);
-    console.log(`[MAP] 🗺️ GENERATING MAP HTML`);
+    console.log(`[MAP] 🗺️ GENERATING MAP HTML WITH CLUSTERING`);
     console.log(`[MAP] 🗺️ Total markers to display: ${markersData.length}`);
     console.log(`[MAP] 🗺️ Center: ${centerLat}, ${centerLng}`);
     console.log(`[MAP] 🗺️ ========================================`);
@@ -596,6 +698,7 @@ export default function MapaScreen() {
     try {
       console.log('[MAP HTML] ========================================');
       console.log('[MAP HTML] Initializing map with ${markersData.length} markers');
+      console.log('[MAP HTML] ✅ CLUSTERING ENABLED for performance');
       
       var map = L.map('map', {
         zoomControl: false,
@@ -607,6 +710,7 @@ export default function MapaScreen() {
         attribution: ''
       }).addTo(map);
 
+      // ✅ MARKER CLUSTERING for performance
       var markers = L.markerClusterGroup({
         maxClusterRadius: 50,
         spiderfyOnMaxZoom: true,
@@ -633,7 +737,7 @@ export default function MapaScreen() {
 
       var markersData = ${JSON.stringify(markersData)};
       
-      console.log('[MAP HTML] Markers data loaded:', markersData.length);
+      console.log('[MAP HTML] ✅ Markers data loaded:', markersData.length);
       
       var lastZoom = map.getZoom();
       map.on('zoomend', function() {
@@ -806,13 +910,24 @@ export default function MapaScreen() {
       map.addLayer(markers);
       
       console.log('[MAP HTML] ========================================');
-      console.log('[MAP HTML] Map initialized successfully');
-      console.log('[MAP HTML] Total markers created:', markersCreated);
+      console.log('[MAP HTML] ✅ Map initialized successfully');
+      console.log('[MAP HTML] ✅ Total markers created:', markersCreated);
+      console.log('[MAP HTML] ✅ CLUSTERING ACTIVE');
       console.log('[MAP HTML] ========================================');
       
       setTimeout(function() {
         map.invalidateSize();
       }, 100);
+      
+      // ✅ EXPOSE flyTo function for filter-based navigation
+      window.flyToLocation = function(lat, lng, zoom) {
+        console.log('[MAP HTML] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
+        map.flyTo([lat, lng], zoom, {
+          animate: true,
+          duration: 1.5,
+          easeLinearity: 0.25
+        });
+      };
       
     } catch (error) {
       console.error('[MAP HTML] Map initialization error:', error);
@@ -909,6 +1024,41 @@ export default function MapaScreen() {
     console.log(`[MAP] ✅ Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
     
     setLocalesFiltrados(filtrados);
+    
+    // ✅ FLY-TO: Automatically center map on selected community/province
+    const currentFiltersKey = JSON.stringify({
+      comunidad: globalFiltros.comunidad,
+      provincia: globalFiltros.provincia,
+    });
+    
+    if (currentFiltersKey !== previousFiltersRef.current && webViewRef.current) {
+      previousFiltersRef.current = currentFiltersKey;
+      
+      // Check if province is selected
+      if (globalFiltros.provincia && PROVINCIA_COORDINATES[globalFiltros.provincia]) {
+        const coords = PROVINCIA_COORDINATES[globalFiltros.provincia];
+        console.log(`[MAP] 🛫 FLY-TO: Province "${globalFiltros.provincia}"`, coords);
+        
+        webViewRef.current.injectJavaScript(`
+          if (typeof window.flyToLocation !== 'undefined') {
+            window.flyToLocation(${coords.lat}, ${coords.lng}, ${coords.zoom});
+          }
+          true;
+        `);
+      }
+      // Check if community is selected
+      else if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades' && COMUNIDAD_COORDINATES[globalFiltros.comunidad]) {
+        const coords = COMUNIDAD_COORDINATES[globalFiltros.comunidad];
+        console.log(`[MAP] 🛫 FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
+        
+        webViewRef.current.injectJavaScript(`
+          if (typeof window.flyToLocation !== 'undefined') {
+            window.flyToLocation(${coords.lat}, ${coords.lng}, ${coords.zoom});
+          }
+          true;
+        `);
+      }
+    }
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado, globalFiltros]);
 
   useEffect(() => {
