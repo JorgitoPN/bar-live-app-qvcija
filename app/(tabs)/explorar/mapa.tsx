@@ -65,7 +65,6 @@ export default function MapaScreen() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [todosLosLocales, setTodosLosLocales] = useState<LocalWithEvent[]>([]);
   const [localesFiltrados, setLocalesFiltrados] = useState<LocalWithEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [mapHTML, setMapHTML] = useState<string>('');
 
   useEffect(() => {
@@ -85,24 +84,18 @@ export default function MapaScreen() {
     })();
   }, []);
 
-  // ✅ OPTIMIZATION 1: Load essential data first (coordinates + ID) for instant marker display
   const cargarTodosLosLocalesEnriquecidos = useCallback(async () => {
     try {
       console.log('🔄 [MAP] ========================================');
       console.log('🔄 [MAP] Loading ALL active locals with location data...');
 
-      // ✅ OPTIMIZATION: Show cached data immediately for instant display
       const cachedLocales = await performanceOptimizer.getCache<LocalWithEvent[]>('map_all_locales_with_events');
       if (cachedLocales && cachedLocales.length > 0) {
         console.log('⚡ [MAP] INSTANT load from cache:', cachedLocales.length);
         setTodosLosLocales(cachedLocales);
         setLocalesFiltrados(cachedLocales);
-        setIsLoading(false);
-      } else {
-        setIsLoading(true);
       }
 
-      // ✅ OPTIMIZATION: Load only essential fields first for instant markers
       const { data: essentialData, error: essentialError } = await supabase
         .from('locales')
         .select('id, nombre, latitud, longitud, barlive_type, barlive_types, imagen_url, destacado')
@@ -115,7 +108,6 @@ export default function MapaScreen() {
       } else if (essentialData && essentialData.length > 0) {
         console.log(`⚡ [MAP] INSTANT markers ready: ${essentialData.length} locals`);
         
-        // Create minimal markers for instant display
         const minimalLocales: LocalWithEvent[] = essentialData.map((local) => ({
           id: local.id,
           nombre: local.nombre,
@@ -153,10 +145,8 @@ export default function MapaScreen() {
 
         setTodosLosLocales(minimalLocales);
         setLocalesFiltrados(minimalLocales);
-        setIsLoading(false);
       }
 
-      // ✅ OPTIMIZATION: Load full data in background
       const { data, error, count } = await supabase
         .from('locales')
         .select(`
@@ -280,10 +270,8 @@ export default function MapaScreen() {
       
       console.log(`✅ [MAP] Successfully loaded and cached ${localesTransformados.length} locals`);
       console.log('✅ [MAP] ========================================');
-      setIsLoading(false);
     } catch (error) {
       console.error('❌ [MAP] Error in cargarTodosLosLocalesEnriquecidos:', error);
-      setIsLoading(false);
     }
   }, []);
 
@@ -291,7 +279,6 @@ export default function MapaScreen() {
     cargarTodosLosLocalesEnriquecidos();
   }, [cargarTodosLosLocalesEnriquecidos]);
 
-  // ✅ OPTIMIZATION: Memoize markers data to avoid recalculation
   const markersData = useMemo(() => {
     const checkInsByLocal = new Map<string, { isUserHere: boolean; friendsCount: number }>();
     
@@ -1159,7 +1146,6 @@ export default function MapaScreen() {
       </View>
 
       <View style={styles.controlsRight}>
-        {/* ✅ FIXED: Made selector smaller and more compact */}
         <View style={styles.estadoSelectorContainer}>
           <View style={styles.estadoSelector}>
             <TouchableOpacity
@@ -1215,13 +1201,6 @@ export default function MapaScreen() {
       >
         <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={24} color={colors.primary} />
       </TouchableOpacity>
-
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando locales...</Text>
-        </View>
-      )}
 
       <FiltrosAvanzadosSheet
         visible={mostrarFiltros}
@@ -1396,6 +1375,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   leyendaItem: {
     flexDirection: 'column',
@@ -1428,22 +1409,5 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     zIndex: 5,
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 100,
-  },
-  loadingText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 12,
   },
 });

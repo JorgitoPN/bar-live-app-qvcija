@@ -155,14 +155,6 @@ const AMBIENTES = [
   'Tranquilo',
 ];
 
-/**
- * ✅ FILTROS AVANZADOS v2.0 - REMOVED PRICE RANGE FILTER
- * 
- * Changes:
- * - ❌ Removed "Rango de Precios" section completely
- * - ✅ All other filters remain functional
- */
-
 export default function FiltrosAvanzadosSheet({
   visible,
   onClose,
@@ -207,7 +199,6 @@ export default function FiltrosAvanzadosSheet({
           onPress={(e) => e.stopPropagation()}
         >
           <View style={styles.sheet}>
-            {/* Header */}
             <LinearGradient
               colors={[colors.headerGradientStart, colors.headerGradientEnd]}
               start={{ x: 0, y: 0 }}
@@ -224,7 +215,6 @@ export default function FiltrosAvanzadosSheet({
             </LinearGradient>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              {/* Ubicación y Distancia */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>📍 Ubicación y Distancia</Text>
                 
@@ -268,7 +258,6 @@ export default function FiltrosAvanzadosSheet({
                 </View>
               </View>
 
-              {/* Tipo de Local */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>🏪 Tipo de Local</Text>
                 <View style={styles.chipContainer}>
@@ -299,7 +288,6 @@ export default function FiltrosAvanzadosSheet({
                 </View>
               </View>
 
-              {/* Servicios y Comodidades */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>✨ Servicios y Comodidades</Text>
                 <View style={styles.chipContainer}>
@@ -330,7 +318,6 @@ export default function FiltrosAvanzadosSheet({
                 </View>
               </View>
 
-              {/* Ambiente */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>🎭 Ambiente</Text>
                 <View style={styles.chipContainer}>
@@ -364,7 +351,6 @@ export default function FiltrosAvanzadosSheet({
               <View style={{ height: 100 }} />
             </ScrollView>
 
-            {/* Footer */}
             <View style={styles.footer}>
               <TouchableOpacity style={styles.aplicarButton} onPress={handleAplicar}>
                 <LinearGradient
@@ -381,7 +367,6 @@ export default function FiltrosAvanzadosSheet({
         </Pressable>
       </Pressable>
 
-      {/* Modal Comunidad Autónoma */}
       <Modal
         visible={showComunidadModal}
         transparent
@@ -433,7 +418,6 @@ export default function FiltrosAvanzadosSheet({
         </Pressable>
       </Modal>
 
-      {/* Modal Provincia */}
       <Modal
         visible={showProvinciaModal}
         transparent

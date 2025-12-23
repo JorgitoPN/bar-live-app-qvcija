@@ -286,8 +286,6 @@ export default function LocalDetailsModal({
                 )}
 
                 <View style={styles.contentCard}>
-                  <Text style={styles.localNameText}>{local.nombre}</Text>
-
                   {allCategories.length > 0 && (
                     <View style={styles.categoriesRow}>
                       {allCategories.map((categoria, index) => {
@@ -557,12 +555,6 @@ const styles = StyleSheet.create({
   },
   contentCard: {
     padding: 20,
-  },
-  localNameText: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 12,
   },
   categoriesRow: {
     flexDirection: 'row',
