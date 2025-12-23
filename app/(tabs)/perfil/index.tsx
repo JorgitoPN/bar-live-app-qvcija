@@ -126,58 +126,42 @@ export default function PerfilScreen() {
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
 
-  const loadCartItemsCount = useCallback(async () => {
-    if (!user || !isPropietario) return;
+  // ✅ DEFINE ALL CALLBACK FUNCTIONS BEFORE USING THEM
 
-    try {
-      const { count, error } = await supabase
-        .from('shopping_cart')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('[Perfil] ❌ Error loading cart count:', error);
-        return;
-      }
-
-      setCartItemsCount(count || 0);
-    } catch (error) {
-      console.error('[Perfil] ❌ Error loading cart count:', error);
-    }
-  }, [user, isPropietario]);
-
-  const loadCurrentLocal = useCallback(async () => {
+  const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
 
     try {
-      const { data: checkIn, error } = await supabase
-        .from('check_ins')
-        .select(`
-          local_id,
-          visibility,
-          specific_user_ids,
-          locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
-        `)
+      const { count: notifCount } = await supabase
+        .from('notificaciones')
+        .select('*', { count: 'exact', head: true })
         .eq('usuario_id', user.id)
-        .single();
+        .eq('leida', false);
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil] Error loading current local:', error);
-        return;
-      }
+      setUnreadNotifications(notifCount || 0);
 
-      if (checkIn && checkIn.locales) {
-        setCurrentLocal(checkIn.locales);
-        setCheckInInfo({
-          visibility: checkIn.visibility,
-          specific_user_ids: checkIn.specific_user_ids,
-        });
-      } else {
-        setCurrentLocal(null);
-        setCheckInInfo(null);
+      const { data: chatsData } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
+
+      if (chatsData) {
+        let totalUnread = 0;
+        for (const chat of chatsData) {
+          const { count } = await supabase
+            .from('mensajes')
+            .select('*', { count: 'exact', head: true })
+            .eq('chat_id', chat.id)
+            .eq('leido', false)
+            .is('leido_at', null)
+            .neq('remitente_id', user.id);
+          
+          totalUnread += count || 0;
+        }
+        setUnreadMessages(totalUnread);
       }
     } catch (error) {
-      console.error('[Perfil] Error loading current local:', error);
+      console.error('[Perfil] Error loading unread counts:', error);
     }
   }, [user]);
 
@@ -236,40 +220,58 @@ export default function PerfilScreen() {
     }
   }, [user, activeProfileType, activeProfileId]);
 
-  const loadUnreadCounts = useCallback(async () => {
+  const loadCartItemsCount = useCallback(async () => {
+    if (!user || !isPropietario) return;
+
+    try {
+      const { count, error } = await supabase
+        .from('shopping_cart')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('[Perfil] ❌ Error loading cart count:', error);
+        return;
+      }
+
+      setCartItemsCount(count || 0);
+    } catch (error) {
+      console.error('[Perfil] ❌ Error loading cart count:', error);
+    }
+  }, [user, isPropietario]);
+
+  const loadCurrentLocal = useCallback(async () => {
     if (!user) return;
 
     try {
-      const { count: notifCount } = await supabase
-        .from('notificaciones')
-        .select('*', { count: 'exact', head: true })
+      const { data: checkIn, error } = await supabase
+        .from('check_ins')
+        .select(`
+          local_id,
+          visibility,
+          specific_user_ids,
+          locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
+        `)
         .eq('usuario_id', user.id)
-        .eq('leida', false);
+        .single();
 
-      setUnreadNotifications(notifCount || 0);
+      if (error && error.code !== 'PGRST116') {
+        console.error('[Perfil] Error loading current local:', error);
+        return;
+      }
 
-      const { data: chatsData } = await supabase
-        .from('chats')
-        .select('id')
-        .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
-
-      if (chatsData) {
-        let totalUnread = 0;
-        for (const chat of chatsData) {
-          const { count } = await supabase
-            .from('mensajes')
-            .select('*', { count: 'exact', head: true })
-            .eq('chat_id', chat.id)
-            .eq('leido', false)
-            .is('leido_at', null)
-            .neq('remitente_id', user.id);
-          
-          totalUnread += count || 0;
-        }
-        setUnreadMessages(totalUnread);
+      if (checkIn && checkIn.locales) {
+        setCurrentLocal(checkIn.locales);
+        setCheckInInfo({
+          visibility: checkIn.visibility,
+          specific_user_ids: checkIn.specific_user_ids,
+        });
+      } else {
+        setCurrentLocal(null);
+        setCheckInInfo(null);
       }
     } catch (error) {
-      console.error('[Perfil] Error loading unread counts:', error);
+      console.error('[Perfil] Error loading current local:', error);
     }
   }, [user]);
 

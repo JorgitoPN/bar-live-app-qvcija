@@ -9,6 +9,7 @@ import {
   ScrollView,
   TextInput,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -46,49 +47,75 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
   'Melilla': ['Melilla'],
 };
 
-const COMUNIDADES = Object.keys(COMUNIDADES_PROVINCIAS);
+// ✅ ICON MAPPING for dynamic filter options
+const TIPO_ICONS: Record<string, string> = {
+  'cafe': '☕',
+  'restaurante': '🍽️',
+  'bar': '🍷',
+  'pub': '🍺',
+  'cocteleria': '🍸',
+  'discoteca': '🎵',
+  'sala_conciertos': '🎵',
+  'lounge': '🛋️',
+  'terraza': '☀️',
+  'rooftop': '🏢',
+};
 
-const TIPOS_LOCAL = [
-  { id: 'todos', label: 'Todos', icon: '🏪' },
-  { id: 'cafe', label: 'Cafés', icon: '☕' },
-  { id: 'restaurante', label: 'Restaurantes', icon: '🍽️' },
-  { id: 'bar', label: 'Bares', icon: '🍷' },
-  { id: 'pub', label: 'Pubs', icon: '🍺' },
-  { id: 'cocteleria', label: 'Coctelería', icon: '🍸' },
-  { id: 'discoteca', label: 'Discotecas', icon: '🎵' },
-];
+const SERVICIO_ICONS: Record<string, string> = {
+  'terraza': '☀️',
+  'wifi': '📶',
+  'parking': '🅿️',
+  'accesible': '♿',
+  'musica_vivo': '🎸',
+  'deportes_tv': '📺',
+  'reservas': '📅',
+  'delivery': '🚚',
+  'comida_para_llevar': '🥡',
+  'servicio_mesa': '🍽️',
+  'bar': '🍷',
+  'cerveza': '🍺',
+  'vino': '🍷',
+  'cocteles': '🍸',
+  'cafe': '☕',
+  'desayuno': '🥐',
+  'almuerzo': '🍴',
+  'cena': '🌙',
+  'brunch': '🥞',
+  'postres': '🍰',
+  'vegetariano': '🥗',
+  'vegano': '🌱',
+  'sin_gluten': '🌾',
+  'efectivo': '💵',
+  'tarjeta_credito': '💳',
+  'tarjeta_debito': '💳',
+  'pago_movil': '📱',
+  'bizum': '📲',
+};
 
-const SERVICIOS = [
-  { id: 'terraza', label: 'Terraza', icon: '☀️' },
-  { id: 'wifi', label: 'WiFi', icon: '📶' },
-  { id: 'parking', label: 'Parking', icon: '🅿️' },
-  { id: 'accesible', label: 'Accesible', icon: '♿' },
-  { id: 'musica_vivo', label: 'Música en vivo', icon: '🎸' },
-  { id: 'deportes_tv', label: 'Deportes TV', icon: '📺' },
-  { id: 'reservas', label: 'Reservas', icon: '📅' },
-  { id: 'delivery', label: 'Delivery', icon: '🚚' },
-];
-
-const AMBIENTES = [
-  { id: 'cualquiera', label: 'Cualquiera', icon: '✨' },
-  { id: 'tranquilo', label: 'Tranquilo', icon: '🌙' },
-  { id: 'animado', label: 'Animado', icon: '🎉' },
-  { id: 'romantico', label: 'Romántico', icon: '💕' },
-  { id: 'familiar', label: 'Familiar', icon: '👨‍👩‍👧‍👦' },
-  { id: 'juvenil', label: 'Juvenil', icon: '🎮' },
-  { id: 'elegante', label: 'Elegante', icon: '🎩' },
-  { id: 'informal', label: 'Informal', icon: '👕' },
-];
+const AMBIENTE_ICONS: Record<string, string> = {
+  'tranquilo': '🌙',
+  'animado': '🎉',
+  'romantico': '💕',
+  'familiar': '👨‍👩‍👧‍👦',
+  'juvenil': '🎮',
+  'elegante': '🎩',
+  'informal': '👕',
+  'acogedor': '🏠',
+  'moderno': '✨',
+  'de_moda': '⭐',
+  'tematico': '🎭',
+};
 
 /**
- * ✅ ADVANCED FILTERS SHEET v4.0 - ULTRA-OPTIMIZED WITH FIXED FILTERS
+ * ✅ ADVANCED FILTERS SHEET v5.0 - ULTRA-OPTIMIZED WITH DYNAMIC OPTIONS
  * 
  * Features:
  * - ✅ TEMPORARY LOCAL STATE: Prevents UI blocking during selection
  * - ✅ SYNCHRONIZED with FilterContext: Updates global state only on "Apply"
  * - ✅ OPTIMIZED SELECTORS: Memoized filtered lists to prevent re-renders
  * - ✅ NO UI BLOCKING: Smooth interaction even with many options
- * - ✅ FIXED FILTERS: All filters now work correctly (tipo, servicios, ambiente)
+ * - ✅ DYNAMIC OPTIONS: Only shows filter options with actual results
+ * - ✅ AUTO-CLEANUP: Removes options when no locals match
  * - ✅ PERFORMANCE: Uses useCallback for all handlers to prevent re-renders
  */
 
@@ -98,7 +125,14 @@ export default function FiltrosAvanzadosSheet({
   filtros: propFiltros,
   onAplicarFiltros: propOnAplicarFiltros,
 }: FiltrosAvanzadosSheetProps) {
-  const { filtros: contextFiltros, aplicarFiltros: contextAplicarFiltros, limpiarFiltros: contextLimpiarFiltros } = useFilters();
+  const { 
+    filtros: contextFiltros, 
+    aplicarFiltros: contextAplicarFiltros, 
+    limpiarFiltros: contextLimpiarFiltros,
+    dynamicOptions,
+    refreshDynamicOptions,
+    isLoadingOptions,
+  } = useFilters();
   
   // Use context filters if no prop filters provided
   const initialFiltros = propFiltros || contextFiltros;
@@ -115,8 +149,11 @@ export default function FiltrosAvanzadosSheet({
     if (visible) {
       console.log('[FiltrosAvanzados] 🔄 Modal opened, resetting temp filters');
       setFiltrosTemp(initialFiltros);
+      
+      // Refresh dynamic options when opening
+      refreshDynamicOptions();
     }
-  }, [visible, initialFiltros]);
+  }, [visible, initialFiltros, refreshDynamicOptions]);
 
   // ✅ OPTIMIZED: Memoized toggle function to prevent re-renders
   const toggleArrayItem = useCallback((array: string[] | undefined, item: string): string[] => {
@@ -153,7 +190,9 @@ export default function FiltrosAvanzadosSheet({
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados] ✅ ========================================');
+    console.log('[FiltrosAvanzados] ✅ APPLYING FILTERS:', filtrosTemp);
+    console.log('[FiltrosAvanzados] ✅ ========================================');
     
     // ✅ SYNCHRONIZED: Apply to context (global state)
     contextAplicarFiltros(filtrosTemp);
@@ -219,17 +258,24 @@ export default function FiltrosAvanzadosSheet({
 
   // ✅ OPTIMIZED: Memoized filtered communities to prevent re-renders
   const filteredComunidades = useMemo(() => {
-    return COMUNIDADES.filter(c =>
+    // ✅ DYNAMIC: Only show communities that have active locals
+    const availableComunidades = ['Todas las Comunidades', ...dynamicOptions.comunidades];
+    
+    return availableComunidades.filter(c =>
       c.toLowerCase().includes(searchComunidad.toLowerCase())
     );
-  }, [searchComunidad]);
+  }, [searchComunidad, dynamicOptions.comunidades]);
 
   // ✅ OPTIMIZED: Memoized available provinces to prevent re-renders
   const availableProvincias = useMemo(() => {
-    return filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades'
-      ? COMUNIDADES_PROVINCIAS[filtrosTemp.comunidad] || []
-      : [];
-  }, [filtrosTemp.comunidad]);
+    if (!filtrosTemp.comunidad || filtrosTemp.comunidad === 'Todas las Comunidades') {
+      // ✅ DYNAMIC: Show all provinces that have active locals
+      return dynamicOptions.provincias;
+    }
+    
+    // Show provinces for selected community
+    return COMUNIDADES_PROVINCIAS[filtrosTemp.comunidad] || [];
+  }, [filtrosTemp.comunidad, dynamicOptions.provincias]);
     
   // ✅ OPTIMIZED: Memoized filtered provinces to prevent re-renders
   const filteredProvincias = useMemo(() => {
@@ -237,6 +283,54 @@ export default function FiltrosAvanzadosSheet({
       p.toLowerCase().includes(searchProvincia.toLowerCase())
     );
   }, [availableProvincias, searchProvincia]);
+
+  // ✅ DYNAMIC: Build tipo options from actual data
+  const tiposLocales = useMemo(() => {
+    const tipos = [
+      { id: 'todos', label: 'Todos', icon: '🏪' },
+    ];
+    
+    dynamicOptions.tipos.forEach(tipo => {
+      const icon = TIPO_ICONS[tipo.toLowerCase()] || '📍';
+      tipos.push({
+        id: tipo,
+        label: tipo.charAt(0).toUpperCase() + tipo.slice(1),
+        icon,
+      });
+    });
+    
+    return tipos;
+  }, [dynamicOptions.tipos]);
+
+  // ✅ DYNAMIC: Build servicio options from actual data
+  const serviciosDisponibles = useMemo(() => {
+    return dynamicOptions.servicios.map(servicio => {
+      const icon = SERVICIO_ICONS[servicio.toLowerCase()] || '✅';
+      return {
+        id: servicio,
+        label: servicio.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+        icon,
+      };
+    });
+  }, [dynamicOptions.servicios]);
+
+  // ✅ DYNAMIC: Build ambiente options from actual data
+  const ambientesDisponibles = useMemo(() => {
+    const ambientes = [
+      { id: 'cualquiera', label: 'Cualquiera', icon: '✨' },
+    ];
+    
+    dynamicOptions.ambientes.forEach(ambiente => {
+      const icon = AMBIENTE_ICONS[ambiente.toLowerCase()] || '🌟';
+      ambientes.push({
+        id: ambiente,
+        label: ambiente.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+        icon,
+      });
+    });
+    
+    return ambientes;
+  }, [dynamicOptions.ambientes]);
 
   return (
     <Modal
@@ -271,6 +365,13 @@ export default function FiltrosAvanzadosSheet({
             </LinearGradient>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+              {isLoadingOptions && (
+                <View style={styles.loadingBanner}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={styles.loadingBannerText}>Cargando opciones disponibles...</Text>
+                </View>
+              )}
+
               <View style={styles.compactSection}>
                 <View style={styles.sectionHeader}>
                   <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={20} color={colors.primary} />
@@ -322,108 +423,133 @@ export default function FiltrosAvanzadosSheet({
                 </View>
               </View>
 
-              <View style={styles.compactSection}>
-                <View style={styles.sectionHeader}>
-                  <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={20} color={colors.primary} />
-                  <Text style={styles.sectionTitle}>Tipo de Local</Text>
-                </View>
-                <View style={styles.compactChipContainer}>
-                  {TIPOS_LOCAL.map((tipo) => {
-                    const isSelected = tipo.id === 'todos' 
-                      ? !filtrosTemp.tipo || filtrosTemp.tipo.length === 0
-                      : filtrosTemp.tipo?.includes(tipo.id);
-                    
-                    return (
-                      <TouchableOpacity
-                        key={tipo.id}
-                        style={[
-                          styles.compactChip,
-                          isSelected && styles.compactChipActive,
-                        ]}
-                        onPress={() => handleTipoToggle(tipo.id)}
-                      >
-                        <Text style={styles.chipIcon}>{tipo.icon}</Text>
-                        <Text
+              {tiposLocales.length > 1 && (
+                <View style={styles.compactSection}>
+                  <View style={styles.sectionHeader}>
+                    <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={20} color={colors.primary} />
+                    <Text style={styles.sectionTitle}>Tipo de Local</Text>
+                    {tiposLocales.length > 1 && (
+                      <Text style={styles.sectionCount}>({tiposLocales.length - 1} disponibles)</Text>
+                    )}
+                  </View>
+                  <View style={styles.compactChipContainer}>
+                    {tiposLocales.map((tipo) => {
+                      const isSelected = tipo.id === 'todos' 
+                        ? !filtrosTemp.tipo || filtrosTemp.tipo.length === 0
+                        : filtrosTemp.tipo?.includes(tipo.id);
+                      
+                      return (
+                        <TouchableOpacity
+                          key={tipo.id}
                           style={[
-                            styles.compactChipText,
-                            isSelected && styles.compactChipTextActive,
+                            styles.compactChip,
+                            isSelected && styles.compactChipActive,
                           ]}
+                          onPress={() => handleTipoToggle(tipo.id)}
                         >
-                          {tipo.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                          <Text style={styles.chipIcon}>{tipo.icon}</Text>
+                          <Text
+                            style={[
+                              styles.compactChipText,
+                              isSelected && styles.compactChipTextActive,
+                            ]}
+                          >
+                            {tipo.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
+              )}
 
-              <View style={styles.compactSection}>
-                <View style={styles.sectionHeader}>
-                  <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={20} color={colors.primary} />
-                  <Text style={styles.sectionTitle}>Servicios</Text>
-                </View>
-                <View style={styles.compactChipContainer}>
-                  {SERVICIOS.map((servicio) => {
-                    const isSelected = filtrosTemp.servicios?.includes(servicio.id);
-                    
-                    return (
-                      <TouchableOpacity
-                        key={servicio.id}
-                        style={[
-                          styles.compactChip,
-                          isSelected && styles.compactChipActive,
-                        ]}
-                        onPress={() => handleServicioToggle(servicio.id)}
-                      >
-                        <Text style={styles.chipIcon}>{servicio.icon}</Text>
-                        <Text
+              {serviciosDisponibles.length > 0 && (
+                <View style={styles.compactSection}>
+                  <View style={styles.sectionHeader}>
+                    <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={20} color={colors.primary} />
+                    <Text style={styles.sectionTitle}>Servicios</Text>
+                    <Text style={styles.sectionCount}>({serviciosDisponibles.length} disponibles)</Text>
+                  </View>
+                  <View style={styles.compactChipContainer}>
+                    {serviciosDisponibles.map((servicio) => {
+                      const isSelected = filtrosTemp.servicios?.includes(servicio.id);
+                      
+                      return (
+                        <TouchableOpacity
+                          key={servicio.id}
                           style={[
-                            styles.compactChipText,
-                            isSelected && styles.compactChipTextActive,
+                            styles.compactChip,
+                            isSelected && styles.compactChipActive,
                           ]}
+                          onPress={() => handleServicioToggle(servicio.id)}
                         >
-                          {servicio.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                          <Text style={styles.chipIcon}>{servicio.icon}</Text>
+                          <Text
+                            style={[
+                              styles.compactChipText,
+                              isSelected && styles.compactChipTextActive,
+                            ]}
+                          >
+                            {servicio.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
+              )}
 
-              <View style={styles.compactSection}>
-                <View style={styles.sectionHeader}>
-                  <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color={colors.primary} />
-                  <Text style={styles.sectionTitle}>Ambiente</Text>
-                </View>
-                <View style={styles.compactChipContainer}>
-                  {AMBIENTES.map((ambiente) => {
-                    const isSelected = ambiente.id === 'cualquiera'
-                      ? !filtrosTemp.ambiente || filtrosTemp.ambiente.length === 0
-                      : filtrosTemp.ambiente?.includes(ambiente.id);
-                    
-                    return (
-                      <TouchableOpacity
-                        key={ambiente.id}
-                        style={[
-                          styles.compactChip,
-                          isSelected && styles.compactChipActive,
-                        ]}
-                        onPress={() => handleAmbienteToggle(ambiente.id)}
-                      >
-                        <Text style={styles.chipIcon}>{ambiente.icon}</Text>
-                        <Text
+              {ambientesDisponibles.length > 1 && (
+                <View style={styles.compactSection}>
+                  <View style={styles.sectionHeader}>
+                    <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color={colors.primary} />
+                    <Text style={styles.sectionTitle}>Ambiente</Text>
+                    {ambientesDisponibles.length > 1 && (
+                      <Text style={styles.sectionCount}>({ambientesDisponibles.length - 1} disponibles)</Text>
+                    )}
+                  </View>
+                  <View style={styles.compactChipContainer}>
+                    {ambientesDisponibles.map((ambiente) => {
+                      const isSelected = ambiente.id === 'cualquiera'
+                        ? !filtrosTemp.ambiente || filtrosTemp.ambiente.length === 0
+                        : filtrosTemp.ambiente?.includes(ambiente.id);
+                      
+                      return (
+                        <TouchableOpacity
+                          key={ambiente.id}
                           style={[
-                            styles.compactChipText,
-                            isSelected && styles.compactChipTextActive,
+                            styles.compactChip,
+                            isSelected && styles.compactChipActive,
                           ]}
+                          onPress={() => handleAmbienteToggle(ambiente.id)}
                         >
-                          {ambiente.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                          <Text style={styles.chipIcon}>{ambiente.icon}</Text>
+                          <Text
+                            style={[
+                              styles.compactChipText,
+                              isSelected && styles.compactChipTextActive,
+                            ]}
+                          >
+                            {ambiente.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
+              )}
+
+              {(tiposLocales.length === 1 && serviciosDisponibles.length === 0 && ambientesDisponibles.length === 1) && (
+                <View style={styles.emptyState}>
+                  <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={48} color={colors.textSecondary} />
+                  <Text style={styles.emptyStateText}>
+                    No hay opciones de filtro disponibles en este momento.
+                  </Text>
+                  <Text style={styles.emptyStateSubtext}>
+                    Los filtros se generan automáticamente basados en los locales activos.
+                  </Text>
+                </View>
+              )}
 
               <View style={{ height: 100 }} />
             </ScrollView>
@@ -519,7 +645,9 @@ export default function FiltrosAvanzadosSheet({
         >
           <Pressable style={styles.selectorModalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.selectorModalHeader}>
-              <Text style={styles.selectorModalTitle}>Provincia de {filtrosTemp.comunidad}</Text>
+              <Text style={styles.selectorModalTitle}>
+                Provincia {filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades' ? `de ${filtrosTemp.comunidad}` : ''}
+              </Text>
               <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
                 <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -623,6 +751,23 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
+  loadingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: colors.primary + '15',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  loadingBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
   compactSection: {
     marginTop: 16,
     backgroundColor: colors.background,
@@ -641,6 +786,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.text,
+  },
+  sectionCount: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginLeft: 4,
   },
   twoColumnGrid: {
     flexDirection: 'row',
@@ -837,8 +988,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyStateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  emptyStateSubtext: {
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
+    marginTop: 8,
   },
 });

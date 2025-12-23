@@ -62,7 +62,6 @@ const COMUNIDAD_COORDINATES: Record<string, { lat: number; lng: number; zoom: nu
 
 // ✅ PROVINCE COORDINATES (for fly-to feature)
 const PROVINCIA_COORDINATES: Record<string, { lat: number; lng: number; zoom: number }> = {
-  // Andalucía
   'Almería': { lat: 36.8381, lng: -2.4597, zoom: 9 },
   'Cádiz': { lat: 36.5271, lng: -6.2886, zoom: 9 },
   'Córdoba': { lat: 37.8882, lng: -4.7794, zoom: 9 },
@@ -71,20 +70,14 @@ const PROVINCIA_COORDINATES: Record<string, { lat: number; lng: number; zoom: nu
   'Jaén': { lat: 37.7796, lng: -3.7849, zoom: 9 },
   'Málaga': { lat: 36.7213, lng: -4.4214, zoom: 9 },
   'Sevilla': { lat: 37.3891, lng: -5.9845, zoom: 9 },
-  // Aragón
   'Huesca': { lat: 42.1401, lng: -0.4080, zoom: 9 },
   'Teruel': { lat: 40.3456, lng: -1.1065, zoom: 9 },
   'Zaragoza': { lat: 41.6488, lng: -0.8891, zoom: 9 },
-  // Asturias
   'Asturias': { lat: 43.3614, lng: -5.8593, zoom: 8 },
-  // Baleares
   'Islas Baleares': { lat: 39.6953, lng: 3.0176, zoom: 8 },
-  // Canarias
   'Las Palmas': { lat: 28.1248, lng: -15.4300, zoom: 8 },
   'Santa Cruz de Tenerife': { lat: 28.4636, lng: -16.2518, zoom: 8 },
-  // Cantabria
   'Cantabria': { lat: 43.1828, lng: -3.9878, zoom: 8 },
-  // Castilla y León
   'Ávila': { lat: 40.6570, lng: -4.6814, zoom: 9 },
   'Burgos': { lat: 42.3439, lng: -3.6969, zoom: 9 },
   'León': { lat: 42.5987, lng: -5.5671, zoom: 9 },
@@ -94,42 +87,31 @@ const PROVINCIA_COORDINATES: Record<string, { lat: number; lng: number; zoom: nu
   'Soria': { lat: 41.7665, lng: -2.4790, zoom: 9 },
   'Valladolid': { lat: 41.6523, lng: -4.7245, zoom: 9 },
   'Zamora': { lat: 41.5034, lng: -5.7467, zoom: 9 },
-  // Castilla-La Mancha
   'Albacete': { lat: 38.9943, lng: -1.8585, zoom: 9 },
   'Ciudad Real': { lat: 38.9848, lng: -3.9273, zoom: 9 },
   'Cuenca': { lat: 40.0704, lng: -2.1374, zoom: 9 },
   'Guadalajara': { lat: 40.6318, lng: -3.1606, zoom: 9 },
   'Toledo': { lat: 39.8628, lng: -4.0273, zoom: 9 },
-  // Cataluña
   'Barcelona': { lat: 41.3851, lng: 2.1734, zoom: 9 },
   'Girona': { lat: 41.9794, lng: 2.8214, zoom: 9 },
   'Lleida': { lat: 41.6176, lng: 0.6200, zoom: 9 },
   'Tarragona': { lat: 41.1189, lng: 1.2445, zoom: 9 },
-  // Madrid
   'Madrid': { lat: 40.4168, lng: -3.7038, zoom: 10 },
-  // Comunidad Valenciana
   'Alicante': { lat: 38.3452, lng: -0.4810, zoom: 9 },
   'Castellón': { lat: 39.9864, lng: -0.0513, zoom: 9 },
   'Valencia': { lat: 39.4699, lng: -0.3763, zoom: 9 },
-  // Extremadura
   'Badajoz': { lat: 38.8794, lng: -6.9706, zoom: 9 },
   'Cáceres': { lat: 39.4753, lng: -6.3724, zoom: 9 },
-  // Galicia
   'A Coruña': { lat: 43.3623, lng: -8.4115, zoom: 9 },
   'Lugo': { lat: 43.0097, lng: -7.5567, zoom: 9 },
   'Ourense': { lat: 42.3406, lng: -7.8644, zoom: 9 },
   'Pontevedra': { lat: 42.4296, lng: -8.6446, zoom: 9 },
-  // La Rioja
   'La Rioja': { lat: 42.2871, lng: -2.5396, zoom: 9 },
-  // Navarra
   'Navarra': { lat: 42.6954, lng: -1.6761, zoom: 8 },
-  // País Vasco
   'Álava': { lat: 42.8467, lng: -2.6716, zoom: 9 },
   'Guipúzcoa': { lat: 43.1828, lng: -2.1764, zoom: 9 },
   'Vizcaya': { lat: 43.2630, lng: -2.9350, zoom: 9 },
-  // Murcia
   'Murcia': { lat: 37.9922, lng: -1.1307, zoom: 9 },
-  // Ceuta y Melilla
   'Ceuta': { lat: 35.8894, lng: -5.3213, zoom: 12 },
   'Melilla': { lat: 35.2923, lng: -2.9381, zoom: 12 },
 };
@@ -149,17 +131,17 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v3.0 - INSTANT LOADING WITH ZERO-WAIT + FILTER SYNC + FLY-TO
+ * ✅ MAP SCREEN v4.0 - INSTANT LOADING WITH ZERO-WAIT + DYNAMIC FILTERS + FLY-TO
  * 
  * Features:
- * - ✅ NO "Cargando mapa..." message - instant display
- * - ✅ Uses cached data from GlobalDataContext (same as Lista de Locales)
- * - ✅ Background sync for fresh data without blocking UI
- * - ✅ SYNCHRONIZED with FilterContext for instant filter updates
- * - ✅ Shares data with Lista de Locales - no duplicate API calls
- * - ✅ MARKER CLUSTERING for performance with many markers
- * - ✅ MEMOIZED markers to prevent unnecessary re-renders
- * - ✅ FLY-TO feature: automatically centers map on selected community/province
+ * - ✅ INSTANT DISPLAY: Map and markers load simultaneously (HYDRATION)
+ * - ✅ NO "Cargando..." messages - zero visual delay
+ * - ✅ SHARED DATA: Uses GlobalDataContext (same as Lista de Locales)
+ * - ✅ SYNCHRONIZED FILTERS: Real-time sync with FilterContext
+ * - ✅ DYNAMIC FILTERS: Only show options with actual results
+ * - ✅ FLY-TO ANIMATION: Smooth map navigation on location filter
+ * - ✅ MARKER CLUSTERING: Performance with many markers
+ * - ✅ MEMOIZED: Prevents unnecessary re-renders
  */
 
 export default function MapaScreen() {
@@ -177,6 +159,7 @@ export default function MapaScreen() {
   const [localesFiltrados, setLocalesFiltrados] = useState<LocalWithEvent[]>([]);
   const [mapHTML, setMapHTML] = useState<string>('');
   const previousFiltersRef = useRef<string>('');
+  const [isMapReady, setIsMapReady] = useState(false);
 
   // ✅ Get user location
   useEffect(() => {
@@ -199,7 +182,7 @@ export default function MapaScreen() {
   // ✅ INSTANT LOAD: Use data from GlobalDataContext (same as Lista de Locales)
   useEffect(() => {
     console.log('⚡ [MAP] ========================================');
-    console.log('⚡ [MAP] INSTANT LOAD from GlobalDataContext');
+    console.log('⚡ [MAP] INSTANT HYDRATION from GlobalDataContext');
     console.log('⚡ [MAP] Total locales available:', globalLocales.length);
     
     if (globalLocales.length > 0) {
@@ -207,7 +190,7 @@ export default function MapaScreen() {
       const now = new Date();
       const currentDate = now.toISOString().split('T')[0];
       
-      // Load events in background
+      // Load events in background (non-blocking)
       supabase
         .from('eventos')
         .select('id, titulo, fecha, fecha_fin, hora, hora_fin, imagen_url, precio, local_id')
@@ -242,12 +225,13 @@ export default function MapaScreen() {
             return {
               ...local,
               evento,
-              plan: null, // Will be loaded in background if needed
+              plan: null,
             };
           });
 
           setTodosLosLocales(localesTransformados);
-          console.log(`⚡ [MAP] INSTANT display ready with ${localesTransformados.length} locals`);
+          console.log(`⚡ [MAP] ✅ INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
+          console.log(`⚡ [MAP] ✅ Map and markers will render SIMULTANEOUSLY`);
         });
     }
   }, [globalLocales]);
@@ -256,10 +240,9 @@ export default function MapaScreen() {
   useEffect(() => {
     const backgroundRefresh = async () => {
       console.log('🔄 [MAP] Background refresh triggered');
-      await refreshData(true); // Silent refresh
+      await refreshData(true);
     };
 
-    // Refresh every 2 minutes in background
     const interval = setInterval(backgroundRefresh, 2 * 60 * 1000);
 
     return () => clearInterval(interval);
@@ -268,7 +251,6 @@ export default function MapaScreen() {
   // ✅ MEMOIZED MARKERS: Prevent unnecessary re-renders
   const markersData = useMemo(() => {
     console.log('[MAP] 🎯 Memoizing markers data...');
-    const checkInsByLocal = new Map<string, { isUserHere: boolean; friendsCount: number }>();
     
     return localesFiltrados.map(local => {
       const estadoCompleto = getEstadoLocal(local);
@@ -312,8 +294,6 @@ export default function MapaScreen() {
           local.coordenadas.lng
         );
       }
-
-      const checkInInfo = checkInsByLocal.get(local.id) || { isUserHere: false, friendsCount: 0 };
       
       return {
         id: local.id,
@@ -335,8 +315,6 @@ export default function MapaScreen() {
         eventTitulo: local.evento?.titulo || '',
         eventImagen: local.evento?.imagen_url || '',
         isPremium: local.plan === 'premium',
-        isUserHere: checkInInfo.isUserHere,
-        friendsHereCount: checkInInfo.friendsCount,
       };
     });
   }, [localesFiltrados, userLocation]);
@@ -390,10 +368,21 @@ export default function MapaScreen() {
       }
     }
 
+    // Add check-in info to markers
+    const markersWithCheckIns = markersData.map(marker => {
+      const checkInInfo = checkInsByLocal.get(marker.id) || { isUserHere: false, friendsCount: 0 };
+      return {
+        ...marker,
+        isUserHere: checkInInfo.isUserHere,
+        friendsHereCount: checkInInfo.friendsCount,
+      };
+    });
+
     console.log(`[MAP] 🗺️ ========================================`);
     console.log(`[MAP] 🗺️ GENERATING MAP HTML WITH CLUSTERING`);
-    console.log(`[MAP] 🗺️ Total markers to display: ${markersData.length}`);
+    console.log(`[MAP] 🗺️ Total markers to display: ${markersWithCheckIns.length}`);
     console.log(`[MAP] 🗺️ Center: ${centerLat}, ${centerLng}`);
+    console.log(`[MAP] 🗺️ ✅ INSTANT RENDERING - NO DELAYS`);
     console.log(`[MAP] 🗺️ ========================================`);
 
     return `
@@ -697,8 +686,10 @@ export default function MapaScreen() {
   <script>
     try {
       console.log('[MAP HTML] ========================================');
-      console.log('[MAP HTML] Initializing map with ${markersData.length} markers');
-      console.log('[MAP HTML] ✅ CLUSTERING ENABLED for performance');
+      console.log('[MAP HTML] ⚡ INSTANT INITIALIZATION');
+      console.log('[MAP HTML] ⚡ Markers pre-loaded: ${markersWithCheckIns.length}');
+      console.log('[MAP HTML] ⚡ CLUSTERING ENABLED for performance');
+      console.log('[MAP HTML] ========================================');
       
       var map = L.map('map', {
         zoomControl: false,
@@ -735,7 +726,7 @@ export default function MapaScreen() {
         L.marker([${userLocation.lat}, ${userLocation.lng}], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
       ` : ''}
 
-      var markersData = ${JSON.stringify(markersData)};
+      var markersData = ${JSON.stringify(markersWithCheckIns)};
       
       console.log('[MAP HTML] ✅ Markers data loaded:', markersData.length);
       
@@ -913,10 +904,12 @@ export default function MapaScreen() {
       console.log('[MAP HTML] ✅ Map initialized successfully');
       console.log('[MAP HTML] ✅ Total markers created:', markersCreated);
       console.log('[MAP HTML] ✅ CLUSTERING ACTIVE');
+      console.log('[MAP HTML] ✅ INSTANT DISPLAY - ZERO DELAY');
       console.log('[MAP HTML] ========================================');
       
       setTimeout(function() {
         map.invalidateSize();
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
       }, 100);
       
       // ✅ EXPOSE flyTo function for filter-based navigation
@@ -992,7 +985,7 @@ export default function MapaScreen() {
         matchGlobalFilters = matchGlobalFilters && local.provincia === globalFiltros.provincia;
       }
       
-      // Type filter
+      // ✅ FIXED: Type filter - check if local has ANY of the selected types
       if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
         const hasMatchingType = globalFiltros.tipo.some(tipo => 
           localCategories.some((cat: string) => cat.toLowerCase() === tipo.toLowerCase())
@@ -1000,22 +993,33 @@ export default function MapaScreen() {
         matchGlobalFilters = matchGlobalFilters && hasMatchingType;
       }
       
-      // Services filter
+      // ✅ FIXED: Services filter - check if local has ALL selected services
       if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
         const localServices = local.servicios_disponibles || {};
-        const hasMatchingService = globalFiltros.servicios.some(servicio => 
+        const hasAllServices = globalFiltros.servicios.every(servicio => 
           localServices[servicio] === true
         );
-        matchGlobalFilters = matchGlobalFilters && hasMatchingService;
+        matchGlobalFilters = matchGlobalFilters && hasAllServices;
       }
       
-      // Ambiente filter
+      // ✅ FIXED: Ambiente filter - check if local has ANY of the selected ambientes
       if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0 && !globalFiltros.ambiente.includes('cualquiera')) {
-        const localAmbiente = local.ambiente_google || {};
+        const localAmbiente = local.ambiente_completo || {};
         const hasMatchingAmbiente = globalFiltros.ambiente.some(amb => 
           localAmbiente[amb] === true
         );
         matchGlobalFilters = matchGlobalFilters && hasMatchingAmbiente;
+      }
+      
+      // Distance filter
+      if (globalFiltros.distancia && userLocation) {
+        const distancia = calcularDistancia(
+          userLocation.lat,
+          userLocation.lng,
+          local.coordenadas.lat,
+          local.coordenadas.lng
+        );
+        matchGlobalFilters = matchGlobalFilters && distancia <= globalFiltros.distancia;
       }
       
       return matchCategoria && matchEstado && matchGlobalFilters;
@@ -1031,7 +1035,7 @@ export default function MapaScreen() {
       provincia: globalFiltros.provincia,
     });
     
-    if (currentFiltersKey !== previousFiltersRef.current && webViewRef.current) {
+    if (currentFiltersKey !== previousFiltersRef.current && webViewRef.current && isMapReady) {
       previousFiltersRef.current = currentFiltersKey;
       
       // Check if province is selected
@@ -1059,10 +1063,10 @@ export default function MapaScreen() {
         `);
       }
     }
-  }, [todosLosLocales, categoriaSeleccionada, filtroEstado, globalFiltros]);
+  }, [todosLosLocales, categoriaSeleccionada, filtroEstado, globalFiltros, userLocation, isMapReady]);
 
   useEffect(() => {
-    if (webViewRef.current && localesFiltrados.length > 0 && categoriaSeleccionada !== 'todos') {
+    if (webViewRef.current && localesFiltrados.length > 0 && categoriaSeleccionada !== 'todos' && isMapReady) {
       const lats = localesFiltrados.map(l => l.coordenadas.lat);
       const lngs = localesFiltrados.map(l => l.coordenadas.lng);
       
@@ -1082,10 +1086,10 @@ export default function MapaScreen() {
         true;
       `);
     }
-  }, [categoriaSeleccionada, localesFiltrados]);
+  }, [categoriaSeleccionada, localesFiltrados, isMapReady]);
 
   const centerOnUser = () => {
-    if (userLocation && webViewRef.current) {
+    if (userLocation && webViewRef.current && isMapReady) {
       webViewRef.current.injectJavaScript(`
         if (typeof map !== 'undefined') {
           map.setView([${userLocation.lat}, ${userLocation.lng}], 18, { animate: true, duration: 1 });
@@ -1112,6 +1116,9 @@ export default function MapaScreen() {
         console.log('📍 [MAP] Popup opened for local:', data.id);
       } else if (data.type === 'zoom_close' && data.id) {
         console.log('🔍 [MAP] Zoomed close to local:', data.id);
+      } else if (data.type === 'map_ready') {
+        console.log('✅ [MAP] Map is ready for interactions');
+        setIsMapReady(true);
       }
     } catch (error) {
       console.error('❌ [MAP] Error parsing WebView message:', error);
@@ -1142,6 +1149,9 @@ export default function MapaScreen() {
   <script>
     var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([${centerLat}, ${centerLng}], 11);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+    setTimeout(function() {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
+    }, 500);
   </script>
 </body>
 </html>

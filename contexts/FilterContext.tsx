@@ -1,18 +1,51 @@
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { Filtros } from '@/types';
+import { supabase } from '@/utils/supabase';
+
+interface DynamicFilterOptions {
+  tipos: string[];
+  servicios: string[];
+  ambientes: string[];
+  comunidades: string[];
+  provincias: string[];
+}
 
 interface FilterContextType {
   filtros: Filtros;
   setFiltros: (filtros: Filtros) => void;
   aplicarFiltros: (nuevosFiltros: Filtros) => void;
   limpiarFiltros: () => void;
+  
+  // ✅ NEW: Dynamic filter options based on actual data
+  dynamicOptions: DynamicFilterOptions;
+  refreshDynamicOptions: () => Promise<void>;
+  isLoadingOptions: boolean;
 }
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
+/**
+ * ✅ FILTER CONTEXT v2.0 - DYNAMIC FILTERS WITH REAL-TIME VALIDATION
+ * 
+ * Features:
+ * - ✅ DYNAMIC OPTIONS: Only show filter options that have actual results
+ * - ✅ AUTO-CLEANUP: Remove options when no locals match
+ * - ✅ AUTO-UPDATE: Add new options when new locals are created
+ * - ✅ ZERO FRUSTRATION: No more "0 results" filters
+ * - ✅ REAL-TIME: Updates when database changes
+ */
+
 export function FilterProvider({ children }: { children: ReactNode }) {
   const [filtros, setFiltrosState] = useState<Filtros>({});
+  const [dynamicOptions, setDynamicOptions] = useState<DynamicFilterOptions>({
+    tipos: [],
+    servicios: [],
+    ambientes: [],
+    comunidades: [],
+    provincias: [],
+  });
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
 
   const setFiltros = useCallback((nuevosFiltros: Filtros) => {
     console.log('[FilterContext] 🔄 Setting filters:', nuevosFiltros);
@@ -29,8 +62,168 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     setFiltrosState({});
   }, []);
 
+  /**
+   * ✅ DYNAMIC FILTER OPTIONS: Query distinct values from active locals
+   * This ensures users only see filter options that will return results
+   */
+  const refreshDynamicOptions = useCallback(async () => {
+    console.log('[FilterContext] 🔍 ========================================');
+    console.log('[FilterContext] 🔍 LOADING DYNAMIC FILTER OPTIONS');
+    console.log('[FilterContext] 🔍 Querying DISTINCT values from active locals...');
+    
+    setIsLoadingOptions(true);
+    
+    try {
+      // ✅ Query all active locals to extract unique filter values
+      const { data: locales, error } = await supabase
+        .from('locales')
+        .select('barlive_types, servicios_disponibles, ambiente_completo, comunidad, provincia')
+        .eq('activo', true)
+        .eq('estado_solicitud', 'aprobado');
+
+      if (error) {
+        console.error('[FilterContext] ❌ Error loading dynamic options:', error);
+        return;
+      }
+
+      if (!locales || locales.length === 0) {
+        console.log('[FilterContext] ⚠️ No active locals found');
+        setDynamicOptions({
+          tipos: [],
+          servicios: [],
+          ambientes: [],
+          comunidades: [],
+          provincias: [],
+        });
+        return;
+      }
+
+      console.log('[FilterContext] 📊 Processing', locales.length, 'active locals...');
+
+      // ✅ Extract unique tipos (categories)
+      const tiposSet = new Set<string>();
+      locales.forEach(local => {
+        if (local.barlive_types && Array.isArray(local.barlive_types)) {
+          local.barlive_types.forEach((tipo: string) => {
+            if (tipo && tipo.trim()) {
+              tiposSet.add(tipo.toLowerCase());
+            }
+          });
+        }
+      });
+
+      // ✅ Extract unique servicios
+      const serviciosSet = new Set<string>();
+      locales.forEach(local => {
+        if (local.servicios_disponibles && typeof local.servicios_disponibles === 'object') {
+          Object.entries(local.servicios_disponibles).forEach(([key, value]) => {
+            if (value === true && key && key.trim()) {
+              serviciosSet.add(key);
+            }
+          });
+        }
+      });
+
+      // ✅ Extract unique ambientes
+      const ambientesSet = new Set<string>();
+      locales.forEach(local => {
+        if (local.ambiente_completo && typeof local.ambiente_completo === 'object') {
+          Object.entries(local.ambiente_completo).forEach(([key, value]) => {
+            if (value === true && key && key.trim()) {
+              ambientesSet.add(key);
+            }
+          });
+        }
+      });
+
+      // ✅ Extract unique comunidades
+      const comunidadesSet = new Set<string>();
+      locales.forEach(local => {
+        if (local.comunidad && local.comunidad.trim()) {
+          comunidadesSet.add(local.comunidad);
+        }
+      });
+
+      // ✅ Extract unique provincias
+      const provinciasSet = new Set<string>();
+      locales.forEach(local => {
+        if (local.provincia && local.provincia.trim()) {
+          provinciasSet.add(local.provincia);
+        }
+      });
+
+      const newOptions: DynamicFilterOptions = {
+        tipos: Array.from(tiposSet).sort(),
+        servicios: Array.from(serviciosSet).sort(),
+        ambientes: Array.from(ambientesSet).sort(),
+        comunidades: Array.from(comunidadesSet).sort(),
+        provincias: Array.from(provinciasSet).sort(),
+      };
+
+      console.log('[FilterContext] ✅ ========================================');
+      console.log('[FilterContext] ✅ DYNAMIC OPTIONS LOADED:');
+      console.log('[FilterContext] ✅ Tipos:', newOptions.tipos.length, '-', newOptions.tipos);
+      console.log('[FilterContext] ✅ Servicios:', newOptions.servicios.length, '-', newOptions.servicios);
+      console.log('[FilterContext] ✅ Ambientes:', newOptions.ambientes.length, '-', newOptions.ambientes);
+      console.log('[FilterContext] ✅ Comunidades:', newOptions.comunidades.length, '-', newOptions.comunidades);
+      console.log('[FilterContext] ✅ Provincias:', newOptions.provincias.length, '-', newOptions.provincias);
+      console.log('[FilterContext] ✅ ========================================');
+
+      setDynamicOptions(newOptions);
+    } catch (error) {
+      console.error('[FilterContext] ❌ Error refreshing dynamic options:', error);
+    } finally {
+      setIsLoadingOptions(false);
+    }
+  }, []);
+
+  // ✅ Load dynamic options on mount
+  useEffect(() => {
+    console.log('[FilterContext] 🚀 Initializing dynamic filter options...');
+    refreshDynamicOptions();
+  }, [refreshDynamicOptions]);
+
+  // ✅ REAL-TIME: Refresh options when locals change
+  useEffect(() => {
+    console.log('[FilterContext] 📡 Setting up real-time subscription for filter options...');
+    
+    const subscription = supabase
+      .channel('filter-options-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'locales',
+        },
+        (payload) => {
+          console.log('[FilterContext] 🔄 Locales changed, refreshing filter options...');
+          console.log('[FilterContext] Event:', payload.eventType);
+          
+          // Debounce refresh to avoid too many calls
+          setTimeout(() => {
+            refreshDynamicOptions();
+          }, 1000);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[FilterContext] 🔌 Unsubscribing from filter options updates');
+      supabase.removeChannel(subscription);
+    };
+  }, [refreshDynamicOptions]);
+
   return (
-    <FilterContext.Provider value={{ filtros, setFiltros, aplicarFiltros, limpiarFiltros }}>
+    <FilterContext.Provider value={{ 
+      filtros, 
+      setFiltros, 
+      aplicarFiltros, 
+      limpiarFiltros,
+      dynamicOptions,
+      refreshDynamicOptions,
+      isLoadingOptions,
+    }}>
       {children}
     </FilterContext.Provider>
   );
