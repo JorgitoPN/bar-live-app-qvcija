@@ -354,7 +354,7 @@ export default function InstagramPostCard({
     } else {
       lastTap.current = now;
     }
-  }, [isLiked, animateDoubleTapHeart]);
+  }, [isLiked, animateDoubleTapHeart, handleLike]);
 
   const handleImagePress = () => {
     setShowPostViewer(true);
@@ -547,7 +547,7 @@ export default function InstagramPostCard({
     setShowReportModal(true);
   }, [user]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para eliminar publicaciones');
       return;
@@ -604,7 +604,7 @@ export default function InstagramPostCard({
         },
       ]
     );
-  };
+  }, [user, post.id, post.autor_id, isOwner, onUpdate]);
 
   const handleMoreOptions = useCallback(() => {
     const options: string[] = [];

@@ -110,7 +110,7 @@ export default function GestionarReportesScreen() {
     if (user?.rol_app === 'admin') {
       loadReports();
     }
-  }, [user, filterStatus, filterType]);
+  }, [user, filterStatus, filterType, loadReports]);
 
   const loadReports = async () => {
     try {

@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 interface PostLikesAvatarsProps {
   postId: string;
   totalLikes: number;
-  localLikes?: Array<{ id: string; usuario_id: string }>;
+  localLikes?: { id: string; usuario_id: string }[];
 }
 
 interface LikeUser {
@@ -160,7 +160,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
 
     // ✅ CRITICAL: Update immediately when localLikes changes
     updateProfilesOptimistically();
-  }, [postId, localLikes, user?.id]);
+  }, [postId, localLikes, user?.id, tempProfiles, user]);
 
   const loadAllLikes = useCallback(async () => {
     try {

@@ -6,7 +6,7 @@ import { ModeProvider } from '@/contexts/ModeContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
-import { ImpersonationProvider } from '@/contexts/ImpersonationProvider';
+import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
 import { PostsProvider } from '@/contexts/PostsContext';
 import { FilterProvider } from '@/contexts/FilterContext';
 import { colors } from '@/styles/commonStyles';

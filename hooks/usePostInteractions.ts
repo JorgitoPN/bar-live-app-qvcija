@@ -106,7 +106,7 @@ export function usePostInteractions({
     };
 
     loadInitialLikes();
-  }, [postId]);
+  }, [postId, isLiked, updatePostLikes]);
 
   // Real-time subscription for OTHER users' changes
   useEffect(() => {

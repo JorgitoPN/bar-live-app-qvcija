@@ -721,7 +721,7 @@ export default function SalaVirtualScreen() {
         unsubscribeFn();
       }
     };
-  }, [localId]);
+  }, [localId, checkUserCheckin, handleCheckIn, loadLocalData, loadMessages, localClosed, router, subscribeToUpdates, updateActiveUsers, user]);
 
   const handleTyping = () => {
     if (!user || !chatChannelRef.current) return;
