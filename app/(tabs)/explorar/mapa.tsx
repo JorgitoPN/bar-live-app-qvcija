@@ -1159,6 +1159,7 @@ export default function MapaScreen() {
       </View>
 
       <View style={styles.controlsRight}>
+        {/* ✅ FIXED: Made selector smaller and more compact */}
         <View style={styles.estadoSelectorContainer}>
           <View style={styles.estadoSelector}>
             <TouchableOpacity
@@ -1355,28 +1356,28 @@ const styles = StyleSheet.create({
   estadoSelector: {
     flexDirection: 'row',
     backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    padding: 3,
-    borderWidth: 2,
+    borderRadius: 16,
+    padding: 2,
+    borderWidth: 1.5,
     borderColor: colors.primary + '30',
   },
   estadoOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 17,
-    minWidth: 80,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    minWidth: 65,
     alignItems: 'center',
   },
   estadoOptionActive: {
     backgroundColor: colors.primary,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 3,
+    shadowRadius: 2,
+    elevation: 2,
   },
   estadoOptionText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.textSecondary,
   },

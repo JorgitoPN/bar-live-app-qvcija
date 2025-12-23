@@ -322,8 +322,23 @@ export default function LocalDetailsModal({
                     </Text>
                   )}
 
-                  {/* ✅ ELIMINADO: Texto redundante del nombre del local que aparecía aquí */}
-                  {/* El nombre del local solo aparece una vez arriba (localNameText) */}
+                  {/* ✅ FIXED: Removed redundant local name text that was appearing here */}
+                  {/* The local name only appears once at the top (localNameText) */}
+                  
+                  <TouchableOpacity 
+                    style={styles.checkInButton}
+                    onPress={handleViewFullDetails}
+                  >
+                    <LinearGradient
+                      colors={[colors.primary, colors.secondary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.checkInGradient}
+                    >
+                      <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={20} color="#fff" />
+                      <Text style={styles.checkInText}>Estoy en este local</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
                   
                   <View style={styles.actionsRow}>
                     {local.telefono && (
@@ -354,18 +369,6 @@ export default function LocalDetailsModal({
                       </TouchableOpacity>
                     )}
                   </View>
-
-                  <TouchableOpacity style={styles.viewFullButton} onPress={handleViewFullDetails}>
-                    <LinearGradient
-                      colors={[colors.primary, colors.secondary]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.viewFullButtonGradient}
-                    >
-                      <Text style={styles.viewFullButtonText}>Ver Detalles Completos</Text>
-                      <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
-                    </LinearGradient>
-                  </TouchableOpacity>
                 </View>
               </React.Fragment>
             ) : (
@@ -605,10 +608,26 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 16,
   },
+  checkInButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  checkInGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  checkInText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
   actionsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 16,
   },
   actionBtn: {
     flex: 1,
@@ -624,23 +643,6 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  viewFullButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  viewFullButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  viewFullButtonText: {
-    flex: 1,
-    fontSize: 15,
     fontWeight: '700',
     color: '#fff',
   },
