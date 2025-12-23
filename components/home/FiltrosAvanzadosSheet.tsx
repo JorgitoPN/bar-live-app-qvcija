@@ -14,12 +14,13 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Filtros } from '@/types';
+import { useFilters } from '@/contexts/FilterContext';
 
 interface FiltrosAvanzadosSheetProps {
   visible: boolean;
   onClose: () => void;
-  filtros: Filtros;
-  onAplicarFiltros: (filtros: Filtros) => void;
+  filtros?: Filtros;
+  onAplicarFiltros?: (filtros: Filtros) => void;
 }
 
 const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
@@ -82,18 +83,23 @@ const AMBIENTES = [
 export default function FiltrosAvanzadosSheet({
   visible,
   onClose,
-  filtros,
-  onAplicarFiltros,
+  filtros: propFiltros,
+  onAplicarFiltros: propOnAplicarFiltros,
 }: FiltrosAvanzadosSheetProps) {
-  const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(filtros);
+  const { filtros: contextFiltros, aplicarFiltros: contextAplicarFiltros, limpiarFiltros: contextLimpiarFiltros } = useFilters();
+  
+  // Use context filters if no prop filters provided
+  const initialFiltros = propFiltros || contextFiltros;
+  
+  const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(initialFiltros);
   const [showComunidadModal, setShowComunidadModal] = useState(false);
   const [showProvinciaModal, setShowProvinciaModal] = useState(false);
   const [searchComunidad, setSearchComunidad] = useState('');
   const [searchProvincia, setSearchProvincia] = useState('');
 
   useEffect(() => {
-    setFiltrosTemp(filtros);
-  }, [filtros]);
+    setFiltrosTemp(initialFiltros);
+  }, [initialFiltros, visible]);
 
   const toggleArrayItem = (array: string[] | undefined, item: string): string[] => {
     const arr = array || [];
@@ -104,18 +110,28 @@ export default function FiltrosAvanzadosSheet({
   };
 
   const handleAplicar = () => {
-    console.log('[FiltrosAvanzados] Applying filters:', filtrosTemp);
-    onAplicarFiltros(filtrosTemp);
+    console.log('[FiltrosAvanzados] ✅ Applying filters:', filtrosTemp);
+    
+    // Apply to context (global state)
+    contextAplicarFiltros(filtrosTemp);
+    
+    // Also call prop callback if provided (for backward compatibility)
+    if (propOnAplicarFiltros) {
+      propOnAplicarFiltros(filtrosTemp);
+    }
+    
     onClose();
   };
 
   const handleLimpiar = () => {
-    console.log('[FiltrosAvanzados] Clearing all filters');
-    setFiltrosTemp({});
+    console.log('[FiltrosAvanzados] 🧹 Clearing all filters');
+    const emptyFiltros = {};
+    setFiltrosTemp(emptyFiltros);
+    contextLimpiarFiltros();
   };
 
   const handleComunidadSelect = (selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados] Community selected:', selectedComunidad);
+    console.log('[FiltrosAvanzados] 📍 Community selected:', selectedComunidad);
     
     const newFiltros = {
       ...filtrosTemp,
@@ -127,7 +143,7 @@ export default function FiltrosAvanzadosSheet({
       const availableProvincias = COMUNIDADES_PROVINCIAS[selectedComunidad] || [];
       if (filtrosTemp.provincia && !availableProvincias.includes(filtrosTemp.provincia)) {
         newFiltros.provincia = undefined;
-        console.log('[FiltrosAvanzados] Province reset because it does not belong to selected community');
+        console.log('[FiltrosAvanzados] ⚠️ Province reset because it does not belong to selected community');
       }
     } else {
       newFiltros.provincia = undefined;

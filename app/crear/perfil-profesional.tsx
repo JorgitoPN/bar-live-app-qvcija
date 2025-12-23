@@ -13,6 +13,7 @@ import {
   Modal,
   Pressable,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -480,137 +481,69 @@ export default function CrearPerfilProfesionalScreen() {
         </View>
       </ScrollView>
 
-      {/* Community Modal */}
+      {/* Community Modal - FIXED: Bottom Sheet with proper positioning */}
       <Modal
         visible={showComunidadModal}
         animationType="slide"
         transparent={true}
         onRequestClose={() => setShowComunidadModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={styles.bottomSheetOverlay}>
           <Pressable 
-            style={styles.modalOverlayTouchable}
+            style={styles.bottomSheetBackdrop}
             onPress={() => setShowComunidadModal(false)}
           />
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Comunidad Autónoma</Text>
-              <TouchableOpacity onPress={() => setShowComunidadModal(false)}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.searchContainer}>
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Buscar comunidad..."
-                placeholderTextColor={colors.textSecondary}
-                value={comunidadSearch}
-                onChangeText={setComunidadSearch}
-              />
-              {comunidadSearch.length > 0 && (
-                <TouchableOpacity onPress={() => setComunidadSearch('')}>
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.bottomSheetKeyboardAvoid}
+          >
+            <View style={styles.bottomSheetContent}>
+              <View style={styles.bottomSheetHandle} />
+              
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Comunidad Autónoma</Text>
+                <TouchableOpacity onPress={() => setShowComunidadModal(false)}>
+                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
-              )}
-            </View>
+              </View>
 
-            <ScrollView 
-              style={styles.optionsList}
-              showsVerticalScrollIndicator={false}
-            >
-              {filteredComunidades.map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  style={[
-                    styles.optionItem,
-                    comunidad === c && styles.optionItemActive
-                  ]}
-                  onPress={() => handleComunidadSelect(c)}
-                >
-                  <Text style={[
-                    styles.optionItemText,
-                    comunidad === c && styles.optionItemTextActive
-                  ]}>
-                    {c}
-                  </Text>
-                  {comunidad === c && (
-                    <IconSymbol 
-                      ios_icon_name="checkmark.circle.fill" 
-                      android_material_icon_name="check_circle" 
-                      size={24} 
-                      color={colors.primary} 
-                    />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+              <View style={styles.searchContainer}>
+                <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Buscar comunidad..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={comunidadSearch}
+                  onChangeText={setComunidadSearch}
+                />
+                {comunidadSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setComunidadSearch('')}>
+                    <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
 
-      {/* Province Modal */}
-      <Modal
-        visible={showProvinciaModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowProvinciaModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable 
-            style={styles.modalOverlayTouchable}
-            onPress={() => setShowProvinciaModal(false)}
-          />
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Provincia de {comunidad}</Text>
-              <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.searchContainer}>
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Buscar provincia..."
-                placeholderTextColor={colors.textSecondary}
-                value={provinciaSearch}
-                onChangeText={setProvinciaSearch}
-              />
-              {provinciaSearch.length > 0 && (
-                <TouchableOpacity onPress={() => setProvinciaSearch('')}>
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <ScrollView 
-              style={styles.optionsList}
-              showsVerticalScrollIndicator={false}
-            >
-              {filteredProvincias.length > 0 ? (
-                filteredProvincias.map((p) => (
+              <ScrollView 
+                style={styles.optionsList}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {filteredComunidades.map((c) => (
                   <TouchableOpacity
-                    key={p}
+                    key={c}
                     style={[
                       styles.optionItem,
-                      provincia === p && styles.optionItemActive
+                      comunidad === c && styles.optionItemActive
                     ]}
-                    onPress={() => {
-                      setProvincia(p);
-                      setShowProvinciaModal(false);
-                      setProvinciaSearch('');
-                    }}
+                    onPress={() => handleComunidadSelect(c)}
                   >
                     <Text style={[
                       styles.optionItemText,
-                      provincia === p && styles.optionItemTextActive
+                      comunidad === c && styles.optionItemTextActive
                     ]}>
-                      {p}
+                      {c}
                     </Text>
-                    {provincia === p && (
+                    {comunidad === c && (
                       <IconSymbol 
                         ios_icon_name="checkmark.circle.fill" 
                         android_material_icon_name="check_circle" 
@@ -619,14 +552,98 @@ export default function CrearPerfilProfesionalScreen() {
                       />
                     )}
                   </TouchableOpacity>
-                ))
-              ) : (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateText}>No hay provincias disponibles</Text>
-                </View>
-              )}
-            </ScrollView>
-          </View>
+                ))}
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      {/* Province Modal - FIXED: Bottom Sheet with proper positioning */}
+      <Modal
+        visible={showProvinciaModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowProvinciaModal(false)}
+      >
+        <View style={styles.bottomSheetOverlay}>
+          <Pressable 
+            style={styles.bottomSheetBackdrop}
+            onPress={() => setShowProvinciaModal(false)}
+          />
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.bottomSheetKeyboardAvoid}
+          >
+            <View style={styles.bottomSheetContent}>
+              <View style={styles.bottomSheetHandle} />
+              
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Provincia de {comunidad}</Text>
+                <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
+                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.searchContainer}>
+                <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Buscar provincia..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={provinciaSearch}
+                  onChangeText={setProvinciaSearch}
+                />
+                {provinciaSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setProvinciaSearch('')}>
+                    <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <ScrollView 
+                style={styles.optionsList}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {filteredProvincias.length > 0 ? (
+                  filteredProvincias.map((p) => (
+                    <TouchableOpacity
+                      key={p}
+                      style={[
+                        styles.optionItem,
+                        provincia === p && styles.optionItemActive
+                      ]}
+                      onPress={() => {
+                        setProvincia(p);
+                        setShowProvinciaModal(false);
+                        setProvinciaSearch('');
+                      }}
+                    >
+                      <Text style={[
+                        styles.optionItemText,
+                        provincia === p && styles.optionItemTextActive
+                      ]}>
+                        {p}
+                      </Text>
+                      {provincia === p && (
+                        <IconSymbol 
+                          ios_icon_name="checkmark.circle.fill" 
+                          android_material_icon_name="check_circle" 
+                          size={24} 
+                          color={colors.primary} 
+                        />
+                      )}
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateText}>No hay provincias disponibles</Text>
+                  </View>
+                )}
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>
@@ -829,31 +846,48 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: 'bold',
   },
-  modalOverlay: {
+  // FIXED: Bottom Sheet Styles
+  bottomSheetOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
-  modalOverlayTouchable: {
-    flex: 1,
+  bottomSheetBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  modalContent: {
+  bottomSheetKeyboardAvoid: {
+    maxHeight: '80%',
+  },
+  bottomSheetContent: {
     backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingTop: 20,
-    maxHeight: '80%',
+    maxHeight: '100%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 20,
+    elevation: 24,
+  },
+  bottomSheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.cardBorder,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
+    paddingTop: 12,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
@@ -883,7 +917,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   optionsList: {
-    flex: 1,
+    maxHeight: 400,
   },
   optionItem: {
     flexDirection: 'row',

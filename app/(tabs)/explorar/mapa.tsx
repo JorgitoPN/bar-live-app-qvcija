@@ -25,8 +25,10 @@ import { getEstadoLocal } from '@/utils/timeUtils';
 import { performanceOptimizer } from '@/utils/performanceOptimizer';
 import { trackMapInteraction } from '@/utils/activityTracker';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFilters } from '@/contexts/FilterContext';
 import { addPubCategoryIfNeeded, shouldHavePubCategory, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
 import { calcularDistancia } from '@/utils/locationUtils';
+import { mapCache } from '@/utils/mapCache';
 
 const { width, height } = Dimensions.get('window');
 
@@ -57,6 +59,7 @@ interface LocalWithEvent extends Local {
 export default function MapaScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { filtros: globalFiltros } = useFilters();
   const webViewRef = useRef<WebView>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todos');
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'abiertos'>('abiertos');
@@ -66,6 +69,7 @@ export default function MapaScreen() {
   const [todosLosLocales, setTodosLosLocales] = useState<LocalWithEvent[]>([]);
   const [localesFiltrados, setLocalesFiltrados] = useState<LocalWithEvent[]>([]);
   const [mapHTML, setMapHTML] = useState<string>('');
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -89,13 +93,17 @@ export default function MapaScreen() {
       console.log('🔄 [MAP] ========================================');
       console.log('🔄 [MAP] Loading ALL active locals with location data...');
 
-      const cachedLocales = await performanceOptimizer.getCache<LocalWithEvent[]>('map_all_locales_with_events');
-      if (cachedLocales && cachedLocales.length > 0) {
-        console.log('⚡ [MAP] INSTANT load from cache:', cachedLocales.length);
-        setTodosLosLocales(cachedLocales);
-        setLocalesFiltrados(cachedLocales);
+      // ✅ INSTANT LOAD: Check cache first
+      const cachedData = await mapCache.get();
+      if (cachedData && cachedData.markers.length > 0) {
+        console.log('⚡ [MAP] INSTANT load from cache:', cachedData.markers.length);
+        setTodosLosLocales(cachedData.markers);
+        setLocalesFiltrados(cachedData.markers);
       }
 
+      // ✅ BACKGROUND FETCH: Load fresh data
+      setIsLoadingData(true);
+      
       const { data: essentialData, error: essentialError } = await supabase
         .from('locales')
         .select('id, nombre, latitud, longitud, barlive_type, barlive_types, imagen_url, destacado')
@@ -105,8 +113,12 @@ export default function MapaScreen() {
 
       if (essentialError) {
         console.error('❌ [MAP] Error loading essential data:', essentialError);
-      } else if (essentialData && essentialData.length > 0) {
-        console.log(`⚡ [MAP] INSTANT markers ready: ${essentialData.length} locals`);
+        setIsLoadingData(false);
+        return;
+      }
+
+      if (essentialData && essentialData.length > 0) {
+        console.log(`⚡ [MAP] Essential data loaded: ${essentialData.length} locals`);
         
         const minimalLocales: LocalWithEvent[] = essentialData.map((local) => ({
           id: local.id,
@@ -165,6 +177,7 @@ export default function MapaScreen() {
 
       if (error) {
         console.error('❌ [MAP] Error loading full data:', error);
+        setIsLoadingData(false);
         return;
       }
 
@@ -266,12 +279,15 @@ export default function MapaScreen() {
 
       setTodosLosLocales(localesTransformados);
       
-      await performanceOptimizer.setCache('map_all_locales_with_events', localesTransformados, 5 * 60 * 1000);
+      // ✅ CACHE UPDATE: Store fresh data
+      await mapCache.set(localesTransformados);
       
       console.log(`✅ [MAP] Successfully loaded and cached ${localesTransformados.length} locals`);
       console.log('✅ [MAP] ========================================');
+      setIsLoadingData(false);
     } catch (error) {
       console.error('❌ [MAP] Error in cargarTodosLosLocalesEnriquecidos:', error);
+      setIsLoadingData(false);
     }
   }, []);
 
@@ -949,14 +965,17 @@ export default function MapaScreen() {
     }
   }, [localesFiltrados, user, generateMapHTML]);
 
+  // ✅ FIXED: Apply global filters from FilterContext
   useEffect(() => {
     console.log('[MAP] 🔍 ========================================');
     console.log('[MAP] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
     console.log('[MAP] 🔍 Selected category:', categoriaSeleccionada);
     console.log('[MAP] 🔍 Filter state:', filtroEstado);
+    console.log('[MAP] 🔍 Global filters:', globalFiltros);
     console.log('[MAP] 📊 Total locals to filter:', todosLosLocales.length);
     
-    const filtrados = todosLosLocales.filter(local => {
+    let filtrados = todosLosLocales.filter(local => {
+      // Category filter
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
       localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
       
@@ -969,13 +988,53 @@ export default function MapaScreen() {
         );
       }
       
+      // Open/Closed filter
       let matchEstado = true;
       if (filtroEstado === 'abiertos') {
         const estado = getEstadoLocal(local);
         matchEstado = estado.estaAbierto === true;
       }
       
-      const shouldShow = matchCategoria && matchEstado;
+      // ✅ FIXED: Apply global filters
+      let matchGlobalFilters = true;
+      
+      // Community filter
+      if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
+        matchGlobalFilters = matchGlobalFilters && local.comunidad === globalFiltros.comunidad;
+      }
+      
+      // Province filter
+      if (globalFiltros.provincia) {
+        matchGlobalFilters = matchGlobalFilters && local.provincia === globalFiltros.provincia;
+      }
+      
+      // Type filter
+      if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
+        const hasMatchingType = globalFiltros.tipo.some(tipo => 
+          localCategories.some((cat: string) => cat.toLowerCase() === tipo.toLowerCase())
+        );
+        matchGlobalFilters = matchGlobalFilters && hasMatchingType;
+      }
+      
+      // Services filter
+      if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
+        const localServices = local.servicios_disponibles || {};
+        const hasMatchingService = globalFiltros.servicios.some(servicio => 
+          localServices[servicio] === true
+        );
+        matchGlobalFilters = matchGlobalFilters && hasMatchingService;
+      }
+      
+      // Ambiente filter
+      if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0 && !globalFiltros.ambiente.includes('cualquiera')) {
+        const localAmbiente = local.ambiente_google || {};
+        const hasMatchingAmbiente = globalFiltros.ambiente.some(amb => 
+          localAmbiente[amb] === true
+        );
+        matchGlobalFilters = matchGlobalFilters && hasMatchingAmbiente;
+      }
+      
+      const shouldShow = matchCategoria && matchEstado && matchGlobalFilters;
       
       if (!shouldShow) {
         console.log(`[MAP] ❌ Filtered out "${local.nombre}"`);
@@ -983,15 +1042,16 @@ export default function MapaScreen() {
         console.log(`     - Selected category: ${categoriaSeleccionada}`);
         console.log(`     - Match category: ${matchCategoria}`);
         console.log(`     - Match state: ${matchEstado}`);
+        console.log(`     - Match global filters: ${matchGlobalFilters}`);
       }
       
       return shouldShow;
     });
     
-    console.log(`[MAP] ✅ Filtered locals for category "${categoriaSeleccionada}": ${filtrados.length} of ${todosLosLocales.length}`);
+    console.log(`[MAP] ✅ Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
     
     setLocalesFiltrados(filtrados);
-  }, [todosLosLocales, categoriaSeleccionada, filtroEstado]);
+  }, [todosLosLocales, categoriaSeleccionada, filtroEstado, globalFiltros]);
 
   useEffect(() => {
     if (webViewRef.current && localesFiltrados.length > 0 && categoriaSeleccionada !== 'todos') {
@@ -1200,11 +1260,6 @@ export default function MapaScreen() {
       <FiltrosAvanzadosSheet
         visible={mostrarFiltros}
         onClose={() => setMostrarFiltros(false)}
-        filtros={{}}
-        onAplicarFiltros={(filtros) => {
-          setMostrarFiltros(false);
-          console.log('Filtros aplicados:', filtros);
-        }}
       />
     </View>
   );
