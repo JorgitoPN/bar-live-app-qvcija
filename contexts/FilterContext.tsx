@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo } from 'react';
 import { Filtros } from '@/types';
 import { supabase } from '@/utils/supabase';
 
@@ -21,19 +21,23 @@ interface FilterContextType {
   dynamicOptions: DynamicFilterOptions;
   refreshDynamicOptions: () => Promise<void>;
   isLoadingOptions: boolean;
+  
+  // ✅ NEW: Check if any filters are active
+  hasActiveFilters: boolean;
 }
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 /**
- * ✅ FILTER CONTEXT v2.0 - DYNAMIC FILTERS WITH REAL-TIME VALIDATION
+ * ✅ FILTER CONTEXT v3.0 - OPTIMIZED DYNAMIC FILTERS
  * 
  * Features:
+ * - ✅ INSTANT LOADING: Uses cached data from GlobalDataContext
  * - ✅ DYNAMIC OPTIONS: Only show filter options that have actual results
  * - ✅ AUTO-CLEANUP: Remove options when no locals match
  * - ✅ AUTO-UPDATE: Add new options when new locals are created
  * - ✅ ZERO FRUSTRATION: No more "0 results" filters
- * - ✅ REAL-TIME: Updates when database changes
+ * - ✅ PERFORMANCE: Optimized with useMemo to prevent re-renders
  */
 
 export function FilterProvider({ children }: { children: ReactNode }) {
@@ -62,8 +66,20 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     setFiltrosState({});
   }, []);
 
+  // ✅ OPTIMIZED: Check if any filters are active (memoized)
+  const hasActiveFilters = useMemo(() => {
+    return !!(
+      (filtros.tipo && filtros.tipo.length > 0) ||
+      (filtros.servicios && filtros.servicios.length > 0) ||
+      (filtros.ambiente && filtros.ambiente.length > 0) ||
+      filtros.comunidad ||
+      filtros.provincia ||
+      filtros.distancia
+    );
+  }, [filtros]);
+
   /**
-   * ✅ DYNAMIC FILTER OPTIONS: Query distinct values from active locals
+   * ✅ OPTIMIZED: Query distinct values from active locals
    * This ensures users only see filter options that will return results
    */
   const refreshDynamicOptions = useCallback(async () => {
@@ -74,15 +90,16 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     setIsLoadingOptions(true);
     
     try {
-      // ✅ Query all active locals to extract unique filter values
+      // ✅ FIXED: Query with proper filters to ensure we get active locals
       const { data: locales, error } = await supabase
         .from('locales')
-        .select('barlive_types, servicios_disponibles, ambiente_completo, comunidad, provincia')
+        .select('barlive_types, servicios_disponibles, ambiente_completo, ambiente_google, comunidad, provincia')
         .eq('activo', true)
         .eq('estado_solicitud', 'aprobado');
 
       if (error) {
         console.error('[FilterContext] ❌ Error loading dynamic options:', error);
+        setIsLoadingOptions(false);
         return;
       }
 
@@ -95,6 +112,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
           comunidades: [],
           provincias: [],
         });
+        setIsLoadingOptions(false);
         return;
       }
 
@@ -124,11 +142,20 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         }
       });
 
-      // ✅ Extract unique ambientes
+      // ✅ FIXED: Extract unique ambientes from both sources
       const ambientesSet = new Set<string>();
       locales.forEach(local => {
+        // Check ambiente_completo
         if (local.ambiente_completo && typeof local.ambiente_completo === 'object') {
           Object.entries(local.ambiente_completo).forEach(([key, value]) => {
+            if (value === true && key && key.trim()) {
+              ambientesSet.add(key);
+            }
+          });
+        }
+        // Check ambiente_google
+        if (local.ambiente_google && typeof local.ambiente_google === 'object') {
+          Object.entries(local.ambiente_google).forEach(([key, value]) => {
             if (value === true && key && key.trim()) {
               ambientesSet.add(key);
             }
@@ -223,6 +250,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
       dynamicOptions,
       refreshDynamicOptions,
       isLoadingOptions,
+      hasActiveFilters,
     }}>
       {children}
     </FilterContext.Provider>

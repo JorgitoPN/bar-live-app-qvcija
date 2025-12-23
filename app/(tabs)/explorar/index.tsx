@@ -30,6 +30,7 @@ import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 import { trackSearchAppearance } from '@/utils/activityTracker';
 import { shouldHavePubCategory } from '@/utils/categorizeLocal';
 import { getEstadoLocal } from '@/utils/timeUtils';
+import { useFilters } from '@/contexts/FilterContext';
 
 type ModoUsuario = 'cliente' | 'propietario' | 'admin';
 
@@ -70,6 +71,7 @@ export default function ExplorarScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   
   const { locales: todosLosLocales, isInitialLoading, isRefreshing: globalRefreshing, refreshData } = useGlobalData();
+  const { filtros: globalFiltros, hasActiveFilters } = useFilters();
   
   const [localesVisibles, setLocalesVisibles] = useState<Local[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
@@ -78,7 +80,6 @@ export default function ExplorarScreen() {
   const [busqueda, setBusqueda] = useState('');
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todos');
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  const [filtrosActivos, setFiltrosActivos] = useState<Filtros>({});
   const [cargandoMas, setCargandoMas] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [activePromotions, setActivePromotions] = useState<Set<string>>(new Set());
@@ -127,6 +128,7 @@ export default function ExplorarScreen() {
     console.log('[ExplorarScreen] ⚡ Applying filters...');
     console.log('[ExplorarScreen] 📊 Total locales:', todosLosLocales.length);
     console.log('[ExplorarScreen] 🔍 Selected category:', categoriaSeleccionada);
+    console.log('[ExplorarScreen] 🔍 Global filters:', globalFiltros);
 
     let localesFiltrados = todosLosLocales.filter(local => local.activo === true);
     console.log('[ExplorarScreen] ✅ After activo filter:', localesFiltrados.length);
@@ -141,22 +143,11 @@ export default function ExplorarScreen() {
           const hasPubInTypes = barliveTypes.includes('pub');
           const shouldBePub = shouldHavePubCategory(local.horarios_completos);
           
-          console.log(`[ExplorarScreen] 🍺 Checking "${local.nombre}":`, {
-            barliveTypes,
-            hasPubInTypes,
-            shouldBePub,
-            horarios: local.horarios_completos,
-          });
-          
           return hasPubInTypes || shouldBePub;
         }
         
         if (categoriaSeleccionada === 'discoteca') {
           const hasDiscoteca = barliveTypes.includes('discoteca') || barliveTypes.includes('sala_conciertos');
-          console.log(`[ExplorarScreen] 💃 Checking "${local.nombre}":`, {
-            barliveTypes,
-            hasDiscoteca,
-          });
           return hasDiscoteca;
         }
         
@@ -177,7 +168,44 @@ export default function ExplorarScreen() {
       console.log(`[ExplorarScreen] 🔍 After search filter: ${localesFiltrados.length} locales`);
     }
 
-    // ✅ FIXED: Calculate open/closed status for each local
+    // ✅ Apply global filters from FilterContext
+    if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
+      localesFiltrados = localesFiltrados.filter(local => local.comunidad === globalFiltros.comunidad);
+      console.log(`[ExplorarScreen] 🔍 After community filter: ${localesFiltrados.length} locales`);
+    }
+
+    if (globalFiltros.provincia) {
+      localesFiltrados = localesFiltrados.filter(local => local.provincia === globalFiltros.provincia);
+      console.log(`[ExplorarScreen] 🔍 After province filter: ${localesFiltrados.length} locales`);
+    }
+
+    if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
+      localesFiltrados = localesFiltrados.filter(local => {
+        const barliveTypes = local.barlive_types || [];
+        return globalFiltros.tipo!.some(tipo => 
+          barliveTypes.some((cat: string) => cat.toLowerCase() === tipo.toLowerCase())
+        );
+      });
+      console.log(`[ExplorarScreen] 🔍 After type filter: ${localesFiltrados.length} locales`);
+    }
+
+    if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
+      localesFiltrados = localesFiltrados.filter(local => {
+        const localServices = local.servicios_disponibles || {};
+        return globalFiltros.servicios!.every(servicio => localServices[servicio] === true);
+      });
+      console.log(`[ExplorarScreen] 🔍 After services filter: ${localesFiltrados.length} locales`);
+    }
+
+    if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0 && !globalFiltros.ambiente.includes('cualquiera')) {
+      localesFiltrados = localesFiltrados.filter(local => {
+        const localAmbiente = local.ambiente_completo || local.ambiente_google || {};
+        return globalFiltros.ambiente!.some(amb => localAmbiente[amb] === true);
+      });
+      console.log(`[ExplorarScreen] 🔍 After ambiente filter: ${localesFiltrados.length} locales`);
+    }
+
+    // ✅ Calculate open/closed status for each local
     localesFiltrados = localesFiltrados.map(local => {
       const estadoLocal = getEstadoLocal(local);
       return {
@@ -202,6 +230,14 @@ export default function ExplorarScreen() {
         return { ...local, distancia: 999999 };
       });
 
+      // ✅ Apply distance filter if set
+      if (globalFiltros.distancia) {
+        localesFiltrados = localesFiltrados.filter(local => 
+          local.distancia !== undefined && local.distancia <= globalFiltros.distancia!
+        );
+        console.log(`[ExplorarScreen] 🔍 After distance filter (${globalFiltros.distancia}km): ${localesFiltrados.length} locales`);
+      }
+
       console.log('[ExplorarScreen] 🧠 Applying FIXED sorting algorithm...');
       console.log('[ExplorarScreen] 📋 CORRECT ORDER (OPEN FIRST):');
       console.log('[ExplorarScreen]    1. OPEN locals (≤100km) - FEATURED sorted by distance');
@@ -213,7 +249,6 @@ export default function ExplorarScreen() {
       console.log('[ExplorarScreen]    7. CLOSED locals (>100km) - NON-FEATURED sorted by distance');
       console.log('[ExplorarScreen]    8. CLOSED locals (>100km) - FEATURED sorted by distance');
 
-      // ✅ FIXED: Separate open and closed locals
       const openLocals = localesFiltrados.filter(l => l.estaAbierto === true);
       const closedLocals = localesFiltrados.filter(l => l.estaAbierto !== true);
 
@@ -221,7 +256,6 @@ export default function ExplorarScreen() {
       console.log('  - Open locals:', openLocals.length);
       console.log('  - Closed locals:', closedLocals.length);
 
-      // Sort open locals (priority)
       const openGroupA = openLocals.filter(l => 
         l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
       );
@@ -246,7 +280,6 @@ export default function ExplorarScreen() {
         .filter(l => l.destacado === true || activePromotions.has(l.id))
         .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-      // Sort closed locals (lower priority)
       const closedGroupA = closedLocals.filter(l => 
         l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
       );
@@ -271,17 +304,6 @@ export default function ExplorarScreen() {
         .filter(l => l.destacado === true || activePromotions.has(l.id))
         .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-      console.log('[ExplorarScreen] 📊 Sub-groups created (OPEN FIRST):');
-      console.log('  1. Open Group A Featured (≤100km, destacado=true):', openGroupA_destacados.length);
-      console.log('  2. Open Group A Non-Featured (≤100km, destacado=false):', openGroupA_no_destacados.length);
-      console.log('  3. Open Group B Non-Featured (>100km, destacado=false):', openGroupB_no_destacados.length);
-      console.log('  4. Open Group B Featured (>100km, destacado=true):', openGroupB_destacados.length);
-      console.log('  5. Closed Group A Featured (≤100km, destacado=true):', closedGroupA_destacados.length);
-      console.log('  6. Closed Group A Non-Featured (≤100km, destacado=false):', closedGroupA_no_destacados.length);
-      console.log('  7. Closed Group B Non-Featured (>100km, destacado=false):', closedGroupB_no_destacados.length);
-      console.log('  8. Closed Group B Featured (>100km, destacado=true):', closedGroupB_destacados.length);
-
-      // ✅ FIXED: Open locals first, then closed locals
       localesFiltrados = [
         ...openGroupA_destacados,
         ...openGroupA_no_destacados,
@@ -297,14 +319,11 @@ export default function ExplorarScreen() {
     } else {
       console.log('[ExplorarScreen] ⚠️ No user location available, sorting by open status, destacado and rating');
       
-      // ✅ FIXED: Sort by open status first, then destacado, then rating
       localesFiltrados.sort((a, b) => {
-        // First priority: Open status
         if (a.estaAbierto !== b.estaAbierto) {
           return a.estaAbierto ? -1 : 1;
         }
         
-        // Second priority: Featured status
         const aDestacado = a.destacado || activePromotions.has(a.id);
         const bDestacado = b.destacado || activePromotions.has(b.id);
         
@@ -312,7 +331,6 @@ export default function ExplorarScreen() {
           return aDestacado ? -1 : 1;
         }
         
-        // Third priority: Rating
         const ratingA = parseFloat((a.rating || a.google_rating || 0).toString());
         const ratingB = parseFloat((b.rating || b.google_rating || 0).toString());
         return ratingB - ratingA;
@@ -321,7 +339,7 @@ export default function ExplorarScreen() {
 
     console.log(`[ExplorarScreen] ⚡ Final filtered and sorted locals: ${localesFiltrados.length}`);
     return localesFiltrados;
-  }, [todosLosLocales, busqueda, categoriaSeleccionada, userLocation, activePromotions]);
+  }, [todosLosLocales, busqueda, categoriaSeleccionada, userLocation, activePromotions, globalFiltros]);
 
   useEffect(() => {
     setPaginaActual(1);
@@ -469,7 +487,6 @@ export default function ExplorarScreen() {
     }
 
     if (scrollDirection.current === 'down' && scrollDiff > 5 && currentScrollY > 50 && isHeaderVisible.current) {
-      console.log('[ExplorarScreen] ⬇️ Hiding header and categories');
       isHeaderVisible.current = false;
       
       Animated.parallel([
@@ -486,7 +503,6 @@ export default function ExplorarScreen() {
       ]).start();
     } 
     else if (scrollDirection.current === 'up' && scrollDiff < -10 && !isHeaderVisible.current) {
-      console.log('[ExplorarScreen] ⬆️ Showing header and categories');
       isHeaderVisible.current = true;
       
       Animated.parallel([
@@ -567,9 +583,9 @@ export default function ExplorarScreen() {
                   style={styles.modoButton}
                   onPress={() => setMostrarSelectorModo(true)}
                 >
-                  <IconSymbol name={getModoIcon(currentMode)} size={20} color={colors.headerText} />
+                  <IconSymbol ios_icon_name={getModoIcon(currentMode)} android_material_icon_name={getModoIcon(currentMode)} size={20} color={colors.headerText} />
                   <Text style={styles.modoButtonText}>{getModoLabel(currentMode)}</Text>
-                  <IconSymbol name="chevron.down" size={16} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={16} color={colors.headerText} />
                 </TouchableOpacity>
               )}
               
@@ -577,13 +593,13 @@ export default function ExplorarScreen() {
                 style={styles.headerIconButton}
                 onPress={() => router.push('/explorar/mapa')}
               >
-                <IconSymbol name="map.fill" size={24} color={colors.headerText} />
+                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={24} color={colors.headerText} />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.searchContainer}>
-            <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar locales..."
@@ -591,8 +607,13 @@ export default function ExplorarScreen() {
               value={busqueda}
               onChangeText={setBusqueda}
             />
-            <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
-              <IconSymbol name="line.3.horizontal.decrease.circle.fill" size={24} color={colors.primary} />
+            <TouchableOpacity onPress={() => setMostrarFiltros(true)} style={styles.filterButtonContainer}>
+              <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle.fill" android_material_icon_name="filter_list" size={24} color={colors.primary} />
+              {hasActiveFilters && (
+                <View style={styles.filterBadge}>
+                  <View style={styles.filterBadgeDot} />
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -627,7 +648,7 @@ export default function ExplorarScreen() {
                     categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive,
                   ]}
                 >
-                  <IconSymbol name={categoria.icon as any} size={28} color={colors.primary} />
+                  <IconSymbol ios_icon_name={categoria.icon as any} android_material_icon_name={categoria.icon as any} size={28} color={colors.primary} />
                 </View>
                 <Text
                   style={[
@@ -649,7 +670,8 @@ export default function ExplorarScreen() {
               ]}
             >
               <IconSymbol 
-                name="chevron.right" 
+                ios_icon_name="chevron.right" 
+                android_material_icon_name="chevron_right"
                 size={16} 
                 color={colors.textSecondary} 
               />
@@ -691,7 +713,8 @@ export default function ExplorarScreen() {
             <View style={styles.claimLocalContent}>
               <View style={styles.claimLocalIconContainer}>
                 <IconSymbol 
-                  name="building.2.fill" 
+                  ios_icon_name="building.2.fill" 
+                  android_material_icon_name="store"
                   size={22} 
                   color={colors.primary} 
                 />
@@ -706,7 +729,8 @@ export default function ExplorarScreen() {
               </View>
               <View style={styles.claimLocalArrow}>
                 <IconSymbol 
-                  name="chevron.right" 
+                  ios_icon_name="chevron.right" 
+                  android_material_icon_name="chevron_right"
                   size={18} 
                   color={colors.primary} 
                 />
@@ -717,7 +741,7 @@ export default function ExplorarScreen() {
 
         {localesVisibles.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <IconSymbol name="mappin.slash" size={64} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="mappin.slash" android_material_icon_name="location_off" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No se encontraron locales</Text>
             <Text style={styles.emptySubtext}>Intenta ajustar los filtros de búsqueda</Text>
           </View>
@@ -780,7 +804,8 @@ export default function ExplorarScreen() {
                     currentMode === modo && styles.modoOptionIconActive,
                   ]}>
                     <IconSymbol 
-                      name={getModoIcon(modo)} 
+                      ios_icon_name={getModoIcon(modo)} 
+                      android_material_icon_name={getModoIcon(modo)}
                       size={24} 
                       color={currentMode === modo ? colors.headerText : colors.primary} 
                     />
@@ -800,7 +825,7 @@ export default function ExplorarScreen() {
                   </View>
                 </View>
                 {currentMode === modo && (
-                  <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
+                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -811,11 +836,6 @@ export default function ExplorarScreen() {
       <FiltrosAvanzadosSheet
         visible={mostrarFiltros}
         onClose={() => setMostrarFiltros(false)}
-        filtros={filtrosActivos}
-        onAplicarFiltros={(filtros) => {
-          setFiltrosActivos(filtros);
-          setMostrarFiltros(false);
-        }}
       />
     </View>
   );
@@ -873,6 +893,28 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: colors.text,
+  },
+  filterButtonContainer: {
+    position: 'relative',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.headerText,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  filterBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
   },
   categoriasContainer: {
     paddingVertical: 16,

@@ -131,7 +131,7 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v4.0 - INSTANT LOADING WITH ZERO-WAIT + DYNAMIC FILTERS + FLY-TO
+ * ✅ MAP SCREEN v5.0 - INSTANT LOADING WITH ZERO-WAIT + OPTIMIZED FILTERS
  * 
  * Features:
  * - ✅ INSTANT DISPLAY: Map and markers load simultaneously (HYDRATION)
@@ -142,6 +142,7 @@ interface LocalWithEvent extends Local {
  * - ✅ FLY-TO ANIMATION: Smooth map navigation on location filter
  * - ✅ MARKER CLUSTERING: Performance with many markers
  * - ✅ MEMOIZED: Prevents unnecessary re-renders
+ * - ✅ OPTIMIZED: Markers pre-computed before map render
  */
 
 export default function MapaScreen() {
@@ -1004,7 +1005,7 @@ export default function MapaScreen() {
       
       // ✅ FIXED: Ambiente filter - check if local has ANY of the selected ambientes
       if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0 && !globalFiltros.ambiente.includes('cualquiera')) {
-        const localAmbiente = local.ambiente_completo || {};
+        const localAmbiente = local.ambiente_completo || local.ambiente_google || {};
         const hasMatchingAmbiente = globalFiltros.ambiente.some(amb => 
           localAmbiente[amb] === true
         );
