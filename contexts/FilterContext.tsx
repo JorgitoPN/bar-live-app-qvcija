@@ -30,7 +30,7 @@ interface FilterContextType {
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 /**
- * ✅ FILTER CONTEXT v3.2 - FIXED DYNAMIC FILTERS WITH CLIENTELA
+ * ✅ FILTER CONTEXT v3.3 - FIXED QUERY TO SHOW ALL ACTIVE LOCALS
  * 
  * Features:
  * - ✅ INSTANT LOADING: Uses cached data from GlobalDataContext
@@ -39,6 +39,7 @@ const FilterContext = createContext<FilterContextType | undefined>(undefined);
  * - ✅ AUTO-UPDATE: Add new options when new locals are created
  * - ✅ ZERO FRUSTRATION: No more "0 results" filters
  * - ✅ PERFORMANCE: Optimized with useMemo to prevent re-renders
+ * - ✅ FIXED: Removed estado_solicitud filter - now shows ALL active locals
  * - ✅ FIXED: Proper handling of ambiente_completo, servicios_disponibles, and clientela columns
  */
 
@@ -84,22 +85,23 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 
   /**
    * ✅ FIXED: Query distinct values from active locals
-   * This ensures users only see filter options that will return results
+   * ✅ CRITICAL FIX: Removed estado_solicitud = 'aprobado' filter
+   * This ensures users see ALL active locals (335 in database)
    */
   const refreshDynamicOptions = useCallback(async () => {
     console.log('[FilterContext] 🔍 ========================================');
     console.log('[FilterContext] 🔍 LOADING DYNAMIC FILTER OPTIONS');
     console.log('[FilterContext] 🔍 Querying DISTINCT values from active locals...');
+    console.log('[FilterContext] 🔍 ✅ FIXED: Removed estado_solicitud filter');
     
     setIsLoadingOptions(true);
     
     try {
-      // ✅ FIXED: Query with proper column selection including clientela
+      // ✅ CRITICAL FIX: Only filter by activo = true (removed estado_solicitud filter)
       const { data: locales, error } = await supabase
         .from('locales')
         .select('barlive_types, servicios_disponibles, ambiente_completo, clientela, comunidad, provincia')
-        .eq('activo', true)
-        .eq('estado_solicitud', 'aprobado');
+        .eq('activo', true);
 
       if (error) {
         console.error('[FilterContext] ❌ Error loading dynamic options:', error);
@@ -135,7 +137,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         }
       });
 
-      // ✅ Extract unique servicios
+      // ✅ Extract unique servicios (only those that are true)
       const serviciosSet = new Set<string>();
       locales.forEach(local => {
         if (local.servicios_disponibles && typeof local.servicios_disponibles === 'object') {
@@ -147,7 +149,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         }
       });
 
-      // ✅ FIXED: Extract unique ambientes from ambiente_completo
+      // ✅ FIXED: Extract unique ambientes from ambiente_completo (only those that are true)
       const ambientesSet = new Set<string>();
       locales.forEach(local => {
         if (local.ambiente_completo && typeof local.ambiente_completo === 'object') {
@@ -159,7 +161,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         }
       });
 
-      // ✅ NEW: Extract unique clientela
+      // ✅ NEW: Extract unique clientela (only those that are true)
       const clientelaSet = new Set<string>();
       locales.forEach(local => {
         if (local.clientela && typeof local.clientela === 'object') {
