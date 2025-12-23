@@ -15,23 +15,34 @@ import {
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 import MomentoViewer from '@/components/momento/MomentoViewer';
 import PostViewerModal from '@/components/social/PostViewerModal';
+import { profileCache } from '@/utils/profileCache';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
+
+/**
+ * ✅ USER PROFILE v2.0 - INSTANT LOADING WITH PERSISTENCE
+ * 
+ * Features:
+ * - ✅ NO loading screens - instant display with cached data
+ * - ✅ Background sync for fresh data without blocking UI
+ * - ✅ Persistent state - doesn't unmount when navigating away
+ * - ✅ Same system as Lista de Locales and Feed Social
+ */
 
 export default function UsuarioPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user: currentUser } = useAuth();
   
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // ✅ Changed: No initial loading
   const [refreshing, setRefreshing] = useState(false);
   const [usuario, setUsuario] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
@@ -54,11 +65,31 @@ export default function UsuarioPerfilScreen() {
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   const isTogglingFollow = useRef(false);
+  const hasLoadedOnce = useRef(false); // ✅ NEW: Track if we've loaded data
 
   const userId = params.userId as string;
   const isOwnProfile = currentUser && currentUser.id === userId;
-  // ✅ NEW: Admin view mode - bypasses private profile restrictions
   const isAdminView = params.adminView === 'true' && currentUser?.rol_app === 'admin';
+
+  // ✅ NEW: Keep-Alive - Don't reset state when screen loses focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[UsuarioPerfil] ⚡ Screen focused - keeping state alive');
+      
+      // Only load if we haven't loaded yet
+      if (!hasLoadedOnce.current) {
+        loadUserDataWithCache();
+      } else {
+        // Silent background refresh
+        console.log('[UsuarioPerfil] 🔄 Background refresh...');
+        loadUserData(true);
+      }
+      
+      return () => {
+        console.log('[UsuarioPerfil] Screen unfocused - state persisted');
+      };
+    }, [userId])
+  );
 
   useEffect(() => {
     Animated.parallel([
@@ -99,17 +130,13 @@ export default function UsuarioPerfilScreen() {
       if (checkIn && checkIn.locales) {
         setCurrentLocal(checkIn.locales);
         
-        // ✅ Admin can always view location
         if (isAdminView) {
           setCanViewLocation(true);
-          console.log('[UsuarioPerfil] ✅ Admin view - can view location');
         } else if (isOwnProfile) {
           setCanViewLocation(true);
-          console.log('[UsuarioPerfil] ✅ Own profile - can view location');
         } else if (currentUser) {
           if (checkIn.visibility === 'all_users') {
             setCanViewLocation(true);
-            console.log('[UsuarioPerfil] ✅ Visibility: all_users - can view');
           } else if (checkIn.visibility === 'followers') {
             const { data: followData } = await supabase
               .from('seguidores')
@@ -119,19 +146,15 @@ export default function UsuarioPerfilScreen() {
               .single();
             
             setCanViewLocation(!!followData);
-            console.log('[UsuarioPerfil] ✅ Visibility: followers - can view:', !!followData);
           } else if (checkIn.visibility === 'specific_users') {
             const canView = checkIn.specific_user_ids?.includes(currentUser.id) || false;
             setCanViewLocation(canView);
-            console.log('[UsuarioPerfil] ✅ Visibility: specific_users - can view:', canView);
           } else {
             setCanViewLocation(false);
           }
         } else {
           setCanViewLocation(false);
         }
-
-        console.log('[UsuarioPerfil] ✅ User is checked in to:', checkIn.locales.nombre);
       } else {
         setCurrentLocal(null);
         setCanViewLocation(false);
@@ -143,8 +166,6 @@ export default function UsuarioPerfilScreen() {
 
   const loadFollowerCounts = useCallback(async (targetUserId: string) => {
     try {
-      console.log('[UsuarioPerfil] 🔄 Loading follower counts (including locals)...');
-
       const { data: seguidoresData, error: seguidoresError } = await supabase
         .rpc('get_total_seguidores_count', { p_usuario_id: targetUserId });
 
@@ -162,8 +183,6 @@ export default function UsuarioPerfilScreen() {
       const actualSeguidores = seguidoresData || 0;
       const actualSeguidos = seguidosData || 0;
 
-      console.log('[UsuarioPerfil] ✅ Actual counts (including locals) - Seguidores:', actualSeguidores, 'Siguiendo:', actualSeguidos);
-
       const { error: updateError } = await supabase
         .from('usuarios')
         .update({
@@ -174,8 +193,6 @@ export default function UsuarioPerfilScreen() {
 
       if (updateError) {
         console.error('[UsuarioPerfil] Error updating user counters:', updateError);
-      } else {
-        console.log('[UsuarioPerfil] ✅ User counters synchronized in database');
       }
 
       return { seguidores: actualSeguidores, seguidos: actualSeguidos };
@@ -185,13 +202,52 @@ export default function UsuarioPerfilScreen() {
     }
   }, []);
 
-  const loadUserData = useCallback(async () => {
+  // ✅ NEW: Load with cache first (instant), then refresh in background
+  const loadUserDataWithCache = useCallback(async () => {
     if (!userId) {
       router.back();
       return;
     }
 
     try {
+      console.log('[UsuarioPerfil] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
+      
+      // Try to load from cache first
+      const cachedData = await profileCache.get(userId, 'user');
+      
+      if (cachedData) {
+        console.log('[UsuarioPerfil] ⚡ INSTANT display with cached data');
+        setUsuario(cachedData.profile);
+        setPosts(cachedData.posts);
+        setStats(cachedData.stats);
+        hasLoadedOnce.current = true;
+        
+        // Background refresh
+        setTimeout(() => {
+          console.log('[UsuarioPerfil] 🔄 Background refresh...');
+          loadUserData(true);
+        }, 100);
+      } else {
+        console.log('[UsuarioPerfil] 📡 No cache, loading from database...');
+        await loadUserData(false);
+      }
+    } catch (error) {
+      console.error('[UsuarioPerfil] Error in loadUserDataWithCache:', error);
+      await loadUserData(false);
+    }
+  }, [userId, router]);
+
+  const loadUserData = useCallback(async (silent: boolean = false) => {
+    if (!userId) {
+      router.back();
+      return;
+    }
+
+    try {
+      if (!silent) {
+        setLoading(true);
+      }
+
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('*')
@@ -200,14 +256,14 @@ export default function UsuarioPerfilScreen() {
 
       if (userError || !userData) {
         console.error('[UsuarioPerfil] Error loading user:', userError);
-        Alert.alert('Error', 'No se pudo cargar el perfil del usuario');
-        router.back();
+        if (!silent) {
+          Alert.alert('Error', 'No se pudo cargar el perfil del usuario');
+          router.back();
+        }
         return;
       }
 
-      // ✅ Check if profile is private and user doesn't have permission to view
       if (userData.perfil_privado && !isOwnProfile && !isAdminView) {
-        // Check if current user follows this user
         if (currentUser) {
           const { data: followData } = await supabase
             .from('seguidores')
@@ -217,15 +273,13 @@ export default function UsuarioPerfilScreen() {
             .single();
 
           if (!followData) {
-            // Show private profile message
             setUsuario(userData);
-            setLoading(false);
+            if (!silent) setLoading(false);
             return;
           }
         } else {
-          // Not logged in and profile is private
           setUsuario(userData);
-          setLoading(false);
+          if (!silent) setLoading(false);
           return;
         }
       }
@@ -241,20 +295,27 @@ export default function UsuarioPerfilScreen() {
 
       if (!postsError && postsData) {
         setPosts(postsData);
-        console.log('[UsuarioPerfil] ✅ Loaded posts:', postsData.length);
       }
 
       const followerCounts = await loadFollowerCounts(userId);
-
       const actualPostCount = postsData?.length || 0;
 
-      setStats({
+      const newStats = {
         posts: actualPostCount,
         seguidores: followerCounts.seguidores,
         seguidos: followerCounts.seguidos,
+      };
+
+      setStats(newStats);
+
+      // ✅ Save to cache for instant loading next time
+      await profileCache.set(userId, 'user', {
+        profile: userData,
+        posts: postsData || [],
+        stats: newStats,
       });
 
-      console.log('[UsuarioPerfil] ✅ User stats loaded - Posts:', actualPostCount, 'Seguidores:', followerCounts.seguidores, 'Seguidos:', followerCounts.seguidos);
+      console.log('[UsuarioPerfil] ✅ Data loaded and cached');
 
       if (currentUser) {
         const { data: followData } = await supabase
@@ -277,16 +338,17 @@ export default function UsuarioPerfilScreen() {
       }
 
       await loadCurrentLocal();
+      hasLoadedOnce.current = true;
     } catch (error) {
       console.error('[UsuarioPerfil] Error loading data:', error);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [userId, currentUser, router, loadFollowerCounts, loadCurrentLocal, isOwnProfile, isAdminView]);
 
   useEffect(() => {
-    loadUserData();
-
     if (userId) {
       const seguidoresChannel = supabase
         .channel(`user-seguidores-changes-${userId}`)
@@ -334,7 +396,7 @@ export default function UsuarioPerfilScreen() {
           },
           async () => {
             console.log('[UsuarioPerfil] ⚡ INSTANT update - Posts changed');
-            await loadUserData();
+            await loadUserData(true);
           }
         )
         .on(
@@ -356,9 +418,8 @@ export default function UsuarioPerfilScreen() {
         supabase.removeChannel(seguidoresChannel);
       };
     }
-  }, [loadUserData, userId, loadFollowerCounts, loadCurrentLocal]);
+  }, [userId, loadFollowerCounts, loadCurrentLocal, loadUserData]);
 
-  // ✅ NEW: Auto-open momento viewer if openMomento param is present
   useEffect(() => {
     if (params.openMomento === 'true' && !loading && usuario) {
       console.log('[UsuarioPerfil] 🎬 Auto-opening momento viewer from message');
@@ -368,7 +429,7 @@ export default function UsuarioPerfilScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadUserData();
+    await loadUserData(false);
     setRefreshing(false);
   };
 
@@ -379,7 +440,6 @@ export default function UsuarioPerfilScreen() {
     }
 
     if (isTogglingFollow.current) {
-      console.log('[UsuarioPerfil] Already toggling follow, skipping...');
       return;
     }
 
@@ -396,8 +456,6 @@ export default function UsuarioPerfilScreen() {
       }));
 
       if (wasFollowing) {
-        console.log('[UsuarioPerfil] Unfollowing user...');
-        
         const { error: deleteError } = await supabase
           .from('seguidores')
           .delete()
@@ -410,11 +468,7 @@ export default function UsuarioPerfilScreen() {
         if (currentUser) {
           await loadFollowerCounts(currentUser.id);
         }
-
-        console.log('[UsuarioPerfil] ✅ Unfollow successful');
       } else {
-        console.log('[UsuarioPerfil] Following user...');
-
         const { data: existingFollow } = await supabase
           .from('seguidores')
           .select('id')
@@ -423,7 +477,6 @@ export default function UsuarioPerfilScreen() {
           .single();
 
         if (existingFollow) {
-          console.log('[UsuarioPerfil] Already following, skipping insert');
           isTogglingFollow.current = false;
           return;
         }
@@ -451,8 +504,6 @@ export default function UsuarioPerfilScreen() {
             mensaje: `${currentUser.nombre} ha comenzado a seguirte`,
             usuario_origen_id: currentUser.id,
           });
-
-        console.log('[UsuarioPerfil] ✅ Follow successful');
       }
 
       const updatedCounts = await loadFollowerCounts(userId);
@@ -547,8 +598,6 @@ export default function UsuarioPerfilScreen() {
   const handleVerPost = (postId: string) => {
     const postIds = posts.map(p => p.id);
     
-    console.log('[UsuarioPerfil] ✅ Opening post viewer from profile grid (hideTagIcon=true):', { postId, totalPosts: postIds.length });
-    
     setSelectedPostId(postId);
     setAllPostIds(postIds);
     setShowPostViewer(true);
@@ -605,7 +654,8 @@ export default function UsuarioPerfilScreen() {
     );
   };
 
-  if (loading) {
+  // ✅ Show content immediately if we have cached data
+  if (loading && !usuario) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -622,7 +672,6 @@ export default function UsuarioPerfilScreen() {
     );
   }
 
-  // ✅ Check if profile is private and user doesn't have access
   const isPrivateAndNoAccess = usuario.perfil_privado && !isOwnProfile && !isAdminView && !isFollowing;
 
   return (
@@ -651,7 +700,6 @@ export default function UsuarioPerfilScreen() {
           {(isOwnProfile || isAdminView) && <View style={{ width: 40 }} />}
         </View>
 
-        {/* ✅ Admin badge */}
         {isAdminView && (
           <View style={styles.adminBadge}>
             <IconSymbol ios_icon_name="shield.fill" android_material_icon_name="admin_panel_settings" size={14} color={colors.white} />
@@ -886,7 +934,7 @@ export default function UsuarioPerfilScreen() {
             setAllPostIds([]);
           }}
           onUpdate={() => {
-            loadUserData();
+            loadUserData(true);
           }}
         />
       )}

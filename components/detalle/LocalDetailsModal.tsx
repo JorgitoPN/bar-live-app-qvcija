@@ -82,6 +82,14 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
   return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
 }
 
+/**
+ * ✅ LOCAL DETAILS MODAL v2.0 - UI CLEANUP
+ * 
+ * Changes:
+ * - ✅ Removed redundant local name text between "Estoy en este local" and action buttons
+ * - ✅ Clean, unified button layout
+ */
+
 export default function LocalDetailsModal({
   visible,
   localId,
@@ -319,6 +327,8 @@ export default function LocalDetailsModal({
                     </Text>
                   )}
                   
+                  {/* ✅ CLEANED UP: Removed redundant local name text */}
+                  {/* Check-in button directly followed by action buttons */}
                   <TouchableOpacity 
                     style={styles.checkInButton}
                     onPress={handleViewFullDetails}
@@ -334,6 +344,7 @@ export default function LocalDetailsModal({
                     </LinearGradient>
                   </TouchableOpacity>
                   
+                  {/* ✅ Action buttons immediately after check-in button - no gap */}
                   <View style={styles.actionsRow}>
                     {local.telefono && (
                       <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
@@ -599,7 +610,7 @@ const styles = StyleSheet.create({
   checkInButton: {
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   checkInGradient: {
     flexDirection: 'row',

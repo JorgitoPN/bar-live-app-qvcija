@@ -8,9 +8,6 @@ import {
   ScrollView,
   Platform,
   Dimensions,
-  Image,
-  Linking,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,15 +19,14 @@ import * as Location from 'expo-location';
 import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
 import { supabase } from '@/utils/supabase';
 import { getEstadoLocal } from '@/utils/timeUtils';
-import { performanceOptimizer } from '@/utils/performanceOptimizer';
-import { trackMapInteraction } from '@/utils/activityTracker';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFilters } from '@/contexts/FilterContext';
-import { addPubCategoryIfNeeded, shouldHavePubCategory, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
+import { addPubCategoryIfNeeded, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
 import { calcularDistancia } from '@/utils/locationUtils';
 import { mapCache } from '@/utils/mapCache';
+import { useGlobalData } from '@/contexts/GlobalDataContext';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const CATEGORIAS_LOCALES = [
   { id: 'todos', label: 'Todos', icon: 'mappin.circle.fill' },
@@ -56,26 +52,38 @@ interface LocalWithEvent extends Local {
   plan?: string | null;
 }
 
+/**
+ * ✅ MAP SCREEN v2.0 - INSTANT LOADING WITH ZERO-WAIT
+ * 
+ * Features:
+ * - ✅ NO "Cargando mapa..." message - instant display
+ * - ✅ Uses cached data from GlobalDataContext (same as Lista de Locales)
+ * - ✅ Background sync for fresh data without blocking UI
+ * - ✅ Synchronized with FilterContext for instant filter updates
+ * - ✅ Shares data with Lista de Locales - no duplicate API calls
+ */
+
 export default function MapaScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { filtros: globalFiltros } = useFilters();
+  const { locales: globalLocales, refreshData } = useGlobalData();
+  
   const webViewRef = useRef<WebView>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todos');
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'abiertos'>('abiertos');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [selectedLocal, setSelectedLocal] = useState<Local | null>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [todosLosLocales, setTodosLosLocales] = useState<LocalWithEvent[]>([]);
   const [localesFiltrados, setLocalesFiltrados] = useState<LocalWithEvent[]>([]);
   const [mapHTML, setMapHTML] = useState<string>('');
-  const [isLoadingData, setIsLoadingData] = useState(false);
 
+  // ✅ Get user location
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        console.log('Permission to access location was denied');
+        console.log('[MAP] Permission to access location was denied');
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
         return;
       }
@@ -88,212 +96,74 @@ export default function MapaScreen() {
     })();
   }, []);
 
-  const cargarTodosLosLocalesEnriquecidos = useCallback(async () => {
-    try {
-      console.log('🔄 [MAP] ========================================');
-      console.log('🔄 [MAP] Loading ALL active locals with location data...');
-
-      // ✅ INSTANT LOAD: Check cache first
-      const cachedData = await mapCache.get();
-      if (cachedData && cachedData.markers.length > 0) {
-        console.log('⚡ [MAP] INSTANT load from cache:', cachedData.markers.length);
-        setTodosLosLocales(cachedData.markers);
-        setLocalesFiltrados(cachedData.markers);
-      }
-
-      // ✅ BACKGROUND FETCH: Load fresh data
-      setIsLoadingData(true);
-      
-      const { data: essentialData, error: essentialError } = await supabase
-        .from('locales')
-        .select('id, nombre, latitud, longitud, barlive_type, barlive_types, imagen_url, destacado')
-        .eq('activo', true)
-        .not('latitud', 'is', null)
-        .not('longitud', 'is', null);
-
-      if (essentialError) {
-        console.error('❌ [MAP] Error loading essential data:', essentialError);
-        setIsLoadingData(false);
-        return;
-      }
-
-      if (essentialData && essentialData.length > 0) {
-        console.log(`⚡ [MAP] Essential data loaded: ${essentialData.length} locals`);
-        
-        const minimalLocales: LocalWithEvent[] = essentialData.map((local) => ({
-          id: local.id,
-          nombre: local.nombre,
-          tipo: local.barlive_type || 'bar',
-          descripcion: '',
-          direccion: '',
-          ciudad: '',
-          provincia: '',
-          coordenadas: {
-            lat: parseFloat(local.latitud),
-            lng: parseFloat(local.longitud),
-          },
-          imagenes: local.imagen_url ? [local.imagen_url] : [],
-          rating: 0,
-          precioMedio: 0,
-          horarios: [],
-          ambiente: [],
-          musica: [],
-          servicios: [],
-          metodosPago: [],
-          destacado: local.destacado || false,
-          nuevo: false,
-          abierto: false,
-          popularidad: 0,
-          checkIns: 0,
-          seguidores: 0,
-          imagen_url: local.imagen_url,
-          galeria_urls: [],
-          activo: true,
-          barlive_type: local.barlive_type,
-          barlive_types: local.barlive_types || [],
-          evento: null,
-          plan: null,
-        }));
-
-        setTodosLosLocales(minimalLocales);
-        setLocalesFiltrados(minimalLocales);
-      }
-
-      const { data, error, count } = await supabase
-        .from('locales')
-        .select(`
-          *,
-          suscripciones_locales!suscripciones_locales_local_id_fkey (
-            plan_id,
-            estado,
-            planes_suscripcion!suscripciones_locales_plan_id_fkey (
-              nombre
-            )
-          )
-        `, { count: 'exact' })
-        .eq('activo', true)
-        .not('latitud', 'is', null)
-        .not('longitud', 'is', null);
-
-      if (error) {
-        console.error('❌ [MAP] Error loading full data:', error);
-        setIsLoadingData(false);
-        return;
-      }
-
-      console.log(`✅ [MAP] Loaded ${data?.length || 0} active locals with full data from DB (total count: ${count})`);
-
+  // ✅ INSTANT LOAD: Use data from GlobalDataContext (same as Lista de Locales)
+  useEffect(() => {
+    console.log('⚡ [MAP] ========================================');
+    console.log('⚡ [MAP] INSTANT LOAD from GlobalDataContext');
+    console.log('⚡ [MAP] Total locales available:', globalLocales.length);
+    
+    if (globalLocales.length > 0) {
+      // Transform global locales to map format
       const now = new Date();
       const currentDate = now.toISOString().split('T')[0];
       
-      const { data: allEvents } = await supabase
+      // Load events in background
+      supabase
         .from('eventos')
         .select('id, titulo, fecha, fecha_fin, hora, hora_fin, imagen_url, precio, local_id')
         .eq('activo', true)
         .gte('fecha', currentDate)
         .order('fecha', { ascending: true })
-        .order('hora', { ascending: true });
+        .order('hora', { ascending: true })
+        .then(({ data: allEvents }) => {
+          const eventsByLocal = new Map<string, any>();
+          if (allEvents) {
+            for (const event of allEvents) {
+              if (!eventsByLocal.has(event.local_id)) {
+                const eventStartDate = new Date(`${event.fecha}T${event.hora}`);
+                let eventEndDate: Date;
+                if (event.fecha_fin && event.hora_fin) {
+                  eventEndDate = new Date(`${event.fecha_fin}T${event.hora_fin}`);
+                } else {
+                  eventEndDate = new Date(eventStartDate.getTime() + 4 * 60 * 60 * 1000);
+                }
 
-      console.log(`✅ [MAP] Loaded ${allEvents?.length || 0} active events`);
-
-      const eventsByLocal = new Map<string, any>();
-      if (allEvents) {
-        for (const event of allEvents) {
-          if (!eventsByLocal.has(event.local_id)) {
-            const eventStartDate = new Date(`${event.fecha}T${event.hora}`);
-            let eventEndDate: Date;
-            if (event.fecha_fin && event.hora_fin) {
-              eventEndDate = new Date(`${event.fecha_fin}T${event.hora_fin}`);
-            } else {
-              eventEndDate = new Date(eventStartDate.getTime() + 4 * 60 * 60 * 1000);
-            }
-
-            if (now <= eventEndDate) {
-              eventsByLocal.set(event.local_id, event);
+                if (now <= eventEndDate) {
+                  eventsByLocal.set(event.local_id, event);
+                }
+              }
             }
           }
-        }
-      }
 
-      const localesTransformados: LocalWithEvent[] = (data || []).map((local) => {
-        const suscripcion = local.suscripciones_locales?.[0];
-        const plan = suscripcion?.estado === 'activa' ? suscripcion.planes_suscripcion?.nombre : null;
-        const evento = eventsByLocal.get(local.id) || null;
+          // Transform locales with events
+          const localesTransformados: LocalWithEvent[] = globalLocales.map((local) => {
+            const evento = eventsByLocal.get(local.id) || null;
 
-        return {
-          id: local.id,
-          nombre: local.nombre,
-          tipo: local.tipo,
-          descripcion: local.descripcion || '',
-          direccion: local.direccion,
-          ciudad: local.ciudad || '',
-          provincia: local.provincia,
-          coordenadas: {
-            lat: parseFloat(local.latitud),
-            lng: parseFloat(local.longitud),
-          },
-          imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-          rating: parseFloat(local.google_rating || local.rating || 0),
-          precioMedio: local.precio_medio || 0,
-          horarios: [],
-          ambiente: local.ambiente || [],
-          musica: local.musica || [],
-          servicios: local.servicios || [],
-          metodosPago: local.metodos_pago || [],
-          destacado: local.destacado || false,
-          nuevo: local.nuevo || false,
-          abierto: local.abierto || false,
-          popularidad: local.popularidad || 0,
-          checkIns: local.check_ins || 0,
-          seguidores: local.seguidores || 0,
-          telefono: local.telefono,
-          web: local.website,
-          google_place_id: local.google_place_id,
-          valoracion_google: parseFloat(local.google_rating || 0),
-          numero_reviews_google: local.google_user_ratings_total || 0,
-          website_url: local.website,
-          tipos_google: local.tipos_google || [],
-          nivel_precio_google: local.nivel_precio_google,
-          google_maps_url: local.google_maps_url,
-          descripcion_google: local.descripcion_google,
-          horarios_completos: local.horarios_completos,
-          estado_actual: local.estado_actual,
-          servicios_disponibles: local.servicios_disponibles,
-          ambiente_google: local.ambiente_completo,
-          clientela: local.clientela,
-          imagen_url: local.imagen_url,
-          galeria_urls: local.galeria_urls || [],
-          reviews_google: local.reviews_google,
-          activo: local.activo,
-          source_type: local.source_type,
-          source_id: local.source_id,
-          comunidad: local.comunidad,
-          fecha_importacion_google: local.fecha_actualizacion,
-          enriquecido: local.enriquecido,
-          barlive_type: local.barlive_type,
-          barlive_types: local.barlive_types || [],
-          evento: evento,
-          plan: plan,
-        };
-      });
+            return {
+              ...local,
+              evento,
+              plan: null, // Will be loaded in background if needed
+            };
+          });
 
-      setTodosLosLocales(localesTransformados);
-      
-      // ✅ CACHE UPDATE: Store fresh data
-      await mapCache.set(localesTransformados);
-      
-      console.log(`✅ [MAP] Successfully loaded and cached ${localesTransformados.length} locals`);
-      console.log('✅ [MAP] ========================================');
-      setIsLoadingData(false);
-    } catch (error) {
-      console.error('❌ [MAP] Error in cargarTodosLosLocalesEnriquecidos:', error);
-      setIsLoadingData(false);
+          setTodosLosLocales(localesTransformados);
+          console.log(`⚡ [MAP] INSTANT display ready with ${localesTransformados.length} locals`);
+        });
     }
-  }, []);
+  }, [globalLocales]);
 
+  // ✅ BACKGROUND SYNC: Refresh data silently in background
   useEffect(() => {
-    cargarTodosLosLocalesEnriquecidos();
-  }, [cargarTodosLosLocalesEnriquecidos]);
+    const backgroundRefresh = async () => {
+      console.log('🔄 [MAP] Background refresh triggered');
+      await refreshData(true); // Silent refresh
+    };
+
+    // Refresh every 2 minutes in background
+    const interval = setInterval(backgroundRefresh, 2 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [refreshData]);
 
   const markersData = useMemo(() => {
     const checkInsByLocal = new Map<string, { isUserHere: boolean; friendsCount: number }>();
@@ -414,7 +284,7 @@ export default function MapaScreen() {
           });
         }
       } catch (error) {
-        console.error('[Mapa] Error loading check-ins:', error);
+        console.error('[MAP] Error loading check-ins:', error);
       }
     }
 
@@ -422,7 +292,6 @@ export default function MapaScreen() {
     console.log(`[MAP] 🗺️ GENERATING MAP HTML`);
     console.log(`[MAP] 🗺️ Total markers to display: ${markersData.length}`);
     console.log(`[MAP] 🗺️ Center: ${centerLat}, ${centerLng}`);
-    console.log(`[MAP] 🗺️ User location: ${userLocation ? 'Available' : 'Not available'}`);
     console.log(`[MAP] 🗺️ ========================================`);
 
     return `
@@ -965,7 +834,7 @@ export default function MapaScreen() {
     }
   }, [localesFiltrados, user, generateMapHTML]);
 
-  // ✅ FIXED: Apply global filters from FilterContext
+  // ✅ SYNCHRONIZED FILTERS: Apply global filters from FilterContext
   useEffect(() => {
     console.log('[MAP] 🔍 ========================================');
     console.log('[MAP] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
@@ -995,7 +864,7 @@ export default function MapaScreen() {
         matchEstado = estado.estaAbierto === true;
       }
       
-      // ✅ FIXED: Apply global filters
+      // ✅ SYNCHRONIZED: Apply global filters from FilterContext
       let matchGlobalFilters = true;
       
       // Community filter
@@ -1034,18 +903,7 @@ export default function MapaScreen() {
         matchGlobalFilters = matchGlobalFilters && hasMatchingAmbiente;
       }
       
-      const shouldShow = matchCategoria && matchEstado && matchGlobalFilters;
-      
-      if (!shouldShow) {
-        console.log(`[MAP] ❌ Filtered out "${local.nombre}"`);
-        console.log(`     - Categories: ${JSON.stringify(localCategories)}`);
-        console.log(`     - Selected category: ${categoriaSeleccionada}`);
-        console.log(`     - Match category: ${matchCategoria}`);
-        console.log(`     - Match state: ${matchEstado}`);
-        console.log(`     - Match global filters: ${matchGlobalFilters}`);
-      }
-      
-      return shouldShow;
+      return matchCategoria && matchEstado && matchGlobalFilters;
     });
     
     console.log(`[MAP] ✅ Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
@@ -1089,7 +947,6 @@ export default function MapaScreen() {
 
   const handleVerDetalles = (localId: string) => {
     console.log('[MAP] Navigating to local details:', localId);
-    trackMapInteraction(localId, 'click', user?.id);
     router.push(`/detalle/local?id=${localId}`);
   };
 
@@ -1103,15 +960,43 @@ export default function MapaScreen() {
         handleVerDetalles(data.id);
       } else if (data.type === 'popup_opened' && data.id) {
         console.log('📍 [MAP] Popup opened for local:', data.id);
-        trackMapInteraction(data.id, 'view', user?.id);
       } else if (data.type === 'zoom_close' && data.id) {
         console.log('🔍 [MAP] Zoomed close to local:', data.id);
-        trackMapInteraction(data.id, 'zoom', user?.id);
       }
     } catch (error) {
       console.error('❌ [MAP] Error parsing WebView message:', error);
     }
   };
+
+  // ✅ INSTANT DISPLAY: Show map immediately with cached/global data
+  const initialMapHTML = useMemo(() => {
+    const centerLat = userLocation?.lat || 40.4168;
+    const centerLng = userLocation?.lng || -3.7038;
+    
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    #map { width: 100%; height: 100%; background-color: #A8E0FF; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([${centerLat}, ${centerLng}], 11);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+  </script>
+</body>
+</html>
+    `;
+  }, [userLocation]);
 
   return (
     <View style={commonStyles.container}>
@@ -1129,14 +1014,14 @@ export default function MapaScreen() {
         ) : (
           <WebView
             ref={webViewRef}
-            source={{ html: mapHTML || '<html><body><div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; color: #666;">Cargando mapa...</div></body></html>' }}
+            source={{ html: mapHTML || initialMapHTML }}
             style={styles.webview}
             onMessage={handleWebViewMessage}
             javaScriptEnabled={true}
             domStorageEnabled={true}
             onError={(syntheticEvent) => {
               const { nativeEvent } = syntheticEvent;
-              console.error('WebView error: ', nativeEvent);
+              console.error('[MAP] WebView error:', nativeEvent);
             }}
           />
         )}
