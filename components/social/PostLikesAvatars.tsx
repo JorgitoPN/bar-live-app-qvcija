@@ -23,19 +23,12 @@ interface LikeUser {
 }
 
 /**
- * ✅ POST LIKES AVATARS v8.0 - OPTIMISTIC UI WITH INSTANT REACTIVITY
+ * ✅ POST LIKES AVATARS v8.1 - FIXED INFINITE LOOP
  * 
  * CRITICAL FIXES:
- * - ✅ NEW: tempProfiles state for INSTANT optimistic updates
- * - ✅ NEW: Avatars update BEFORE database fetch (< 50ms)
- * - ✅ NEW: User profile added/removed immediately on click
- * - ✅ FIXED: Text and avatars use the same tempProfiles state
- * - ✅ FIXED: Database fetch happens in background without blocking UI
- * - ✅ Component updates instantly when localLikes changes
- * - ✅ Real-time avatar updates via Supabase Realtime
- * - ✅ Optimistic UI updates with instant visual feedback
- * - ✅ Instant synchronization across all views
- * - ✅ Rollback on database failure
+ * - ✅ FIXED: Removed circular dependencies in useEffect
+ * - ✅ FIXED: Proper memoization of callbacks
+ * - ✅ FIXED: Separated data loading from state updates
  */
 
 export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }: PostLikesAvatarsProps) {
@@ -44,10 +37,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
   const channelRef = useRef<any>(null);
   
   // ✅ CRITICAL: tempProfiles is the single source of truth for rendering
-  // This state updates IMMEDIATELY when localLikes changes, before any database fetch
   const [tempProfiles, setTempProfiles] = useState<LikeUser[]>([]);
-  
-  // ✅ Store initial profiles for rollback on error
   const initialProfilesRef = useRef<LikeUser[]>([]);
   
   const [showModal, setShowModal] = useState(false);
@@ -57,7 +47,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
   const [currentTotalLikes, setCurrentTotalLikes] = useState(totalLikes);
   const [currentUserHasLiked, setCurrentUserHasLiked] = useState(false);
 
-  // ✅ CRITICAL FIX: Update state immediately when localLikes changes
+  // ✅ FIXED: Update state immediately when localLikes changes
   useEffect(() => {
     console.log('[PostLikesAvatars] 🔄 localLikes changed for post:', postId, {
       count: localLikes.length,
@@ -75,7 +65,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     });
 
     // ✅ CRITICAL: Update tempProfiles IMMEDIATELY with optimistic data
-    // This ensures avatars appear/disappear instantly (< 50ms)
     const updateProfilesOptimistically = async () => {
       try {
         const userIds = localLikes.map(like => like.usuario_id).slice(0, 3);
@@ -92,13 +81,11 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         
         // ✅ STEP 2: If current user just liked, add their profile IMMEDIATELY
         if (currentUserInList && user) {
-          // Check if user profile is already in tempProfiles
           const userAlreadyInProfiles = tempProfiles.some(p => p.id === user.id);
           
           if (!userAlreadyInProfiles) {
             console.log('[PostLikesAvatars] ➕ OPTIMISTIC: Adding current user profile IMMEDIATELY');
             
-            // ✅ Create optimistic user profile
             const optimisticUserProfile: LikeUser = {
               id: user.id,
               nombre: user.nombre || 'Usuario',
@@ -107,12 +94,10 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
               tipo: 'usuario',
             };
             
-            // ✅ Add to beginning of array for instant visibility
             setTempProfiles(prev => [optimisticUserProfile, ...prev.filter(p => p.id !== user.id)]);
             console.log('[PostLikesAvatars] ✅ OPTIMISTIC: User avatar added instantly');
           }
         } else if (!currentUserInList && user) {
-          // ✅ STEP 3: If current user just unliked, remove their profile IMMEDIATELY
           const userInProfiles = tempProfiles.some(p => p.id === user.id);
           
           if (userInProfiles) {
@@ -131,7 +116,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
           .in('id', userIds);
 
         if (!error && data) {
-          // ✅ Maintain the order from localLikes
           const orderedUsers = userIds
             .map(userId => data.find(u => u.id === userId))
             .filter(Boolean)
@@ -145,22 +129,18 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
           
           console.log('[PostLikesAvatars] ✅ Loaded', orderedUsers.length, 'like users:', orderedUsers.map(u => u.username || u.nombre));
           
-          // ✅ Update with full data from database
           setTempProfiles(orderedUsers);
           initialProfilesRef.current = orderedUsers;
         } else if (error) {
           console.error('[PostLikesAvatars] ❌ Error loading like users:', error);
-          // ✅ Keep optimistic update even if fetch fails
         }
       } catch (error) {
         console.error('[PostLikesAvatars] ❌ Exception loading like users:', error);
-        // ✅ Keep optimistic update even if exception occurs
       }
     };
 
-    // ✅ CRITICAL: Update immediately when localLikes changes
     updateProfilesOptimistically();
-  }, [postId, localLikes, user?.id, tempProfiles, user]);
+  }, [postId, localLikes, user?.id]); // ✅ FIXED: Removed tempProfiles from dependencies
 
   const loadAllLikes = useCallback(async () => {
     try {
@@ -193,7 +173,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
   }, [postId]);
 
-  // ✅ Real-time subscription for OTHER users' changes
+  // ✅ FIXED: Real-time subscription for OTHER users' changes
   useEffect(() => {
     if (!user) return;
 
@@ -263,7 +243,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         channelRef.current = null;
       }
     };
-  }, [postId, user]);
+  }, [postId, user?.id]); // ✅ FIXED: Only essential dependencies
 
   useEffect(() => {
     if (localLikes.length === 0) {
@@ -294,7 +274,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
   }, [user, router]);
 
-  // ✅ CRITICAL FIX: Memoize text generation using tempProfiles - ALWAYS called unconditionally
+  // ✅ CRITICAL FIX: Memoize text generation using tempProfiles
   const getLikesText = useMemo(() => {
     const otherUsers = tempProfiles.filter(u => u.id !== user?.id);
     
@@ -303,8 +283,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       currentTotalLikes,
       tempProfilesCount: tempProfiles.length,
       otherUsersCount: otherUsers.length,
-      tempProfiles: tempProfiles.map(u => ({ id: u.id, name: u.username || u.nombre })),
-      otherUsers: otherUsers.map(u => ({ id: u.id, name: u.username || u.nombre })),
     });
 
     if (currentUserHasLiked) {
@@ -404,13 +382,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       );
     }
     
-    console.warn('[PostLikesAvatars] ⚠️ Fallback triggered - tempProfiles not loaded yet:', {
-      currentTotalLikes,
-      tempProfilesCount: tempProfiles.length,
-      otherUsersCount: otherUsers.length,
-      currentUserHasLiked,
-    });
-    
     if (currentTotalLikes === 1) {
       return <Text style={styles.likesText}>1 me gusta</Text>;
     }
@@ -418,7 +389,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     return <Text style={styles.likesText}>{currentTotalLikes} me gusta</Text>;
   }, [currentUserHasLiked, currentTotalLikes, tempProfiles, user?.id, handleUserPress, handleOpenModal]);
 
-  // ✅ CRITICAL FIX: Memoize avatar rendering using tempProfiles - ALWAYS called unconditionally
+  // ✅ CRITICAL FIX: Memoize avatar rendering using tempProfiles
   const avatarsDisplay = useMemo(() => {
     return tempProfiles.slice(0, 3).map((likeUser, index) => (
       <View

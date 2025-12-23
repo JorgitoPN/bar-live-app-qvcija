@@ -20,7 +20,7 @@ interface Like {
 }
 
 /**
- * ✅ USE POST INTERACTIONS HOOK v1.1 - FIXED INVERTED OPTIMISTIC UI LOGIC
+ * ✅ USE POST INTERACTIONS HOOK v1.2 - FIXED INFINITE LOOP
  * 
  * Purpose:
  * - Manages all post interactions (likes, comments, saves) with global state
@@ -29,15 +29,9 @@ interface Like {
  * - Ensures consistency across all views
  * 
  * CRITICAL FIX:
- * - ✅ FIXED: Corrected optimistic UI logic for like/unlike
- * - ✅ When isLiked is FALSE (user is liking): ADD avatar to array
- * - ✅ When isLiked is TRUE (user is unliking): REMOVE avatar from array
- * 
- * Features:
- * - ✅ Global state integration
- * - ✅ Optimistic updates
- * - ✅ Real-time sync
- * - ✅ Automatic rollback on errors
+ * - ✅ FIXED: Removed circular dependencies in useEffect
+ * - ✅ FIXED: Memoized callbacks properly
+ * - ✅ FIXED: Separated initialization from updates
  */
 
 export function usePostInteractions({
@@ -52,6 +46,7 @@ export function usePostInteractions({
   
   const channelRef = useRef<any>(null);
   const likeDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const hasInitialized = useRef(false);
   
   // Get state from global context or use initial values
   const globalState = getPostState(postId);
@@ -61,18 +56,21 @@ export function usePostInteractions({
   const [commentsCount, setCommentsCount] = useState(globalState?.commentsCount ?? initialCommentsCount);
   const [isSaved, setIsSaved] = useState(globalState?.isSaved ?? initialSaved);
 
-  // Initialize post in global context
+  // ✅ FIXED: Initialize post in global context ONCE
   useEffect(() => {
-    initializePost(postId, {
-      isLiked: initialLiked,
-      likesCount: initialLikesCount,
-      localLikes: [],
-      commentsCount: initialCommentsCount,
-      isSaved: initialSaved,
-    });
-  }, [postId, initialLiked, initialLikesCount, initialCommentsCount, initialSaved, initializePost]);
+    if (!hasInitialized.current) {
+      initializePost(postId, {
+        isLiked: initialLiked,
+        likesCount: initialLikesCount,
+        localLikes: [],
+        commentsCount: initialCommentsCount,
+        isSaved: initialSaved,
+      });
+      hasInitialized.current = true;
+    }
+  }, [postId]); // ✅ Only run when postId changes
 
-  // Subscribe to global state changes
+  // ✅ FIXED: Subscribe to global state changes
   useEffect(() => {
     const unsubscribe = subscribeToPost(postId, (state) => {
       console.log('[usePostInteractions] 🔄 Received global state update for post:', postId, state);
@@ -86,7 +84,7 @@ export function usePostInteractions({
     return unsubscribe;
   }, [postId, subscribeToPost]);
 
-  // Load initial likes array
+  // ✅ FIXED: Load initial likes array ONCE
   useEffect(() => {
     const loadInitialLikes = async () => {
       try {
@@ -106,9 +104,9 @@ export function usePostInteractions({
     };
 
     loadInitialLikes();
-  }, [postId, isLiked, updatePostLikes]);
+  }, [postId]); // ✅ Only run when postId changes
 
-  // Real-time subscription for OTHER users' changes
+  // ✅ FIXED: Real-time subscription for OTHER users' changes
   useEffect(() => {
     if (!user) return;
 
@@ -184,7 +182,7 @@ export function usePostInteractions({
         channelRef.current = null;
       }
     };
-  }, [postId, user, isLiked, localLikes, updatePostLikes]);
+  }, [postId, user?.id]); // ✅ FIXED: Only essential dependencies
 
   const handleLike = useCallback(async () => {
     if (!user) {

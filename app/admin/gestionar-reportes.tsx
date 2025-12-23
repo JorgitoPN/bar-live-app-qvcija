@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -106,13 +106,8 @@ export default function GestionarReportesScreen() {
   const [selectedReports, setSelectedReports] = useState<Set<string>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
 
-  useEffect(() => {
-    if (user?.rol_app === 'admin') {
-      loadReports();
-    }
-  }, [user, filterStatus, filterType, loadReports]);
-
-  const loadReports = async () => {
+  // ✅ FIXED: Memoize loadReports to prevent infinite loop
+  const loadReports = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -217,7 +212,14 @@ export default function GestionarReportesScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [filterStatus, filterType]); // ✅ FIXED: Only include filter dependencies
+
+  // ✅ FIXED: Separate useEffect with proper dependencies
+  useEffect(() => {
+    if (user?.rol_app === 'admin') {
+      loadReports();
+    }
+  }, [user?.rol_app, filterStatus, filterType, loadReports]);
 
   const handleRefresh = () => {
     setRefreshing(true);

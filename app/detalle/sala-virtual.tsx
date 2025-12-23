@@ -85,18 +85,12 @@ export default function SalaVirtualScreen() {
   const { user } = useAuth();
   
   const [local, setLocal] = useState<Local | null>(null);
-  
-  // ✅ FIXED: Volatile chat - messages stored only in memory (not persisted)
   const [messages, setMessages] = useState<Message[]>([]);
-  
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
-  
-  // ✅ FIXED: Instant reactivity - local state for check-in status
   const [isCheckedIn, setIsCheckedIn] = useState(false);
-  
   const [checkingIn, setCheckingIn] = useState(false);
   const [localClosed, setLocalClosed] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'users'>('chat');
@@ -111,6 +105,7 @@ export default function SalaVirtualScreen() {
   const closingCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const localId = params.localId as string;
   const hasShownClosedAlert = useRef(false);
+  const hasInitialized = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
 
@@ -144,8 +139,9 @@ export default function SalaVirtualScreen() {
         }),
       ])
     ).start();
-  }, [glowAnim, pulseAnim]);
+  }, []);
 
+  // ✅ FIXED: Memoize checkClosingTime to prevent infinite loop
   const checkClosingTime = useCallback(() => {
     if (!local) return;
 
@@ -216,6 +212,7 @@ export default function SalaVirtualScreen() {
     }
   }, [local, closingWarningShown, router]);
 
+  // ✅ FIXED: Separate useEffect for closing time check
   useEffect(() => {
     if (isCheckedIn && local) {
       checkClosingTime();
@@ -230,6 +227,7 @@ export default function SalaVirtualScreen() {
     }
   }, [isCheckedIn, local, checkClosingTime]);
 
+  // ✅ FIXED: Memoize loadLocalData
   const loadLocalData = useCallback(async () => {
     if (!localId) {
       console.error('[SalaVirtual] No localId provided');
@@ -287,6 +285,7 @@ export default function SalaVirtualScreen() {
     }
   }, [localId, router]);
 
+  // ✅ FIXED: Memoize checkUserCheckin
   const checkUserCheckin = useCallback(async () => {
     if (!user || !localId) {
       console.log('[SalaVirtual] No user or localId');
@@ -308,8 +307,6 @@ export default function SalaVirtualScreen() {
       }
 
       const checkedIn = !!data;
-      
-      // ✅ FIXED: Update local state instantly
       setIsCheckedIn(checkedIn);
       console.log('[SalaVirtual] User checked in:', checkedIn);
       
@@ -318,9 +315,9 @@ export default function SalaVirtualScreen() {
       console.error('[SalaVirtual] Error:', error);
       return false;
     }
-  }, [user, localId]);
+  }, [user?.id, localId]);
 
-  // ✅ FIXED: Instant check-in with optimistic UI
+  // ✅ FIXED: Memoize handleCheckIn
   const handleCheckIn = useCallback(async () => {
     if (!user || !localId) {
       Alert.alert('Error', 'Debes iniciar sesión para entrar en la sala');
@@ -345,7 +342,6 @@ export default function SalaVirtualScreen() {
       setCheckingIn(true);
       console.log('[SalaVirtual] 🔄 Starting check-in for user:', user.id);
 
-      // ✅ INSTANT UPDATE: Mark as checked in immediately (optimistic UI)
       setIsCheckedIn(true);
       console.log('[SalaVirtual] ✅ Optimistic check-in: user is now in_room: true');
 
@@ -360,7 +356,6 @@ export default function SalaVirtualScreen() {
 
       if (closeError) {
         console.error('[SalaVirtual] ❌ Error closing previous check-ins:', closeError);
-        // ✅ Rollback on error
         setIsCheckedIn(false);
         throw new Error('No se pudo cerrar la sesión anterior');
       }
@@ -382,7 +377,6 @@ export default function SalaVirtualScreen() {
 
       if (error) {
         console.error('[SalaVirtual] ❌ Error inserting checkin:', error);
-        // ✅ Rollback on error
         setIsCheckedIn(false);
         throw new Error('No se pudo entrar en la sala');
       }
@@ -413,7 +407,7 @@ export default function SalaVirtualScreen() {
       setCheckingIn(false);
       return false;
     }
-  }, [user, localId, local]);
+  }, [user?.id, localId, local]);
 
   const handleCheckOut = async () => {
     if (!user || !localId) return;
@@ -473,18 +467,14 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // ✅ FIXED: Volatile chat - messages NOT loaded from database
-  // Messages only exist in memory during the current session
+  // ✅ FIXED: Memoize loadMessages
   const loadMessages = useCallback(async () => {
     if (!localId) return;
 
     try {
       console.log('[SalaVirtual] ✅ Volatile chat: Starting with empty message array (no database load)');
-      
-      // ✅ FIXED: Initialize with empty array (volatile chat)
       setMessages([]);
       setLoading(false);
-      
       console.log('[SalaVirtual] ✅ Chat initialized as volatile (ephemeral)');
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
@@ -492,7 +482,7 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // ✅ FIXED: Real-time user list updates
+  // ✅ FIXED: Memoize updateActiveUsers
   const updateActiveUsers = useCallback(async () => {
     if (!localId) return;
 
@@ -535,13 +525,12 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // ✅ FIXED: Real-time subscription using broadcast (volatile chat) + user list updates
+  // ✅ FIXED: Memoize subscribeToUpdates
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
     console.log('[SalaVirtual] 📡 Subscribing to real-time updates (volatile chat mode + user list)');
 
-    // ✅ FIXED: Use broadcast for volatile messages (not persisted)
     const chatChannel = supabase
       .channel(`room:${localId}:chat`, {
         config: { 
@@ -552,7 +541,6 @@ export default function SalaVirtualScreen() {
       .on('broadcast', { event: 'message_created' }, (payload) => {
         console.log('[SalaVirtual] ⚡ INSTANT new volatile message received:', payload);
         
-        // Skip if it's our own message (already added optimistically)
         if (payload.payload.usuario_id === user.id) {
           console.log('[SalaVirtual] ⏭️ Own message, skipping');
           return;
@@ -568,7 +556,6 @@ export default function SalaVirtualScreen() {
           usuario: payload.payload.usuario,
         };
 
-        // ✅ INSTANT UPDATE: Add message to local state
         setMessages((prev) => {
           if (prev.some(m => m.id === newMessage.id)) {
             return prev;
@@ -616,7 +603,6 @@ export default function SalaVirtualScreen() {
         console.log('[SalaVirtual] 📡 Chat channel status:', status);
       });
 
-    // ✅ FIXED: Real-time user list updates via postgres_changes
     const presenceChannel = supabase
       .channel(`room:${localId}:presence`, {
         config: { 
@@ -669,17 +655,15 @@ export default function SalaVirtualScreen() {
       supabase.removeChannel(chatChannel);
       supabase.removeChannel(presenceChannel);
     };
-  }, [localId, user, updateActiveUsers, router]);
+  }, [localId, user?.id, updateActiveUsers, router]);
 
   // ✅ FIXED: Simplified initialization without circular dependencies
   useEffect(() => {
-    if (!localId) {
-      setLoading(false);
-      Alert.alert('Error', 'No se especificó el local', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+    if (!localId || hasInitialized.current) {
       return;
     }
+
+    hasInitialized.current = true;
 
     let intervalId: NodeJS.Timeout | null = null;
     let unsubscribeFn: (() => void) | null = null;
@@ -701,7 +685,6 @@ export default function SalaVirtualScreen() {
       
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // ✅ FIXED: Load messages (empty for volatile chat)
       await loadMessages();
       
       unsubscribeFn = subscribeToUpdates();
@@ -721,7 +704,7 @@ export default function SalaVirtualScreen() {
         unsubscribeFn();
       }
     };
-  }, [localId, checkUserCheckin, handleCheckIn, loadLocalData, loadMessages, localClosed, router, subscribeToUpdates, updateActiveUsers, user]);
+  }, [localId]); // ✅ FIXED: Only run when localId changes
 
   const handleTyping = () => {
     if (!user || !chatChannelRef.current) return;
@@ -743,7 +726,6 @@ export default function SalaVirtualScreen() {
     }, 3000);
   };
 
-  // ✅ FIXED: Send volatile message (broadcast only, no database)
   const sendMessage = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
@@ -786,7 +768,6 @@ export default function SalaVirtualScreen() {
         },
       };
 
-      // ✅ INSTANT UPDATE: Add message to local state immediately
       setMessages((prev) => [...prev, newMsg]);
       setNewMessage('');
       
@@ -794,7 +775,6 @@ export default function SalaVirtualScreen() {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
 
-      // ✅ FIXED: Broadcast message to other users (volatile, no database)
       if (chatChannelRef.current) {
         await chatChannelRef.current.send({
           type: 'broadcast',
@@ -815,10 +795,8 @@ export default function SalaVirtualScreen() {
     if (!user) return;
 
     try {
-      // ✅ FIXED: Remove from local state (volatile)
       setMessages(prev => prev.filter(m => m.id !== messageId));
 
-      // ✅ Broadcast deletion to other users
       if (chatChannelRef.current) {
         await chatChannelRef.current.send({
           type: 'broadcast',
@@ -837,7 +815,6 @@ export default function SalaVirtualScreen() {
     if (!user || !localId) return;
 
     try {
-      // ✅ For emoticons, we can still use database (they're not part of public chat)
       const { data, error } = await supabase
         .from('sala_virtual_interacciones')
         .insert({
