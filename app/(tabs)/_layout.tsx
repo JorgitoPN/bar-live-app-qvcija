@@ -23,7 +23,7 @@ export default function TabLayout() {
 
   console.log('[TabLayout] ⚡ User role:', userRole, 'Current mode:', currentMode, 'Pathname:', pathname);
 
-  // ✅ FIXED: Prevent access to admin pages for non-admin users (more specific check)
+  // ✅ FIXED: Prevent access to admin pages for non-admin users (silently redirect)
   useEffect(() => {
     // Only check if user is logged in and pathname exists
     if (!user || !pathname) {
@@ -31,34 +31,30 @@ export default function TabLayout() {
       return;
     }
     
-    // Only check if user is NOT an admin
-    if (userRole !== 'admin') {
-      // ✅ FIXED: More specific check - only trigger for actual admin index page
-      // This prevents false positives when navigating through other routes
+    // ✅ CRITICAL: Check if user is the authorized admin email
+    const ADMIN_EMAIL = 'jorgepereznoyagh@gmail.com';
+    const isAuthorizedAdmin = userRole === 'admin' && user.email === ADMIN_EMAIL;
+    
+    // Only check if user is NOT the authorized admin
+    if (!isAuthorizedAdmin) {
+      // ✅ FIXED: More specific check - only trigger for actual admin pages
       const isAdminIndexPage = pathname === '/(tabs)/admin' || pathname === '/(tabs)/admin/';
       const isAdminSubPage = pathname.startsWith('/(tabs)/admin/') || pathname.startsWith('/admin/');
       
       if ((isAdminIndexPage || isAdminSubPage) && !hasShownAdminAlert.current) {
-        console.log('[TabLayout] ⚠️ Non-admin user trying to access admin page:', pathname);
+        console.log('[TabLayout] ⚠️ Unauthorized user trying to access admin page:', pathname);
         hasShownAdminAlert.current = true;
         
-        // Use setTimeout to avoid multiple alerts
+        // Silently redirect without showing error message
+        router.replace('/(tabs)/explorar');
+        
+        // Reset flag after redirect
         setTimeout(() => {
-          Alert.alert(
-            'Acceso Denegado',
-            'No tienes permisos para acceder al panel de administración',
-            [{ 
-              text: 'OK', 
-              onPress: () => {
-                router.replace('/(tabs)/explorar');
-                hasShownAdminAlert.current = false;
-              }
-            }]
-          );
-        }, 100);
+          hasShownAdminAlert.current = false;
+        }, 500);
       }
     } else {
-      // Reset flag when user is admin
+      // Reset flag when user is authorized admin
       hasShownAdminAlert.current = false;
     }
   }, [user, userRole, pathname, router]);
@@ -104,8 +100,12 @@ export default function TabLayout() {
 
   // Define tabs based on user role and current mode
   const getTabsForRole = (): TabBarItem[] => {
+    // ✅ CRITICAL: Only show admin tabs for the authorized admin email
+    const ADMIN_EMAIL = 'jorgepereznoyagh@gmail.com';
+    const isAuthorizedAdmin = userRole === 'admin' && user?.email === ADMIN_EMAIL;
+    
     // Admin users see admin tabs when in admin mode (WITHOUT Eventos)
-    if (userRole === 'admin' && currentMode === 'admin') {
+    if (isAuthorizedAdmin && currentMode === 'admin') {
       return [
         {
           name: 'admin',
@@ -129,7 +129,7 @@ export default function TabLayout() {
     }
 
     // Admin users in propietario mode
-    if (userRole === 'admin' && currentMode === 'propietario') {
+    if (isAuthorizedAdmin && currentMode === 'propietario') {
       return [
         {
           name: 'gestion',
@@ -343,7 +343,7 @@ export default function TabLayout() {
         <Tabs.Screen 
           name="admin" 
           options={{ 
-            href: userRole === 'admin' ? '/(tabs)/admin' : null,
+            href: (userRole === 'admin' && user?.email === 'jorgepereznoyagh@gmail.com') ? '/(tabs)/admin' : null,
             animation: 'none',
             animationDuration: 0,
             lazy: false,

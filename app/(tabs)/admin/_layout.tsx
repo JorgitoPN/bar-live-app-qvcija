@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Text, Alert } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { View, ActivityIndicator, Text } from 'react-native';
+import { Stack, useRouter, Redirect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 import { ADMIN_EMAILS } from '@/utils/adminAccess';
@@ -10,6 +10,7 @@ export default function AdminLayout() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [permissionChecked, setPermissionChecked] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
     const checkAdminAccess = async () => {
@@ -21,14 +22,11 @@ export default function AdminLayout() {
         return;
       }
 
-      // If no user, redirect to login
+      // If no user, silently redirect to home
       if (!user) {
-        console.error('[AdminLayout] ❌ No user found, redirecting to login');
-        Alert.alert(
-          'Sesión Requerida',
-          'Debes iniciar sesión para acceder al panel de administración',
-          [{ text: 'OK', onPress: () => router.replace('/auth/login') }]
-        );
+        console.log('[AdminLayout] ❌ No user found, redirecting silently');
+        setPermissionChecked(true);
+        setHasAccess(false);
         return;
       }
 
@@ -47,22 +45,15 @@ export default function AdminLayout() {
 
       // User must have admin role AND be one of the authorized emails
       if (!isAdmin || !isAuthorizedEmail) {
-        console.error('[AdminLayout] ❌ Access denied:', {
-          reason: !isAdmin ? 'Not admin role' : 'Not authorized email',
-          userEmail: user.email,
-          userRole: user.rol_app,
-        });
-        
-        Alert.alert(
-          'Acceso Denegado',
-          'No tienes permisos para acceder al panel de administración',
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)/(home)' as any) }]
-        );
+        console.log('[AdminLayout] ❌ Access denied - redirecting silently');
+        setPermissionChecked(true);
+        setHasAccess(false);
         return;
       }
 
       console.log('[AdminLayout] ✅ Admin access granted for:', user.email);
       setPermissionChecked(true);
+      setHasAccess(true);
     };
 
     checkAdminAccess();
@@ -73,9 +64,14 @@ export default function AdminLayout() {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 16, color: colors.text }}>Verificando permisos de administrador...</Text>
+        <Text style={{ marginTop: 16, color: colors.text }}>Cargando...</Text>
       </View>
     );
+  }
+
+  // Silently redirect non-admin users without showing any error
+  if (!hasAccess) {
+    return <Redirect href="/(tabs)/explorar" />;
   }
 
   return (

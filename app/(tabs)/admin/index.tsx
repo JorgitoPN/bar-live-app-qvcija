@@ -30,6 +30,17 @@ interface AdminStats {
 // ✅ CRITICAL: Only this email can access admin panel
 const ADMIN_EMAIL = 'jorgepereznoyagh@gmail.com';
 
+/**
+ * Verifies if the current user has admin access
+ * Returns true only if user has admin role AND is the authorized email
+ */
+function hasAdminAccess(user: any): boolean {
+  if (!user) return false;
+  const isAdmin = user.rol_app === 'admin';
+  const isAuthorizedEmail = user.email === ADMIN_EMAIL;
+  return isAdmin && isAuthorizedEmail;
+}
+
 export default function AdminIndexScreen() {
   const router = useRouter();
   const { user, loading: authLoading, ensureValidSession } = useAuth();
@@ -57,23 +68,10 @@ export default function AdminIndexScreen() {
         return;
       }
 
-      // If no user, ensure we have a valid session
+      // If no user, silently redirect
       if (!user) {
-        console.log('[AdminIndex] ⚠️ No user found, checking session...');
-        const session = await ensureValidSession();
-        
-        if (!session) {
-          console.error('[AdminIndex] ❌ No valid session, redirecting to login');
-          Alert.alert(
-            'Sesión Expirada',
-            'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
-            [{ text: 'OK', onPress: () => router.replace('/auth/login') }]
-          );
-          return;
-        }
-        
-        // Session is valid, wait for user to be loaded
-        console.log('[AdminIndex] ✅ Session valid, waiting for user to load...');
+        console.log('[AdminIndex] ❌ No user found, redirecting silently');
+        router.replace('/(tabs)/explorar' as any);
         return;
       }
 
@@ -91,17 +89,8 @@ export default function AdminIndexScreen() {
 
       // User must have admin role AND be the authorized email
       if (!isAdmin || !isAuthorizedEmail) {
-        console.error('[AdminIndex] ❌ Access denied:', {
-          reason: !isAdmin ? 'Not admin role' : 'Not authorized email',
-          userEmail: user.email,
-          userRole: user.rol_app,
-        });
-        
-        Alert.alert(
-          'Acceso Denegado',
-          'No tienes permisos para acceder al panel de administración',
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)/(home)' as any) }]
-        );
+        console.log('[AdminIndex] ❌ Access denied - redirecting silently');
+        router.replace('/(tabs)/explorar' as any);
         return;
       }
 

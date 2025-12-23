@@ -1,10 +1,9 @@
 
 import { AuthUser } from './auth';
 
-// ✅ CRITICAL: Only these emails can access admin panel
+// ✅ CRITICAL: Only this email can access admin panel
 export const ADMIN_EMAILS = [
   'jorgepereznoyagh@gmail.com',
-  'jorgepereznoya@gmail.com', // Email alternativo sin 'gh'
 ];
 
 /**
