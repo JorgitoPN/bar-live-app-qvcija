@@ -4,9 +4,7 @@ import { View, ActivityIndicator, Text, Alert } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
-
-// ✅ CRITICAL: Only this email can access admin panel
-const ADMIN_EMAIL = 'jorgepereznoyagh@gmail.com';
+import { ADMIN_EMAILS } from '@/utils/adminAccess';
 
 export default function AdminLayout() {
   const { user, loading: authLoading } = useAuth();
@@ -36,7 +34,7 @@ export default function AdminLayout() {
 
       // ✅ CRITICAL FIX: Check BOTH role AND email address
       const isAdmin = user.rol_app === 'admin';
-      const isAuthorizedEmail = user.email === ADMIN_EMAIL;
+      const isAuthorizedEmail = ADMIN_EMAILS.includes(user.email || '');
 
       console.log('[AdminLayout] 📋 Permission check:', {
         email: user.email,
@@ -44,9 +42,10 @@ export default function AdminLayout() {
         isAdmin,
         isAuthorizedEmail,
         hasAccess: isAdmin && isAuthorizedEmail,
+        authorizedEmails: ADMIN_EMAILS,
       });
 
-      // User must have admin role AND be the authorized email
+      // User must have admin role AND be one of the authorized emails
       if (!isAdmin || !isAuthorizedEmail) {
         console.error('[AdminLayout] ❌ Access denied:', {
           reason: !isAdmin ? 'Not admin role' : 'Not authorized email',

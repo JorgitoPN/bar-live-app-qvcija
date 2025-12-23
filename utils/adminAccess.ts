@@ -1,12 +1,15 @@
 
 import { AuthUser } from './auth';
 
-// ✅ CRITICAL: Only this email can access admin panel
-export const ADMIN_EMAIL = 'jorgepereznoyagh@gmail.com';
+// ✅ CRITICAL: Only these emails can access admin panel
+export const ADMIN_EMAILS = [
+  'jorgepereznoyagh@gmail.com',
+  'jorgepereznoya@gmail.com', // Email alternativo sin 'gh'
+];
 
 /**
  * Check if a user has admin access
- * User must have BOTH admin role AND be the authorized email
+ * User must have BOTH admin role AND be one of the authorized emails
  */
 export function isAdminUser(user: AuthUser | null): boolean {
   if (!user) {
@@ -14,7 +17,7 @@ export function isAdminUser(user: AuthUser | null): boolean {
   }
 
   const hasAdminRole = user.rol_app === 'admin';
-  const isAuthorizedEmail = user.email === ADMIN_EMAIL;
+  const isAuthorizedEmail = ADMIN_EMAILS.includes(user.email || '');
 
   console.log('[AdminAccess] Checking admin access:', {
     email: user.email,
@@ -43,7 +46,7 @@ export function checkAdminAccess(user: AuthUser | null): {
   }
 
   const hasAdminRole = user.rol_app === 'admin';
-  const isAuthorizedEmail = user.email === ADMIN_EMAIL;
+  const isAuthorizedEmail = ADMIN_EMAILS.includes(user.email || '');
 
   if (!hasAdminRole) {
     return {
