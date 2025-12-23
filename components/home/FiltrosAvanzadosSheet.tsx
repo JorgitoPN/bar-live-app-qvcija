@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,6 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Filtros } from '@/types';
-import { BlurView } from 'expo-blur';
 
 interface FiltrosAvanzadosSheetProps {
   visible: boolean;
@@ -23,84 +22,30 @@ interface FiltrosAvanzadosSheetProps {
   onAplicarFiltros: (filtros: Filtros) => void;
 }
 
-const COMUNIDADES = [
-  'Todas las Comunidades',
-  'Andalucía',
-  'Aragón',
-  'Asturias',
-  'Baleares',
-  'Canarias',
-  'Cantabria',
-  'Castilla y León',
-  'Castilla-La Mancha',
-  'Cataluña',
-  'Comunidad de Madrid',
-  'Comunidad Valenciana',
-  'Extremadura',
-  'Galicia',
-  'La Rioja',
-  'Navarra',
-  'País Vasco',
-  'Región de Murcia',
-  'Ceuta',
-  'Melilla',
-];
+const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
+  'Todas las Comunidades': [],
+  'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
+  'Aragón': ['Huesca', 'Teruel', 'Zaragoza'],
+  'Asturias': ['Asturias'],
+  'Baleares': ['Islas Baleares'],
+  'Canarias': ['Las Palmas', 'Santa Cruz de Tenerife'],
+  'Cantabria': ['Cantabria'],
+  'Castilla y León': ['Ávila', 'Burgos', 'León', 'Palencia', 'Salamanca', 'Segovia', 'Soria', 'Valladolid', 'Zamora'],
+  'Castilla-La Mancha': ['Albacete', 'Ciudad Real', 'Cuenca', 'Guadalajara', 'Toledo'],
+  'Cataluña': ['Barcelona', 'Girona', 'Lleida', 'Tarragona'],
+  'Comunidad de Madrid': ['Madrid'],
+  'Comunidad Valenciana': ['Alicante', 'Castellón', 'Valencia'],
+  'Extremadura': ['Badajoz', 'Cáceres'],
+  'Galicia': ['A Coruña', 'Lugo', 'Ourense', 'Pontevedra'],
+  'La Rioja': ['La Rioja'],
+  'Navarra': ['Navarra'],
+  'País Vasco': ['Álava', 'Guipúzcoa', 'Vizcaya'],
+  'Región de Murcia': ['Murcia'],
+  'Ceuta': ['Ceuta'],
+  'Melilla': ['Melilla'],
+};
 
-const PROVINCIAS = [
-  'Todas las Provincias',
-  'A Coruña',
-  'Álava',
-  'Albacete',
-  'Alicante',
-  'Almería',
-  'Asturias',
-  'Ávila',
-  'Badajoz',
-  'Barcelona',
-  'Burgos',
-  'Cáceres',
-  'Cádiz',
-  'Cantabria',
-  'Castellón',
-  'Ceuta',
-  'Ciudad Real',
-  'Córdoba',
-  'Cuenca',
-  'Girona',
-  'Granada',
-  'Guadalajara',
-  'Guipúzcoa',
-  'Huelva',
-  'Huesca',
-  'Islas Baleares',
-  'Jaén',
-  'La Rioja',
-  'Las Palmas',
-  'León',
-  'Lleida',
-  'Lugo',
-  'Madrid',
-  'Málaga',
-  'Melilla',
-  'Murcia',
-  'Navarra',
-  'Ourense',
-  'Palencia',
-  'Pontevedra',
-  'Salamanca',
-  'Santa Cruz de Tenerife',
-  'Segovia',
-  'Sevilla',
-  'Soria',
-  'Tarragona',
-  'Teruel',
-  'Toledo',
-  'Valencia',
-  'Valladolid',
-  'Vizcaya',
-  'Zamora',
-  'Zaragoza',
-];
+const COMUNIDADES = Object.keys(COMUNIDADES_PROVINCIAS);
 
 const TIPOS_LOCAL = [
   { id: 'todos', label: 'Todos', icon: '🏪' },
@@ -146,6 +91,10 @@ export default function FiltrosAvanzadosSheet({
   const [searchComunidad, setSearchComunidad] = useState('');
   const [searchProvincia, setSearchProvincia] = useState('');
 
+  useEffect(() => {
+    setFiltrosTemp(filtros);
+  }, [filtros]);
+
   const toggleArrayItem = (array: string[] | undefined, item: string): string[] => {
     const arr = array || [];
     if (arr.includes(item)) {
@@ -155,19 +104,49 @@ export default function FiltrosAvanzadosSheet({
   };
 
   const handleAplicar = () => {
+    console.log('[FiltrosAvanzados] Applying filters:', filtrosTemp);
     onAplicarFiltros(filtrosTemp);
     onClose();
   };
 
   const handleLimpiar = () => {
+    console.log('[FiltrosAvanzados] Clearing all filters');
     setFiltrosTemp({});
+  };
+
+  const handleComunidadSelect = (selectedComunidad: string) => {
+    console.log('[FiltrosAvanzados] Community selected:', selectedComunidad);
+    
+    const newFiltros = {
+      ...filtrosTemp,
+      comunidad: selectedComunidad === 'Todas las Comunidades' ? undefined : selectedComunidad,
+    };
+    
+    // Reset province if it doesn't belong to the selected community
+    if (selectedComunidad !== 'Todas las Comunidades') {
+      const availableProvincias = COMUNIDADES_PROVINCIAS[selectedComunidad] || [];
+      if (filtrosTemp.provincia && !availableProvincias.includes(filtrosTemp.provincia)) {
+        newFiltros.provincia = undefined;
+        console.log('[FiltrosAvanzados] Province reset because it does not belong to selected community');
+      }
+    } else {
+      newFiltros.provincia = undefined;
+    }
+    
+    setFiltrosTemp(newFiltros);
+    setShowComunidadModal(false);
+    setSearchComunidad('');
   };
 
   const filteredComunidades = COMUNIDADES.filter(c =>
     c.toLowerCase().includes(searchComunidad.toLowerCase())
   );
 
-  const filteredProvincias = PROVINCIAS.filter(p =>
+  const availableProvincias = filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades'
+    ? COMUNIDADES_PROVINCIAS[filtrosTemp.comunidad] || []
+    : [];
+    
+  const filteredProvincias = availableProvincias.filter(p =>
     p.toLowerCase().includes(searchProvincia.toLowerCase())
   );
 
@@ -223,12 +202,20 @@ export default function FiltrosAvanzadosSheet({
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.compactSelectButton}
-                    onPress={() => setShowProvinciaModal(true)}
+                    style={[
+                      styles.compactSelectButton,
+                      (!filtrosTemp.comunidad || filtrosTemp.comunidad === 'Todas las Comunidades') && styles.compactSelectButtonDisabled
+                    ]}
+                    onPress={() => {
+                      if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
+                        setShowProvinciaModal(true);
+                      }
+                    }}
+                    disabled={!filtrosTemp.comunidad || filtrosTemp.comunidad === 'Todas las Comunidades'}
                   >
                     <Text style={styles.selectLabel}>Provincia</Text>
                     <Text style={styles.selectValue} numberOfLines={1}>
-                      {filtrosTemp.provincia || 'Todas'}
+                      {filtrosTemp.provincia || (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades' ? 'Todas' : 'Selecciona comunidad')}
                     </Text>
                     <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
@@ -416,14 +403,7 @@ export default function FiltrosAvanzadosSheet({
                     styles.selectorModalOption,
                     filtrosTemp.comunidad === comunidad && styles.selectorModalOptionActive,
                   ]}
-                  onPress={() => {
-                    setFiltrosTemp({
-                      ...filtrosTemp,
-                      comunidad: filtrosTemp.comunidad === comunidad ? undefined : comunidad,
-                    });
-                    setShowComunidadModal(false);
-                    setSearchComunidad('');
-                  }}
+                  onPress={() => handleComunidadSelect(comunidad)}
                 >
                   <Text
                     style={[
@@ -455,7 +435,7 @@ export default function FiltrosAvanzadosSheet({
         >
           <Pressable style={styles.selectorModalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.selectorModalHeader}>
-              <Text style={styles.selectorModalTitle}>Provincia</Text>
+              <Text style={styles.selectorModalTitle}>Provincia de {filtrosTemp.comunidad}</Text>
               <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
                 <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -478,35 +458,43 @@ export default function FiltrosAvanzadosSheet({
             </View>
 
             <ScrollView style={styles.selectorModalBody}>
-              {filteredProvincias.map((provincia) => (
-                <TouchableOpacity
-                  key={provincia}
-                  style={[
-                    styles.selectorModalOption,
-                    filtrosTemp.provincia === provincia && styles.selectorModalOptionActive,
-                  ]}
-                  onPress={() => {
-                    setFiltrosTemp({
-                      ...filtrosTemp,
-                      provincia: filtrosTemp.provincia === provincia ? undefined : provincia,
-                    });
-                    setShowProvinciaModal(false);
-                    setSearchProvincia('');
-                  }}
-                >
-                  <Text
+              {filteredProvincias.length > 0 ? (
+                filteredProvincias.map((provincia) => (
+                  <TouchableOpacity
+                    key={provincia}
                     style={[
-                      styles.selectorModalOptionText,
-                      filtrosTemp.provincia === provincia && styles.selectorModalOptionTextActive,
+                      styles.selectorModalOption,
+                      filtrosTemp.provincia === provincia && styles.selectorModalOptionActive,
                     ]}
+                    onPress={() => {
+                      setFiltrosTemp({
+                        ...filtrosTemp,
+                        provincia: filtrosTemp.provincia === provincia ? undefined : provincia,
+                      });
+                      setShowProvinciaModal(false);
+                      setSearchProvincia('');
+                    }}
                   >
-                    {provincia}
+                    <Text
+                      style={[
+                        styles.selectorModalOptionText,
+                        filtrosTemp.provincia === provincia && styles.selectorModalOptionTextActive,
+                      ]}
+                    >
+                      {provincia}
+                    </Text>
+                    {filtrosTemp.provincia === provincia && (
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>
+                    {filtrosTemp.comunidad ? 'No hay provincias disponibles' : 'Selecciona primero una comunidad'}
                   </Text>
-                  {filtrosTemp.provincia === provincia && (
-                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
+                </View>
+              )}
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -590,6 +578,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
+  },
+  compactSelectButtonDisabled: {
+    opacity: 0.5,
   },
   selectLabel: {
     fontSize: 11,
@@ -763,5 +754,14 @@ const styles = StyleSheet.create({
   selectorModalOptionTextActive: {
     fontWeight: '700',
     color: colors.primary,
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
 });

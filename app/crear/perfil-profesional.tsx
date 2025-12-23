@@ -33,17 +33,29 @@ const PUESTOS = [
   { id: 'rrpp', label: 'Relaciones Públicas', icon: '🎭' },
 ];
 
-const PROVINCIAS = [
-  'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila',
-  'Badajoz', 'Barcelona', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria',
-  'Castellón', 'Ciudad Real', 'Córdoba', 'Cuenca', 'Gerona', 'Granada',
-  'Guadalajara', 'Guipúzcoa', 'Huelva', 'Huesca', 'Islas Baleares', 'Jaén',
-  'La Coruña', 'La Rioja', 'Las Palmas', 'León', 'Lérida', 'Lugo',
-  'Madrid', 'Málaga', 'Murcia', 'Navarra', 'Orense', 'Palencia',
-  'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife', 'Segovia', 'Sevilla', 'Soria',
-  'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya',
-  'Zamora', 'Zaragoza'
-];
+const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
+  'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
+  'Aragón': ['Huesca', 'Teruel', 'Zaragoza'],
+  'Asturias': ['Asturias'],
+  'Baleares': ['Islas Baleares'],
+  'Canarias': ['Las Palmas', 'Santa Cruz de Tenerife'],
+  'Cantabria': ['Cantabria'],
+  'Castilla y León': ['Ávila', 'Burgos', 'León', 'Palencia', 'Salamanca', 'Segovia', 'Soria', 'Valladolid', 'Zamora'],
+  'Castilla-La Mancha': ['Albacete', 'Ciudad Real', 'Cuenca', 'Guadalajara', 'Toledo'],
+  'Cataluña': ['Barcelona', 'Girona', 'Lleida', 'Tarragona'],
+  'Comunidad de Madrid': ['Madrid'],
+  'Comunidad Valenciana': ['Alicante', 'Castellón', 'Valencia'],
+  'Extremadura': ['Badajoz', 'Cáceres'],
+  'Galicia': ['A Coruña', 'Lugo', 'Ourense', 'Pontevedra'],
+  'La Rioja': ['La Rioja'],
+  'Navarra': ['Navarra'],
+  'País Vasco': ['Álava', 'Guipúzcoa', 'Vizcaya'],
+  'Región de Murcia': ['Murcia'],
+  'Ceuta': ['Ceuta'],
+  'Melilla': ['Melilla'],
+};
+
+const COMUNIDADES = Object.keys(COMUNIDADES_PROVINCIAS);
 
 export default function CrearPerfilProfesionalScreen() {
   const router = useRouter();
@@ -56,10 +68,13 @@ export default function CrearPerfilProfesionalScreen() {
   const [experiencia, setExperiencia] = useState('');
   const [habilidades, setHabilidades] = useState('');
   const [disponibilidad, setDisponibilidad] = useState('');
+  const [comunidad, setComunidad] = useState('');
   const [provincia, setProvincia] = useState('');
   const [foto, setFoto] = useState<string | null>(null);
 
+  const [showComunidadModal, setShowComunidadModal] = useState(false);
   const [showProvinciaModal, setShowProvinciaModal] = useState(false);
+  const [comunidadSearch, setComunidadSearch] = useState('');
   const [provinciaSearch, setProvinciaSearch] = useState('');
 
   const checkExistingProfile = useCallback(async () => {
@@ -91,6 +106,16 @@ export default function CrearPerfilProfesionalScreen() {
                 setDisponibilidad(existingProfile.disponibilidad || '');
                 setProvincia(existingProfile.provincia || '');
                 setFoto(existingProfile.foto_url || null);
+                
+                // Auto-detect community from province
+                if (existingProfile.provincia) {
+                  for (const [com, provs] of Object.entries(COMUNIDADES_PROVINCIAS)) {
+                    if (provs.includes(existingProfile.provincia)) {
+                      setComunidad(com);
+                      break;
+                    }
+                  }
+                }
               }
             }
           ]
@@ -240,9 +265,21 @@ export default function CrearPerfilProfesionalScreen() {
     }
   };
 
-  const filteredProvincias = PROVINCIAS.filter(p => 
+  const filteredComunidades = COMUNIDADES.filter(c => 
+    c.toLowerCase().includes(comunidadSearch.toLowerCase())
+  );
+
+  const availableProvincias = comunidad ? COMUNIDADES_PROVINCIAS[comunidad] : [];
+  const filteredProvincias = availableProvincias.filter(p => 
     p.toLowerCase().includes(provinciaSearch.toLowerCase())
   );
+
+  const handleComunidadSelect = (selectedComunidad: string) => {
+    setComunidad(selectedComunidad);
+    setProvincia(''); // Reset province when community changes
+    setShowComunidadModal(false);
+    setComunidadSearch('');
+  };
 
   if (checkingExisting) {
     return (
@@ -378,19 +415,44 @@ export default function CrearPerfilProfesionalScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.floatingLabel}>Provincia</Text>
+              <Text style={styles.floatingLabel}>Comunidad Autónoma</Text>
               <TouchableOpacity 
                 style={styles.dropdownButton}
-                onPress={() => setShowProvinciaModal(true)}
+                onPress={() => setShowComunidadModal(true)}
               >
-                <Text style={[styles.dropdownButtonText, !provincia && styles.dropdownPlaceholder]}>
-                  {provincia || 'Selecciona una provincia'}
+                <Text style={[styles.dropdownButtonText, !comunidad && styles.dropdownPlaceholder]}>
+                  {comunidad || 'Selecciona una comunidad'}
                 </Text>
                 <IconSymbol 
                   ios_icon_name="chevron.down" 
                   android_material_icon_name="arrow_drop_down" 
                   size={20} 
                   color={colors.textSecondary} 
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.floatingLabel}>Provincia</Text>
+              <TouchableOpacity 
+                style={[styles.dropdownButton, !comunidad && styles.dropdownButtonDisabled]}
+                onPress={() => {
+                  if (comunidad) {
+                    setShowProvinciaModal(true);
+                  } else {
+                    Alert.alert('Atención', 'Primero selecciona una comunidad autónoma');
+                  }
+                }}
+                disabled={!comunidad}
+              >
+                <Text style={[styles.dropdownButtonText, !provincia && styles.dropdownPlaceholder]}>
+                  {provincia || (comunidad ? 'Selecciona una provincia' : 'Primero selecciona comunidad')}
+                </Text>
+                <IconSymbol 
+                  ios_icon_name="chevron.down" 
+                  android_material_icon_name="arrow_drop_down" 
+                  size={20} 
+                  color={comunidad ? colors.textSecondary : colors.cardBorder} 
                 />
               </TouchableOpacity>
             </View>
@@ -418,6 +480,77 @@ export default function CrearPerfilProfesionalScreen() {
         </View>
       </ScrollView>
 
+      {/* Community Modal */}
+      <Modal
+        visible={showComunidadModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowComunidadModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable 
+            style={styles.modalOverlayTouchable}
+            onPress={() => setShowComunidadModal(false)}
+          />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Comunidad Autónoma</Text>
+              <TouchableOpacity onPress={() => setShowComunidadModal(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.searchContainer}>
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar comunidad..."
+                placeholderTextColor={colors.textSecondary}
+                value={comunidadSearch}
+                onChangeText={setComunidadSearch}
+              />
+              {comunidadSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setComunidadSearch('')}>
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView 
+              style={styles.optionsList}
+              showsVerticalScrollIndicator={false}
+            >
+              {filteredComunidades.map((c) => (
+                <TouchableOpacity
+                  key={c}
+                  style={[
+                    styles.optionItem,
+                    comunidad === c && styles.optionItemActive
+                  ]}
+                  onPress={() => handleComunidadSelect(c)}
+                >
+                  <Text style={[
+                    styles.optionItemText,
+                    comunidad === c && styles.optionItemTextActive
+                  ]}>
+                    {c}
+                  </Text>
+                  {comunidad === c && (
+                    <IconSymbol 
+                      ios_icon_name="checkmark.circle.fill" 
+                      android_material_icon_name="check_circle" 
+                      size={24} 
+                      color={colors.primary} 
+                    />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Province Modal */}
       <Modal
         visible={showProvinciaModal}
         animationType="slide"
@@ -431,7 +564,7 @@ export default function CrearPerfilProfesionalScreen() {
           />
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Selecciona Provincia</Text>
+              <Text style={styles.modalTitle}>Provincia de {comunidad}</Text>
               <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
                 <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -454,38 +587,44 @@ export default function CrearPerfilProfesionalScreen() {
             </View>
 
             <ScrollView 
-              style={styles.provinciaList}
+              style={styles.optionsList}
               showsVerticalScrollIndicator={false}
             >
-              {filteredProvincias.map((p) => (
-                <TouchableOpacity
-                  key={p}
-                  style={[
-                    styles.provinciaItem,
-                    provincia === p && styles.provinciaItemActive
-                  ]}
-                  onPress={() => {
-                    setProvincia(p);
-                    setShowProvinciaModal(false);
-                    setProvinciaSearch('');
-                  }}
-                >
-                  <Text style={[
-                    styles.provinciaItemText,
-                    provincia === p && styles.provinciaItemTextActive
-                  ]}>
-                    {p}
-                  </Text>
-                  {provincia === p && (
-                    <IconSymbol 
-                      ios_icon_name="checkmark.circle.fill" 
-                      android_material_icon_name="check_circle" 
-                      size={24} 
-                      color={colors.primary} 
-                    />
-                  )}
-                </TouchableOpacity>
-              ))}
+              {filteredProvincias.length > 0 ? (
+                filteredProvincias.map((p) => (
+                  <TouchableOpacity
+                    key={p}
+                    style={[
+                      styles.optionItem,
+                      provincia === p && styles.optionItemActive
+                    ]}
+                    onPress={() => {
+                      setProvincia(p);
+                      setShowProvinciaModal(false);
+                      setProvinciaSearch('');
+                    }}
+                  >
+                    <Text style={[
+                      styles.optionItemText,
+                      provincia === p && styles.optionItemTextActive
+                    ]}>
+                      {p}
+                    </Text>
+                    {provincia === p && (
+                      <IconSymbol 
+                        ios_icon_name="checkmark.circle.fill" 
+                        android_material_icon_name="check_circle" 
+                        size={24} 
+                        color={colors.primary} 
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>No hay provincias disponibles</Text>
+                </View>
+              )}
             </ScrollView>
           </View>
         </View>
@@ -624,9 +763,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  dropdownButtonDisabled: {
+    opacity: 0.5,
+  },
   dropdownButtonText: {
     fontSize: 15,
     color: colors.text,
+    flex: 1,
   },
   dropdownPlaceholder: {
     color: colors.textSecondary,
@@ -739,10 +882,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
-  provinciaList: {
+  optionsList: {
     flex: 1,
   },
-  provinciaItem: {
+  optionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -751,15 +894,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-  provinciaItemActive: {
+  optionItemActive: {
     backgroundColor: colors.primary + '10',
   },
-  provinciaItemText: {
+  optionItemText: {
     fontSize: 16,
     color: colors.text,
   },
-  provinciaItemTextActive: {
+  optionItemTextActive: {
     fontWeight: '700',
     color: colors.primary,
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
 });
