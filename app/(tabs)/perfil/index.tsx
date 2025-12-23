@@ -22,7 +22,6 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
-import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 import MomentoViewer from '@/components/momento/MomentoViewer';
@@ -72,9 +71,10 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v2.0 - INSTANT LOADING WITH PERSISTENCE
+ * ✅ PROFILE SCREEN v2.1 - WITH SOCIAL LOGIN PAGE
  * 
  * Features:
+ * - ✅ Uses the same login page as Social section
  * - ✅ NO loading screens - instant display with cached data
  * - ✅ Background refresh for fresh data without blocking UI
  * - ✅ Persistent state - doesn't remount on navigation
@@ -92,7 +92,6 @@ export default function PerfilScreen() {
   } = useMode();
   
   const [refreshing, setRefreshing] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
   const [showMomentoUpload, setShowMomentoUpload] = useState(false);
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
@@ -714,53 +713,27 @@ export default function PerfilScreen() {
   };
 
   const handleEditProfile = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    
     router.push('/editar/perfil');
   };
 
   const handleSettings = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
     router.push('/(tabs)/perfil/configuracion');
   };
 
   const handleNotifications = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
     router.push('/(tabs)/perfil/notificaciones');
   };
 
   const handleChats = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
     router.push('/(tabs)/perfil/chats');
   };
 
   const handleSeguidores = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    
-    router.push(`/perfil/seguidores?userId=${user.id}`);
+    router.push(`/perfil/seguidores?userId=${user?.id}`);
   };
 
   const handleSeguidos = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    router.push(`/perfil/seguidos?userId=${user.id}`);
+    router.push(`/perfil/seguidos?userId=${user?.id}`);
   };
 
   const handleWebsite = () => {
@@ -770,10 +743,6 @@ export default function PerfilScreen() {
   };
 
   const handleCrearPerfilProfesional = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
     router.push('/crear/perfil-profesional');
   };
 
@@ -796,11 +765,6 @@ export default function PerfilScreen() {
   };
 
   const handleCrearPublicacion = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    
     router.push('/crear/publicacion');
   };
 
@@ -1158,6 +1122,7 @@ export default function PerfilScreen() {
     );
   };
 
+  // ✅ NEW: Show login required screen (same as Social page)
   if (!user) {
     return (
       <View style={commonStyles.container}>
@@ -1170,29 +1135,40 @@ export default function PerfilScreen() {
           <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Mi Perfil</Text>
         </LinearGradient>
 
-        <View style={styles.notLoggedInContainer}>
-          <IconSymbol ios_icon_name="person.circle" android_material_icon_name="account_circle" size={80} color={colors.textSecondary} />
-          <Text style={styles.notLoggedInTitle}>Inicia sesión</Text>
-          <Text style={styles.notLoggedInText}>
-            Inicia sesión para ver tu perfil y acceder a todas las funciones
+        <View style={styles.loginRequiredContainer}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.loginRequiredIconContainer}
+          >
+            <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={64} color={colors.white} />
+          </LinearGradient>
+          
+          <Text style={styles.loginRequiredTitle}>Inicia sesión para ver tu perfil</Text>
+          <Text style={styles.loginRequiredMessage}>
+            Para acceder a tu perfil y ver todas tus publicaciones, necesitas iniciar sesión en BarLive.
           </Text>
+          
           <TouchableOpacity
             style={styles.loginButton}
-            onPress={() => setShowLoginModal(true)}
+            onPress={() => router.push('/auth/login')}
           >
             <LinearGradient
-              colors={[colors.primary, colors.secondary]}
+              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
               style={styles.loginButtonGradient}
             >
               <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
             </LinearGradient>
           </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.registerButton}
+            onPress={() => router.push('/auth/registro-email')}
+          >
+            <Text style={styles.registerButtonText}>
+              ¿No tienes cuenta? <Text style={styles.registerButtonTextBold}>Regístrate</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
-
-        <LoginRequiredModal
-          visible={showLoginModal}
-          onClose={() => setShowLoginModal(false)}
-        />
       </View>
     );
   }
@@ -1516,11 +1492,6 @@ export default function PerfilScreen() {
         />
       </Modal>
 
-      <LoginRequiredModal
-        visible={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-      />
-
       <ProfileSwitcher
         visible={showProfileSwitcher}
         onClose={() => setShowProfileSwitcher(false)}
@@ -1587,37 +1558,60 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  notLoggedInContainer: {
+  loginRequiredContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
   },
-  notLoggedInTitle: {
+  loginRequiredIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  loginRequiredTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
-    marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 12,
+    textAlign: 'center',
   },
-  notLoggedInText: {
+  loginRequiredMessage: {
     fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
+    lineHeight: 24,
   },
   loginButton: {
-    borderRadius: 16,
+    width: '100%',
+    borderRadius: 12,
     overflow: 'hidden',
+    marginBottom: 16,
   },
   loginButtonGradient: {
-    paddingHorizontal: 32,
-    paddingVertical: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   loginButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: colors.white,
+  },
+  registerButton: {
+    paddingVertical: 12,
+  },
+  registerButtonText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  registerButtonTextBold: {
+    fontWeight: '600',
+    color: colors.primary,
   },
   profileSection: {
     paddingTop: 0,
