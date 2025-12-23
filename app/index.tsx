@@ -4,6 +4,7 @@ import { View, ActivityIndicator, Text, Platform } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
+import { isAdminUser } from '@/utils/adminAccess';
 
 export default function Index() {
   const { user, loading } = useAuth();
@@ -15,6 +16,7 @@ export default function Index() {
     console.log('[Index] 🏠 Estado:', { 
       hasUser: !!user, 
       userEmail: user?.email,
+      userRole: user?.rol_app,
       loading 
     });
 
@@ -72,8 +74,25 @@ export default function Index() {
     );
   }
 
+  // ✅ IMPORTANT: Check if user is admin and redirect accordingly
+  // This prevents non-admin users from accessing admin routes
+  if (user) {
+    const userIsAdmin = isAdminUser(user);
+    console.log('[Index] 👤 User role check:', {
+      email: user.email,
+      role: user.rol_app,
+      isAdmin: userIsAdmin,
+    });
+
+    // If user is trying to access admin routes but is not admin, redirect to home
+    // This is handled by the admin layout, but we log it here for debugging
+    if (!userIsAdmin) {
+      console.log('[Index] ℹ️ Non-admin user, will redirect to explorar if they try to access admin');
+    }
+  }
+
   // Always redirect to explorar
-  // The app will handle authentication state internally
+  // The app will handle authentication state and role-based access internally
   console.log('[Index] 🚀 Redirigiendo a explorar');
   return <Redirect href="/(tabs)/explorar" />;
 }

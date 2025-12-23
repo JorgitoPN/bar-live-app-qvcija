@@ -27,6 +27,9 @@ interface AdminStats {
   suscripcionesActivas: number;
 }
 
+// ✅ CRITICAL: Only this email can access admin panel
+const ADMIN_EMAIL = 'jorgepereznoyagh@gmail.com';
+
 export default function AdminIndexScreen() {
   const router = useRouter();
   const { user, loading: authLoading, ensureValidSession } = useAuth();
@@ -43,7 +46,7 @@ export default function AdminIndexScreen() {
   const [loading, setLoading] = useState(true);
   const [permissionChecked, setPermissionChecked] = useState(false);
 
-  // ✅ FIXED: Better permission check with session validation
+  // ✅ FIXED: Strict admin permission check with email verification
   useEffect(() => {
     const checkPermissions = async () => {
       console.log('[AdminIndex] 🔍 Checking admin permissions...');
@@ -74,9 +77,26 @@ export default function AdminIndexScreen() {
         return;
       }
 
-      // Check if user is admin
-      if (user.rol_app !== 'admin') {
-        console.error('[AdminIndex] ❌ User is not admin:', user.rol_app);
+      // ✅ CRITICAL FIX: Check BOTH role AND email address
+      const isAdmin = user.rol_app === 'admin';
+      const isAuthorizedEmail = user.email === ADMIN_EMAIL;
+
+      console.log('[AdminIndex] 📋 Permission check:', {
+        email: user.email,
+        role: user.rol_app,
+        isAdmin,
+        isAuthorizedEmail,
+        hasAccess: isAdmin && isAuthorizedEmail,
+      });
+
+      // User must have admin role AND be the authorized email
+      if (!isAdmin || !isAuthorizedEmail) {
+        console.error('[AdminIndex] ❌ Access denied:', {
+          reason: !isAdmin ? 'Not admin role' : 'Not authorized email',
+          userEmail: user.email,
+          userRole: user.rol_app,
+        });
+        
         Alert.alert(
           'Acceso Denegado',
           'No tienes permisos para acceder al panel de administración',
@@ -85,7 +105,7 @@ export default function AdminIndexScreen() {
         return;
       }
 
-      console.log('[AdminIndex] ✅ Admin permissions verified');
+      console.log('[AdminIndex] ✅ Admin permissions verified for:', user.email);
       setPermissionChecked(true);
       cargarEstadisticas();
     };
