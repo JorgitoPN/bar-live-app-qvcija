@@ -14,6 +14,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Filtros } from '@/types';
+import { BlurView } from 'expo-blur';
 
 interface FiltrosAvanzadosSheetProps {
   visible: boolean;
@@ -102,57 +103,35 @@ const PROVINCIAS = [
 ];
 
 const TIPOS_LOCAL = [
-  'Todos',
-  'Cafés',
-  'Restaurantes',
-  'Bares',
-  'Pubs',
-  'Coctelería',
-  'Discotecas',
+  { id: 'todos', label: 'Todos', icon: '🏪' },
+  { id: 'cafes', label: 'Cafés', icon: '☕' },
+  { id: 'restaurantes', label: 'Restaurantes', icon: '🍽️' },
+  { id: 'bares', label: 'Bares', icon: '🍷' },
+  { id: 'pubs', label: 'Pubs', icon: '🍺' },
+  { id: 'cocteleria', label: 'Coctelería', icon: '🍸' },
+  { id: 'discotecas', label: 'Discotecas', icon: '🎵' },
 ];
 
 const SERVICIOS = [
-  'Accesible',
-  'Almuerzo',
-  'Parking',
-  'Aseos',
-  'Asientos exterior',
-  'Bar completo',
-  'Bebidas alcoholicas',
-  'Brunch',
-  'Cena',
-  'Cerveza',
-  'Cocteles',
-  'Comer alli',
-  'Comida llevar',
-  'Comida vegetariana',
-  'Deportes tv',
-  'Desayuno',
-  'Entrega domicilio',
-  'Licores fuertes',
-  'Musica vivo',
-  'Pago tarjetas',
-  'Recogida acera',
-  'Reservas',
-  'Servicio mesa',
-  'Terraza',
-  'Vino',
+  { id: 'terraza', label: 'Terraza', icon: '☀️' },
+  { id: 'wifi', label: 'WiFi', icon: '📶' },
+  { id: 'parking', label: 'Parking', icon: '🅿️' },
+  { id: 'accesible', label: 'Accesible', icon: '♿' },
+  { id: 'musica_vivo', label: 'Música en vivo', icon: '🎸' },
+  { id: 'deportes_tv', label: 'Deportes TV', icon: '📺' },
+  { id: 'reservas', label: 'Reservas', icon: '📅' },
+  { id: 'delivery', label: 'Delivery', icon: '🚚' },
 ];
 
 const AMBIENTES = [
-  'Cualquiera',
-  'Acogedor',
-  'Animado',
-  'De moda',
-  'Elegante',
-  'Exclusivo',
-  'Familiar',
-  'Historico',
-  'Informal',
-  'Juvenil',
-  'Moderno',
-  'Romantico',
-  'Tranquilo',
+  { id: 'cualquiera', label: 'Cualquiera', icon: '✨' },
+  { id: 'tranquilo', label: 'Tranquilo', icon: '🌙' },
+  { id: 'animado', label: 'Animado', icon: '🎉' },
+  { id: 'romantico', label: 'Romántico', icon: '💕' },
+  { id: 'familiar', label: 'Familiar', icon: '👨‍👩‍👧‍👦' },
+  { id: 'juvenil', label: 'Juvenil', icon: '🎮' },
+  { id: 'elegante', label: 'Elegante', icon: '🎩' },
+  { id: 'informal', label: 'Informal', icon: '👕' },
 ];
 
 export default function FiltrosAvanzadosSheet({
@@ -164,6 +143,8 @@ export default function FiltrosAvanzadosSheet({
   const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(filtros);
   const [showComunidadModal, setShowComunidadModal] = useState(false);
   const [showProvinciaModal, setShowProvinciaModal] = useState(false);
+  const [searchComunidad, setSearchComunidad] = useState('');
+  const [searchProvincia, setSearchProvincia] = useState('');
 
   const toggleArrayItem = (array: string[] | undefined, item: string): string[] => {
     const arr = array || [];
@@ -181,6 +162,14 @@ export default function FiltrosAvanzadosSheet({
   const handleLimpiar = () => {
     setFiltrosTemp({});
   };
+
+  const filteredComunidades = COMUNIDADES.filter(c =>
+    c.toLowerCase().includes(searchComunidad.toLowerCase())
+  );
+
+  const filteredProvincias = PROVINCIAS.filter(p =>
+    p.toLowerCase().includes(searchProvincia.toLowerCase())
+  );
 
   return (
     <Modal
@@ -206,45 +195,51 @@ export default function FiltrosAvanzadosSheet({
               style={styles.header}
             >
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={22} color={colors.headerText} />
               </TouchableOpacity>
               <Text style={styles.headerTitle}>Filtros Avanzados</Text>
-              <TouchableOpacity onPress={handleLimpiar}>
+              <TouchableOpacity onPress={handleLimpiar} style={styles.clearButton}>
                 <Text style={styles.limpiarText}>Limpiar</Text>
               </TouchableOpacity>
             </LinearGradient>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>📍 Ubicación y Distancia</Text>
+              <View style={styles.compactSection}>
+                <View style={styles.sectionHeader}>
+                  <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={20} color={colors.primary} />
+                  <Text style={styles.sectionTitle}>Ubicación</Text>
+                </View>
                 
-                <Text style={styles.subsectionTitle}>Comunidad Autónoma</Text>
-                <TouchableOpacity
-                  style={styles.selectButton}
-                  onPress={() => setShowComunidadModal(true)}
-                >
-                  <Text style={styles.selectButtonText}>
-                    {filtrosTemp.comunidad || 'Todas las Comunidades'}
-                  </Text>
-                  <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={20} color={colors.text} />
-                </TouchableOpacity>
+                <View style={styles.twoColumnGrid}>
+                  <TouchableOpacity
+                    style={styles.compactSelectButton}
+                    onPress={() => setShowComunidadModal(true)}
+                  >
+                    <Text style={styles.selectLabel}>Comunidad</Text>
+                    <Text style={styles.selectValue} numberOfLines={1}>
+                      {filtrosTemp.comunidad || 'Todas'}
+                    </Text>
+                    <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={16} color={colors.textSecondary} />
+                  </TouchableOpacity>
 
-                <Text style={styles.subsectionTitle}>Provincia</Text>
-                <TouchableOpacity
-                  style={styles.selectButton}
-                  onPress={() => setShowProvinciaModal(true)}
-                >
-                  <Text style={styles.selectButtonText}>
-                    {filtrosTemp.provincia || 'Todas las Provincias'}
-                  </Text>
-                  <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={20} color={colors.text} />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.compactSelectButton}
+                    onPress={() => setShowProvinciaModal(true)}
+                  >
+                    <Text style={styles.selectLabel}>Provincia</Text>
+                    <Text style={styles.selectValue} numberOfLines={1}>
+                      {filtrosTemp.provincia || 'Todas'}
+                    </Text>
+                    <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={16} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
 
-                <Text style={styles.subsectionTitle}>Distancia desde mi ubicación</Text>
-                <View style={styles.distanciaContainer}>
+                <View style={styles.distanceRow}>
+                  <IconSymbol ios_icon_name="location.circle" android_material_icon_name="my_location" size={18} color={colors.primary} />
+                  <Text style={styles.distanceLabel}>Radio de búsqueda</Text>
                   <TextInput
-                    style={styles.input}
-                    placeholder="Sin límite"
+                    style={styles.distanceInput}
+                    placeholder="km"
                     keyboardType="numeric"
                     value={filtrosTemp.distancia?.toString() || ''}
                     onChangeText={(text) =>
@@ -254,94 +249,105 @@ export default function FiltrosAvanzadosSheet({
                       })
                     }
                   />
-                  <Text style={styles.distanciaUnit}>km</Text>
                 </View>
               </View>
 
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🏪 Tipo de Local</Text>
-                <View style={styles.chipContainer}>
+              <View style={styles.compactSection}>
+                <View style={styles.sectionHeader}>
+                  <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={20} color={colors.primary} />
+                  <Text style={styles.sectionTitle}>Tipo de Local</Text>
+                </View>
+                <View style={styles.compactChipContainer}>
                   {TIPOS_LOCAL.map((tipo) => (
                     <TouchableOpacity
-                      key={tipo}
+                      key={tipo.id}
                       style={[
-                        styles.chip,
-                        filtrosTemp.tipo?.includes(tipo.toLowerCase()) && styles.chipActivo,
+                        styles.compactChip,
+                        filtrosTemp.tipo?.includes(tipo.id) && styles.compactChipActive,
                       ]}
                       onPress={() =>
                         setFiltrosTemp({
                           ...filtrosTemp,
-                          tipo: toggleArrayItem(filtrosTemp.tipo, tipo.toLowerCase()),
+                          tipo: toggleArrayItem(filtrosTemp.tipo, tipo.id),
                         })
                       }
                     >
+                      <Text style={styles.chipIcon}>{tipo.icon}</Text>
                       <Text
                         style={[
-                          styles.chipText,
-                          filtrosTemp.tipo?.includes(tipo.toLowerCase()) && styles.chipTextActivo,
+                          styles.compactChipText,
+                          filtrosTemp.tipo?.includes(tipo.id) && styles.compactChipTextActive,
                         ]}
                       >
-                        {tipo}
+                        {tipo.label}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>✨ Servicios y Comodidades</Text>
-                <View style={styles.chipContainer}>
+              <View style={styles.compactSection}>
+                <View style={styles.sectionHeader}>
+                  <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={20} color={colors.primary} />
+                  <Text style={styles.sectionTitle}>Servicios</Text>
+                </View>
+                <View style={styles.compactChipContainer}>
                   {SERVICIOS.map((servicio) => (
                     <TouchableOpacity
-                      key={servicio}
+                      key={servicio.id}
                       style={[
-                        styles.chip,
-                        filtrosTemp.servicios?.includes(servicio) && styles.chipActivo,
+                        styles.compactChip,
+                        filtrosTemp.servicios?.includes(servicio.id) && styles.compactChipActive,
                       ]}
                       onPress={() =>
                         setFiltrosTemp({
                           ...filtrosTemp,
-                          servicios: toggleArrayItem(filtrosTemp.servicios, servicio),
+                          servicios: toggleArrayItem(filtrosTemp.servicios, servicio.id),
                         })
                       }
                     >
+                      <Text style={styles.chipIcon}>{servicio.icon}</Text>
                       <Text
                         style={[
-                          styles.chipText,
-                          filtrosTemp.servicios?.includes(servicio) && styles.chipTextActivo,
+                          styles.compactChipText,
+                          filtrosTemp.servicios?.includes(servicio.id) && styles.compactChipTextActive,
                         ]}
                       >
-                        {servicio}
+                        {servicio.label}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🎭 Ambiente</Text>
-                <View style={styles.chipContainer}>
+              <View style={styles.compactSection}>
+                <View style={styles.sectionHeader}>
+                  <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color={colors.primary} />
+                  <Text style={styles.sectionTitle}>Ambiente</Text>
+                </View>
+                <View style={styles.compactChipContainer}>
                   {AMBIENTES.map((ambiente) => (
                     <TouchableOpacity
-                      key={ambiente}
+                      key={ambiente.id}
                       style={[
-                        styles.chip,
-                        filtrosTemp.ambiente?.includes(ambiente) && styles.chipActivo,
+                        styles.compactChip,
+                        filtrosTemp.ambiente?.includes(ambiente.id) && styles.compactChipActive,
                       ]}
                       onPress={() =>
                         setFiltrosTemp({
                           ...filtrosTemp,
-                          ambiente: toggleArrayItem(filtrosTemp.ambiente, ambiente),
+                          ambiente: toggleArrayItem(filtrosTemp.ambiente, ambiente.id),
                         })
                       }
                     >
+                      <Text style={styles.chipIcon}>{ambiente.icon}</Text>
                       <Text
                         style={[
-                          styles.chipText,
-                          filtrosTemp.ambiente?.includes(ambiente) && styles.chipTextActivo,
+                          styles.compactChipText,
+                          filtrosTemp.ambiente?.includes(ambiente.id) && styles.compactChipTextActive,
                         ]}
                       >
-                        {ambiente}
+                        {ambiente.label}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -359,6 +365,7 @@ export default function FiltrosAvanzadosSheet({
                   end={{ x: 1, y: 0 }}
                   style={styles.aplicarGradient}
                 >
+                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={22} color={colors.headerText} />
                   <Text style={styles.aplicarText}>Aplicar filtros</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -384,8 +391,25 @@ export default function FiltrosAvanzadosSheet({
                 <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
+            
+            <View style={styles.searchContainer}>
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar comunidad..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchComunidad}
+                onChangeText={setSearchComunidad}
+              />
+              {searchComunidad.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchComunidad('')}>
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
             <ScrollView style={styles.selectorModalBody}>
-              {COMUNIDADES.map((comunidad) => (
+              {filteredComunidades.map((comunidad) => (
                 <TouchableOpacity
                   key={comunidad}
                   style={[
@@ -398,6 +422,7 @@ export default function FiltrosAvanzadosSheet({
                       comunidad: filtrosTemp.comunidad === comunidad ? undefined : comunidad,
                     });
                     setShowComunidadModal(false);
+                    setSearchComunidad('');
                   }}
                 >
                   <Text
@@ -409,7 +434,7 @@ export default function FiltrosAvanzadosSheet({
                     {comunidad}
                   </Text>
                   {filtrosTemp.comunidad === comunidad && (
-                    <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -435,8 +460,25 @@ export default function FiltrosAvanzadosSheet({
                 <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
+            
+            <View style={styles.searchContainer}>
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar provincia..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchProvincia}
+                onChangeText={setSearchProvincia}
+              />
+              {searchProvincia.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchProvincia('')}>
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
             <ScrollView style={styles.selectorModalBody}>
-              {PROVINCIAS.map((provincia) => (
+              {filteredProvincias.map((provincia) => (
                 <TouchableOpacity
                   key={provincia}
                   style={[
@@ -449,6 +491,7 @@ export default function FiltrosAvanzadosSheet({
                       provincia: filtrosTemp.provincia === provincia ? undefined : provincia,
                     });
                     setShowProvinciaModal(false);
+                    setSearchProvincia('');
                   }}
                 >
                   <Text
@@ -460,7 +503,7 @@ export default function FiltrosAvanzadosSheet({
                     {provincia}
                   </Text>
                   {filtrosTemp.provincia === provincia && (
-                    <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -491,6 +534,15 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   headerTitle: {
     fontSize: 20,
@@ -498,7 +550,7 @@ const styles = StyleSheet.create({
     color: colors.headerText,
   },
   limpiarText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -506,83 +558,113 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
-  section: {
-    marginTop: 24,
+  compactSection: {
+    marginTop: 16,
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
   },
-  subsectionTitle: {
-    fontSize: 15,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  twoColumnGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  compactSelectButton: {
+    flex: 1,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  selectLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  selectValue: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    marginTop: 12,
-    marginBottom: 8,
+    marginBottom: 2,
   },
-  selectButton: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  distanceRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  selectButtonText: {
-    fontSize: 16,
-    color: colors.text,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.background,
-    borderWidth: 1,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1.5,
     borderColor: colors.cardBorder,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  chipActivo: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  chipText: {
+  distanceLabel: {
+    flex: 1,
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
-  chipTextActivo: {
-    color: colors.headerText,
-  },
-  distanciaContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  input: {
-    flex: 1,
+  distanceInput: {
+    width: 60,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
-  },
-  distanciaUnit: {
-    fontSize: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+    textAlign: 'center',
+  },
+  compactChipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  compactChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
+    gap: 6,
+  },
+  compactChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipIcon: {
+    fontSize: 16,
+  },
+  compactChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  compactChipTextActive: {
+    color: colors.headerText,
+    fontWeight: '700',
   },
   footer: {
     padding: 16,
@@ -591,12 +673,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
   },
   aplicarButton: {
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   aplicarGradient: {
     paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   aplicarText: {
     fontSize: 16,
@@ -610,9 +700,14 @@ const styles = StyleSheet.create({
   },
   selectorModalContent: {
     backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '70%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 20,
   },
   selectorModalHeader: {
     flexDirection: 'row',
@@ -627,6 +722,25 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 12,
+    gap: 12,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text,
+  },
   selectorModalBody: {
     maxHeight: 400,
   },
@@ -639,14 +753,14 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   selectorModalOptionActive: {
-    backgroundColor: `${colors.primary}10`,
+    backgroundColor: `${colors.primary}15`,
   },
   selectorModalOptionText: {
     fontSize: 16,
     color: colors.text,
   },
   selectorModalOptionTextActive: {
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.primary,
   },
 });

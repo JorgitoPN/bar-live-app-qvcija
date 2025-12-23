@@ -12,17 +12,26 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import * as ImagePicker from 'expo-image-picker';
-import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
-const PUESTOS = ['Camarero/a', 'Cocinero/a', 'Barman', 'Gerente', 'Limpieza', 'Seguridad', 'DJ', 'Relaciones Públicas'];
+const PUESTOS = [
+  { id: 'camarero', label: 'Camarero/a', icon: '🍽️' },
+  { id: 'cocinero', label: 'Cocinero/a', icon: '👨‍🍳' },
+  { id: 'barman', label: 'Barman', icon: '🍸' },
+  { id: 'gerente', label: 'Gerente', icon: '💼' },
+  { id: 'limpieza', label: 'Limpieza', icon: '🧹' },
+  { id: 'seguridad', label: 'Seguridad', icon: '🛡️' },
+  { id: 'dj', label: 'DJ', icon: '🎧' },
+  { id: 'rrpp', label: 'Relaciones Públicas', icon: '🎭' },
+];
 
 const PROVINCIAS = [
   'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila',
@@ -260,7 +269,7 @@ export default function CrearPerfilProfesionalScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.form}>
           <View style={styles.infoBanner}>
-            <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={20} color={colors.primary} />
+            <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
             <Text style={styles.infoText}>
               Tu perfil profesional está vinculado a tu perfil social. Los propietarios podrán contactarte mediante mensajes.
             </Text>
@@ -268,7 +277,7 @@ export default function CrearPerfilProfesionalScreen() {
 
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
-              <IconSymbol ios_icon_name="person.circle.fill" android_material_icon_name="account_circle" size={24} color={colors.primary} />
+              <IconSymbol ios_icon_name="person.circle.fill" android_material_icon_name="account_circle" size={22} color={colors.primary} />
               <Text style={styles.sectionTitle}>Datos Personales</Text>
             </View>
 
@@ -277,7 +286,7 @@ export default function CrearPerfilProfesionalScreen() {
                 <Image source={{ uri: foto }} style={styles.photo} />
               ) : (
                 <View style={styles.photoPlaceholder}>
-                  <IconSymbol ios_icon_name="camera.fill" android_material_icon_name="add_a_photo" size={40} color={colors.textSecondary} />
+                  <IconSymbol ios_icon_name="camera.fill" android_material_icon_name="add_a_photo" size={36} color={colors.textSecondary} />
                   <Text style={styles.photoText}>Añadir foto</Text>
                 </View>
               )}
@@ -297,7 +306,7 @@ export default function CrearPerfilProfesionalScreen() {
 
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
-              <IconSymbol ios_icon_name="briefcase.fill" android_material_icon_name="work" size={24} color={colors.primary} />
+              <IconSymbol ios_icon_name="briefcase.fill" android_material_icon_name="work" size={22} color={colors.primary} />
               <Text style={styles.sectionTitle}>Experiencia</Text>
             </View>
 
@@ -306,17 +315,18 @@ export default function CrearPerfilProfesionalScreen() {
               <View style={styles.puestoButtons}>
                 {PUESTOS.map((p) => (
                   <TouchableOpacity
-                    key={p}
-                    style={[styles.puestoButton, puesto === p && styles.puestoButtonActive]}
-                    onPress={() => setPuesto(p)}
+                    key={p.id}
+                    style={[styles.puestoButton, puesto === p.id && styles.puestoButtonActive]}
+                    onPress={() => setPuesto(p.id)}
                   >
+                    <Text style={styles.puestoIcon}>{p.icon}</Text>
                     <Text
                       style={[
                         styles.puestoButtonText,
-                        puesto === p && styles.puestoButtonTextActive,
+                        puesto === p.id && styles.puestoButtonTextActive,
                       ]}
                     >
-                      {p}
+                      {p.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -332,7 +342,7 @@ export default function CrearPerfilProfesionalScreen() {
                 value={experiencia}
                 onChangeText={setExperiencia}
                 multiline
-                numberOfLines={6}
+                numberOfLines={5}
               />
             </View>
 
@@ -345,7 +355,7 @@ export default function CrearPerfilProfesionalScreen() {
                 value={habilidades}
                 onChangeText={setHabilidades}
                 multiline
-                numberOfLines={4}
+                numberOfLines={3}
               />
             </View>
 
@@ -363,7 +373,7 @@ export default function CrearPerfilProfesionalScreen() {
 
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
-              <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={24} color={colors.primary} />
+              <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={22} color={colors.primary} />
               <Text style={styles.sectionTitle}>Ubicación</Text>
             </View>
 
@@ -398,10 +408,10 @@ export default function CrearPerfilProfesionalScreen() {
               {loading ? (
                 <ActivityIndicator color={colors.headerText} />
               ) : (
-                <>
+                <React.Fragment>
                   <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.headerText} />
                   <Text style={styles.submitText}>Guardar Perfil</Text>
-                </>
+                </React.Fragment>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -490,7 +500,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -516,111 +526,106 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.primary + '15',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    gap: 12,
+    padding: 14,
+    marginBottom: 16,
+    gap: 10,
     borderWidth: 1,
     borderColor: colors.primary + '30',
   },
   infoText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   sectionCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 20,
-    paddingBottom: 16,
+    gap: 10,
+    marginBottom: 16,
+    paddingBottom: 12,
     borderBottomWidth: 2,
     borderBottomColor: colors.primary + '20',
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: colors.text,
   },
   photoContainer: {
     alignSelf: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   photo: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 4,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    borderWidth: 3,
     borderColor: colors.primary + '30',
   },
   photoPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     backgroundColor: colors.background,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: colors.cardBorder,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
   },
   photoText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.textSecondary,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   floatingLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.primary,
-    marginBottom: 8,
+    marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   input: {
     backgroundColor: colors.background,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: colors.cardBorder,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
     color: colors.text,
   },
   textArea: {
-    minHeight: 100,
+    minHeight: 90,
     textAlignVertical: 'top',
   },
   dropdownButton: {
     backgroundColor: colors.background,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: colors.cardBorder,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   dropdownButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text,
   },
   dropdownPlaceholder: {
@@ -632,19 +637,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   puestoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.background,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: colors.cardBorder,
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    gap: 6,
   },
   puestoButtonActive: {
     borderColor: colors.primary,
     backgroundColor: colors.primary,
   },
+  puestoIcon: {
+    fontSize: 16,
+  },
   puestoButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
   },
@@ -653,7 +664,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   submitButton: {
-    marginTop: 20,
+    marginTop: 16,
     marginBottom: 40,
     borderRadius: 16,
     overflow: 'hidden',
@@ -664,15 +675,15 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   submitGradient: {
-    paddingVertical: 18,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
   },
   submitText: {
     color: colors.headerText,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
   },
   modalOverlay: {
@@ -694,7 +705,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 20,
-    zIndex: 9999,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -706,7 +716,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: 'bold',
     color: colors.text,
   },
@@ -721,7 +731,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 12,
     gap: 12,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: colors.cardBorder,
   },
   searchInput: {
@@ -737,7 +747,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
