@@ -35,7 +35,7 @@ import { useLocalEvent } from '@/hooks/useLocalEvent';
 import MomentoViewer from '@/components/momento/MomentoViewer';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 
-const SCREEN_VERSION = '10.3.0';
+const SCREEN_VERSION = '10.4.0';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -93,17 +93,14 @@ interface Seguidor {
 }
 
 /**
- * ✅ LOCAL PROFILE v10.3 - MOMENTO VIEWER & ANALYTICS COMPLETE
+ * ✅ LOCAL PROFILE v10.4 - FIXED MOMENTO VIEWER ACCESS
  * 
  * Changes:
- * - ✅ Added neon green border to avatar when momentos exist (matching user profile design)
- * - ✅ Added + icon to upload momentos (owner only)
- * - ✅ FIXED: Avatar is now clickable to view momentos for all users
- * - ✅ FIXED: Non-owners can view momentos by tapping avatar
+ * - ✅ FIXED: Avatar now checks for ANY momentos (not just unviewed)
+ * - ✅ FIXED: Non-owners can view momentos by tapping avatar if momentos exist
  * - ✅ FIXED: Owners can upload momentos by tapping + icon or avatar when no momentos exist
+ * - ✅ FIXED: Neon green border shows when ANY momentos exist (viewed or unviewed)
  * - ✅ Synchronized with user profile momento functionality
- * - ✅ Fixed analytics button to check premium plan permission
- * - ✅ Analytics button only visible if user has premium plan with panel_analisis permission
  */
 
 export default function LocalPerfilScreen() {
@@ -147,6 +144,8 @@ export default function LocalPerfilScreen() {
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [showMomentoUpload, setShowMomentoUpload] = useState(false);
   const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
+  // ✅ NEW: Track if ANY momentos exist (viewed or unviewed)
+  const [hasMomentos, setHasMomentos] = useState(false);
 
   // ✅ Analytics permission state
   const [hasAnalyticsPermission, setHasAnalyticsPermission] = useState(false);
@@ -198,8 +197,12 @@ export default function LocalPerfilScreen() {
 
       if (momentosError || !momentosData || momentosData.length === 0) {
         setHasUnviewedMomentos(false);
+        setHasMomentos(false);
         return;
       }
+
+      // ✅ FIXED: Set hasMomentos to true if ANY momentos exist
+      setHasMomentos(true);
 
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData } = await supabase
@@ -215,12 +218,14 @@ export default function LocalPerfilScreen() {
         total: momentosData.length,
         viewed: viewedIds.size,
         hasUnviewed,
+        hasMomentos: true,
       });
 
       setHasUnviewedMomentos(hasUnviewed);
     } catch (error) {
       console.error('[LocalPerfil] ❌ Error checking momentos:', error);
       setHasUnviewedMomentos(false);
+      setHasMomentos(false);
     }
   }, [user, localId]);
 
@@ -645,19 +650,21 @@ export default function LocalPerfilScreen() {
     }
   };
 
+  // ✅ FIXED: Avatar press handler - check for ANY momentos
   const handleAvatarPress = () => {
     console.log('[LocalPerfil] Avatar pressed:', {
+      hasMomentos,
       hasUnviewedMomentos,
       isOwner,
     });
 
-    // ✅ FIXED: Always allow viewing momentos if they exist
-    if (hasUnviewedMomentos) {
-      console.log('[LocalPerfil] Opening momento viewer');
+    // ✅ FIXED: Allow viewing if ANY momentos exist (not just unviewed)
+    if (hasMomentos) {
+      console.log('[LocalPerfil] Opening momento viewer (momentos exist)');
       setShowMomentoViewer(true);
     } else if (isOwner) {
       // Owner can upload new momentos even if none exist
-      console.log('[LocalPerfil] Opening momento upload (owner)');
+      console.log('[LocalPerfil] Opening momento upload (owner, no momentos)');
       setShowMomentoUpload(true);
     }
   };
@@ -1062,13 +1069,13 @@ export default function LocalPerfilScreen() {
             ]}
           >
             <View style={styles.profileHeader}>
-              {/* ✅ FIXED: Avatar with momento border and + icon - matching user profile design */}
+              {/* ✅ FIXED: Avatar with momento border - shows neon green if ANY momentos exist */}
               <TouchableOpacity 
                 style={styles.avatarContainer}
                 onPress={handleAvatarPress}
                 activeOpacity={0.8}
               >
-                {hasUnviewedMomentos ? (
+                {hasMomentos ? (
                   <LinearGradient
                     colors={['#00FF88', '#00FF88', '#00FF88']}
                     start={{ x: 0, y: 0 }}

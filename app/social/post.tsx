@@ -12,13 +12,12 @@ import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 const { width } = Dimensions.get('window');
 
 /**
- * ✅ SINGLE POST VIEW ROUTE v1.1 - WITH BOTTOM MENU ON ERROR
+ * ✅ SINGLE POST VIEW ROUTE v1.2 - FIXED POSTID PARAMETER
  * 
- * Features:
- * - ✅ Direct post loading with postId parameter
- * - ✅ Optimized for instant display (<200ms)
- * - ✅ Minimal data fetching (only requested post)
- * - ✅ Clean navigation from chat messages
+ * Changes:
+ * - ✅ FIXED: Now accepts both 'id' and 'postId' parameters for compatibility
+ * - ✅ Works with navigation from locale profile (uses 'id')
+ * - ✅ Works with navigation from chat (uses 'postId')
  * - ✅ Bottom menu on error screen for easy navigation
  */
 
@@ -68,7 +67,8 @@ export default function SinglePostView() {
 
   useEffect(() => {
     const loadPost = async () => {
-      const postId = params.postId as string;
+      // ✅ FIXED: Accept both 'id' and 'postId' parameters
+      const postId = (params.id || params.postId) as string;
       
       if (!postId) {
         console.error('[SinglePostView] ❌ No postId provided');
@@ -147,7 +147,7 @@ export default function SinglePostView() {
     };
 
     loadPost();
-  }, [params.postId, user]);
+  }, [params.id, params.postId, user]);
 
   const handleClose = () => {
     if (router.canGoBack()) {
