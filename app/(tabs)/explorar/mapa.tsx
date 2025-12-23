@@ -8,6 +8,7 @@ import {
   ScrollView,
   Platform,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,7 +25,6 @@ import { useFilters } from '@/contexts/FilterContext';
 import { addPubCategoryIfNeeded, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
 import { calcularDistancia } from '@/utils/locationUtils';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
-import { Video, ResizeMode } from 'expo-av';
 
 const { width } = Dimensions.get('window');
 
@@ -132,11 +132,11 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v5.4 - VIDEO PRELOAD FIXED
+ * ✅ MAP SCREEN v5.3 - OPTIMIZED PERFORMANCE & INSTANT RESPONSE
  * 
  * Features:
- * - ✅ VIDEO PRELOAD: Shows video while loading markers
  * - ✅ INSTANT DISPLAY: Map and markers load simultaneously (HYDRATION)
+ * - ✅ CLEAN LOADING: Simple loading indicator without video
  * - ✅ FIXED POPUP: Proper centering without going off-screen
  * - ✅ SHARED DATA: Uses GlobalDataContext (same as Lista de Locales)
  * - ✅ SYNCHRONIZED FILTERS: Real-time sync with FilterContext
@@ -153,7 +153,6 @@ export default function MapaScreen() {
   const { locales: globalLocales, refreshData } = useGlobalData();
   
   const webViewRef = useRef<WebView>(null);
-  const videoRef = useRef<Video>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todos');
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'abiertos'>('abiertos');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -1163,15 +1162,19 @@ export default function MapaScreen() {
           <>
             {isLoadingMarkers && (
               <View style={styles.loadingOverlay}>
-                <Video
-                  ref={videoRef}
-                  source={{ uri: 'https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/videos/video%20carga%20Barlive.mp4' }}
-                  style={styles.loadingVideo}
-                  resizeMode={ResizeMode.COVER}
-                  shouldPlay
-                  isLooping
-                  isMuted
-                />
+                <View style={styles.loadingContent}>
+                  <View style={styles.mapIconContainer}>
+                    <IconSymbol 
+                      ios_icon_name="map.fill" 
+                      android_material_icon_name="map" 
+                      size={64} 
+                      color={colors.primary} 
+                    />
+                  </View>
+                  <ActivityIndicator size="large" color={colors.primary} style={styles.loadingSpinner} />
+                  <Text style={styles.loadingText}>Preparando mapa...</Text>
+                  <Text style={styles.loadingSubtext}>Cargando {todosLosLocales.length} locales</Text>
+                </View>
               </View>
             )}
             {mapHTML && (
@@ -1334,9 +1337,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 1000,
   },
-  loadingVideo: {
-    width: '100%',
-    height: '100%',
+  loadingContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  mapIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  loadingSpinner: {
+    marginBottom: 16,
+  },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textSecondary,
   },
   webNotSupported: {
     flex: 1,
