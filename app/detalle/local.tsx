@@ -469,7 +469,6 @@ export default function DetalleLocalScreen() {
     try {
       setLoadingReviews(true);
       
-      // Load Barlive reviews
       const { data: barliveReviews, error: barliveError } = await supabase
         .from('reviews_barlive')
         .select(`
@@ -486,7 +485,6 @@ export default function DetalleLocalScreen() {
         console.error('[DetalleLocal] Error loading Barlive reviews:', barliveError);
       }
 
-      // Load Google reviews from local data
       const { data: localData } = await supabase
         .from('locales')
         .select('reviews_google')
@@ -1194,8 +1192,6 @@ export default function DetalleLocalScreen() {
                   )}
                 </View>
               )}
-
-              {/* ✅ FIXED: Removed redundant local name text between check-in button and action buttons */}
 
               {description && (
                 <View style={styles.descriptionSection}>

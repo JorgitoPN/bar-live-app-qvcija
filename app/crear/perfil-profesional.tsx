@@ -24,7 +24,6 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const PUESTOS = ['Camarero/a', 'Cocinero/a', 'Barman', 'Gerente', 'Limpieza', 'Seguridad', 'DJ', 'Relaciones Públicas'];
 
-// ✅ FIXED: Complete list of all 50 Spanish provinces
 const PROVINCIAS = [
   'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila',
   'Badajoz', 'Barcelona', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria',
@@ -43,7 +42,6 @@ export default function CrearPerfilProfesionalScreen() {
   const [loading, setLoading] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
   
-  // Form fields - pre-filled from user profile
   const [nombreCompleto, setNombreCompleto] = useState('');
   const [puesto, setPuesto] = useState('');
   const [experiencia, setExperiencia] = useState('');
@@ -52,8 +50,8 @@ export default function CrearPerfilProfesionalScreen() {
   const [provincia, setProvincia] = useState('');
   const [foto, setFoto] = useState<string | null>(null);
 
-  // ✅ NEW: Province dropdown modal state
   const [showProvinciaModal, setShowProvinciaModal] = useState(false);
+  const [provinciaSearch, setProvinciaSearch] = useState('');
 
   const checkExistingProfile = useCallback(async () => {
     if (!user) {
@@ -62,7 +60,6 @@ export default function CrearPerfilProfesionalScreen() {
     }
 
     try {
-      // Check if user already has a professional profile
       const { data: existingProfile, error } = await supabase
         .from('perfiles_profesionales')
         .select('*')
@@ -78,7 +75,6 @@ export default function CrearPerfilProfesionalScreen() {
             { 
               text: 'Editar', 
               onPress: () => {
-                // Pre-fill form with existing data
                 setNombreCompleto(existingProfile.nombre_completo || '');
                 setPuesto(existingProfile.puesto_deseado || '');
                 setExperiencia(existingProfile.experiencia || '');
@@ -91,7 +87,6 @@ export default function CrearPerfilProfesionalScreen() {
           ]
         );
       } else {
-        // Pre-fill with user's social profile data
         setNombreCompleto(user.nombre || '');
         setFoto(user.avatar || null);
       }
@@ -121,11 +116,9 @@ export default function CrearPerfilProfesionalScreen() {
 
   const uploadImage = async (uri: string): Promise<string | null> => {
     try {
-      // Use fetch to read the file as blob
       const response = await fetch(uri);
       const blob = await response.blob();
       
-      // Convert blob to ArrayBuffer
       const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as ArrayBuffer);
@@ -171,7 +164,6 @@ export default function CrearPerfilProfesionalScreen() {
     try {
       let fotoUrl = foto;
 
-      // Upload new image if it's a local file
       if (foto && foto.startsWith('file://')) {
         fotoUrl = await uploadImage(foto);
         if (!fotoUrl) {
@@ -181,7 +173,6 @@ export default function CrearPerfilProfesionalScreen() {
         }
       }
 
-      // Check if profile already exists
       const { data: existingProfile } = await supabase
         .from('perfiles_profesionales')
         .select('id')
@@ -189,7 +180,6 @@ export default function CrearPerfilProfesionalScreen() {
         .single();
 
       if (existingProfile) {
-        // Update existing profile
         const { error: updateError } = await supabase
           .from('perfiles_profesionales')
           .update({
@@ -210,12 +200,11 @@ export default function CrearPerfilProfesionalScreen() {
           { text: 'OK', onPress: () => router.back() },
         ]);
       } else {
-        // Create new profile - use titulo_profesional as required field
         const { error: insertError } = await supabase
           .from('perfiles_profesionales')
           .insert({
             usuario_id: user.id,
-            titulo_profesional: puesto, // Map to existing required field
+            titulo_profesional: puesto,
             nombre_completo: nombreCompleto,
             puesto_deseado: puesto,
             experiencia,
@@ -242,6 +231,10 @@ export default function CrearPerfilProfesionalScreen() {
     }
   };
 
+  const filteredProvincias = PROVINCIAS.filter(p => 
+    p.toLowerCase().includes(provinciaSearch.toLowerCase())
+  );
+
   if (checkingExisting) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -264,9 +257,8 @@ export default function CrearPerfilProfesionalScreen() {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.form}>
-          {/* Info Banner */}
           <View style={styles.infoBanner}>
             <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={20} color={colors.primary} />
             <Text style={styles.infoText}>
@@ -274,104 +266,124 @@ export default function CrearPerfilProfesionalScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.photoContainer} onPress={pickImage}>
-            {foto ? (
-              <Image source={{ uri: foto }} style={styles.photo} />
-            ) : (
-              <View style={styles.photoPlaceholder}>
-                <IconSymbol ios_icon_name="person.circle" android_material_icon_name="account_circle" size={60} color={colors.textSecondary} />
-                <Text style={styles.photoText}>Añadir foto</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol ios_icon_name="person.circle.fill" android_material_icon_name="account_circle" size={24} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Datos Personales</Text>
+            </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nombre completo *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Tu nombre"
-              placeholderTextColor={colors.textSecondary}
-              value={nombreCompleto}
-              onChangeText={setNombreCompleto}
-            />
-          </View>
+            <TouchableOpacity style={styles.photoContainer} onPress={pickImage}>
+              {foto ? (
+                <Image source={{ uri: foto }} style={styles.photo} />
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <IconSymbol ios_icon_name="camera.fill" android_material_icon_name="add_a_photo" size={40} color={colors.textSecondary} />
+                  <Text style={styles.photoText}>Añadir foto</Text>
+                </View>
+              )}
+            </TouchableOpacity>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Puesto deseado *</Text>
-            <View style={styles.puestoButtons}>
-              {PUESTOS.map((p) => (
-                <TouchableOpacity
-                  key={p}
-                  style={[styles.puestoButton, puesto === p && styles.puestoButtonActive]}
-                  onPress={() => setPuesto(p)}
-                >
-                  <Text
-                    style={[
-                      styles.puestoButtonText,
-                      puesto === p && styles.puestoButtonTextActive,
-                    ]}
-                  >
-                    {p}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.inputGroup}>
+              <Text style={styles.floatingLabel}>Nombre completo *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Tu nombre"
+                placeholderTextColor={colors.textSecondary}
+                value={nombreCompleto}
+                onChangeText={setNombreCompleto}
+              />
             </View>
           </View>
 
-          {/* ✅ FIXED: Real dropdown selector for provinces */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Provincia</Text>
-            <TouchableOpacity 
-              style={styles.dropdownButton}
-              onPress={() => setShowProvinciaModal(true)}
-            >
-              <Text style={[styles.dropdownButtonText, !provincia && styles.dropdownPlaceholder]}>
-                {provincia || 'Selecciona una provincia'}
-              </Text>
-              <IconSymbol 
-                ios_icon_name="chevron.down" 
-                android_material_icon_name="arrow_drop_down" 
-                size={20} 
-                color={colors.textSecondary} 
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol ios_icon_name="briefcase.fill" android_material_icon_name="work" size={24} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Experiencia</Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.floatingLabel}>Puesto deseado *</Text>
+              <View style={styles.puestoButtons}>
+                {PUESTOS.map((p) => (
+                  <TouchableOpacity
+                    key={p}
+                    style={[styles.puestoButton, puesto === p && styles.puestoButtonActive]}
+                    onPress={() => setPuesto(p)}
+                  >
+                    <Text
+                      style={[
+                        styles.puestoButtonText,
+                        puesto === p && styles.puestoButtonTextActive,
+                      ]}
+                    >
+                      {p}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.floatingLabel}>Experiencia laboral *</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Describe tu experiencia laboral..."
+                placeholderTextColor={colors.textSecondary}
+                value={experiencia}
+                onChangeText={setExperiencia}
+                multiline
+                numberOfLines={6}
               />
-            </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.floatingLabel}>Habilidades</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Idiomas, certificaciones, habilidades especiales..."
+                placeholderTextColor={colors.textSecondary}
+                value={habilidades}
+                onChangeText={setHabilidades}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.floatingLabel}>Disponibilidad</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ej: Inmediata, fines de semana, noches..."
+                placeholderTextColor={colors.textSecondary}
+                value={disponibilidad}
+                onChangeText={setDisponibilidad}
+              />
+            </View>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Experiencia *</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Describe tu experiencia laboral..."
-              placeholderTextColor={colors.textSecondary}
-              value={experiencia}
-              onChangeText={setExperiencia}
-              multiline
-              numberOfLines={6}
-            />
-          </View>
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={24} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Ubicación</Text>
+            </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Habilidades</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Idiomas, certificaciones, habilidades especiales..."
-              placeholderTextColor={colors.textSecondary}
-              value={habilidades}
-              onChangeText={setHabilidades}
-              multiline
-              numberOfLines={4}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Disponibilidad</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej: Inmediata, fines de semana, noches..."
-              placeholderTextColor={colors.textSecondary}
-              value={disponibilidad}
-              onChangeText={setDisponibilidad}
-            />
+            <View style={styles.inputGroup}>
+              <Text style={styles.floatingLabel}>Provincia</Text>
+              <TouchableOpacity 
+                style={styles.dropdownButton}
+                onPress={() => setShowProvinciaModal(true)}
+              >
+                <Text style={[styles.dropdownButtonText, !provincia && styles.dropdownPlaceholder]}>
+                  {provincia || 'Selecciona una provincia'}
+                </Text>
+                <IconSymbol 
+                  ios_icon_name="chevron.down" 
+                  android_material_icon_name="arrow_drop_down" 
+                  size={20} 
+                  color={colors.textSecondary} 
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity 
@@ -386,14 +398,16 @@ export default function CrearPerfilProfesionalScreen() {
               {loading ? (
                 <ActivityIndicator color={colors.headerText} />
               ) : (
-                <Text style={styles.submitText}>Guardar Perfil</Text>
+                <>
+                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.headerText} />
+                  <Text style={styles.submitText}>Guardar Perfil</Text>
+                </>
               )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* ✅ NEW: Province selection modal */}
       <Modal
         visible={showProvinciaModal}
         animationType="slide"
@@ -413,11 +427,27 @@ export default function CrearPerfilProfesionalScreen() {
               </TouchableOpacity>
             </View>
 
+            <View style={styles.searchContainer}>
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar provincia..."
+                placeholderTextColor={colors.textSecondary}
+                value={provinciaSearch}
+                onChangeText={setProvinciaSearch}
+              />
+              {provinciaSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setProvinciaSearch('')}>
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
             <ScrollView 
               style={styles.provinciaList}
               showsVerticalScrollIndicator={false}
             >
-              {PROVINCIAS.map((p) => (
+              {filteredProvincias.map((p) => (
                 <TouchableOpacity
                   key={p}
                   style={[
@@ -427,6 +457,7 @@ export default function CrearPerfilProfesionalScreen() {
                   onPress={() => {
                     setProvincia(p);
                     setShowProvinciaModal(false);
+                    setProvinciaSearch('');
                   }}
                 >
                   <Text style={[
@@ -437,9 +468,9 @@ export default function CrearPerfilProfesionalScreen() {
                   </Text>
                   {provincia === p && (
                     <IconSymbol 
-                      ios_icon_name="checkmark" 
-                      android_material_icon_name="check" 
-                      size={20} 
+                      ios_icon_name="checkmark.circle.fill" 
+                      android_material_icon_name="check_circle" 
+                      size={24} 
                       color={colors.primary} 
                     />
                   )}
@@ -478,16 +509,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   form: {
-    padding: 20,
+    padding: 16,
   },
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary + '20',
+    backgroundColor: colors.primary + '15',
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
     gap: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
   },
   infoText: {
     flex: 1,
@@ -495,43 +528,75 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 20,
   },
+  sectionCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary + '20',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
   photoContainer: {
     alignSelf: 'center',
-    marginBottom: 30,
+    marginBottom: 24,
   },
   photo: {
     width: 120,
     height: 120,
     borderRadius: 60,
+    borderWidth: 4,
+    borderColor: colors.primary + '30',
   },
   photoPlaceholder: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 2,
+    backgroundColor: colors.background,
+    borderWidth: 3,
     borderColor: colors.cardBorder,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
   photoText: {
-    marginTop: 8,
     fontSize: 12,
+    fontWeight: '600',
     color: colors.textSecondary,
   },
-  inputContainer: {
+  inputGroup: {
     marginBottom: 20,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
+  floatingLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
     marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   input: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
+    backgroundColor: colors.background,
+    borderWidth: 2,
     borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
@@ -544,8 +609,8 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   dropdownButton: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
+    backgroundColor: colors.background,
+    borderWidth: 2,
     borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
@@ -567,12 +632,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   puestoButton: {
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
     borderWidth: 2,
     borderColor: colors.cardBorder,
     borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
   },
   puestoButtonActive: {
     borderColor: colors.primary,
@@ -585,16 +650,25 @@ const styles = StyleSheet.create({
   },
   puestoButtonTextActive: {
     color: colors.headerText,
+    fontWeight: '700',
   },
   submitButton: {
-    marginTop: 30,
+    marginTop: 20,
     marginBottom: 40,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   submitGradient: {
-    paddingVertical: 16,
+    paddingVertical: 18,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
   },
   submitText: {
     color: colors.headerText,
@@ -611,10 +685,15 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingTop: 20,
-    maxHeight: '70%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -626,8 +705,27 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: colors.text,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 12,
+    gap: 12,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
     color: colors.text,
   },
   provinciaList: {
@@ -650,7 +748,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   provinciaItemTextActive: {
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.primary,
   },
 });
