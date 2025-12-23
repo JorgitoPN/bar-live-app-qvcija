@@ -10,6 +10,7 @@ import {
   Alert,
   Dimensions,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/styles/commonStyles';

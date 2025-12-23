@@ -594,7 +594,7 @@ export default function PerfilScreen() {
     };
 
     loadCachedData();
-  }, [user?.id, cargarDatosPerfil]);
+  }, [user, cargarDatosPerfil]);
 
   useEffect(() => {
     if (user) {

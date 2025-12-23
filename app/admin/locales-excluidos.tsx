@@ -70,6 +70,27 @@ export default function LocalesExcluidosScreen() {
     }
   }, [user, router]);
 
+  const filterLocals = useCallback(() => {
+    let filtered = excludedLocals;
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(local =>
+        local.nombre.toLowerCase().includes(query) ||
+        local.direccion?.toLowerCase().includes(query) ||
+        local.descripcion_exclusion?.toLowerCase().includes(query)
+      );
+    }
+
+    // Filter by motivo
+    if (filterMotivo) {
+      filtered = filtered.filter(local => local.motivo_exclusion === filterMotivo);
+    }
+
+    setFilteredLocals(filtered);
+  }, [excludedLocals, searchQuery, filterMotivo]);
+
   useEffect(() => {
     checkAdminAccess();
     loadExcludedLocals();
@@ -77,7 +98,7 @@ export default function LocalesExcluidosScreen() {
 
   useEffect(() => {
     filterLocals();
-  }, [searchQuery, filterMotivo, excludedLocals]);
+  }, [filterLocals]);
 
   const loadExcludedLocals = async () => {
     try {
@@ -99,27 +120,6 @@ export default function LocalesExcluidosScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  const filterLocals = () => {
-    let filtered = excludedLocals;
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(local =>
-        local.nombre.toLowerCase().includes(query) ||
-        local.direccion?.toLowerCase().includes(query) ||
-        local.descripcion_exclusion?.toLowerCase().includes(query)
-      );
-    }
-
-    // Filter by motivo
-    if (filterMotivo) {
-      filtered = filtered.filter(local => local.motivo_exclusion === filterMotivo);
-    }
-
-    setFilteredLocals(filtered);
   };
 
   const handleRestoreLocal = (local: ExcludedLocal) => {

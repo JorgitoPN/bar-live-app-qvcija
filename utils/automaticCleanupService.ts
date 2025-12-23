@@ -6,7 +6,7 @@ import { supabase } from './supabase';
  * 
  * Ejecuta limpieza automática de duplicados e inválidos
  * Puede ser llamado desde:
- * - Edge Function con cron job
+ * - Edge Function with cron job
  * - Manualmente desde el panel de admin
  * - Después de importaciones masivas
  */
@@ -24,12 +24,12 @@ export interface CleanupSummary {
   dryRun: boolean;
   totalEliminados: number;
   totalExcluidos: number;
-  resultados: Array<{
+  resultados: {
     tipo: string;
     gruposProcesados: number;
     localesEliminados: number;
     localesExcluidos: number;
-  }>;
+  }[];
   error?: string;
 }
 
