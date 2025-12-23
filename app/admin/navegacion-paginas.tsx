@@ -392,6 +392,13 @@ export default function NavegacionPaginasScreen() {
       route: '/admin/gestionar-duplicados',
       category: 'Admin',
     },
+    {
+      icon: 'checkmark.seal.fill',
+      title: 'Validar Nombres de Locales',
+      description: 'Validar nombres según palabras clave',
+      route: '/admin/validar-nombres-locales',
+      category: 'Admin',
+    },
   ];
 
   const categories = Array.from(new Set(allPages.map(p => p.category)));

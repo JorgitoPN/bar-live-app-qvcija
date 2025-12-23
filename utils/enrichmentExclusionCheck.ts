@@ -23,6 +23,56 @@ export interface ExclusionCheckResult {
 }
 
 /**
+ * ✅ PALABRAS CLAVE VÁLIDAS PARA LOCALES
+ * Un local será considerado válido si su nombre contiene alguna de estas palabras
+ */
+const PALABRAS_CLAVE_VALIDAS = [
+  'Bar',
+  'Discoteca',
+  'Restaurante',
+  'Cafetería',
+  'Café',
+  'Pub',
+  'Coctelería',
+];
+
+/**
+ * Verifica si el nombre de un local contiene alguna palabra clave válida
+ */
+export function esNombreLocalValido(nombre: string): { valido: boolean; razon?: string } {
+  if (!nombre || nombre.trim() === '') {
+    return { valido: false, razon: 'Nombre vacío' };
+  }
+
+  // Normalizar el nombre para la comparación (sin acentos y en minúsculas)
+  const nombreNormalizado = nombre
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  // Verificar si contiene alguna palabra clave válida
+  const contieneKeyword = PALABRAS_CLAVE_VALIDAS.some(keyword => {
+    const keywordNormalizada = keyword
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    
+    return nombreNormalizado.includes(keywordNormalizada);
+  });
+
+  if (!contieneKeyword) {
+    console.log(`[NameValidation] ❌ Nombre inválido: "${nombre}" - No contiene palabras clave válidas`);
+    return {
+      valido: false,
+      razon: `El nombre no contiene ninguna palabra clave válida (${PALABRAS_CLAVE_VALIDAS.join(', ')})`,
+    };
+  }
+
+  console.log(`[NameValidation] ✅ Nombre válido: "${nombre}"`);
+  return { valido: true };
+}
+
+/**
  * Verifica si un local está excluido
  */
 export async function verificarLocalExcluido(
@@ -31,6 +81,19 @@ export async function verificarLocalExcluido(
   try {
     console.log('[ExclusionCheck] Verificando exclusión:', params);
 
+    // 🔍 VALIDACIÓN DE NOMBRE PRIMERO
+    if (params.nombre) {
+      const validacionNombre = esNombreLocalValido(params.nombre);
+      if (!validacionNombre.valido) {
+        console.log('[ExclusionCheck] ❌ Local excluido por nombre inválido');
+        return {
+          excluido: true,
+          motivo: validacionNombre.razon,
+        };
+      }
+    }
+
+    // 🔍 VERIFICAR EN BASE DE DATOS
     const { data, error } = await supabase.rpc('esta_local_excluido', {
       p_nombre: params.nombre || null,
       p_latitud: params.latitud || null,
@@ -48,7 +111,7 @@ export async function verificarLocalExcluido(
     const excluido = data as boolean;
 
     if (excluido) {
-      console.log('[ExclusionCheck] ❌ Local excluido, no se enriquecerá');
+      console.log('[ExclusionCheck] ❌ Local excluido en base de datos, no se enriquecerá');
       
       // Obtener detalles de la exclusión
       const { data: detalles } = await supabase
@@ -113,4 +176,27 @@ export async function filtrarLocalesExcluidos<T extends ExclusionCheckParams>(
 
   console.log(`[ExclusionCheck] Filtrados ${locales.length - localesValidos.length} locales excluidos de ${locales.length} totales`);
   return localesValidos;
+}
+
+/**
+ * Filtra una lista de locales por nombre válido (sin consultar base de datos)
+ */
+export function filtrarLocalesPorNombreValido<T extends { nombre: string }>(
+  locales: T[]
+): { validos: T[]; invalidos: T[] } {
+  const validos: T[] = [];
+  const invalidos: T[] = [];
+
+  for (const local of locales) {
+    const validacion = esNombreLocalValido(local.nombre);
+    if (validacion.valido) {
+      validos.push(local);
+    } else {
+      invalidos.push(local);
+      console.log(`[NameValidation] Filtrado local con nombre inválido: ${local.nombre}`);
+    }
+  }
+
+  console.log(`[NameValidation] Válidos: ${validos.length}, Inválidos: ${invalidos.length} de ${locales.length} totales`);
+  return { validos, invalidos };
 }
