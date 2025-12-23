@@ -139,7 +139,7 @@ export default function SalaVirtualScreen() {
         }),
       ])
     ).start();
-  }, []);
+  }, [pulseAnim, glowAnim]);
 
   // ✅ FIXED: Memoize checkClosingTime to prevent infinite loop
   const checkClosingTime = useCallback(() => {
@@ -704,7 +704,7 @@ export default function SalaVirtualScreen() {
         unsubscribeFn();
       }
     };
-  }, [localId]); // ✅ FIXED: Only run when localId changes
+  }, [localId, loadLocalData, checkUserCheckin, handleCheckIn, loadMessages, subscribeToUpdates, updateActiveUsers, localClosed, user]);
 
   const handleTyping = () => {
     if (!user || !chatChannelRef.current) return;
@@ -726,7 +726,7 @@ export default function SalaVirtualScreen() {
     }, 3000);
   };
 
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
       return;
@@ -789,9 +789,9 @@ export default function SalaVirtualScreen() {
     } finally {
       setSending(false);
     }
-  };
+  }, [user, isCheckedIn, newMessage, localId]);
 
-  const deleteMessage = async (messageId: string) => {
+  const deleteMessage = useCallback(async (messageId: string) => {
     if (!user) return;
 
     try {
@@ -809,9 +809,9 @@ export default function SalaVirtualScreen() {
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
-  };
+  }, [user]);
 
-  const sendEmoticon = async (recipientId: string, emoticon: string) => {
+  const sendEmoticon = useCallback(async (recipientId: string, emoticon: string) => {
     if (!user || !localId) return;
 
     try {
@@ -837,7 +837,7 @@ export default function SalaVirtualScreen() {
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
-  };
+  }, [user, localId]);
 
   const handleUserSelect = (selectedUser: ActiveUser) => {
     if (selectedUser.id === user?.id) return;

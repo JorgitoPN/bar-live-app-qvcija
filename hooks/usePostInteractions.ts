@@ -68,7 +68,7 @@ export function usePostInteractions({
       });
       hasInitialized.current = true;
     }
-  }, [postId]); // ✅ Only run when postId changes
+  }, [postId, initializePost, initialLiked, initialLikesCount, initialCommentsCount, initialSaved]);
 
   // ✅ FIXED: Subscribe to global state changes
   useEffect(() => {
@@ -104,7 +104,7 @@ export function usePostInteractions({
     };
 
     loadInitialLikes();
-  }, [postId]); // ✅ Only run when postId changes
+  }, [postId, isLiked, updatePostLikes]);
 
   // ✅ FIXED: Real-time subscription for OTHER users' changes
   useEffect(() => {
@@ -182,7 +182,7 @@ export function usePostInteractions({
         channelRef.current = null;
       }
     };
-  }, [postId, user?.id]); // ✅ FIXED: Only essential dependencies
+  }, [postId, user?.id, isLiked, localLikes, updatePostLikes]);
 
   const handleLike = useCallback(async () => {
     if (!user) {

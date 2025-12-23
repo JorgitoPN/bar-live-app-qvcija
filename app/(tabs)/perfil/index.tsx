@@ -13,6 +13,7 @@ import {
   Linking,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -152,7 +153,7 @@ export default function PerfilScreen() {
     };
 
     loadCachedData();
-  }, [user?.id]);
+  }, [user?.id, cargarDatosPerfil]);
 
   const loadCartItemsCount = useCallback(async () => {
     if (!user || !isPropietario) return;

@@ -88,7 +88,7 @@ export default function UsuarioPerfilScreen() {
       return () => {
         console.log('[UsuarioPerfil] Screen unfocused - state persisted');
       };
-    }, [userId])
+    }, [userId, loadUserDataWithCache, loadUserData])
   );
 
   useEffect(() => {
@@ -433,7 +433,7 @@ export default function UsuarioPerfilScreen() {
     setRefreshing(false);
   };
 
-  const handleFollow = async () => {
+  const handleFollow = useCallback(async () => {
     if (!currentUser) {
       Alert.alert('Error', 'Debes iniciar sesión para seguir usuarios');
       return;
@@ -524,7 +524,7 @@ export default function UsuarioPerfilScreen() {
     } finally {
       isTogglingFollow.current = false;
     }
-  };
+  }, [currentUser, isFollowing, stats.seguidores, userId, loadFollowerCounts]);
 
   const handleMessage = async () => {
     if (!currentUser) {

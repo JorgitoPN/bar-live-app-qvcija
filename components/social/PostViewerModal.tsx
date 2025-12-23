@@ -133,6 +133,9 @@ export default function PostViewerModal({
   const [sharingPost, setSharingPost] = useState<Post | null>(null);
 
   const [authorsWithMomentos, setAuthorsWithMomentos] = useState<Set<string>>(new Set());
+  
+  // ✅ FIXED: Changed Array<T> to T[]
+  type LikeArray = { id: string; usuario_id: string }[];
 
   // ✅ NEW: Report modal state
   const [showReportModal, setShowReportModal] = useState(false);
@@ -142,7 +145,7 @@ export default function PostViewerModal({
   const [isLiked, setIsLiked] = useState<Map<string, boolean>>(new Map());
   const [likesCount, setLikesCount] = useState<Map<string, number>>(new Map());
   const [commentsCount, setCommentsCount] = useState<Map<string, number>>(new Map());
-  const [localLikes, setLocalLikes] = useState<Map<string, Array<{ id: string; usuario_id: string }>>>(new Map());
+  const [localLikes, setLocalLikes] = useState<Map<string, { id: string; usuario_id: string }[]>>(new Map());
   const likeDebounceTimer = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const doubleTapAnimations = useRef<Map<string, { scale: Animated.Value; opacity: Animated.Value }>>(new Map());
