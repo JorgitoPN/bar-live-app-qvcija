@@ -1066,10 +1066,10 @@ export default function MapaScreen() {
               Por favor, usa la aplicación móvil para ver el mapa.
             </Text>
           </View>
-        ) : mapHTML ? (
+        ) : (
           <WebView
             ref={webViewRef}
-            source={{ html: mapHTML }}
+            source={{ html: mapHTML || '<html><body><div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; color: #666;">Cargando mapa...</div></body></html>' }}
             style={styles.webview}
             onMessage={handleWebViewMessage}
             javaScriptEnabled={true}
@@ -1079,11 +1079,6 @@ export default function MapaScreen() {
               console.error('WebView error: ', nativeEvent);
             }}
           />
-        ) : (
-          <View style={styles.webNotSupported}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.webNotSupportedText}>Cargando mapa...</Text>
-          </View>
         )}
       </View>
 
@@ -1311,6 +1306,7 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' ? 180 : 170,
     gap: 12,
     zIndex: 5,
+    alignItems: 'center',
   },
   controlButton: {
     width: 48,

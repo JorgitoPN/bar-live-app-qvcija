@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     backgroundColor: colors.background,
     borderRadius: 16,
-    padding: 16,
+    padding: 8,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 16,
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
   twoColumnGrid: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   compactSelectButton: {
     flex: 1,
@@ -708,6 +708,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 20,
+    zIndex: 9999,
   },
   selectorModalHeader: {
     flexDirection: 'row',
