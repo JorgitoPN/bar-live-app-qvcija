@@ -1088,6 +1088,16 @@ export default function EnriquecimientoGoogleScreen() {
       <Text style={styles.sectionTitle}>3. Configurar Enriquecimiento</Text>
       <Text style={styles.subtitle}>{categoriaSeleccionada}</Text>
 
+      {/* Warning about excluded locales */}
+      <View style={[styles.infoBox, { backgroundColor: '#FEF3C7', marginBottom: 15 }]}>
+        <Text style={[styles.infoBoxTitle, { color: '#92400E' }]}>🛡️ Sistema de Exclusión Activo</Text>
+        <Text style={[styles.infoBoxText, { color: '#92400E', marginTop: 5 }]}>
+          Los locales duplicados o inválidos detectados por el sistema de limpieza automática NO serán enriquecidos.
+          {'\n\n'}
+          Esto ahorra costes de API evitando enriquecer locales que serán eliminados.
+        </Text>
+      </View>
+
       <View style={styles.card}>
         <Text style={styles.infoText}>
           Quedan {localesPendientes} locales pendientes de enriquecer

@@ -1,6 +1,7 @@
 
 import { LocalCatalogo } from '@/types';
 import { supabase } from './supabase';
+import { verificarLocalExcluido } from './enrichmentExclusionCheck';
 
 /**
  * Mapeo de tipos OSM a tipos BarLive
@@ -85,6 +86,22 @@ export async function importarCatalogoOSM(
  */
 async function guardarLocalEnSupabase(localCatalogo: LocalCatalogo): Promise<boolean> {
   try {
+    // 🚫 VERIFICAR SI EL LOCAL ESTÁ EXCLUIDO
+    console.log(`[OSM Import] Checking if local is excluded: ${localCatalogo.nombre}`);
+    const exclusionCheck = await verificarLocalExcluido({
+      nombre: localCatalogo.nombre,
+      latitud: localCatalogo.latitud,
+      longitud: localCatalogo.longitud,
+      osm_id: localCatalogo.osm_id,
+    });
+
+    if (exclusionCheck.excluido) {
+      console.log(`[OSM Import] ❌ Local is excluded, skipping: ${localCatalogo.nombre}`);
+      console.log(`[OSM Import] Reason: ${exclusionCheck.motivo}`);
+      return false;
+    }
+    console.log(`[OSM Import] ✅ Local is not excluded, proceeding with import`);
+
     // Verificar si ya existe (por osm_id)
     const { data: existente, error: errorBusqueda } = await supabase
       .from('locales')

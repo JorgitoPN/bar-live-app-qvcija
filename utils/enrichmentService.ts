@@ -27,6 +27,7 @@ import {
 } from './googlePlacesApi';
 import { mapGoogleTypesToBarlive, categorizarPorHorarios, mapearNivelPrecio } from './enrichmentMapping';
 import { addPubCategoryIfNeeded } from './categorizeLocal';
+import { verificarLocalExcluido } from './enrichmentExclusionCheck';
 
 /**
  * Interfaz para datos enriquecidos de un local
@@ -113,6 +114,26 @@ export async function buscarYEnriquecerLocal(
   console.log('[Enrichment] OSM ID:', localCatalogo.osm_id);
 
   try {
+    // 🚫 VERIFICAR SI EL LOCAL ESTÁ EXCLUIDO
+    console.log('[Enrichment] Checking if local is excluded...');
+    const exclusionCheck = await verificarLocalExcluido({
+      nombre: localCatalogo.nombre,
+      latitud: localCatalogo.latitud,
+      longitud: localCatalogo.longitud,
+      osm_id: localCatalogo.osm_id,
+    });
+
+    if (exclusionCheck.excluido) {
+      console.log('[Enrichment] ❌ Local is excluded from enrichment');
+      console.log('[Enrichment] Reason:', exclusionCheck.motivo);
+      return {
+        success: false,
+        localCatalogoId: localCatalogo.id,
+        notas: `Local excluido: ${exclusionCheck.motivo}`,
+      };
+    }
+    console.log('[Enrichment] ✅ Local is not excluded, proceeding with enrichment');
+
     // 🔍 ESTRATEGIA 1: Búsqueda por nombre + provincia
     console.log('[Enrichment] Strategy 1: Name + Province');
     let result = await googlePlacesTextSearch(

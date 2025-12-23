@@ -364,6 +364,34 @@ export default function NavegacionPaginasScreen() {
       route: '/admin/importacion-masiva',
       category: 'Admin',
     },
+    {
+      icon: 'trash.circle.fill',
+      title: 'Sistema de Limpieza Automática',
+      description: 'Eliminar duplicados e inválidos',
+      route: '/admin/sistema-limpieza-automatica',
+      category: 'Admin',
+    },
+    {
+      icon: 'exclamationmark.triangle.fill',
+      title: 'Revisar Locales Inválidos',
+      description: 'Revisar y excluir locales inválidos',
+      route: '/admin/revisar-locales-invalidos',
+      category: 'Admin',
+    },
+    {
+      icon: 'xmark.shield.fill',
+      title: 'Locales Excluidos',
+      description: 'Ver y gestionar locales excluidos',
+      route: '/admin/locales-excluidos',
+      category: 'Admin',
+    },
+    {
+      icon: 'doc.on.doc.fill',
+      title: 'Gestionar Duplicados',
+      description: 'Detectar y eliminar duplicados',
+      route: '/admin/gestionar-duplicados',
+      category: 'Admin',
+    },
   ];
 
   const categories = Array.from(new Set(allPages.map(p => p.category)));
