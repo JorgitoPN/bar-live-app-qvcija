@@ -321,9 +321,6 @@ export default function LocalDetailsModal({
                       {local.descripcion_google || local.descripcion}
                     </Text>
                   )}
-
-                  {/* ✅ FIXED: Removed redundant local name text that was appearing here */}
-                  {/* The local name only appears once at the top (localNameText) */}
                   
                   <TouchableOpacity 
                     style={styles.checkInButton}
