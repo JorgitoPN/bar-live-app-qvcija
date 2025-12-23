@@ -106,6 +106,17 @@ const AMBIENTE_ICONS: Record<string, string> = {
   'tematico': '🎭',
 };
 
+const CLIENTELA_ICONS: Record<string, string> = {
+  'grupos': '👥',
+  'turistas': '🧳',
+  'familias': '👨‍👩‍👧‍👦',
+  'ninos_bienvenidos': '👶',
+  'estudiantes': '🎓',
+  'lgtbi_friendly': '🏳️‍🌈',
+  'parejas': '💑',
+  'locales': '🏠',
+};
+
 /**
  * ✅ ADVANCED FILTERS SHEET v5.0 - ULTRA-OPTIMIZED WITH DYNAMIC OPTIONS
  * 
@@ -186,6 +197,14 @@ export default function FiltrosAvanzadosSheet({
     setFiltrosTemp(prev => ({
       ...prev,
       ambiente: ambienteId === 'cualquiera' ? undefined : toggleArrayItem(prev.ambiente, ambienteId),
+    }));
+  }, [toggleArrayItem]);
+
+  const handleClientelaToggle = useCallback((clientelaId: string) => {
+    console.log('[FiltrosAvanzados] 👥 Toggling clientela:', clientelaId);
+    setFiltrosTemp(prev => ({
+      ...prev,
+      clientela: clientelaId === 'cualquiera' ? undefined : toggleArrayItem(prev.clientela, clientelaId),
     }));
   }, [toggleArrayItem]);
 
@@ -331,6 +350,24 @@ export default function FiltrosAvanzadosSheet({
     
     return ambientes;
   }, [dynamicOptions.ambientes]);
+
+  // ✅ DYNAMIC: Build clientela options from actual data
+  const clientelaDisponible = useMemo(() => {
+    const clientela = [
+      { id: 'cualquiera', label: 'Cualquiera', icon: '✨' },
+    ];
+    
+    dynamicOptions.clientela.forEach(tipo => {
+      const icon = CLIENTELA_ICONS[tipo.toLowerCase()] || '👤';
+      clientela.push({
+        id: tipo,
+        label: tipo.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+        icon,
+      });
+    });
+    
+    return clientela;
+  }, [dynamicOptions.clientela]);
 
   return (
     <Modal
@@ -539,7 +576,47 @@ export default function FiltrosAvanzadosSheet({
                 </View>
               )}
 
-              {(tiposLocales.length === 1 && serviciosDisponibles.length === 0 && ambientesDisponibles.length === 1) && (
+              {clientelaDisponible.length > 1 && (
+                <View style={styles.compactSection}>
+                  <View style={styles.sectionHeader}>
+                    <IconSymbol ios_icon_name="person.3.fill" android_material_icon_name="groups" size={20} color={colors.primary} />
+                    <Text style={styles.sectionTitle}>Clientela Típica</Text>
+                    {clientelaDisponible.length > 1 && (
+                      <Text style={styles.sectionCount}>({clientelaDisponible.length - 1} disponibles)</Text>
+                    )}
+                  </View>
+                  <View style={styles.compactChipContainer}>
+                    {clientelaDisponible.map((clientela) => {
+                      const isSelected = clientela.id === 'cualquiera'
+                        ? !filtrosTemp.clientela || filtrosTemp.clientela.length === 0
+                        : filtrosTemp.clientela?.includes(clientela.id);
+                      
+                      return (
+                        <TouchableOpacity
+                          key={clientela.id}
+                          style={[
+                            styles.compactChip,
+                            isSelected && styles.compactChipActive,
+                          ]}
+                          onPress={() => handleClientelaToggle(clientela.id)}
+                        >
+                          <Text style={styles.chipIcon}>{clientela.icon}</Text>
+                          <Text
+                            style={[
+                              styles.compactChipText,
+                              isSelected && styles.compactChipTextActive,
+                            ]}
+                          >
+                            {clientela.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {(tiposLocales.length === 1 && serviciosDisponibles.length === 0 && ambientesDisponibles.length === 1 && clientelaDisponible.length === 1) && (
                 <View style={styles.emptyState}>
                   <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={48} color={colors.textSecondary} />
                   <Text style={styles.emptyStateText}>

@@ -7,6 +7,7 @@ interface DynamicFilterOptions {
   tipos: string[];
   servicios: string[];
   ambientes: string[];
+  clientela: string[];
   comunidades: string[];
   provincias: string[];
 }
@@ -29,7 +30,7 @@ interface FilterContextType {
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 /**
- * ✅ FILTER CONTEXT v3.1 - FIXED DYNAMIC FILTERS
+ * ✅ FILTER CONTEXT v3.2 - FIXED DYNAMIC FILTERS WITH CLIENTELA
  * 
  * Features:
  * - ✅ INSTANT LOADING: Uses cached data from GlobalDataContext
@@ -38,7 +39,7 @@ const FilterContext = createContext<FilterContextType | undefined>(undefined);
  * - ✅ AUTO-UPDATE: Add new options when new locals are created
  * - ✅ ZERO FRUSTRATION: No more "0 results" filters
  * - ✅ PERFORMANCE: Optimized with useMemo to prevent re-renders
- * - ✅ FIXED: Proper handling of ambiente_completo and ambiente_google columns
+ * - ✅ FIXED: Proper handling of ambiente_completo, servicios_disponibles, and clientela columns
  */
 
 export function FilterProvider({ children }: { children: ReactNode }) {
@@ -47,6 +48,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     tipos: [],
     servicios: [],
     ambientes: [],
+    clientela: [],
     comunidades: [],
     provincias: [],
   });
@@ -73,6 +75,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
       (filtros.tipo && filtros.tipo.length > 0) ||
       (filtros.servicios && filtros.servicios.length > 0) ||
       (filtros.ambiente && filtros.ambiente.length > 0) ||
+      (filtros.clientela && filtros.clientela.length > 0) ||
       filtros.comunidad ||
       filtros.provincia ||
       filtros.distancia
@@ -91,10 +94,10 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     setIsLoadingOptions(true);
     
     try {
-      // ✅ FIXED: Query with proper column selection
+      // ✅ FIXED: Query with proper column selection including clientela
       const { data: locales, error } = await supabase
         .from('locales')
-        .select('barlive_types, servicios_disponibles, ambiente_completo, comunidad, provincia')
+        .select('barlive_types, servicios_disponibles, ambiente_completo, clientela, comunidad, provincia')
         .eq('activo', true)
         .eq('estado_solicitud', 'aprobado');
 
@@ -110,6 +113,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
           tipos: [],
           servicios: [],
           ambientes: [],
+          clientela: [],
           comunidades: [],
           provincias: [],
         });
@@ -143,14 +147,25 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         }
       });
 
-      // ✅ FIXED: Extract unique ambientes from ambiente_completo only
+      // ✅ FIXED: Extract unique ambientes from ambiente_completo
       const ambientesSet = new Set<string>();
       locales.forEach(local => {
-        // Only check ambiente_completo (the correct column)
         if (local.ambiente_completo && typeof local.ambiente_completo === 'object') {
           Object.entries(local.ambiente_completo).forEach(([key, value]) => {
             if (value === true && key && key.trim()) {
               ambientesSet.add(key);
+            }
+          });
+        }
+      });
+
+      // ✅ NEW: Extract unique clientela
+      const clientelaSet = new Set<string>();
+      locales.forEach(local => {
+        if (local.clientela && typeof local.clientela === 'object') {
+          Object.entries(local.clientela).forEach(([key, value]) => {
+            if (value === true && key && key.trim()) {
+              clientelaSet.add(key);
             }
           });
         }
@@ -176,6 +191,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         tipos: Array.from(tiposSet).sort(),
         servicios: Array.from(serviciosSet).sort(),
         ambientes: Array.from(ambientesSet).sort(),
+        clientela: Array.from(clientelaSet).sort(),
         comunidades: Array.from(comunidadesSet).sort(),
         provincias: Array.from(provinciasSet).sort(),
       };
@@ -185,6 +201,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
       console.log('[FilterContext] ✅ Tipos:', newOptions.tipos.length, '-', newOptions.tipos);
       console.log('[FilterContext] ✅ Servicios:', newOptions.servicios.length, '-', newOptions.servicios);
       console.log('[FilterContext] ✅ Ambientes:', newOptions.ambientes.length, '-', newOptions.ambientes);
+      console.log('[FilterContext] ✅ Clientela:', newOptions.clientela.length, '-', newOptions.clientela);
       console.log('[FilterContext] ✅ Comunidades:', newOptions.comunidades.length, '-', newOptions.comunidades);
       console.log('[FilterContext] ✅ Provincias:', newOptions.provincias.length, '-', newOptions.provincias);
       console.log('[FilterContext] ✅ ========================================');

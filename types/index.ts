@@ -401,6 +401,7 @@ export interface Filtros {
   precio?: [number, number];
   servicios?: string[];
   ambiente?: string[];
+  clientela?: string[];
   distancia?: number;
   provincia?: string;
   comunidad?: string;

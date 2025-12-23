@@ -205,6 +205,15 @@ export default function ExplorarScreen() {
       console.log(`[ExplorarScreen] 🔍 After ambiente filter: ${localesFiltrados.length} locales`);
     }
 
+    // ✅ NEW: Clientela filter - check if local has ANY of the selected clientela
+    if (globalFiltros.clientela && globalFiltros.clientela.length > 0 && !globalFiltros.clientela.includes('cualquiera')) {
+      localesFiltrados = localesFiltrados.filter(local => {
+        const localClientela = local.clientela || {};
+        return globalFiltros.clientela!.some(cli => localClientela[cli] === true);
+      });
+      console.log(`[ExplorarScreen] 🔍 After clientela filter: ${localesFiltrados.length} locales`);
+    }
+
     // ✅ Calculate open/closed status for each local
     localesFiltrados = localesFiltrados.map(local => {
       const estadoLocal = getEstadoLocal(local);

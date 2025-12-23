@@ -132,17 +132,18 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v5.2 - FIXED POPUP CENTERING & REMOVED VIDEO DEPENDENCY
+ * ✅ MAP SCREEN v5.3 - OPTIMIZED PERFORMANCE & INSTANT RESPONSE
  * 
  * Features:
  * - ✅ INSTANT DISPLAY: Map and markers load simultaneously (HYDRATION)
- * - ✅ SIMPLE LOADING: Clean loading indicator without video dependency
+ * - ✅ CLEAN LOADING: Simple loading indicator without video
  * - ✅ FIXED POPUP: Proper centering without going off-screen
  * - ✅ SHARED DATA: Uses GlobalDataContext (same as Lista de Locales)
  * - ✅ SYNCHRONIZED FILTERS: Real-time sync with FilterContext
  * - ✅ DYNAMIC FILTERS: Only show options with actual results
  * - ✅ FLY-TO ANIMATION: Smooth map navigation on location filter
  * - ✅ MARKER CLUSTERING: Performance with many markers
+ * - ✅ OPTIMIZED FILTERING: Instant response when changing filters
  */
 
 export default function MapaScreen() {
@@ -252,6 +253,108 @@ export default function MapaScreen() {
 
     return () => clearInterval(interval);
   }, [refreshData]);
+
+  // ✅ OPTIMIZED: Memoize filtered locals to prevent unnecessary re-renders
+  const localesFiltradosMemo = useMemo(() => {
+    console.log('[MAP] 🔍 ========================================');
+    console.log('[MAP] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
+    console.log('[MAP] 🔍 Selected category:', categoriaSeleccionada);
+    console.log('[MAP] 🔍 Filter state:', filtroEstado);
+    console.log('[MAP] 🔍 Global filters:', globalFiltros);
+    console.log('[MAP] 📊 Total locals to filter:', todosLosLocales.length);
+    
+    let filtrados = todosLosLocales.filter(local => {
+      // Category filter
+      let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
+      localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
+      
+      let matchCategoria = false;
+      if (categoriaSeleccionada === 'todos') {
+        matchCategoria = true;
+      } else {
+        matchCategoria = localCategories.some((cat: string) => 
+          cat.toLowerCase() === categoriaSeleccionada.toLowerCase()
+        );
+      }
+      
+      // Open/Closed filter
+      let matchEstado = true;
+      if (filtroEstado === 'abiertos') {
+        const estado = getEstadoLocal(local);
+        matchEstado = estado.estaAbierto === true;
+      }
+      
+      // ✅ SYNCHRONIZED: Apply global filters from FilterContext
+      let matchGlobalFilters = true;
+      
+      // Community filter
+      if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
+        matchGlobalFilters = matchGlobalFilters && local.comunidad === globalFiltros.comunidad;
+      }
+      
+      // Province filter
+      if (globalFiltros.provincia) {
+        matchGlobalFilters = matchGlobalFilters && local.provincia === globalFiltros.provincia;
+      }
+      
+      // ✅ FIXED: Type filter - check if local has ANY of the selected types
+      if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
+        const hasMatchingType = globalFiltros.tipo.some(tipo => 
+          localCategories.some((cat: string) => cat.toLowerCase() === tipo.toLowerCase())
+        );
+        matchGlobalFilters = matchGlobalFilters && hasMatchingType;
+      }
+      
+      // ✅ FIXED: Services filter - check if local has ALL selected services
+      if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
+        const localServices = local.servicios_disponibles || {};
+        const hasAllServices = globalFiltros.servicios.every(servicio => 
+          localServices[servicio] === true
+        );
+        matchGlobalFilters = matchGlobalFilters && hasAllServices;
+      }
+      
+      // ✅ FIXED: Ambiente filter - check if local has ANY of the selected ambientes
+      if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0 && !globalFiltros.ambiente.includes('cualquiera')) {
+        const localAmbiente = local.ambiente_completo || {};
+        const hasMatchingAmbiente = globalFiltros.ambiente.some(amb => 
+          localAmbiente[amb] === true
+        );
+        matchGlobalFilters = matchGlobalFilters && hasMatchingAmbiente;
+      }
+      
+      // ✅ NEW: Clientela filter - check if local has ANY of the selected clientela
+      if (globalFiltros.clientela && globalFiltros.clientela.length > 0 && !globalFiltros.clientela.includes('cualquiera')) {
+        const localClientela = local.clientela || {};
+        const hasMatchingClientela = globalFiltros.clientela.some(cli => 
+          localClientela[cli] === true
+        );
+        matchGlobalFilters = matchGlobalFilters && hasMatchingClientela;
+      }
+      
+      // Distance filter
+      if (globalFiltros.distancia && userLocation) {
+        const distancia = calcularDistancia(
+          userLocation.lat,
+          userLocation.lng,
+          local.coordenadas.lat,
+          local.coordenadas.lng
+        );
+        matchGlobalFilters = matchGlobalFilters && distancia <= globalFiltros.distancia;
+      }
+      
+      return matchCategoria && matchEstado && matchGlobalFilters;
+    });
+    
+    console.log(`[MAP] ✅ Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
+    
+    return filtrados;
+  }, [todosLosLocales, categoriaSeleccionada, filtroEstado, globalFiltros, userLocation]);
+
+  // ✅ Update localesFiltrados when memoized value changes
+  useEffect(() => {
+    setLocalesFiltrados(localesFiltradosMemo);
+  }, [localesFiltradosMemo]);
 
   // ✅ MEMOIZED MARKERS: Prevent unnecessary re-renders
   const markersData = useMemo(() => {
@@ -945,94 +1048,8 @@ export default function MapaScreen() {
     generateHTML();
   }, [localesFiltrados, user, generateMapHTML, isLoadingMarkers]);
 
-  // ✅ SYNCHRONIZED FILTERS: Apply global filters from FilterContext
+  // ✅ FLY-TO: Automatically center map on selected community/province
   useEffect(() => {
-    console.log('[MAP] 🔍 ========================================');
-    console.log('[MAP] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
-    console.log('[MAP] 🔍 Selected category:', categoriaSeleccionada);
-    console.log('[MAP] 🔍 Filter state:', filtroEstado);
-    console.log('[MAP] 🔍 Global filters:', globalFiltros);
-    console.log('[MAP] 📊 Total locals to filter:', todosLosLocales.length);
-    
-    let filtrados = todosLosLocales.filter(local => {
-      // Category filter
-      let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
-      localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
-      
-      let matchCategoria = false;
-      if (categoriaSeleccionada === 'todos') {
-        matchCategoria = true;
-      } else {
-        matchCategoria = localCategories.some((cat: string) => 
-          cat.toLowerCase() === categoriaSeleccionada.toLowerCase()
-        );
-      }
-      
-      // Open/Closed filter
-      let matchEstado = true;
-      if (filtroEstado === 'abiertos') {
-        const estado = getEstadoLocal(local);
-        matchEstado = estado.estaAbierto === true;
-      }
-      
-      // ✅ SYNCHRONIZED: Apply global filters from FilterContext
-      let matchGlobalFilters = true;
-      
-      // Community filter
-      if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
-        matchGlobalFilters = matchGlobalFilters && local.comunidad === globalFiltros.comunidad;
-      }
-      
-      // Province filter
-      if (globalFiltros.provincia) {
-        matchGlobalFilters = matchGlobalFilters && local.provincia === globalFiltros.provincia;
-      }
-      
-      // ✅ FIXED: Type filter - check if local has ANY of the selected types
-      if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
-        const hasMatchingType = globalFiltros.tipo.some(tipo => 
-          localCategories.some((cat: string) => cat.toLowerCase() === tipo.toLowerCase())
-        );
-        matchGlobalFilters = matchGlobalFilters && hasMatchingType;
-      }
-      
-      // ✅ FIXED: Services filter - check if local has ALL selected services
-      if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
-        const localServices = local.servicios_disponibles || {};
-        const hasAllServices = globalFiltros.servicios.every(servicio => 
-          localServices[servicio] === true
-        );
-        matchGlobalFilters = matchGlobalFilters && hasAllServices;
-      }
-      
-      // ✅ FIXED: Ambiente filter - check if local has ANY of the selected ambientes
-      if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0 && !globalFiltros.ambiente.includes('cualquiera')) {
-        const localAmbiente = local.ambiente_completo || {};
-        const hasMatchingAmbiente = globalFiltros.ambiente.some(amb => 
-          localAmbiente[amb] === true
-        );
-        matchGlobalFilters = matchGlobalFilters && hasMatchingAmbiente;
-      }
-      
-      // Distance filter
-      if (globalFiltros.distancia && userLocation) {
-        const distancia = calcularDistancia(
-          userLocation.lat,
-          userLocation.lng,
-          local.coordenadas.lat,
-          local.coordenadas.lng
-        );
-        matchGlobalFilters = matchGlobalFilters && distancia <= globalFiltros.distancia;
-      }
-      
-      return matchCategoria && matchEstado && matchGlobalFilters;
-    });
-    
-    console.log(`[MAP] ✅ Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
-    
-    setLocalesFiltrados(filtrados);
-    
-    // ✅ FLY-TO: Automatically center map on selected community/province
     const currentFiltersKey = JSON.stringify({
       comunidad: globalFiltros.comunidad,
       provincia: globalFiltros.provincia,
@@ -1066,7 +1083,7 @@ export default function MapaScreen() {
         `);
       }
     }
-  }, [todosLosLocales, categoriaSeleccionada, filtroEstado, globalFiltros, userLocation, isMapReady]);
+  }, [globalFiltros, isMapReady]);
 
   useEffect(() => {
     if (webViewRef.current && localesFiltrados.length > 0 && categoriaSeleccionada !== 'todos' && isMapReady) {
