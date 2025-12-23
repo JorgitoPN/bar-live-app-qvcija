@@ -25,7 +25,6 @@ interface FiltrosAvanzadosSheetProps {
 }
 
 const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
-  'Todas las Comunidades': [],
   'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
   'Aragón': ['Huesca', 'Teruel', 'Zaragoza'],
   'Asturias': ['Asturias'],
@@ -48,12 +47,12 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ADVANCED FILTERS SHEET v6.0 - COMPLETELY REDESIGNED
+ * ✅ ADVANCED FILTERS SHEET v6.1 - FIXED COMUNIDADES & PROVINCIAS MODALS
  * 
  * Features:
- * - ✅ FIXED SCROLLING: Optimized rendering, no paralysis
- * - ✅ REMOVED: Lounge and sala_conciertos from tipo de local
- * - ✅ SYNCHRONIZED: Filters properly applied to list and map
+ * - ✅ FIXED: Comunidades modal now shows all available communities
+ * - ✅ FIXED: Provincias modal now shows provinces based on selected community
+ * - ✅ IMPROVED: Better data handling and filtering
  * - ✅ COMPACT DESIGN: More space-efficient layout
  * - ✅ ELEGANT UI: Subtle colors, clean structure
  * - ✅ PERFORMANCE: Debounced updates, memoized components
@@ -93,7 +92,7 @@ export default function FiltrosAvanzadosSheet({
   // Reset temp filters when modal opens
   useEffect(() => {
     if (visible) {
-      console.log('[FiltrosAvanzados v6.0] 🔄 Modal opened, resetting temp filters');
+      console.log('[FiltrosAvanzados v6.1] 🔄 Modal opened, resetting temp filters');
       setFiltrosTemp(initialFiltros);
       refreshDynamicOptions();
     }
@@ -138,7 +137,7 @@ export default function FiltrosAvanzadosSheet({
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v6.0] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados v6.1] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     if (propOnAplicarFiltros) {
       propOnAplicarFiltros(filtrosTemp);
@@ -147,19 +146,21 @@ export default function FiltrosAvanzadosSheet({
   }, [filtrosTemp, contextAplicarFiltros, propOnAplicarFiltros, onClose]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v6.0] 🧹 Clearing all filters');
+    console.log('[FiltrosAvanzados v6.1] 🧹 Clearing all filters');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     contextLimpiarFiltros();
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
+    console.log('[FiltrosAvanzados v6.1] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
         comunidad: selectedComunidad === 'Todas las Comunidades' ? undefined : selectedComunidad,
       };
       
+      // Clear provincia if it doesn't belong to the new comunidad
       if (selectedComunidad !== 'Todas las Comunidades') {
         const availableProvincias = COMUNIDADES_PROVINCIAS[selectedComunidad] || [];
         if (prev.provincia && !availableProvincias.includes(prev.provincia)) {
@@ -177,6 +178,7 @@ export default function FiltrosAvanzadosSheet({
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
+    console.log('[FiltrosAvanzados v6.1] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -199,26 +201,46 @@ export default function FiltrosAvanzadosSheet({
     }));
   }, []);
 
-  // ✅ OPTIMIZED: Memoized filtered communities
-  const filteredComunidades = useMemo(() => {
-    const availableComunidades = ['Todas las Comunidades', ...dynamicOptions.comunidades];
-    return availableComunidades.filter(c =>
-      c.toLowerCase().includes(searchComunidad.toLowerCase())
-    );
-  }, [searchComunidad, dynamicOptions.comunidades]);
+  // ✅ FIXED: Build list of all available comunidades
+  const allComunidades = useMemo(() => {
+    // Combine static list with dynamic options from database
+    const staticComunidades = Object.keys(COMUNIDADES_PROVINCIAS);
+    const dynamicComunidades = dynamicOptions.comunidades || [];
+    
+    // Merge and deduplicate
+    const merged = new Set([...staticComunidades, ...dynamicComunidades]);
+    return ['Todas las Comunidades', ...Array.from(merged).sort()];
+  }, [dynamicOptions.comunidades]);
 
-  // ✅ OPTIMIZED: Memoized available provinces
+  // ✅ FIXED: Filtered comunidades based on search
+  const filteredComunidades = useMemo(() => {
+    if (!searchComunidad.trim()) {
+      return allComunidades;
+    }
+    const query = searchComunidad.toLowerCase();
+    return allComunidades.filter(c =>
+      c.toLowerCase().includes(query)
+    );
+  }, [searchComunidad, allComunidades]);
+
+  // ✅ FIXED: Available provinces based on selected comunidad
   const availableProvincias = useMemo(() => {
     if (!filtrosTemp.comunidad || filtrosTemp.comunidad === 'Todas las Comunidades') {
-      return dynamicOptions.provincias;
+      // Show all provinces from database
+      return dynamicOptions.provincias || [];
     }
+    // Show provinces for selected comunidad
     return COMUNIDADES_PROVINCIAS[filtrosTemp.comunidad] || [];
   }, [filtrosTemp.comunidad, dynamicOptions.provincias]);
     
-  // ✅ OPTIMIZED: Memoized filtered provinces
+  // ✅ FIXED: Filtered provinces based on search
   const filteredProvincias = useMemo(() => {
+    if (!searchProvincia.trim()) {
+      return availableProvincias;
+    }
+    const query = searchProvincia.toLowerCase();
     return availableProvincias.filter(p =>
-      p.toLowerCase().includes(searchProvincia.toLowerCase())
+      p.toLowerCase().includes(query)
     );
   }, [availableProvincias, searchProvincia]);
 
@@ -403,7 +425,10 @@ export default function FiltrosAvanzadosSheet({
                   <View style={styles.locationGrid}>
                     <TouchableOpacity
                       style={styles.locationButton}
-                      onPress={() => setShowComunidadModal(true)}
+                      onPress={() => {
+                        console.log('[FiltrosAvanzados v6.1] 🔍 Opening comunidad modal');
+                        setShowComunidadModal(true);
+                      }}
                     >
                       <Text style={styles.locationLabel}>Comunidad</Text>
                       <Text style={styles.locationValue} numberOfLines={1}>
@@ -419,6 +444,7 @@ export default function FiltrosAvanzadosSheet({
                       ]}
                       onPress={() => {
                         if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
+                          console.log('[FiltrosAvanzados v6.1] 🔍 Opening provincia modal');
                           setShowProvinciaModal(true);
                         }
                       }}
@@ -734,28 +760,34 @@ export default function FiltrosAvanzadosSheet({
             </View>
 
             <ScrollView style={styles.selectorModalBody}>
-              {filteredComunidades.map((comunidad) => (
-                <TouchableOpacity
-                  key={comunidad}
-                  style={[
-                    styles.selectorModalOption,
-                    filtrosTemp.comunidad === comunidad && styles.selectorModalOptionActive,
-                  ]}
-                  onPress={() => handleComunidadSelect(comunidad)}
-                >
-                  <Text
+              {filteredComunidades.length > 0 ? (
+                filteredComunidades.map((comunidad) => (
+                  <TouchableOpacity
+                    key={comunidad}
                     style={[
-                      styles.selectorModalOptionText,
-                      filtrosTemp.comunidad === comunidad && styles.selectorModalOptionTextActive,
+                      styles.selectorModalOption,
+                      filtrosTemp.comunidad === comunidad && styles.selectorModalOptionActive,
                     ]}
+                    onPress={() => handleComunidadSelect(comunidad)}
                   >
-                    {comunidad}
-                  </Text>
-                  {filtrosTemp.comunidad === comunidad && (
-                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={22} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.selectorModalOptionText,
+                        filtrosTemp.comunidad === comunidad && styles.selectorModalOptionTextActive,
+                      ]}
+                    >
+                      {comunidad}
+                    </Text>
+                    {filtrosTemp.comunidad === comunidad && (
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={22} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyModalState}>
+                  <Text style={styles.emptyModalText}>No se encontraron comunidades</Text>
+                </View>
+              )}
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -823,8 +855,8 @@ export default function FiltrosAvanzadosSheet({
                   </TouchableOpacity>
                 ))
               ) : (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateText}>
+                <View style={styles.emptyModalState}>
+                  <Text style={styles.emptyModalText}>
                     {filtrosTemp.comunidad ? 'No hay provincias disponibles' : 'Selecciona primero una comunidad'}
                   </Text>
                 </View>
@@ -1169,6 +1201,16 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 8,
+  },
+  emptyModalState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyModalText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   refreshButton: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,9 @@ import {
   Image,
   Alert,
   Linking,
+  Modal,
+  Pressable,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -26,6 +29,39 @@ import * as Location from 'expo-location';
 import { calcularDistancia } from '@/utils/locationUtils';
 
 const ITEMS_PER_PAGE = 20;
+
+const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
+  'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
+  'Aragón': ['Huesca', 'Teruel', 'Zaragoza'],
+  'Asturias': ['Asturias'],
+  'Baleares': ['Islas Baleares'],
+  'Canarias': ['Las Palmas', 'Santa Cruz de Tenerife'],
+  'Cantabria': ['Cantabria'],
+  'Castilla y León': ['Ávila', 'Burgos', 'León', 'Palencia', 'Salamanca', 'Segovia', 'Soria', 'Valladolid', 'Zamora'],
+  'Castilla-La Mancha': ['Albacete', 'Ciudad Real', 'Cuenca', 'Guadalajara', 'Toledo'],
+  'Cataluña': ['Barcelona', 'Girona', 'Lleida', 'Tarragona'],
+  'Comunidad de Madrid': ['Madrid'],
+  'Comunidad Valenciana': ['Alicante', 'Castellón', 'Valencia'],
+  'Extremadura': ['Badajoz', 'Cáceres'],
+  'Galicia': ['A Coruña', 'Lugo', 'Ourense', 'Pontevedra'],
+  'La Rioja': ['La Rioja'],
+  'Navarra': ['Navarra'],
+  'País Vasco': ['Álava', 'Guipúzcoa', 'Vizcaya'],
+  'Región de Murcia': ['Murcia'],
+  'Ceuta': ['Ceuta'],
+  'Melilla': ['Melilla'],
+};
+
+/**
+ * ✅ FAVORITOS SCREEN v2.0 - WITH REGIONAL FILTERS
+ * 
+ * New Features:
+ * - ✅ Comunidad Autónoma filter (dropdown)
+ * - ✅ Provincia filter (dropdown, dependent on comunidad)
+ * - ✅ Combined with existing search functionality
+ * - ✅ Clear filters button
+ * - ✅ Filter count badge
+ */
 
 export default function FavoritosScreen() {
   const router = useRouter();
@@ -43,6 +79,14 @@ export default function FavoritosScreen() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [checkingSocialProfiles, setCheckingSocialProfiles] = useState<Set<string>>(new Set());
   const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
+  
+  // ✅ NEW: Regional filters
+  const [selectedComunidad, setSelectedComunidad] = useState<string | null>(null);
+  const [selectedProvincia, setSelectedProvincia] = useState<string | null>(null);
+  const [showComunidadModal, setShowComunidadModal] = useState(false);
+  const [showProvinciaModal, setShowProvinciaModal] = useState(false);
+  const [searchComunidad, setSearchComunidad] = useState('');
+  const [searchProvincia, setSearchProvincia] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -104,6 +148,7 @@ export default function FavoritosScreen() {
             nombre,
             direccion,
             provincia,
+            comunidad,
             latitud,
             longitud,
             imagen_url,
@@ -221,29 +266,35 @@ export default function FavoritosScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, currentPage]);
 
+  // ✅ NEW: Apply all filters (search + regional)
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredLocales(allSavedLocales);
-      const firstPage = allSavedLocales.slice(0, ITEMS_PER_PAGE);
-      setDisplayedLocales(firstPage);
-      setCurrentPage(1);
-      setHasMore(allSavedLocales.length > ITEMS_PER_PAGE);
-      return;
+    let filtered = [...allSavedLocales];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(local => {
+        const nombre = local.nombre?.toLowerCase() || '';
+        const direccion = local.direccion?.toLowerCase() || '';
+        const provincia = local.provincia?.toLowerCase() || '';
+        const tipo = local.tipo?.toLowerCase() || '';
+        
+        return nombre.includes(query) || 
+               direccion.includes(query) || 
+               provincia.includes(query) ||
+               tipo.includes(query);
+      });
     }
 
-    const query = searchQuery.toLowerCase().trim();
-    
-    const filtered = allSavedLocales.filter(local => {
-      const nombre = local.nombre?.toLowerCase() || '';
-      const direccion = local.direccion?.toLowerCase() || '';
-      const provincia = local.provincia?.toLowerCase() || '';
-      const tipo = local.tipo?.toLowerCase() || '';
-      
-      return nombre.includes(query) || 
-             direccion.includes(query) || 
-             provincia.includes(query) ||
-             tipo.includes(query);
-    });
+    // Apply comunidad filter
+    if (selectedComunidad) {
+      filtered = filtered.filter(local => local.comunidad === selectedComunidad);
+    }
+
+    // Apply provincia filter
+    if (selectedProvincia) {
+      filtered = filtered.filter(local => local.provincia === selectedProvincia);
+    }
 
     setFilteredLocales(filtered);
     const firstPage = filtered.slice(0, ITEMS_PER_PAGE);
@@ -251,8 +302,8 @@ export default function FavoritosScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Favoritos] Búsqueda:', query, 'Resultados:', filtered.length);
-  }, [searchQuery, allSavedLocales]);
+    console.log('[Favoritos] Filters applied. Results:', filtered.length);
+  }, [searchQuery, selectedComunidad, selectedProvincia, allSavedLocales]);
 
   const loadMoreLocales = useCallback(() => {
     if (loadingMore || !hasMore) return;
@@ -282,9 +333,104 @@ export default function FavoritosScreen() {
     console.log('[Favoritos] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
+    setSelectedComunidad(null);
+    setSelectedProvincia(null);
     await loadSavedLocales();
     setRefreshing(false);
   };
+
+  // ✅ NEW: Clear all filters
+  const clearFilters = useCallback(() => {
+    console.log('[Favoritos] 🧹 Clearing all filters');
+    setSearchQuery('');
+    setSelectedComunidad(null);
+    setSelectedProvincia(null);
+  }, []);
+
+  // ✅ NEW: Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery.trim()) count++;
+    if (selectedComunidad) count++;
+    if (selectedProvincia) count++;
+    return count;
+  }, [searchQuery, selectedComunidad, selectedProvincia]);
+
+  // ✅ NEW: Handle comunidad selection
+  const handleComunidadSelect = useCallback((comunidad: string) => {
+    console.log('[Favoritos] 📍 Selected comunidad:', comunidad);
+    setSelectedComunidad(comunidad === 'Todas las Comunidades' ? null : comunidad);
+    
+    // Clear provincia if it doesn't belong to the new comunidad
+    if (comunidad !== 'Todas las Comunidades') {
+      const availableProvincias = COMUNIDADES_PROVINCIAS[comunidad] || [];
+      if (selectedProvincia && !availableProvincias.includes(selectedProvincia)) {
+        setSelectedProvincia(null);
+      }
+    } else {
+      setSelectedProvincia(null);
+    }
+    
+    setShowComunidadModal(false);
+    setSearchComunidad('');
+  }, [selectedProvincia]);
+
+  // ✅ NEW: Handle provincia selection
+  const handleProvinciaSelect = useCallback((provincia: string) => {
+    console.log('[Favoritos] 📍 Selected provincia:', provincia);
+    setSelectedProvincia(selectedProvincia === provincia ? null : provincia);
+    setShowProvinciaModal(false);
+    setSearchProvincia('');
+  }, [selectedProvincia]);
+
+  // ✅ NEW: Get available comunidades from saved locales
+  const availableComunidades = useMemo(() => {
+    const comunidades = new Set<string>();
+    allSavedLocales.forEach(local => {
+      if (local.comunidad) {
+        comunidades.add(local.comunidad);
+      }
+    });
+    return ['Todas las Comunidades', ...Array.from(comunidades).sort()];
+  }, [allSavedLocales]);
+
+  // ✅ NEW: Filtered comunidades based on search
+  const filteredComunidades = useMemo(() => {
+    if (!searchComunidad.trim()) {
+      return availableComunidades;
+    }
+    const query = searchComunidad.toLowerCase();
+    return availableComunidades.filter(c =>
+      c.toLowerCase().includes(query)
+    );
+  }, [searchComunidad, availableComunidades]);
+
+  // ✅ NEW: Available provinces based on selected comunidad
+  const availableProvincias = useMemo(() => {
+    if (!selectedComunidad) {
+      // Show all provinces from saved locales
+      const provincias = new Set<string>();
+      allSavedLocales.forEach(local => {
+        if (local.provincia) {
+          provincias.add(local.provincia);
+        }
+      });
+      return Array.from(provincias).sort();
+    }
+    // Show provinces for selected comunidad
+    return COMUNIDADES_PROVINCIAS[selectedComunidad] || [];
+  }, [selectedComunidad, allSavedLocales]);
+
+  // ✅ NEW: Filtered provinces based on search
+  const filteredProvincias = useMemo(() => {
+    if (!searchProvincia.trim()) {
+      return availableProvincias;
+    }
+    const query = searchProvincia.toLowerCase();
+    return availableProvincias.filter(p =>
+      p.toLowerCase().includes(query)
+    );
+  }, [availableProvincias, searchProvincia]);
 
   const toggleFavorito = async (localId: string, e?: any) => {
     if (e) {
@@ -563,7 +709,7 @@ export default function FavoritosScreen() {
   const renderEmpty = () => {
     if (loading) return null;
     
-    if (searchQuery.trim() && filteredLocales.length === 0) {
+    if (activeFiltersCount > 0 && filteredLocales.length === 0) {
       return (
         <View style={styles.emptyState}>
           <IconSymbol
@@ -574,8 +720,15 @@ export default function FavoritosScreen() {
           />
           <Text style={styles.emptyText}>No se encontraron resultados</Text>
           <Text style={styles.emptySubtext}>
-            Intenta con otros términos de búsqueda
+            Intenta con otros filtros de búsqueda
           </Text>
+          <TouchableOpacity 
+            style={styles.clearFiltersButton}
+            onPress={clearFilters}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.clearFiltersButtonText}>Limpiar filtros</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -656,7 +809,19 @@ export default function FavoritosScreen() {
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.headerGradient}
       >
-        <Text style={styles.headerTitle}>Locales Favoritos</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>Locales Favoritos</Text>
+          {activeFiltersCount > 0 && (
+            <TouchableOpacity 
+              style={styles.clearFiltersHeaderButton}
+              onPress={clearFilters}
+              activeOpacity={0.7}
+            >
+              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.headerText} />
+              <Text style={styles.clearFiltersHeaderText}>Limpiar</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         
         <View style={styles.searchContainer}>
           <IconSymbol 
@@ -689,14 +854,87 @@ export default function FavoritosScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* ✅ NEW: Regional filters */}
+        <View style={styles.regionalFiltersContainer}>
+          <TouchableOpacity
+            style={[
+              styles.regionalFilterButton,
+              selectedComunidad && styles.regionalFilterButtonActive
+            ]}
+            onPress={() => setShowComunidadModal(true)}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="mappin.circle" 
+              android_material_icon_name="location_on" 
+              size={16} 
+              color={selectedComunidad ? colors.primary : colors.headerText} 
+            />
+            <Text style={[
+              styles.regionalFilterButtonText,
+              selectedComunidad && styles.regionalFilterButtonTextActive
+            ]} numberOfLines={1}>
+              {selectedComunidad || 'Comunidad'}
+            </Text>
+            <IconSymbol 
+              ios_icon_name="chevron.down" 
+              android_material_icon_name="expand_more" 
+              size={14} 
+              color={selectedComunidad ? colors.primary : colors.headerText} 
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.regionalFilterButton,
+              selectedProvincia && styles.regionalFilterButtonActive,
+              !selectedComunidad && styles.regionalFilterButtonDisabled
+            ]}
+            onPress={() => {
+              if (selectedComunidad) {
+                setShowProvinciaModal(true);
+              }
+            }}
+            disabled={!selectedComunidad}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="map" 
+              android_material_icon_name="map" 
+              size={16} 
+              color={selectedProvincia ? colors.primary : (selectedComunidad ? colors.headerText : colors.textSecondary)} 
+            />
+            <Text style={[
+              styles.regionalFilterButtonText,
+              selectedProvincia && styles.regionalFilterButtonTextActive,
+              !selectedComunidad && styles.regionalFilterButtonTextDisabled
+            ]} numberOfLines={1}>
+              {selectedProvincia || 'Provincia'}
+            </Text>
+            <IconSymbol 
+              ios_icon_name="chevron.down" 
+              android_material_icon_name="expand_more" 
+              size={14} 
+              color={selectedProvincia ? colors.primary : (selectedComunidad ? colors.headerText : colors.textSecondary)} 
+            />
+          </TouchableOpacity>
+        </View>
         
         {allSavedLocales.length > 0 && (
-          <Text style={styles.resultsCount}>
-            {searchQuery.trim() 
-              ? `${filteredLocales.length} de ${allSavedLocales.length} locales`
-              : `${filteredLocales.length} locales guardados`
-            }
-          </Text>
+          <View style={styles.resultsCountContainer}>
+            <Text style={styles.resultsCount}>
+              {activeFiltersCount > 0
+                ? `${filteredLocales.length} de ${allSavedLocales.length} locales`
+                : `${filteredLocales.length} locales guardados`
+              }
+            </Text>
+            {activeFiltersCount > 0 && (
+              <View style={styles.filterCountBadge}>
+                <Text style={styles.filterCountText}>{activeFiltersCount}</Text>
+              </View>
+            )}
+          </View>
         )}
       </LinearGradient>
 
@@ -725,6 +963,148 @@ export default function FavoritosScreen() {
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
       />
+
+      {/* ✅ NEW: COMUNIDAD MODAL */}
+      <Modal
+        visible={showComunidadModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowComunidadModal(false)}
+      >
+        <Pressable
+          style={styles.selectorModalOverlay}
+          onPress={() => setShowComunidadModal(false)}
+        >
+          <Pressable style={styles.selectorModalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.selectorModalHeader}>
+              <Text style={styles.selectorModalTitle}>Comunidad Autónoma</Text>
+              <TouchableOpacity onPress={() => setShowComunidadModal(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={22} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalSearchContainer}>
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={18} color={colors.textSecondary} />
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Buscar comunidad..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchComunidad}
+                onChangeText={setSearchComunidad}
+              />
+              {searchComunidad.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchComunidad('')}>
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView style={styles.selectorModalBody}>
+              {filteredComunidades.length > 0 ? (
+                filteredComunidades.map((comunidad) => (
+                  <TouchableOpacity
+                    key={comunidad}
+                    style={[
+                      styles.selectorModalOption,
+                      selectedComunidad === comunidad && styles.selectorModalOptionActive,
+                    ]}
+                    onPress={() => handleComunidadSelect(comunidad)}
+                  >
+                    <Text
+                      style={[
+                        styles.selectorModalOptionText,
+                        selectedComunidad === comunidad && styles.selectorModalOptionTextActive,
+                      ]}
+                    >
+                      {comunidad}
+                    </Text>
+                    {selectedComunidad === comunidad && (
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={22} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyModalState}>
+                  <Text style={styles.emptyModalText}>No se encontraron comunidades</Text>
+                </View>
+              )}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ✅ NEW: PROVINCIA MODAL */}
+      <Modal
+        visible={showProvinciaModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowProvinciaModal(false)}
+      >
+        <Pressable
+          style={styles.selectorModalOverlay}
+          onPress={() => setShowProvinciaModal(false)}
+        >
+          <Pressable style={styles.selectorModalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.selectorModalHeader}>
+              <Text style={styles.selectorModalTitle}>
+                Provincia {selectedComunidad ? `de ${selectedComunidad}` : ''}
+              </Text>
+              <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={22} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalSearchContainer}>
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={18} color={colors.textSecondary} />
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Buscar provincia..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchProvincia}
+                onChangeText={setSearchProvincia}
+              />
+              {searchProvincia.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchProvincia('')}>
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView style={styles.selectorModalBody}>
+              {filteredProvincias.length > 0 ? (
+                filteredProvincias.map((provincia) => (
+                  <TouchableOpacity
+                    key={provincia}
+                    style={[
+                      styles.selectorModalOption,
+                      selectedProvincia === provincia && styles.selectorModalOptionActive,
+                    ]}
+                    onPress={() => handleProvinciaSelect(provincia)}
+                  >
+                    <Text
+                      style={[
+                        styles.selectorModalOptionText,
+                        selectedProvincia === provincia && styles.selectorModalOptionTextActive,
+                      ]}
+                    >
+                      {provincia}
+                    </Text>
+                    {selectedProvincia === provincia && (
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={22} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyModalState}>
+                  <Text style={styles.emptyModalText}>
+                    {selectedComunidad ? 'No hay provincias disponibles' : 'Selecciona primero una comunidad'}
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -739,11 +1119,30 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 16,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
     color: colors.headerText,
-    marginBottom: 16,
+  },
+  clearFiltersHeaderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  clearFiltersHeaderText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.headerText,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -752,7 +1151,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   searchInput: {
     flex: 1,
@@ -764,11 +1163,68 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
+  regionalFiltersContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  regionalFilterButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  regionalFilterButtonActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderColor: colors.primary,
+  },
+  regionalFilterButtonDisabled: {
+    opacity: 0.5,
+  },
+  regionalFilterButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.headerText,
+    flex: 1,
+    textAlign: 'center',
+  },
+  regionalFilterButtonTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  regionalFilterButtonTextDisabled: {
+    color: colors.textSecondary,
+  },
+  resultsCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   resultsCount: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '600',
-    marginTop: 4,
+  },
+  filterCountBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  filterCountText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.headerText,
   },
   listContent: {
     padding: 16,
@@ -814,6 +1270,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  clearFiltersButton: {
+    marginTop: 20,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  clearFiltersButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.headerText,
   },
   loginRequiredContainer: {
     flex: 1,
@@ -1123,5 +1591,86 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
+  },
+  selectorModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  selectorModalContent: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  selectorModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  selectorModalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  modalSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginHorizontal: 18,
+    marginTop: 14,
+    marginBottom: 10,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  modalSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+  },
+  selectorModalBody: {
+    maxHeight: 400,
+  },
+  selectorModalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  selectorModalOptionActive: {
+    backgroundColor: colors.primary + '10',
+  },
+  selectorModalOptionText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  selectorModalOptionTextActive: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  emptyModalState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyModalText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
 });
