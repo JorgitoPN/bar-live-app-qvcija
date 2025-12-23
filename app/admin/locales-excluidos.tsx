@@ -394,58 +394,6 @@ export default function LocalesExcluidosScreen() {
       </ScrollView>
     </View>
   );
-
-  function handleRestoreLocal(local: ExcludedLocal) {
-    Alert.alert(
-      'Restaurar Local',
-      `¿Estás seguro de que quieres restaurar "${local.nombre}"?\n\n` +
-      `El local volverá a estar disponible para enriquecimiento e importación.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Restaurar',
-          onPress: () => restoreLocal(local)
-        }
-      ]
-    );
-  }
-
-  async function restoreLocal(local: ExcludedLocal) {
-    try {
-      console.log('[LocalesExcluidos] 🔄 Restoring local:', local.nombre);
-      
-      // Eliminar de locales_excluidos
-      const { error: deleteError } = await supabase
-        .from('locales_excluidos')
-        .delete()
-        .eq('id', local.id);
-
-      if (deleteError) throw deleteError;
-
-      // Si el local aún existe en la tabla locales, reactivarlo
-      if (local.local_id) {
-        const { error: updateError } = await supabase
-          .from('locales')
-          .update({ activo: true, updated_at: new Date().toISOString() })
-          .eq('id', local.local_id);
-
-        if (updateError) {
-          console.error('[LocalesExcluidos] Error reactivating local:', updateError);
-        }
-      }
-
-      console.log('[LocalesExcluidos] ✅ Local restored');
-      
-      Alert.alert(
-        'Local Restaurado',
-        `El local "${local.nombre}" ha sido restaurado correctamente.`,
-        [{ text: 'OK', onPress: () => loadExcludedLocals() }]
-      );
-    } catch (error) {
-      console.error('[LocalesExcluidos] ❌ Error restoring local:', error);
-      Alert.alert('Error', 'No se pudo restaurar el local');
-    }
-  }
 }
 
 const styles = StyleSheet.create({
