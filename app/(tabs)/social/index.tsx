@@ -26,6 +26,7 @@ import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import PostViewerModal from '@/components/social/PostViewerModal';
+import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -75,20 +76,6 @@ interface FriendLocation {
 
 const POSTS_PER_PAGE = 10;
 
-/**
- * ✅ SOCIAL FEED v5.1 - ADDED POST NAVIGATION SUPPORT
- * 
- * Features:
- * - ✅ Full-width "¿Quieres saber dónde están tus amigos?" section (NO margins)
- * - ✅ Horizontal scrolling carousel (like stories) - SMALLER and more compact
- * - ✅ Shows friends currently at locals
- * - ✅ Shows user's own check-in if present
- * - ✅ Beautiful visual cards with avatars, local photos, badges
- * - ✅ Clickable cards navigate to local page
- * - ✅ Matches publication width (full width, no margins)
- * - ✅ NEW: Supports postId parameter to open specific post in modal
- */
-
 export default function SocialIndexScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -109,7 +96,17 @@ export default function SocialIndexScreen() {
   const [loadingFriendsLocations, setLoadingFriendsLocations] = useState(false);
   const [myCheckIn, setMyCheckIn] = useState<any>(null);
 
-  // Note: postId parameter handling removed - now using dedicated /social/post route
+  // ✅ NEW: Login required modal state
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // ✅ NEW: Check if user is logged in
+  useEffect(() => {
+    if (!user && !isImpersonating) {
+      console.log('[Social] ⚠️ User not logged in, showing login required message');
+      setShowLoginModal(true);
+      setLoading(false);
+    }
+  }, [user, isImpersonating]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!userId) return;
@@ -640,6 +637,60 @@ export default function SocialIndexScreen() {
     );
   }, [loading, isImpersonating]);
 
+  // ✅ NEW: Show login required message if user is not logged in
+  if (!user && !isImpersonating) {
+    return (
+      <View style={styles.container}>
+        <HeaderSocial
+          unreadNotifications={0}
+          unreadMessages={0}
+          onCreatePost={handleCreatePost}
+        />
+        
+        <View style={styles.loginRequiredContainer}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.loginRequiredIconContainer}
+          >
+            <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={64} color={colors.white} />
+          </LinearGradient>
+          
+          <Text style={styles.loginRequiredTitle}>Inicia sesión para ver el contenido</Text>
+          <Text style={styles.loginRequiredMessage}>
+            Para acceder a la página social y ver las publicaciones de tus amigos, necesitas iniciar sesión en BarLive.
+          </Text>
+          
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => router.push('/auth/login')}
+          >
+            <LinearGradient
+              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+              style={styles.loginButtonGradient}
+            >
+              <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.registerButton}
+            onPress={() => router.push('/auth/registro-email')}
+          >
+            <Text style={styles.registerButtonText}>
+              ¿No tienes cuenta? <Text style={styles.registerButtonTextBold}>Regístrate</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <LoginRequiredModal
+          visible={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          message="Para acceder a la página social necesitas iniciar sesión en BarLive"
+        />
+      </View>
+    );
+  }
+
   if (!userId) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -682,8 +733,6 @@ export default function SocialIndexScreen() {
         updateCellsBatchingPeriod={50}
         windowSize={10}
       />
-
-
     </View>
   );
 }
@@ -887,5 +936,60 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.textSecondary,
     flex: 1,
+  },
+  loginRequiredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loginRequiredIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  loginRequiredTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  loginRequiredMessage: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 24,
+  },
+  loginButton: {
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  loginButtonGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  loginButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.white,
+  },
+  registerButton: {
+    paddingVertical: 12,
+  },
+  registerButtonText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  registerButtonTextBold: {
+    fontWeight: '600',
+    color: colors.primary,
   },
 });

@@ -141,7 +141,6 @@ export default function SalaVirtualScreen() {
     ).start();
   }, [pulseAnim, glowAnim]);
 
-  // ✅ FIXED: Memoize checkClosingTime to prevent infinite loop
   const checkClosingTime = useCallback(() => {
     if (!local) return;
 
@@ -212,7 +211,6 @@ export default function SalaVirtualScreen() {
     }
   }, [local, closingWarningShown, router]);
 
-  // ✅ FIXED: Separate useEffect for closing time check
   useEffect(() => {
     if (isCheckedIn && local) {
       checkClosingTime();
@@ -227,7 +225,6 @@ export default function SalaVirtualScreen() {
     }
   }, [isCheckedIn, local, checkClosingTime]);
 
-  // ✅ FIXED: Memoize loadLocalData
   const loadLocalData = useCallback(async () => {
     if (!localId) {
       console.error('[SalaVirtual] No localId provided');
@@ -285,7 +282,6 @@ export default function SalaVirtualScreen() {
     }
   }, [localId, router]);
 
-  // ✅ FIXED: Memoize checkUserCheckin
   const checkUserCheckin = useCallback(async () => {
     if (!user || !localId) {
       console.log('[SalaVirtual] No user or localId');
@@ -317,7 +313,6 @@ export default function SalaVirtualScreen() {
     }
   }, [user?.id, localId]);
 
-  // ✅ FIXED: Memoize handleCheckIn
   const handleCheckIn = useCallback(async () => {
     if (!user || !localId) {
       Alert.alert('Error', 'Debes iniciar sesión para entrar en la sala');
@@ -409,6 +404,55 @@ export default function SalaVirtualScreen() {
     }
   }, [user?.id, localId, local]);
 
+  // ✅ NEW: Auto checkout when modal closes
+  const handleAutoCheckOut = useCallback(async () => {
+    if (!user || !localId || !isCheckedIn) return;
+
+    try {
+      console.log('[SalaVirtual] 🔄 Auto checking out user on modal close:', user.id);
+
+      const { error } = await supabase
+        .from('sala_virtual_checkins')
+        .update({
+          activo: false,
+          checked_out_at: new Date().toISOString(),
+        })
+        .eq('usuario_id', user.id)
+        .eq('local_id', localId)
+        .eq('activo', true);
+
+      if (error) {
+        console.error('[SalaVirtual] ❌ Error auto checking out:', error);
+        return;
+      }
+
+      if (presenceChannelRef.current) {
+        try {
+          await presenceChannelRef.current.send({
+            type: 'broadcast',
+            event: 'user_left',
+            payload: {
+              usuario_id: user.id,
+            },
+          });
+        } catch (broadcastError) {
+          console.error('[SalaVirtual] Error broadcasting user left:', broadcastError);
+        }
+      }
+
+      console.log('[SalaVirtual] ✅ Auto checked out successfully');
+    } catch (error) {
+      console.error('[SalaVirtual] ❌ Error in auto checkout:', error);
+    }
+  }, [user, localId, isCheckedIn]);
+
+  // ✅ NEW: Handle modal close with auto checkout
+  const handleModalClose = useCallback(async () => {
+    console.log('[SalaVirtual] 🚪 Modal closing, auto checking out user...');
+    await handleAutoCheckOut();
+    router.back();
+  }, [handleAutoCheckOut, router]);
+
   const handleCheckOut = async () => {
     if (!user || !localId) return;
 
@@ -421,53 +465,14 @@ export default function SalaVirtualScreen() {
           text: 'Salir',
           style: 'destructive',
           onPress: async () => {
-            try {
-              console.log('[SalaVirtual] 🔄 Checking out user:', user.id, 'from local:', localId);
-
-              const { error } = await supabase
-                .from('sala_virtual_checkins')
-                .update({
-                  activo: false,
-                  checked_out_at: new Date().toISOString(),
-                })
-                .eq('usuario_id', user.id)
-                .eq('local_id', localId)
-                .eq('activo', true);
-
-              if (error) {
-                console.error('[SalaVirtual] ❌ Error checking out:', error);
-                Alert.alert('Error', 'No se pudo salir de la sala');
-                return;
-              }
-
-              if (presenceChannelRef.current) {
-                try {
-                  await presenceChannelRef.current.send({
-                    type: 'broadcast',
-                    event: 'user_left',
-                    payload: {
-                      usuario_id: user.id,
-                    },
-                  });
-                } catch (broadcastError) {
-                  console.error('[SalaVirtual] Error broadcasting user left:', broadcastError);
-                }
-              }
-
-              setIsCheckedIn(false);
-              console.log('[SalaVirtual] ✅ Checked out successfully');
-              router.back();
-            } catch (error) {
-              console.error('[SalaVirtual] ❌ Error:', error);
-              Alert.alert('Error', 'Ocurrió un error al salir de la sala');
-            }
+            await handleAutoCheckOut();
+            router.back();
           },
         },
       ]
     );
   };
 
-  // ✅ FIXED: Memoize loadMessages
   const loadMessages = useCallback(async () => {
     if (!localId) return;
 
@@ -482,7 +487,6 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // ✅ FIXED: Memoize updateActiveUsers
   const updateActiveUsers = useCallback(async () => {
     if (!localId) return;
 
@@ -525,7 +529,6 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // ✅ FIXED: Memoize subscribeToUpdates
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
@@ -657,7 +660,6 @@ export default function SalaVirtualScreen() {
     };
   }, [localId, user?.id, updateActiveUsers, router]);
 
-  // ✅ FIXED: Simplified initialization without circular dependencies
   useEffect(() => {
     if (!localId || hasInitialized.current) {
       return;
@@ -703,8 +705,10 @@ export default function SalaVirtualScreen() {
       if (unsubscribeFn) {
         unsubscribeFn();
       }
+      // ✅ NEW: Auto checkout on unmount
+      handleAutoCheckOut();
     };
-  }, [localId, loadLocalData, checkUserCheckin, handleCheckIn, loadMessages, subscribeToUpdates, updateActiveUsers, localClosed, user]);
+  }, [localId, loadLocalData, checkUserCheckin, handleCheckIn, loadMessages, subscribeToUpdates, updateActiveUsers, localClosed, user, handleAutoCheckOut]);
 
   const handleTyping = () => {
     if (!user || !chatChannelRef.current) return;
@@ -978,6 +982,7 @@ export default function SalaVirtualScreen() {
 
     return (
       <TouchableOpacity
+        key={item.id}
         style={styles.userCard}
         onPress={() => {
           if (!isCurrentUser) {
@@ -1059,6 +1064,16 @@ export default function SalaVirtualScreen() {
         <Stack.Screen
           options={{
             title: local?.nombre || 'Sala Virtual',
+            headerLeft: () => (
+              <TouchableOpacity onPress={handleModalClose}>
+                <IconSymbol
+                  ios_icon_name="xmark"
+                  android_material_icon_name="close"
+                  size={24}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            ),
           }}
         />
         <View style={styles.closedContainer}>
@@ -1085,7 +1100,7 @@ export default function SalaVirtualScreen() {
             </Text>
             <TouchableOpacity
               style={styles.closedButton}
-              onPress={() => router.back()}
+              onPress={handleModalClose}
               activeOpacity={0.8}
             >
               <View style={styles.closedButtonContent}>
@@ -1113,6 +1128,16 @@ export default function SalaVirtualScreen() {
       <Stack.Screen
         options={{
           title: local?.nombre || 'Sala Virtual',
+          headerLeft: () => (
+            <TouchableOpacity onPress={handleModalClose}>
+              <IconSymbol
+                ios_icon_name="xmark"
+                android_material_icon_name="close"
+                size={24}
+                color={colors.text}
+              />
+            </TouchableOpacity>
+          ),
           headerRight: () => (
             <View style={styles.headerRight}>
               {minutesUntilClosing !== null && minutesUntilClosing <= CLOSING_WARNING_THRESHOLD && (
