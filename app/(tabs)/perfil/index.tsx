@@ -126,35 +126,6 @@ export default function PerfilScreen() {
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
 
-  // ✅ INSTANT LOAD: Load from cache first
-  useEffect(() => {
-    if (!user) return;
-
-    const loadCachedData = async () => {
-      console.log('[Perfil] ⚡ Loading from cache...');
-      const cached = await profileCache.get(user.id, 'user');
-      
-      if (cached) {
-        console.log('[Perfil] ⚡⚡⚡ INSTANT LOAD from cache');
-        setSeguidores(cached.stats.seguidores);
-        setSeguidos(cached.stats.seguidos);
-        setPublicaciones(cached.stats.posts);
-        setPosts(cached.posts);
-        
-        // Background refresh
-        setTimeout(() => {
-          console.log('[Perfil] 🔄 Background refresh...');
-          cargarDatosPerfil(true);
-        }, 100);
-      } else {
-        console.log('[Perfil] 📡 No cache, loading from database...');
-        cargarDatosPerfil(false);
-      }
-    };
-
-    loadCachedData();
-  }, [user?.id, cargarDatosPerfil]);
-
   const loadCartItemsCount = useCallback(async () => {
     if (!user || !isPropietario) return;
 
@@ -531,6 +502,7 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
+  // ✅ DEFINE cargarDatosPerfil BEFORE using it in useEffect
   const cargarDatosPerfil = useCallback(async (isBackgroundRefresh: boolean = false) => {
     if (!user) return;
 
@@ -592,6 +564,35 @@ export default function PerfilScreen() {
       setRefreshing(false);
     }
   }, [user, loadUnreadCounts, checkUnviewedMomentos, loadCartItemsCount, loadCurrentLocal, cargarPosts]);
+
+  // ✅ INSTANT LOAD: Load from cache first
+  useEffect(() => {
+    if (!user) return;
+
+    const loadCachedData = async () => {
+      console.log('[Perfil] ⚡ Loading from cache...');
+      const cached = await profileCache.get(user.id, 'user');
+      
+      if (cached) {
+        console.log('[Perfil] ⚡⚡⚡ INSTANT LOAD from cache');
+        setSeguidores(cached.stats.seguidores);
+        setSeguidos(cached.stats.seguidos);
+        setPublicaciones(cached.stats.posts);
+        setPosts(cached.posts);
+        
+        // Background refresh
+        setTimeout(() => {
+          console.log('[Perfil] 🔄 Background refresh...');
+          cargarDatosPerfil(true);
+        }, 100);
+      } else {
+        console.log('[Perfil] 📡 No cache, loading from database...');
+        cargarDatosPerfil(false);
+      }
+    };
+
+    loadCachedData();
+  }, [user?.id, cargarDatosPerfil]);
 
   useEffect(() => {
     if (user) {
