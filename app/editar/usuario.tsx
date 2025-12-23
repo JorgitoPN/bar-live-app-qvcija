@@ -22,6 +22,8 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { isAdminUser } from '@/utils/adminAccess';
 
 const ROLES = [
   { value: 'cliente', label: 'Cliente' },
@@ -29,10 +31,14 @@ const ROLES = [
   { value: 'admin', label: 'Administrador' },
 ];
 
+// ✅ CRITICAL: Only this email can see and modify admin role
+const ADMIN_EMAIL = 'jorgepereznoyagh@gmail.com';
+
 export default function EditarUsuarioScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const usuarioId = params.id as string;
+  const { user: currentUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,6 +57,14 @@ export default function EditarUsuarioScreen() {
 
   // Modals
   const [showRolModal, setShowRolModal] = useState(false);
+
+  // ✅ CRITICAL: Check if current user can modify admin role
+  const canModifyAdminRole = currentUser?.email === ADMIN_EMAIL;
+
+  // ✅ CRITICAL: Filter available roles based on current user permissions
+  const availableRoles = canModifyAdminRole 
+    ? ROLES 
+    : ROLES.filter(r => r.value !== 'admin');
 
   const loadUsuarioData = useCallback(async () => {
     if (!usuarioId) {
@@ -140,6 +154,12 @@ export default function EditarUsuarioScreen() {
 
     if (username && !validarUsername(username)) {
       Alert.alert('Error', 'El nombre de usuario solo puede contener letras, números, puntos y guiones bajos');
+      return;
+    }
+
+    // ✅ CRITICAL: Prevent non-admin users from setting admin role
+    if (rolApp === 'admin' && !canModifyAdminRole) {
+      Alert.alert('Error', 'No tienes permisos para asignar el rol de administrador');
       return;
     }
 
@@ -245,7 +265,7 @@ export default function EditarUsuarioScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Editar Usuario</Text>
         <TouchableOpacity 
@@ -278,11 +298,11 @@ export default function EditarUsuarioScreen() {
               <Image source={{ uri: avatar }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <IconSymbol name="person.fill" size={48} color={colors.textSecondary} />
+                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={48} color={colors.textSecondary} />
               </View>
             )}
             <View style={styles.avatarOverlay}>
-              <IconSymbol name="camera.fill" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="camera.fill" android_material_icon_name="photo_camera" size={24} color={colors.headerText} />
             </View>
           </TouchableOpacity>
 
@@ -331,27 +351,32 @@ export default function EditarUsuarioScreen() {
             />
           </View>
 
-          {/* Rol */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Rol de usuario *</Text>
-            <TouchableOpacity
-              style={styles.selectButton}
-              onPress={() => setShowRolModal(true)}
-            >
-              <View style={styles.rolBadge}>
-                <View
-                  style={[
-                    styles.rolIndicator,
-                    { backgroundColor: getRolColor(rolApp) },
-                  ]}
-                />
-                <Text style={styles.selectButtonText}>
-                  {ROLES.find((r) => r.value === rolApp)?.label || 'Cliente'}
-                </Text>
-              </View>
-              <IconSymbol name="chevron.down" size={20} color={colors.text} />
-            </TouchableOpacity>
-          </View>
+          {/* Rol - ✅ ONLY SHOW IF USER IS AUTHORIZED ADMIN */}
+          {canModifyAdminRole && (
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Rol de usuario *</Text>
+              <TouchableOpacity
+                style={styles.selectButton}
+                onPress={() => setShowRolModal(true)}
+              >
+                <View style={styles.rolBadge}>
+                  <View
+                    style={[
+                      styles.rolIndicator,
+                      { backgroundColor: getRolColor(rolApp) },
+                    ]}
+                  />
+                  <Text style={styles.selectButtonText}>
+                    {ROLES.find((r) => r.value === rolApp)?.label || 'Cliente'}
+                  </Text>
+                </View>
+                <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={20} color={colors.text} />
+              </TouchableOpacity>
+              <Text style={styles.helperText}>
+                ⚠️ Solo {ADMIN_EMAIL} puede modificar roles de usuario
+              </Text>
+            </View>
+          )}
 
           {/* Bio */}
           <View style={styles.inputContainer}>
@@ -434,62 +459,69 @@ export default function EditarUsuarioScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Modal Rol */}
-      <Modal
-        visible={showRolModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowRolModal(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowRolModal(false)}
+      {/* Modal Rol - ✅ ONLY SHOW IF USER IS AUTHORIZED ADMIN */}
+      {canModifyAdminRole && (
+        <Modal
+          visible={showRolModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowRolModal(false)}
         >
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Selecciona el rol</Text>
-              <TouchableOpacity onPress={() => setShowRolModal(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.modalBody}>
-              {ROLES.map((rol) => (
-                <TouchableOpacity
-                  key={rol.value}
-                  style={[
-                    styles.modalOption,
-                    rolApp === rol.value && styles.modalOptionActive,
-                  ]}
-                  onPress={() => {
-                    setRolApp(rol.value as 'cliente' | 'propietario' | 'admin');
-                    setShowRolModal(false);
-                  }}
-                >
-                  <View style={styles.modalOptionContent}>
-                    <View
-                      style={[
-                        styles.rolIndicator,
-                        { backgroundColor: getRolColor(rol.value) },
-                      ]}
-                    />
-                    <Text
-                      style={[
-                        styles.modalOptionText,
-                        rolApp === rol.value && styles.modalOptionTextActive,
-                      ]}
-                    >
-                      {rol.label}
-                    </Text>
-                  </View>
-                  {rolApp === rol.value && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
-                  )}
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setShowRolModal(false)}
+          >
+            <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Selecciona el rol</Text>
+                <TouchableOpacity onPress={() => setShowRolModal(false)}>
+                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
-              ))}
-            </View>
+              </View>
+              <View style={styles.modalBody}>
+                {availableRoles.map((rol) => (
+                  <TouchableOpacity
+                    key={rol.value}
+                    style={[
+                      styles.modalOption,
+                      rolApp === rol.value && styles.modalOptionActive,
+                    ]}
+                    onPress={() => {
+                      setRolApp(rol.value as 'cliente' | 'propietario' | 'admin');
+                      setShowRolModal(false);
+                    }}
+                  >
+                    <View style={styles.modalOptionContent}>
+                      <View
+                        style={[
+                          styles.rolIndicator,
+                          { backgroundColor: getRolColor(rol.value) },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.modalOptionText,
+                          rolApp === rol.value && styles.modalOptionTextActive,
+                        ]}
+                      >
+                        {rol.label}
+                      </Text>
+                    </View>
+                    {rolApp === rol.value && (
+                      <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <View style={styles.modalFooter}>
+                <Text style={styles.modalFooterText}>
+                  ⚠️ Solo {ADMIN_EMAIL} puede asignar el rol de administrador
+                </Text>
+              </View>
+            </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -707,5 +739,16 @@ const styles = StyleSheet.create({
   modalOptionTextActive: {
     fontWeight: '600',
     color: colors.primary,
+  },
+  modalFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  modalFooterText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

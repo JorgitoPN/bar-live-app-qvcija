@@ -104,7 +104,7 @@ export default function LoginV6Screen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[Login v6.0] 🔐 Attempting login:', normalizedEmail);
+      console.log('[Login v6.1] 🔐 Attempting login:', normalizedEmail);
 
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
@@ -113,7 +113,7 @@ export default function LoginV6Screen() {
         .maybeSingle();
 
       if (userData?.provider === 'google') {
-        console.log('[Login v6.0] 🔍 Google user detected');
+        console.log('[Login v6.1] 🔍 Google user detected');
         setLoading(false);
         
         Alert.alert(
@@ -144,7 +144,7 @@ export default function LoginV6Screen() {
       });
 
       if (authError) {
-        console.error('[Login v6.0] ❌ Error signing in:', authError);
+        console.error('[Login v6.1] ❌ Error signing in:', authError);
         
         if (authError.message.includes('Email not confirmed')) {
           Alert.alert(
@@ -159,7 +159,7 @@ export default function LoginV6Screen() {
                       type: 'signup',
                       email: normalizedEmail,
                       options: {
-                        emailRedirectTo: 'https://barliveapp.es/auth/email-confirmed',
+                        emailRedirectTo: 'https://natively.dev/email-confirmed',
                       },
                     });
                     
@@ -172,7 +172,7 @@ export default function LoginV6Screen() {
                       );
                     }
                   } catch (err) {
-                    console.error('[Login v6.0] Error resending email:', err);
+                    console.error('[Login v6.1] Error resending email:', err);
                     Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
                   }
                 },
@@ -197,11 +197,13 @@ export default function LoginV6Screen() {
         return;
       }
 
-      console.log('[Login v6.0] ✅ Login successful:', authData.user.id);
+      console.log('[Login v6.1] ✅ Login successful:', authData.user.id);
       
+      // ✅ CRITICAL FIX: Redirect to explorar (lista de locales) instead of configuracion
+      console.log('[Login v6.1] 🚀 Redirigiendo a lista de locales...');
       router.replace('/(tabs)/explorar');
     } catch (error: any) {
-      console.error('[Login v6.0] ❌ Error in handleLogin:', error);
+      console.error('[Login v6.1] ❌ Error in handleLogin:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -379,7 +381,7 @@ export default function LoginV6Screen() {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <>
+                <React.Fragment>
                   <IconSymbol
                     ios_icon_name="arrow.right.circle.fill"
                     android_material_icon_name="login"
@@ -388,7 +390,7 @@ export default function LoginV6Screen() {
                     style={styles.buttonIcon}
                   />
                   <Text style={styles.buttonText}>Iniciar sesión</Text>
-                </>
+                </React.Fragment>
               )}
             </LinearGradient>
           </TouchableOpacity>

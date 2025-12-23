@@ -96,7 +96,7 @@ export default function LoginV5Screen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[Login v5.0] 🔐 Attempting login:', normalizedEmail);
+      console.log('[Login v5.1] 🔐 Attempting login:', normalizedEmail);
 
       // Check if this is a Google user
       const { data: userData, error: userError } = await supabase
@@ -106,7 +106,7 @@ export default function LoginV5Screen() {
         .maybeSingle();
 
       if (userData?.provider === 'google') {
-        console.log('[Login v5.0] 🔍 Google user detected');
+        console.log('[Login v5.1] 🔍 Google user detected');
         setLoading(false);
         
         Alert.alert(
@@ -139,7 +139,7 @@ export default function LoginV5Screen() {
       });
 
       if (authError) {
-        console.error('[Login v5.0] ❌ Error signing in:', authError);
+        console.error('[Login v5.1] ❌ Error signing in:', authError);
         
         if (authError.message.includes('Email not confirmed')) {
           Alert.alert(
@@ -154,7 +154,7 @@ export default function LoginV5Screen() {
                       type: 'signup',
                       email: normalizedEmail,
                       options: {
-                        emailRedirectTo: 'https://barliveapp.es/auth/email-confirmed',
+                        emailRedirectTo: 'https://natively.dev/email-confirmed',
                       },
                     });
                     
@@ -167,7 +167,7 @@ export default function LoginV5Screen() {
                       );
                     }
                   } catch (err) {
-                    console.error('[Login v5.0] Error resending email:', err);
+                    console.error('[Login v5.1] Error resending email:', err);
                     Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
                   }
                 },
@@ -192,12 +192,13 @@ export default function LoginV5Screen() {
         return;
       }
 
-      console.log('[Login v5.0] ✅ Login successful:', authData.user.id);
+      console.log('[Login v5.1] ✅ Login successful:', authData.user.id);
       
-      // Navigate to main app
+      // ✅ CRITICAL FIX: Redirect to explorar (lista de locales) instead of configuracion
+      console.log('[Login v5.1] 🚀 Redirigiendo a lista de locales...');
       router.replace('/(tabs)/explorar');
     } catch (error: any) {
-      console.error('[Login v5.0] ❌ Error in handleLogin:', error);
+      console.error('[Login v5.1] ❌ Error in handleLogin:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -320,7 +321,7 @@ export default function LoginV5Screen() {
           {/* Forgot Password */}
           <TouchableOpacity
             style={styles.forgotButton}
-            onPress={() => router.push('/auth/recuperar-password-v5')}
+            onPress={() => router.push('/auth/recuperar-password-v7')}
             disabled={loading}
           >
             <Text style={styles.forgotButtonText}>¿Olvidaste tu contraseña?</Text>

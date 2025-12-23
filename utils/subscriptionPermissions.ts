@@ -1,8 +1,13 @@
 
 /**
- * ✅ SUBSCRIPTION PERMISSIONS UTILITY
+ * ✅ SUBSCRIPTION PERMISSIONS UTILITY v2.0
  * 
  * Checks if a local has permission to perform certain actions based on their subscription plan
+ * 
+ * FIXES:
+ * - ✅ Fixed PGRST201 error by using separate queries instead of embedding
+ * - ✅ Improved error handling for missing relationships
+ * - ✅ Added detailed logging for debugging
  */
 
 import { supabase } from './supabase';
@@ -45,18 +50,10 @@ export async function getLocalSubscriptionPermissions(localId: string): Promise<
       };
     }
 
-    // Get active subscription
+    // ✅ FIX: Get active subscription WITHOUT embedding to avoid PGRST201 error
     const { data: subscriptionData, error: subscriptionError } = await supabase
       .from('suscripciones_locales')
-      .select(`
-        *,
-        planes_suscripcion (
-          nombre,
-          eventos_mes,
-          promos_destacadas,
-          perfil_social
-        )
-      `)
+      .select('*')
       .eq('local_id', localId)
       .eq('estado', 'activa')
       .maybeSingle();
@@ -65,7 +62,7 @@ export async function getLocalSubscriptionPermissions(localId: string): Promise<
       console.error('[subscriptionPermissions] Error fetching subscription:', subscriptionError);
     }
 
-    if (!subscriptionData || !subscriptionData.planes_suscripcion) {
+    if (!subscriptionData) {
       console.log('[subscriptionPermissions] No active subscription found');
       return {
         canCreateEvents: false,
@@ -77,8 +74,26 @@ export async function getLocalSubscriptionPermissions(localId: string): Promise<
       };
     }
 
-    const plan = subscriptionData.planes_suscripcion;
-    const planName = plan.nombre.toLowerCase();
+    // ✅ FIX: Get plan data separately to avoid relationship issues
+    const { data: planData, error: planError } = await supabase
+      .from('planes_suscripcion')
+      .select('nombre, eventos_mes, promos_destacadas, perfil_social')
+      .eq('id', subscriptionData.plan_id)
+      .single();
+
+    if (planError || !planData) {
+      console.error('[subscriptionPermissions] Error fetching plan:', planError);
+      return {
+        canCreateEvents: false,
+        canHighlightLocal: false,
+        canPublishPosts: false,
+        hasActiveProfile: localData.perfil_visible || false,
+        planName: 'basico',
+        creditsRemaining: { eventos: 0, destacados: 0 },
+      };
+    }
+
+    const planName = planData.nombre.toLowerCase();
 
     // Check permissions based on plan
     const hasActiveProfile = localData.perfil_visible && (planName === 'estandar' || planName === 'premium');
