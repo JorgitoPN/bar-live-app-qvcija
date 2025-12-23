@@ -1184,7 +1184,7 @@ export default function DetalleLocalScreen() {
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity style={styles.checkOutButton} onPress={handleCheckOut}>
-                      <LinearGradient colors={['#EF4444', '#DC2626']} style={styles.checkInButtonGradient}>
+                      <LinearGradient colors={['#9CA3AF', '#6B7280']} style={styles.checkInButtonGradient}>
                         <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={22} color="#fff" />
                         <Text style={styles.checkInButtonText}>Ya no estoy en este local</Text>
                       </LinearGradient>
