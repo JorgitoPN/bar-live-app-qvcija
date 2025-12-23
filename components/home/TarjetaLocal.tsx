@@ -41,6 +41,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   const [checkingSocialProfile, setCheckingSocialProfile] = useState(true);
   const [isUserHere, setIsUserHere] = useState(false);
   const [followedUsersHere, setFollowedUsersHere] = useState<CheckedInUser[]>([]);
+  const [checkingOut, setCheckingOut] = useState(false);
   
   const { evento: activeEvent } = useLocalEvent(local.id);
 
@@ -181,6 +182,29 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
       supabase.removeChannel(checkInsChannel);
     };
   }, [local.id, user]);
+
+  const handleCheckOut = async (e: any) => {
+    e.stopPropagation();
+    if (!user) return;
+
+    setCheckingOut(true);
+    try {
+      const { error } = await supabase
+        .from('check_ins')
+        .delete()
+        .eq('usuario_id', user.id)
+        .eq('local_id', local.id);
+
+      if (error) throw error;
+
+      console.log('[TarjetaLocal] ✅ Check-out successful');
+      setIsUserHere(false);
+    } catch (error) {
+      console.error('[TarjetaLocal] Error checking out:', error);
+    } finally {
+      setCheckingOut(false);
+    }
+  };
 
   const handlePress = () => {
     trackProfileView(local.id, user?.id, 'explore');
@@ -390,18 +414,34 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </Text>
         </View>
 
-        {/* Check-in indicators */}
+        {/* ✅ UPDATED: Check-in indicators with new colors */}
         {(isUserHere || followedUsersHere.length > 0) && (
           <View style={styles.checkInIndicators}>
             {isUserHere && (
               <View style={styles.userHereBadge}>
-                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={14} color="#10B981" />
-                <Text style={styles.userHereText}>Tú estás aquí</Text>
+                <View style={styles.userHereBadgeContent}>
+                  <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
+                  <Text style={styles.userHereText}>Estás en este local</Text>
+                </View>
+                <TouchableOpacity 
+                  style={styles.checkOutButton}
+                  onPress={handleCheckOut}
+                  disabled={checkingOut}
+                >
+                  {checkingOut ? (
+                    <ActivityIndicator size="small" color={colors.textSecondary} />
+                  ) : (
+                    <React.Fragment>
+                      <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={14} color={colors.textSecondary} />
+                      <Text style={styles.checkOutButtonText}>Salir</Text>
+                    </React.Fragment>
+                  )}
+                </TouchableOpacity>
               </View>
             )}
             {followedUsersHere.length > 0 && (
               <View style={styles.friendsHereBadge}>
-                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={14} color={colors.primary} />
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={14} color={colors.secondary} />
                 <Text style={styles.friendsHereText}>
                   {followedUsersHere.length} {followedUsersHere.length === 1 ? 'amigo está' : 'amigos están'} aquí
                 </Text>
@@ -502,17 +542,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // ✅ IMPROVED: Dimmed overlay for closed locals (more visible)
   dimmedOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)', // ✅ Increased opacity for better visibility
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     zIndex: 1,
   },
-  // ✅ IMPROVED: Lock icon container for closed locals
   overlayIconContainer: {
     position: 'absolute',
     top: '50%',
@@ -755,42 +793,65 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
+  // ✅ UPDATED: New styling for check-in indicators with BarLive colors
   checkInIndicators: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   userHereBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#10B981' + '20',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    justifyContent: 'space-between',
+    backgroundColor: colors.primary + '10',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#10B981' + '40',
+    borderWidth: 1.5,
+    borderColor: colors.primary + '30',
+    marginBottom: 8,
+  },
+  userHereBadgeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
   },
   userHereText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#10B981',
+    color: colors.primary,
+    flex: 1,
+  },
+  // ✅ UPDATED: Subtle exit button with less aggressive color
+  checkOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.background,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  checkOutButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   friendsHereBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    gap: 6,
+    backgroundColor: colors.secondary + '10',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.primary + '40',
+    borderWidth: 1.5,
+    borderColor: colors.secondary + '30',
   },
   friendsHereText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.secondary,
   },
 });
