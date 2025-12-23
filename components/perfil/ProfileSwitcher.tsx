@@ -17,7 +17,6 @@ import { useMode } from '@/contexts/ModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
-import { isAdminUser } from '@/utils/adminAccess';
 
 interface ProfileSwitcherProps {
   visible: boolean;
@@ -25,14 +24,14 @@ interface ProfileSwitcherProps {
 }
 
 /**
- * ✅ PROFILE SWITCHER v3.2 - ADMIN MODE FIX COMPLETE
+ * ✅ PROFILE SWITCHER v4.0 - RESTORED ORIGINAL FUNCTIONALITY
  * 
- * CRITICAL FIXES:
- * - ✅ Admin mode is ONLY shown to jorgepereznoyagh@gmail.com
- * - ✅ Uses isAdminUser() to check both role AND email
- * - ✅ Prevents unauthorized users from seeing admin mode option
- * - ✅ Fixed: Admin mode selector removed for all users except jorgepereznoyagh@gmail.com
- * - ✅ Verified: userIsAdmin check is working correctly
+ * PURPOSE:
+ * - Switch between user profile and owned local profiles
+ * - Select which local to interact with
+ * - Navigate to the selected profile
+ * 
+ * NOTE: This is NOT the mode selector from the Explorar page header
  */
 
 const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: ProfileSwitcherProps) {
@@ -41,26 +40,12 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
   const {
     activeProfileId,
     activeProfileType,
-    currentMode,
     switchToClientProfile,
     switchToLocalProfile,
-    setCurrentMode,
   } = useMode();
   const [switching, setSwitching] = useState(false);
   const [ownedLocals, setOwnedLocals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // ✅ CRITICAL: Check if user is authorized admin
-  const userIsAdmin = useMemo(() => {
-    const isAdmin = isAdminUser(user);
-    console.log('[ProfileSwitcher] Admin check:', {
-      email: user?.email,
-      role: user?.rol_app,
-      isAdmin,
-      shouldShowAdminMode: isAdmin,
-    });
-    return isAdmin;
-  }, [user]);
 
   const loadOwnedLocals = useCallback(async () => {
     if (!user?.id) {
@@ -153,38 +138,9 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     }
   }, [switchToLocalProfile, onClose, router]);
 
-  const handleSwitchToAdmin = useCallback(async () => {
-    if (!userIsAdmin) {
-      console.error('[ProfileSwitcher] ❌ User is not authorized admin');
-      return;
-    }
-
-    setSwitching(true);
-    try {
-      console.log('[ProfileSwitcher] 🔄 Switching to admin mode');
-      await setCurrentMode('admin');
-      console.log('[ProfileSwitcher] ✅ Mode switched to admin');
-      
-      onClose();
-      
-      setTimeout(() => {
-        console.log('[ProfileSwitcher] ✅ Navigating to admin panel');
-        router.push('/(tabs)/admin');
-      }, 100);
-    } catch (error) {
-      console.error('[ProfileSwitcher] ❌ Error switching to admin:', error);
-    } finally {
-      setSwitching(false);
-    }
-  }, [userIsAdmin, setCurrentMode, onClose, router]);
-
   const isClientActive = useMemo(() => {
     return activeProfileType === 'cliente' && activeProfileId === user?.id;
   }, [activeProfileType, activeProfileId, user?.id]);
-
-  const isAdminActive = useMemo(() => {
-    return currentMode === 'admin';
-  }, [currentMode]);
 
   if (!user) return null;
 
@@ -198,7 +154,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.container} onPress={(e) => e.stopPropagation()}>
           <View style={styles.header}>
-            <Text style={styles.title}>Cambiar modo de usuario</Text>
+            <Text style={styles.title}>Seleccionar perfil</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
             </TouchableOpacity>
@@ -211,33 +167,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
             </View>
           ) : (
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              <Text style={styles.sectionSubtitle}>Selecciona cómo quieres usar BarLive</Text>
-
-              {/* ✅ CRITICAL FIX: Only show admin mode to jorgepereznoyagh@gmail.com */}
-              {/* This section will ONLY render if userIsAdmin is true */}
-              {userIsAdmin && (
-                <TouchableOpacity
-                  style={[styles.profileCard, isAdminActive && styles.profileCardActive]}
-                  onPress={handleSwitchToAdmin}
-                  disabled={switching || isAdminActive}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.profileInfo}>
-                    <View style={[styles.profileAvatar, styles.adminAvatarBg]}>
-                      <IconSymbol ios_icon_name="gearshape.fill" android_material_icon_name="settings" size={24} color={colors.white} />
-                    </View>
-                    <View style={styles.profileText}>
-                      <Text style={styles.profileName}>Admin</Text>
-                      <Text style={styles.profileType}>Administra la plataforma</Text>
-                    </View>
-                  </View>
-                  {isAdminActive && (
-                    <View style={styles.activeIndicator}>
-                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              )}
+              <Text style={styles.sectionSubtitle}>Elige con qué perfil quieres interactuar</Text>
 
               <TouchableOpacity
                 style={[styles.profileCard, isClientActive && styles.profileCardActive]}
@@ -247,11 +177,15 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
               >
                 <View style={styles.profileInfo}>
                   <View style={[styles.profileAvatar, styles.clientAvatarBg]}>
-                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.white} />
+                    {user.avatar ? (
+                      <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+                    ) : (
+                      <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.white} />
+                    )}
                   </View>
                   <View style={styles.profileText}>
-                    <Text style={styles.profileName}>Cliente</Text>
-                    <Text style={styles.profileType}>Explora locales y eventos</Text>
+                    <Text style={styles.profileName}>{user.nombre || 'Mi Perfil'}</Text>
+                    <Text style={styles.profileType}>Perfil de usuario</Text>
                   </View>
                 </View>
                 {isClientActive && (
@@ -263,6 +197,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
 
               {ownedLocals.length > 0 && (
                 <React.Fragment>
+                  <Text style={styles.sectionTitle}>Mis Locales</Text>
                   {ownedLocals.map((local) => {
                     const isActive = activeProfileType === 'local' && activeProfileId === local.id;
                     
@@ -275,12 +210,16 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
                         activeOpacity={0.7}
                       >
                         <View style={styles.profileInfo}>
-                          <View style={[styles.profileAvatar, styles.ownerAvatarBg]}>
-                            <IconSymbol ios_icon_name="briefcase.fill" android_material_icon_name="work" size={24} color={colors.white} />
+                          <View style={[styles.profileAvatar, styles.localAvatarBg]}>
+                            {local.imagen_url ? (
+                              <Image source={{ uri: local.imagen_url }} style={styles.avatarImage} />
+                            ) : (
+                              <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color={colors.white} />
+                            )}
                           </View>
                           <View style={styles.profileText}>
-                            <Text style={styles.profileName}>Propietario</Text>
-                            <Text style={styles.profileType}>Gestiona tus locales</Text>
+                            <Text style={styles.profileName}>{local.nombre}</Text>
+                            <Text style={styles.profileType}>{local.tipo || 'Local'}</Text>
                           </View>
                         </View>
                         {isActive && (
@@ -292,6 +231,16 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
                     );
                   })}
                 </React.Fragment>
+              )}
+
+              {ownedLocals.length === 0 && (
+                <View style={styles.emptyState}>
+                  <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={48} color={colors.textSecondary} />
+                  <Text style={styles.emptyStateText}>No tienes locales registrados</Text>
+                  <Text style={styles.emptyStateSubtext}>
+                    Reclama o crea un local para poder gestionarlo
+                  </Text>
+                </View>
               )}
             </ScrollView>
           )}
@@ -353,6 +302,13 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 20,
   },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 12,
+  },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -380,15 +336,17 @@ const styles = StyleSheet.create({
     marginRight: 16,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  adminAvatarBg: {
-    backgroundColor: '#8B5CF6',
+    overflow: 'hidden',
   },
   clientAvatarBg: {
     backgroundColor: colors.primary,
   },
-  ownerAvatarBg: {
+  localAvatarBg: {
     backgroundColor: colors.secondary,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   profileText: {
     flex: 1,
@@ -405,6 +363,23 @@ const styles = StyleSheet.create({
   },
   activeIndicator: {
     marginLeft: 12,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   loadingOverlay: {
     position: 'absolute',

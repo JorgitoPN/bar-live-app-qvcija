@@ -31,6 +31,7 @@ import { trackSearchAppearance } from '@/utils/activityTracker';
 import { shouldHavePubCategory } from '@/utils/categorizeLocal';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import { useFilters } from '@/contexts/FilterContext';
+import { isAdminUser } from '@/utils/adminAccess';
 
 type ModoUsuario = 'cliente' | 'propietario' | 'admin';
 
@@ -94,11 +95,30 @@ export default function ExplorarScreen() {
   const categoriasTranslateY = useRef(new Animated.Value(0)).current;
   const isHeaderVisible = useRef(true);
 
+  // ✅ CRITICAL FIX: Check if user is authorized admin for mode selector
+  const userIsAdmin = useMemo(() => {
+    const isAdmin = isAdminUser(user);
+    console.log('[ExplorarScreen] Admin check for mode selector:', {
+      email: user?.email,
+      role: user?.rol_app,
+      isAdmin,
+      shouldShowAdminMode: isAdmin,
+    });
+    return isAdmin;
+  }, [user]);
+
   const userRole = user?.rol_app || 'cliente';
-  const availableModes: ModoUsuario[] = 
-    userRole === 'admin' ? ['cliente', 'propietario', 'admin'] :
-    userRole === 'propietario' ? ['cliente', 'propietario'] :
-    ['cliente'];
+  
+  // ✅ CRITICAL FIX: Only include 'admin' mode if user is authorized admin
+  const availableModes: ModoUsuario[] = useMemo(() => {
+    if (userIsAdmin) {
+      return ['cliente', 'propietario', 'admin'];
+    } else if (userRole === 'propietario') {
+      return ['cliente', 'propietario'];
+    } else {
+      return ['cliente'];
+    }
+  }, [userIsAdmin, userRole]);
 
   useFocusEffect(
     useCallback(() => {
@@ -783,6 +803,7 @@ export default function ExplorarScreen() {
         )}
       </ScrollView>
 
+      {/* ✅ CRITICAL FIX: Mode selector modal with admin restriction */}
       <Modal
         visible={mostrarSelectorModo}
         transparent
