@@ -322,7 +322,8 @@ export default function LocalDetailsModal({
                     </Text>
                   )}
 
-                  {/* ✅ FIXED: Removed redundant local name text between buttons */}
+                  {/* ✅ ELIMINADO: Texto redundante del nombre del local que aparecía aquí */}
+                  {/* El nombre del local solo aparece una vez arriba (localNameText) */}
                   
                   <View style={styles.actionsRow}>
                     {local.telefono && (
