@@ -1028,7 +1028,7 @@ export default function PerfilScreen() {
         {currentLocal && (
           <View style={styles.currentLocalCompact}>
             <LinearGradient
-              colors={['#10B981', '#059669']}
+              colors={['rgba(45, 212, 191, 0.25)', 'rgba(6, 182, 212, 0.25)']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.currentLocalCompactGradient}
@@ -1116,7 +1116,7 @@ export default function PerfilScreen() {
                   ios_icon_name="mappin.slash.circle.fill" 
                   android_material_icon_name="location_off" 
                   size={14} 
-                  color="#FFFFFF" 
+                  color="#6B7280" 
                 />
                 <Text style={styles.exitLocalButtonCompactText}>Salir del local</Text>
               </TouchableOpacity>
@@ -1850,17 +1850,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#EF4444',
+    backgroundColor: 'rgba(107, 114, 128, 0.15)',
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 10,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(107, 114, 128, 0.3)',
   },
   exitLocalButtonCompactText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#6B7280',
     letterSpacing: 0.3,
   },
   statsContainer: {

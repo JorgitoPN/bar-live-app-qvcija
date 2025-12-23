@@ -616,7 +616,7 @@ export default function FiltrosAvanzadosSheet({
                 </View>
               )}
 
-              {(tiposLocales.length === 1 && serviciosDisponibles.length === 0 && ambientesDisponibles.length === 1 && clientelaDisponible.length === 1) && (
+              {(tiposLocales.length === 1 && serviciosDisponibles.length === 0 && ambientesDisponibles.length === 1 && clientelaDisponible.length === 1) && !isLoadingOptions && (
                 <View style={styles.emptyState}>
                   <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={48} color={colors.textSecondary} />
                   <Text style={styles.emptyStateText}>
@@ -625,6 +625,14 @@ export default function FiltrosAvanzadosSheet({
                   <Text style={styles.emptyStateSubtext}>
                     Los filtros se generan automáticamente basados en los locales activos.
                   </Text>
+                  <TouchableOpacity 
+                    style={styles.refreshButton}
+                    onPress={refreshDynamicOptions}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={18} color={colors.white} />
+                    <Text style={styles.refreshButtonText}>Recargar opciones</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
@@ -1076,5 +1084,21 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 8,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  refreshButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.white,
   },
 });

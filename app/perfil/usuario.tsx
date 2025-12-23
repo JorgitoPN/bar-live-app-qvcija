@@ -746,17 +746,23 @@ export default function UsuarioPerfilScreen() {
 
           {currentLocal && canViewLocation && !isPrivateAndNoAccess && (
             <View style={styles.statusCard}>
-              <View style={styles.statusCardHeader}>
-                <View style={styles.statusIconContainer}>
-                  <IconSymbol 
-                    ios_icon_name="mappin.circle.fill" 
-                    android_material_icon_name="location_on" 
-                    size={16} 
-                    color="#10B981" 
-                  />
+              <LinearGradient
+                colors={['rgba(45, 212, 191, 0.25)', 'rgba(6, 182, 212, 0.25)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.statusCardGradient}
+              >
+                <View style={styles.statusCardHeader}>
+                  <View style={styles.statusIconContainer}>
+                    <IconSymbol 
+                      ios_icon_name="mappin.circle.fill" 
+                      android_material_icon_name="location_on" 
+                      size={16} 
+                      color={colors.primary} 
+                    />
+                  </View>
+                  <Text style={styles.statusCardTitle}>Estado actual</Text>
                 </View>
-                <Text style={styles.statusCardTitle}>Estado actual</Text>
-              </View>
 
               <TouchableOpacity 
                 style={styles.statusCardContent} 
@@ -812,21 +818,22 @@ export default function UsuarioPerfilScreen() {
                 </View>
               </TouchableOpacity>
               
-              {isOwnProfile && (
-                <TouchableOpacity 
-                  style={styles.statusExitButton} 
-                  onPress={handleExitLocal}
-                  activeOpacity={0.8}
-                >
-                  <IconSymbol 
-                    ios_icon_name="mappin.slash.circle.fill" 
-                    android_material_icon_name="location_off" 
-                    size={14} 
-                    color="#FFFFFF" 
-                  />
-                  <Text style={styles.statusExitButtonText}>Salir del local</Text>
-                </TouchableOpacity>
-              )}
+                {isOwnProfile && (
+                  <TouchableOpacity 
+                    style={styles.statusExitButton} 
+                    onPress={handleExitLocal}
+                    activeOpacity={0.8}
+                  >
+                    <IconSymbol 
+                      ios_icon_name="mappin.slash.circle.fill" 
+                      android_material_icon_name="location_off" 
+                      size={14} 
+                      color="#6B7280" 
+                    />
+                    <Text style={styles.statusExitButtonText}>Salir del local</Text>
+                  </TouchableOpacity>
+                )}
+              </LinearGradient>
             </View>
           )}
 
@@ -1035,12 +1042,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   statusCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 16,
-    padding: 14,
     marginBottom: 20,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(45, 212, 191, 0.3)',
+  },
+  statusCardGradient: {
+    padding: 14,
   },
   statusCardHeader: {
     flexDirection: 'row',
@@ -1052,7 +1061,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: 'rgba(45, 212, 191, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1118,15 +1127,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#EF4444',
+    backgroundColor: 'rgba(107, 114, 128, 0.15)',
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(107, 114, 128, 0.3)',
   },
   statusExitButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#6B7280',
   },
   statsContainer: {
     flexDirection: 'row',
