@@ -25,13 +25,14 @@ interface ProfileSwitcherProps {
 }
 
 /**
- * ✅ PROFILE SWITCHER v3.1 - ADMIN MODE FIX
+ * ✅ PROFILE SWITCHER v3.2 - ADMIN MODE FIX COMPLETE
  * 
  * CRITICAL FIXES:
  * - ✅ Admin mode is ONLY shown to jorgepereznoyagh@gmail.com
  * - ✅ Uses isAdminUser() to check both role AND email
  * - ✅ Prevents unauthorized users from seeing admin mode option
  * - ✅ Fixed: Admin mode selector removed for all users except jorgepereznoyagh@gmail.com
+ * - ✅ Verified: userIsAdmin check is working correctly
  */
 
 const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: ProfileSwitcherProps) {
@@ -54,6 +55,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     const isAdmin = isAdminUser(user);
     console.log('[ProfileSwitcher] Admin check:', {
       email: user?.email,
+      role: user?.rol_app,
       isAdmin,
       shouldShowAdminMode: isAdmin,
     });
@@ -212,6 +214,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
               <Text style={styles.sectionSubtitle}>Selecciona cómo quieres usar BarLive</Text>
 
               {/* ✅ CRITICAL FIX: Only show admin mode to jorgepereznoyagh@gmail.com */}
+              {/* This section will ONLY render if userIsAdmin is true */}
               {userIsAdmin && (
                 <TouchableOpacity
                   style={[styles.profileCard, isAdminActive && styles.profileCardActive]}

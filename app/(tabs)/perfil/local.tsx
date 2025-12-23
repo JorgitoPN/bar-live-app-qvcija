@@ -35,7 +35,7 @@ import { useLocalEvent } from '@/hooks/useLocalEvent';
 import MomentoViewer from '@/components/momento/MomentoViewer';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 
-const SCREEN_VERSION = '10.2.0';
+const SCREEN_VERSION = '10.3.0';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -93,12 +93,14 @@ interface Seguidor {
 }
 
 /**
- * ✅ LOCAL PROFILE v10.2 - COMPLETE MOMENTO INTEGRATION & ANALYTICS FIX
+ * ✅ LOCAL PROFILE v10.3 - MOMENTO VIEWER & ANALYTICS COMPLETE
  * 
  * Changes:
  * - ✅ Added neon green border to avatar when momentos exist (matching user profile design)
  * - ✅ Added + icon to upload momentos (owner only)
- * - ✅ Enabled momento viewer for locale profiles (tap avatar to view)
+ * - ✅ FIXED: Avatar is now clickable to view momentos for all users
+ * - ✅ FIXED: Non-owners can view momentos by tapping avatar
+ * - ✅ FIXED: Owners can upload momentos by tapping + icon or avatar when no momentos exist
  * - ✅ Synchronized with user profile momento functionality
  * - ✅ Fixed analytics button to check premium plan permission
  * - ✅ Analytics button only visible if user has premium plan with panel_analisis permission
@@ -644,14 +646,19 @@ export default function LocalPerfilScreen() {
   };
 
   const handleAvatarPress = () => {
-    if (hasUnviewedMomentos || isOwner) {
-      if (isOwner) {
-        // Owner can upload or view
-        setShowMomentoUpload(true);
-      } else {
-        // Non-owner can only view
-        setShowMomentoViewer(true);
-      }
+    console.log('[LocalPerfil] Avatar pressed:', {
+      hasUnviewedMomentos,
+      isOwner,
+    });
+
+    // ✅ FIXED: Always allow viewing momentos if they exist
+    if (hasUnviewedMomentos) {
+      console.log('[LocalPerfil] Opening momento viewer');
+      setShowMomentoViewer(true);
+    } else if (isOwner) {
+      // Owner can upload new momentos even if none exist
+      console.log('[LocalPerfil] Opening momento upload (owner)');
+      setShowMomentoUpload(true);
     }
   };
 
