@@ -17,6 +17,7 @@ import { useMode } from '@/contexts/ModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
+import { isAdminUser } from '@/utils/adminAccess';
 
 interface ProfileSwitcherProps {
   visible: boolean;
@@ -24,13 +25,12 @@ interface ProfileSwitcherProps {
 }
 
 /**
- * ✅ PROFILE SWITCHER v2.0 - FLICKERING FIX
+ * ✅ PROFILE SWITCHER v3.0 - ADMIN MODE FIX
  * 
  * CRITICAL FIXES:
- * - ✅ Wrapped component in React.memo to prevent unnecessary re-renders
- * - ✅ Memoized all callbacks with stable dependencies
- * - ✅ Only load data when modal becomes visible (not on every render)
- * - ✅ Optimized useEffect dependencies to prevent infinite loops
+ * - ✅ Admin mode is ONLY shown to jorgepereznoyagh@gmail.com
+ * - ✅ Uses isAdminUser() to check both role AND email
+ * - ✅ Prevents unauthorized users from seeing admin mode option
  */
 
 const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: ProfileSwitcherProps) {
@@ -39,12 +39,19 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
   const {
     activeProfileId,
     activeProfileType,
+    currentMode,
     switchToClientProfile,
     switchToLocalProfile,
+    setCurrentMode,
   } = useMode();
   const [switching, setSwitching] = useState(false);
   const [ownedLocals, setOwnedLocals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // ✅ CRITICAL: Check if user is authorized admin
+  const userIsAdmin = useMemo(() => {
+    return isAdminUser(user);
+  }, [user]);
 
   // ✅ CRITICAL FIX: Memoize loadOwnedLocals with STABLE dependencies
   const loadOwnedLocals = useCallback(async () => {
@@ -91,7 +98,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     } finally {
       setLoading(false);
     }
-  }, [user?.id]); // ✅ CRITICAL: Only depend on user.id (stable reference)
+  }, [user?.id]);
 
   // ✅ CRITICAL FIX: Only load when modal becomes visible, not on every render
   useEffect(() => {
@@ -99,7 +106,6 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
       console.log('[ProfileSwitcher] 🔄 Modal opened, loading owned locals');
       loadOwnedLocals();
     }
-    // ✅ Don't reset state when modal closes to avoid flickering
   }, [visible, user?.id, loadOwnedLocals]);
 
   // ✅ OPTIMIZATION: Memoize handlers to prevent re-creation
@@ -143,10 +149,40 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     }
   }, [switchToLocalProfile, onClose, router]);
 
+  // ✅ NEW: Handle switching to admin mode
+  const handleSwitchToAdmin = useCallback(async () => {
+    if (!userIsAdmin) {
+      console.error('[ProfileSwitcher] ❌ User is not authorized admin');
+      return;
+    }
+
+    setSwitching(true);
+    try {
+      console.log('[ProfileSwitcher] 🔄 Switching to admin mode');
+      await setCurrentMode('admin');
+      console.log('[ProfileSwitcher] ✅ Mode switched to admin');
+      
+      onClose();
+      
+      setTimeout(() => {
+        console.log('[ProfileSwitcher] ✅ Navigating to admin panel');
+        router.push('/(tabs)/admin');
+      }, 100);
+    } catch (error) {
+      console.error('[ProfileSwitcher] ❌ Error switching to admin:', error);
+    } finally {
+      setSwitching(false);
+    }
+  }, [userIsAdmin, setCurrentMode, onClose, router]);
+
   // ✅ OPTIMIZATION: Memoize active profile check
   const isClientActive = useMemo(() => {
     return activeProfileType === 'cliente' && activeProfileId === user?.id;
   }, [activeProfileType, activeProfileId, user?.id]);
+
+  const isAdminActive = useMemo(() => {
+    return currentMode === 'admin';
+  }, [currentMode]);
 
   if (!user) return null;
 
@@ -173,6 +209,44 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
             </View>
           ) : (
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+              {/* ✅ CRITICAL: Only show admin mode to authorized users */}
+              {userIsAdmin && (
+                <>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Modo Administrador</Text>
+                    <Text style={styles.sectionSubtitle}>
+                      Acceso exclusivo para {user.email}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.profileCard, isAdminActive && styles.profileCardActive]}
+                    onPress={handleSwitchToAdmin}
+                    disabled={switching || isAdminActive}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.profileInfo}>
+                      <View style={[styles.profileAvatar, styles.adminAvatarBg]}>
+                        <IconSymbol ios_icon_name="gear" android_material_icon_name="settings" size={24} color={colors.white} />
+                      </View>
+                      <View style={styles.profileText}>
+                        <Text style={styles.profileName}>Panel de Administración</Text>
+                        <Text style={styles.profileType}>Gestión del sistema</Text>
+                      </View>
+                    </View>
+                    {isAdminActive && (
+                      <View style={styles.activeIndicator}>
+                        <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
+
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Perfil Personal</Text>
+              </View>
+
               <TouchableOpacity
                 style={[styles.profileCard, isClientActive && styles.profileCardActive]}
                 onPress={handleSwitchToClient}
@@ -351,6 +425,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  adminAvatarBg: {
+    backgroundColor: colors.badgeNuevo,
     justifyContent: 'center',
     alignItems: 'center',
   },

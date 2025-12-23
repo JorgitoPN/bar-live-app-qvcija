@@ -32,8 +32,10 @@ import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
+import MomentoViewer from '@/components/momento/MomentoViewer';
+import MomentoUpload from '@/components/momento/MomentoUpload';
 
-const SCREEN_VERSION = '9.0.0';
+const SCREEN_VERSION = '10.0.0';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -91,12 +93,13 @@ interface Seguidor {
 }
 
 /**
- * ✅ LOCAL PROFILE v9.0 - USERNAME DISPLAY
+ * ✅ LOCAL PROFILE v10.0 - MOMENTO INTEGRATION
  * 
  * Changes:
- * - ✅ Display username below local name
- * - ✅ Show subscription status badge
- * - ✅ Hide profile if subscription is inactive
+ * - ✅ Added neon green border to avatar when momentos exist
+ * - ✅ Added + icon to upload momentos (owner only)
+ * - ✅ Enabled momento viewer for locale profiles
+ * - ✅ Synchronized with user profile momento functionality
  */
 
 export default function LocalPerfilScreen() {
@@ -137,6 +140,11 @@ export default function LocalPerfilScreen() {
   const [seguidoresCount, setSeguidoresCount] = useState(0);
   const [seguidosCount, setSeguidosCount] = useState(0);
 
+  // ✅ NEW: Momento state
+  const [showMomentoViewer, setShowMomentoViewer] = useState(false);
+  const [showMomentoUpload, setShowMomentoUpload] = useState(false);
+  const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const isTogglingFollow = useRef(false);
@@ -169,13 +177,84 @@ export default function LocalPerfilScreen() {
     ]).start();
   }, [fadeAnim, scaleAnim]);
 
+  // ✅ NEW: Check for unviewed momentos
+  const checkUnviewedMomentos = useCallback(async () => {
+    if (!user || !localId) return;
+
+    try {
+      console.log('[LocalPerfil] 🔍 Checking momentos for local:', localId);
+
+      // Get momentos for this local
+      const { data: momentosData, error: momentosError } = await supabase
+        .from('momentos')
+        .select('id')
+        .eq('local_id', localId)
+        .eq('tipo', 'local')
+        .gt('expires_at', new Date().toISOString());
+
+      if (momentosError || !momentosData || momentosData.length === 0) {
+        setHasUnviewedMomentos(false);
+        return;
+      }
+
+      // Check if user has viewed any of these momentos
+      const momentoIds = momentosData.map(m => m.id);
+      const { data: viewsData } = await supabase
+        .from('momento_views')
+        .select('momento_id')
+        .eq('usuario_id', user.id)
+        .in('momento_id', momentoIds);
+
+      const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
+      const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
+
+      console.log('[LocalPerfil] 🎯 Momentos check:', {
+        total: momentosData.length,
+        viewed: viewedIds.size,
+        hasUnviewed,
+      });
+
+      setHasUnviewedMomentos(hasUnviewed);
+    } catch (error) {
+      console.error('[LocalPerfil] ❌ Error checking momentos:', error);
+      setHasUnviewedMomentos(false);
+    }
+  }, [user, localId]);
+
+  useEffect(() => {
+    if (localId && user) {
+      checkUnviewedMomentos();
+
+      // Subscribe to real-time updates
+      const momentosChannel = supabase
+        .channel(`local-momentos-${localId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'momentos',
+            filter: `local_id=eq.${localId}`,
+          },
+          () => {
+            console.log('[LocalPerfil] 🔄 Momento update detected');
+            checkUnviewedMomentos();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(momentosChannel);
+      };
+    }
+  }, [localId, user, checkUnviewedMomentos]);
+
   const loadSeguidoresLocal = useCallback(async () => {
     if (!localId) return;
     
     setLoadingSeguidores(true);
     try {
       console.log('[LocalPerfil] 📊 Loading followers for local:', localId);
-      console.log('[LocalPerfil] ⚠️ Followers = users who FOLLOW this local in the social network');
 
       const { data, error } = await supabase
         .from('seguidores')
@@ -224,7 +303,6 @@ export default function LocalPerfilScreen() {
     setLoadingSeguidos(true);
     try {
       console.log('[LocalPerfil] 📊 Loading following for local:', localId);
-      console.log('[LocalPerfil] ⚠️ Following = users/locals that this local FOLLOWS');
 
       const { data, error } = await supabase
         .from('seguidores')
@@ -429,6 +507,7 @@ export default function LocalPerfilScreen() {
     if (activeTab === 'empleo') {
       await loadEmpleoData();
     }
+    await checkUnviewedMomentos();
     setRefreshing(false);
   };
 
@@ -455,15 +534,12 @@ export default function LocalPerfilScreen() {
 
     try {
       console.log('[LocalPerfil] 🔄 Toggling FOLLOW status (social network)');
-      console.log('[LocalPerfil] ⚠️ IMPORTANT: This is INDEPENDENT from favorites');
-      console.log('[LocalPerfil] ⚠️ Following affects ONLY the social network, NOT favorites');
 
       setIsFollowing(!wasFollowing);
       setSeguidoresCount(wasFollowing ? Math.max(0, previousSeguidores - 1) : previousSeguidores + 1);
 
       if (wasFollowing) {
         console.log('[LocalPerfil] ➖ Unfollowing local in social network...');
-        console.log('[LocalPerfil] ⚠️ This will NOT remove from favorites');
         
         const { error: deleteError } = await supabase
           .from('seguidores')
@@ -474,10 +550,8 @@ export default function LocalPerfilScreen() {
         if (deleteError) throw deleteError;
 
         console.log('[LocalPerfil] ✅ Unfollow successful');
-        console.log('[LocalPerfil] ✅ Favorites remain UNCHANGED');
       } else {
         console.log('[LocalPerfil] ➕ Following local in social network...');
-        console.log('[LocalPerfil] ⚠️ This will NOT add to favorites');
 
         const { data: existingFollow } = await supabase
           .from('seguidores')
@@ -512,8 +586,6 @@ export default function LocalPerfilScreen() {
           });
 
         console.log('[LocalPerfil] ✅ Follow successful');
-        console.log('[LocalPerfil] ✅ Favorites remain UNCHANGED');
-        console.log('[LocalPerfil] ℹ️ To save this local to favorites, go to the Locales Favoritos page');
       }
 
       const { count: updatedFollowersCount } = await supabase
@@ -531,6 +603,17 @@ export default function LocalPerfilScreen() {
       Alert.alert('Error', 'No se pudo completar la acción. Por favor, intenta de nuevo.');
     } finally {
       isTogglingFollow.current = false;
+    }
+  };
+
+  // ✅ NEW: Handle avatar press
+  const handleAvatarPress = () => {
+    if (isOwner) {
+      // Owner can upload momentos
+      setShowMomentoUpload(true);
+    } else {
+      // Others can view momentos
+      setShowMomentoViewer(true);
     }
   };
 
@@ -671,9 +754,6 @@ export default function LocalPerfilScreen() {
 
     try {
       console.log('[LocalPerfil] Opening chat with LOCAL PROFILE (isolated messaging)');
-      console.log('[LocalPerfil] Local ID:', localId);
-      console.log('[LocalPerfil] Local Owner ID:', local.propietario_id);
-      console.log('[LocalPerfil] Current User ID:', user.id);
       
       router.push(`/chat/conversacion?localId=${localId}&userId=${user.id}`);
     } catch (error) {
@@ -921,18 +1001,48 @@ export default function LocalPerfilScreen() {
             ]}
           >
             <View style={styles.profileHeader}>
-              <View style={styles.avatarContainer}>
-                {local.imagen_url ? (
-                  <Image source={{ uri: local.imagen_url }} style={styles.avatar} />
+              {/* ✅ NEW: Avatar with momento border and + icon */}
+              <TouchableOpacity 
+                style={styles.avatarContainer}
+                onPress={handleAvatarPress}
+                activeOpacity={0.8}
+              >
+                {hasUnviewedMomentos ? (
+                  <LinearGradient
+                    colors={['#00FF88', '#00FF88', '#00FF88']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.momentoBorder}
+                  >
+                    {local.imagen_url ? (
+                      <Image source={{ uri: local.imagen_url }} style={styles.avatar} />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                        <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={40} color={colors.headerText} />
+                      </View>
+                    )}
+                  </LinearGradient>
                 ) : (
-                  <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                    <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={40} color={colors.headerText} />
+                  <View style={styles.avatarBorderNormal}>
+                    {local.imagen_url ? (
+                      <Image source={{ uri: local.imagen_url }} style={styles.avatar} />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                        <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={40} color={colors.headerText} />
+                      </View>
+                    )}
                   </View>
                 )}
-              </View>
+                {/* ✅ NEW: + icon for owner to add momentos */}
+                {isOwner && (
+                  <View style={styles.addMomentoButton}>
+                    <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={16} color={colors.white} />
+                  </View>
+                )}
+              </TouchableOpacity>
+
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>{local.nombre}</Text>
-                {/* ✅ Display username below local name */}
                 {local.username && (
                   <Text style={styles.profileUsername}>@{local.username}</Text>
                 )}
@@ -1516,6 +1626,31 @@ export default function LocalPerfilScreen() {
         </View>
       </Modal>
 
+      {/* ✅ NEW: Momento Viewer */}
+      {showMomentoViewer && (
+        <MomentoViewer
+          visible={showMomentoViewer}
+          onClose={() => {
+            setShowMomentoViewer(false);
+            checkUnviewedMomentos();
+          }}
+          localId={localId}
+        />
+      )}
+
+      {/* ✅ NEW: Momento Upload (owner only) */}
+      {showMomentoUpload && isOwner && (
+        <MomentoUpload
+          visible={showMomentoUpload}
+          onClose={() => {
+            setShowMomentoUpload(false);
+            checkUnviewedMomentos();
+          }}
+          localId={localId}
+          tipo="local"
+        />
+      )}
+
       <ProfileSwitcher
         visible={showProfileSwitcher}
         onClose={() => setShowProfileSwitcher(false)}
@@ -1604,6 +1739,24 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: 20,
   },
+  // ✅ NEW: Momento border styles
+  momentoBorder: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarBorderNormal: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    padding: 4,
+    backgroundColor: colors.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   avatar: {
     width: 88,
     height: 88,
@@ -1615,6 +1768,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // ✅ NEW: Add momento button
+  addMomentoButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.headerText,
   },
   profileInfo: {
     flex: 1,
