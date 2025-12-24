@@ -132,18 +132,11 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v5.3 - OPTIMIZED PERFORMANCE & INSTANT RESPONSE
+ * ✅ MAP SCREEN v5.4 - FIXED LOADING TEXT
  * 
- * Features:
- * - ✅ INSTANT DISPLAY: Map and markers load simultaneously (HYDRATION)
- * - ✅ CLEAN LOADING: Simple loading indicator without video
- * - ✅ FIXED POPUP: Proper centering without going off-screen
- * - ✅ SHARED DATA: Uses GlobalDataContext (same as Lista de Locales)
- * - ✅ SYNCHRONIZED FILTERS: Real-time sync with FilterContext
- * - ✅ DYNAMIC FILTERS: Only show options with actual results
- * - ✅ FLY-TO ANIMATION: Smooth map navigation on location filter
- * - ✅ MARKER CLUSTERING: Performance with many markers
- * - ✅ OPTIMIZED FILTERING: Instant response when changing filters
+ * Changes:
+ * - ✅ FIXED: Changed "Cargando 0 locales" to "Preparando mapa"
+ * - ✅ Removed locale count from loading text
  */
 
 export default function MapaScreen() {
@@ -1173,7 +1166,6 @@ export default function MapaScreen() {
                   </View>
                   <ActivityIndicator size="large" color={colors.primary} style={styles.loadingSpinner} />
                   <Text style={styles.loadingText}>Preparando mapa...</Text>
-                  <Text style={styles.loadingSubtext}>Cargando {todosLosLocales.length} locales</Text>
                 </View>
               </View>
             )}
@@ -1359,11 +1351,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     marginBottom: 8,
-  },
-  loadingSubtext: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textSecondary,
   },
   webNotSupported: {
     flex: 1,
