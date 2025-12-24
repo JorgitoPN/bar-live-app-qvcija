@@ -104,7 +104,7 @@ export default function LoginV6Screen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[Login v6.1] 🔐 Attempting login:', normalizedEmail);
+      console.log('[Login v6.2 - Token] 🔐 Attempting login:', normalizedEmail);
 
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
@@ -113,7 +113,7 @@ export default function LoginV6Screen() {
         .maybeSingle();
 
       if (userData?.provider === 'google') {
-        console.log('[Login v6.1] 🔍 Google user detected');
+        console.log('[Login v6.2 - Token] 🔍 Google user detected');
         setLoading(false);
         
         Alert.alert(
@@ -144,36 +144,43 @@ export default function LoginV6Screen() {
       });
 
       if (authError) {
-        console.error('[Login v6.1] ❌ Error signing in:', authError);
+        console.error('[Login v6.2 - Token] ❌ Error signing in:', authError);
         
         if (authError.message.includes('Email not confirmed')) {
+          console.log('[Login v6.2 - Token] ⚠️ Email no verificado, redirigiendo a verificación con token');
+          
           Alert.alert(
             'Email no verificado',
-            'Por favor, verifica tu correo electrónico antes de iniciar sesión.',
+            'Tu cuenta aún no ha sido verificada. Te enviaremos un código de verificación para que puedas completar el proceso.',
             [
               {
-                text: 'Reenviar correo',
+                text: 'Verificar ahora',
                 onPress: async () => {
                   try {
-                    const { error } = await supabase.auth.resend({
-                      type: 'signup',
-                      email: normalizedEmail,
-                      options: {
-                        emailRedirectTo: 'https://natively.dev/email-confirmed',
-                      },
-                    });
+                    // Send verification token
+                    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
                     
-                    if (error) {
-                      Alert.alert('Error', 'No se pudo reenviar el correo de verificación');
+                    const response = await fetch(`${supabaseUrl}/functions/v1/request-verification-token`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ email: normalizedEmail }),
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok || result.error) {
+                      Alert.alert('Error', 'No se pudo enviar el código de verificación');
                     } else {
-                      Alert.alert(
-                        'Correo enviado',
-                        'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada.'
-                      );
+                      router.push({
+                        pathname: '/auth/verificar-cuenta-token',
+                        params: { email: normalizedEmail },
+                      });
                     }
                   } catch (err) {
-                    console.error('[Login v6.1] Error resending email:', err);
-                    Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
+                    console.error('[Login v6.2 - Token] Error sending verification token:', err);
+                    Alert.alert('Error', 'Ocurrió un error al enviar el código');
                   }
                 },
               },
@@ -197,13 +204,12 @@ export default function LoginV6Screen() {
         return;
       }
 
-      console.log('[Login v6.1] ✅ Login successful:', authData.user.id);
+      console.log('[Login v6.2 - Token] ✅ Login successful:', authData.user.id);
       
-      // ✅ CRITICAL FIX: Redirect to explorar (lista de locales) instead of configuracion
-      console.log('[Login v6.1] 🚀 Redirigiendo a lista de locales...');
+      console.log('[Login v6.2 - Token] 🚀 Redirigiendo a lista de locales...');
       router.replace('/(tabs)/explorar');
     } catch (error: any) {
-      console.error('[Login v6.1] ❌ Error in handleLogin:', error);
+      console.error('[Login v6.2 - Token] ❌ Error in handleLogin:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -360,7 +366,7 @@ export default function LoginV6Screen() {
 
           <TouchableOpacity
             style={styles.forgotButton}
-            onPress={() => router.push('/auth/recuperar-password-v7')}
+            onPress={() => router.push('/auth/recuperar-password-token')}
             disabled={loading}
           >
             <Text style={styles.forgotButtonText}>¿Olvidaste tu contraseña?</Text>

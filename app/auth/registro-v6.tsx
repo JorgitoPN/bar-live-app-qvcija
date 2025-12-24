@@ -185,8 +185,9 @@ export default function RegistroV6Screen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[Registro v6.0] 📝 Registering new user:', normalizedEmail);
+      console.log('[Registro v6.1 - Token] 📝 Registrando nuevo usuario:', normalizedEmail);
 
+      // Check if user already exists
       const { data: existingUser, error: checkError } = await supabase
         .from('usuarios')
         .select('id, email_verified')
@@ -194,7 +195,7 @@ export default function RegistroV6Screen() {
         .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') {
-        console.error('[Registro v6.0] Error checking email:', checkError);
+        console.error('[Registro v6.1 - Token] Error checking email:', checkError);
         Alert.alert('Error', 'No se pudo verificar el correo. Por favor, intenta nuevamente.');
         setLoading(false);
         return;
@@ -216,35 +217,39 @@ export default function RegistroV6Screen() {
         } else {
           Alert.alert(
             'Verificación pendiente',
-            'Este correo ya está registrado pero no verificado. ¿Deseas reenviar el correo de verificación?',
+            'Este correo ya está registrado pero no verificado. ¿Deseas reenviar el código de verificación?',
             [
               {
-                text: 'Reenviar',
+                text: 'Reenviar código',
                 onPress: async () => {
                   try {
-                    const { error } = await supabase.auth.resend({
-                      type: 'signup',
-                      email: normalizedEmail,
-                      options: {
-                        emailRedirectTo: 'https://barliveapp.es/auth/email-confirmed',
-                      },
-                    });
+                    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
                     
-                    if (error) {
-                      Alert.alert('Error', 'No se pudo reenviar el correo de verificación');
+                    const response = await fetch(`${supabaseUrl}/functions/v1/request-verification-token`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ email: normalizedEmail }),
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok || result.error) {
+                      Alert.alert('Error', 'No se pudo reenviar el código de verificación');
                     } else {
                       Alert.alert(
-                        'Correo enviado',
-                        'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada.'
+                        'Código enviado',
+                        'Se ha reenviado el código de verificación. Por favor, revisa tu bandeja de entrada.'
                       );
                       router.push({
-                        pathname: '/auth/verificar-email-v6',
+                        pathname: '/auth/verificar-cuenta-token',
                         params: { email: normalizedEmail },
                       });
                     }
                   } catch (err) {
-                    console.error('[Registro v6.0] Error resending email:', err);
-                    Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
+                    console.error('[Registro v6.1 - Token] Error resending token:', err);
+                    Alert.alert('Error', 'Ocurrió un error al reenviar el código');
                   }
                 },
               },
@@ -256,21 +261,22 @@ export default function RegistroV6Screen() {
         return;
       }
 
+      // Create auth user (without email confirmation requirement)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,
         password: password,
         options: {
-          emailRedirectTo: 'https://barliveapp.es/auth/email-confirmed',
           data: {
             nombre: nombre.trim(),
             provider: 'barlive',
             email_verified: false,
           },
+          // Don't use emailRedirectTo - we'll handle verification with tokens
         },
       });
 
       if (authError) {
-        console.error('[Registro v6.0] ❌ Error creating auth user:', authError);
+        console.error('[Registro v6.1 - Token] ❌ Error creating auth user:', authError);
         
         if (authError.message.includes('already registered')) {
           Alert.alert('Error', 'Este correo ya está registrado. Por favor, inicia sesión.');
@@ -288,20 +294,58 @@ export default function RegistroV6Screen() {
         return;
       }
 
-      console.log('[Registro v6.0] ✅ User created successfully:', authData.user.id);
+      console.log('[Registro v6.1 - Token] ✅ Usuario creado exitosamente:', authData.user.id);
 
-      router.push({
-        pathname: '/auth/verificar-email-v6',
-        params: { email: normalizedEmail, nombre: nombre.trim() },
+      // Send verification token
+      console.log('[Registro v6.1 - Token] 📧 Enviando token de verificación...');
+      
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
+      
+      const tokenResponse = await fetch(`${supabaseUrl}/functions/v1/request-verification-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: normalizedEmail }),
       });
 
-      Alert.alert(
-        '¡Cuenta creada!',
-        'Tu cuenta ha sido creada exitosamente. Hemos enviado un correo de verificación a tu email.',
-        [{ text: 'Entendido' }]
-      );
+      const tokenResult = await tokenResponse.json();
+
+      if (!tokenResponse.ok || tokenResult.error) {
+        console.error('[Registro v6.1 - Token] ⚠️ Error enviando token:', tokenResult);
+        // Don't fail registration if email fails - user can request resend
+        Alert.alert(
+          'Cuenta creada',
+          'Tu cuenta ha sido creada, pero hubo un problema al enviar el código de verificación. Por favor, solicita un nuevo código.',
+          [
+            {
+              text: 'Solicitar código',
+              onPress: () => {
+                router.push({
+                  pathname: '/auth/verificar-cuenta-token',
+                  params: { email: normalizedEmail, nombre: nombre.trim() },
+                });
+              },
+            },
+          ]
+        );
+      } else {
+        console.log('[Registro v6.1 - Token] ✅ Token enviado exitosamente');
+        
+        // Navigate to token verification screen
+        router.push({
+          pathname: '/auth/verificar-cuenta-token',
+          params: { email: normalizedEmail, nombre: nombre.trim() },
+        });
+
+        Alert.alert(
+          '¡Cuenta creada!',
+          'Tu cuenta ha sido creada exitosamente. Hemos enviado un código de verificación a tu email.',
+          [{ text: 'Entendido' }]
+        );
+      }
     } catch (error: any) {
-      console.error('[Registro v6.0] ❌ Error in handleRegister:', error);
+      console.error('[Registro v6.1 - Token] ❌ Error in handleRegister:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -640,7 +684,7 @@ export default function RegistroV6Screen() {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <>
+                <React.Fragment>
                   <IconSymbol
                     ios_icon_name="checkmark.circle.fill"
                     android_material_icon_name="check_circle"
@@ -649,7 +693,7 @@ export default function RegistroV6Screen() {
                     style={styles.buttonIcon}
                   />
                   <Text style={styles.buttonText}>Crear cuenta</Text>
-                </>
+                </React.Fragment>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -901,310 +945,6 @@ const styles = StyleSheet.create({
   },
   loginLink: {
     fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  stepIndicatorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  stepDot: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepDotActive: {
-    backgroundColor: '#fff',
-  },
-  stepDotText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  stepLine: {
-    width: 40,
-    height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginHorizontal: 8,
-  },
-  stepLineActive: {
-    backgroundColor: '#fff',
-  },
-  infoBox: {
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 32,
-    marginBottom: 32,
-  },
-  infoTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  infoText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  emailBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: `${colors.primary}15`,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginTop: 16,
-  },
-  highlightBox: {
-    backgroundColor: `${colors.primary}15`,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 24,
-    borderWidth: 3,
-    borderColor: colors.primary,
-  },
-  highlightHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  highlightTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginHorizontal: 12,
-    textAlign: 'center',
-  },
-  tokenLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  stepsBox: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 24,
-  },
-  stepsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 20,
-  },
-  stepItem: {
-    flexDirection: 'row',
-    marginBottom: 20,
-  },
-  stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  stepNumberText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  stepContent: {
-    flex: 1,
-  },
-  stepTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  stepDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  tokenContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-    paddingHorizontal: 4,
-  },
-  tokenInput: {
-    width: 48,
-    height: 64,
-    backgroundColor: colors.background,
-    borderWidth: 3,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: colors.text,
-  },
-  tokenInputFilled: {
-    borderColor: colors.primary,
-    backgroundColor: '#fff',
-  },
-  validatingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  validatingText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginLeft: 12,
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 16,
-    fontSize: 16,
-    color: colors.text,
-  },
-  eyeButton: {
-    padding: 16,
-  },
-  requirementsBox: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-  },
-  requirementsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  requirementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  requirementText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginLeft: 12,
-  },
-  requirementTextValid: {
-    color: '#10b981',
-  },
-  securityNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
-  },
-  securityText: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginLeft: 12,
-    lineHeight: 18,
-  },
-  helpBox: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-  },
-  helpTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  helpText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 8,
-    lineHeight: 18,
-  },
-  warningBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef3c7',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#f59e0b',
-  },
-  warningText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#78350f',
-    marginLeft: 12,
-    lineHeight: 18,
-  },
-  resendButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  resendButtonText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  backToLoginButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  backToLoginIcon: {
-    marginRight: 8,
-  },
-  backToLoginText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  backToLoginTextBold: {
     fontWeight: '600',
     color: colors.primary,
   },

@@ -23,9 +23,7 @@ export default function VerificarEmailV6Screen() {
   const email = params.email as string || '';
   const nombre = params.nombre as string || '';
   
-  const [resending, setResending] = useState(false);
-  const [canResend, setCanResend] = useState(false);
-  const [countdown, setCountdown] = useState(60);
+  const [sendingToken, setSendingToken] = useState(false);
   
   const fadeAnim = useMemo(() => new Animated.Value(0), []);
   const pulseAnim = useMemo(() => new Animated.Value(1), []);
@@ -51,47 +49,80 @@ export default function VerificarEmailV6Screen() {
         }),
       ])
     ).start();
+
+    // Automatically redirect to token verification
+    handleSendToken();
   }, [fadeAnim, pulseAnim]);
 
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      setCanResend(true);
-    }
-  }, [countdown]);
+  const handleSendToken = async () => {
+    if (sendingToken) return;
 
-  const handleResendEmail = async () => {
-    if (!canResend || resending) return;
-
-    setResending(true);
+    setSendingToken(true);
 
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email,
-        options: {
-          emailRedirectTo: 'https://barliveapp.es/auth/email-confirmed',
+      console.log('[VerificarEmailV6] 📧 Enviando token de verificación...');
+      
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/request-verification-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
 
-      if (error) {
-        console.error('[VerificarEmailV6] Error resending email:', error);
-        Alert.alert('Error', 'No se pudo reenviar el correo de verificación');
-      } else {
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        console.error('[VerificarEmailV6] ❌ Error enviando token:', result);
         Alert.alert(
-          'Correo enviado',
-          'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada.'
+          'Error',
+          'No se pudo enviar el código de verificación. Por favor, intenta nuevamente.',
+          [
+            {
+              text: 'Reintentar',
+              onPress: () => {
+                setSendingToken(false);
+                handleSendToken();
+              },
+            },
+            {
+              text: 'Cancelar',
+              style: 'cancel',
+              onPress: () => router.back(),
+            },
+          ]
         );
-        setCanResend(false);
-        setCountdown(60);
+      } else {
+        console.log('[VerificarEmailV6] ✅ Token enviado, redirigiendo...');
+        
+        // Redirect to token verification screen
+        router.replace({
+          pathname: '/auth/verificar-cuenta-token',
+          params: { email: email.trim().toLowerCase(), nombre },
+        });
       }
     } catch (error) {
-      console.error('[VerificarEmailV6] Exception:', error);
-      Alert.alert('Error', 'Ocurrió un error inesperado');
-    } finally {
-      setResending(false);
+      console.error('[VerificarEmailV6] ❌ Exception:', error);
+      Alert.alert(
+        'Error',
+        'Ocurrió un error inesperado. Por favor, intenta nuevamente.',
+        [
+          {
+            text: 'Reintentar',
+            onPress: () => {
+              setSendingToken(false);
+              handleSendToken();
+            },
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+            onPress: () => router.back(),
+          },
+        ]
+      );
     }
   };
 
@@ -131,106 +162,27 @@ export default function VerificarEmailV6Screen() {
             </View>
           </Animated.View>
 
-          <Text style={styles.title}>¡Revisa tu correo!</Text>
+          <Text style={styles.title}>Preparando verificación...</Text>
           <Text style={styles.subtitle}>
-            {nombre ? `Hola ${nombre}, ` : ''}Hemos enviado un correo de verificación a:
+            Estamos enviando tu código de verificación
           </Text>
 
-          <View style={styles.emailBadge}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Enviando código a {email}</Text>
+          </View>
+
+          <View style={styles.infoBox}>
             <IconSymbol
-              ios_icon_name="envelope.fill"
-              android_material_icon_name="email"
-              size={16}
+              ios_icon_name="info.circle.fill"
+              android_material_icon_name="info"
+              size={24}
               color={colors.primary}
             />
-            <Text style={styles.emailText}>{email}</Text>
-          </View>
-
-          <View style={styles.instructionsContainer}>
-            <Text style={styles.instructionsTitle}>📋 Próximos pasos:</Text>
-            
-            <View style={styles.stepItem}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>1</Text>
-              </View>
-              <View style={styles.stepContent}>
-                <Text style={styles.stepTitle}>Abre tu correo</Text>
-                <Text style={styles.stepDescription}>
-                  Busca el correo de BarLive en tu bandeja de entrada
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.stepItem}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>2</Text>
-              </View>
-              <View style={styles.stepContent}>
-                <Text style={styles.stepTitle}>Haz clic en el enlace</Text>
-                <Text style={styles.stepDescription}>
-                  Presiona el botón de verificación en el correo
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.stepItem}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>3</Text>
-              </View>
-              <View style={styles.stepContent}>
-                <Text style={styles.stepTitle}>¡Listo!</Text>
-                <Text style={styles.stepDescription}>
-                  Tu cuenta estará verificada y podrás iniciar sesión
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.tipsContainer}>
-            <Text style={styles.tipsTitle}>💡 Consejos:</Text>
-            <Text style={styles.tipText}>
-              • Revisa tu carpeta de spam o correo no deseado
-            </Text>
-            <Text style={styles.tipText}>
-              • El enlace expira en 24 horas por seguridad
-            </Text>
-            <Text style={styles.tipText}>
-              • Asegúrate de tener conexión a internet
+            <Text style={styles.infoText}>
+              En unos segundos serás redirigido a la pantalla de verificación donde podrás introducir el código de 6 dígitos que recibirás por correo.
             </Text>
           </View>
-
-          <TouchableOpacity
-            style={[styles.resendButton, (!canResend || resending) && styles.resendButtonDisabled]}
-            onPress={handleResendEmail}
-            disabled={!canResend || resending}
-            activeOpacity={0.7}
-          >
-            {resending ? (
-              <ActivityIndicator color={colors.primary} />
-            ) : (
-              <>
-                <IconSymbol
-                  ios_icon_name="arrow.clockwise"
-                  android_material_icon_name="refresh"
-                  size={20}
-                  color={canResend ? colors.primary : colors.textSecondary}
-                  style={styles.resendIcon}
-                />
-                <Text style={[styles.resendButtonText, !canResend && styles.resendButtonTextDisabled]}>
-                  {canResend ? 'Reenviar correo' : `Reenviar en ${countdown}s`}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => router.replace('/auth/login-v6')}
-          >
-            <Text style={styles.loginButtonText}>
-              Volver a <Text style={styles.loginButtonTextBold}>Iniciar sesión</Text>
-            </Text>
-          </TouchableOpacity>
         </Animated.View>
       </ScrollView>
     </View>
@@ -265,6 +217,7 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   iconContainer: {
     marginBottom: 32,
@@ -288,137 +241,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 40,
     lineHeight: 24,
   },
-  emailBadge: {
-    flexDirection: 'row',
+  loadingContainer: {
     alignItems: 'center',
-    backgroundColor: `${colors.primary}15`,
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
     marginBottom: 40,
   },
-  emailText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary,
-    marginLeft: 8,
-  },
-  instructionsContainer: {
-    width: '100%',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  instructionsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 20,
-  },
-  stepItem: {
-    flexDirection: 'row',
-    marginBottom: 20,
-  },
-  stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  stepNumberText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  stepContent: {
-    flex: 1,
-  },
-  stepTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  stepDescription: {
+  loadingText: {
+    marginTop: 16,
     fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  tipsContainer: {
-    width: '100%',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 32,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
-  },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  tipText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 8,
-    lineHeight: 18,
-  },
-  resendButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    width: '100%',
-  },
-  resendButtonDisabled: {
-    borderColor: colors.cardBorder,
-  },
-  resendIcon: {
-    marginRight: 8,
-  },
-  resendButtonText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  resendButtonTextDisabled: {
-    color: colors.textSecondary,
-  },
-  loginButton: {
-    padding: 16,
-  },
-  loginButtonText: {
-    fontSize: 15,
     color: colors.textSecondary,
     textAlign: 'center',
   },
-  loginButtonTextBold: {
-    fontWeight: '600',
-    color: colors.primary,
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${colors.primary}15`,
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.text,
+    marginLeft: 12,
+    lineHeight: 18,
   },
 });
