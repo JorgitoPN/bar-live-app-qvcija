@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { importarCatalogoOSM } from '@/utils/osmImportService';
+import { importarCatalogoOSM, verificarEstadoOverpassAPI } from '@/utils/osmImportService';
 import { LocalCatalogo } from '@/types';
 
 const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
@@ -70,6 +70,50 @@ export default function ImportacionOSMScreen() {
     errores: 0,
   });
 
+  // Estado de la API
+  const [estadoAPI, setEstadoAPI] = useState<{
+    verificando: boolean;
+    disponible: boolean;
+    mensaje: string;
+  }>({
+    verificando: false,
+    disponible: true,
+    mensaje: '',
+  });
+
+  // Verificar estado de la API al cargar
+  useEffect(() => {
+    verificarEstadoAPI();
+  }, []);
+
+  const verificarEstadoAPI = async () => {
+    setEstadoAPI({ verificando: true, disponible: true, mensaje: '' });
+    agregarLog('🔍 Verificando estado de Overpass API...');
+    
+    try {
+      const estado = await verificarEstadoOverpassAPI();
+      setEstadoAPI({
+        verificando: false,
+        disponible: estado.disponible,
+        mensaje: estado.mensaje,
+      });
+      
+      if (estado.disponible) {
+        agregarLog(`✅ ${estado.mensaje}`);
+      } else {
+        agregarLog(`⚠️ ${estado.mensaje}`);
+      }
+    } catch (error) {
+      console.error('[OSM Import] Error checking API status:', error);
+      setEstadoAPI({
+        verificando: false,
+        disponible: false,
+        mensaje: 'No se pudo verificar el estado de la API',
+      });
+      agregarLog('❌ Error al verificar estado de la API');
+    }
+  };
+
   const agregarLog = (mensaje: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prev => [...prev, `[${timestamp}] ${mensaje}`].slice(-30)); // Mantener solo últimos 30 logs
@@ -106,6 +150,23 @@ export default function ImportacionOSMScreen() {
       return;
     }
 
+    // Verificar estado de la API antes de importar
+    if (!estadoAPI.disponible) {
+      Alert.alert(
+        'API no disponible',
+        'La API de Overpass no está disponible en este momento. ¿Deseas intentar de todas formas? El sistema intentará con múltiples endpoints y reintentos automáticos.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Intentar de todas formas', onPress: () => ejecutarImportacion(limiteNum) },
+        ]
+      );
+      return;
+    }
+
+    ejecutarImportacion(limiteNum);
+  };
+
+  const ejecutarImportacion = async (limiteNum: number) => {
     setImportando(true);
     setResultados([]);
     setLogs([]);
@@ -116,6 +177,8 @@ export default function ImportacionOSMScreen() {
     agregarLog(`📍 Provincia: ${provinciaSeleccionada}`);
     agregarLog(`🏷️ Tipos: ${tiposSeleccionados.join(', ')}`);
     agregarLog(`🔢 Límite: ${limiteNum} locales`);
+    agregarLog('⏳ Esto puede tardar varios minutos...');
+    agregarLog('🔄 Sistema de reintentos automático activado');
 
     try {
       const localesImportados = await importarCatalogoOSM(
@@ -139,9 +202,21 @@ export default function ImportacionOSMScreen() {
       agregarLog(`💾 Datos guardados en LocalCatalogo`);
       agregarLog(`💰 COSTE: 0€ (OSM es gratis)`);
 
+      // Mostrar breakdown por tipo
+      const breakdown: Record<string, number> = {};
+      localesImportados.forEach(local => {
+        const tipo = local.tipo_osm || 'unknown';
+        breakdown[tipo] = (breakdown[tipo] || 0) + 1;
+      });
+      
+      let breakdownText = '\n\nDesglose por tipo:\n';
+      Object.entries(breakdown).forEach(([tipo, count]) => {
+        breakdownText += `- ${tipo}: ${count}\n`;
+      });
+
       Alert.alert(
         'Importación completada',
-        `✅ Se importaron ${localesImportados.length} locales desde OpenStreetMap.\n\nSiguiente paso: Enriquecer con Google Places`,
+        `✅ Se importaron ${localesImportados.length} locales desde OpenStreetMap.${breakdownText}\nSiguiente paso: Enriquecer con Google Places`,
         [
           { text: 'Ver Resultados', style: 'cancel' },
           {
@@ -150,10 +225,23 @@ export default function ImportacionOSMScreen() {
           },
         ]
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('[OSM Import] Error:', error);
-      agregarLog(`❌ Error: ${error}`);
-      Alert.alert('Error', 'Ocurrió un error durante la importación');
+      agregarLog(`❌ Error: ${error.message || error}`);
+      
+      let errorMessage = 'Ocurrió un error durante la importación.';
+      
+      if (error.message?.includes('504') || error.message?.includes('timeout')) {
+        errorMessage = 'La API de Overpass está sobrecargada o no responde. Por favor, intenta:\n\n' +
+          '1. Reducir el límite de locales\n' +
+          '2. Seleccionar menos tipos de locales\n' +
+          '3. Intentar en unos minutos\n\n' +
+          'El sistema ya intentó con múltiples endpoints y reintentos automáticos.';
+      } else if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
+        errorMessage = 'Has excedido el límite de peticiones. Por favor, espera unos minutos antes de intentar de nuevo.';
+      }
+      
+      Alert.alert('Error de Importación', errorMessage);
     } finally {
       setImportando(false);
     }
@@ -180,6 +268,37 @@ export default function ImportacionOSMScreen() {
       </LinearGradient>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+        {/* Estado de la API */}
+        <View style={[
+          styles.apiStatusCard,
+          estadoAPI.disponible ? styles.apiStatusCardSuccess : styles.apiStatusCardWarning
+        ]}>
+          <View style={styles.apiStatusHeader}>
+            {estadoAPI.verificando ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <IconSymbol 
+                name={estadoAPI.disponible ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"} 
+                size={24} 
+                color={estadoAPI.disponible ? '#10B981' : '#F59E0B'} 
+              />
+            )}
+            <Text style={styles.apiStatusTitle}>
+              {estadoAPI.verificando ? 'Verificando API...' : 'Estado de Overpass API'}
+            </Text>
+          </View>
+          <Text style={styles.apiStatusText}>{estadoAPI.mensaje}</Text>
+          {!estadoAPI.verificando && (
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={verificarEstadoAPI}
+            >
+              <IconSymbol name="arrow.clockwise" size={16} color={colors.primary} />
+              <Text style={styles.refreshButtonText}>Verificar de nuevo</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Información sobre OSM */}
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
@@ -194,6 +313,12 @@ export default function ImportacionOSMScreen() {
           </Text>
           <Text style={[styles.infoText, { fontWeight: '600', color: colors.primary }]}>
             ✅ Miles de locales en segundos
+          </Text>
+          <Text style={[styles.infoText, { fontWeight: '600', color: colors.primary }]}>
+            ✅ Sistema de reintentos automático
+          </Text>
+          <Text style={[styles.infoText, { fontWeight: '600', color: colors.primary }]}>
+            ✅ Múltiples endpoints de respaldo
           </Text>
           <Text style={[styles.infoText, { fontWeight: '600', color: colors.primary }]}>
             ✅ COSTE: 0€
@@ -263,6 +388,9 @@ export default function ImportacionOSMScreen() {
               <Text style={styles.helperText}>
                 Máximo: 10,000 locales por importación
               </Text>
+              <Text style={[styles.helperText, { color: '#F59E0B', marginTop: 4 }]}>
+                ⚠️ Límites más bajos reducen el riesgo de timeouts
+              </Text>
             </View>
 
             {/* Botón de importación */}
@@ -287,6 +415,9 @@ export default function ImportacionOSMScreen() {
         {importando && (
           <View style={styles.progressCard}>
             <Text style={styles.progressTitle}>Importando desde OSM...</Text>
+            <Text style={styles.progressSubtitle}>
+              Esto puede tardar varios minutos. El sistema reintentará automáticamente si hay errores.
+            </Text>
             
             <View style={styles.progressBarContainer}>
               <View style={styles.progressBar}>
@@ -489,6 +620,48 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     marginTop: 4,
   },
+  apiStatusCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  apiStatusCardSuccess: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+  apiStatusCardWarning: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FCD34D',
+  },
+  apiStatusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  apiStatusTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginLeft: 8,
+  },
+  apiStatusText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingVertical: 8,
+  },
+  refreshButtonText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
   infoCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -622,8 +795,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 16,
+    marginBottom: 8,
     textAlign: 'center',
+  },
+  progressSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 16,
   },
   progressBarContainer: {
     marginBottom: 16,

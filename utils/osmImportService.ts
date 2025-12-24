@@ -17,6 +17,41 @@ const OSM_TO_BARLIVE_TYPES: Record<string, string[]> = {
 };
 
 /**
+ * Lista de endpoints de Overpass API alternativos
+ * Se intentarán en orden si uno falla
+ */
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+];
+
+/**
+ * Configuración de reintentos
+ */
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  initialDelayMs: 2000,
+  maxDelayMs: 30000,
+  backoffMultiplier: 2,
+};
+
+/**
+ * Configuración de rate limiting
+ */
+const RATE_LIMIT_CONFIG = {
+  requestsPerMinute: 2, // Máximo 2 requests por minuto para no sobrecargar
+  delayBetweenRequestsMs: 30000, // 30 segundos entre requests
+};
+
+/**
+ * Delay helper function
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
  * Importar catálogo de locales desde OpenStreetMap
  */
 export async function importarCatalogoOSM(
@@ -36,8 +71,8 @@ export async function importarCatalogoOSM(
     const query = construirQueryOverpass(provincia, tipos, limite);
     console.log('[OSM Import] Overpass query constructed:', query);
 
-    // Consultar Overpass API
-    const localesOSM = await consultarOverpassAPI(query);
+    // Consultar Overpass API con reintentos
+    const localesOSM = await consultarOverpassAPIConReintentos(query);
     console.log(`[OSM Import] Received ${localesOSM.length} results from OSM`);
 
     // Filtrar por tipos solicitados
@@ -186,10 +221,10 @@ function construirQueryOverpass(
   console.log('[OSM Import] Building query for types:', tipos);
   console.log('[OSM Import] Amenity filters:', amenityFilters);
   
-  // Query de Overpass API mejorada
+  // Query de Overpass API mejorada con timeout más largo
   // Busca en toda España si no encuentra por provincia específica
   const query = `
-    [out:json][timeout:120];
+    [out:json][timeout:180];
     (
       area["name"="${provincia}"]["boundary"="administrative"]->.searchArea;
       (
@@ -205,26 +240,91 @@ function construirQueryOverpass(
 }
 
 /**
+ * Consultar Overpass API con reintentos y exponential backoff
+ */
+async function consultarOverpassAPIConReintentos(query: string): Promise<any[]> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+    // Calcular delay con exponential backoff
+    if (attempt > 0) {
+      const delayMs = Math.min(
+        RETRY_CONFIG.initialDelayMs * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt - 1),
+        RETRY_CONFIG.maxDelayMs
+      );
+      console.log(`[OSM Import] Retry attempt ${attempt}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms delay...`);
+      await delay(delayMs);
+    }
+    
+    // Intentar con diferentes endpoints
+    for (let endpointIndex = 0; endpointIndex < OVERPASS_ENDPOINTS.length; endpointIndex++) {
+      const endpoint = OVERPASS_ENDPOINTS[endpointIndex];
+      
+      try {
+        console.log(`[OSM Import] Attempting request to endpoint: ${endpoint} (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1})`);
+        const result = await consultarOverpassAPI(query, endpoint);
+        
+        // Si llegamos aquí, la request fue exitosa
+        console.log(`[OSM Import] ✅ Request successful on attempt ${attempt + 1} using endpoint: ${endpoint}`);
+        return result;
+        
+      } catch (error: any) {
+        lastError = error;
+        console.error(`[OSM Import] ❌ Request failed on endpoint ${endpoint}:`, error.message);
+        
+        // Si es un error 504 o timeout, continuar con el siguiente endpoint
+        if (error.message.includes('504') || error.message.includes('timeout')) {
+          console.log(`[OSM Import] Server timeout detected, trying next endpoint...`);
+          continue;
+        }
+        
+        // Si es otro tipo de error, esperar antes de reintentar
+        if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
+          console.log(`[OSM Import] Rate limit detected, waiting longer before retry...`);
+          await delay(RATE_LIMIT_CONFIG.delayBetweenRequestsMs);
+        }
+      }
+    }
+  }
+  
+  // Si llegamos aquí, todos los reintentos fallaron
+  console.error(`[OSM Import] ❌ All retry attempts exhausted. Last error:`, lastError);
+  throw new Error(`Overpass API error after ${RETRY_CONFIG.maxRetries + 1} attempts: ${lastError?.message || 'Unknown error'}`);
+}
+
+/**
  * Consultar Overpass API
  */
-async function consultarOverpassAPI(query: string): Promise<any[]> {
-  console.log('[OSM Import] Querying Overpass API...');
-  console.log('[OSM Import] Query:', query);
-  
-  // URL de Overpass API
-  const overpassUrl = 'https://overpass-api.de/api/interpreter';
+async function consultarOverpassAPI(query: string, endpoint: string): Promise<any[]> {
+  console.log(`[OSM Import] Querying Overpass API at: ${endpoint}`);
   
   try {
-    const response = await fetch(overpassUrl, {
+    // Crear un AbortController para timeout manual
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutos timeout
+    
+    const response = await fetch(endpoint, {
       method: 'POST',
       body: query,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'BarLive/1.0', // Identificarse como aplicación
       },
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      throw new Error(`Overpass API error: ${response.status} ${response.statusText}`);
+      // Leer el cuerpo de la respuesta para más detalles
+      let errorDetails = '';
+      try {
+        errorDetails = await response.text();
+      } catch (e) {
+        console.log('[OSM Import] Could not read error response body');
+      }
+      
+      throw new Error(`Overpass API error: ${response.status} ${response.statusText}. Details: ${errorDetails}`);
     }
 
     const data = await response.json();
@@ -248,13 +348,20 @@ async function consultarOverpassAPI(query: string): Promise<any[]> {
       console.log(`[OSM Import]   - ${type}: ${count}`);
     });
     
-    return data.elements;
-  } catch (error) {
-    console.error('[OSM Import] Overpass API error:', error);
+    // Rate limiting: esperar antes de permitir otra request
+    console.log(`[OSM Import] Applying rate limit: waiting ${RATE_LIMIT_CONFIG.delayBetweenRequestsMs}ms before next request...`);
+    await delay(RATE_LIMIT_CONFIG.delayBetweenRequestsMs);
     
-    // En caso de error, retornar datos mock para desarrollo
-    console.log('[OSM Import] Using mock data for development');
-    return generarDatosMockOSM();
+    return data.elements;
+  } catch (error: any) {
+    // Manejar errores de timeout del AbortController
+    if (error.name === 'AbortError') {
+      console.error('[OSM Import] Request timeout after 3 minutes');
+      throw new Error('Overpass API timeout: Request took too long to complete');
+    }
+    
+    console.error('[OSM Import] Overpass API error:', error);
+    throw error;
   }
 }
 
@@ -436,4 +543,47 @@ function generarDatosMockOSM(): any[] {
   });
 
   return elementos;
+}
+
+/**
+ * Verificar el estado de la API de Overpass
+ * Útil para diagnóstico antes de intentar importar
+ */
+export async function verificarEstadoOverpassAPI(): Promise<{
+  disponible: boolean;
+  endpoint: string | null;
+  mensaje: string;
+}> {
+  console.log('[OSM Import] Checking Overpass API status...');
+  
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
+      
+      const response = await fetch(`${endpoint}/status`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        console.log(`[OSM Import] ✅ Endpoint ${endpoint} is available`);
+        return {
+          disponible: true,
+          endpoint: endpoint,
+          mensaje: `API disponible en ${endpoint}`,
+        };
+      }
+    } catch (error) {
+      console.log(`[OSM Import] ❌ Endpoint ${endpoint} is not available`);
+    }
+  }
+  
+  return {
+    disponible: false,
+    endpoint: null,
+    mensaje: 'Ningún endpoint de Overpass API está disponible en este momento. Por favor, intenta más tarde.',
+  };
 }
