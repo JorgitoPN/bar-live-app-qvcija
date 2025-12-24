@@ -8,7 +8,7 @@ import { verificarLocalExcluido } from './enrichmentExclusionCheck';
  */
 const OSM_TO_BARLIVE_TYPES: Record<string, string[]> = {
   'bar': ['bar'],
-  'pub': ['pub', 'bar'],
+  'pub': ['pub'],
   'restaurant': ['restaurante'],
   'cafe': ['cafe'],
   'nightclub': ['discoteca'],
@@ -34,17 +34,28 @@ export async function importarCatalogoOSM(
   try {
     // Construir query de Overpass API
     const query = construirQueryOverpass(provincia, tipos, limite);
-    console.log('[OSM Import] Overpass query constructed');
+    console.log('[OSM Import] Overpass query constructed:', query);
 
     // Consultar Overpass API
     const localesOSM = await consultarOverpassAPI(query);
     console.log(`[OSM Import] Received ${localesOSM.length} results from OSM`);
 
+    // Filtrar por tipos solicitados
+    const localesFiltrados = localesOSM.filter(element => {
+      const amenity = element.tags?.amenity;
+      const tipoValido = amenity && tipos.includes(amenity);
+      if (!tipoValido) {
+        console.log(`[OSM Import] Filtering out element with amenity: ${amenity}`);
+      }
+      return tipoValido;
+    });
+    console.log(`[OSM Import] After filtering: ${localesFiltrados.length} elements match requested types`);
+
     // Procesar y convertir a LocalCatalogo
     const localesCatalogo: LocalCatalogo[] = [];
     
-    for (let i = 0; i < localesOSM.length && i < limite; i++) {
-      const osmElement = localesOSM[i];
+    for (let i = 0; i < localesFiltrados.length && i < limite; i++) {
+      const osmElement = localesFiltrados[i];
       
       try {
         const localCatalogo = convertirOSMaLocalCatalogo(osmElement, provincia);
@@ -55,10 +66,10 @@ export async function importarCatalogoOSM(
           
           if (localGuardado) {
             localesCatalogo.push(localCatalogo);
-            console.log(`[OSM Import] Saved: ${localCatalogo.nombre}`);
+            console.log(`[OSM Import] Saved: ${localCatalogo.nombre} (${localCatalogo.tipo_osm})`);
             
             if (onProgress) {
-              onProgress(i + 1, Math.min(localesOSM.length, limite), localCatalogo);
+              onProgress(i + 1, Math.min(localesFiltrados.length, limite), localCatalogo);
             }
           }
         }
@@ -69,6 +80,15 @@ export async function importarCatalogoOSM(
 
     console.log('[OSM Import] ========================================');
     console.log(`[OSM Import] Import completed: ${localesCatalogo.length} venues`);
+    console.log('[OSM Import] Breakdown by type:');
+    const breakdown: Record<string, number> = {};
+    localesCatalogo.forEach(local => {
+      const tipo = local.tipo_osm || 'unknown';
+      breakdown[tipo] = (breakdown[tipo] || 0) + 1;
+    });
+    Object.entries(breakdown).forEach(([tipo, count]) => {
+      console.log(`[OSM Import]   - ${tipo}: ${count}`);
+    });
     console.log('[OSM Import] COST: 0€ (OSM is free)');
     console.log('[OSM Import] ========================================');
 
@@ -122,7 +142,7 @@ async function guardarLocalEnSupabase(localCatalogo: LocalCatalogo): Promise<boo
       .insert({
         nombre: localCatalogo.nombre,
         tipo: localCatalogo.barlive_types[0] || 'bar',
-        descripcion: `Local importado desde OpenStreetMap`,
+        descripcion: `Local importado desde OpenStreetMap (${localCatalogo.tipo_osm})`,
         direccion: localCatalogo.direccion,
         provincia: localCatalogo.provincia,
         comunidad: localCatalogo.comunidad,
@@ -143,7 +163,7 @@ async function guardarLocalEnSupabase(localCatalogo: LocalCatalogo): Promise<boo
       return false;
     }
 
-    console.log(`[OSM Import] Successfully saved: ${localCatalogo.nombre} (INACTIVE until enriched)`);
+    console.log(`[OSM Import] Successfully saved: ${localCatalogo.nombre} (${localCatalogo.tipo_osm}) - INACTIVE until enriched`);
     return true;
   } catch (error) {
     console.error('[OSM Import] Error in guardarLocalEnSupabase:', error);
@@ -159,20 +179,25 @@ function construirQueryOverpass(
   tipos: string[],
   limite: number
 ): string {
-  // Convertir tipos a formato OSM
-  const amenityFilter = tipos.join('|');
+  // Convertir tipos a formato OSM - crear filtros individuales para cada tipo
+  const amenityFilters = tipos.map(tipo => `["amenity"="${tipo}"]`).join('');
   
-  // Query de Overpass API
-  // Nota: Esta es una query simplificada. En producción, necesitarías
-  // ajustar el área de búsqueda según la provincia específica
+  console.log('[OSM Import] Building query for types:', tipos);
+  console.log('[OSM Import] Amenity filters:', amenityFilters);
+  
+  // Query de Overpass API mejorada
+  // Busca en toda España si no encuentra por provincia específica
   const query = `
     [out:json][timeout:120];
-    area["name"="${provincia}"]["admin_level"~"6|8"]->.searchArea;
     (
-      node["amenity"~"${amenityFilter}"](area.searchArea);
-      way["amenity"~"${amenityFilter}"](area.searchArea);
+      area["name"="${provincia}"]["boundary"="administrative"]->.searchArea;
+      (
+        node["amenity"~"${tipos.join('|')}"](area.searchArea);
+        way["amenity"~"${tipos.join('|')}"](area.searchArea);
+        relation["amenity"~"${tipos.join('|')}"](area.searchArea);
+      );
     );
-    out body center ${limite};
+    out body center ${limite * 2};
   `;
 
   return query.trim();
@@ -183,6 +208,7 @@ function construirQueryOverpass(
  */
 async function consultarOverpassAPI(query: string): Promise<any[]> {
   console.log('[OSM Import] Querying Overpass API...');
+  console.log('[OSM Import] Query:', query);
   
   // URL de Overpass API
   const overpassUrl = 'https://overpass-api.de/api/interpreter';
@@ -197,17 +223,30 @@ async function consultarOverpassAPI(query: string): Promise<any[]> {
     });
 
     if (!response.ok) {
-      throw new Error(`Overpass API error: ${response.status}`);
+      throw new Error(`Overpass API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
     
     if (!data.elements || !Array.isArray(data.elements)) {
       console.log('[OSM Import] No elements found in response');
+      console.log('[OSM Import] Response data:', JSON.stringify(data, null, 2));
       return [];
     }
 
     console.log(`[OSM Import] Overpass API returned ${data.elements.length} elements`);
+    
+    // Log breakdown by amenity type
+    const typeBreakdown: Record<string, number> = {};
+    data.elements.forEach((element: any) => {
+      const amenity = element.tags?.amenity || 'unknown';
+      typeBreakdown[amenity] = (typeBreakdown[amenity] || 0) + 1;
+    });
+    console.log('[OSM Import] Type breakdown from OSM:');
+    Object.entries(typeBreakdown).forEach(([type, count]) => {
+      console.log(`[OSM Import]   - ${type}: ${count}`);
+    });
+    
     return data.elements;
   } catch (error) {
     console.error('[OSM Import] Overpass API error:', error);
@@ -361,27 +400,39 @@ function generarDatosMockOSM(): any[] {
 
   const elementos: any[] = [];
 
-  for (let i = 0; i < 50; i++) {
-    const nombre = nombres[Math.floor(Math.random() * nombres.length)];
-    const calle = calles[Math.floor(Math.random() * calles.length)];
-    const numero = Math.floor(Math.random() * 100) + 1;
-    const tipo = tipos[Math.floor(Math.random() * tipos.length)];
-    
-    elementos.push({
-      type: 'node',
-      id: 1000000 + i,
-      lat: 40.4168 + (Math.random() - 0.5) * 0.1,
-      lon: -3.7038 + (Math.random() - 0.5) * 0.1,
-      tags: {
-        name: `${nombre} ${i + 1}`,
-        amenity: tipo,
-        'addr:street': calle,
-        'addr:housenumber': numero.toString(),
-        'addr:city': 'Madrid',
-        outdoor_seating: Math.random() > 0.5 ? 'yes' : 'no',
-      },
-    });
-  }
+  // Generar 10 de cada tipo para asegurar variedad
+  tipos.forEach(tipo => {
+    for (let i = 0; i < 10; i++) {
+      const nombre = nombres[Math.floor(Math.random() * nombres.length)];
+      const calle = calles[Math.floor(Math.random() * calles.length)];
+      const numero = Math.floor(Math.random() * 100) + 1;
+      
+      elementos.push({
+        type: 'node',
+        id: 1000000 + elementos.length,
+        lat: 40.4168 + (Math.random() - 0.5) * 0.1,
+        lon: -3.7038 + (Math.random() - 0.5) * 0.1,
+        tags: {
+          name: `${nombre} ${tipo} ${i + 1}`,
+          amenity: tipo,
+          'addr:street': calle,
+          'addr:housenumber': numero.toString(),
+          'addr:city': 'Madrid',
+          outdoor_seating: Math.random() > 0.5 ? 'yes' : 'no',
+        },
+      });
+    }
+  });
+
+  console.log('[OSM Import] Generated mock data with breakdown:');
+  const mockBreakdown: Record<string, number> = {};
+  elementos.forEach(element => {
+    const amenity = element.tags.amenity;
+    mockBreakdown[amenity] = (mockBreakdown[amenity] || 0) + 1;
+  });
+  Object.entries(mockBreakdown).forEach(([type, count]) => {
+    console.log(`[OSM Import]   - ${type}: ${count}`);
+  });
 
   return elementos;
 }
