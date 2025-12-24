@@ -310,6 +310,14 @@ export default function AdminIndexScreen() {
       description: 'Ver y gestionar locales excluidos del sistema',
     },
     {
+      title: 'Locales Rechazados',
+      icon: 'trash.slash.fill' as const,
+      androidIcon: 'delete_sweep' as const,
+      color: '#DC2626',
+      route: '/admin/locales-rechazados',
+      description: 'Gestionar locales rechazados en enriquecimiento',
+    },
+    {
       title: 'Facturación',
       icon: 'eurosign.circle.fill' as const,
       androidIcon: 'euro' as const,

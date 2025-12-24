@@ -386,6 +386,13 @@ export default function NavegacionPaginasScreen() {
       category: 'Admin',
     },
     {
+      icon: 'trash.slash.fill',
+      title: 'Locales Rechazados',
+      description: 'Gestionar locales rechazados en enriquecimiento',
+      route: '/admin/locales-rechazados',
+      category: 'Admin',
+    },
+    {
       icon: 'doc.on.doc.fill',
       title: 'Gestionar Duplicados',
       description: 'Detectar y eliminar duplicados',

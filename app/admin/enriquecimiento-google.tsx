@@ -24,6 +24,7 @@ import * as Clipboard from 'expo-clipboard';
 import { dataCache } from '@/utils/dataCache';
 import { performanceMonitor } from '@/utils/performanceMonitor';
 import { descargarYSubirFotosLocal, generarMetadatosFotos, verificarBucketSupabase } from '@/utils/enrichmentPhotos';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Tipos de categorías
 const CATEGORIAS = [
@@ -84,6 +85,8 @@ interface LocalPendiente {
   provincia: string;
   latitud: number;
   longitud: number;
+  source_id?: string;
+  google_place_id?: string;
 }
 
 // Mapeo de días en español
@@ -102,6 +105,7 @@ const MAX_LOGS = 50;
 
 export default function EnriquecimientoGoogleScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   
   // Estado del wizard
   const [paso, setPaso] = useState(1);
@@ -185,7 +189,7 @@ export default function EnriquecimientoGoogleScreen() {
       // Obtener estadísticas generales de la provincia
       const { data: statsData, error: statsError } = await supabase
         .from('locales')
-        .select('source_type, enriquecido, tipo')
+        .select('source_type, enriquecido, tipo, activo, notas_rechazo')
         .eq('provincia', provinciaSeleccionada);
 
       if (statsError) {
@@ -198,9 +202,9 @@ export default function EnriquecimientoGoogleScreen() {
       console.log('[Enrichment] Stats data:', statsData?.length || 0, 'locales');
 
       const totalOSM = statsData?.filter(l => l.source_type === 'osm').length || 0;
-      const enriquecidos = statsData?.filter(l => l.enriquecido === true).length || 0;
-      const pendientes = statsData?.filter(l => l.source_type === 'osm' && l.enriquecido === false).length || 0;
-      const rechazados = 0;
+      const enriquecidos = statsData?.filter(l => l.enriquecido === true && l.activo === true).length || 0;
+      const pendientes = statsData?.filter(l => l.source_type === 'osm' && l.enriquecido === false && l.activo === true).length || 0;
+      const rechazados = statsData?.filter(l => l.activo === false && l.notas_rechazo !== null).length || 0;
 
       const newEstadisticas = {
         totalOSM,
@@ -215,8 +219,9 @@ export default function EnriquecimientoGoogleScreen() {
       const statsCategorias: EstadisticasCategoria[] = CATEGORIAS.map(cat => {
         const localesCategoria = statsData?.filter(l => l.tipo === cat.id) || [];
         const total = localesCategoria.length;
-        const enriquecidosCategoria = localesCategoria.filter(l => l.enriquecido === true).length;
-        const pendientesCategoria = localesCategoria.filter(l => l.source_type === 'osm' && l.enriquecido === false).length;
+        const enriquecidosCategoria = localesCategoria.filter(l => l.enriquecido === true && l.activo === true).length;
+        const pendientesCategoria = localesCategoria.filter(l => l.source_type === 'osm' && l.enriquecido === false && l.activo === true).length;
+        const rechazadosCategoria = localesCategoria.filter(l => l.activo === false && l.notas_rechazo !== null).length;
 
         return {
           categoria: cat.nombre,
@@ -224,7 +229,7 @@ export default function EnriquecimientoGoogleScreen() {
           total,
           enriquecidos: enriquecidosCategoria,
           pendientes: pendientesCategoria,
-          rechazados: 0,
+          rechazados: rechazadosCategoria,
         };
       });
 
@@ -240,7 +245,7 @@ export default function EnriquecimientoGoogleScreen() {
         agregarLog('warning', `⚠️ No hay locales importados de OSM en ${provinciaSeleccionada}`);
         agregarLog('info', 'Ve a "Importación OSM" para importar locales primero');
       } else {
-        agregarLog('success', `Estadísticas cargadas: ${totalOSM} locales OSM, ${enriquecidos} enriquecidos, ${pendientes} pendientes`);
+        agregarLog('success', `Estadísticas cargadas: ${totalOSM} locales OSM, ${enriquecidos} enriquecidos, ${pendientes} pendientes, ${rechazados} rechazados`);
       }
     } catch (error) {
       console.error('Error cargando estadísticas:', error);
@@ -302,10 +307,11 @@ export default function EnriquecimientoGoogleScreen() {
         
         const query = supabase
           .from('locales')
-          .select('id, nombre, direccion, tipo, provincia, latitud, longitud')
+          .select('id, nombre, direccion, tipo, provincia, latitud, longitud, source_id, google_place_id')
           .eq('provincia', provinciaSeleccionada)
           .eq('tipo', categoriaId)
           .eq('source_type', 'osm')
+          .eq('activo', true) // Solo cargar locales activos (no rechazados)
           .limit(100);
         
         if (!reEnriquecer) {
@@ -338,6 +344,64 @@ export default function EnriquecimientoGoogleScreen() {
     // Más 4 llamadas por fotos (máximo)
     const coste = numLocales * (2 + 4) * 0.017; // $0.017 por llamada
     return coste.toFixed(2);
+  };
+
+  /**
+   * 🗑️ FUNCIÓN PARA EXCLUIR Y ELIMINAR LOCAL RECHAZADO
+   */
+  const excluirYEliminarLocalRechazado = async (
+    local: LocalPendiente,
+    motivoRechazo: string
+  ): Promise<void> => {
+    try {
+      console.log(`[Exclusion] Excluyendo local rechazado: ${local.nombre}`);
+      
+      // 1. Agregar a locales_excluidos
+      const { error: insertError } = await supabase
+        .from('locales_excluidos')
+        .insert({
+          local_id: local.id,
+          nombre: local.nombre,
+          direccion: local.direccion,
+          latitud: local.latitud,
+          longitud: local.longitud,
+          google_place_id: local.google_place_id || null,
+          osm_id: local.source_id || null,
+          motivo_exclusion: 'invalido',
+          descripcion_exclusion: motivoRechazo,
+          excluido_por: user?.id || null,
+          metadata: {
+            tipo_original: local.tipo,
+            source_type: 'osm',
+            source_id: local.source_id,
+            fecha_exclusion: new Date().toISOString(),
+          },
+        });
+
+      if (insertError) {
+        console.error('[Exclusion] Error inserting into locales_excluidos:', insertError);
+        // Continuar con la eliminación aunque falle la inserción
+      } else {
+        console.log('[Exclusion] ✅ Local agregado a locales_excluidos');
+      }
+
+      // 2. Eliminar de la tabla locales
+      const { error: deleteError } = await supabase
+        .from('locales')
+        .delete()
+        .eq('id', local.id);
+
+      if (deleteError) {
+        console.error('[Exclusion] Error deleting from locales:', deleteError);
+        agregarLog('error', `❌ Error al eliminar ${local.nombre} de la base de datos`);
+      } else {
+        console.log('[Exclusion] ✅ Local eliminado de la tabla locales');
+        agregarLog('success', `🗑️ ${local.nombre} eliminado del catálogo`);
+      }
+    } catch (error) {
+      console.error('[Exclusion] Error in excluirYEliminarLocalRechazado:', error);
+      agregarLog('error', `❌ Error al excluir ${local.nombre}`);
+    }
   };
 
   const iniciarEnriquecimiento = async () => {
@@ -393,7 +457,7 @@ export default function EnriquecimientoGoogleScreen() {
     
     Alert.alert(
       'Confirmar Enriquecimiento',
-      `Se procesarán ${localesAProcesar} locales de la categoría "${categoriaSeleccionada}".\n\n📸 Las fotos se descargarán de Google Places y se subirán a Supabase Storage.\n\n🔍 Se usarán 5 estrategias de búsqueda para maximizar resultados.\n\nCoste estimado: $${coste}\n\n¿Continuar?`,
+      `Se procesarán ${localesAProcesar} locales de la categoría "${categoriaSeleccionada}".\n\n📸 Las fotos se descargarán de Google Places y se subirán a Supabase Storage.\n\n🔍 Se usarán 5 estrategias de búsqueda para maximizar resultados.\n\n🗑️ Los locales rechazados se eliminarán automáticamente del catálogo.\n\nCoste estimado: $${coste}\n\n¿Continuar?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -468,6 +532,7 @@ export default function EnriquecimientoGoogleScreen() {
     agregarLog('info', `🚀 Iniciando enriquecimiento de ${numLocales} locales...`);
     agregarLog('info', '📸 Las fotos se descargarán y subirán a Supabase Storage');
     agregarLog('info', '🔍 Usando búsqueda multi-estrategia (5 estrategias)');
+    agregarLog('info', '🗑️ Los locales rechazados se eliminarán automáticamente');
 
     let exitosos = 0;
     let fallidos = 0;
@@ -497,6 +562,11 @@ export default function EnriquecimientoGoogleScreen() {
           
           if (!placeResult || !placeResult.place_id) {
             agregarLog('warning', `⚠️ No encontrado en Google: ${local.nombre}`);
+            agregarLog('info', `🗑️ Excluyendo ${local.nombre} del catálogo...`);
+            
+            // EXCLUIR Y ELIMINAR local no encontrado
+            await excluirYEliminarLocalRechazado(local, 'No encontrado en Google Places');
+            rechazados++;
             fallidos++;
             performanceMonitor.end(`enrich_${local.id}`);
             continue;
@@ -525,6 +595,11 @@ export default function EnriquecimientoGoogleScreen() {
           
           if (!details) {
             agregarLog('warning', `⚠️ Sin detalles: ${local.nombre}`);
+            agregarLog('info', `🗑️ Excluyendo ${local.nombre} del catálogo...`);
+            
+            // EXCLUIR Y ELIMINAR local sin detalles
+            await excluirYEliminarLocalRechazado(local, 'Sin detalles en Google Places');
+            rechazados++;
             fallidos++;
             performanceMonitor.end(`enrich_${local.id}`);
             continue;
@@ -536,19 +611,11 @@ export default function EnriquecimientoGoogleScreen() {
           
           if (!validacionCompleta.valido) {
             agregarLog('error', `❌ RECHAZADO: ${local.nombre} - ${validacionCompleta.razon}`);
+            agregarLog('info', `🗑️ Excluyendo ${local.nombre} del catálogo...`);
+            
+            // EXCLUIR Y ELIMINAR local rechazado
+            await excluirYEliminarLocalRechazado(local, validacionCompleta.razon || 'Validación fallida');
             rechazados++;
-            
-            // Marcar como rechazado en la base de datos (INACTIVO)
-            await supabase
-              .from('locales')
-              .update({
-                enriquecido: false,
-                activo: false,
-                notas_rechazo: validacionCompleta.razon,
-                fecha_actualizacion: new Date().toISOString(),
-              })
-              .eq('id', local.id);
-            
             performanceMonitor.end(`enrich_${local.id}`);
             continue;
           }
@@ -561,18 +628,11 @@ export default function EnriquecimientoGoogleScreen() {
           
           if (!enEspana) {
             agregarLog('error', `❌ RECHAZADO: ${local.nombre} - Local fuera de España`);
+            agregarLog('info', `🗑️ Excluyendo ${local.nombre} del catálogo...`);
+            
+            // EXCLUIR Y ELIMINAR local fuera de España
+            await excluirYEliminarLocalRechazado(local, 'Local fuera de España');
             rechazados++;
-            
-            await supabase
-              .from('locales')
-              .update({
-                enriquecido: false,
-                activo: false,
-                notas_rechazo: 'Local fuera de España',
-                fecha_actualizacion: new Date().toISOString(),
-              })
-              .eq('id', local.id);
-            
             performanceMonitor.end(`enrich_${local.id}`);
             continue;
           }
@@ -880,14 +940,14 @@ export default function EnriquecimientoGoogleScreen() {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      agregarLog('success', `🎉 Completado: ${exitosos} exitosos, ${fallidos} fallidos, ${rechazados} rechazados`);
+      agregarLog('success', `🎉 Completado: ${exitosos} exitosos, ${fallidos} fallidos, ${rechazados} rechazados y eliminados`);
       
       // Clear cache to force refresh of statistics
       dataCache.clear(`stats_${provinciaSeleccionada}`);
       
       Alert.alert(
         'Enriquecimiento Completado',
-        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🚫 Rechazados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage\n🔍 Búsqueda multi-estrategia activada`,
+        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🗑️ Rechazados y eliminados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage\n🔍 Búsqueda multi-estrategia activada\n🗑️ Los locales rechazados han sido eliminados del catálogo`,
         [
           {
             text: 'Ver Estadísticas',
@@ -1089,12 +1149,18 @@ export default function EnriquecimientoGoogleScreen() {
       <Text style={styles.subtitle}>{categoriaSeleccionada}</Text>
 
       {/* Warning about excluded locales */}
-      <View style={[styles.infoBox, { backgroundColor: '#FEF3C7', marginBottom: 15 }]}>
-        <Text style={[styles.infoBoxTitle, { color: '#92400E' }]}>🛡️ Sistema de Exclusión Activo</Text>
-        <Text style={[styles.infoBoxText, { color: '#92400E', marginTop: 5 }]}>
-          Los locales duplicados o inválidos detectados por el sistema de limpieza automática NO serán enriquecidos.
+      <View style={[styles.infoBox, { backgroundColor: '#FEE2E2', marginBottom: 15 }]}>
+        <Text style={[styles.infoBoxTitle, { color: '#991B1B' }]}>🗑️ Eliminación Automática de Rechazados</Text>
+        <Text style={[styles.infoBoxText, { color: '#991B1B', marginTop: 5 }]}>
+          Los locales rechazados durante el enriquecimiento serán:
           {'\n\n'}
-          Esto ahorra costes de API evitando enriquecer locales que serán eliminados.
+          ✅ Agregados a la tabla de exclusión
+          {'\n'}
+          ✅ Eliminados del catálogo de locales
+          {'\n'}
+          ✅ Bloqueados para futuras importaciones
+          {'\n\n'}
+          Esto evita costes innecesarios de API y mantiene el catálogo limpio.
         </Text>
       </View>
 
@@ -1137,7 +1203,7 @@ export default function EnriquecimientoGoogleScreen() {
             ✅ Business status (solo OPERATIONAL){'\n'}
             ✅ Ubicación en España{'\n'}
             ✅ Validación de horarios por categoría{'\n\n'}
-            Los locales rechazados se marcarán con el motivo.
+            Los locales rechazados se eliminarán automáticamente.
           </Text>
         </View>
 
@@ -1247,7 +1313,7 @@ export default function EnriquecimientoGoogleScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Enriquecimiento con Google Places</Text>
         <Text style={styles.headerSubtitle}>
-          🔍 Búsqueda multi-estrategia + Validación inteligente
+          🔍 Búsqueda multi-estrategia + Validación inteligente + Eliminación automática
         </Text>
       </LinearGradient>
 

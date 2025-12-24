@@ -17,6 +17,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { limpiarLocalesRechazados, obtenerEstadisticasRechazados } from '@/utils/rejectedLocalsCleanup';
 
 interface CleanupStats {
   total_locales_activos: number;
@@ -57,6 +58,10 @@ export default function SistemaLimpiezaAutomaticaScreen() {
   const [incluirDuplicados, setIncluirDuplicados] = useState(true);
   const [incluirInvalidos, setIncluirInvalidos] = useState(true);
   const [lastResults, setLastResults] = useState<CleanupResult[]>([]);
+  const [rechazadosStats, setRechazadosStats] = useState<{
+    totalRechazados: number;
+    porMotivo: Record<string, number>;
+  } | null>(null);
 
   const checkAdminAccess = useCallback(async () => {
     if (!user) {
@@ -92,6 +97,15 @@ export default function SistemaLimpiezaAutomaticaScreen() {
 
       console.log('[SistemaLimpieza] ✅ Statistics loaded:', data);
       setStats(data[0]);
+      
+      // Cargar estadísticas de rechazados
+      try {
+        const rechazadosData = await obtenerEstadisticasRechazados();
+        setRechazadosStats(rechazadosData);
+        console.log('[SistemaLimpieza] ✅ Rejected locals stats:', rechazadosData);
+      } catch (error) {
+        console.error('[SistemaLimpieza] Error loading rejected stats:', error);
+      }
     } catch (error) {
       console.error('[SistemaLimpieza] ❌ Error loading statistics:', error);
       Alert.alert('Error', 'No se pudieron cargar las estadísticas');
@@ -210,6 +224,45 @@ export default function SistemaLimpiezaAutomaticaScreen() {
     }
   };
 
+  const handleLimpiarRechazados = async () => {
+    if (!rechazadosStats || rechazadosStats.totalRechazados === 0) {
+      Alert.alert('Sin locales rechazados', 'No hay locales rechazados pendientes de limpiar');
+      return;
+    }
+
+    Alert.alert(
+      '🗑️ Limpiar Locales Rechazados',
+      `Se eliminarán ${rechazadosStats.totalRechazados} locales rechazados de la tabla locales.\n\n` +
+      'Estos locales ya están en la tabla locales_excluidos y no se volverán a procesar.\n\n' +
+      '¿Continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            setProcessing(true);
+            try {
+              const result = await limpiarLocalesRechazados();
+              
+              Alert.alert(
+                'Limpieza Completada',
+                `Se eliminaron ${result.localesEliminados} locales rechazados.\n\n` +
+                'Estos locales están en locales_excluidos y no se volverán a importar ni enriquecer.',
+                [{ text: 'OK', onPress: () => loadStats() }]
+              );
+            } catch (error) {
+              console.error('[SistemaLimpieza] Error limpiando rechazados:', error);
+              Alert.alert('Error', 'No se pudieron limpiar los locales rechazados');
+            } finally {
+              setProcessing(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -322,6 +375,52 @@ export default function SistemaLimpiezaAutomaticaScreen() {
                 <Text style={styles.problemValue}>{stats.cerrados_permanentemente}</Text>
               </View>
             </View>
+
+            {/* Rejected Locals Card */}
+            {rechazadosStats && rechazadosStats.totalRechazados > 0 && (
+              <View style={styles.rejectedCard}>
+                <View style={styles.rejectedHeader}>
+                  <IconSymbol ios_icon_name="trash.slash.fill" android_material_icon_name="delete_sweep" size={24} color="#DC2626" />
+                  <Text style={styles.rejectedTitle}>Locales Rechazados Pendientes</Text>
+                </View>
+                
+                <Text style={styles.rejectedDescription}>
+                  Hay {rechazadosStats.totalRechazados} locales rechazados durante el enriquecimiento que aún están en la tabla locales.
+                  {'\n\n'}
+                  Estos locales ya están en locales_excluidos y no se volverán a procesar.
+                  {'\n\n'}
+                  Se recomienda eliminarlos para liberar espacio.
+                </Text>
+
+                {Object.keys(rechazadosStats.porMotivo).length > 0 && (
+                  <View style={styles.rejectedMotivos}>
+                    <Text style={styles.rejectedMotivosTitle}>Por motivo:</Text>
+                    {Object.entries(rechazadosStats.porMotivo).map(([motivo, count]) => (
+                      <Text key={motivo} style={styles.rejectedMotivo}>
+                        • {motivo}: {count}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={styles.rejectedButton}
+                  onPress={handleLimpiarRechazados}
+                  disabled={processing}
+                >
+                  {processing ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={20} color="#fff" />
+                      <Text style={styles.rejectedButtonText}>
+                        Limpiar {rechazadosStats.totalRechazados} Rechazados
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
           </>
         )}
 
@@ -693,5 +792,61 @@ const styles = StyleSheet.create({
   },
   warningBold: {
     fontWeight: '700',
+  },
+  rejectedCard: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  rejectedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  rejectedTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#991B1B',
+  },
+  rejectedDescription: {
+    fontSize: 14,
+    color: '#7F1D1D',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  rejectedMotivos: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  rejectedMotivosTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  rejectedMotivo: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  rejectedButton: {
+    backgroundColor: '#DC2626',
+    borderRadius: 12,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  rejectedButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
   },
 });

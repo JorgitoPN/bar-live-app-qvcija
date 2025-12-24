@@ -28,6 +28,7 @@ import {
 import { mapGoogleTypesToBarlive, categorizarPorHorarios, mapearNivelPrecio } from './enrichmentMapping';
 import { addPubCategoryIfNeeded } from './categorizeLocal';
 import { verificarLocalExcluido } from './enrichmentExclusionCheck';
+import { supabase } from './supabase';
 
 /**
  * Interfaz para datos enriquecidos de un local
@@ -103,11 +104,69 @@ export interface LocalEnriquecido {
 }
 
 /**
+ * 🗑️ EXCLUIR Y ELIMINAR LOCAL RECHAZADO
+ * Agrega el local a locales_excluidos y lo elimina de la tabla locales
+ */
+async function excluirYEliminarLocalRechazado(
+  localCatalogo: LocalCatalogo,
+  motivoRechazo: string,
+  adminId?: string
+): Promise<void> {
+  try {
+    console.log(`[Exclusion] Excluyendo local rechazado: ${localCatalogo.nombre}`);
+    
+    // 1. Agregar a locales_excluidos
+    const { error: insertError } = await supabase
+      .from('locales_excluidos')
+      .insert({
+        nombre: localCatalogo.nombre,
+        direccion: localCatalogo.direccion,
+        latitud: localCatalogo.latitud,
+        longitud: localCatalogo.longitud,
+        osm_id: localCatalogo.osm_id || null,
+        motivo_exclusion: 'invalido',
+        descripcion_exclusion: motivoRechazo,
+        excluido_por: adminId || null,
+        metadata: {
+          tipo_original: localCatalogo.barlive_types?.[0] || 'bar',
+          source_type: 'osm',
+          osm_id: localCatalogo.osm_id,
+          fecha_exclusion: new Date().toISOString(),
+        },
+      });
+
+    if (insertError) {
+      console.error('[Exclusion] Error inserting into locales_excluidos:', insertError);
+      // Continuar con la eliminación aunque falle la inserción
+    } else {
+      console.log('[Exclusion] ✅ Local agregado a locales_excluidos');
+    }
+
+    // 2. Eliminar de la tabla locales (si tiene un ID de base de datos)
+    if (localCatalogo.id && !localCatalogo.id.startsWith('osm-')) {
+      const { error: deleteError } = await supabase
+        .from('locales')
+        .delete()
+        .eq('id', localCatalogo.id);
+
+      if (deleteError) {
+        console.error('[Exclusion] Error deleting from locales:', deleteError);
+      } else {
+        console.log('[Exclusion] ✅ Local eliminado de la tabla locales');
+      }
+    }
+  } catch (error) {
+    console.error('[Exclusion] Error in excluirYEliminarLocalRechazado:', error);
+  }
+}
+
+/**
  * 🔍 BUSCAR Y ENRIQUECER LOCAL
  * Implementa las 4 estrategias de búsqueda en Google Places
  */
 export async function buscarYEnriquecerLocal(
-  localCatalogo: LocalCatalogo
+  localCatalogo: LocalCatalogo,
+  adminId?: string
 ): Promise<EnrichmentResult & { datosEnriquecidos?: LocalEnriquecido }> {
   console.log('[Enrichment] ========================================');
   console.log('[Enrichment] Starting enrichment for:', localCatalogo.nombre);
@@ -126,10 +185,14 @@ export async function buscarYEnriquecerLocal(
     if (exclusionCheck.excluido) {
       console.log('[Enrichment] ❌ Local is excluded from enrichment');
       console.log('[Enrichment] Reason:', exclusionCheck.motivo);
+      
+      // ELIMINAR el local de la tabla locales si aún existe
+      await excluirYEliminarLocalRechazado(localCatalogo, exclusionCheck.motivo || 'Local excluido', adminId);
+      
       return {
         success: false,
         localCatalogoId: localCatalogo.id,
-        notas: `Local excluido: ${exclusionCheck.motivo}`,
+        notas: `Local excluido y eliminado: ${exclusionCheck.motivo}`,
       };
     }
     console.log('[Enrichment] ✅ Local is not excluded, proceeding with enrichment');
@@ -168,13 +231,15 @@ export async function buscarYEnriquecerLocal(
       });
     }
 
-    // ❌ No encontrado en Google Places
+    // ❌ No encontrado en Google Places - EXCLUIR Y ELIMINAR
     if (!result) {
-      console.log('[Enrichment] ❌ Not found in Google Places');
+      console.log('[Enrichment] ❌ Not found in Google Places - excluding and deleting');
+      await excluirYEliminarLocalRechazado(localCatalogo, 'No encontrado en Google Places', adminId);
+      
       return {
         success: false,
         localCatalogoId: localCatalogo.id,
-        notas: 'No encontrado en Google Places',
+        notas: 'No encontrado en Google Places - local eliminado',
       };
     }
 
@@ -204,11 +269,13 @@ export async function buscarYEnriquecerLocal(
     ]);
 
     if (!placeDetails) {
-      console.log('[Enrichment] ❌ Failed to get place details');
+      console.log('[Enrichment] ❌ Failed to get place details - excluding and deleting');
+      await excluirYEliminarLocalRechazado(localCatalogo, 'Error al obtener detalles de Google Places', adminId);
+      
       return {
         success: false,
         localCatalogoId: localCatalogo.id,
-        notas: 'Error al obtener detalles de Google Places',
+        notas: 'Error al obtener detalles de Google Places - local eliminado',
       };
     }
 
@@ -218,10 +285,15 @@ export async function buscarYEnriquecerLocal(
 
     if (!validacionCompleta.valido) {
       console.log('[Enrichment] ❌ Place validation failed:', validacionCompleta.razon);
+      console.log('[Enrichment] Excluding and deleting local...');
+      
+      // EXCLUIR Y ELIMINAR local rechazado
+      await excluirYEliminarLocalRechazado(localCatalogo, validacionCompleta.razon || 'Validación fallida', adminId);
+      
       return {
         success: false,
         localCatalogoId: localCatalogo.id,
-        notas: `Rechazado: ${validacionCompleta.razon}`,
+        notas: `Rechazado y eliminado: ${validacionCompleta.razon}`,
       };
     }
     
@@ -231,10 +303,15 @@ export async function buscarYEnriquecerLocal(
 
     if (!validacion.valido) {
       console.log('[Enrichment] ❌ Additional validation failed:', validacion.razon);
+      console.log('[Enrichment] Excluding and deleting local...');
+      
+      // EXCLUIR Y ELIMINAR local rechazado
+      await excluirYEliminarLocalRechazado(localCatalogo, validacion.razon || 'Validación adicional fallida', adminId);
+      
       return {
         success: false,
         localCatalogoId: localCatalogo.id,
-        notas: `Rechazado: ${validacion.razon}`,
+        notas: `Rechazado y eliminado: ${validacion.razon}`,
       };
     }
 
@@ -453,6 +530,7 @@ export async function buscarYEnriquecerLocal(
  */
 export async function procesarLoteEnriquecimiento(
   candidatos: LocalCatalogo[],
+  adminId?: string,
   onProgress?: (
     actual: number,
     total: number,
@@ -472,7 +550,7 @@ export async function procesarLoteEnriquecimiento(
 
     try {
       // Enriquecer local
-      const resultado = await buscarYEnriquecerLocal(candidato);
+      const resultado = await buscarYEnriquecerLocal(candidato, adminId);
       resultados.push(resultado);
 
       // Notificar progreso
