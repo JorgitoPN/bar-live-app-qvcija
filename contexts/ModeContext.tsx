@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
+import { useImpersonation } from './ImpersonationContext';
 import { supabase } from '@/utils/supabase';
 import { isAdminUser } from '@/utils/adminAccess';
 
@@ -45,7 +46,12 @@ const ACTIVE_PROFILE_STORAGE_KEY = '@barlive_active_profile';
 const ACTIVE_PROFILE_TYPE_STORAGE_KEY = '@barlive_active_profile_type';
 
 export function ModeProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const { isImpersonating, impersonatedUser, effectiveUser } = useImpersonation();
+  
+  // ✅ FIXED: Use effective user for all operations
+  const user = effectiveUser || authUser;
+  
   const [currentMode, setCurrentModeState] = useState<UserMode>('cliente');
   const [activeProfileId, setActiveProfileIdState] = useState<string | null>(null);
   const [activeProfileType, setActiveProfileTypeState] = useState<'cliente' | 'local'>('cliente');
@@ -54,6 +60,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Define loadOwnedLocals BEFORE using it in useEffect
+  // ✅ FIXED: Use effective user ID for loading owned locals
   const loadOwnedLocals = useCallback(async () => {
     if (!user) {
       setOwnedLocals([]);
@@ -61,7 +68,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      console.log('[ModeContext] 🔄 Loading owned locals for user:', user.id);
+      console.log('[ModeContext] 🔄 Loading owned locals for user:', user.id, isImpersonating ? '(impersonated)' : '(actual)');
       
       const { data, error } = await supabase
         .from('propietarios_locales')
@@ -97,7 +104,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       console.error('[ModeContext] ❌ Error loading owned locals:', error);
       setOwnedLocals([]);
     }
-  }, [user]);
+  }, [user, isImpersonating]);
 
   // Initialize all state from AsyncStorage on mount
   useEffect(() => {

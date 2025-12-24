@@ -1,22 +1,22 @@
 
 /**
- * TAB NAVIGATION HOOK - v1.2.0
+ * TAB NAVIGATION HOOK - v1.3.0
  * 
  * Custom hook to manage tab navigation state and logic.
  * 
- * 🔥 FIX v1.2.0: Properly determine ownership for "Gestión de Locales" tab
- * - When in propietario mode with a local profile, user is considered owner
- * - When in propietario mode without a local profile, check if user owns any locals
- * - This ensures "Gestión de Locales" appears in owner mode
+ * 🔥 FIX v1.3.0: Use effective user for impersonation support
+ * - When admin is impersonating, show impersonated user's avatar
+ * - When admin is impersonating, use impersonated user's role and owned locals
+ * - This ensures impersonation works correctly in the tab bar
  */
 
 import { useMemo } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useEffectiveUser } from '@/hooks/useEffectiveUser';
 import { useMode } from '@/contexts/ModeContext';
 import { getTabsForContext, TabDefinition } from './TabConfig';
 
 export function useTabNavigation() {
-  const { user } = useAuth();
+  const { user } = useEffectiveUser();
   const { currentMode, activeProfileType, activeProfileId, activeLocalData, ownedLocals } = useMode();
 
   // Determine user role
@@ -30,23 +30,23 @@ export function useTabNavigation() {
 
     // If user is in propietario mode, they are considered an owner
     if (currentMode === 'propietario') {
-      console.log('🔑 [useTabNavigation v1.2.0] User is in propietario mode → isOwner = true');
+      console.log('🔑 [useTabNavigation v1.3.0] User is in propietario mode → isOwner = true');
       return true;
     }
 
     // If user has propietario or admin role, they are considered an owner
     if (userRole === 'propietario' || userRole === 'admin') {
-      console.log('🔑 [useTabNavigation v1.2.0] User has propietario/admin role → isOwner = true');
+      console.log('🔑 [useTabNavigation v1.3.0] User has propietario/admin role → isOwner = true');
       return true;
     }
 
     // If user has any owned locals, they are considered an owner
     if (ownedLocals && ownedLocals.length > 0) {
-      console.log('🔑 [useTabNavigation v1.2.0] User owns', ownedLocals.length, 'locals → isOwner = true');
+      console.log('🔑 [useTabNavigation v1.3.0] User owns', ownedLocals.length, 'locals → isOwner = true');
       return true;
     }
 
-    console.log('🔑 [useTabNavigation v1.2.0] User is not an owner → isOwner = false');
+    console.log('🔑 [useTabNavigation v1.3.0] User is not an owner → isOwner = false');
     return false;
   }, [user, currentMode, userRole, ownedLocals]);
 
@@ -58,7 +58,7 @@ export function useTabNavigation() {
       isOwner
     );
 
-    console.log('🎯 [useTabNavigation v1.2.0] Computed tabs:', {
+    console.log('🎯 [useTabNavigation v1.3.0] Computed tabs:', {
       userRole,
       currentMode,
       isOwner,
@@ -70,6 +70,7 @@ export function useTabNavigation() {
   }, [userRole, currentMode, isOwner]);
 
   // Get active profile avatar
+  // ✅ FIXED: Use effective user's avatar for impersonation support
   const activeProfileAvatar = useMemo(() => {
     if (activeProfileType === 'local' && activeLocalData) {
       return activeLocalData.imagen_url || null;

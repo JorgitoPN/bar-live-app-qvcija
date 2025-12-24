@@ -57,14 +57,17 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
   const [loading, setLoading] = useState(false);
 
   const loadOwnedLocals = useCallback(async () => {
-    if (!user?.id) {
-      console.log('[ProfileSwitcher] ⚠️ No user ID, skipping load');
+    // ✅ FIXED: Use effectiveUserId to load impersonated user's owned locals
+    const effectiveId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
+    
+    if (!effectiveId) {
+      console.log('[ProfileSwitcher] ⚠️ No effective user ID, skipping load');
       return;
     }
 
     try {
       setLoading(true);
-      console.log('[ProfileSwitcher] 🔄 Loading owned locals for user:', user.id);
+      console.log('[ProfileSwitcher] 🔄 Loading owned locals for user:', effectiveId, isImpersonating ? '(impersonated)' : '(actual)');
 
       const { data: propietariosData, error: propietariosError } = await supabase
         .from('propietarios_locales')
@@ -79,7 +82,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
             activo
           )
         `)
-        .eq('propietario_id', user.id)
+        .eq('propietario_id', effectiveId)
         .eq('activo', true);
 
       if (propietariosError) {
@@ -98,7 +101,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, isImpersonating, impersonatedUser]);
 
   useEffect(() => {
     if (visible && user?.id) {
@@ -257,14 +260,21 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
               >
                 <View style={styles.profileInfo}>
                   <View style={[styles.profileAvatar, styles.clientAvatarBg]}>
-                    {user.avatar ? (
-                      <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+                    {/* ✅ FIXED: Show impersonated user's avatar when impersonating */}
+                    {(isImpersonating && impersonatedUser?.avatar) || user.avatar ? (
+                      <Image 
+                        source={{ uri: isImpersonating && impersonatedUser?.avatar ? impersonatedUser.avatar : user.avatar }} 
+                        style={styles.avatarImage} 
+                      />
                     ) : (
                       <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.white} />
                     )}
                   </View>
                   <View style={styles.profileText}>
-                    <Text style={styles.profileName}>{user.nombre || 'Mi Perfil'}</Text>
+                    {/* ✅ FIXED: Show impersonated user's name when impersonating */}
+                    <Text style={styles.profileName}>
+                      {isImpersonating && impersonatedUser ? impersonatedUser.nombre : (user.nombre || 'Mi Perfil')}
+                    </Text>
                     <Text style={styles.profileType}>Perfil de usuario</Text>
                   </View>
                 </View>

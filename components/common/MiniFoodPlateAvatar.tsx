@@ -5,7 +5,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/utils/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useEffectiveUser } from '@/hooks/useEffectiveUser';
 
 const DEFAULT_AVATAR_ICON = 'person.circle.fill';
 
@@ -22,7 +22,7 @@ interface MiniFoodPlateAvatarProps {
 }
 
 /**
- * ✅ MINI FOOD PLATE AVATAR v8.0 - REAL-TIME MOMENTO SYNC
+ * ✅ MINI FOOD PLATE AVATAR v8.1 - WITH IMPERSONATION SUPPORT
  * 
  * Features:
  * - Smaller size optimized for inline use
@@ -32,6 +32,7 @@ interface MiniFoodPlateAvatarProps {
  * - ✅ Shows neon green border ONLY if user/local has UNVIEWED momentos
  * - ✅ Removes border when all momentos are viewed
  * - ✅ Subscribes to real-time updates for momento_views
+ * - ✅ Uses effective user for impersonation support
  */
 export default function MiniFoodPlateAvatar({
   imageUrl,
@@ -44,7 +45,7 @@ export default function MiniFoodPlateAvatar({
   localId,
   showMomentoBorder = true,
 }: MiniFoodPlateAvatarProps) {
-  const { user } = useAuth();
+  const { user } = useEffectiveUser();
   const [hasUnviewedMomento, setHasUnviewedMomento] = useState(false);
 
   useEffect(() => {

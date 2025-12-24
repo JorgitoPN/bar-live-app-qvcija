@@ -1189,7 +1189,8 @@ export default function DetalleLocalScreen() {
                 </TouchableOpacity>
               )}
 
-              {user && (
+              {/* ✅ FIXED: Only show "Estoy en este local" button when local is OPEN */}
+              {user && isOpen && (
                 <View style={styles.checkInButtonsContainer}>
                   {!isCheckedIn ? (
                     <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
@@ -1208,9 +1209,6 @@ export default function DetalleLocalScreen() {
                   )}
                 </View>
               )}
-
-              {/* ✅ REMOVED: Description section - as per user request, 
-                  specific local descriptions should not be shown */}
 
               <View style={styles.actionsRow}>
                 {local.telefono && (
@@ -1233,6 +1231,7 @@ export default function DetalleLocalScreen() {
               </View>
 
               <View style={styles.socialButtonsContainer}>
+                {/* ✅ FIXED: Show social profile button when local has profile or premium/estandar plan */}
                 {hasSocialProfile && (
                   <TouchableOpacity style={styles.specialButton} onPress={handleSocialProfile}>
                     <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.specialButtonGradient}>
@@ -2045,20 +2044,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
-  descriptionSection: {
-    marginBottom: 16,
-  },
-  descriptionText: {
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 22,
-  },
-  expandButton: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '700',
-    marginTop: 6,
-  },
   actionsRow: {
     flexDirection: 'row',
     gap: 10,
@@ -2424,5 +2409,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#fff',
+  },
+  expandButton: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '700',
+    marginTop: 6,
   },
 });
