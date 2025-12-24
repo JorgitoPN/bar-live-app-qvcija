@@ -35,7 +35,7 @@ import { useLocalEvent } from '@/hooks/useLocalEvent';
 import MomentoViewer from '@/components/momento/MomentoViewer';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 
-const SCREEN_VERSION = '10.4.0';
+const SCREEN_VERSION = '10.5.0';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -93,14 +93,12 @@ interface Seguidor {
 }
 
 /**
- * ✅ LOCAL PROFILE v10.4 - FIXED MOMENTO VIEWER ACCESS
+ * ✅ LOCAL PROFILE v10.5 - FIXED VIRTUAL ROOM BUTTON
  * 
  * Changes:
- * - ✅ FIXED: Avatar now checks for ANY momentos (not just unviewed)
- * - ✅ FIXED: Non-owners can view momentos by tapping avatar if momentos exist
- * - ✅ FIXED: Owners can upload momentos by tapping + icon or avatar when no momentos exist
- * - ✅ FIXED: Neon green border shows when ANY momentos exist (viewed or unviewed)
- * - ✅ Synchronized with user profile momento functionality
+ * - ✅ FIXED: Virtual room button now uses same navigation as local details page
+ * - ✅ Uses /detalle/sala-virtual route with localId parameter
+ * - ✅ Consistent button styling and functionality across both pages
  */
 
 export default function LocalPerfilScreen() {
@@ -144,10 +142,8 @@ export default function LocalPerfilScreen() {
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [showMomentoUpload, setShowMomentoUpload] = useState(false);
   const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
-  // ✅ NEW: Track if ANY momentos exist (viewed or unviewed)
   const [hasMomentos, setHasMomentos] = useState(false);
 
-  // ✅ Analytics permission state
   const [hasAnalyticsPermission, setHasAnalyticsPermission] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -201,7 +197,6 @@ export default function LocalPerfilScreen() {
         return;
       }
 
-      // ✅ FIXED: Set hasMomentos to true if ANY momentos exist
       setHasMomentos(true);
 
       const momentoIds = momentosData.map(m => m.id);
@@ -229,7 +224,6 @@ export default function LocalPerfilScreen() {
     }
   }, [user, localId]);
 
-  // ✅ Check analytics permission
   const checkAnalyticsPermission = useCallback(async () => {
     if (!localId) return;
 
@@ -650,7 +644,6 @@ export default function LocalPerfilScreen() {
     }
   };
 
-  // ✅ FIXED: Avatar press handler - check for ANY momentos
   const handleAvatarPress = () => {
     console.log('[LocalPerfil] Avatar pressed:', {
       hasMomentos,
@@ -658,12 +651,10 @@ export default function LocalPerfilScreen() {
       isOwner,
     });
 
-    // ✅ FIXED: Allow viewing if ANY momentos exist (not just unviewed)
     if (hasMomentos) {
       console.log('[LocalPerfil] Opening momento viewer (momentos exist)');
       setShowMomentoViewer(true);
     } else if (isOwner) {
-      // Owner can upload new momentos even if none exist
       console.log('[LocalPerfil] Opening momento upload (owner, no momentos)');
       setShowMomentoUpload(true);
     }
@@ -693,7 +684,8 @@ export default function LocalPerfilScreen() {
   };
 
   const handleSalaVirtual = () => {
-    router.push(`/detalle/sala-virtual?id=${localId}`);
+    console.log('[LocalPerfil] ✅ Navigating to virtual room with localId:', localId);
+    router.push({ pathname: '/detalle/sala-virtual', params: { localId: localId } });
   };
 
   const handleVerPost = (postId: string) => {
@@ -786,7 +778,6 @@ export default function LocalPerfilScreen() {
       return;
     }
 
-    // ✅ Check analytics permission before navigating
     if (!hasAnalyticsPermission) {
       Alert.alert(
         'Plan Premium Requerido',
@@ -1069,7 +1060,6 @@ export default function LocalPerfilScreen() {
             ]}
           >
             <View style={styles.profileHeader}>
-              {/* ✅ FIXED: Avatar with momento border - shows neon green if ANY momentos exist */}
               <TouchableOpacity 
                 style={styles.avatarContainer}
                 onPress={handleAvatarPress}
@@ -1101,7 +1091,6 @@ export default function LocalPerfilScreen() {
                     )}
                   </View>
                 )}
-                {/* ✅ FIXED: + icon for owner to add momentos */}
                 {isOwner && (
                   <View style={styles.addMomentoButton}>
                     <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={16} color={colors.white} />
@@ -1187,7 +1176,6 @@ export default function LocalPerfilScreen() {
                     <Text style={styles.ownerRowButtonText}>Evento</Text>
                   </TouchableOpacity>
 
-                  {/* ✅ FIXED: Only show analytics button if user has premium plan */}
                   {hasAnalyticsPermission && (
                     <TouchableOpacity 
                       style={styles.ownerRowButton} 
@@ -1506,9 +1494,26 @@ export default function LocalPerfilScreen() {
 
               <View style={styles.infoSection}>
                 <Text style={styles.infoSectionTitle}>Sala Virtual</Text>
-                <TouchableOpacity style={styles.virtualRoomButton} onPress={handleSalaVirtual}>
-                  <IconSymbol ios_icon_name="person.3.fill" android_material_icon_name="groups" size={20} color={colors.white} />
-                  <Text style={styles.virtualRoomButtonText}>Entrar a la Sala Virtual</Text>
+                <TouchableOpacity 
+                  style={styles.virtualRoomButton} 
+                  onPress={handleSalaVirtual}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient 
+                    colors={['#8B5CF6', '#7C3AED', '#6D28D9']} 
+                    start={{ x: 0, y: 0 }} 
+                    end={{ x: 1, y: 1 }} 
+                    style={styles.virtualRoomButtonGradient}
+                  >
+                    <View style={styles.virtualRoomIconContainer}>
+                      <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={24} color="#fff" />
+                    </View>
+                    <View style={styles.virtualRoomTextContainer}>
+                      <Text style={styles.virtualRoomButtonTitle}>Sala Virtual</Text>
+                      <Text style={styles.virtualRoomButtonSubtitle}>Chatea con otros usuarios</Text>
+                    </View>
+                    <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={22} color="#fff" />
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
 
@@ -1697,7 +1702,6 @@ export default function LocalPerfilScreen() {
         </View>
       </Modal>
 
-      {/* ✅ FIXED: Momento Viewer with correct props */}
       {showMomentoViewer && (
         <MomentoViewer
           visible={showMomentoViewer}
@@ -1710,7 +1714,6 @@ export default function LocalPerfilScreen() {
         />
       )}
 
-      {/* ✅ FIXED: Momento Upload (owner only) with correct props */}
       {showMomentoUpload && isOwner && (
         <MomentoUpload
           visible={showMomentoUpload}
@@ -2225,18 +2228,42 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   virtualRoomButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  virtualRoomButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.secondary,
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    gap: 12,
   },
-  virtualRoomButtonText: {
-    fontSize: 15,
+  virtualRoomIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  virtualRoomTextContainer: {
+    flex: 1,
+  },
+  virtualRoomButtonTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  virtualRoomButtonSubtitle: {
+    fontSize: 13,
     fontWeight: '600',
-    color: colors.white,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   moreInfoButton: {
     flexDirection: 'row',
