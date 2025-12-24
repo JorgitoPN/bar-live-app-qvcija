@@ -27,7 +27,7 @@ import * as Location from 'expo-location';
 import ImageGalleryModal from '../../components/detalle/ImageGalleryModal';
 import { CATEGORIAS_EXCLUIDAS } from '../../utils/constants';
 import { getEstadoLocal } from '../../utils/timeUtils';
-import { useAuth } from '../../contexts/AuthContext';
+import { useEffectiveUser } from '../../hooks/useEffectiveUser';
 import { useFavorites } from '../../contexts/FavoritesContext';
 import { calcularDistancia } from '../../utils/locationUtils';
 import ParsedText from '../../components/social/ParsedText';
@@ -105,6 +105,7 @@ interface Local {
   rango_precios?: string;
   nivel_precio_google?: number;
   propietario_id?: string;
+  local_profile_id?: string;
 }
 
 interface Review {
@@ -327,7 +328,7 @@ const formatOpeningHours = (hours: string[]): string => {
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useEffectiveUser();
   const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
 
   const [local, setLocal] = useState<Local | null>(null);
@@ -695,10 +696,17 @@ export default function DetalleLocalScreen() {
   };
 
   const handleSocialProfile = () => {
-    router.push({
-      pathname: '/perfil/local',
-      params: { localId: params.id },
-    });
+    if (local?.local_profile_id) {
+      router.push({
+        pathname: '/perfil/local',
+        params: { localId: local.local_profile_id },
+      });
+    } else {
+      router.push({
+        pathname: '/perfil/local',
+        params: { localId: params.id },
+      });
+    }
   };
 
   const handleShare = async () => {
@@ -864,7 +872,8 @@ export default function DetalleLocalScreen() {
 
   const estadoLocal = getEstadoLocal(local);
   const isOpen = estadoLocal.estaAbierto === true;
-  const hasSocialProfile = local.plan_activo === 'estandar' || local.plan_activo === 'premium';
+  
+  const hasSocialProfile = !!(local.local_profile_id || local.plan_activo === 'estandar' || local.plan_activo === 'premium');
   
   const hasOwner = !!local.propietario_id;
 
