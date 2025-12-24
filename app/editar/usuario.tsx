@@ -24,6 +24,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { isAdminUser } from '@/utils/adminAccess';
+import { trackUsernameChange, isUsernameReserved } from '@/utils/usernameGenerator';
 
 const ROLES = [
   { value: 'cliente', label: 'Cliente' },
@@ -47,6 +48,7 @@ export default function EditarUsuarioScreen() {
   const [avatar, setAvatar] = useState('');
   const [nombre, setNombre] = useState('');
   const [username, setUsername] = useState('');
+  const [originalUsername, setOriginalUsername] = useState(''); // Track original username
   const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
   const [sitioWeb, setSitioWeb] = useState('');
@@ -91,6 +93,7 @@ export default function EditarUsuarioScreen() {
         setAvatar(data.avatar || '');
         setNombre(data.nombre || '');
         setUsername(data.username || '');
+        setOriginalUsername(data.username || ''); // Store original username
         setEmail(data.email || '');
         setBio(data.bio || '');
         setSitioWeb(data.sitio_web || '');
@@ -154,6 +157,12 @@ export default function EditarUsuarioScreen() {
 
     if (username && !validarUsername(username)) {
       Alert.alert('Error', 'El nombre de usuario solo puede contener letras, números, puntos y guiones bajos');
+      return;
+    }
+
+    // Check if username is reserved
+    if (username && isUsernameReserved(username)) {
+      Alert.alert('Error', 'Este nombre de usuario está reservado y no puede ser utilizado');
       return;
     }
 
@@ -225,6 +234,19 @@ export default function EditarUsuarioScreen() {
         console.error('Error updating usuario:', error);
         Alert.alert('Error', 'No se pudo guardar el usuario. Por favor, intenta nuevamente.');
         return;
+      }
+
+      // Track username change if it was modified
+      if (username && username !== originalUsername) {
+        console.log('[EditarUsuario] 📝 Username changed from', originalUsername, 'to', username);
+        await trackUsernameChange(
+          'user',
+          usuarioId,
+          originalUsername || null,
+          username,
+          currentUser?.id,
+          'Usuario editó su perfil'
+        );
       }
 
       Alert.alert('Éxito', 'Usuario actualizado correctamente', [

@@ -775,7 +775,7 @@ export default function FavoritosScreen() {
           </Text>
           <TouchableOpacity 
             style={styles.loginButton}
-            onPress={() => router.push('/auth/login-popup')}
+            onPress={() => router.push('/auth/login-v6')}
             activeOpacity={0.7}
           >
             <Text style={styles.loginButtonText}>Iniciar Sesión</Text>

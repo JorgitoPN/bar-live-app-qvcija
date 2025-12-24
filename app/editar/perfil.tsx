@@ -21,6 +21,8 @@ import { colors } from '@/styles/commonStyles';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
+import { trackUsernameChange, isUsernameReserved } from '@/utils/usernameGenerator';
+import { UsernameSuggestions } from '@/components/auth/UsernameSuggestions';
 
 export default function EditarPerfilScreen() {
   const router = useRouter();
@@ -31,6 +33,7 @@ export default function EditarPerfilScreen() {
   const [avatar, setAvatar] = useState('');
   const [nombre, setNombre] = useState('');
   const [username, setUsername] = useState('');
+  const [originalUsername, setOriginalUsername] = useState(''); // Track original username
   const [bio, setBio] = useState('');
   const [sitioWeb, setSitioWeb] = useState('');
   const [perfilPrivado, setPerfilPrivado] = useState(false);
@@ -59,6 +62,7 @@ export default function EditarPerfilScreen() {
         setAvatar(data.avatar || '');
         setNombre(data.nombre || '');
         setUsername(data.username || '');
+        setOriginalUsername(data.username || ''); // Store original username
         setBio(data.bio || '');
         setSitioWeb(data.sitio_web || '');
         setPerfilPrivado(data.perfil_privado || false);
@@ -117,6 +121,12 @@ export default function EditarPerfilScreen() {
       return;
     }
 
+    // Check if username is reserved
+    if (username && isUsernameReserved(username)) {
+      Alert.alert('Error', 'Este nombre de usuario está reservado y no puede ser utilizado');
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -164,6 +174,19 @@ export default function EditarPerfilScreen() {
         console.error('Error updating profile:', error);
         Alert.alert('Error', 'No se pudo guardar el perfil. Por favor, intenta nuevamente.');
         return;
+      }
+
+      // Track username change if it was modified
+      if (username && username !== originalUsername) {
+        console.log('[EditarPerfil] 📝 Username changed from', originalUsername, 'to', username);
+        await trackUsernameChange(
+          'user',
+          user.id,
+          originalUsername || null,
+          username,
+          user.id,
+          'Usuario editó su perfil'
+        );
       }
 
       // Refresh user data in context
@@ -263,6 +286,15 @@ export default function EditarPerfilScreen() {
             <Text style={styles.helperText}>
               Solo letras, números, puntos y guiones bajos
             </Text>
+            
+            {/* Username suggestions */}
+            {nombre && (
+              <UsernameSuggestions
+                name={nombre}
+                currentUsername={username}
+                onSelectUsername={setUsername}
+              />
+            )}
           </View>
 
           <View style={styles.inputContainer}>
