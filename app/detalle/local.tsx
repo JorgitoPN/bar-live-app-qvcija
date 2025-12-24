@@ -873,7 +873,14 @@ export default function DetalleLocalScreen() {
   const estadoLocal = getEstadoLocal(local);
   const isOpen = estadoLocal.estaAbierto === true;
   
-  const hasSocialProfile = !!(local.local_profile_id || local.plan_activo === 'estandar' || local.plan_activo === 'premium');
+  // ✅ Show social profile button if:
+  // 1. Local has a local_profile_id (has created a social profile)
+  // 2. OR local has premium/estandar plan (can create social profile)
+  const hasSocialProfile = !!(
+    local.local_profile_id || 
+    local.plan_activo === 'premium' || 
+    local.plan_activo === 'estandar'
+  );
   
   const hasOwner = !!local.propietario_id;
 
@@ -1202,16 +1209,8 @@ export default function DetalleLocalScreen() {
                 </View>
               )}
 
-              {description && (
-                <View style={styles.descriptionSection}>
-                  <Text style={styles.descriptionText}>{expandedDescription ? description : descriptionSummary}</Text>
-                  {needsDescriptionExpansion && (
-                    <TouchableOpacity onPress={() => setExpandedDescription(!expandedDescription)}>
-                      <Text style={styles.expandButton}>{expandedDescription ? 'Ver menos' : 'Ver más'}</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
+              {/* ✅ REMOVED: Description section - as per user request, 
+                  specific local descriptions should not be shown */}
 
               <View style={styles.actionsRow}>
                 {local.telefono && (

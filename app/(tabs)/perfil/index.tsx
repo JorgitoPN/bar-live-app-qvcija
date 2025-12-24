@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import { useEffectiveUser } from '@/hooks/useEffectiveUser';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
@@ -71,19 +71,19 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v2.1 - WITH SOCIAL LOGIN PAGE
+ * ✅ PROFILE SCREEN v2.2 - WITH IMPERSONATION SUPPORT
  * 
  * Features:
- * - ✅ Uses the same login page as Social section
+ * - ✅ Uses useEffectiveUser() for impersonation support
+ * - ✅ Shows impersonated user's profile when admin is impersonating
  * - ✅ NO loading screens - instant display with cached data
  * - ✅ Background refresh for fresh data without blocking UI
  * - ✅ Persistent state - doesn't remount on navigation
- * - ✅ Same performance as Lista de Locales and Feed Social
  */
 
 export default function PerfilScreen() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, userId, isImpersonating } = useEffectiveUser();
   const { 
     currentMode, 
     ownedLocals,
@@ -128,13 +128,13 @@ export default function PerfilScreen() {
   // ✅ DEFINE ALL CALLBACK FUNCTIONS BEFORE USING THEM
 
   const loadUnreadCounts = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
 
     try {
       const { count: notifCount } = await supabase
         .from('notificaciones')
         .select('*', { count: 'exact', head: true })
-        .eq('usuario_id', user.id)
+        .eq('usuario_id', userId)
         .eq('leida', false);
 
       setUnreadNotifications(notifCount || 0);
@@ -142,7 +142,7 @@ export default function PerfilScreen() {
       const { data: chatsData } = await supabase
         .from('chats')
         .select('id')
-        .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
+        .or(`usuario1_id.eq.${userId},usuario2_id.eq.${userId}`);
 
       if (chatsData) {
         let totalUnread = 0;
@@ -153,7 +153,7 @@ export default function PerfilScreen() {
             .eq('chat_id', chat.id)
             .eq('leido', false)
             .is('leido_at', null)
-            .neq('remitente_id', user.id);
+            .neq('remitente_id', userId);
           
           totalUnread += count || 0;
         }
@@ -162,13 +162,13 @@ export default function PerfilScreen() {
     } catch (error) {
       console.error('[Perfil] Error loading unread counts:', error);
     }
-  }, [user]);
+  }, [userId]);
 
   const checkUnviewedMomentos = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
 
     try {
-      const checkId = activeProfileType === 'local' ? activeProfileId : user.id;
+      const checkId = activeProfileType === 'local' ? activeProfileId : userId;
       const checkType = activeProfileType === 'local' ? 'local' : 'usuario';
 
       if (!checkId) return;
@@ -202,7 +202,7 @@ export default function PerfilScreen() {
       const { data: viewsData, error: viewsError } = await supabase
         .from('momento_views')
         .select('momento_id')
-        .eq('usuario_id', user.id)
+        .eq('usuario_id', userId)
         .in('momento_id', momentoIds);
 
       if (viewsError) {
@@ -217,16 +217,16 @@ export default function PerfilScreen() {
       console.error('[Perfil] ❌ Error checking unviewed momentos:', error);
       setHasUnviewedMomentos(false);
     }
-  }, [user, activeProfileType, activeProfileId]);
+  }, [userId, activeProfileType, activeProfileId]);
 
   const loadCartItemsCount = useCallback(async () => {
-    if (!user || !isPropietario) return;
+    if (!userId || !isPropietario) return;
 
     try {
       const { count, error } = await supabase
         .from('shopping_cart')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
 
       if (error) {
         console.error('[Perfil] ❌ Error loading cart count:', error);
@@ -237,10 +237,10 @@ export default function PerfilScreen() {
     } catch (error) {
       console.error('[Perfil] ❌ Error loading cart count:', error);
     }
-  }, [user, isPropietario]);
+  }, [userId, isPropietario]);
 
   const loadCurrentLocal = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
 
     try {
       const { data: checkIn, error } = await supabase
@@ -251,7 +251,7 @@ export default function PerfilScreen() {
           specific_user_ids,
           locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
         `)
-        .eq('usuario_id', user.id)
+        .eq('usuario_id', userId)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -272,10 +272,10 @@ export default function PerfilScreen() {
     } catch (error) {
       console.error('[Perfil] Error loading current local:', error);
     }
-  }, [user]);
+  }, [userId]);
 
   const cargarPosts = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
 
     try {
       const { data, error } = await supabase
@@ -289,7 +289,7 @@ export default function PerfilScreen() {
             username
           )
         `)
-        .eq('autor_id', user.id)
+        .eq('autor_id', userId)
         .eq('tipo', 'usuario')
         .order('created_at', { ascending: false })
         .limit(20);
@@ -302,7 +302,7 @@ export default function PerfilScreen() {
           supabase
             .from('likes')
             .select('post_id')
-            .eq('usuario_id', user.id)
+            .eq('usuario_id', userId)
             .in('post_id', postIds),
           supabase
             .from('comentarios')
@@ -332,10 +332,10 @@ export default function PerfilScreen() {
       console.error('[Perfil] Error cargando posts:', error);
       return [];
     }
-  }, [user]);
+  }, [userId]);
 
   const cargarFavoritos = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
 
     try {
       const { data, error } = await supabase
@@ -352,7 +352,7 @@ export default function PerfilScreen() {
             )
           )
         `)
-        .eq('usuario_id', user.id)
+        .eq('usuario_id', userId)
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -366,7 +366,7 @@ export default function PerfilScreen() {
           supabase
             .from('likes')
             .select('post_id')
-            .eq('usuario_id', user.id)
+            .eq('usuario_id', userId)
             .in('post_id', postIds),
           supabase
             .from('comentarios')
@@ -394,16 +394,16 @@ export default function PerfilScreen() {
     } catch (error) {
       console.error('[Perfil] Error cargando favoritos:', error);
     }
-  }, [user]);
+  }, [userId]);
 
   const cargarEtiquetados = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
 
     try {
       const { data: tagsData, error: tagsError } = await supabase
         .from('post_tags')
         .select('post_id')
-        .eq('usuario_id', user.id)
+        .eq('usuario_id', userId)
         .eq('tipo', 'usuario')
         .eq('estado', 'aceptado')
         .order('created_at', { ascending: false });
@@ -442,12 +442,12 @@ export default function PerfilScreen() {
         supabase
           .from('likes')
           .select('post_id')
-          .eq('usuario_id', user.id)
+          .eq('usuario_id', userId)
           .in('post_id', postIds),
         supabase
           .from('posts_guardados')
           .select('post_id')
-          .eq('usuario_id', user.id)
+          .eq('usuario_id', userId)
           .in('post_id', postIds),
         supabase
           .from('comentarios')
@@ -474,17 +474,17 @@ export default function PerfilScreen() {
       console.error('[Perfil] Error cargando etiquetados:', error);
       setTaggedPosts([]);
     }
-  }, [user]);
+  }, [userId]);
 
   const cargarPerfilProfesional = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
 
     setLoadingEmpleo(true);
     try {
       const { data, error } = await supabase
         .from('perfiles_profesionales')
         .select('*')
-        .eq('usuario_id', user.id)
+        .eq('usuario_id', userId)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -501,11 +501,11 @@ export default function PerfilScreen() {
     } finally {
       setLoadingEmpleo(false);
     }
-  }, [user]);
+  }, [userId]);
 
   // ✅ DEFINE cargarDatosPerfil BEFORE using it in useEffect
   const cargarDatosPerfil = useCallback(async (isBackgroundRefresh: boolean = false) => {
-    if (!user) return;
+    if (!userId) return;
 
     try {
       if (!isBackgroundRefresh) {
@@ -518,12 +518,12 @@ export default function PerfilScreen() {
       await loadCurrentLocal();
 
       const { data: seguidoresData, error: seguidoresError } = await supabase
-        .rpc('get_total_seguidores_count', { p_usuario_id: user.id });
+        .rpc('get_total_seguidores_count', { p_usuario_id: userId });
 
       const { count: userFollowsCount } = await supabase
         .from('seguidores')
         .select('*', { count: 'exact', head: true })
-        .eq('seguidor_id', user.id);
+        .eq('seguidor_id', userId);
 
       const seguidosCount = userFollowsCount || 0;
 
@@ -536,7 +536,7 @@ export default function PerfilScreen() {
       const { count: publicacionesCount } = await supabase
         .from('posts')
         .select('*', { count: 'exact', head: true })
-        .eq('autor_id', user.id)
+        .eq('autor_id', userId)
         .eq('tipo', 'usuario');
 
       setSeguidores(seguidoresCount || 0);
@@ -546,15 +546,17 @@ export default function PerfilScreen() {
       const loadedPosts = await cargarPosts();
 
       // ✅ CACHE UPDATE: Save to cache for instant future loads
-      await profileCache.set(user.id, 'user', {
-        profile: user,
-        posts: loadedPosts || [],
-        stats: {
-          posts: publicacionesCount || 0,
-          seguidores: seguidoresCount || 0,
-          seguidos: seguidosCount || 0,
-        },
-      });
+      if (user) {
+        await profileCache.set(userId, 'user', {
+          profile: user,
+          posts: loadedPosts || [],
+          stats: {
+            posts: publicacionesCount || 0,
+            seguidores: seguidoresCount || 0,
+            seguidos: seguidosCount || 0,
+          },
+        });
+      }
 
       if (!isBackgroundRefresh) {
         console.log('[Perfil] ✅ Profile data loaded and cached');
@@ -564,15 +566,15 @@ export default function PerfilScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, [user, loadUnreadCounts, checkUnviewedMomentos, loadCartItemsCount, loadCurrentLocal, cargarPosts]);
+  }, [userId, user, loadUnreadCounts, checkUnviewedMomentos, loadCartItemsCount, loadCurrentLocal, cargarPosts]);
 
   // ✅ INSTANT LOAD: Load from cache first
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
 
     const loadCachedData = async () => {
       console.log('[Perfil] ⚡ Loading from cache...');
-      const cached = await profileCache.get(user.id, 'user');
+      const cached = await profileCache.get(userId, 'user');
       
       if (cached) {
         console.log('[Perfil] ⚡⚡⚡ INSTANT LOAD from cache');
@@ -593,10 +595,10 @@ export default function PerfilScreen() {
     };
 
     loadCachedData();
-  }, [user, cargarDatosPerfil]);
+  }, [userId, cargarDatosPerfil]);
 
   useEffect(() => {
-    if (user) {
+    if (userId) {
       setLoadingPosts(true);
       if (activeTab === 'posts') {
         cargarPosts().finally(() => setLoadingPosts(false));
@@ -608,11 +610,11 @@ export default function PerfilScreen() {
         cargarPerfilProfesional().finally(() => setLoadingPosts(false));
       }
     }
-  }, [activeTab, user, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarPerfilProfesional]);
+  }, [activeTab, userId, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarPerfilProfesional]);
 
   // ✅ Real-time subscriptions
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
 
     const subscription = supabase
       .channel('profile-updates')
@@ -644,7 +646,7 @@ export default function PerfilScreen() {
           event: '*',
           schema: 'public',
           table: 'check_ins',
-          filter: `usuario_id=eq.${user.id}`,
+          filter: `usuario_id=eq.${userId}`,
         },
         () => {
           loadCurrentLocal();
@@ -656,7 +658,7 @@ export default function PerfilScreen() {
           event: '*',
           schema: 'public',
           table: 'notificaciones',
-          filter: `usuario_id=eq.${user.id}`,
+          filter: `usuario_id=eq.${userId}`,
         },
         () => {
           loadUnreadCounts();
@@ -678,10 +680,10 @@ export default function PerfilScreen() {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [user, checkUnviewedMomentos, loadCurrentLocal, loadUnreadCounts]);
+  }, [userId, checkUnviewedMomentos, loadCurrentLocal, loadUnreadCounts]);
 
   useEffect(() => {
-    if (!user || !isPropietario) return;
+    if (!userId || !isPropietario) return;
 
     const subscription = supabase
       .channel('cart-updates')
@@ -691,7 +693,7 @@ export default function PerfilScreen() {
           event: '*',
           schema: 'public',
           table: 'shopping_cart',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         () => {
           loadCartItemsCount();
@@ -702,7 +704,7 @@ export default function PerfilScreen() {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [user, isPropietario, loadCartItemsCount]);
+  }, [userId, isPropietario, loadCartItemsCount]);
 
   const displayName = user?.nombre || 'Usuario';
   const displayAvatar = user?.avatar;
@@ -729,11 +731,11 @@ export default function PerfilScreen() {
   };
 
   const handleSeguidores = () => {
-    router.push(`/perfil/seguidores?userId=${user?.id}`);
+    router.push(`/perfil/seguidores?userId=${userId}`);
   };
 
   const handleSeguidos = () => {
-    router.push(`/perfil/seguidos?userId=${user?.id}`);
+    router.push(`/perfil/seguidos?userId=${userId}`);
   };
 
   const handleWebsite = () => {
@@ -747,7 +749,7 @@ export default function PerfilScreen() {
   };
 
   const handleVerPerfilProfesional = () => {
-    if (!user || !perfilProfesional) return;
+    if (!userId || !perfilProfesional) return;
     router.push(`/empleo/perfil-detalle?id=${perfilProfesional.id}`);
   };
 
@@ -756,9 +758,9 @@ export default function PerfilScreen() {
   };
 
   const handleOpenMomentoViewer = () => {
-    if (!user) return;
+    if (!userId) return;
     
-    const viewerId = activeProfileType === 'local' ? activeProfileId : user.id;
+    const viewerId = activeProfileType === 'local' ? activeProfileId : userId;
     const viewerType = activeProfileType === 'local' ? 'local' : 'usuario';
     
     setShowMomentoViewer(true);
@@ -788,7 +790,7 @@ export default function PerfilScreen() {
   };
 
   const handleExitLocal = async () => {
-    if (!user || !currentLocal) return;
+    if (!userId || !currentLocal) return;
 
     Alert.alert(
       'Salir del local',
@@ -802,7 +804,7 @@ export default function PerfilScreen() {
               const { error } = await supabase
                 .from('check_ins')
                 .delete()
-                .eq('usuario_id', user.id);
+                .eq('usuario_id', userId);
 
               if (error) throw error;
 
@@ -869,6 +871,15 @@ export default function PerfilScreen() {
   const renderProfileHeader = () => {
     return (
       <View style={styles.profileSection}>
+        {isImpersonating && (
+          <View style={styles.impersonationBanner}>
+            <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={16} color="#fff" />
+            <Text style={styles.impersonationBannerText}>
+              Viendo perfil como: {displayName}
+            </Text>
+          </View>
+        )}
+        
         <View style={styles.profileHeader}>
           <TouchableOpacity 
             style={styles.avatarWrapper}
@@ -1452,7 +1463,7 @@ export default function PerfilScreen() {
 
       <MomentoViewer
         visible={showMomentoViewer}
-        authorId={activeProfileType === 'local' ? activeProfileId || '' : user?.id || ''}
+        authorId={activeProfileType === 'local' ? activeProfileId || '' : userId || ''}
         authorType={activeProfileType === 'local' ? 'local' : 'usuario'}
         onClose={() => setShowMomentoViewer(false)}
       />
@@ -1615,6 +1626,24 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     paddingTop: 0,
+  },
+  impersonationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(251, 191, 36, 0.2)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.4)',
+  },
+  impersonationBannerText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
   },
   profileHeader: {
     flexDirection: 'row',
