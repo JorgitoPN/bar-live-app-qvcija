@@ -14,6 +14,7 @@ export interface ExclusionCheckParams {
   longitud?: number;
   google_place_id?: string;
   osm_id?: string;
+  amenity_type?: string; // Tipo de amenity de OSM (bar, restaurant, cafe, pub, nightclub)
 }
 
 export interface ExclusionCheckResult {
@@ -23,49 +24,76 @@ export interface ExclusionCheckResult {
 }
 
 /**
- * ✅ PALABRAS CLAVE VÁLIDAS PARA LOCALES
- * Un local será considerado válido si su nombre contiene alguna de estas palabras
+ * ✅ TIPOS DE AMENITY VÁLIDOS DE OSM
+ * Estos son los tipos que queremos importar desde OpenStreetMap
  */
-const PALABRAS_CLAVE_VALIDAS = [
-  'Bar',
-  'Discoteca',
-  'Restaurante',
-  'Cafetería',
-  'Café',
-  'Pub',
-  'Coctelería',
+const AMENITY_TYPES_VALIDOS = [
+  'bar',
+  'pub',
+  'restaurant',
+  'cafe',
+  'nightclub',
+  'biergarten',
+  'fast_food',
 ];
 
 /**
- * Verifica si el nombre de un local contiene alguna palabra clave válida
+ * Verifica si el tipo de amenity es válido
+ */
+export function esAmenityValido(amenityType?: string): { valido: boolean; razon?: string } {
+  if (!amenityType || amenityType.trim() === '') {
+    return { valido: false, razon: 'Tipo de amenity vacío' };
+  }
+
+  const amenityNormalizado = amenityType.toLowerCase().trim();
+
+  if (!AMENITY_TYPES_VALIDOS.includes(amenityNormalizado)) {
+    console.log(`[AmenityValidation] ❌ Amenity inválido: "${amenityType}" - No es un tipo válido`);
+    return {
+      valido: false,
+      razon: `El tipo de amenity "${amenityType}" no es válido. Tipos válidos: ${AMENITY_TYPES_VALIDOS.join(', ')}`,
+    };
+  }
+
+  console.log(`[AmenityValidation] ✅ Amenity válido: "${amenityType}"`);
+  return { valido: true };
+}
+
+/**
+ * Verifica si el nombre de un local es válido (no vacío, no genérico)
  */
 export function esNombreLocalValido(nombre: string): { valido: boolean; razon?: string } {
   if (!nombre || nombre.trim() === '') {
     return { valido: false, razon: 'Nombre vacío' };
   }
 
-  // Normalizar el nombre para la comparación (sin acentos y en minúsculas)
+  // Normalizar el nombre para la comparación
   const nombreNormalizado = nombre
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
 
-  // Verificar si contiene alguna palabra clave válida
-  const contieneKeyword = PALABRAS_CLAVE_VALIDAS.some(keyword => {
-    const keywordNormalizada = keyword
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-    
-    return nombreNormalizado.includes(keywordNormalizada);
-  });
+  // Rechazar nombres genéricos o muy cortos
+  if (nombreNormalizado.length < 3) {
+    return { valido: false, razon: 'Nombre demasiado corto' };
+  }
 
-  if (!contieneKeyword) {
-    console.log(`[NameValidation] ❌ Nombre inválido: "${nombre}" - No contiene palabras clave válidas`);
-    return {
-      valido: false,
-      razon: `El nombre no contiene ninguna palabra clave válida (${PALABRAS_CLAVE_VALIDAS.join(', ')})`,
-    };
+  // Lista de nombres genéricos a rechazar
+  const nombresGenericos = [
+    'sin nombre',
+    'unnamed',
+    'bar',
+    'restaurante',
+    'cafe',
+    'pub',
+    'discoteca',
+    'local',
+    'establecimiento',
+  ];
+
+  if (nombresGenericos.includes(nombreNormalizado)) {
+    return { valido: false, razon: 'Nombre demasiado genérico' };
   }
 
   console.log(`[NameValidation] ✅ Nombre válido: "${nombre}"`);
@@ -81,7 +109,19 @@ export async function verificarLocalExcluido(
   try {
     console.log('[ExclusionCheck] Verificando exclusión:', params);
 
-    // 🔍 VALIDACIÓN DE NOMBRE PRIMERO
+    // 🔍 VALIDACIÓN DE AMENITY TYPE PRIMERO (si está disponible)
+    if (params.amenity_type) {
+      const validacionAmenity = esAmenityValido(params.amenity_type);
+      if (!validacionAmenity.valido) {
+        console.log('[ExclusionCheck] ❌ Local excluido por amenity type inválido');
+        return {
+          excluido: true,
+          motivo: validacionAmenity.razon,
+        };
+      }
+    }
+
+    // 🔍 VALIDACIÓN DE NOMBRE
     if (params.nombre) {
       const validacionNombre = esNombreLocalValido(params.nombre);
       if (!validacionNombre.valido) {

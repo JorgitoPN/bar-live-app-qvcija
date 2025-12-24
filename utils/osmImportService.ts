@@ -113,6 +113,7 @@ async function guardarLocalEnSupabase(localCatalogo: LocalCatalogo): Promise<boo
       latitud: localCatalogo.latitud,
       longitud: localCatalogo.longitud,
       osm_id: localCatalogo.osm_id,
+      amenity_type: localCatalogo.tipo_osm, // ✅ Pasar el tipo de amenity
     });
 
     if (exclusionCheck.excluido) {
