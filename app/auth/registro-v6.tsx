@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+import { generateUsername } from '@/utils/usernameGenerator';
 
 export default function RegistroV6Screen() {
   const router = useRouter();
@@ -185,7 +186,7 @@ export default function RegistroV6Screen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[Registro v6.1 - Token] 📝 Registrando nuevo usuario:', normalizedEmail);
+      console.log('[Registro v6.2 - Token] 📝 Registrando nuevo usuario:', normalizedEmail);
 
       // Check if user already exists
       const { data: existingUser, error: checkError } = await supabase
@@ -195,7 +196,7 @@ export default function RegistroV6Screen() {
         .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') {
-        console.error('[Registro v6.1 - Token] Error checking email:', checkError);
+        console.error('[Registro v6.2 - Token] Error checking email:', checkError);
         Alert.alert('Error', 'No se pudo verificar el correo. Por favor, intenta nuevamente.');
         setLoading(false);
         return;
@@ -248,7 +249,7 @@ export default function RegistroV6Screen() {
                       });
                     }
                   } catch (err) {
-                    console.error('[Registro v6.1 - Token] Error resending token:', err);
+                    console.error('[Registro v6.2 - Token] Error resending token:', err);
                     Alert.alert('Error', 'Ocurrió un error al reenviar el código');
                   }
                 },
@@ -261,6 +262,11 @@ export default function RegistroV6Screen() {
         return;
       }
 
+      // Generate unique username
+      console.log('[Registro v6.2 - Token] 🔤 Generando nombre de usuario...');
+      const generatedUsername = await generateUsername(nombre.trim());
+      console.log('[Registro v6.2 - Token] ✅ Nombre de usuario generado:', generatedUsername);
+
       // Create auth user (without email confirmation requirement)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,
@@ -268,6 +274,7 @@ export default function RegistroV6Screen() {
         options: {
           data: {
             nombre: nombre.trim(),
+            username: generatedUsername,
             provider: 'barlive',
             email_verified: false,
           },
@@ -276,7 +283,7 @@ export default function RegistroV6Screen() {
       });
 
       if (authError) {
-        console.error('[Registro v6.1 - Token] ❌ Error creating auth user:', authError);
+        console.error('[Registro v6.2 - Token] ❌ Error creating auth user:', authError);
         
         if (authError.message.includes('already registered')) {
           Alert.alert('Error', 'Este correo ya está registrado. Por favor, inicia sesión.');
@@ -294,10 +301,23 @@ export default function RegistroV6Screen() {
         return;
       }
 
-      console.log('[Registro v6.1 - Token] ✅ Usuario creado exitosamente:', authData.user.id);
+      console.log('[Registro v6.2 - Token] ✅ Usuario creado exitosamente:', authData.user.id);
+
+      // Update user profile with username
+      const { error: updateError } = await supabase
+        .from('usuarios')
+        .update({ username: generatedUsername })
+        .eq('id', authData.user.id);
+
+      if (updateError) {
+        console.error('[Registro v6.2 - Token] ⚠️ Error updating username:', updateError);
+        // Don't fail registration if username update fails
+      } else {
+        console.log('[Registro v6.2 - Token] ✅ Username actualizado en la base de datos');
+      }
 
       // Send verification token
-      console.log('[Registro v6.1 - Token] 📧 Enviando token de verificación...');
+      console.log('[Registro v6.2 - Token] 📧 Enviando token de verificación...');
       
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
       
@@ -312,7 +332,7 @@ export default function RegistroV6Screen() {
       const tokenResult = await tokenResponse.json();
 
       if (!tokenResponse.ok || tokenResult.error) {
-        console.error('[Registro v6.1 - Token] ⚠️ Error enviando token:', tokenResult);
+        console.error('[Registro v6.2 - Token] ⚠️ Error enviando token:', tokenResult);
         // Don't fail registration if email fails - user can request resend
         Alert.alert(
           'Cuenta creada',
@@ -330,7 +350,7 @@ export default function RegistroV6Screen() {
           ]
         );
       } else {
-        console.log('[Registro v6.1 - Token] ✅ Token enviado exitosamente');
+        console.log('[Registro v6.2 - Token] ✅ Token enviado exitosamente');
         
         // Navigate to token verification screen
         router.push({
@@ -340,12 +360,12 @@ export default function RegistroV6Screen() {
 
         Alert.alert(
           '¡Cuenta creada!',
-          'Tu cuenta ha sido creada exitosamente. Hemos enviado un código de verificación a tu email.',
+          `Tu cuenta ha sido creada exitosamente con el nombre de usuario @${generatedUsername}. Hemos enviado un código de verificación a tu email.`,
           [{ text: 'Entendido' }]
         );
       }
     } catch (error: any) {
-      console.error('[Registro v6.1 - Token] ❌ Error in handleRegister:', error);
+      console.error('[Registro v6.2 - Token] ❌ Error in handleRegister:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -460,6 +480,9 @@ export default function RegistroV6Screen() {
                 <Text style={styles.errorText}>{nombreError}</Text>
               </View>
             ) : null}
+            <Text style={styles.helperText}>
+              Se te asignará un nombre de usuario automáticamente que podrás editar después
+            </Text>
           </View>
 
           <View style={styles.inputGroup}>
@@ -846,6 +869,12 @@ const styles = StyleSheet.create({
   successText: {
     fontSize: 12,
     color: '#10b981',
+    marginLeft: 4,
+  },
+  helperText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 6,
     marginLeft: 4,
   },
   passwordStrengthContainer: {
