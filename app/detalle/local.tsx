@@ -1224,15 +1224,48 @@ export default function DetalleLocalScreen() {
                 )}
               </View>
 
-              {hasSocialProfile && (
-                <TouchableOpacity style={styles.specialButton} onPress={handleSocialProfile}>
-                  <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.specialButtonGradient}>
-                    <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
-                    <Text style={styles.specialButtonText}>Ver Perfil Social</Text>
-                    <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
+              <View style={styles.socialButtonsContainer}>
+                {hasSocialProfile && (
+                  <TouchableOpacity style={styles.specialButton} onPress={handleSocialProfile}>
+                    <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.specialButtonGradient}>
+                      <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
+                      <Text style={styles.specialButtonText}>Ver Perfil Social</Text>
+                      <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+
+                {(local.website || local.email) && (
+                  <TouchableOpacity 
+                    style={styles.specialButton} 
+                    onPress={() => {
+                      if (local.website) {
+                        Linking.openURL(local.website.startsWith('http') ? local.website : `https://${local.website}`);
+                      } else if (local.email) {
+                        Linking.openURL(`mailto:${local.email}`);
+                      }
+                    }}
+                  >
+                    <LinearGradient 
+                      colors={['#10B981', '#059669']} 
+                      start={{ x: 0, y: 0 }} 
+                      end={{ x: 1, y: 1 }} 
+                      style={styles.specialButtonGradient}
+                    >
+                      <IconSymbol 
+                        ios_icon_name={local.website ? "globe" : "envelope.fill"} 
+                        android_material_icon_name={local.website ? "language" : "email"} 
+                        size={22} 
+                        color="#fff" 
+                      />
+                      <Text style={styles.specialButtonText}>
+                        {local.website ? 'Sitio Web' : 'Enviar Email'}
+                      </Text>
+                      <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
 
               {isOpen && (
                 <TouchableOpacity
@@ -2040,10 +2073,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
+  socialButtonsContainer: {
+    gap: 10,
+    marginBottom: 10,
+  },
   specialButton: {
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 10,
   },
   specialButtonGradient: {
     flexDirection: 'row',

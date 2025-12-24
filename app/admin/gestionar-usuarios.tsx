@@ -21,6 +21,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useImpersonation } from '@/contexts/ImpersonationContext';
 
 interface Usuario {
   id: string;
@@ -40,7 +41,7 @@ interface Usuario {
 const USUARIOS_POR_PAGINA = 20;
 
 /**
- * ✅ USER MANAGEMENT v1.0 - ADMIN PANEL
+ * ✅ USER MANAGEMENT v1.1 - ADMIN PANEL
  * 
  * Features:
  * - ✅ List all users with pagination
@@ -51,11 +52,13 @@ const USUARIOS_POR_PAGINA = 20;
  * - ✅ Toggle user active status
  * - ✅ View user details
  * - ✅ Statistics dashboard
+ * - ✅ User impersonation button
  */
 
 export default function GestionarUsuariosScreen() {
   const router = useRouter();
   const { user: currentUser } = useAuth();
+  const { startImpersonation, isImpersonating } = useImpersonation();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -277,6 +280,53 @@ export default function GestionarUsuariosScreen() {
     );
   }, []);
 
+  const handleImpersonate = useCallback(async (usuario: Usuario) => {
+    if (isImpersonating) {
+      Alert.alert(
+        'Suplantación Activa',
+        'Ya estás suplantando a otro usuario. Debes finalizar la suplantación actual primero.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Suplantar Usuario',
+      `¿Estás seguro de que quieres suplantar a ${usuario.nombre}?\n\nPodrás navegar por la aplicación como si fueras este usuario.`,
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Suplantar',
+          style: 'default',
+          onPress: async () => {
+            try {
+              await startImpersonation(usuario.id);
+              Alert.alert(
+                '✅ Suplantación Iniciada',
+                `Ahora estás navegando como ${usuario.nombre}. Puedes volver a tu cuenta desde el menú de perfil.`,
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      // Navigate to home or user profile
+                      router.push('/');
+                    },
+                  },
+                ]
+              );
+            } catch (error) {
+              console.error('[GestionarUsuarios] Error starting impersonation:', error);
+              Alert.alert('Error', 'No se pudo iniciar la suplantación');
+            }
+          },
+        },
+      ]
+    );
+  }, [isImpersonating, startImpersonation, router]);
+
   const limpiarFiltros = useCallback(() => {
     setFiltroRol('todos');
     setFiltroEstado('todos');
@@ -384,6 +434,13 @@ export default function GestionarUsuariosScreen() {
           </View>
 
           <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.impersonateButton}
+              onPress={() => handleImpersonate(usuario)}
+            >
+              <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={18} color="#8B5CF6" />
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.viewButton}
               onPress={() => router.push(`/perfil/usuario?userId=${usuario.id}`)}
@@ -961,6 +1018,14 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
+  },
+  impersonateButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#8B5CF6' + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   viewButton: {
     width: 36,

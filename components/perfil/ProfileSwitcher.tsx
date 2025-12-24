@@ -10,11 +10,13 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useMode } from '@/contexts/ModeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useImpersonation } from '@/contexts/ImpersonationContext';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 
@@ -24,12 +26,13 @@ interface ProfileSwitcherProps {
 }
 
 /**
- * ✅ PROFILE SWITCHER v4.0 - RESTORED ORIGINAL FUNCTIONALITY
+ * ✅ PROFILE SWITCHER v4.1 - WITH IMPERSONATION SUPPORT
  * 
  * PURPOSE:
  * - Switch between user profile and owned local profiles
  * - Select which local to interact with
  * - Navigate to the selected profile
+ * - Show impersonation status and allow ending impersonation
  * 
  * NOTE: This is NOT the mode selector from the Explorar page header
  */
@@ -43,6 +46,12 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     switchToClientProfile,
     switchToLocalProfile,
   } = useMode();
+  const {
+    isImpersonating,
+    impersonatedUser,
+    endImpersonation,
+  } = useImpersonation();
+  
   const [switching, setSwitching] = useState(false);
   const [ownedLocals, setOwnedLocals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -138,6 +147,47 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     }
   }, [switchToLocalProfile, onClose, router]);
 
+  const handleEndImpersonation = useCallback(async () => {
+    Alert.alert(
+      'Finalizar Suplantación',
+      '¿Estás seguro de que quieres volver a tu cuenta de administrador?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Finalizar',
+          style: 'default',
+          onPress: async () => {
+            try {
+              setSwitching(true);
+              await endImpersonation();
+              onClose();
+              Alert.alert(
+                '✅ Suplantación Finalizada',
+                'Has vuelto a tu cuenta de administrador',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      router.push('/');
+                    },
+                  },
+                ]
+              );
+            } catch (error) {
+              console.error('[ProfileSwitcher] Error ending impersonation:', error);
+              Alert.alert('Error', 'No se pudo finalizar la suplantación');
+            } finally {
+              setSwitching(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [endImpersonation, onClose, router]);
+
   const isClientActive = useMemo(() => {
     return activeProfileType === 'cliente' && activeProfileId === user?.id;
   }, [activeProfileType, activeProfileId, user?.id]);
@@ -159,6 +209,36 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
               <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
+
+          {isImpersonating && impersonatedUser && (
+            <View style={styles.impersonationBanner}>
+              <View style={styles.impersonationHeader}>
+                <IconSymbol 
+                  ios_icon_name="person.crop.circle.badge.checkmark" 
+                  android_material_icon_name="supervised_user_circle" 
+                  size={24} 
+                  color="#8B5CF6" 
+                />
+                <Text style={styles.impersonationTitle}>Modo Suplantación Activo</Text>
+              </View>
+              <Text style={styles.impersonationText}>
+                Estás navegando como: <Text style={styles.impersonationUserName}>{impersonatedUser.nombre}</Text>
+              </Text>
+              <TouchableOpacity
+                style={styles.endImpersonationButton}
+                onPress={handleEndImpersonation}
+                disabled={switching}
+              >
+                <IconSymbol 
+                  ios_icon_name="arrow.uturn.backward.circle.fill" 
+                  android_material_icon_name="exit_to_app" 
+                  size={18} 
+                  color="#fff" 
+                />
+                <Text style={styles.endImpersonationText}>Volver a mi cuenta</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -233,7 +313,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
                 </React.Fragment>
               )}
 
-              {ownedLocals.length === 0 && (
+              {ownedLocals.length === 0 && !isImpersonating && (
                 <View style={styles.emptyState}>
                   <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={48} color={colors.textSecondary} />
                   <Text style={styles.emptyStateText}>No tienes locales registrados</Text>
@@ -284,6 +364,47 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
+  },
+  impersonationBanner: {
+    backgroundColor: '#8B5CF6' + '15',
+    borderBottomWidth: 1,
+    borderBottomColor: '#8B5CF6' + '30',
+    padding: 16,
+  },
+  impersonationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  impersonationTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#8B5CF6',
+  },
+  impersonationText: {
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: 12,
+  },
+  impersonationUserName: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  endImpersonationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  endImpersonationText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
   },
   content: {
     padding: 20,
