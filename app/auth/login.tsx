@@ -36,8 +36,6 @@ export default function LoginScreen() {
     try {
       console.log('[Login] 🔍 Checking if user has password set...');
       
-      // ✅ FIXED: Check auth.users.encrypted_password instead of usuarios.provider
-      // This is the source of truth for whether a password exists
       const { data, error } = await supabase
         .from('usuarios')
         .select(`
@@ -65,7 +63,6 @@ export default function LoginScreen() {
 
       if (authError) {
         console.error('[Login] ❌ Error checking auth password:', authError);
-        // Fallback to provider check if RPC fails
         return data.provider === 'google';
       }
 
@@ -77,11 +74,47 @@ export default function LoginScreen() {
         needsPasswordSetup: !hasPassword && data.provider === 'google'
       });
 
-      // User needs password setup if they're a Google user without a password
       return !hasPassword && data.provider === 'google';
     } catch (error) {
       console.error('[Login] ❌ Error in checkIfGoogleUserWithoutPassword:', error);
       return false;
+    }
+  };
+
+  const handleResendVerificationEmail = async (email: string) => {
+    try {
+      console.log('[Login v11.0] 📧 Reenviando correo de verificación...');
+      
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: 'https://natively.dev/email-confirmed',
+        },
+      });
+      
+      if (error) {
+        console.error('[Login v11.0] ❌ Error resending email:', error);
+        Alert.alert(
+          'Error',
+          'No se pudo reenviar el correo de verificación. Por favor, intenta nuevamente más tarde.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        console.log('[Login v11.0] ✅ Correo reenviado exitosamente');
+        Alert.alert(
+          '✅ Correo enviado',
+          'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada y la carpeta de spam.',
+          [{ text: 'Entendido' }]
+        );
+      }
+    } catch (err) {
+      console.error('[Login v11.0] ❌ Error resending email:', err);
+      Alert.alert(
+        'Error',
+        'Ocurrió un error al reenviar el correo. Por favor, intenta nuevamente.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
@@ -112,42 +145,31 @@ export default function LoginScreen() {
       if (authError) {
         console.error('[Login v11.0] ❌ Error signing in:', authError);
         
+        // Handle "Email not confirmed" error
         if (authError.message.includes('Email not confirmed')) {
+          console.log('[Login v11.0] ⚠️ Email no confirmado detectado');
+          
           Alert.alert(
-            'Email no verificado',
-            'Por favor, verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.',
+            '📧 Email no verificado',
+            'Tu cuenta aún no ha sido verificada. Por favor, revisa tu correo electrónico y haz clic en el enlace de verificación.\n\n¿No recibiste el correo?',
             [
               {
-                text: 'Reenviar correo',
-                onPress: async () => {
-                  try {
-                    const { error } = await supabase.auth.resend({
-                      type: 'signup',
-                      email: normalizedEmail,
-                      options: {
-                        emailRedirectTo: 'https://natively.dev/email-confirmed',
-                      },
-                    });
-                    
-                    if (error) {
-                      Alert.alert('Error', 'No se pudo reenviar el correo de verificación');
-                    } else {
-                      Alert.alert(
-                        'Correo enviado',
-                        'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada.'
-                      );
-                    }
-                  } catch (err) {
-                    console.error('[Login v11.0] Error resending email:', err);
-                    Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
-                  }
-                },
+                text: 'Cancelar',
+                style: 'cancel',
               },
-              { text: 'Cancelar', style: 'cancel' },
+              {
+                text: 'Reenviar correo',
+                onPress: () => handleResendVerificationEmail(normalizedEmail),
+              },
             ]
           );
-        } else if (authError.message.includes('Invalid login credentials')) {
-          // ✅ FIXED: Check if user needs to set up password (Google user without password)
+          
+          setLoading(false);
+          return;
+        }
+        
+        // Handle invalid credentials
+        if (authError.message.includes('Invalid login credentials')) {
           const needsPasswordSetup = await checkIfGoogleUserWithoutPassword(normalizedEmail);
           
           if (needsPasswordSetup) {
@@ -197,15 +219,15 @@ export default function LoginScreen() {
       console.log('[Login v11.0] ✅ Login successful:', authData.user.id);
       console.log('[Login v11.0] 📅 Session expires at:', new Date(authData.session.expires_at! * 1000).toLocaleString());
 
-      // ✅ CRITICAL FIX: Immediately update the session in AuthContext
+      // Update the session in AuthContext
       console.log('[Login v11.0] 📝 Actualizando sesión en AuthContext inmediatamente...');
       setSessionManually(authData.session);
 
-      // ✅ CRITICAL FIX: Wait for the session to be fully persisted
+      // Wait for the session to be fully persisted
       console.log('[Login v11.0] ⏳ Esperando a que la sesión se persista...');
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // ✅ CRITICAL FIX: Verify session multiple times
+      // Verify session multiple times
       console.log('[Login v11.0] 🔍 Verificando que la sesión esté disponible...');
       let verificationAttempts = 0;
       let verifiedSession = null;
@@ -238,13 +260,13 @@ export default function LoginScreen() {
 
       console.log('[Login v11.0] ✅ Sesión completamente verificada y lista');
       
-      // ✅ CRITICAL FIX: Wait for AuthContext to process
+      // Wait for AuthContext to process
       console.log('[Login v11.0] ⏳ Esperando a que AuthContext procese la sesión...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       console.log('[Login v11.0] 🚀 Navegando a la lista de locales...');
       
-      // ✅ CRITICAL FIX: Redirect to explorar (lista de locales) instead of configuracion
+      // Redirect to explorar (lista de locales)
       router.replace('/(tabs)/explorar');
       
     } catch (error: any) {
