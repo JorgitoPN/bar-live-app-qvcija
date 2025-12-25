@@ -103,14 +103,53 @@ export default function NuevaPasswordTokenScreen() {
         }),
       });
 
-      const result = await response.json();
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
 
-      if (!result.success) {
-        console.error('❌ Error:', result.error);
+      // Check if response is ok
+      if (!response.ok) {
+        console.error('❌ HTTP Error:', response.status, response.statusText);
+        Alert.alert(
+          'Error de conexión',
+          `No se pudo conectar con el servidor (${response.status}). Por favor, intenta nuevamente.`
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Parse JSON response
+      let result;
+      try {
+        const responseText = await response.text();
+        console.log('📡 Response text:', responseText);
+        result = JSON.parse(responseText);
+        console.log('📡 Parsed result:', result);
+      } catch (parseError) {
+        console.error('❌ JSON Parse Error:', parseError);
         Alert.alert(
           'Error',
-          result.error || 'No se pudo actualizar tu contraseña. Por favor, intenta nuevamente.'
+          'Respuesta inválida del servidor. Por favor, intenta nuevamente.'
         );
+        setLoading(false);
+        return;
+      }
+
+      // Check if result is valid
+      if (!result || typeof result !== 'object') {
+        console.error('❌ Invalid result object:', result);
+        Alert.alert(
+          'Error',
+          'Respuesta inválida del servidor. Por favor, intenta nuevamente.'
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Check if operation was successful
+      if (!result.success) {
+        const errorMessage = result.error || 'No se pudo actualizar tu contraseña. Por favor, intenta nuevamente.';
+        console.error('❌ Error:', errorMessage);
+        Alert.alert('Error', errorMessage);
         setLoading(false);
         return;
       }
@@ -151,10 +190,15 @@ export default function NuevaPasswordTokenScreen() {
         ]
       );
     } catch (error: any) {
-      console.error('❌ Error:', error);
+      console.error('❌ Unexpected Error:', error);
+      console.error('❌ Error name:', error?.name);
+      console.error('❌ Error message:', error?.message);
+      console.error('❌ Error stack:', error?.stack);
+      
+      const errorMessage = error?.message || 'Ocurrió un error inesperado';
       Alert.alert(
         'Error inesperado',
-        'Ocurrió un error inesperado. Por favor, intenta nuevamente o contacta con soporte.'
+        `${errorMessage}. Por favor, intenta nuevamente o contacta con soporte.`
       );
       setLoading(false);
     } finally {
