@@ -83,7 +83,7 @@ export default function LoginScreen() {
 
   const handleResendVerificationEmail = async (email: string) => {
     try {
-      console.log('[Login v11.0] 📧 Reenviando correo de verificación...');
+      console.log('[Login v27.0] 📧 Reenviando correo de verificación...');
       
       const { error } = await supabase.auth.resend({
         type: 'signup',
@@ -94,14 +94,14 @@ export default function LoginScreen() {
       });
       
       if (error) {
-        console.error('[Login v11.0] ❌ Error resending email:', error);
+        console.error('[Login v27.0] ❌ Error resending email:', error);
         Alert.alert(
           'Error',
           'No se pudo reenviar el correo de verificación. Por favor, intenta nuevamente más tarde.',
           [{ text: 'OK' }]
         );
       } else {
-        console.log('[Login v11.0] ✅ Correo reenviado exitosamente');
+        console.log('[Login v27.0] ✅ Correo reenviado exitosamente');
         Alert.alert(
           '✅ Correo enviado',
           'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada y la carpeta de spam.',
@@ -109,7 +109,7 @@ export default function LoginScreen() {
         );
       }
     } catch (err) {
-      console.error('[Login v11.0] ❌ Error resending email:', err);
+      console.error('[Login v27.0] ❌ Error resending email:', err);
       Alert.alert(
         'Error',
         'Ocurrió un error al reenviar el correo. Por favor, intenta nuevamente.',
@@ -134,7 +134,8 @@ export default function LoginScreen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[Login v11.0] 🔐 Intentando iniciar sesión:', normalizedEmail);
+      console.log('[Login v27.0] 🔐 Intentando iniciar sesión:', normalizedEmail);
+      console.log('[Login v27.0] 📱 Platform:', Platform.OS);
 
       // Sign in with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -143,11 +144,16 @@ export default function LoginScreen() {
       });
 
       if (authError) {
-        console.error('[Login v11.0] ❌ Error signing in:', authError);
+        console.error('[Login v27.0] ❌ Error signing in:', {
+          message: authError.message,
+          status: authError.status,
+          name: authError.name,
+          platform: Platform.OS,
+        });
         
         // Handle "Email not confirmed" error
         if (authError.message.includes('Email not confirmed')) {
-          console.log('[Login v11.0] ⚠️ Email no confirmado detectado');
+          console.log('[Login v27.0] ⚠️ Email no confirmado detectado');
           
           Alert.alert(
             '📧 Email no verificado',
@@ -202,7 +208,12 @@ export default function LoginScreen() {
             Alert.alert('Error', 'Email o contraseña incorrectos');
           }
         } else {
-          Alert.alert('Error', authError.message || 'No se pudo iniciar sesión');
+          // Generic error handling with platform-specific message
+          const errorMessage = Platform.OS === 'android' 
+            ? `Error de autenticación: ${authError.message}\n\nSi el problema persiste, intenta:\n1. Verificar tu conexión a internet\n2. Reiniciar la aplicación\n3. Contactar soporte`
+            : authError.message || 'No se pudo iniciar sesión';
+          
+          Alert.alert('Error', errorMessage);
         }
         
         setLoading(false);
@@ -210,25 +221,29 @@ export default function LoginScreen() {
       }
 
       if (!authData.user || !authData.session) {
-        console.error('[Login v11.0] ❌ No user or session returned');
+        console.error('[Login v27.0] ❌ No user or session returned');
         Alert.alert('Error', 'No se pudo iniciar sesión. Por favor, intenta de nuevo.');
         setLoading(false);
         return;
       }
 
-      console.log('[Login v11.0] ✅ Login successful:', authData.user.id);
-      console.log('[Login v11.0] 📅 Session expires at:', new Date(authData.session.expires_at! * 1000).toLocaleString());
+      console.log('[Login v27.0] ✅ Login successful:', {
+        userId: authData.user.id,
+        email: authData.user.email,
+        platform: Platform.OS,
+      });
+      console.log('[Login v27.0] 📅 Session expires at:', new Date(authData.session.expires_at! * 1000).toLocaleString());
 
       // Update the session in AuthContext
-      console.log('[Login v11.0] 📝 Actualizando sesión en AuthContext inmediatamente...');
+      console.log('[Login v27.0] 📝 Actualizando sesión en AuthContext inmediatamente...');
       setSessionManually(authData.session);
 
       // Wait for the session to be fully persisted
-      console.log('[Login v11.0] ⏳ Esperando a que la sesión se persista...');
+      console.log('[Login v27.0] ⏳ Esperando a que la sesión se persista...');
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Verify session multiple times
-      console.log('[Login v11.0] 🔍 Verificando que la sesión esté disponible...');
+      console.log('[Login v27.0] 🔍 Verificando que la sesión esté disponible...');
       let verificationAttempts = 0;
       let verifiedSession = null;
       
@@ -236,13 +251,13 @@ export default function LoginScreen() {
         const { data: { session: currentSession }, error: verifyError } = await supabase.auth.getSession();
         
         if (verifyError) {
-          console.error('[Login v11.0] ❌ Error verificando sesión (intento', verificationAttempts + 1, '):', verifyError);
+          console.error('[Login v27.0] ❌ Error verificando sesión (intento', verificationAttempts + 1, '):', verifyError);
         } else if (currentSession) {
-          console.log('[Login v11.0] ✅ Sesión verificada exitosamente (intento', verificationAttempts + 1, ')');
+          console.log('[Login v27.0] ✅ Sesión verificada exitosamente (intento', verificationAttempts + 1, ')');
           verifiedSession = currentSession;
           break;
         } else {
-          console.log('[Login v11.0] ⚠️ Sesión no disponible aún (intento', verificationAttempts + 1, '), esperando...');
+          console.log('[Login v27.0] ⚠️ Sesión no disponible aún (intento', verificationAttempts + 1, '), esperando...');
         }
         
         verificationAttempts++;
@@ -252,26 +267,35 @@ export default function LoginScreen() {
       }
       
       if (!verifiedSession) {
-        console.error('[Login v11.0] ❌ No se pudo verificar la sesión después de varios intentos');
+        console.error('[Login v27.0] ❌ No se pudo verificar la sesión después de varios intentos');
         Alert.alert('Error', 'Error al establecer la sesión. Por favor, intenta de nuevo.');
         setLoading(false);
         return;
       }
 
-      console.log('[Login v11.0] ✅ Sesión completamente verificada y lista');
+      console.log('[Login v27.0] ✅ Sesión completamente verificada y lista');
       
       // Wait for AuthContext to process
-      console.log('[Login v11.0] ⏳ Esperando a que AuthContext procese la sesión...');
+      console.log('[Login v27.0] ⏳ Esperando a que AuthContext procese la sesión...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      console.log('[Login v11.0] 🚀 Navegando a la lista de locales...');
+      console.log('[Login v27.0] 🚀 Navegando a la lista de locales...');
       
       // Redirect to explorar (lista de locales)
       router.replace('/(tabs)/explorar');
       
     } catch (error: any) {
-      console.error('[Login v11.0] ❌ Error in handleLogin:', error);
-      Alert.alert('Error', 'Ocurrió un error inesperado. Por favor, intenta de nuevo.');
+      console.error('[Login v27.0] ❌ Error in handleLogin:', {
+        error,
+        message: error?.message,
+        platform: Platform.OS,
+      });
+      
+      const errorMessage = Platform.OS === 'android'
+        ? 'Ocurrió un error inesperado. Por favor, verifica tu conexión a internet e intenta de nuevo.'
+        : 'Ocurrió un error inesperado. Por favor, intenta de nuevo.';
+      
+      Alert.alert('Error', errorMessage);
       setLoading(false);
     }
   };

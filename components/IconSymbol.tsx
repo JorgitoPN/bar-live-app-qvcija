@@ -11,10 +11,9 @@ import {
   Platform,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
-// COMPREHENSIVE SF Symbol to Ionicons/MaterialIcons mapping
-// VERSION v26.0: COMPLETE ANDROID-iOS PARITY
+// COMPREHENSIVE SF Symbol to Ionicons mapping
+// VERSION v27.0: COMPLETE ANDROID-iOS PARITY + ENHANCED FALLBACKS
 const MAPPING = {
   // Navigation & Home
   "house.fill": "home",
@@ -200,6 +199,7 @@ const MAPPING = {
   "magnifyingglass.circle.fill": "search-circle",
   "line.3.horizontal.decrease": "filter",
   "line.3.horizontal.decrease.circle": "filter-circle",
+  "line.3.horizontal.decrease.circle.fill": "filter-circle",
   "arrow.up.arrow.down": "swap-vertical",
 
   // Visibility & Display
@@ -219,6 +219,15 @@ const MAPPING = {
   "globe": "globe",
   "globe.americas.fill": "globe",
   "arrow.triangle.2.circlepath": "sync",
+  
+  // Food & Dining (NEW - Critical for Explorar screen)
+  "cup.and.saucer.fill": "cafe",
+  "cup.and.saucer": "cafe-outline",
+  "fork.knife": "restaurant",
+  "wineglass.fill": "wine",
+  "wineglass": "wine-outline",
+  "mug.fill": "beer",
+  "mug": "beer-outline",
   
   // Direct Ionicons mappings for tab navigation
   "home": "home",
@@ -249,6 +258,19 @@ const MAPPING = {
   "text.alignleft": "text",
   "text.aligncenter": "text",
   "text.alignright": "text",
+  
+  // Material Design specific (for android_material_icon_name prop)
+  "expand_more": "chevron-down",
+  "expand_less": "chevron-up",
+  "arrow_back": "arrow-back",
+  "arrow_forward": "arrow-forward",
+  "filter_list": "filter",
+  "store": "business",
+  "chevron_right": "chevron-forward",
+  "location_off": "location-off",
+  "visibility": "eye",
+  "visibility_off": "eye-off",
+  "check_circle": "checkmark-circle",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -264,12 +286,13 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
  * 
- * VERSION v26.0: COMPLETE ANDROID-iOS PARITY
+ * VERSION v27.0: COMPLETE ANDROID-iOS PARITY + ENHANCED FALLBACKS
  * - Comprehensive icon mapping with fallbacks
  * - Better error handling and logging
  * - Support for both naming conventions
  * - Guaranteed icon rendering on all platforms
  * - Optimized for native Android behavior
+ * - Enhanced Material Design icon support
  */
 export function IconSymbol({
   name,
@@ -295,9 +318,15 @@ export function IconSymbol({
   let iconSource: 'direct' | 'mapped' | 'fallback' = 'fallback';
   
   if (android_material_icon_name) {
-    // Direct Ionicon name provided
-    iconName = android_material_icon_name;
-    iconSource = 'direct';
+    // Direct Ionicon name provided - check if it needs mapping
+    const mappedName = MAPPING[android_material_icon_name as IconSymbolName];
+    if (mappedName) {
+      iconName = mappedName;
+      iconSource = 'mapped';
+    } else {
+      iconName = android_material_icon_name;
+      iconSource = 'direct';
+    }
   } else {
     // Use SF Symbol name and map it
     const sfSymbolName = name || ios_icon_name;
@@ -311,10 +340,10 @@ export function IconSymbol({
   
   // Fallback to a default icon if no mapping found
   if (!iconName) {
-    const sfSymbolName = name || ios_icon_name;
+    const sfSymbolName = name || ios_icon_name || android_material_icon_name;
     console.warn(
-      `⚠️ [IconSymbol v26.0 Android] No icon mapping found for "${sfSymbolName}". ` +
-      `Using fallback icon. Please add mapping to MAPPING object.`
+      `⚠️ [IconSymbol v27.0 Android] No icon mapping found for "${sfSymbolName}". ` +
+      `Using fallback icon. Please add mapping to MAPPING object in components/IconSymbol.tsx`
     );
     iconName = 'help-circle-outline'; // Fallback icon
     iconSource = 'fallback';
@@ -322,7 +351,7 @@ export function IconSymbol({
   
   if (Platform.OS === 'android') {
     console.log(
-      `🎨 [IconSymbol v26.0 Android] Rendering "${iconName}" (${iconSource}), ` +
+      `🎨 [IconSymbol v27.0 Android] Rendering "${iconName}" (${iconSource}), ` +
       `size: ${size}, color: ${color}`
     );
   }
