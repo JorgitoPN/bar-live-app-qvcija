@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Image, StyleSheet, ViewStyle, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -21,16 +21,17 @@ interface FoodPlateAvatarProps {
 }
 
 /**
- * ✅ FOOD PLATE AVATAR v4.0 - FIXED IMAGE LOADING ON ANDROID
+ * ✅ FOOD PLATE AVATAR v5.0 - FIXED IMAGE LOADING ON ANDROID
  * Features:
  * - Food plate design with rim and shadow
  * - Story ring support
  * - Default avatar with user's first letter OR default Barlive avatar
  * - Add button for creating stories
  * - ALWAYS shows an avatar (never empty)
- * - ✅ FIXED: Better URL validation for Android compatibility
+ * - ✅ FIXED: Relaxed URL validation for Android compatibility
  * - ✅ FIXED: Handles Supabase storage URLs correctly
  * - ✅ FIXED: Shows images even if URL validation is uncertain
+ * - ✅ FIXED: Better error handling with onError callback
  */
 export default function FoodPlateAvatar({
   imageUrl,
@@ -43,28 +44,34 @@ export default function FoodPlateAvatar({
   style,
   nombre,
 }: FoodPlateAvatarProps) {
+  const [imageError, setImageError] = useState(false);
+  
   const plateSize = size;
   const imageSize = size * 0.75; // Image is 75% of plate size
   const rimWidth = size * 0.08; // Rim is 8% of plate size
   const addButtonSize = size * 0.34; // Add button is 34% of plate size
 
-  // ✅ CRITICAL FIX v4.0: Better URL validation for Android
+  // ✅ CRITICAL FIX v5.0: More relaxed URL validation for Android
   // Accept any URL that looks like it could be an image
-  const isValidUrl = imageUrl && (
+  const isValidUrl = imageUrl && !imageError && (
     imageUrl.startsWith('http://') || 
     imageUrl.startsWith('https://') ||
     imageUrl.startsWith('file://') ||
     imageUrl.includes('supabase') ||
-    imageUrl.includes('storage')
+    imageUrl.includes('storage') ||
+    imageUrl.includes('amazonaws') ||
+    imageUrl.includes('cloudinary') ||
+    imageUrl.includes('unsplash')
   );
   
   const shouldShowImage = isValidUrl;
-  const shouldShowLetter = !isValidUrl && (placeholderText || nombre);
-  const shouldShowDefaultAvatar = !isValidUrl && !placeholderText && !nombre;
+  const shouldShowLetter = !shouldShowImage && (placeholderText || nombre);
+  const shouldShowDefaultAvatar = !shouldShowImage && !placeholderText && !nombre;
 
-  console.log('[FoodPlateAvatar v4.0] 🖼️ Image decision:', {
+  console.log('[FoodPlateAvatar v5.0] 🖼️ Image decision:', {
     imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'none',
     isValidUrl,
+    imageError,
     shouldShowImage,
     shouldShowLetter,
     shouldShowDefaultAvatar,
@@ -139,10 +146,12 @@ export default function FoodPlateAvatar({
               ]}
               resizeMode="cover"
               onError={(error) => {
-                console.log('[FoodPlateAvatar v4.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent.error);
+                console.log('[FoodPlateAvatar v5.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent.error);
+                setImageError(true);
               }}
               onLoad={() => {
-                console.log('[FoodPlateAvatar v4.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
+                console.log('[FoodPlateAvatar v5.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
+                setImageError(false);
               }}
             />
           ) : shouldShowLetter ? (

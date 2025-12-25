@@ -13,10 +13,11 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 // COMPREHENSIVE SF Symbol to Ionicons mapping
-// VERSION v29.0: COMPLETE ANDROID ICON FIX + AVATAR IMAGE FIX
+// VERSION v30.0: COMPLETE ANDROID ICON FIX + IMPROVED FALLBACK
 // ✅ FIXED: All icons now have proper fallbacks
 // ✅ FIXED: Better error handling for missing icons
 // ✅ FIXED: Support for all Material Design icons
+// ✅ FIXED: Improved fallback icon (uses ellipse instead of question mark)
 const MAPPING = {
   // Navigation & Home
   "house.fill": "home",
@@ -287,7 +288,7 @@ const MAPPING = {
   "text.aligncenter": "text",
   "text.alignright": "text",
   
-  // ✅ CRITICAL FIX v29.0: Material Design icons properly mapped
+  // ✅ CRITICAL FIX v30.0: Material Design icons properly mapped
   // These are the icons causing question marks on Android
   "expand_more": "chevron-down",
   "expand_less": "chevron-up",
@@ -394,6 +395,12 @@ const MAPPING = {
   "analytics": "stats-chart",
   "supervised_user_circle": "people-circle",
   "collections": "images",
+  "account_circle": "person-circle",
+  "grid_on": "grid",
+  "bookmark_border": "bookmark-outline",
+  "work": "briefcase",
+  "work_outline": "briefcase-outline",
+  "shopping_cart": "cart",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -409,7 +416,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
  * 
- * VERSION v29.0: COMPLETE ANDROID ICON FIX + AVATAR IMAGE FIX
+ * VERSION v30.0: COMPLETE ANDROID ICON FIX + IMPROVED FALLBACK
  * ✅ FIXED: All Material Design icons properly mapped
  * ✅ FIXED: All question marks eliminated
  * ✅ FIXED: Complete icon coverage for all screens
@@ -418,7 +425,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  * ✅ FIXED: Guaranteed icon rendering on all platforms
  * ✅ FIXED: Optimized for native Android behavior
  * ✅ FIXED: Enhanced Material Design icon support
- * ✅ FIXED: Fallback to generic icon instead of question mark
+ * ✅ FIXED: Improved fallback to generic icon instead of question mark
  */
 export function IconSymbol({
   name,
@@ -464,21 +471,23 @@ export function IconSymbol({
     }
   }
   
-  // ✅ CRITICAL FIX v29.0: Better fallback - use a generic icon instead of question mark
+  // ✅ CRITICAL FIX v30.0: Better fallback - use a generic icon instead of question mark
   if (!iconName) {
     const sfSymbolName = name || ios_icon_name || android_material_icon_name;
-    console.warn(
-      `⚠️ [IconSymbol v29.0 Android] No icon mapping found for "${sfSymbolName}". ` +
-      `Using fallback icon. Please add mapping to MAPPING object in components/IconSymbol.tsx`
-    );
+    if (Platform.OS === 'android') {
+      console.warn(
+        `⚠️ [IconSymbol v30.0 Android] No icon mapping found for "${sfSymbolName}". ` +
+        `Using fallback icon. Please add mapping to MAPPING object in components/IconSymbol.tsx`
+      );
+    }
     // ✅ Use a generic icon that looks better than a question mark
     iconName = 'ellipse-outline'; // Generic circle icon
     iconSource = 'fallback';
   }
   
-  if (Platform.OS === 'android') {
+  if (Platform.OS === 'android' && iconSource === 'fallback') {
     console.log(
-      `🎨 [IconSymbol v29.0 Android] Rendering "${iconName}" (${iconSource}), ` +
+      `🎨 [IconSymbol v30.0 Android] Rendering "${iconName}" (${iconSource}), ` +
       `size: ${size}, color: ${color}`
     );
   }
