@@ -392,20 +392,44 @@ export default function ExplorarScreen() {
 
   const obtenerUbicacionUsuario = async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        console.log('[ExplorarScreen] Location permission denied');
+      console.log('[ExplorarScreen] 🔍 Requesting location permissions...');
+      
+      // Check if location services are available
+      const isAvailable = await Location.hasServicesEnabledAsync();
+      if (!isAvailable) {
+        console.log('[ExplorarScreen] ⚠️ Location services are disabled');
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({});
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('[ExplorarScreen] ⚠️ Location permission denied');
+        return;
+      }
+
+      console.log('[ExplorarScreen] ✅ Location permission granted, getting position...');
+      
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 5000,
+        distanceInterval: 0,
+      });
+      
       setUserLocation({
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       });
-      console.log('[ExplorarScreen] 📍 User location obtained');
-    } catch (error) {
-      console.error('[ExplorarScreen] Error getting location:', error);
+      console.log('[ExplorarScreen] 📍 User location obtained:', {
+        lat: location.coords.latitude,
+        lng: location.coords.longitude,
+      });
+    } catch (error: any) {
+      console.error('[ExplorarScreen] ❌ Error getting location:', {
+        message: error?.message || 'Unknown error',
+        code: error?.code,
+      });
+      // Don't show alert, just log the error and continue without location
+      setUserLocation(null);
     }
   };
 

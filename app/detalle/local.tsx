@@ -366,16 +366,44 @@ export default function DetalleLocalScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const location = await Location.getCurrentPositionAsync({});
-          setUserLocation({
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-          });
+        console.log('[DetalleLocal] 🔍 Requesting location permissions...');
+        
+        // Check if location services are available
+        const isAvailable = await Location.hasServicesEnabledAsync();
+        if (!isAvailable) {
+          console.log('[DetalleLocal] ⚠️ Location services are disabled');
+          return;
         }
-      } catch (error) {
-        console.error('[DetalleLocal] Error getting location:', error);
+
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.log('[DetalleLocal] ⚠️ Location permission denied');
+          return;
+        }
+
+        console.log('[DetalleLocal] ✅ Location permission granted, getting position...');
+        
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 5000,
+          distanceInterval: 0,
+        });
+        
+        setUserLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        console.log('[DetalleLocal] 📍 User location obtained:', {
+          lat: location.coords.latitude,
+          lng: location.coords.longitude,
+        });
+      } catch (error: any) {
+        console.error('[DetalleLocal] ❌ Error getting location:', {
+          message: error?.message || 'Unknown error',
+          code: error?.code,
+        });
+        // Don't show alert, just log the error and continue without location
+        setUserLocation(null);
       }
     })();
   }, []);

@@ -157,21 +157,52 @@ export default function MapaScreen() {
   const [isMapReady, setIsMapReady] = useState(false);
   const [isLoadingMarkers, setIsLoadingMarkers] = useState(true);
 
-  // ✅ Get user location
+  // ✅ Get user location with proper error handling
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        console.log('[MAP] Permission to access location was denied');
-        setUserLocation({ lat: 40.4168, lng: -3.7038 });
-        return;
-      }
+      try {
+        console.log('[MAP] 🔍 Requesting location permissions...');
+        
+        // Check if location services are available
+        const isAvailable = await Location.hasServicesEnabledAsync();
+        if (!isAvailable) {
+          console.log('[MAP] ⚠️ Location services are disabled, using default location (Madrid)');
+          setUserLocation({ lat: 40.4168, lng: -3.7038 });
+          return;
+        }
 
-      const location = await Location.getCurrentPositionAsync({});
-      setUserLocation({
-        lat: location.coords.latitude,
-        lng: location.coords.longitude,
-      });
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.log('[MAP] ⚠️ Location permission denied, using default location (Madrid)');
+          setUserLocation({ lat: 40.4168, lng: -3.7038 });
+          return;
+        }
+
+        console.log('[MAP] ✅ Location permission granted, getting position...');
+        
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 5000,
+          distanceInterval: 0,
+        });
+        
+        setUserLocation({
+          lat: location.coords.latitude,
+          lng: location.coords.longitude,
+        });
+        console.log('[MAP] 📍 User location obtained:', {
+          lat: location.coords.latitude,
+          lng: location.coords.longitude,
+        });
+      } catch (error: any) {
+        console.error('[MAP] ❌ Error getting location:', {
+          message: error?.message || 'Unknown error',
+          code: error?.code,
+        });
+        // Use default location (Madrid) if error occurs
+        console.log('[MAP] ⚠️ Using default location (Madrid) due to error');
+        setUserLocation({ lat: 40.4168, lng: -3.7038 });
+      }
     })();
   }, []);
 
