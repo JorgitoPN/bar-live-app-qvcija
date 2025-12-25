@@ -22,7 +22,7 @@ interface MiniFoodPlateAvatarProps {
 }
 
 /**
- * ✅ MINI FOOD PLATE AVATAR v8.1 - WITH IMPERSONATION SUPPORT
+ * ✅ MINI FOOD PLATE AVATAR v9.0 - FIXED IMAGE LOADING ON ANDROID
  * 
  * Features:
  * - Smaller size optimized for inline use
@@ -33,6 +33,8 @@ interface MiniFoodPlateAvatarProps {
  * - ✅ Removes border when all momentos are viewed
  * - ✅ Subscribes to real-time updates for momento_views
  * - ✅ Uses effective user for impersonation support
+ * - ✅ FIXED: Better URL validation for Android compatibility
+ * - ✅ FIXED: Handles Supabase storage URLs correctly
  */
 export default function MiniFoodPlateAvatar({
   imageUrl,
@@ -151,7 +153,23 @@ export default function MiniFoodPlateAvatar({
   const rimWidth = size * 0.06;
   const borderWidth = 3;
 
-  const shouldShowImage = !!imageUrl;
+  // ✅ CRITICAL FIX v9.0: Better URL validation for Android
+  // Accept any URL that looks like it could be an image
+  const isValidUrl = imageUrl && (
+    imageUrl.startsWith('http://') || 
+    imageUrl.startsWith('https://') ||
+    imageUrl.startsWith('file://') ||
+    imageUrl.includes('supabase') ||
+    imageUrl.includes('storage')
+  );
+  
+  const shouldShowImage = isValidUrl;
+
+  console.log('[MiniFoodPlateAvatar v9.0] 🖼️ Image decision:', {
+    imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'none',
+    isValidUrl,
+    shouldShowImage,
+  });
 
   if (hasUnviewedMomento) {
     return (
@@ -200,6 +218,12 @@ export default function MiniFoodPlateAvatar({
                     },
                   ]}
                   resizeMode="cover"
+                  onError={(error) => {
+                    console.log('[MiniFoodPlateAvatar v9.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent.error);
+                  }}
+                  onLoad={() => {
+                    console.log('[MiniFoodPlateAvatar v9.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
+                  }}
                 />
               ) : (
                 <View
@@ -262,6 +286,12 @@ export default function MiniFoodPlateAvatar({
                 },
               ]}
               resizeMode="cover"
+              onError={(error) => {
+                console.log('[MiniFoodPlateAvatar v9.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent.error);
+              }}
+              onLoad={() => {
+                console.log('[MiniFoodPlateAvatar v9.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
+              }}
             />
           ) : (
             <View

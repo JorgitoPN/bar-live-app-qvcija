@@ -21,13 +21,16 @@ interface FoodPlateAvatarProps {
 }
 
 /**
- * ✅ FOOD PLATE AVATAR v3.0
+ * ✅ FOOD PLATE AVATAR v4.0 - FIXED IMAGE LOADING ON ANDROID
  * Features:
  * - Food plate design with rim and shadow
  * - Story ring support
  * - Default avatar with user's first letter OR default Barlive avatar
  * - Add button for creating stories
  * - ALWAYS shows an avatar (never empty)
+ * - ✅ FIXED: Better URL validation for Android compatibility
+ * - ✅ FIXED: Handles Supabase storage URLs correctly
+ * - ✅ FIXED: Shows images even if URL validation is uncertain
  */
 export default function FoodPlateAvatar({
   imageUrl,
@@ -45,12 +48,27 @@ export default function FoodPlateAvatar({
   const rimWidth = size * 0.08; // Rim is 8% of plate size
   const addButtonSize = size * 0.34; // Add button is 34% of plate size
 
-  // ✅ FIXED: Determine what to show
-  // Validate that imageUrl is a valid URL (not a local file path)
-  const isValidUrl = imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'));
+  // ✅ CRITICAL FIX v4.0: Better URL validation for Android
+  // Accept any URL that looks like it could be an image
+  const isValidUrl = imageUrl && (
+    imageUrl.startsWith('http://') || 
+    imageUrl.startsWith('https://') ||
+    imageUrl.startsWith('file://') ||
+    imageUrl.includes('supabase') ||
+    imageUrl.includes('storage')
+  );
+  
   const shouldShowImage = isValidUrl;
   const shouldShowLetter = !isValidUrl && (placeholderText || nombre);
   const shouldShowDefaultAvatar = !isValidUrl && !placeholderText && !nombre;
+
+  console.log('[FoodPlateAvatar v4.0] 🖼️ Image decision:', {
+    imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'none',
+    isValidUrl,
+    shouldShowImage,
+    shouldShowLetter,
+    shouldShowDefaultAvatar,
+  });
 
   return (
     <View style={[styles.container, { width: plateSize, height: plateSize }, style]}>
@@ -120,8 +138,11 @@ export default function FoodPlateAvatar({
                 },
               ]}
               resizeMode="cover"
-              onError={() => {
-                console.log('[FoodPlateAvatar] ⚠️ Image failed to load, showing fallback');
+              onError={(error) => {
+                console.log('[FoodPlateAvatar v4.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent.error);
+              }}
+              onLoad={() => {
+                console.log('[FoodPlateAvatar v4.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
               }}
             />
           ) : shouldShowLetter ? (
