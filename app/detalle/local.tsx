@@ -63,7 +63,6 @@ interface Local {
   valoracion?: number;
   foto_principal?: string;
   imagen_url?: string;
-  fotos?: string[];
   galeria_urls?: string[];
   latitud?: number;
   longitud?: number;
@@ -152,64 +151,64 @@ interface CheckedInUser {
 
 const getCategoryIcon = (categoria?: string): { ios: string; android: string; color: string } => {
   const categoryMap: Record<string, { ios: string; android: string; color: string }> = {
-    bar: { ios: 'wineglass.fill', android: 'local_bar', color: '#F59E0B' },
+    bar: { ios: 'wineglass.fill', android: 'wine', color: '#F59E0B' },
     restaurante: { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
-    cafe: { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#8B5CF6' },
-    cafetería: { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#8B5CF6' },
-    pub: { ios: 'wineglass', android: 'sports_bar', color: '#10B981' },
-    discoteca: { ios: 'music.note', android: 'nightlife', color: '#EC4899' },
-    cocteleria: { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
-    coctelería: { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
-    sala_conciertos: { ios: 'music.note.list', android: 'music_note', color: '#F59E0B' },
+    cafe: { ios: 'cup.and.saucer.fill', android: 'cafe', color: '#8B5CF6' },
+    cafetería: { ios: 'cup.and.saucer.fill', android: 'cafe', color: '#8B5CF6' },
+    pub: { ios: 'wineglass', android: 'beer', color: '#10B981' },
+    discoteca: { ios: 'music.note', android: 'musical-note', color: '#EC4899' },
+    cocteleria: { ios: 'wineglass.fill', android: 'wine', color: '#3B82F6' },
+    coctelería: { ios: 'wineglass.fill', android: 'wine', color: '#3B82F6' },
+    sala_conciertos: { ios: 'music.note.list', android: 'musical-notes', color: '#F59E0B' },
   };
-  return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
+  return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location', color: colors.primary };
 };
 
 const SERVICES_SECTION_COLOR = '#10B981';
 
 const getServiceIcon = (servicio: string): { ios: string; android: string; color: string } => {
   const serviceMap: Record<string, { ios: string; android: string }> = {
-    cerveza: { ios: 'wineglass', android: 'sports_bar' },
-    cócteles: { ios: 'wineglass.fill', android: 'local_bar' },
-    cocteles: { ios: 'wineglass.fill', android: 'local_bar' },
-    cocktails: { ios: 'wineglass.fill', android: 'local_bar' },
-    efectivo: { ios: 'banknote', android: 'payments' },
-    pago_efectivo: { ios: 'banknote', android: 'payments' },
-    tarjetas: { ios: 'creditcard.fill', android: 'credit_card' },
-    pago_tarjetas: { ios: 'creditcard.fill', android: 'credit_card' },
-    tarjetas_credito: { ios: 'creditcard.fill', android: 'credit_card' },
-    tarjetas_debito: { ios: 'creditcard.fill', android: 'credit_card' },
+    cerveza: { ios: 'wineglass', android: 'beer' },
+    cócteles: { ios: 'wineglass.fill', android: 'wine' },
+    cocteles: { ios: 'wineglass.fill', android: 'wine' },
+    cocktails: { ios: 'wineglass.fill', android: 'wine' },
+    efectivo: { ios: 'banknote', android: 'cash' },
+    pago_efectivo: { ios: 'banknote', android: 'cash' },
+    tarjetas: { ios: 'creditcard.fill', android: 'card' },
+    pago_tarjetas: { ios: 'creditcard.fill', android: 'card' },
+    tarjetas_credito: { ios: 'creditcard.fill', android: 'card' },
+    tarjetas_debito: { ios: 'creditcard.fill', android: 'card' },
     wifi: { ios: 'wifi', android: 'wifi' },
     wifi_gratis: { ios: 'wifi', android: 'wifi' },
-    terraza: { ios: 'sun.max.fill', android: 'wb_sunny' },
-    terraza_exterior: { ios: 'sun.max.fill', android: 'wb_sunny' },
-    parking: { ios: 'car.fill', android: 'local_parking' },
-    aparcamiento: { ios: 'car.fill', android: 'local_parking' },
-    accesibilidad: { ios: 'figure.roll', android: 'accessible' },
-    accesible_silla_ruedas: { ios: 'figure.roll', android: 'accessible' },
-    reservas: { ios: 'calendar', android: 'event' },
-    delivery: { ios: 'bicycle', android: 'delivery_dining' },
-    entrega_domicilio: { ios: 'bicycle', android: 'delivery_dining' },
-    takeaway: { ios: 'bag.fill', android: 'takeout_dining' },
-    para_llevar: { ios: 'bag.fill', android: 'takeout_dining' },
+    terraza: { ios: 'sun.max.fill', android: 'sunny' },
+    terraza_exterior: { ios: 'sun.max.fill', android: 'sunny' },
+    parking: { ios: 'car.fill', android: 'car' },
+    aparcamiento: { ios: 'car.fill', android: 'car' },
+    accesibilidad: { ios: 'figure.roll', android: 'accessibility' },
+    accesible_silla_ruedas: { ios: 'figure.roll', android: 'accessibility' },
+    reservas: { ios: 'calendar', android: 'calendar' },
+    delivery: { ios: 'bicycle', android: 'bicycle' },
+    entrega_domicilio: { ios: 'bicycle', android: 'bicycle' },
+    takeaway: { ios: 'bag.fill', android: 'bag' },
+    para_llevar: { ios: 'bag.fill', android: 'bag' },
     comida: { ios: 'fork.knife', android: 'restaurant' },
     almuerzo: { ios: 'fork.knife', android: 'restaurant' },
     cena: { ios: 'fork.knife', android: 'restaurant' },
-    desayuno: { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
-    bebidas: { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
-    cafe: { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
-    vino: { ios: 'wineglass.fill', android: 'wine_bar' },
-    'musica en vivo': { ios: 'music.note', android: 'music_note' },
-    'música en vivo': { ios: 'music.note', android: 'music_note' },
-    musica_vivo: { ios: 'music.note', android: 'music_note' },
+    desayuno: { ios: 'cup.and.saucer.fill', android: 'cafe' },
+    bebidas: { ios: 'cup.and.saucer.fill', android: 'cafe' },
+    cafe: { ios: 'cup.and.saucer.fill', android: 'cafe' },
+    vino: { ios: 'wineglass.fill', android: 'wine' },
+    'musica en vivo': { ios: 'music.note', android: 'musical-note' },
+    'música en vivo': { ios: 'music.note', android: 'musical-note' },
+    musica_vivo: { ios: 'music.note', android: 'musical-note' },
     karaoke: { ios: 'mic.fill', android: 'mic' },
     tv: { ios: 'tv.fill', android: 'tv' },
     deportes_tv: { ios: 'tv.fill', android: 'tv' },
-    juegos: { ios: 'gamecontroller.fill', android: 'sports_esports' },
-    dj: { ios: 'music.note.list', android: 'music_note' },
-    sin_gluten: { ios: 'leaf.fill', android: 'eco' },
-    opciones_veganas: { ios: 'leaf.fill', android: 'eco' },
-    comida_vegetariana: { ios: 'leaf.fill', android: 'eco' },
+    juegos: { ios: 'gamecontroller.fill', android: 'game-controller' },
+    dj: { ios: 'music.note.list', android: 'musical-notes' },
+    sin_gluten: { ios: 'leaf.fill', android: 'leaf' },
+    opciones_veganas: { ios: 'leaf.fill', android: 'leaf' },
+    comida_vegetariana: { ios: 'leaf.fill', android: 'leaf' },
   };
 
   const lowerServicio = servicio.toLowerCase().replace(/ /g, '_');
@@ -219,23 +218,23 @@ const getServiceIcon = (servicio: string): { ios: string; android: string; color
     }
   }
 
-  return { ios: 'checkmark.circle.fill', android: 'check_circle', color: SERVICES_SECTION_COLOR };
+  return { ios: 'checkmark.circle.fill', android: 'checkmark-circle', color: SERVICES_SECTION_COLOR };
 };
 
 const AMBIENTE_SECTION_COLOR = '#8B5CF6';
 
 const getAmbienteIcon = (ambiente: string): { ios: string; android: string; color: string } => {
   const ambienteMap: Record<string, { ios: string; android: string }> = {
-    familiar: { ios: 'person.3.fill', android: 'family_restroom' },
-    tranquilo: { ios: 'leaf.fill', android: 'spa' },
-    animado: { ios: 'bolt.fill', android: 'celebration' },
-    romántico: { ios: 'heart.fill', android: 'favorite' },
-    romantico: { ios: 'heart.fill', android: 'favorite' },
-    moderno: { ios: 'sparkles', android: 'auto_awesome' },
+    familiar: { ios: 'person.3.fill', android: 'people' },
+    tranquilo: { ios: 'leaf.fill', android: 'leaf' },
+    animado: { ios: 'bolt.fill', android: 'flash' },
+    romántico: { ios: 'heart.fill', android: 'heart' },
+    romantico: { ios: 'heart.fill', android: 'heart' },
+    moderno: { ios: 'sparkles', android: 'sparkles' },
     elegante: { ios: 'star.fill', android: 'star' },
     acogedor: { ios: 'house.fill', android: 'home' },
-    de_moda: { ios: 'sparkles', android: 'auto_awesome' },
-    juvenil: { ios: 'bolt.fill', android: 'celebration' },
+    de_moda: { ios: 'sparkles', android: 'sparkles' },
+    juvenil: { ios: 'bolt.fill', android: 'flash' },
     tematico: { ios: 'star.fill', android: 'star' },
   };
 
@@ -246,20 +245,20 @@ const getAmbienteIcon = (ambiente: string): { ios: string; android: string; colo
     }
   }
 
-  return { ios: 'sparkles', android: 'auto_awesome', color: AMBIENTE_SECTION_COLOR };
+  return { ios: 'sparkles', android: 'sparkles', color: AMBIENTE_SECTION_COLOR };
 };
 
 const CLIENTELA_SECTION_COLOR = '#EC4899';
 
 const getClientelaIcon = (clientela: string): { ios: string; android: string; color: string } => {
   const clientelaMap: Record<string, { ios: string; android: string }> = {
-    grupos: { ios: 'person.3.fill', android: 'groups' },
-    familias: { ios: 'house.fill', android: 'family_restroom' },
-    parejas: { ios: 'heart.fill', android: 'favorite' },
+    grupos: { ios: 'person.3.fill', android: 'people' },
+    familias: { ios: 'house.fill', android: 'home' },
+    parejas: { ios: 'heart.fill', android: 'heart' },
     estudiantes: { ios: 'book.fill', android: 'school' },
-    turistas: { ios: 'airplane', android: 'flight' },
-    ninos_bienvenidos: { ios: 'figure.2.and.child.holdinghands', android: 'child_care' },
-    lgtbi_friendly: { ios: 'heart.fill', android: 'favorite' },
+    turistas: { ios: 'airplane', android: 'airplane' },
+    ninos_bienvenidos: { ios: 'figure.2.and.child.holdinghands', android: 'people' },
+    lgtbi_friendly: { ios: 'heart.fill', android: 'heart' },
     locales: { ios: 'person.2.fill', android: 'people' },
   };
 
@@ -593,6 +592,13 @@ export default function DetalleLocalScreen() {
         return;
       }
 
+      console.log('[DetalleLocal] ✅ Local loaded:', {
+        id: data.id,
+        nombre: data.nombre,
+        imagen_url: data.imagen_url,
+        galeria_urls: data.galeria_urls?.length || 0,
+      });
+
       setLocal(data);
       setLoading(false);
       cargarReviewsUnificadas();
@@ -894,9 +900,19 @@ export default function DetalleLocalScreen() {
     );
   }
 
-  const allImages = [local.imagen_url || local.foto_principal, ...(local.fotos || []), ...(local.galeria_urls || [])]
+  // ✅ CRITICAL FIX v28.0: Use galeria_urls instead of fotos (which doesn't exist)
+  const allImages = [
+    local.imagen_url || local.foto_principal,
+    ...(local.galeria_urls || [])
+  ]
     .filter(Boolean)
     .map((img) => `${img}?v=${Date.now()}`);
+
+  console.log('[DetalleLocal] 📸 Gallery images:', {
+    imagen_url: local.imagen_url,
+    galeria_urls_count: local.galeria_urls?.length || 0,
+    total_images: allImages.length,
+  });
 
   const estadoLocal = getEstadoLocal(local);
   const isOpen = estadoLocal.estaAbierto === true;
@@ -1096,6 +1112,7 @@ export default function DetalleLocalScreen() {
               </View>
             )}
 
+            {/* ✅ CRITICAL FIX v28.0: Gallery section now properly displays images */}
             {allImages.length > 1 && (
               <View style={styles.gallerySection}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
@@ -1630,7 +1647,15 @@ export default function DetalleLocalScreen() {
         </Animated.View>
       </GestureDetector>
 
-      {galleryVisible && <ImageGalleryModal visible={galleryVisible} images={allImages} initialIndex={galleryInitialIndex} onClose={() => setGalleryVisible(false)} />}
+      {/* ✅ CRITICAL FIX v28.0: Gallery modal now receives correct images array */}
+      {galleryVisible && (
+        <ImageGalleryModal 
+          visible={galleryVisible} 
+          images={allImages} 
+          initialIndex={galleryInitialIndex} 
+          onClose={() => setGalleryVisible(false)} 
+        />
+      )}
 
       {showReviewsModal && (
         <ReviewsModal

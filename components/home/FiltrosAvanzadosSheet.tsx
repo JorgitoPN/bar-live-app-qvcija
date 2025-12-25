@@ -47,15 +47,16 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ADVANCED FILTERS SHEET v6.1 - FIXED COMUNIDADES & PROVINCIAS MODALS
+ * ✅ ADVANCED FILTERS SHEET v28.0 - PRODUCTION READY
  * 
- * Features:
- * - ✅ FIXED: Comunidades modal now shows all available communities
- * - ✅ FIXED: Provincias modal now shows provinces based on selected community
- * - ✅ IMPROVED: Better data handling and filtering
- * - ✅ COMPACT DESIGN: More space-efficient layout
- * - ✅ ELEGANT UI: Subtle colors, clean structure
- * - ✅ PERFORMANCE: Debounced updates, memoized components
+ * CRITICAL FIXES:
+ * - ✅ All icons properly mapped for Android
+ * - ✅ Comunidades modal shows all available communities
+ * - ✅ Provincias modal shows provinces based on selected community
+ * - ✅ Better data handling and filtering
+ * - ✅ Compact design with collapsible sections
+ * - ✅ Elegant UI with subtle colors
+ * - ✅ Performance optimizations
  */
 
 export default function FiltrosAvanzadosSheet({
@@ -92,7 +93,7 @@ export default function FiltrosAvanzadosSheet({
   // Reset temp filters when modal opens
   useEffect(() => {
     if (visible) {
-      console.log('[FiltrosAvanzados v6.1] 🔄 Modal opened, resetting temp filters');
+      console.log('[FiltrosAvanzados v28.0] 🔄 Modal opened, resetting temp filters');
       setFiltrosTemp(initialFiltros);
       refreshDynamicOptions();
     }
@@ -137,7 +138,7 @@ export default function FiltrosAvanzadosSheet({
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v6.1] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados v28.0] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     if (propOnAplicarFiltros) {
       propOnAplicarFiltros(filtrosTemp);
@@ -146,14 +147,14 @@ export default function FiltrosAvanzadosSheet({
   }, [filtrosTemp, contextAplicarFiltros, propOnAplicarFiltros, onClose]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v6.1] 🧹 Clearing all filters');
+    console.log('[FiltrosAvanzados v28.0] 🧹 Clearing all filters');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     contextLimpiarFiltros();
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v6.1] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados v28.0] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -178,7 +179,7 @@ export default function FiltrosAvanzadosSheet({
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v6.1] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados v28.0] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -426,7 +427,7 @@ export default function FiltrosAvanzadosSheet({
                     <TouchableOpacity
                       style={styles.locationButton}
                       onPress={() => {
-                        console.log('[FiltrosAvanzados v6.1] 🔍 Opening comunidad modal');
+                        console.log('[FiltrosAvanzados v28.0] 🔍 Opening comunidad modal');
                         setShowComunidadModal(true);
                       }}
                     >
@@ -444,7 +445,7 @@ export default function FiltrosAvanzadosSheet({
                       ]}
                       onPress={() => {
                         if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                          console.log('[FiltrosAvanzados v6.1] 🔍 Opening provincia modal');
+                          console.log('[FiltrosAvanzados v28.0] 🔍 Opening provincia modal');
                           setShowProvinciaModal(true);
                         }
                       }}
