@@ -93,11 +93,13 @@ export default function ValidarTokenPasswordScreen() {
   };
 
   const handleValidateToken = async () => {
-    const fullToken = token.join('');
+    // ✅ CRITICAL FIX: Join token array and ensure it's a string
+    const fullToken = token.join('').trim();
 
     console.log('[ValidarTokenPassword] 🔍 Token array:', token);
     console.log('[ValidarTokenPassword] 🔍 Full token:', fullToken);
     console.log('[ValidarTokenPassword] 🔍 Token length:', fullToken.length);
+    console.log('[ValidarTokenPassword] 🔍 Token type:', typeof fullToken);
 
     if (fullToken.length !== 6) {
       Alert.alert('Error', 'Por favor, ingresa el código completo de 6 dígitos');
@@ -135,16 +137,23 @@ export default function ValidarTokenPasswordScreen() {
       console.log('[ValidarTokenPassword] 🌐 Functions URL:', functionsUrl);
       console.log('[ValidarTokenPassword] 🔑 Has access token:', !!accessToken);
 
-      // ✅ CRITICAL FIX: Ensure token is properly set in request body
+      // ✅ CRITICAL FIX: Create request body with explicit string values
+      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedToken = String(fullToken).trim();
+      
       const requestBody = { 
-        email: email.trim().toLowerCase(), 
-        token: fullToken.trim() // Ensure token is trimmed
+        email: normalizedEmail,
+        token: normalizedToken
       };
 
-      console.log('[ValidarTokenPassword] 📦 Request body:', JSON.stringify(requestBody));
-      console.log('[ValidarTokenPassword] 📦 Token in body:', requestBody.token);
+      console.log('[ValidarTokenPassword] 📦 Request body:', JSON.stringify(requestBody, null, 2));
+      console.log('[ValidarTokenPassword] 📦 Email value:', requestBody.email);
+      console.log('[ValidarTokenPassword] 📦 Email type:', typeof requestBody.email);
+      console.log('[ValidarTokenPassword] 📦 Token value:', requestBody.token);
       console.log('[ValidarTokenPassword] 📦 Token type:', typeof requestBody.token);
       console.log('[ValidarTokenPassword] 📦 Token is defined:', requestBody.token !== undefined);
+      console.log('[ValidarTokenPassword] 📦 Token is not null:', requestBody.token !== null);
+      console.log('[ValidarTokenPassword] 📦 Token length:', requestBody.token.length);
 
       const response = await fetch(`${functionsUrl}/functions/v1/validate-password-token`, {
         method: 'POST',
@@ -156,9 +165,10 @@ export default function ValidarTokenPasswordScreen() {
       });
 
       console.log('[ValidarTokenPassword] 📡 Response status:', response.status);
+      console.log('[ValidarTokenPassword] 📡 Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
 
       const result = await response.json();
-      console.log('[ValidarTokenPassword] 📦 Response data:', JSON.stringify(result));
+      console.log('[ValidarTokenPassword] 📦 Response data:', JSON.stringify(result, null, 2));
 
       if (!response.ok || !result.valid) {
         console.error('[ValidarTokenPassword] ❌ Token inválido:', result.error || 'undefined');
@@ -184,13 +194,14 @@ export default function ValidarTokenPasswordScreen() {
       router.push({
         pathname: '/auth/nueva-password-token',
         params: { 
-          email, 
-          token: fullToken,
+          email: normalizedEmail,
+          token: normalizedToken,
           isGoogleUser: isGoogleUser ? 'true' : 'false'
         },
       });
     } catch (error: any) {
       console.error('[ValidarTokenPassword] ❌ Error:', error);
+      console.error('[ValidarTokenPassword] ❌ Error stack:', error.stack);
       Alert.alert(
         'Error',
         'Ocurrió un error al validar el código. Por favor, intenta nuevamente.'
