@@ -1,15 +1,17 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v23.0
+ * TAB NAVIGATION BAR - VERSION v25.0
  * 
  * Clean tab navigation bar with Instagram-style filled/outlined icons.
  * Active icons are filled with white, inactive icons are outlined with white.
  * 
- * COMPLETE ANDROID-iOS PARITY:
+ * COMPLETE ANDROID-iOS PARITY + NATIVE ANDROID BEHAVIOR:
  * - Consistent behavior on both platforms
  * - Proper route matching logic
  * - Better error handling
- * - Android-specific optimizations (padding for notch)
+ * - Android-specific optimizations (native touch feedback)
+ * - Native ripple effect on Android
+ * - Smooth animations
  */
 
 import React from 'react';
@@ -17,6 +19,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  TouchableNativeFeedback,
   StyleSheet,
   Platform,
   Image,
@@ -27,6 +30,7 @@ import Svg, { Path } from 'react-native-svg';
 import { colors } from '@/styles/commonStyles';
 import { TabIcon } from './TabIcon';
 import { TabDefinition } from './TabConfig';
+import { provideHapticFeedback } from '@/utils/androidNativeBehavior';
 
 interface TabNavigationBarProps {
   tabs: TabDefinition[];
@@ -48,14 +52,14 @@ export function TabNavigationBar({
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
     console.log(
-      `🔍 [TabNav v23.0] Checking tab "${tab.id}": ` +
+      `🔍 [TabNav v25.0] Checking tab "${tab.id}": ` +
       `route="${cleanRoute}", path="${cleanPath}"`
     );
 
     // Special case: gestion tab is active when viewing local profiles
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `✅ [TabNav v23.0] Tab "${tab.id}" is ACTIVE ` +
+        `✅ [TabNav v25.0] Tab "${tab.id}" is ACTIVE ` +
         `(special case: perfil/local)`
       );
       return true;
@@ -64,7 +68,7 @@ export function TabNavigationBar({
     // Special case: perfil tab is NOT active when viewing local profiles
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `❌ [TabNav v23.0] Tab "${tab.id}" is INACTIVE ` +
+        `❌ [TabNav v25.0] Tab "${tab.id}" is INACTIVE ` +
         `(special case: perfil/local)`
       );
       return false;
@@ -81,7 +85,7 @@ export function TabNavigationBar({
 
       if (mainRouteSegment === mainPathSegment) {
         console.log(
-          `✅ [TabNav v23.0] Tab "${tab.id}" is ACTIVE ` +
+          `✅ [TabNav v25.0] Tab "${tab.id}" is ACTIVE ` +
           `(segment match: "${mainRouteSegment}")`
         );
         return true;
@@ -90,22 +94,26 @@ export function TabNavigationBar({
 
     // Fallback: check if path starts with route
     if (cleanPath.startsWith(cleanRoute)) {
-      console.log(`✅ [TabNav v23.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
+      console.log(`✅ [TabNav v25.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
       return true;
     }
 
     // Check exact match
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
-      console.log(`✅ [TabNav v23.0] Tab "${tab.id}" is ACTIVE (exact match)`);
+      console.log(`✅ [TabNav v25.0] Tab "${tab.id}" is ACTIVE (exact match)`);
       return true;
     }
 
-    console.log(`❌ [TabNav v23.0] Tab "${tab.id}" is INACTIVE`);
+    console.log(`❌ [TabNav v25.0] Tab "${tab.id}" is INACTIVE`);
     return false;
   };
 
-  const handleTabPress = (tab: TabDefinition) => {
-    console.log(`🔘 [TabNav v23.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
+  const handleTabPress = async (tab: TabDefinition) => {
+    console.log(`🔘 [TabNav v25.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
+    
+    // ✅ CRITICAL FIX v25.0: Provide native haptic feedback on Android
+    await provideHapticFeedback('light');
+    
     if (tab.id === 'perfil' && onProfilePress) {
       onProfilePress();
     } else {
@@ -118,88 +126,102 @@ export function TabNavigationBar({
     const isCenter = tab.id === 'explorar';
 
     console.log(
-      `🎨 [TabNav v23.0] Rendering tab "${tab.id}": ` +
+      `🎨 [TabNav v25.0] Rendering tab "${tab.id}": ` +
       `isActive=${isActive}, isCenter=${isCenter}`
     );
+
+    // ✅ CRITICAL FIX v25.0: Use TouchableNativeFeedback on Android for native ripple effect
+    const TouchableComponent = Platform.OS === 'android' ? TouchableNativeFeedback : TouchableOpacity;
+    const touchableProps = Platform.OS === 'android' 
+      ? {
+          background: TouchableNativeFeedback.Ripple('rgba(255, 255, 255, 0.3)', false),
+          useForeground: true,
+        }
+      : {
+          activeOpacity: 0.7,
+        };
 
     // Center button (Explorar)
     if (isCenter) {
       return (
-        <TouchableOpacity
+        <TouchableComponent
           key={tab.id}
           onPress={() => handleTabPress(tab)}
-          style={styles.centerButton}
-          activeOpacity={0.7}
+          {...touchableProps}
         >
-          <LinearGradient
-            colors={['#2DD4BF', '#06B6D4']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.centerGradient}
-          >
-            <TabIcon
-              iosIconFilled={tab.iosIconFilled}
-              iosIconOutlined={tab.iosIconOutlined}
-              androidIconFilled={tab.androidIconFilled}
-              androidIconOutlined={tab.androidIconOutlined}
-              isActive={true}
-              size={30}
-            />
-          </LinearGradient>
-        </TouchableOpacity>
+          <View style={styles.centerButton}>
+            <LinearGradient
+              colors={['#2DD4BF', '#06B6D4']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.centerGradient}
+            >
+              <TabIcon
+                iosIconFilled={tab.iosIconFilled}
+                iosIconOutlined={tab.iosIconOutlined}
+                androidIconFilled={tab.androidIconFilled}
+                androidIconOutlined={tab.androidIconOutlined}
+                isActive={true}
+                size={30}
+              />
+            </LinearGradient>
+          </View>
+        </TouchableComponent>
       );
     }
 
     // Profile tab with avatar
     if (tab.id === 'perfil') {
       return (
-        <TouchableOpacity
+        <TouchableComponent
           key={tab.id}
           onPress={() => handleTabPress(tab)}
-          style={styles.tab}
-          activeOpacity={0.7}
+          {...touchableProps}
         >
-          <View style={[styles.avatarContainer, isActive && styles.avatarContainerActive]}>
-            {activeProfileAvatar ? (
-              <Image
-                source={{ uri: activeProfileAvatar }}
-                style={styles.avatar}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <TabIcon
-                  iosIconFilled="person.fill"
-                  iosIconOutlined="person"
-                  androidIconFilled="person"
-                  androidIconOutlined="person-outline"
-                  isActive={isActive}
-                  size={20}
+          <View style={styles.tab}>
+            <View style={[styles.avatarContainer, isActive && styles.avatarContainerActive]}>
+              {activeProfileAvatar ? (
+                <Image
+                  source={{ uri: activeProfileAvatar }}
+                  style={styles.avatar}
+                  resizeMode="cover"
                 />
-              </View>
-            )}
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <TabIcon
+                    iosIconFilled="person.fill"
+                    iosIconOutlined="person"
+                    androidIconFilled="person"
+                    androidIconOutlined="person-outline"
+                    isActive={isActive}
+                    size={20}
+                  />
+                </View>
+              )}
+            </View>
           </View>
-        </TouchableOpacity>
+        </TouchableComponent>
       );
     }
 
     // Regular tab
     return (
-      <TouchableOpacity
+      <TouchableComponent
         key={tab.id}
         onPress={() => handleTabPress(tab)}
-        style={styles.tab}
-        activeOpacity={0.7}
+        {...touchableProps}
       >
-        <TabIcon
-          iosIconFilled={tab.iosIconFilled}
-          iosIconOutlined={tab.iosIconOutlined}
-          androidIconFilled={tab.androidIconFilled}
-          androidIconOutlined={tab.androidIconOutlined}
-          isActive={isActive}
-          size={28}
-        />
-      </TouchableOpacity>
+        <View style={styles.tab}>
+          <TabIcon
+            iosIconFilled={tab.iosIconFilled}
+            iosIconOutlined={tab.iosIconOutlined}
+            androidIconFilled={tab.androidIconFilled}
+            androidIconOutlined={tab.androidIconOutlined}
+            isActive={isActive}
+            size={28}
+          />
+        </View>
+      </TouchableComponent>
     );
   };
 
@@ -269,6 +291,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+    overflow: 'hidden',
+    borderRadius: 20,
   },
   centerButton: {
     width: 60,
@@ -280,6 +304,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 10,
+    overflow: 'hidden',
   },
   centerGradient: {
     width: '100%',

@@ -13,14 +13,32 @@ import { colors } from '@/styles/commonStyles';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Platform } from 'react-native';
+import { initializeAndroidBehavior } from '@/utils/androidNativeBehavior';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useEffect(() => {
+    // ✅ CRITICAL FIX v25.0: Initialize Android-specific behavior
+    let cleanupAndroid: (() => void) | undefined;
+    
+    if (Platform.OS === 'android') {
+      console.log('[RootLayout v25.0] 🤖 Initializing Android native behavior...');
+      cleanupAndroid = initializeAndroidBehavior();
+    }
+
+    // Hide splash screen
     setTimeout(() => {
       SplashScreen.hideAsync();
     }, 100);
+
+    // Cleanup function
+    return () => {
+      if (cleanupAndroid) {
+        cleanupAndroid();
+      }
+    };
   }, []);
 
   return (
@@ -38,7 +56,9 @@ export default function RootLayout() {
                         screenOptions={{
                           headerShown: false,
                           contentStyle: { backgroundColor: colors.background },
-                          animation: 'slide_from_right',
+                          animation: Platform.OS === 'android' ? 'slide_from_right' : 'default',
+                          gestureEnabled: true,
+                          gestureDirection: 'horizontal',
                         }}
                       >
                         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

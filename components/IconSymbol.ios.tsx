@@ -5,7 +5,7 @@ import { StyleProp, ViewStyle, Platform } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * VERSION v23.0: COMPLETE ANDROID-iOS PARITY
+ * VERSION v26.0: COMPLETE ANDROID-iOS PARITY
  * - Consistent behavior with Android version
  * - Proper error handling
  * - Support for both naming conventions
@@ -41,7 +41,7 @@ export function IconSymbol({
   // Check if iconName is defined before using it
   if (!iconName) {
     console.error(
-      '🚨 [IconSymbol v23.0 iOS] ERROR: name/ios_icon_name prop is undefined or null. ' +
+      '🚨 [IconSymbol v26.0 iOS] ERROR: name/ios_icon_name prop is undefined or null. ' +
       'Rendering fallback icon.'
     );
     // Return a fallback icon instead of null
@@ -71,7 +71,7 @@ export function IconSymbol({
   const renderingMode = "monochrome";
   
   console.log(
-    `🎨 [IconSymbol v23.0 iOS] Rendering "${iconName}", ` +
+    `🎨 [IconSymbol v26.0 iOS] Rendering "${iconName}", ` +
     `${isFilled ? 'FILLED' : 'OUTLINED'}, mode: ${renderingMode}, ` +
     `color: ${color}, size: ${size}`
   );

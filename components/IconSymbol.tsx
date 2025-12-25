@@ -14,7 +14,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 // COMPREHENSIVE SF Symbol to Ionicons/MaterialIcons mapping
-// VERSION v23.0: COMPLETE ANDROID-iOS PARITY
+// VERSION v26.0: COMPLETE ANDROID-iOS PARITY
 const MAPPING = {
   // Navigation & Home
   "house.fill": "home",
@@ -264,11 +264,12 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
  * 
- * VERSION v23.0: COMPLETE ANDROID-iOS PARITY
+ * VERSION v26.0: COMPLETE ANDROID-iOS PARITY
  * - Comprehensive icon mapping with fallbacks
  * - Better error handling and logging
  * - Support for both naming conventions
  * - Guaranteed icon rendering on all platforms
+ * - Optimized for native Android behavior
  */
 export function IconSymbol({
   name,
@@ -312,7 +313,7 @@ export function IconSymbol({
   if (!iconName) {
     const sfSymbolName = name || ios_icon_name;
     console.warn(
-      `⚠️ [IconSymbol v23.0 Android] No icon mapping found for "${sfSymbolName}". ` +
+      `⚠️ [IconSymbol v26.0 Android] No icon mapping found for "${sfSymbolName}". ` +
       `Using fallback icon. Please add mapping to MAPPING object.`
     );
     iconName = 'help-circle-outline'; // Fallback icon
@@ -321,7 +322,7 @@ export function IconSymbol({
   
   if (Platform.OS === 'android') {
     console.log(
-      `🎨 [IconSymbol v23.0 Android] Rendering "${iconName}" (${iconSource}), ` +
+      `🎨 [IconSymbol v26.0 Android] Rendering "${iconName}" (${iconSource}), ` +
       `size: ${size}, color: ${color}`
     );
   }
