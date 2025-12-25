@@ -120,11 +120,12 @@ export default function ValidarTokenPasswordScreen() {
       console.log('[ValidarTokenPassword] 🔢 Token:', fullToken);
       console.log('[ValidarTokenPassword] 🔐 Google User:', isGoogleUser);
 
-      // ✅ FIXED: Use environment variable for Supabase URL
+      // ✅ FIXED: Get Supabase URL from environment variable
       const functionsUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
       
       if (!functionsUrl) {
-        throw new Error('EXPO_PUBLIC_SUPABASE_URL is not defined');
+        console.error('[ValidarTokenPassword] ❌ EXPO_PUBLIC_SUPABASE_URL is not defined');
+        throw new Error('Configuration error. Please contact support.');
       }
 
       // ✅ FIXED: Get current session token for authorization
@@ -134,12 +135,16 @@ export default function ValidarTokenPasswordScreen() {
       console.log('[ValidarTokenPassword] 🌐 Functions URL:', functionsUrl);
       console.log('[ValidarTokenPassword] 🔑 Has access token:', !!accessToken);
 
+      // ✅ CRITICAL FIX: Ensure token is properly set in request body
       const requestBody = { 
         email: email.trim().toLowerCase(), 
-        token: fullToken 
+        token: fullToken.trim() // Ensure token is trimmed
       };
 
       console.log('[ValidarTokenPassword] 📦 Request body:', JSON.stringify(requestBody));
+      console.log('[ValidarTokenPassword] 📦 Token in body:', requestBody.token);
+      console.log('[ValidarTokenPassword] 📦 Token type:', typeof requestBody.token);
+      console.log('[ValidarTokenPassword] 📦 Token is defined:', requestBody.token !== undefined);
 
       const response = await fetch(`${functionsUrl}/functions/v1/validate-password-token`, {
         method: 'POST',
