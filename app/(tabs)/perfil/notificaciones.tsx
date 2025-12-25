@@ -1,533 +1,380 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  Platform,
-  Alert,
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Switch, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { colors, commonStyles } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
-import NotificacionItem from '@/components/perfil/NotificacionItem';
-import TagPendingNotification from '@/components/social/TagPendingNotification';
+import {
+  registerForPushNotifications,
+  savePushToken,
+  arePushNotificationsAvailable,
+  scheduleTestNotification,
+} from '@/utils/notifications';
 
-interface Notificacion {
-  id: string;
-  tipo: string;
-  titulo: string;
-  mensaje: string;
-  imagen_url?: string;
-  usuario_origen_id?: string;
-  local_origen_id?: string;
-  post_id?: string;
-  comentario_id?: string;
-  leida: boolean;
-  created_at: string;
-  leida_at?: string;
-  usuario_origen?: {
-    id: string;
-    nombre: string;
-    username?: string;
-    avatar?: string;
-  };
+interface NotificationSettings {
+  likes: boolean;
+  comments: boolean;
+  follows: boolean;
+  mentions: boolean;
+  events: boolean;
+  messages: boolean;
+  cheers: boolean;
 }
 
-interface PendingTag {
-  id: string;
-  post_id: string;
-  usuario_id?: string;
-  local_id?: string;
-  tipo: 'usuario' | 'local';
-  estado: 'pendiente' | 'aceptado' | 'rechazado';
-  created_at: string;
-  tagged_by_user_id?: string;
-  post?: {
-    imagenes?: string[];
-    imagen?: string;
-    contenido?: string;
-    autor?: {
-      nombre: string;
-      username?: string;
-      avatar?: string;
-    };
-  };
-}
-
-export default function NotificacionesScreen() {
+export default function Notificaciones() {
   const router = useRouter();
   const { user } = useAuth();
-  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
-  const [pendingTags, setPendingTags] = useState<PendingTag[]>([]);
+  const [settings, setSettings] = useState<NotificationSettings>({
+    likes: true,
+    comments: true,
+    follows: true,
+    mentions: true,
+    events: true,
+    messages: true,
+    cheers: true,
+  });
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [pushToken, setPushToken] = useState<string | null>(null);
+  const pushAvailable = arePushNotificationsAvailable();
 
-  const cargarNotificaciones = useCallback(async () => {
+  useEffect(() => {
+    loadSettings();
+    setupPushNotifications();
+  }, [user]);
+
+  const loadSettings = async () => {
     if (!user) return;
 
     try {
-      setLoading(true);
+      const { data, error } = await supabase
+        .from('notification_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-      const { data: notifData, error: notifError } = await supabase
-        .from('notificaciones')
-        .select(`
-          *,
-          usuario_origen:usuarios!notificaciones_usuario_origen_id_fkey(
-            id,
-            nombre,
-            username,
-            avatar
-          )
-        `)
-        .eq('usuario_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (notifError) throw notifError;
-
-      console.log('[Notificaciones] ✅ Loaded', notifData?.length || 0, 'notifications');
-      setNotificaciones(notifData || []);
-
-      const { data: tagsData, error: tagsError } = await supabase
-        .from('post_tags')
-        .select(`
-          *,
-          post:posts(
-            imagenes,
-            imagen,
-            contenido,
-            autor_id
-          )
-        `)
-        .eq('usuario_id', user.id)
-        .eq('tipo', 'usuario')
-        .eq('estado', 'pendiente')
-        .order('created_at', { ascending: false });
-
-      if (tagsError) {
-        console.error('[Notificaciones] Error loading pending tags:', tagsError);
-      } else {
-        console.log('[Notificaciones] 🏷️ Loaded pending tags:', tagsData?.length || 0);
-        
-        if (tagsData && tagsData.length > 0) {
-          const enrichedTags = await Promise.all(
-            tagsData.map(async (tag) => {
-              if (tag.tagged_by_user_id) {
-                const { data: authorData } = await supabase
-                  .from('usuarios')
-                  .select('nombre, username, avatar')
-                  .eq('id', tag.tagged_by_user_id)
-                  .single();
-
-                return {
-                  ...tag,
-                  post: {
-                    ...tag.post,
-                    autor: authorData || undefined,
-                  },
-                };
-              }
-              return tag;
-            })
-          );
-
-          setPendingTags(enrichedTags);
-        } else {
-          setPendingTags([]);
-        }
+      if (data && !error) {
+        setSettings({
+          likes: data.likes ?? true,
+          comments: data.comments ?? true,
+          follows: data.follows ?? true,
+          mentions: data.mentions ?? true,
+          events: data.events ?? true,
+          messages: data.messages ?? true,
+          cheers: data.cheers ?? true,
+        });
       }
     } catch (error) {
-      console.error('[Notificaciones] Error cargando notificaciones:', error);
+      console.error('Error cargando configuración:', error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  }, [user]);
-
-  useEffect(() => {
-    if (user) {
-      cargarNotificaciones();
-    }
-  }, [user, cargarNotificaciones]);
-
-  // ✅ FIXED: Real-time subscription for notifications
-  useEffect(() => {
-    if (!user) return;
-
-    const subscription = supabase
-      .channel('user-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notificaciones',
-          filter: `usuario_id=eq.${user.id}`,
-        },
-        () => {
-          console.log('[Notificaciones] 🔄 Notification update detected, reloading...');
-          cargarNotificaciones();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'post_tags',
-          filter: `usuario_id=eq.${user.id}`,
-        },
-        () => {
-          console.log('[Notificaciones] 🔄 Tag update detected, reloading...');
-          cargarNotificaciones();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(subscription);
-    };
-  }, [user, cargarNotificaciones]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    cargarNotificaciones();
   };
 
-  const marcarTodasComoLeidas = async () => {
+  const setupPushNotifications = async () => {
+    if (!user || !pushAvailable) {
+      console.log('[Notificaciones] Push notifications no disponibles');
+      return;
+    }
+
+    try {
+      const token = await registerForPushNotifications();
+      if (token) {
+        setPushToken(token);
+        await savePushToken(user.id, token);
+      }
+    } catch (error) {
+      console.error('Error configurando push notifications:', error);
+    }
+  };
+
+  const updateSetting = async (key: keyof NotificationSettings, value: boolean) => {
     if (!user) return;
+
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
 
     try {
       const { error } = await supabase
-        .from('notificaciones')
-        .update({ leida: true, leida_at: new Date().toISOString() })
-        .eq('usuario_id', user.id)
-        .eq('leida', false);
+        .from('notification_settings')
+        .upsert({
+          user_id: user.id,
+          ...newSettings,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        });
 
-      if (error) throw error;
-
-      cargarNotificaciones();
+      if (error) {
+        console.error('Error guardando configuración:', error);
+        Alert.alert('Error', 'No se pudo guardar la configuración');
+        setSettings(settings);
+      }
     } catch (error) {
-      console.error('[Notificaciones] Error marcando como leídas:', error);
+      console.error('Error en updateSetting:', error);
+      Alert.alert('Error', 'No se pudo guardar la configuración');
+      setSettings(settings);
     }
   };
 
-  const handleDeleteNotification = async (notificationId: string) => {
-    if (!user) return;
-
-    Alert.alert(
-      'Eliminar notificación',
-      '¿Estás seguro de que quieres eliminar esta notificación?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('notificaciones')
-                .delete()
-                .eq('id', notificationId)
-                .eq('usuario_id', user.id);
-
-              if (error) throw error;
-
-              setNotificaciones(prev => prev.filter(n => n.id !== notificationId));
-            } catch (error) {
-              console.error('[Notificaciones] Error deleting notification:', error);
-              Alert.alert('Error', 'No se pudo eliminar la notificación');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // ✅ FIXED: Proper notification redirection with all content types
-  const handleNotificationPress = async (notif: Notificacion) => {
+  const testNotification = async () => {
     try {
-      // ✅ FIXED: Mark as read with leida_at timestamp (persistent)
-      await supabase
-        .from('notificaciones')
-        .update({ leida: true, leida_at: new Date().toISOString() })
-        .eq('id', notif.id);
-
-      // Update local state immediately
-      setNotificaciones(prev => 
-        prev.map(n => 
-          n.id === notif.id 
-            ? { ...n, leida: true, leida_at: new Date().toISOString() }
-            : n
-        )
+      await scheduleTestNotification();
+      Alert.alert(
+        '✅ Notificación Programada',
+        'Recibirás una notificación de prueba en 2 segundos',
+        [{ text: 'OK' }]
       );
-
-      // ✅ FIXED: Comprehensive redirection logic
-      console.log('[Notificaciones] 🔍 Processing notification:', {
-        tipo: notif.tipo,
-        post_id: notif.post_id,
-        comentario_id: notif.comentario_id,
-        local_origen_id: notif.local_origen_id,
-        usuario_origen_id: notif.usuario_origen_id,
-      });
-
-      // Priority 1: Post-related notifications
-      if (notif.post_id) {
-        console.log('[Notificaciones] ✅ Redirecting to post:', notif.post_id);
-        router.push({ pathname: '/social/post', params: { id: notif.post_id } });
-        return;
-      }
-
-      // Priority 2: Comment-related notifications
-      if (notif.comentario_id) {
-        console.log('[Notificaciones] ✅ Redirecting to comment in post');
-        const { data: comentario } = await supabase
-          .from('comentarios')
-          .select('post_id')
-          .eq('id', notif.comentario_id)
-          .single();
-        
-        if (comentario?.post_id) {
-          router.push({ pathname: '/social/post', params: { id: comentario.post_id } });
-          return;
-        }
-      }
-
-      // Priority 3: Message notifications
-      if (notif.tipo === 'mensaje_privado') {
-        console.log('[Notificaciones] ✅ Redirecting to messages');
-        
-        // If there's a local_origen_id, it's a local-specific chat
-        if (notif.local_origen_id) {
-          router.push({ 
-            pathname: '/chat/conversacion', 
-            params: { localId: notif.local_origen_id } 
-          });
-        } else if (notif.usuario_origen_id) {
-          router.push({ 
-            pathname: '/chat/conversacion', 
-            params: { userId: notif.usuario_origen_id } 
-          });
-        } else {
-          // Fallback to chats list
-          router.push('/(tabs)/perfil/chats');
-        }
-        return;
-      }
-
-      // Priority 4: Local-related notifications
-      if (notif.local_origen_id) {
-        console.log('[Notificaciones] ✅ Redirecting to local:', notif.local_origen_id);
-        router.push({ pathname: '/perfil/local', params: { localId: notif.local_origen_id } });
-        return;
-      }
-
-      // Priority 5: User profile notifications
-      if (notif.usuario_origen_id) {
-        console.log('[Notificaciones] ✅ Redirecting to user profile:', notif.usuario_origen_id);
-        if (notif.usuario_origen_id === user.id) {
-          router.push('/(tabs)/perfil');
-        } else {
-          router.push({ pathname: '/perfil/usuario', params: { userId: notif.usuario_origen_id } });
-        }
-        return;
-      }
-
-      // Fallback: Stay on notifications page
-      console.log('[Notificaciones] ⚠️ No specific redirect target, staying on notifications');
     } catch (error) {
-      console.error('[Notificaciones] Error handling notification press:', error);
-      Alert.alert('Error', 'No se pudo abrir la notificación');
+      console.error('Error enviando notificación de prueba:', error);
+      Alert.alert('Error', 'No se pudo enviar la notificación de prueba');
     }
   };
 
-  if (!user) {
-    return (
-      <View style={commonStyles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={commonStyles.headerGradient}
-        >
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={28} color={colors.headerText} />
-            </TouchableOpacity>
-            <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Notificaciones</Text>
-            <View style={{ width: 40 }} />
-          </View>
-        </LinearGradient>
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Inicia sesión para ver tus notificaciones</Text>
-        </View>
+  const NotificationToggle = ({
+    icon,
+    title,
+    description,
+    value,
+    onValueChange,
+  }: {
+    icon: string;
+    title: string;
+    description: string;
+    value: boolean;
+    onValueChange: (value: boolean) => void;
+  }) => (
+    <View style={{
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+    }}>
+      <View style={{
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.primary + '20',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+      }}>
+        <Text style={{ fontSize: 20 }}>{icon}</Text>
       </View>
-    );
-  }
-
-  const unreadCount = notificaciones.filter(n => !n.leida).length;
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 4 }}>
+          {title}
+        </Text>
+        <Text style={{ fontSize: 13, color: colors.textSecondary }}>
+          {description}
+        </Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: colors.border, true: colors.primary + '80' }}
+        thumbColor={value ? colors.primary : colors.textSecondary}
+      />
+    </View>
+  );
 
   return (
-    <View style={commonStyles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={commonStyles.headerGradient}
-      >
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={28} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Notificaciones</Text>
-          {unreadCount > 0 && (
-            <TouchableOpacity onPress={marcarTodasComoLeidas} style={styles.markAllButton}>
-              <Text style={styles.markAllText}>Marcar todas</Text>
-            </TouchableOpacity>
-          )}
-          {unreadCount === 0 && <View style={{ width: 40 }} />}
-        </View>
-      </LinearGradient>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Header */}
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingTop: Platform.OS === 'android' ? 48 : 60,
+        paddingBottom: 16,
+        backgroundColor: colors.card,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+      }}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ marginRight: 16 }}
         >
-          {pendingTags.length > 0 && (
-            <View style={styles.pendingTagsSection}>
-              <View style={styles.sectionHeader}>
-                <IconSymbol
-                  ios_icon_name="person.crop.circle.badge.checkmark"
-                  android_material_icon_name="person_add"
-                  size={20}
-                  color={colors.primary}
-                />
-                <Text style={styles.sectionTitle}>Solicitudes de etiqueta</Text>
-              </View>
-              {pendingTags.map((tag) => (
-                <TagPendingNotification
-                  key={tag.id}
-                  tag={tag}
-                  onUpdate={cargarNotificaciones}
-                />
-              ))}
-            </View>
-          )}
+          <IconSymbol
+            ios_icon_name="chevron.left"
+            android_material_icon_name="arrow_back"
+            size={24}
+            color={colors.text}
+          />
+        </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: '600', color: colors.text, flex: 1 }}>
+          Notificaciones
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.push('/perfil/notificaciones-info')}
+        >
+          <IconSymbol
+            ios_icon_name="info.circle"
+            android_material_icon_name="info"
+            size={24}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+      </View>
 
-          {notificaciones.length > 0 ? (
-            <View style={styles.notificacionesSection}>
-              {pendingTags.length > 0 && (
-                <View style={styles.sectionHeader}>
-                  <IconSymbol
-                    ios_icon_name="bell.fill"
-                    android_material_icon_name="notifications"
-                    size={20}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.sectionTitle}>Notificaciones</Text>
-                </View>
-              )}
-              {notificaciones.map((notif) => (
-                <NotificacionItem
-                  key={notif.id}
-                  notificacion={notif}
-                  onPress={() => handleNotificationPress(notif)}
-                  onDelete={() => handleDeleteNotification(notif.id)}
-                />
-              ))}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+        {/* Push Notifications Status */}
+        {!pushAvailable && Platform.OS === 'android' && (
+          <TouchableOpacity
+            onPress={() => router.push('/perfil/notificaciones-info')}
+            style={{
+              backgroundColor: colors.warning + '20',
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 24,
+              borderWidth: 1,
+              borderColor: colors.warning,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <IconSymbol
+                ios_icon_name="exclamationmark.triangle.fill"
+                android_material_icon_name="warning"
+                size={20}
+                color={colors.warning}
+              />
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: colors.text,
+                marginLeft: 8,
+                flex: 1,
+              }}>
+                Notificaciones Push No Disponibles
+              </Text>
+              <IconSymbol
+                ios_icon_name="chevron.right"
+                android_material_icon_name="chevron_right"
+                size={20}
+                color={colors.textSecondary}
+              />
             </View>
-          ) : pendingTags.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <IconSymbol ios_icon_name="bell" android_material_icon_name="notifications_none" size={64} color={colors.textSecondary} />
-              <Text style={styles.emptyText}>No tienes notificaciones</Text>
+            <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 18 }}>
+              Las notificaciones push requieren un development build en Android. 
+              Toca para más información.
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Test Notification Button */}
+        <TouchableOpacity
+          onPress={testNotification}
+          style={{
+            backgroundColor: colors.primary,
+            borderRadius: 12,
+            padding: 16,
+            alignItems: 'center',
+            marginBottom: 24,
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF' }}>
+            🔔 Probar Notificación
+          </Text>
+        </TouchableOpacity>
+
+        {/* Notification Settings */}
+        <Text style={{
+          fontSize: 18,
+          fontWeight: '600',
+          color: colors.text,
+          marginBottom: 16,
+        }}>
+          Preferencias de Notificaciones
+        </Text>
+
+        <NotificationToggle
+          icon="❤️"
+          title="Me gusta"
+          description="Cuando alguien le da me gusta a tu publicación"
+          value={settings.likes}
+          onValueChange={(value) => updateSetting('likes', value)}
+        />
+
+        <NotificationToggle
+          icon="💬"
+          title="Comentarios"
+          description="Cuando alguien comenta en tu publicación"
+          value={settings.comments}
+          onValueChange={(value) => updateSetting('comments', value)}
+        />
+
+        <NotificationToggle
+          icon="👥"
+          title="Nuevos seguidores"
+          description="Cuando alguien empieza a seguirte"
+          value={settings.follows}
+          onValueChange={(value) => updateSetting('follows', value)}
+        />
+
+        <NotificationToggle
+          icon="@"
+          title="Menciones"
+          description="Cuando alguien te menciona en una publicación"
+          value={settings.mentions}
+          onValueChange={(value) => updateSetting('mentions', value)}
+        />
+
+        <NotificationToggle
+          icon="📅"
+          title="Eventos"
+          description="Recordatorios de eventos y actualizaciones"
+          value={settings.events}
+          onValueChange={(value) => updateSetting('events', value)}
+        />
+
+        <NotificationToggle
+          icon="✉️"
+          title="Mensajes"
+          description="Cuando recibes un nuevo mensaje"
+          value={settings.messages}
+          onValueChange={(value) => updateSetting('messages', value)}
+        />
+
+        <NotificationToggle
+          icon="🍻"
+          title="Brindis"
+          description="Cuando alguien te envía un brindis"
+          value={settings.cheers}
+          onValueChange={(value) => updateSetting('cheers', value)}
+        />
+
+        {/* Status Info */}
+        {pushToken && (
+          <View style={{
+            backgroundColor: colors.success + '20',
+            borderRadius: 12,
+            padding: 16,
+            marginTop: 24,
+            borderWidth: 1,
+            borderColor: colors.success,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={20}
+                color={colors.success}
+              />
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: colors.text,
+                marginLeft: 8,
+              }}>
+                Notificaciones Push Activas
+              </Text>
             </View>
-          ) : null}
-        </ScrollView>
-      )}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  markAllButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 12,
-  },
-  markAllText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.headerText,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pendingTagsSection: {
-    padding: 16,
-    backgroundColor: colors.background,
-    borderBottomWidth: 8,
-    borderBottomColor: colors.cardBorder,
-  },
-  notificacionesSection: {
-    padding: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 80,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginTop: 16,
-    textAlign: 'center',
-  },
-});
