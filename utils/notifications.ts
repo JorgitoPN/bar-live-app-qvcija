@@ -39,7 +39,7 @@ export const arePushNotificationsAvailable = (): boolean => {
   return Device.isDevice;
 };
 
-// Show development build info to user
+// Show development build info to user (optional - call this if you want to inform users)
 export const showDevelopmentBuildInfo = (): void => {
   if (Platform.OS === 'android' && isExpoGo()) {
     Alert.alert(
