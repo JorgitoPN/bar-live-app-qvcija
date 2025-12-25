@@ -83,17 +83,25 @@ export default function NuevaPasswordTokenScreen() {
       console.log('🔐 Google User:', isGoogleUser);
 
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      
       console.log('🌐 Using Supabase URL:', supabaseUrl);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token || '';
+      if (!supabaseAnonKey) {
+        console.error('❌ SUPABASE_ANON_KEY not found');
+        Alert.alert('Error', 'Configuración incorrecta. Por favor, contacta con soporte.');
+        setLoading(false);
+        return;
+      }
 
       // Call the Edge Function to update password
+      // Note: We use the anon key in the apikey header, not Authorization
+      // The Edge Function validates the token itself, no user authentication needed
       const response = await fetch(`${supabaseUrl}/functions/v1/update-password-with-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
+          'apikey': supabaseAnonKey,
         },
         body: JSON.stringify({ 
           email: email.trim().toLowerCase(), 
