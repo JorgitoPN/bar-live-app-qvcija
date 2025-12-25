@@ -20,23 +20,23 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[ValidatePasswordToken] ═══════════════════════════════════════');
-    console.log('[ValidatePasswordToken] 🔍 Starting token validation');
-    console.log('[ValidatePasswordToken] 📡 Request method:', req.method);
-    console.log('[ValidatePasswordToken] 📡 Request headers:', JSON.stringify(Object.fromEntries(req.headers.entries())));
+    console.log('[ValidateVerificationToken] ═══════════════════════════════════════');
+    console.log('[ValidateVerificationToken] 🔍 Starting token validation');
+    console.log('[ValidateVerificationToken] 📡 Request method:', req.method);
+    console.log('[ValidateVerificationToken] 📡 Request headers:', JSON.stringify(Object.fromEntries(req.headers.entries())));
 
     // Parse request body with detailed logging
     const rawBody = await req.text();
-    console.log('[ValidatePasswordToken] 📦 Raw body:', rawBody);
-    console.log('[ValidatePasswordToken] 📦 Raw body length:', rawBody.length);
-    console.log('[ValidatePasswordToken] 📦 Raw body type:', typeof rawBody);
+    console.log('[ValidateVerificationToken] 📦 Raw body:', rawBody);
+    console.log('[ValidateVerificationToken] 📦 Raw body length:', rawBody.length);
+    console.log('[ValidateVerificationToken] 📦 Raw body type:', typeof rawBody);
 
     let parsedBody;
     try {
       parsedBody = JSON.parse(rawBody);
-      console.log('[ValidatePasswordToken] 📦 Parsed body:', JSON.stringify(parsedBody, null, 2));
+      console.log('[ValidateVerificationToken] 📦 Parsed body:', JSON.stringify(parsedBody, null, 2));
     } catch (parseError) {
-      console.error('[ValidatePasswordToken] ❌ JSON parse error:', parseError);
+      console.error('[ValidateVerificationToken] ❌ JSON parse error:', parseError);
       return new Response(
         JSON.stringify({ valid: false, error: 'Invalid JSON in request body' }),
         {
@@ -51,20 +51,20 @@ serve(async (req) => {
 
     const { email, token } = parsedBody;
 
-    console.log('[ValidatePasswordToken] 📧 Email:', email);
-    console.log('[ValidatePasswordToken] 📧 Email type:', typeof email);
-    console.log('[ValidatePasswordToken] 📧 Email is defined:', email !== undefined);
-    console.log('[ValidatePasswordToken] 🔢 Token:', token);
-    console.log('[ValidatePasswordToken] 🔢 Token type:', typeof token);
-    console.log('[ValidatePasswordToken] 🔢 Token is defined:', token !== undefined);
-    console.log('[ValidatePasswordToken] 🔢 Token is null:', token === null);
-    console.log('[ValidatePasswordToken] 🔢 Token length:', token ? String(token).length : 'N/A');
+    console.log('[ValidateVerificationToken] 📧 Email:', email);
+    console.log('[ValidateVerificationToken] 📧 Email type:', typeof email);
+    console.log('[ValidateVerificationToken] 📧 Email is defined:', email !== undefined);
+    console.log('[ValidateVerificationToken] 🔢 Token:', token);
+    console.log('[ValidateVerificationToken] 🔢 Token type:', typeof token);
+    console.log('[ValidateVerificationToken] 🔢 Token is defined:', token !== undefined);
+    console.log('[ValidateVerificationToken] 🔢 Token is null:', token === null);
+    console.log('[ValidateVerificationToken] 🔢 Token length:', token ? String(token).length : 'N/A');
 
     // Validate required fields with detailed error messages
     if (!email) {
-      console.error('[ValidatePasswordToken] ❌ Email is missing or empty');
+      console.error('[ValidateVerificationToken] ❌ Email is missing or empty');
       return new Response(
-        JSON.stringify({ valid: false, error: 'Email is required' }),
+        JSON.stringify({ valid: false, error: 'Email y token son obligatorios' }),
         {
           status: 400,
           headers: { 
@@ -76,9 +76,9 @@ serve(async (req) => {
     }
 
     if (!token) {
-      console.error('[ValidatePasswordToken] ❌ Token is missing or empty');
-      console.error('[ValidatePasswordToken] ❌ Token value:', token);
-      console.error('[ValidatePasswordToken] ❌ Token type:', typeof token);
+      console.error('[ValidateVerificationToken] ❌ Token is missing or empty');
+      console.error('[ValidateVerificationToken] ❌ Token value:', token);
+      console.error('[ValidateVerificationToken] ❌ Token type:', typeof token);
       return new Response(
         JSON.stringify({ 
           valid: false, 
@@ -96,11 +96,11 @@ serve(async (req) => {
 
     // Normalize and validate token format
     const normalizedToken = String(token).trim();
-    console.log('[ValidatePasswordToken] 🔢 Normalized token:', normalizedToken);
-    console.log('[ValidatePasswordToken] 🔢 Normalized token length:', normalizedToken.length);
+    console.log('[ValidateVerificationToken] 🔢 Normalized token:', normalizedToken);
+    console.log('[ValidateVerificationToken] 🔢 Normalized token length:', normalizedToken.length);
 
     if (normalizedToken.length !== 6) {
-      console.error('[ValidatePasswordToken] ❌ Token length is not 6:', normalizedToken.length);
+      console.error('[ValidateVerificationToken] ❌ Token length is not 6:', normalizedToken.length);
       return new Response(
         JSON.stringify({ valid: false, error: 'El código debe tener 6 dígitos' }),
         {
@@ -114,7 +114,7 @@ serve(async (req) => {
     }
 
     if (!/^\d{6}$/.test(normalizedToken)) {
-      console.error('[ValidatePasswordToken] ❌ Token is not 6 digits:', normalizedToken);
+      console.error('[ValidateVerificationToken] ❌ Token is not 6 digits:', normalizedToken);
       return new Response(
         JSON.stringify({ valid: false, error: 'El código debe contener solo números' }),
         {
@@ -128,8 +128,8 @@ serve(async (req) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    console.log('[ValidatePasswordToken] 📧 Normalized email:', normalizedEmail);
-    console.log('[ValidatePasswordToken] 🔍 Searching for token in database...');
+    console.log('[ValidateVerificationToken] 📧 Normalized email:', normalizedEmail);
+    console.log('[ValidateVerificationToken] 🔍 Searching for token in database...');
 
     // Create Supabase Admin client
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -141,16 +141,16 @@ serve(async (req) => {
 
     // Find the token in the database
     const { data: tokenData, error: tokenError } = await supabaseAdmin
-      .from('password_tokens')
+      .from('verification_tokens')
       .select('*')
       .eq('email', normalizedEmail)
       .eq('token', normalizedToken)
       .eq('used', false)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    console.log('[ValidatePasswordToken] 🔍 Database query result:', {
+    console.log('[ValidateVerificationToken] 🔍 Database query result:', {
       found: !!tokenData,
       error: tokenError?.message,
       tokenData: tokenData ? {
@@ -163,7 +163,7 @@ serve(async (req) => {
     });
 
     if (tokenError || !tokenData) {
-      console.error('[ValidatePasswordToken] ❌ Token not found or error:', tokenError);
+      console.error('[ValidateVerificationToken] ❌ Token not found or error:', tokenError);
       return new Response(
         JSON.stringify({ valid: false, error: 'Token inválido o no encontrado' }),
         {
@@ -180,12 +180,12 @@ serve(async (req) => {
     const now = new Date();
     const expiresAt = new Date(tokenData.expires_at);
 
-    console.log('[ValidatePasswordToken] ⏰ Current time:', now.toISOString());
-    console.log('[ValidatePasswordToken] ⏰ Token expires at:', expiresAt.toISOString());
-    console.log('[ValidatePasswordToken] ⏰ Is expired:', now > expiresAt);
+    console.log('[ValidateVerificationToken] ⏰ Current time:', now.toISOString());
+    console.log('[ValidateVerificationToken] ⏰ Token expires at:', expiresAt.toISOString());
+    console.log('[ValidateVerificationToken] ⏰ Is expired:', now > expiresAt);
 
     if (now > expiresAt) {
-      console.log('[ValidatePasswordToken] ❌ Token expired');
+      console.log('[ValidateVerificationToken] ❌ Token expired');
       return new Response(
         JSON.stringify({ valid: false, error: 'El código ha expirado' }),
         {
@@ -198,8 +198,8 @@ serve(async (req) => {
       );
     }
 
-    console.log('[ValidatePasswordToken] ✅ Token is valid');
-    console.log('[ValidatePasswordToken] ═══════════════════════════════════════');
+    console.log('[ValidateVerificationToken] ✅ Token is valid');
+    console.log('[ValidateVerificationToken] ═══════════════════════════════════════');
 
     return new Response(
       JSON.stringify({ valid: true }),
@@ -212,13 +212,13 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('[ValidatePasswordToken] ❌ Unexpected error:', error);
-    console.error('[ValidatePasswordToken] ❌ Error stack:', error.stack);
-    console.error('[ValidatePasswordToken] ═══════════════════════════════════════');
+    console.error('[ValidateVerificationToken] ❌ Unexpected error:', error);
+    console.error('[ValidateVerificationToken] ❌ Error stack:', error.stack);
+    console.error('[ValidateVerificationToken] ═══════════════════════════════════════');
     return new Response(
       JSON.stringify({ 
         valid: false,
-        error: error.message || 'Internal server error',
+        error: error.message || 'Error interno del servidor',
       }),
       {
         status: 500,
