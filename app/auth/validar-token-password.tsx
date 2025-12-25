@@ -95,8 +95,18 @@ export default function ValidarTokenPasswordScreen() {
   const handleValidateToken = async () => {
     const fullToken = token.join('');
 
+    console.log('[ValidarTokenPassword] 🔍 Token array:', token);
+    console.log('[ValidarTokenPassword] 🔍 Full token:', fullToken);
+    console.log('[ValidarTokenPassword] 🔍 Token length:', fullToken.length);
+
     if (fullToken.length !== 6) {
       Alert.alert('Error', 'Por favor, ingresa el código completo de 6 dígitos');
+      return;
+    }
+
+    // Validate that all characters are digits
+    if (!/^\d{6}$/.test(fullToken)) {
+      Alert.alert('Error', 'El código debe contener solo números');
       return;
     }
 
@@ -124,25 +134,29 @@ export default function ValidarTokenPasswordScreen() {
       console.log('[ValidarTokenPassword] 🌐 Functions URL:', functionsUrl);
       console.log('[ValidarTokenPassword] 🔑 Has access token:', !!accessToken);
 
+      const requestBody = { 
+        email: email.trim().toLowerCase(), 
+        token: fullToken 
+      };
+
+      console.log('[ValidarTokenPassword] 📦 Request body:', JSON.stringify(requestBody));
+
       const response = await fetch(`${functionsUrl}/functions/v1/validate-password-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ 
-          email: email.trim().toLowerCase(), 
-          token: fullToken 
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       console.log('[ValidarTokenPassword] 📡 Response status:', response.status);
 
       const result = await response.json();
-      console.log('[ValidarTokenPassword] 📦 Response data:', result);
+      console.log('[ValidarTokenPassword] 📦 Response data:', JSON.stringify(result));
 
       if (!response.ok || !result.valid) {
-        console.error('[ValidarTokenPassword] ❌ Token inválido:', result.error);
+        console.error('[ValidarTokenPassword] ❌ Token inválido:', result.error || 'undefined');
         Alert.alert(
           'Código inválido',
           result.error || 'El código ingresado es inválido o ha expirado. Por favor, verifica e intenta nuevamente.',
@@ -273,7 +287,7 @@ export default function ValidarTokenPasswordScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <>
+              <React.Fragment>
                 <IconSymbol
                   ios_icon_name="checkmark.circle.fill"
                   android_material_icon_name="check_circle"
@@ -282,7 +296,7 @@ export default function ValidarTokenPasswordScreen() {
                   style={styles.buttonIcon}
                 />
                 <Text style={styles.buttonText}>Validar código</Text>
-              </>
+              </React.Fragment>
             )}
           </TouchableOpacity>
 

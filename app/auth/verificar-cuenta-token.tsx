@@ -61,8 +61,18 @@ export default function VerificarCuentaTokenScreen() {
   const handleValidateToken = async () => {
     const fullToken = token.join('');
 
+    console.log('[VerificarCuentaToken] 🔍 Token array:', token);
+    console.log('[VerificarCuentaToken] 🔍 Full token:', fullToken);
+    console.log('[VerificarCuentaToken] 🔍 Token length:', fullToken.length);
+
     if (fullToken.length !== 6) {
       Alert.alert('Error', 'Por favor, ingresa el código completo de 6 dígitos');
+      return;
+    }
+
+    // Validate that all characters are digits
+    if (!/^\d{6}$/.test(fullToken)) {
+      Alert.alert('Error', 'El código debe contener solo números');
       return;
     }
 
@@ -77,22 +87,29 @@ export default function VerificarCuentaTokenScreen() {
 
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
 
+      const requestBody = { 
+        email: email.trim().toLowerCase(), 
+        token: fullToken 
+      };
+
+      console.log('[VerificarCuentaToken] 📦 Request body:', JSON.stringify(requestBody));
+
       // Call the Edge Function to validate token
       const validateResponse = await fetch(`${supabaseUrl}/functions/v1/validate-verification-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          email: email.trim().toLowerCase(), 
-          token: fullToken 
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('[VerificarCuentaToken] 📡 Validate response status:', validateResponse.status);
+
       const validateResult = await validateResponse.json();
+      console.log('[VerificarCuentaToken] 📦 Validate response data:', JSON.stringify(validateResult));
 
       if (!validateResult.valid) {
-        console.error('[VerificarCuentaToken] ❌ Token inválido:', validateResult.error);
+        console.error('[VerificarCuentaToken] ❌ Token inválido:', validateResult.error || 'undefined');
         Alert.alert(
           'Código inválido',
           validateResult.error || 'El código ingresado es inválido o ha expirado. Por favor, verifica e intenta nuevamente.',
@@ -118,16 +135,16 @@ export default function VerificarCuentaTokenScreen() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          email: email.trim().toLowerCase(), 
-          token: fullToken 
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('[VerificarCuentaToken] 📡 Verify response status:', verifyResponse.status);
+
       const verifyResult = await verifyResponse.json();
+      console.log('[VerificarCuentaToken] 📦 Verify response data:', JSON.stringify(verifyResult));
 
       if (!verifyResult.success) {
-        console.error('[VerificarCuentaToken] ❌ Error al verificar cuenta:', verifyResult.error);
+        console.error('[VerificarCuentaToken] ❌ Error al verificar cuenta:', verifyResult.error || 'undefined');
         Alert.alert(
           'Error',
           verifyResult.error || 'No se pudo verificar tu cuenta. Por favor, intenta nuevamente.'
