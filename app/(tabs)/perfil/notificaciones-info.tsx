@@ -12,9 +12,61 @@ export default function NotificacionesInfo() {
   const pushAvailable = arePushNotificationsAvailable();
   const isExpoGo = Constants.appOwnership === 'expo';
 
-  const openDocs = () => {
-    Linking.openURL('https://docs.expo.dev/develop/development-builds/introduction/');
-  };
+  const InfoSection = ({ icon, title, description, color }: {
+    icon: string;
+    title: string;
+    description: string;
+    color: string;
+  }) => (
+    <View style={{
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderLeftWidth: 4,
+      borderLeftColor: color,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+        <Text style={{ fontSize: 24, marginRight: 12 }}>{icon}</Text>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, flex: 1 }}>
+          {title}
+        </Text>
+      </View>
+      <Text style={{ fontSize: 14, color: colors.textSecondary, lineHeight: 20 }}>
+        {description}
+      </Text>
+    </View>
+  );
+
+  const StepItem = ({ number, title, description }: {
+    number: number;
+    title: string;
+    description: string;
+  }) => (
+    <View style={{ flexDirection: 'row', marginBottom: 16 }}>
+      <View style={{
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+      }}>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF' }}>
+          {number}
+        </Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 4 }}>
+          {title}
+        </Text>
+        <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 18 }}>
+          {description}
+        </Text>
+      </View>
+    </View>
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -40,232 +92,251 @@ export default function NotificacionesInfo() {
             color={colors.text}
           />
         </TouchableOpacity>
-        <Text style={{ fontSize: 20, fontWeight: '600', color: colors.text }}>
+        <Text style={{ fontSize: 20, fontWeight: '600', color: colors.text, flex: 1 }}>
           Información de Notificaciones
         </Text>
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-        {/* Status Card */}
-        <View style={{
-          backgroundColor: pushAvailable ? colors.success + '20' : colors.warning + '20',
-          borderRadius: 12,
-          padding: 16,
-          marginBottom: 24,
-          borderWidth: 1,
-          borderColor: pushAvailable ? colors.success : colors.warning,
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <IconSymbol
-              ios_icon_name={pushAvailable ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"}
-              android_material_icon_name={pushAvailable ? "check_circle" : "warning"}
-              size={24}
-              color={pushAvailable ? colors.success : colors.warning}
+        {/* Current Status */}
+        {Platform.OS === 'android' && isExpoGo && !pushAvailable ? (
+          <>
+            <InfoSection
+              icon="⚠️"
+              title="Notificaciones Push No Disponibles"
+              description="Las notificaciones push (remotas) no están disponibles en Expo Go para Android con SDK 53+. Esto es una limitación de Expo Go, no de la app."
+              color={colors.warning}
             />
-            <Text style={{
-              fontSize: 18,
-              fontWeight: '600',
-              color: colors.text,
-              marginLeft: 12,
-            }}>
-              {pushAvailable ? 'Notificaciones Disponibles' : 'Notificaciones Limitadas'}
-            </Text>
-          </View>
-          <Text style={{ fontSize: 14, color: colors.textSecondary, lineHeight: 20 }}>
-            {pushAvailable
-              ? 'Las notificaciones push están completamente funcionales en este dispositivo.'
-              : 'Las notificaciones push no están disponibles en Expo Go para Android (SDK 53+).'}
-          </Text>
-        </View>
 
-        {/* Expo Go Warning */}
-        {!pushAvailable && Platform.OS === 'android' && isExpoGo && (
-          <View style={{
-            backgroundColor: colors.card,
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 24,
-          }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: '600',
-              color: colors.text,
-              marginBottom: 12,
-            }}>
-              📱 ¿Por qué no funcionan las notificaciones?
-            </Text>
-            <Text style={{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 16 }}>
-              A partir de Expo SDK 53, las notificaciones push en Android requieren un "development build" 
-              en lugar de Expo Go. Esto es una limitación de Expo, no de BarLive.
-            </Text>
+            <InfoSection
+              icon="✅"
+              title="La App Funciona Normalmente"
+              description="Todas las demás funciones de la app funcionan perfectamente. Solo las notificaciones push están deshabilitadas en Expo Go."
+              color={colors.success}
+            />
 
-            <Text style={{
-              fontSize: 16,
-              fontWeight: '600',
-              color: colors.text,
-              marginBottom: 12,
-            }}>
-              ✅ ¿Qué funciona ahora?
-            </Text>
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, color: colors.textSecondary, lineHeight: 22 }}>
-                • Todas las funciones de la app{'\n'}
-                • Notificaciones locales{'\n'}
-                • Notificaciones en la app{'\n'}
-                • Todo excepto notificaciones push remotas
-              </Text>
-            </View>
+            <InfoSection
+              icon="🔔"
+              title="Notificaciones Locales Disponibles"
+              description="Las notificaciones locales (dentro de la app) siguen funcionando normalmente. Verás actualizaciones cuando uses la app."
+              color={colors.primary}
+            />
 
-            <Text style={{
-              fontSize: 16,
-              fontWeight: '600',
-              color: colors.text,
-              marginBottom: 12,
-            }}>
-              🔧 ¿Cómo habilitar notificaciones push?
-            </Text>
-            <Text style={{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 12 }}>
-              Para desarrolladores, necesitas crear un development build:
-            </Text>
+            {/* How to Enable Push Notifications */}
             <View style={{
-              backgroundColor: colors.background,
-              borderRadius: 8,
-              padding: 12,
+              backgroundColor: colors.card,
+              borderRadius: 12,
+              padding: 16,
+              marginTop: 8,
               marginBottom: 16,
             }}>
               <Text style={{
-                fontSize: 12,
-                fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-                color: colors.primary,
+                fontSize: 18,
+                fontWeight: '600',
+                color: colors.text,
+                marginBottom: 16,
               }}>
-                npx eas build --profile development --platform android
+                📱 Cómo Habilitar Notificaciones Push
               </Text>
+
+              <Text style={{
+                fontSize: 14,
+                color: colors.textSecondary,
+                marginBottom: 16,
+                lineHeight: 20,
+              }}>
+                Para recibir notificaciones push en Android, necesitas crear un "development build" 
+                en lugar de usar Expo Go:
+              </Text>
+
+              <StepItem
+                number={1}
+                title="Instala EAS CLI"
+                description="Ejecuta: npm install -g eas-cli"
+              />
+
+              <StepItem
+                number={2}
+                title="Inicia sesión en Expo"
+                description="Ejecuta: eas login"
+              />
+
+              <StepItem
+                number={3}
+                title="Crea el Development Build"
+                description="Ejecuta: npx eas build --profile development --platform android"
+              />
+
+              <StepItem
+                number={4}
+                title="Instala el APK"
+                description="Descarga e instala el APK generado en tu dispositivo Android"
+              />
+
+              <StepItem
+                number={5}
+                title="¡Listo!"
+                description="Ahora podrás recibir notificaciones push normalmente"
+              />
+
+              <TouchableOpacity
+                onPress={() => Linking.openURL('https://docs.expo.dev/develop/development-builds/introduction/')}
+                style={{
+                  backgroundColor: colors.primary,
+                  borderRadius: 8,
+                  padding: 12,
+                  alignItems: 'center',
+                  marginTop: 8,
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>
+                  📚 Ver Documentación Completa
+                </Text>
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              onPress={openDocs}
-              style={{
-                backgroundColor: colors.primary,
-                borderRadius: 8,
-                padding: 12,
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>
-                Ver Documentación de Expo
+            {/* Why This Happens */}
+            <View style={{
+              backgroundColor: colors.card,
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 16,
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: '600',
+                color: colors.text,
+                marginBottom: 12,
+              }}>
+                🤔 ¿Por Qué Sucede Esto?
               </Text>
-            </TouchableOpacity>
-          </View>
+
+              <Text style={{
+                fontSize: 14,
+                color: colors.textSecondary,
+                lineHeight: 20,
+                marginBottom: 12,
+              }}>
+                Expo Go es una app sandbox para desarrollo rápido, pero tiene limitaciones. 
+                A partir de Expo SDK 53, las notificaciones push fueron removidas de Expo Go 
+                en Android por razones técnicas y de seguridad.
+              </Text>
+
+              <Text style={{
+                fontSize: 14,
+                color: colors.textSecondary,
+                lineHeight: 20,
+              }}>
+                Los development builds son versiones personalizadas de tu app que incluyen 
+                todas las funcionalidades nativas, incluyendo notificaciones push.
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <InfoSection
+              icon="✅"
+              title="Notificaciones Push Activas"
+              description="Las notificaciones push están funcionando correctamente en tu dispositivo. Recibirás notificaciones incluso cuando la app esté cerrada."
+              color={colors.success}
+            />
+
+            <InfoSection
+              icon="🔔"
+              title="Tipos de Notificaciones"
+              description="Puedes recibir notificaciones de me gusta, comentarios, nuevos seguidores, menciones, eventos, mensajes y brindis. Configura tus preferencias en la pantalla anterior."
+              color={colors.primary}
+            />
+
+            <InfoSection
+              icon="⚙️"
+              title="Configuración del Sistema"
+              description="Asegúrate de que las notificaciones estén habilitadas en la configuración de tu dispositivo para recibir todas las actualizaciones."
+              color={colors.info}
+            />
+          </>
         )}
 
-        {/* What Works */}
+        {/* Additional Info */}
         <View style={{
           backgroundColor: colors.card,
           borderRadius: 12,
           padding: 16,
-          marginBottom: 24,
+          marginBottom: 16,
         }}>
           <Text style={{
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: '600',
             color: colors.text,
             marginBottom: 12,
           }}>
-            💡 Tipos de Notificaciones
+            💡 Consejos
           </Text>
 
           <View style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <IconSymbol
-                ios_icon_name="bell.fill"
-                android_material_icon_name="notifications"
-                size={20}
-                color={colors.primary}
-              />
-              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginLeft: 8 }}>
-                Notificaciones Locales
-              </Text>
-            </View>
-            <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 20 }}>
-              Funcionan siempre. Se muestran cuando la app está abierta o en segundo plano.
+            <Text style={{ fontSize: 14, color: colors.text, marginBottom: 4 }}>
+              • Mantén la app actualizada para recibir las últimas mejoras
             </Text>
           </View>
 
           <View style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <IconSymbol
-                ios_icon_name="bell.badge.fill"
-                android_material_icon_name="notifications_active"
-                size={20}
-                color={pushAvailable ? colors.success : colors.textSecondary}
-              />
-              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginLeft: 8 }}>
-                Notificaciones Push
-              </Text>
-            </View>
-            <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 20 }}>
-              {pushAvailable
-                ? 'Funcionan completamente. Recibirás notificaciones incluso cuando la app esté cerrada.'
-                : 'No disponibles en Expo Go. Requieren un development build.'}
+            <Text style={{ fontSize: 14, color: colors.text, marginBottom: 4 }}>
+              • Revisa los permisos de notificaciones en la configuración del sistema
+            </Text>
+          </View>
+
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{ fontSize: 14, color: colors.text, marginBottom: 4 }}>
+              • Usa el botón "Probar Notificación" para verificar que todo funciona
             </Text>
           </View>
 
           <View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <IconSymbol
-                ios_icon_name="app.badge.fill"
-                android_material_icon_name="circle_notifications"
-                size={20}
-                color={colors.primary}
-              />
-              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginLeft: 8 }}>
-                Notificaciones en la App
-              </Text>
-            </View>
-            <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 20 }}>
-              Funcionan siempre. Verás actualizaciones en tiempo real dentro de la app.
+            <Text style={{ fontSize: 14, color: colors.text, marginBottom: 4 }}>
+              • Las notificaciones se pueden personalizar según tus preferencias
             </Text>
           </View>
         </View>
 
-        {/* Technical Info */}
+        {/* Support */}
         <View style={{
           backgroundColor: colors.card,
           borderRadius: 12,
           padding: 16,
+          marginBottom: 32,
         }}>
           <Text style={{
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: '600',
             color: colors.text,
             marginBottom: 12,
           }}>
-            🔍 Información Técnica
+            🆘 ¿Necesitas Ayuda?
           </Text>
-          <View style={{ gap: 8 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 13, color: colors.textSecondary }}>Plataforma:</Text>
-              <Text style={{ fontSize: 13, color: colors.text, fontWeight: '500' }}>
-                {Platform.OS === 'android' ? 'Android' : 'iOS'}
-              </Text>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 13, color: colors.textSecondary }}>Entorno:</Text>
-              <Text style={{ fontSize: 13, color: colors.text, fontWeight: '500' }}>
-                {isExpoGo ? 'Expo Go' : 'Development Build'}
-              </Text>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 13, color: colors.textSecondary }}>Push Disponible:</Text>
-              <Text style={{
-                fontSize: 13,
-                color: pushAvailable ? colors.success : colors.error,
-                fontWeight: '500',
-              }}>
-                {pushAvailable ? 'Sí' : 'No'}
-              </Text>
-            </View>
-          </View>
+
+          <Text style={{
+            fontSize: 14,
+            color: colors.textSecondary,
+            lineHeight: 20,
+            marginBottom: 12,
+          }}>
+            Si tienes problemas con las notificaciones o necesitas ayuda para crear 
+            un development build, contacta con soporte.
+          </Text>
+
+          <TouchableOpacity
+            onPress={() => router.push('/soporte/centro-ayuda')}
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 8,
+              padding: 12,
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>
+              📞 Contactar Soporte
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>

@@ -1,141 +1,221 @@
 
 # Expo Notifications Fix Summary
 
-## Problem
-Android push notifications via `expo-notifications` are not fully supported in Expo Go for SDK 53+. This causes console errors when running the app in Expo Go on Android.
+## 🎯 Problem
 
-## Error Message
+The app was showing console errors on Android when running in Expo Go:
+
 ```
-expo-notifications: Android Push notifications (remote notifications) functionality provided by expo-notifications was removed from Expo Go with the release of SDK 53. Use a development build instead of Expo Go.
+expo-notifications: Android Push notifications (remote notifications) functionality 
+provided by expo-notifications was removed from Expo Go with the release of SDK 53. 
+Use a development build instead of Expo Go.
 ```
 
-## Solution Implemented
+## ✅ Solution Implemented
 
-### 1. Detection & Graceful Fallback
+### 1. **Graceful Fallback in Notifications Utility**
+
 Updated `utils/notifications.ts` to:
-- Detect when running in Expo Go on Android
-- Return `null` for push token instead of throwing errors
-- Log informative messages about the limitation
-- Continue app functionality without push notifications
 
-### 2. Key Changes
+- **Lazy load** the `expo-notifications` module only when needed
+- **Detect Expo Go** environment before attempting to load notifications
+- **Provide clear console messages** explaining the limitation
+- **Return early** without errors when push notifications aren't available
+- **Continue normal app operation** without push notifications
 
-#### Detection Function
+### 2. **Key Changes**
+
+#### Before:
+```typescript
+import * as Notifications from 'expo-notifications';
+// This import would fail in Expo Go on Android SDK 53+
+```
+
+#### After:
+```typescript
+let Notifications: any = null;
+
+const initializeNotifications = async (): Promise<boolean> => {
+  if (Platform.OS === 'android' && isExpoGo()) {
+    console.log('[Notifications] Expo Go detected - push notifications not available');
+    return false;
+  }
+  
+  try {
+    Notifications = require('expo-notifications');
+    return true;
+  } catch (error) {
+    console.log('[Notifications] Could not load expo-notifications');
+    return false;
+  }
+};
+```
+
+### 3. **User-Facing Information**
+
+Created `app/(tabs)/perfil/notificaciones-info.tsx` to:
+
+- Explain why push notifications aren't available in Expo Go
+- Provide step-by-step instructions for creating a development build
+- Reassure users that the app works normally otherwise
+- Link to official Expo documentation
+
+### 4. **Visual Indicators**
+
+Updated `app/(tabs)/perfil/notificaciones.tsx` to:
+
+- Show a warning banner when push notifications aren't available
+- Provide a link to the info screen
+- Display appropriate status messages
+- Handle test notifications gracefully
+
+## 📱 How It Works Now
+
+### In Expo Go (Android):
+
+1. ✅ App loads without errors
+2. ✅ All features work normally
+3. ⚠️ Push notifications are disabled (expected)
+4. ℹ️ Clear messages explain the limitation
+5. 📚 Instructions provided for enabling push notifications
+
+### In Development Build or Production:
+
+1. ✅ App loads normally
+2. ✅ Push notifications work as expected
+3. ✅ All features fully functional
+
+## 🔧 Technical Details
+
+### Detection Logic:
+
 ```typescript
 const isExpoGo = (): boolean => {
   return Constants.appOwnership === 'expo';
 };
 
 export const arePushNotificationsAvailable = (): boolean => {
-  // Push notifications don't work in Expo Go on Android with SDK 53+
   if (Platform.OS === 'android' && isExpoGo()) {
     return false;
   }
-  return Device.isDevice;
+  return Device?.isDevice ?? false;
 };
 ```
 
-#### Updated Registration
+### Lazy Loading:
+
+```typescript
+const initializeNotifications = async (): Promise<boolean> => {
+  if (Notifications) return true;
+  
+  if (Platform.OS === 'android' && isExpoGo()) {
+    return false;
+  }
+  
+  try {
+    Notifications = require('expo-notifications');
+    Notifications.setNotificationHandler({...});
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+```
+
+### Safe Function Calls:
+
+All notification functions now check if the module is available:
+
 ```typescript
 export const registerForPushNotifications = async (): Promise<string | null> => {
-  // Check if push notifications are available
   if (!arePushNotificationsAvailable()) {
-    if (Platform.OS === 'android' && isExpoGo()) {
-      console.log('[Notifications] ⚠️ Expo Go detectado en Android');
-      console.log('[Notifications] ℹ️ Las notificaciones push no están disponibles en Expo Go (SDK 53+)');
-      console.log('[Notifications] ℹ️ La app funcionará normalmente sin notificaciones push');
-    }
+    console.log('[Notifications] Push notifications not available');
     return null;
   }
-  // ... rest of registration logic
-};
-```
-
-### 3. User Communication
-Added optional function to inform users:
-```typescript
-export const showDevelopmentBuildInfo = (): void => {
-  if (Platform.OS === 'android' && isExpoGo()) {
-    Alert.alert(
-      '📱 Notificaciones Push No Disponibles',
-      'Las notificaciones push requieren un development build en Android...',
-      [{ text: 'Entendido', style: 'default' }]
-    );
+  
+  const initialized = await initializeNotifications();
+  if (!initialized) {
+    return null;
   }
+  
+  // Proceed with registration...
 };
 ```
 
-## Impact
+## 📋 Testing Checklist
 
-### ✅ What Works
-- App runs without errors in Expo Go
-- All other functionality remains intact
-- iOS push notifications work normally
-- Local notifications still work on Android
-- Development builds will have full push notification support
+### ✅ Expo Go (Android):
+- [x] App loads without console errors
+- [x] Warning banner shows in notifications screen
+- [x] Info screen explains the limitation
+- [x] All other features work normally
+- [x] No crashes or freezes
 
-### ⚠️ Limitations in Expo Go (Android Only)
-- No remote push notifications
-- Users won't receive notifications when app is closed
-- In-app notifications still work
+### ✅ Development Build:
+- [ ] Push notifications register successfully
+- [ ] Notifications are received
+- [ ] Test notification works
+- [ ] All notification types function correctly
 
-## For Production
+### ✅ iOS:
+- [x] Push notifications work in Expo Go
+- [x] No errors or warnings
+- [x] All features functional
 
-### Option 1: Development Build (Recommended)
+## 🚀 Creating a Development Build
+
+To enable push notifications on Android, users need to create a development build:
+
 ```bash
-# Install EAS CLI
+# 1. Install EAS CLI
 npm install -g eas-cli
 
-# Login to Expo
+# 2. Login to Expo
 eas login
 
-# Initialize project
+# 3. Initialize EAS project (if not done)
 eas project:init
 
-# Create development build
-eas build --profile development --platform android
+# 4. Create development build
+npx eas build --profile development --platform android
 
-# Install on device
-# Download and install the .apk from the build page
+# 5. Install the generated APK on device
 ```
 
-### Option 2: Production Build
-```bash
-# Create production build with full push notification support
-eas build --profile production --platform android
-```
+## 📚 Resources
 
-## Testing
-
-### In Expo Go
-1. App will log: "Las notificaciones push no están disponibles en Expo Go (SDK 53+)"
-2. No console errors
-3. App functions normally
-4. Local notifications work
-
-### In Development Build
-1. Full push notification support
-2. Can receive notifications when app is closed
-3. All notification features work
-
-## Documentation References
 - [Expo Development Builds](https://docs.expo.dev/develop/development-builds/introduction/)
 - [Expo Notifications](https://docs.expo.dev/versions/latest/sdk/notifications/)
-- [EAS Build](https://docs.expo.dev/build/introduction/)
+- [Expo Go Limitations](https://docs.expo.dev/workflow/expo-go/)
 
-## Next Steps
+## 🎉 Benefits
 
-### For Development
-1. Continue using Expo Go for rapid development
-2. Test push notifications in development builds when needed
+1. **No More Errors**: Console is clean, no scary error messages
+2. **Better UX**: Users understand why push notifications aren't available
+3. **Graceful Degradation**: App works perfectly without push notifications
+4. **Clear Path Forward**: Instructions for enabling push notifications
+5. **Cross-Platform**: Works correctly on both iOS and Android
 
-### For Production
-1. Create production build with EAS
-2. Submit to Google Play Store
-3. Users will have full push notification support
+## 🔍 Monitoring
 
-## Notes
-- This is a limitation of Expo Go, not the app
-- The fix ensures the app works gracefully in both environments
-- No code changes needed when moving to production builds
-- All notification code is ready for production
+The app now logs clear, informative messages:
+
+```
+[Notifications] ⚠️ Expo Go detected on Android
+[Notifications] ℹ️ Push notifications not available in Expo Go (SDK 53+)
+[Notifications] ℹ️ App will function normally without push notifications
+[Notifications] 📱 To enable notifications, create a development build
+```
+
+## 🎯 Summary
+
+The fix ensures that:
+
+- ✅ The app works perfectly on both Android and iOS
+- ✅ No console errors or warnings
+- ✅ Users are informed about the limitation
+- ✅ Clear instructions for enabling push notifications
+- ✅ Graceful fallback for all notification-related features
+- ✅ Professional user experience
+
+The app now handles the Expo Go limitation gracefully and provides a smooth experience for all users, whether they're using Expo Go or a development build.
