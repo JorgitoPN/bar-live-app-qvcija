@@ -77,13 +77,13 @@ export default function NuevaPasswordTokenScreen() {
 
     try {
       console.log('═══════════════════════════════════════════════════════');
-      console.log('[NuevaPasswordToken] 🔄 ACTUALIZACIÓN DE CONTRASEÑA');
+      console.log('🔄 ACTUALIZACIÓN DE CONTRASEÑA');
       console.log('═══════════════════════════════════════════════════════');
-      console.log('[NuevaPasswordToken] 📧 Email:', email);
-      console.log('[NuevaPasswordToken] 🔐 Google User:', isGoogleUser);
+      console.log('📧 Email:', email);
+      console.log('🔐 Google User:', isGoogleUser);
 
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
-      console.log('[NuevaPasswordToken] 🌐 Using Supabase URL:', supabaseUrl);
+      console.log('🌐 Using Supabase URL:', supabaseUrl);
 
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token || '';
@@ -106,7 +106,7 @@ export default function NuevaPasswordTokenScreen() {
       const result = await response.json();
 
       if (!result.success) {
-        console.error('[NuevaPasswordToken] ❌ Error:', result.error);
+        console.error('❌ Error:', result.error);
         Alert.alert(
           'Error',
           result.error || 'No se pudo actualizar tu contraseña. Por favor, intenta nuevamente.'
@@ -115,11 +115,11 @@ export default function NuevaPasswordTokenScreen() {
         return;
       }
 
-      console.log('[NuevaPasswordToken] ✅ Contraseña actualizada exitosamente');
+      console.log('✅ Contraseña actualizada exitosamente');
 
       // ✅ FIXED: Update provider field in usuarios table if this was a Google user
       if (isGoogleUser) {
-        console.log('[NuevaPasswordToken] 🔄 Actualizando provider a "barlive"...');
+        console.log('🔄 Actualizando provider a "barlive"...');
         
         const { error: updateError } = await supabase
           .from('usuarios')
@@ -127,10 +127,10 @@ export default function NuevaPasswordTokenScreen() {
           .eq('email', email.trim().toLowerCase());
 
         if (updateError) {
-          console.error('[NuevaPasswordToken] ⚠️ Error actualizando provider:', updateError);
+          console.error('⚠️ Error actualizando provider:', updateError);
           // Don't fail the whole operation if this fails
         } else {
-          console.log('[NuevaPasswordToken] ✅ Provider actualizado a "barlive"');
+          console.log('✅ Provider actualizado a "barlive"');
         }
       }
 
@@ -151,14 +151,14 @@ export default function NuevaPasswordTokenScreen() {
         ]
       );
     } catch (error: any) {
-      console.error('[NuevaPasswordToken] ❌ Error:', error);
+      console.error('❌ Error:', error);
       Alert.alert(
         'Error inesperado',
         'Ocurrió un error inesperado. Por favor, intenta nuevamente o contacta con soporte.'
       );
       setLoading(false);
     } finally {
-      console.log('[NuevaPasswordToken] 🏁 Proceso finalizado');
+      console.log('🏁 Proceso finalizado');
       console.log('═══════════════════════════════════════════════════════');
     }
   };
