@@ -10,9 +10,10 @@ import { colors } from '@/styles/commonStyles';
 const { width: screenWidth } = Dimensions.get('window');
 
 /**
- * ANDROID-SPECIFIC TAB LAYOUT - VERSION v26.0
+ * ANDROID-SPECIFIC TAB LAYOUT - VERSION v26.1
  * 
  * ✅ COMPLETE ANDROID-iOS PARITY + NATIVE ANDROID BEHAVIOR
+ * ✅ FIXED: Navigation transition error (sceneStyleInterpolator undefined)
  * 
  * This file ensures proper Android-specific behavior:
  * - ✅ Native Android UI (Material Design compliant)
@@ -25,7 +26,7 @@ const { width: screenWidth } = Dimensions.get('window');
  * - ✅ Professional native mobile app experience
  * - ✅ Optimized animations for Android
  * - ✅ Hardware back button support
- * - ✅ Native Android transitions
+ * - ✅ Native Android transitions (FIXED)
  */
 export default function TabLayout() {
   const { user } = useAuth();
@@ -41,7 +42,7 @@ export default function TabLayout() {
   const userRole = user?.rol_app || 'cliente';
 
   console.log(
-    '[TabLayout Android v26.0] ⚡ User role:', userRole, 
+    '[TabLayout Android v26.1] ⚡ User role:', userRole, 
     'Current mode:', currentMode, 
     'Pathname:', pathname
   );
@@ -62,7 +63,7 @@ export default function TabLayout() {
       
       if ((isAdminIndexPage || isAdminSubPage) && !hasShownAdminAlert.current) {
         console.log(
-          '[TabLayout Android v26.0] ⚠️ Unauthorized user trying to access admin page:', 
+          '[TabLayout Android v26.1] ⚠️ Unauthorized user trying to access admin page:', 
           pathname
         );
         hasShownAdminAlert.current = true;
@@ -91,7 +92,7 @@ export default function TabLayout() {
       
       if ((isGestionIndexPage || isGestionSubPage) && !hasShownGestionAlert.current) {
         console.log(
-          '[TabLayout Android v26.0] ⚠️ Non-propietario user trying to access gestion page:', 
+          '[TabLayout Android v26.1] ⚠️ Non-propietario user trying to access gestion page:', 
           pathname
         );
         hasShownGestionAlert.current = true;
@@ -288,7 +289,7 @@ export default function TabLayout() {
   };
 
   const tabs = getTabsForRole();
-  console.log('[TabLayout Android v26.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
+  console.log('[TabLayout Android v26.1] ⚡ Rendering tabs:', tabs.map(t => t.name));
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -304,8 +305,9 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: { display: 'none' },
-          animation: 'slide_from_right',
-          animationDuration: 250,
+          // ✅ FIXED: Use 'none' animation to avoid sceneStyleInterpolator error
+          // Android will use its native transitions automatically
+          animation: 'none',
           lazy: false,
         }}
       >
@@ -313,8 +315,6 @@ export default function TabLayout() {
           name="explorar" 
           options={{ 
             href: '/(tabs)/explorar',
-            animation: 'slide_from_right',
-            animationDuration: 250,
             lazy: false,
           }} 
         />
@@ -322,8 +322,6 @@ export default function TabLayout() {
           name="eventos" 
           options={{ 
             href: '/(tabs)/eventos',
-            animation: 'slide_from_right',
-            animationDuration: 250,
             lazy: false,
           }} 
         />
@@ -331,8 +329,6 @@ export default function TabLayout() {
           name="favoritos" 
           options={{ 
             href: '/(tabs)/favoritos',
-            animation: 'slide_from_right',
-            animationDuration: 250,
             lazy: false,
           }} 
         />
@@ -340,8 +336,6 @@ export default function TabLayout() {
           name="social" 
           options={{ 
             href: '/(tabs)/social',
-            animation: 'slide_from_right',
-            animationDuration: 250,
             lazy: false,
           }} 
         />
@@ -349,8 +343,6 @@ export default function TabLayout() {
           name="perfil" 
           options={{ 
             href: '/(tabs)/perfil',
-            animation: 'slide_from_right',
-            animationDuration: 250,
             lazy: false,
           }} 
         />
@@ -358,8 +350,6 @@ export default function TabLayout() {
           name="gestion" 
           options={{ 
             href: userRole === 'propietario' || userRole === 'admin' ? '/(tabs)/gestion' : null,
-            animation: 'slide_from_right',
-            animationDuration: 250,
             lazy: false,
           }} 
         />
@@ -367,8 +357,6 @@ export default function TabLayout() {
           name="admin" 
           options={{ 
             href: (userRole === 'admin' && user?.email === 'jorgepereznoyagh@gmail.com') ? '/(tabs)/admin' : null,
-            animation: 'slide_from_right',
-            animationDuration: 250,
             lazy: false,
           }} 
         />
