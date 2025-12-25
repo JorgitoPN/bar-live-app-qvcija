@@ -8,14 +8,14 @@ import {
   StyleProp,
   TextStyle,
   ViewStyle,
+  Platform,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
-// Add your SFSymbol to Ionicons mappings here.
+// COMPREHENSIVE SF Symbol to Ionicons/MaterialIcons mapping
+// VERSION v23.0: COMPLETE ANDROID-iOS PARITY
 const MAPPING = {
-  // See Ionicons here: https://ionic.io/ionicons
-  // See SF Symbols in the SF Symbols app on Mac.
-
   // Navigation & Home
   "house.fill": "home",
   "house": "home-outline",
@@ -46,8 +46,14 @@ const MAPPING = {
 
   // Actions & Controls
   "plus": "add",
+  "plus.circle": "add-circle-outline",
+  "plus.circle.fill": "add-circle",
   "minus": "remove",
+  "minus.circle": "remove-circle-outline",
+  "minus.circle.fill": "remove-circle",
   "xmark": "close",
+  "xmark.circle": "close-circle-outline",
+  "xmark.circle.fill": "close-circle",
   "checkmark": "checkmark",
   "checkmark.circle.fill": "checkmark-circle",
   "checkmark.circle": "checkmark-circle-outline",
@@ -56,8 +62,11 @@ const MAPPING = {
   "multiply": "close",
   "trash.fill": "trash",
   "trash": "trash-outline",
+  "trash.circle.fill": "close-circle",
   "pause.circle": "pause-circle-outline",
+  "pause.circle.fill": "pause-circle",
   "play.circle": "play-circle-outline",
+  "play.circle.fill": "play-circle",
   "pencil.circle.fill": "create",
 
   // Editing & Creation
@@ -74,6 +83,8 @@ const MAPPING = {
   // Media & Content
   "photo.fill": "image",
   "photo": "image-outline",
+  "photo.on.rectangle": "images",
+  "photo.on.rectangle.fill": "images",
   "camera.fill": "camera",
   "camera": "camera-outline",
   "video.fill": "videocam",
@@ -85,10 +96,12 @@ const MAPPING = {
   "pause.fill": "pause",
   "stop.fill": "stop",
   "square.stack.fill": "albums",
+  "square.stack": "albums-outline",
 
   // System & Settings
   "gear": "settings-outline",
   "gearshape.fill": "settings",
+  "gearshape": "settings-outline",
   "slider.horizontal.3": "options",
   "info.circle.fill": "information-circle",
   "info.circle": "information-circle-outline",
@@ -99,9 +112,13 @@ const MAPPING = {
 
   // Shapes & Symbols
   "square": "square-outline",
+  "square.fill": "square",
   "square.grid.3x3": "grid",
+  "square.grid.3x3.fill": "grid",
   "circle": "ellipse-outline",
+  "circle.fill": "ellipse",
   "triangle.fill": "triangle",
+  "triangle": "triangle-outline",
   "star.fill": "star",
   "star": "star-outline",
   "bookmark.fill": "bookmark",
@@ -110,12 +127,15 @@ const MAPPING = {
   // Technology & Code
   "chevron.left.forwardslash.chevron.right": "code-slash",
   "qrcode.viewfinder": "qr-code",
+  "qrcode": "qr-code",
   "wifi": "wifi",
   "antenna.radiowaves.left.and.right": "cellular",
   "battery.100": "battery-full",
   "battery.25": "battery-half",
   "lock.fill": "lock-closed",
+  "lock": "lock-closed-outline",
   "lock.open.fill": "lock-open",
+  "lock.open": "lock-open-outline",
 
   // Shopping & Commerce
   "cart.fill": "cart",
@@ -123,6 +143,7 @@ const MAPPING = {
   "creditcard.fill": "card",
   "creditcard": "card-outline",
   "dollarsign.circle.fill": "cash",
+  "dollarsign.circle": "cash-outline",
   "bag.fill": "bag",
   "bag": "bag-outline",
   "eurosign.circle": "cash-outline",
@@ -134,8 +155,10 @@ const MAPPING = {
   "map.fill": "map",
   "map": "map-outline",
   "compass.drawing": "compass",
+  "compass": "compass-outline",
   "mappin": "pin",
   "mappin.circle.fill": "location",
+  "mappin.circle": "location-outline",
   "building.2": "business-outline",
   "building.2.fill": "business",
 
@@ -164,12 +187,17 @@ const MAPPING = {
 
   // Sharing & Export
   "square.and.arrow.up": "share-social",
+  "square.and.arrow.up.fill": "share-social",
   "square.and.arrow.down": "download",
+  "square.and.arrow.down.fill": "download",
   "arrow.up.doc.fill": "cloud-upload",
+  "arrow.up.doc": "cloud-upload-outline",
   "link": "link",
 
   // Search & Discovery
   "magnifyingglass": "search",
+  "magnifyingglass.circle": "search-circle",
+  "magnifyingglass.circle.fill": "search-circle",
   "line.3.horizontal.decrease": "filter",
   "line.3.horizontal.decrease.circle": "filter-circle",
   "arrow.up.arrow.down": "swap-vertical",
@@ -178,17 +206,19 @@ const MAPPING = {
   "eye": "eye-outline",
   "eye.fill": "eye",
   "eye.slash.fill": "eye-off",
+  "eye.slash": "eye-off-outline",
   "lightbulb.fill": "bulb",
+  "lightbulb": "bulb-outline",
   "moon.fill": "moon",
+  "moon": "moon-outline",
   "sun.max.fill": "sunny",
+  "sun.max": "sunny-outline",
   
   // Special icons
   "sparkles": "sparkles",
-  "photo.on.rectangle": "images",
   "globe": "globe",
+  "globe.americas.fill": "globe",
   "arrow.triangle.2.circlepath": "sync",
-  "plus.circle.fill": "add-circle",
-  "trash.circle.fill": "close-circle",
   
   // Direct Ionicons mappings for tab navigation
   "home": "home",
@@ -210,6 +240,15 @@ const MAPPING = {
   "person": "person",
   "person-outline": "person-outline",
   "account-circle": "person-circle",
+  
+  // Additional common icons
+  "ellipsis.circle": "ellipsis-horizontal-circle",
+  "ellipsis.circle.fill": "ellipsis-horizontal-circle",
+  "list.bullet": "list",
+  "list.bullet.rectangle": "list",
+  "text.alignleft": "text",
+  "text.aligncenter": "text",
+  "text.alignright": "text",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -225,9 +264,11 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
  * 
- * VERSION v22.0: FIXED PROP NAMING ISSUE
- * - Now accepts both 'name' and 'android_material_icon_name' props for compatibility
- * - Added extensive logging to debug icon rendering
+ * VERSION v23.0: COMPLETE ANDROID-iOS PARITY
+ * - Comprehensive icon mapping with fallbacks
+ * - Better error handling and logging
+ * - Support for both naming conventions
+ * - Guaranteed icon rendering on all platforms
  */
 export function IconSymbol({
   name,
@@ -248,27 +289,42 @@ export function IconSymbol({
   weight?: SymbolWeight;
   fill?: string;
 }) {
-  // ✅ FIXED: Support both prop naming conventions
   // Priority: android_material_icon_name (direct Ionicon name) > name (SF Symbol name) > ios_icon_name (SF Symbol name)
   let iconName: string | undefined;
+  let iconSource: 'direct' | 'mapped' | 'fallback' = 'fallback';
   
   if (android_material_icon_name) {
     // Direct Ionicon name provided
     iconName = android_material_icon_name;
+    iconSource = 'direct';
   } else {
     // Use SF Symbol name and map it
     const sfSymbolName = name || ios_icon_name;
     if (sfSymbolName) {
       iconName = MAPPING[sfSymbolName];
+      if (iconName) {
+        iconSource = 'mapped';
+      }
     }
   }
   
+  // Fallback to a default icon if no mapping found
   if (!iconName) {
-    console.warn(`⚠️ [IconSymbol v22.0] No icon name or mapping found. name: "${name}", ios_icon_name: "${ios_icon_name}", android_material_icon_name: "${android_material_icon_name}"`);
-    return null;
+    const sfSymbolName = name || ios_icon_name;
+    console.warn(
+      `⚠️ [IconSymbol v23.0 Android] No icon mapping found for "${sfSymbolName}". ` +
+      `Using fallback icon. Please add mapping to MAPPING object.`
+    );
+    iconName = 'help-circle-outline'; // Fallback icon
+    iconSource = 'fallback';
   }
   
-  console.log(`🎨 [IconSymbol v22.0 Android/Web] Rendering "${iconName}", size: ${size}, color: ${color}`);
+  if (Platform.OS === 'android') {
+    console.log(
+      `🎨 [IconSymbol v23.0 Android] Rendering "${iconName}" (${iconSource}), ` +
+      `size: ${size}, color: ${color}`
+    );
+  }
   
   return (
     <Ionicons

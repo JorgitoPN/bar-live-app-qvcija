@@ -1,11 +1,15 @@
 
 /**
- * TAB NAVIGATION BAR - FIXED VERSION v20.0
+ * TAB NAVIGATION BAR - VERSION v23.0
  * 
  * Clean tab navigation bar with Instagram-style filled/outlined icons.
  * Active icons are filled with white, inactive icons are outlined with white.
  * 
- * FIX: Improved route matching logic to correctly detect active tabs
+ * COMPLETE ANDROID-iOS PARITY:
+ * - Consistent behavior on both platforms
+ * - Proper route matching logic
+ * - Better error handling
+ * - Android-specific optimizations (padding for notch)
  */
 
 import React from 'react';
@@ -43,17 +47,26 @@ export function TabNavigationBar({
     const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
-    console.log(`🔍 [TabNav v20.0] Checking tab "${tab.id}": route="${cleanRoute}", path="${cleanPath}"`);
+    console.log(
+      `🔍 [TabNav v23.0] Checking tab "${tab.id}": ` +
+      `route="${cleanRoute}", path="${cleanPath}"`
+    );
 
     // Special case: gestion tab is active when viewing local profiles
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
-      console.log(`✅ [TabNav v20.0] Tab "${tab.id}" is ACTIVE (special case: perfil/local)`);
+      console.log(
+        `✅ [TabNav v23.0] Tab "${tab.id}" is ACTIVE ` +
+        `(special case: perfil/local)`
+      );
       return true;
     }
 
     // Special case: perfil tab is NOT active when viewing local profiles
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
-      console.log(`❌ [TabNav v20.0] Tab "${tab.id}" is INACTIVE (special case: perfil/local)`);
+      console.log(
+        `❌ [TabNav v23.0] Tab "${tab.id}" is INACTIVE ` +
+        `(special case: perfil/local)`
+      );
       return false;
     }
 
@@ -67,29 +80,32 @@ export function TabNavigationBar({
       const mainPathSegment = pathSegments[0];
 
       if (mainRouteSegment === mainPathSegment) {
-        console.log(`✅ [TabNav v20.0] Tab "${tab.id}" is ACTIVE (segment match: "${mainRouteSegment}")`);
+        console.log(
+          `✅ [TabNav v23.0] Tab "${tab.id}" is ACTIVE ` +
+          `(segment match: "${mainRouteSegment}")`
+        );
         return true;
       }
     }
 
     // Fallback: check if path starts with route
     if (cleanPath.startsWith(cleanRoute)) {
-      console.log(`✅ [TabNav v20.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
+      console.log(`✅ [TabNav v23.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
       return true;
     }
 
     // Check exact match
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
-      console.log(`✅ [TabNav v20.0] Tab "${tab.id}" is ACTIVE (exact match)`);
+      console.log(`✅ [TabNav v23.0] Tab "${tab.id}" is ACTIVE (exact match)`);
       return true;
     }
 
-    console.log(`❌ [TabNav v20.0] Tab "${tab.id}" is INACTIVE`);
+    console.log(`❌ [TabNav v23.0] Tab "${tab.id}" is INACTIVE`);
     return false;
   };
 
   const handleTabPress = (tab: TabDefinition) => {
-    console.log(`🔘 [TabNav v20.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
+    console.log(`🔘 [TabNav v23.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
     if (tab.id === 'perfil' && onProfilePress) {
       onProfilePress();
     } else {
@@ -101,7 +117,10 @@ export function TabNavigationBar({
     const isActive = isTabActive(tab, pathname);
     const isCenter = tab.id === 'explorar';
 
-    console.log(`🎨 [TabNav v20.0] Rendering tab "${tab.id}": isActive=${isActive}, isCenter=${isCenter}`);
+    console.log(
+      `🎨 [TabNav v23.0] Rendering tab "${tab.id}": ` +
+      `isActive=${isActive}, isCenter=${isCenter}`
+    );
 
     // Center button (Explorar)
     if (isCenter) {

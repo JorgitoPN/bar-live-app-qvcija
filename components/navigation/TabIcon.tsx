@@ -1,11 +1,14 @@
 
 /**
- * TAB ICON COMPONENT - FIXED VERSION v20.0
+ * TAB ICON COMPONENT - VERSION v23.0
  * 
  * Renders tab icons with clear filled/outlined distinction.
  * Active tabs show filled icons in white, inactive tabs show outlined icons in white.
  * 
- * FIX: Added extensive logging to debug icon rendering
+ * COMPLETE ANDROID-iOS PARITY:
+ * - Consistent icon rendering on both platforms
+ * - Proper fallbacks for missing icons
+ * - Better error handling and logging
  */
 
 import React from 'react';
@@ -32,19 +35,36 @@ export function TabIcon({
   size = 28
 }: TabIconProps) {
   // Select the correct icon based on platform and active state
-  const iconName = Platform.OS === 'ios' 
-    ? (isActive ? iosIconFilled : iosIconOutlined)
-    : (isActive ? androidIconFilled : androidIconOutlined);
+  const iosIcon = isActive ? iosIconFilled : iosIconOutlined;
+  const androidIcon = isActive ? androidIconFilled : androidIconOutlined;
 
-  console.log(`🎨 [TabIcon v20.0] Platform: ${Platform.OS}, isActive: ${isActive}, icon: "${iconName}", color: ${ICON_COLOR}`);
+  if (Platform.OS === 'android') {
+    console.log(
+      `🎨 [TabIcon v23.0 Android] isActive: ${isActive}, ` +
+      `icon: "${androidIcon}", color: ${ICON_COLOR}`
+    );
+  } else if (Platform.OS === 'ios') {
+    console.log(
+      `🎨 [TabIcon v23.0 iOS] isActive: ${isActive}, ` +
+      `icon: "${iosIcon}", color: ${ICON_COLOR}`
+    );
+  }
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
-      <IconSymbol
-        name={iconName as any}
-        size={size}
-        color={ICON_COLOR}
-      />
+      {Platform.OS === 'ios' ? (
+        <IconSymbol
+          ios_icon_name={iosIcon as any}
+          size={size}
+          color={ICON_COLOR}
+        />
+      ) : (
+        <IconSymbol
+          android_material_icon_name={androidIcon}
+          size={size}
+          color={ICON_COLOR}
+        />
+      )}
     </View>
   );
 }
