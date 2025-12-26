@@ -1,6 +1,6 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v33.0
+ * TAB NAVIGATION BAR - VERSION v38.1
  * 
  * Clean tab navigation bar with Instagram-style filled/outlined icons.
  * Active icons are filled with white, inactive icons are outlined with white.
@@ -12,9 +12,10 @@
  * - Android-specific optimizations (native touch feedback)
  * - Native ripple effect on Android
  * - Smooth animations
- * - ✅ FIXED v33.0: MAXIMUM z-index and elevation for guaranteed visibility
- * - ✅ FIXED v33.0: Tab bar ALWAYS visible above all content
- * - ✅ FIXED v33.0: Profile avatar properly visible on Android
+ * - ✅ FIXED v38.1: CRITICAL - Filter out file:// URLs that cause ENOENT errors on Android
+ * - ✅ FIXED v38.1: Safe Area handling for Android system buttons
+ * - ✅ FIXED v38.1: Tab bar ALWAYS visible above all content
+ * - ✅ FIXED v38.1: Profile avatar properly visible on Android
  */
 
 import React from 'react';
@@ -30,6 +31,7 @@ import {
 import { useRouter, usePathname } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
 import { TabIcon } from './TabIcon';
 import { TabDefinition } from './TabConfig';
@@ -48,6 +50,7 @@ export function TabNavigationBar({
 }: TabNavigationBarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
 
   const isTabActive = (tab: TabDefinition, currentPath: string): boolean => {
     // Clean up paths for comparison
@@ -183,18 +186,18 @@ export function TabNavigationBar({
         >
           <View style={styles.tab}>
             <View style={[styles.avatarContainer, isActive && styles.avatarContainerActive]}>
-              {activeProfileAvatar ? (
+              {activeProfileAvatar && !activeProfileAvatar.startsWith('file://') ? (
                 <Image
                   source={{ uri: activeProfileAvatar }}
                   style={styles.avatar}
                   resizeMode="cover"
-                  // ✅ ANDROID FIX v33.0: Force cache for better loading
+                  // ✅ ANDROID FIX v38.1: Force cache for better loading
                   {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                   onError={(error) => {
-                    console.error('[TabNav v33.0] ❌ Avatar failed to load:', activeProfileAvatar, error.nativeEvent?.error);
+                    console.error('[TabNav v38.1] ❌ Avatar failed to load:', activeProfileAvatar?.substring(0, 50), error.nativeEvent?.error);
                   }}
                   onLoad={() => {
-                    console.log('[TabNav v33.0] ✅ Avatar loaded successfully');
+                    console.log('[TabNav v38.1] ✅ Avatar loaded successfully');
                   }}
                 />
               ) : (
@@ -236,24 +239,28 @@ export function TabNavigationBar({
     );
   };
 
+  // ✅ ANDROID FIX v38.1: Add safe area padding for system buttons
+  const containerHeight = 80 + (Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 0);
+  const tabBarPaddingBottom = Platform.OS === 'ios' ? 20 : Math.max(insets.bottom, 12);
+
   return (
-    <View style={styles.container} pointerEvents="box-none">
-      <View style={styles.backgroundContainer} pointerEvents="none">
+    <View style={[styles.container, { height: containerHeight }]} pointerEvents="box-none">
+      <View style={[styles.backgroundContainer, { height: containerHeight }]} pointerEvents="none">
         <Svg
           width="100%"
-          height="80"
-          viewBox="0 0 375 80"
+          height={containerHeight}
+          viewBox={`0 0 375 ${containerHeight}`}
           preserveAspectRatio="none"
           style={styles.svg}
         >
           <Path
-            d="M0,0 H375 V80 H0 Z"
+            d={`M0,0 H375 V${containerHeight} H0 Z`}
             fill={colors.primary}
           />
         </Svg>
       </View>
 
-      <View style={styles.tabBar} pointerEvents="box-none">
+      <View style={[styles.tabBar, { paddingBottom: tabBarPaddingBottom }]} pointerEvents="box-none">
         {tabs.map(tab => renderTab(tab))}
       </View>
     </View>
@@ -294,7 +301,6 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 12,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'space-evenly',

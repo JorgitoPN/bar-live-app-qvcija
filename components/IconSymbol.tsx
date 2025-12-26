@@ -296,7 +296,7 @@ const MAPPING = {
   "text.aligncenter": "text",
   "text.alignright": "text",
   
-  // ✅ CRITICAL FIX v37.0: Complete Material Design icon mappings
+  // ✅ CRITICAL FIX v38.1: Complete Material Design icon mappings
   // These are ALL the icons that were showing as question marks
   "expand_more": "chevron-down",
   "expand_less": "chevron-up",
@@ -418,6 +418,9 @@ const MAPPING = {
   "refresh": "refresh",
   "rotate_left": "arrow-undo",
   "rotate_right": "arrow-redo",
+  "verified": "checkmark-seal",
+  "report": "flag",
+  "report_problem": "warning",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -433,13 +436,14 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
  * 
- * VERSION v37.0: COMPLETE ANDROID-iOS PARITY - ALL ICONS MAPPED
+ * VERSION v38.1: COMPLETE ANDROID-iOS PARITY - ALL ICONS MAPPED
  * ✅ FIXED: Comprehensive Material Design icon mappings
  * ✅ FIXED: All common icons properly mapped
  * ✅ FIXED: Better fallback system (uses generic icon instead of question mark)
  * ✅ FIXED: Support for both naming conventions
  * ✅ FIXED: Guaranteed icon rendering on all platforms
  * ✅ FIXED: Consistent icon sizes and colors across platforms
+ * ✅ FIXED v38.1: Added missing icons (verified, report, etc.)
  */
 export function IconSymbol({
   name,

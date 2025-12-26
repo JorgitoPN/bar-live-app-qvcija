@@ -21,11 +21,12 @@ interface FoodPlateAvatarProps {
 }
 
 /**
- * ✅ FOOD PLATE AVATAR v8.0 - COMPLETE ANDROID-iOS PARITY
+ * ✅ FOOD PLATE AVATAR v38.1 - COMPLETE ANDROID-iOS PARITY
  * 
- * CRITICAL FIX v8.0:
+ * CRITICAL FIX v38.1:
+ * - ✅ Filter out file:// URLs that cause ENOENT errors on Android
  * - ✅ Removed overly strict URL validation
- * - ✅ Now accepts ANY non-empty string as a valid image URL
+ * - ✅ Now accepts ANY non-empty string as a valid image URL (except file://)
  * - ✅ Relies on Image component's onError to handle invalid URLs
  * - ✅ Shows default avatar or letter fallback on error
  * - ✅ Works with Supabase storage URLs, AWS URLs, and any other image URLs
@@ -53,13 +54,15 @@ export default function FoodPlateAvatar({
   const rimWidth = size * 0.08; // Rim is 8% of plate size
   const addButtonSize = size * 0.34; // Add button is 34% of plate size
 
-  // ✅ CRITICAL FIX v8.0: Simplified URL validation - accept any non-empty string
-  const shouldShowImage = !!(imageUrl && !imageError);
+  // ✅ CRITICAL FIX v38.1: Filter out file:// URLs that cause ENOENT errors on Android
+  const isValidImageUrl = imageUrl && !imageUrl.startsWith('file://');
+  const shouldShowImage = !!(isValidImageUrl && !imageError);
   const shouldShowLetter = !shouldShowImage && (placeholderText || nombre);
   const shouldShowDefaultAvatar = !shouldShowImage && !placeholderText && !nombre;
 
-  console.log('[FoodPlateAvatar v8.0] 🖼️ Image decision:', {
+  console.log('[FoodPlateAvatar v38.1] 🖼️ Image decision:', {
     imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'none',
+    isValidImageUrl,
     imageError,
     shouldShowImage,
     shouldShowLetter,
@@ -69,11 +72,11 @@ export default function FoodPlateAvatar({
 
   // ✅ ANDROID FIX: Retry mechanism for failed images
   const handleImageError = (error: any) => {
-    console.log('[FoodPlateAvatar v8.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent?.error);
+    console.log('[FoodPlateAvatar v38.1] ⚠️ Image failed to load:', imageUrl?.substring(0, 50), error.nativeEvent?.error);
     
     // Retry once on Android
     if (Platform.OS === 'android' && retryCount < 1) {
-      console.log('[FoodPlateAvatar v8.0] 🔄 Retrying image load...');
+      console.log('[FoodPlateAvatar v38.1] 🔄 Retrying image load...');
       setRetryCount(retryCount + 1);
       setImageError(false);
       return;
@@ -83,7 +86,7 @@ export default function FoodPlateAvatar({
   };
 
   const handleImageLoad = () => {
-    console.log('[FoodPlateAvatar v8.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
+    console.log('[FoodPlateAvatar v38.1] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
     setImageError(false);
     setRetryCount(0);
   };
