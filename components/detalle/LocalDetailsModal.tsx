@@ -69,6 +69,8 @@ interface Local {
   ambiente_completo?: Record<string, boolean>;
   clientela?: Record<string, boolean>;
   metodos_pago_completos?: Record<string, boolean>;
+  plan_activo?: string;
+  local_profile_id?: string;
 }
 
 const getCategoryIcon = (categoria?: string): { ios: string; android: string; color: string } => {
@@ -86,14 +88,14 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v4.0 - SOCIAL PROFILE BUTTON ADDED
+ * ✅ LOCAL DETAILS MODAL v5.0 - SOCIAL PROFILE BUTTON FIXED
  * 
  * Changes:
  * - ✅ Added user location tracking
  * - ✅ Calculate distance to local
  * - ✅ Display distance next to "Cómo llegar" button on Android
- * - ✅ Added "Perfil Social" button (NEW)
- * - ✅ Check if local has social profile before showing button
+ * - ✅ Fixed "Perfil Social" button to check subscription plan instead of posts
+ * - ✅ Button now shows for locals with premium/estandar plan OR local_profile_id
  */
 
 export default function LocalDetailsModal({
@@ -109,12 +111,10 @@ export default function LocalDetailsModal({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [distance, setDistance] = useState<string | null>(null);
-  const [hasSocialProfile, setHasSocialProfile] = useState(false);
-  const [checkingSocialProfile, setCheckingSocialProfile] = useState(true);
 
   const localIsFavorite = localId ? isFavorite(localId) : false;
 
-  // ✅ CRITICAL FIX v3.0: Load user location for distance calculation
+  // ✅ Load user location for distance calculation
   useEffect(() => {
     (async () => {
       try {
@@ -148,7 +148,7 @@ export default function LocalDetailsModal({
     })();
   }, []);
 
-  // ✅ CRITICAL FIX v3.0: Calculate distance when location and local data are available
+  // ✅ Calculate distance when location and local data are available
   useEffect(() => {
     if (userLocation && local?.latitud && local?.longitud) {
       const distKm = calcularDistancia(
@@ -167,44 +167,6 @@ export default function LocalDetailsModal({
     }
   }, [userLocation, local]);
 
-  // ✅ NEW v4.0: Check if local has social profile
-  useEffect(() => {
-    const checkSocialProfile = async () => {
-      if (!localId) {
-        setCheckingSocialProfile(false);
-        return;
-      }
-
-      try {
-        const { data: posts, error: postsError } = await supabase
-          .from('posts')
-          .select('id')
-          .eq('tipo', 'local')
-          .eq('local_id', localId)
-          .limit(1);
-
-        if (postsError) throw postsError;
-
-        if (posts && posts.length > 0) {
-          setHasSocialProfile(true);
-          console.log('[LocalDetailsModal] ✅ Local has social profile');
-        } else {
-          setHasSocialProfile(false);
-          console.log('[LocalDetailsModal] ℹ️ Local does not have social profile');
-        }
-      } catch (error) {
-        console.error('[LocalDetailsModal] Error checking social profile:', error);
-        setHasSocialProfile(false);
-      } finally {
-        setCheckingSocialProfile(false);
-      }
-    };
-
-    if (visible) {
-      checkSocialProfile();
-    }
-  }, [visible, localId]);
-
   const loadLocalData = useCallback(async () => {
     try {
       setLoading(true);
@@ -216,6 +178,12 @@ export default function LocalDetailsModal({
 
       if (error) throw error;
       setLocal(data);
+      console.log('[LocalDetailsModal] ✅ Local loaded:', {
+        id: data.id,
+        nombre: data.nombre,
+        plan_activo: data.plan_activo,
+        local_profile_id: data.local_profile_id,
+      });
     } catch (error) {
       console.error('[LocalDetailsModal] Error loading local:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
@@ -231,8 +199,6 @@ export default function LocalDetailsModal({
     } else {
       setLocal(null);
       setLoading(true);
-      setHasSocialProfile(false);
-      setCheckingSocialProfile(true);
     }
   }, [visible, localId, loadLocalData]);
 
@@ -267,12 +233,16 @@ export default function LocalDetailsModal({
     }, 300);
   };
 
-  // ✅ NEW v4.0: Handle social profile navigation
+  // ✅ FIXED v5.0: Handle social profile navigation
   const handlePerfilSocial = () => {
     trackProfileView(localId, user?.id, 'social');
     onClose();
     setTimeout(() => {
-      router.push(`/perfil/local?localId=${localId}`);
+      if (local?.local_profile_id) {
+        router.push(`/perfil/local?localId=${local.local_profile_id}`);
+      } else {
+        router.push(`/perfil/local?localId=${localId}`);
+      }
     }, 300);
   };
 
@@ -301,6 +271,13 @@ export default function LocalDetailsModal({
   const closeButtonTop = local?.destacado 
     ? (Platform.OS === 'ios' ? 100 : 100)
     : (Platform.OS === 'ios' ? 60 : 60);
+
+  // ✅ FIXED v5.0: Check if local has social profile based on subscription plan
+  const hasSocialProfile = !!(
+    local?.local_profile_id || 
+    local?.plan_activo === 'premium' || 
+    local?.plan_activo === 'estandar'
+  );
 
   return (
     <Modal
@@ -433,7 +410,6 @@ export default function LocalDetailsModal({
                     </View>
                   )}
 
-                  {/* ✅ CRITICAL FIX v3.0: Display distance if available */}
                   {distance && (
                     <View style={styles.distanceContainer}>
                       <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={16} color={colors.primary} />
@@ -488,7 +464,6 @@ export default function LocalDetailsModal({
                           <View style={styles.actionBtnContent}>
                             <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
                             <Text style={styles.actionBtnText}>Cómo llegar</Text>
-                            {/* ✅ CRITICAL FIX v3.0: Show distance on Android */}
                             {distance && Platform.OS === 'android' && (
                               <Text style={styles.actionBtnDistance}>({distance})</Text>
                             )}
@@ -498,20 +473,21 @@ export default function LocalDetailsModal({
                     )}
                   </View>
 
-                  {/* ✅ NEW v4.0: Social Profile Button */}
-                  {!checkingSocialProfile && hasSocialProfile && (
+                  {/* ✅ FIXED v5.0: Social Profile Button - Now checks subscription plan */}
+                  {hasSocialProfile && (
                     <TouchableOpacity 
                       style={styles.perfilSocialButton} 
                       onPress={handlePerfilSocial}
                     >
                       <LinearGradient
-                        colors={[colors.secondary, colors.secondary + 'CC']}
+                        colors={[colors.primary, colors.secondary]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.perfilSocialGradient}
                       >
                         <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color="#fff" />
                         <Text style={styles.perfilSocialText}>Ver Perfil Social</Text>
+                        <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={18} color="#fff" />
                       </LinearGradient>
                     </TouchableOpacity>
                   )}
@@ -811,7 +787,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
   },
-  // ✅ NEW v4.0: Social Profile Button styles
+  // ✅ FIXED v5.0: Social Profile Button styles
   perfilSocialButton: {
     borderRadius: 12,
     overflow: 'hidden',
@@ -819,13 +795,15 @@ const styles = StyleSheet.create({
   perfilSocialGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
     paddingVertical: 14,
   },
   perfilSocialText: {
+    flex: 1,
     fontSize: 15,
     fontWeight: '700',
     color: '#fff',
+    marginLeft: 10,
   },
 });
