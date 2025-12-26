@@ -19,12 +19,17 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ VERIFICAR CUENTA TOKEN v2.0 - ERROR HANDLING FIXED
+ * ✅ VERIFICAR CUENTA TOKEN v2.1 - IMPROVED UX
  * 
- * Changes:
- * - ✅ Improved error handling with better error messages
- * - ✅ Fixed undefined error display issue
- * - ✅ Added more detailed logging
+ * Pantalla para verificar la cuenta del usuario mediante un código de 6 dígitos
+ * enviado por correo electrónico. Similar al flujo de recuperación de contraseña.
+ * 
+ * Flujo:
+ * 1. Usuario se registra en registro-v6.tsx
+ * 2. Se genera y envía un token de 6 dígitos al email
+ * 3. Usuario introduce el token en esta pantalla
+ * 4. Se valida el token y se verifica la cuenta
+ * 5. Usuario puede iniciar sesión
  */
 
 export default function VerificarCuentaTokenScreen() {
@@ -103,7 +108,7 @@ export default function VerificarCuentaTokenScreen() {
 
       console.log('[VerificarCuentaToken] 📦 Request body:', JSON.stringify(requestBody));
 
-      // Call the Edge Function to validate token
+      // Step 1: Validate the token
       const validateResponse = await fetch(`${supabaseUrl}/functions/v1/validate-verification-token`, {
         method: 'POST',
         headers: {
@@ -138,7 +143,7 @@ export default function VerificarCuentaTokenScreen() {
 
       console.log('[VerificarCuentaToken] ✅ Token válido, verificando cuenta...');
 
-      // Call the Edge Function to verify account
+      // Step 2: Verify the account with the token
       const verifyResponse = await fetch(`${supabaseUrl}/functions/v1/verify-account-with-token`, {
         method: 'POST',
         headers: {
@@ -155,7 +160,6 @@ export default function VerificarCuentaTokenScreen() {
       if (!verifyResult.success) {
         console.error('[VerificarCuentaToken] ❌ Error al verificar cuenta:', verifyResult.error || 'Error desconocido');
         
-        // ✅ FIXED v2.0: Better error message handling
         const errorMessage = verifyResult.error || 'No se pudo verificar tu cuenta. Por favor, intenta nuevamente.';
         
         Alert.alert(
@@ -192,7 +196,6 @@ export default function VerificarCuentaTokenScreen() {
     } catch (error: any) {
       console.error('[VerificarCuentaToken] ❌ Error:', error);
       
-      // ✅ FIXED v2.0: Better error message for network errors
       const errorMessage = error.message || 'Ocurrió un error al validar el código. Por favor, verifica tu conexión a internet e intenta nuevamente.';
       
       Alert.alert(
@@ -239,7 +242,7 @@ export default function VerificarCuentaTokenScreen() {
       console.log('[VerificarCuentaToken] ✅ Token reenviado');
       Alert.alert(
         'Código reenviado',
-        'Se ha enviado un nuevo código de verificación a tu correo electrónico.'
+        'Se ha enviado un nuevo código de verificación a tu correo electrónico. Por favor, revisa tu bandeja de entrada y la carpeta de spam.'
       );
       
       // Clear current token
@@ -402,6 +405,7 @@ export default function VerificarCuentaTokenScreen() {
             <Text style={styles.tipText}>• Revisa tu carpeta de spam si no ves el correo</Text>
             <Text style={styles.tipText}>• El código expira en 1 hora</Text>
             <Text style={styles.tipText}>• Puedes solicitar un nuevo código si es necesario</Text>
+            <Text style={styles.tipText}>• Asegúrate de introducir los 6 dígitos correctamente</Text>
           </View>
 
           <TouchableOpacity
