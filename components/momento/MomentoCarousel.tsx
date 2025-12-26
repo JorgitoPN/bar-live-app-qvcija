@@ -7,692 +7,347 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Dimensions,
+  ActivityIndicator,
+  Platform,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-import { useMode } from '@/contexts/ModeContext';
-import { useRouter } from 'expo-router';
-import MomentoViewer from '@/components/momento/MomentoViewer';
-import MomentoUpload from '@/components/momento/MomentoUpload';
+import { useEffectiveUser } from '@/hooks/useEffectiveUser';
+import MiniAvatarWithMomento from './MiniAvatarWithMomento';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const AVATAR_SIZE = 84;
-const BORDER_WIDTH = 4;
-
-interface MomentoAuthor {
+interface Momento {
   id: string;
-  nombre: string;
-  avatar: string | null;
+  autor_id: string;
   tipo: 'usuario' | 'local';
   local_id?: string;
-  hasUnviewed: boolean;
-  momentosCount: number;
-  lastMomentoAt: string;
+  imagen_url: string;
+  categoria?: string;
+  created_at: string;
+  expires_at: string;
+  autor?: {
+    id: string;
+    nombre: string;
+    username?: string;
+    avatar?: string;
+  };
+  local?: {
+    id: string;
+    nombre: string;
+    imagen_url?: string;
+  };
+  has_viewed?: boolean;
 }
+
+interface GroupedMomentos {
+  [key: string]: {
+    autor: {
+      id: string;
+      nombre: string;
+      username?: string;
+      avatar?: string;
+      tipo: 'usuario' | 'local';
+    };
+    momentos: Momento[];
+    has_unviewed: boolean;
+  };
+}
+
+/**
+ * ✅ MOMENTO CAROUSEL v33.0 - FIXED FOLLOWING FILTER
+ * 
+ * Changes:
+ * - ✅ Only shows momentos from users that the current user follows
+ * - ✅ Filters out momentos from non-followed users
+ * - ✅ Includes user's own momentos
+ */
 
 export default function MomentoCarousel() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { activeProfileType, activeProfileId } = useMode();
-  const [authors, setAuthors] = useState<MomentoAuthor[]>([]);
-  const [userMomento, setUserMomento] = useState<MomentoAuthor | null>(null);
+  const { userId, user } = useEffectiveUser();
+  const [groupedMomentos, setGroupedMomentos] = useState<GroupedMomentos>({});
   const [loading, setLoading] = useState(true);
-  
-  // ✅ NEW: State for viewer and upload modals
-  const [viewerVisible, setViewerVisible] = useState(false);
-  const [uploadVisible, setUploadVisible] = useState(false);
-  const [selectedAuthorId, setSelectedAuthorId] = useState<string | null>(null);
-  const [selectedAuthorType, setSelectedAuthorType] = useState<'usuario' | 'local'>('usuario');
-
-  const handleOpenViewer = useCallback((authorId: string, tipo: 'usuario' | 'local') => {
-    console.log('[MomentoCarousel] ✅ Opening viewer for:', { authorId, tipo });
-    setSelectedAuthorId(authorId);
-    setSelectedAuthorType(tipo);
-    setViewerVisible(true);
-  }, []);
-
-  const handleUploadMomento = useCallback(() => {
-    console.log('[MomentoCarousel] ✅ Opening momento upload');
-    setUploadVisible(true);
-  }, []);
 
   const loadMomentos = useCallback(async () => {
-    if (!user) return;
+    if (!userId) {
+      console.log('[MomentoCarousel v33.0] No user ID, skipping load');
+      setLoading(false);
+      return;
+    }
 
     try {
-      setLoading(true);
-      console.log('[MomentoCarousel] 🔄 Loading momentos for user:', user.id);
-      console.log('[MomentoCarousel] 🔄 Active profile:', { activeProfileType, activeProfileId });
+      console.log('[MomentoCarousel v33.0] 📥 Loading momentos for user:', userId);
 
-      const { data: momentosData, error: momentosError } = await supabase
+      // ✅ FIX 2: Get list of followed users
+      const { data: followingData, error: followingError } = await supabase
+        .from('seguidores')
+        .select('seguido_id, local_id')
+        .eq('seguidor_id', userId);
+
+      if (followingError) {
+        console.error('[MomentoCarousel v33.0] Error loading following:', followingError);
+        throw followingError;
+      }
+
+      const followedUserIds = followingData
+        ?.filter(f => f.seguido_id)
+        .map(f => f.seguido_id) || [];
+      
+      const followedLocalIds = followingData
+        ?.filter(f => f.local_id)
+        .map(f => f.local_id) || [];
+
+      // Include user's own ID to see their own momentos
+      const authorIds = [...followedUserIds, userId];
+
+      console.log('[MomentoCarousel v33.0] 👥 Following:', {
+        users: followedUserIds.length,
+        locals: followedLocalIds.length,
+        total: authorIds.length + followedLocalIds.length,
+      });
+
+      // ✅ FIX 2: Only load momentos from followed users/locals
+      let query = supabase
         .from('momentos')
         .select(`
-          id,
-          autor_id,
-          tipo,
-          local_id,
-          created_at,
-          usuarios!momentos_autor_id_fkey (
-            id,
-            nombre,
-            avatar
-          ),
-          locales!momentos_local_id_fkey (
-            id,
-            nombre,
-            imagen_url
-          )
+          *,
+          autor:usuarios!momentos_autor_id_fkey(id, nombre, username, avatar),
+          local:locales!momentos_local_id_fkey(id, nombre, imagen_url)
         `)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false });
 
+      // Filter by followed users and locals
+      if (authorIds.length > 0 || followedLocalIds.length > 0) {
+        const conditions = [];
+        if (authorIds.length > 0) {
+          conditions.push(`autor_id.in.(${authorIds.join(',')})`);
+        }
+        if (followedLocalIds.length > 0) {
+          conditions.push(`local_id.in.(${followedLocalIds.join(',')})`);
+        }
+        query = query.or(conditions.join(','));
+      } else {
+        // If not following anyone, only show own momentos
+        query = query.eq('autor_id', userId);
+      }
+
+      const { data: momentosData, error: momentosError } = await query;
+
       if (momentosError) throw momentosError;
 
+      console.log('[MomentoCarousel v33.0] ✅ Loaded momentos:', momentosData?.length || 0);
+
       if (!momentosData || momentosData.length === 0) {
-        console.log('[MomentoCarousel] ℹ️ No momentos found');
-        setAuthors([]);
-        setUserMomento(null);
+        setGroupedMomentos({});
         setLoading(false);
         return;
       }
 
-      console.log('[MomentoCarousel] ✅ Found momentos:', momentosData.length);
-
+      // Get viewed status for all momentos
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData } = await supabase
         .from('momento_views')
         .select('momento_id')
-        .eq('usuario_id', user.id)
+        .eq('usuario_id', userId)
         .in('momento_id', momentoIds);
 
       const viewedMomentoIds = new Set(viewsData?.map(v => v.momento_id) || []);
 
-      const authorsMap = new Map<string, MomentoAuthor>();
-      let currentUserMomento: MomentoAuthor | null = null;
+      // Group momentos by author
+      const grouped: GroupedMomentos = {};
+      
+      momentosData.forEach(momento => {
+        const authorKey = momento.tipo === 'local' && momento.local_id 
+          ? `local_${momento.local_id}`
+          : `user_${momento.autor_id}`;
 
-      momentosData.forEach((momento: any) => {
-        const authorKey = momento.tipo === 'local' 
-          ? `local-${momento.local_id}` 
-          : `user-${momento.autor_id}`;
+        if (!grouped[authorKey]) {
+          grouped[authorKey] = {
+            autor: {
+              id: momento.tipo === 'local' && momento.local ? momento.local.id : momento.autor?.id || '',
+              nombre: momento.tipo === 'local' && momento.local ? momento.local.nombre : momento.autor?.nombre || '',
+              username: momento.tipo === 'local' ? undefined : momento.autor?.username,
+              avatar: momento.tipo === 'local' && momento.local ? momento.local.imagen_url : momento.autor?.avatar,
+              tipo: momento.tipo,
+            },
+            momentos: [],
+            has_unviewed: false,
+          };
+        }
 
-        const isInteractingAsUser = activeProfileType === 'usuario' || activeProfileType === 'cliente';
-        const isCurrentUserMomento = isInteractingAsUser && 
-                                     momento.tipo === 'usuario' && 
-                                     momento.autor_id === user.id;
-        const isCurrentLocalMomento = activeProfileType === 'local' && 
-                                      momento.tipo === 'local' && 
-                                      momento.local_id === activeProfileId;
-        const isOwnMomento = isCurrentUserMomento || isCurrentLocalMomento;
-
-        console.log('[MomentoCarousel] 🔍 Processing momento:', {
-          momentoId: momento.id,
-          tipo: momento.tipo,
-          autorId: momento.autor_id,
-          localId: momento.local_id,
-          currentUserId: user.id,
-          activeProfileType,
-          activeProfileId,
-          isInteractingAsUser,
-          isCurrentUserMomento,
-          isCurrentLocalMomento,
-          isOwnMomento,
+        const hasViewed = viewedMomentoIds.has(momento.id);
+        grouped[authorKey].momentos.push({
+          ...momento,
+          has_viewed: hasViewed,
         });
 
-        if (!authorsMap.has(authorKey)) {
-          const authorData = momento.tipo === 'local' 
-            ? momento.locales 
-            : momento.usuarios;
-
-          const authorInfo: MomentoAuthor = {
-            id: momento.tipo === 'local' ? momento.local_id : momento.autor_id,
-            nombre: authorData?.nombre || 'Usuario',
-            avatar: momento.tipo === 'local' 
-              ? authorData?.imagen_url 
-              : authorData?.avatar,
-            tipo: momento.tipo,
-            local_id: momento.local_id,
-            hasUnviewed: false,
-            momentosCount: 0,
-            lastMomentoAt: momento.created_at,
-          };
-
-          authorsMap.set(authorKey, authorInfo);
-
-          if (isOwnMomento) {
-            currentUserMomento = authorInfo;
-            console.log('[MomentoCarousel] ✅ Found own momento:', {
-              id: authorInfo.id,
-              nombre: authorInfo.nombre,
-              tipo: authorInfo.tipo,
-            });
-          }
+        if (!hasViewed) {
+          grouped[authorKey].has_unviewed = true;
         }
+      });
 
-        const author = authorsMap.get(authorKey)!;
-        author.momentosCount++;
+      // Sort groups: unviewed first, then by most recent momento
+      const sortedGroups = Object.entries(grouped).sort((a, b) => {
+        if (a[1].has_unviewed && !b[1].has_unviewed) return -1;
+        if (!a[1].has_unviewed && b[1].has_unviewed) return 1;
         
-        if (!viewedMomentoIds.has(momento.id)) {
-          author.hasUnviewed = true;
-        }
-
-        if (new Date(momento.created_at) > new Date(author.lastMomentoAt)) {
-          author.lastMomentoAt = momento.created_at;
-        }
-
-        if (isOwnMomento && currentUserMomento) {
-          currentUserMomento.momentosCount = author.momentosCount;
-          currentUserMomento.hasUnviewed = author.hasUnviewed;
-          currentUserMomento.lastMomentoAt = author.lastMomentoAt;
-        }
+        const aLatest = new Date(a[1].momentos[0].created_at).getTime();
+        const bLatest = new Date(b[1].momentos[0].created_at).getTime();
+        return bLatest - aLatest;
       });
 
-      const filteredAuthors = Array.from(authorsMap.values()).filter(author => {
-        const isInteractingAsUser = activeProfileType === 'usuario' || activeProfileType === 'cliente';
-        
-        if (isInteractingAsUser) {
-          const isCurrentUser = author.tipo === 'usuario' && author.id === user.id;
-          
-          console.log('[MomentoCarousel] 🔍 Filtering user momento:', {
-            authorId: author.id,
-            authorNombre: author.nombre,
-            authorTipo: author.tipo,
-            userId: user.id,
-            activeProfileType,
-            isInteractingAsUser,
-            isCurrentUser,
-            willExclude: isCurrentUser,
-          });
-          
-          return !isCurrentUser;
-        } else if (activeProfileType === 'local') {
-          const isCurrentLocal = author.tipo === 'local' && author.id === activeProfileId;
-          
-          console.log('[MomentoCarousel] 🔍 Filtering local momento:', {
-            authorId: author.id,
-            authorNombre: author.nombre,
-            authorTipo: author.tipo,
-            localId: activeProfileId,
-            isCurrentLocal,
-            willExclude: isCurrentLocal,
-          });
-          
-          return !isCurrentLocal;
-        }
-        return true;
+      const sortedGrouped: GroupedMomentos = {};
+      sortedGroups.forEach(([key, value]) => {
+        sortedGrouped[key] = value;
       });
 
-      const sortedAuthors = filteredAuthors.sort((a, b) => {
-        if (a.hasUnviewed && !b.hasUnviewed) return -1;
-        if (!a.hasUnviewed && b.hasUnviewed) return 1;
-        return new Date(b.lastMomentoAt).getTime() - new Date(a.lastMomentoAt).getTime();
-      });
-
-      setAuthors(sortedAuthors);
-      setUserMomento(currentUserMomento);
-
-      console.log('[MomentoCarousel] ✅ Final carousel state:', {
-        totalMomentos: momentosData.length,
-        othersInCarousel: sortedAuthors.length,
-        userOwnMomento: currentUserMomento ? 1 : 0,
-        userOwnDetails: currentUserMomento ? {
-          id: currentUserMomento.id,
-          nombre: currentUserMomento.nombre,
-          tipo: currentUserMomento.tipo,
-        } : null,
-        carouselAuthors: sortedAuthors.map(a => ({
-          id: a.id,
-          nombre: a.nombre,
-          tipo: a.tipo,
-        })),
-      });
+      setGroupedMomentos(sortedGrouped);
     } catch (error) {
-      console.error('[MomentoCarousel] ❌ Error loading momentos:', error);
+      console.error('[MomentoCarousel v33.0] Error loading momentos:', error);
     } finally {
       setLoading(false);
     }
-  }, [user, activeProfileType, activeProfileId]);
+  }, [userId]);
 
   useEffect(() => {
-    loadMomentos();
+    if (userId) {
+      loadMomentos();
+    }
+  }, [userId, loadMomentos]);
 
-    const subscription = supabase
-      .channel('momentos-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'momentos',
-        },
-        () => {
-          console.log('[MomentoCarousel] 🔄 Real-time update detected');
-          loadMomentos();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'momento_views',
-        },
-        () => {
-          console.log('[MomentoCarousel] 🔄 View update detected');
-          loadMomentos();
-        }
-      )
-      .subscribe();
+  const handleViewMomentos = (authorId: string, tipo: 'usuario' | 'local') => {
+    const authorKey = tipo === 'local' ? `local_${authorId}` : `user_${authorId}`;
+    const group = groupedMomentos[authorKey];
+    
+    if (!group) return;
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [loadMomentos]);
+    const momentoIds = group.momentos.map(m => m.id);
+    const startIndex = 0;
 
-  const renderAvatar = (author: MomentoAuthor, index: number) => {
-    return (
-      <TouchableOpacity
-        key={`${author.tipo}-${author.id}`}
-        style={styles.avatarContainer}
-        onPress={() => handleOpenViewer(author.id, author.tipo)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.avatarBorderContainer}>
-          {author.hasUnviewed ? (
-            <LinearGradient
-              colors={['#00FF88', '#00FF88', '#00FF88']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[
-                styles.avatarBorder,
-                {
-                  width: AVATAR_SIZE + BORDER_WIDTH * 2,
-                  height: AVATAR_SIZE + BORDER_WIDTH * 2,
-                  borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
-                },
-              ]}
-            >
-              <View style={styles.avatarInner}>
-                {author.avatar ? (
-                  <Image
-                    source={{ uri: author.avatar }}
-                    style={styles.avatarImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <IconSymbol
-                      ios_icon_name={author.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                      android_material_icon_name={author.tipo === 'local' ? 'store' : 'person'}
-                      size={AVATAR_SIZE * 0.5}
-                      color={colors.primary}
-                    />
-                  </View>
-                )}
-              </View>
-            </LinearGradient>
-          ) : (
-            <View
-              style={[
-                styles.avatarBorder,
-                styles.avatarBorderViewed,
-                {
-                  width: AVATAR_SIZE + BORDER_WIDTH * 2,
-                  height: AVATAR_SIZE + BORDER_WIDTH * 2,
-                  borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
-                },
-              ]}
-            >
-              <View style={styles.avatarInner}>
-                {author.avatar ? (
-                  <Image
-                    source={{ uri: author.avatar }}
-                    style={styles.avatarImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <IconSymbol
-                      ios_icon_name={author.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                      android_material_icon_name={author.tipo === 'local' ? 'store' : 'person'}
-                      size={AVATAR_SIZE * 0.5}
-                      color={colors.primary}
-                    />
-                  </View>
-                )}
-              </View>
-            </View>
-          )}
-        </View>
-
-        <Text style={styles.avatarName} numberOfLines={1}>
-          {author.nombre}
-        </Text>
-      </TouchableOpacity>
-    );
+    router.push({
+      pathname: '/social/momento-viewer',
+      params: {
+        momentoIds: JSON.stringify(momentoIds),
+        startIndex: startIndex.toString(),
+      },
+    });
   };
 
-  const renderTuMomento = () => {
-    const currentAvatar = activeProfileType === 'local' 
-      ? null
-      : user?.avatar;
-
-    if (userMomento) {
-      return (
-        <TouchableOpacity
-          style={styles.avatarContainer}
-          onPress={() => handleOpenViewer(userMomento.id, userMomento.tipo)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.avatarBorderContainer}>
-            {userMomento.hasUnviewed ? (
-              <LinearGradient
-                colors={['#00FF88', '#00FF88', '#00FF88']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[
-                  styles.avatarBorder,
-                  {
-                    width: AVATAR_SIZE + BORDER_WIDTH * 2,
-                    height: AVATAR_SIZE + BORDER_WIDTH * 2,
-                    borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
-                  },
-                ]}
-              >
-                <View style={styles.avatarInner}>
-                  {userMomento.avatar ? (
-                    <Image
-                      source={{ uri: userMomento.avatar }}
-                      style={styles.avatarImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={styles.avatarPlaceholder}>
-                      <IconSymbol
-                        ios_icon_name={userMomento.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                        android_material_icon_name={userMomento.tipo === 'local' ? 'store' : 'person'}
-                        size={AVATAR_SIZE * 0.5}
-                        color={colors.primary}
-                      />
-                    </View>
-                  )}
-                </View>
-              </LinearGradient>
-            ) : (
-              <View
-                style={[
-                  styles.avatarBorder,
-                  styles.avatarBorderViewed,
-                  {
-                    width: AVATAR_SIZE + BORDER_WIDTH * 2,
-                    height: AVATAR_SIZE + BORDER_WIDTH * 2,
-                    borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
-                  },
-                ]}
-              >
-                <View style={styles.avatarInner}>
-                  {userMomento.avatar ? (
-                    <Image
-                      source={{ uri: userMomento.avatar }}
-                      style={styles.avatarImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={styles.avatarPlaceholder}>
-                      <IconSymbol
-                        ios_icon_name={userMomento.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                        android_material_icon_name={userMomento.tipo === 'local' ? 'store' : 'person'}
-                        size={AVATAR_SIZE * 0.5}
-                        color={colors.primary}
-                      />
-                    </View>
-                  )}
-                </View>
-              </View>
-            )}
-            {/* ✅ CRITICAL FIX: Plus icon positioned ABOVE the momento with higher z-index */}
-            <TouchableOpacity 
-              style={styles.addIconContainer}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleUploadMomento();
-              }}
-              activeOpacity={0.7}
-            >
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.addIconGradient}
-              >
-                <IconSymbol
-                  ios_icon_name="plus"
-                  android_material_icon_name="add"
-                  size={18}
-                  color="#fff"
-                />
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.avatarName} numberOfLines={1}>
-            Tu Momento
-          </Text>
-        </TouchableOpacity>
-      );
-    }
-
-    return (
-      <TouchableOpacity
-        style={styles.avatarContainer}
-        onPress={handleUploadMomento}
-        activeOpacity={0.7}
-      >
-        <View style={styles.avatarBorderContainer}>
-          <View
-            style={[
-              styles.avatarBorder,
-              styles.addButtonBorder,
-              {
-                width: AVATAR_SIZE + BORDER_WIDTH * 2,
-                height: AVATAR_SIZE + BORDER_WIDTH * 2,
-                borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
-              },
-            ]}
-          >
-            <View style={styles.avatarInner}>
-              {currentAvatar ? (
-                <Image
-                  source={{ uri: currentAvatar }}
-                  style={styles.avatarImage}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <IconSymbol
-                    ios_icon_name={activeProfileType === 'local' ? 'building.2.fill' : 'person.fill'}
-                    android_material_icon_name={activeProfileType === 'local' ? 'store' : 'person'}
-                    size={AVATAR_SIZE * 0.5}
-                    color={colors.primary}
-                  />
-                </View>
-              )}
-            </View>
-          </View>
-          {/* ✅ CRITICAL FIX: Plus icon positioned ABOVE the avatar with higher z-index */}
-          <TouchableOpacity 
-            style={styles.addIconContainer}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleUploadMomento();
-            }}
-            activeOpacity={0.7}
-          >
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.addIconGradient}
-            >
-              <IconSymbol
-                ios_icon_name="plus"
-                android_material_icon_name="add"
-                size={18}
-                color="#fff"
-              />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.avatarName} numberOfLines={1}>
-          Tu Momento
-        </Text>
-      </TouchableOpacity>
-    );
+  const handleCreateMomento = () => {
+    router.push('/crear/momento');
   };
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Cargando Momentos...</Text>
-        </View>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   }
 
+  const hasAnyMomentos = Object.keys(groupedMomentos).length > 0;
+
+  if (!hasAnyMomentos) {
+    return null;
+  }
+
   return (
-    <>
-      <View style={styles.container}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {renderTuMomento()}
-          
-          {authors.map((author, index) => renderAvatar(author, index))}
-        </ScrollView>
-      </View>
+    <View style={styles.container}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        style={styles.scrollView}
+      >
+        {userId && (
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={handleCreateMomento}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              style={styles.createGradient}
+            >
+              <IconSymbol
+                ios_icon_name="plus"
+                android_material_icon_name="add"
+                size={24}
+                color={colors.white}
+              />
+            </LinearGradient>
+            <Text style={styles.createText}>Tu momento</Text>
+          </TouchableOpacity>
+        )}
 
-      {/* ✅ NEW: Momento Viewer Modal */}
-      {selectedAuthorId && (
-        <MomentoViewer
-          visible={viewerVisible}
-          authorId={selectedAuthorId}
-          authorType={selectedAuthorType}
-          onClose={() => {
-            setViewerVisible(false);
-            setSelectedAuthorId(null);
-            loadMomentos(); // Reload to update viewed status
-          }}
-        />
-      )}
-
-      {/* ✅ NEW: Momento Upload Modal */}
-      <MomentoUpload
-        visible={uploadVisible}
-        onClose={() => setUploadVisible(false)}
-        onSuccess={() => {
-          loadMomentos(); // Reload to show new momento
-        }}
-      />
-    </>
+        {Object.entries(groupedMomentos).map(([key, group]) => (
+          <MiniAvatarWithMomento
+            key={key}
+            nombre={group.autor.nombre}
+            username={group.autor.username}
+            avatar={group.autor.avatar}
+            hasUnviewed={group.has_unviewed}
+            onPress={() => handleViewMomentos(group.autor.id, group.autor.tipo)}
+          />
+        ))}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.background,
-    paddingVertical: 16,
+    backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
-  },
-  scrollContent: {
-    paddingHorizontal: 12,
-    gap: 16,
-    alignItems: 'center',
+    paddingVertical: 12,
   },
   loadingContainer: {
+    backgroundColor: colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
     paddingVertical: 20,
     alignItems: 'center',
   },
-  loadingText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontFamily: 'System',
+  scrollView: {
+    flexGrow: 0,
   },
-  avatarContainer: {
+  scrollContent: {
+    paddingHorizontal: 12,
+    gap: 12,
+  },
+  createButton: {
     alignItems: 'center',
-    width: AVATAR_SIZE + BORDER_WIDTH * 2,
+    marginRight: 4,
   },
-  avatarBorderContainer: {
-    marginBottom: 6,
-    position: 'relative',
-  },
-  avatarBorder: {
+  createGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: BORDER_WIDTH,
-  },
-  avatarBorderViewed: {
-    backgroundColor: colors.cardBorder,
-  },
-  addButtonBorder: {
-    backgroundColor: colors.cardBorder,
-  },
-  avatarInner: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: '#fff',
-    overflow: 'visible',
-    position: 'relative',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: AVATAR_SIZE / 2,
-  },
-  avatarPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.cardBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: AVATAR_SIZE / 2,
-  },
-  avatarName: {
-    fontSize: 12,
-    color: colors.text,
-    fontFamily: 'System',
-    textAlign: 'center',
-    maxWidth: AVATAR_SIZE + BORDER_WIDTH * 2,
-  },
-  // ✅ CRITICAL FIX: Improved positioning for plus icon to be ABOVE the momento
-  addIconContainer: {
-    position: 'absolute',
-    bottom: -4,
-    right: -4,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
     borderWidth: 3,
-    borderColor: colors.background,
-    overflow: 'hidden',
-    zIndex: 1000,
-    elevation: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
+    borderColor: colors.white,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
-  addIconGradient: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+  createText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 4,
+    textAlign: 'center',
   },
 });
