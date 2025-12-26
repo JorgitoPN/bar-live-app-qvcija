@@ -15,7 +15,6 @@ import { trackProfileView } from '@/utils/activityTracker';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
 import { addPubCategoryIfNeeded } from '@/utils/categorizeLocal';
-import LocalDetailsModal from '@/components/detalle/LocalDetailsModal';
 
 const { width } = Dimensions.get('window');
 
@@ -34,11 +33,9 @@ interface CheckedInUser {
 }
 
 /**
- * ✅ TARJETA LOCAL v29.0 - MODAL ON SINGLE CLICK
+ * ✅ TARJETA LOCAL v28.0 - PRODUCTION READY
  * 
- * CHANGES:
- * - ✅ Opens LocalDetailsModal on single click instead of navigating
- * - ✅ Removed social profile button (now in modal)
+ * CRITICAL FIXES:
  * - ✅ All icons properly mapped for Android
  * - ✅ Check-in indicators with correct colors
  * - ✅ Consistent behavior on iOS and Android
@@ -49,10 +46,11 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   const { user } = useAuth();
   const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
   const [hasPreloaded, setHasPreloaded] = useState(false);
+  const [hasSocialProfile, setHasSocialProfile] = useState(false);
+  const [checkingSocialProfile, setCheckingSocialProfile] = useState(true);
   const [isUserHere, setIsUserHere] = useState(false);
   const [followedUsersHere, setFollowedUsersHere] = useState<CheckedInUser[]>([]);
   const [checkingOut, setCheckingOut] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
   
   const { evento: activeEvent } = useLocalEvent(local.id);
 
@@ -71,6 +69,39 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
       }
     }
   }, [local.id, hasPreloaded, onVisible]);
+
+  useEffect(() => {
+    const checkSocialProfile = async () => {
+      if (!local.id) {
+        setCheckingSocialProfile(false);
+        return;
+      }
+
+      try {
+        const { data: posts, error: postsError } = await supabase
+          .from('posts')
+          .select('id')
+          .eq('tipo', 'local')
+          .eq('local_id', local.id)
+          .limit(1);
+
+        if (postsError) throw postsError;
+
+        if (posts && posts.length > 0) {
+          setHasSocialProfile(true);
+        } else {
+          setHasSocialProfile(false);
+        }
+      } catch (error) {
+        console.error('[TarjetaLocal] Error checking social profile:', error);
+        setHasSocialProfile(false);
+      } finally {
+        setCheckingSocialProfile(false);
+      }
+    };
+
+    checkSocialProfile();
+  }, [local.id]);
 
   // Load check-in information
   useEffect(() => {
@@ -186,7 +217,13 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
   const handlePress = () => {
     trackProfileView(local.id, user?.id, 'explore');
-    setModalVisible(true);
+    router.push(`/detalle/local?id=${local.id}`);
+  };
+
+  const handlePerfilSocial = (e: any) => {
+    e.stopPropagation();
+    trackProfileView(local.id, user?.id, 'social');
+    router.push(`/perfil/local?localId=${local.id}`);
   };
 
   const handleComoLlegar = (e: any) => {
@@ -292,187 +329,188 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   const displayRating = getRating();
 
   return (
-    <React.Fragment>
-      <TouchableOpacity 
-        style={[
-          styles.card,
-          isDestacado && styles.cardDestacado
-        ]} 
-        onPress={handlePress} 
-        activeOpacity={0.9}
-      >
-        <View style={styles.imageContainer}>
-          {imagenPrincipal ? (
-            <Image
-              source={{ uri: imagenPrincipal }}
-              style={styles.image}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.image, styles.placeholderImage]}>
-              <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={48} color={colors.textSecondary} />
-            </View>
-          )}
-
-          {/* ✅ IMPROVED: Dimmed overlay for closed locals */}
-          {shouldDimImage() && (
-            <View style={styles.dimmedOverlay} />
-          )}
-
-          {/* ✅ IMPROVED: Lock icon for closed locals */}
-          {overlayIcon && (
-            <View style={styles.overlayIconContainer}>
-              <IconSymbol ios_icon_name={overlayIcon} android_material_icon_name="lock" size={64} color={getOverlayIconColor()} />
-            </View>
-          )}
-
-          <View style={styles.imageOverlay} />
-
-          {isDestacado && (
-            <View style={styles.badgeDestacadoHeader}>
-              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#92400E" />
-              <Text style={styles.badgeDestacadoHeaderText}>Destacado</Text>
-            </View>
-          )}
-
-          <View style={[
-            styles.badgeEstadoSuperior, 
-            { backgroundColor: getBadgeColor() + 'E6' },
-            isDestacado && styles.badgeEstadoSuperiorConDestacado
-          ]}>
-            <Text style={styles.badgeEstadoSuperiorText} numberOfLines={1}>{getBadgeText()}</Text>
+    <TouchableOpacity 
+      style={[
+        styles.card,
+        isDestacado && styles.cardDestacado
+      ]} 
+      onPress={handlePress} 
+      activeOpacity={0.9}
+    >
+      <View style={styles.imageContainer}>
+        {imagenPrincipal ? (
+          <Image
+            source={{ uri: imagenPrincipal }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.image, styles.placeholderImage]}>
+            <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={48} color={colors.textSecondary} />
           </View>
+        )}
 
-          {displayRating > 0 && (
-            <View style={styles.ratingBadge}>
-              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color="#FACC15" />
-              <Text style={styles.ratingBadgeText}>{displayRating.toFixed(1)}</Text>
-            </View>
-          )}
+        {/* ✅ IMPROVED: Dimmed overlay for closed locals */}
+        {shouldDimImage() && (
+          <View style={styles.dimmedOverlay} />
+        )}
 
-          {local.nuevo && (
-            <View style={styles.badgeNuevoContainer}>
-              <View style={styles.badgeNuevo}>
-                <Text style={styles.badgeNuevoText}>Nuevo</Text>
-              </View>
-            </View>
-          )}
+        {/* ✅ IMPROVED: Lock icon for closed locals */}
+        {overlayIcon && (
+          <View style={styles.overlayIconContainer}>
+            <IconSymbol ios_icon_name={overlayIcon} android_material_icon_name="lock" size={64} color={getOverlayIconColor()} />
+          </View>
+        )}
 
-          <TouchableOpacity
-            style={styles.favoritoButton}
-            onPress={handleToggleFavorite}
-            disabled={loadingFavorite}
-          >
-            {loadingFavorite ? (
-              <ActivityIndicator size="small" color={colors.headerText} />
-            ) : (
-              <IconSymbol
-                ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
-                android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
-                size={20}
-                color={localIsFavorite ? "#EF4444" : colors.headerText}
-              />
-            )}
-          </TouchableOpacity>
+        <View style={styles.imageOverlay} />
+
+        {isDestacado && (
+          <View style={styles.badgeDestacadoHeader}>
+            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#92400E" />
+            <Text style={styles.badgeDestacadoHeaderText}>Destacado</Text>
+          </View>
+        )}
+
+        <View style={[
+          styles.badgeEstadoSuperior, 
+          { backgroundColor: getBadgeColor() + 'E6' },
+          isDestacado && styles.badgeEstadoSuperiorConDestacado
+        ]}>
+          <Text style={styles.badgeEstadoSuperiorText} numberOfLines={1}>{getBadgeText()}</Text>
         </View>
 
-        <View style={styles.content}>
-          {activeEvent && (
-            <EventBanner evento={activeEvent} compact={true} />
+        {displayRating > 0 && (
+          <View style={styles.ratingBadge}>
+            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color="#FACC15" />
+            <Text style={styles.ratingBadgeText}>{displayRating.toFixed(1)}</Text>
+          </View>
+        )}
+
+        {local.nuevo && (
+          <View style={styles.badgeNuevoContainer}>
+            <View style={styles.badgeNuevo}>
+              <Text style={styles.badgeNuevoText}>Nuevo</Text>
+            </View>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={styles.favoritoButton}
+          onPress={handleToggleFavorite}
+          disabled={loadingFavorite}
+        >
+          {loadingFavorite ? (
+            <ActivityIndicator size="small" color={colors.headerText} />
+          ) : (
+            <IconSymbol
+              ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
+              android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
+              size={20}
+              color={localIsFavorite ? "#EF4444" : colors.headerText}
+            />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.content}>
+        {activeEvent && (
+          <EventBanner evento={activeEvent} compact={true} />
+        )}
+        
+        <View style={styles.header}>
+          <Text style={styles.nombre} numberOfLines={1}>
+            {local.nombre}
+          </Text>
+        </View>
+
+        {/* ✅ UPDATED: Check-in indicators with BarLive colors */}
+        {(isUserHere || followedUsersHere.length > 0) && (
+          <View style={styles.checkInIndicators}>
+            {isUserHere && (
+              <View style={styles.userHereBadge}>
+                <View style={styles.userHereBadgeContent}>
+                  <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
+                  <Text style={styles.userHereText}>Estás en este local</Text>
+                </View>
+                <TouchableOpacity 
+                  style={styles.checkOutButton}
+                  onPress={handleCheckOut}
+                  disabled={checkingOut}
+                >
+                  {checkingOut ? (
+                    <ActivityIndicator size="small" color={colors.textSecondary} />
+                  ) : (
+                    <React.Fragment>
+                      <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={14} color={colors.textSecondary} />
+                      <Text style={styles.checkOutButtonText}>Salir</Text>
+                    </React.Fragment>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+            {followedUsersHere.length > 0 && (
+              <View style={styles.friendsHereBadge}>
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={14} color={colors.secondary} />
+                <Text style={styles.friendsHereText}>
+                  {followedUsersHere.length} {followedUsersHere.length === 1 ? 'amigo está' : 'amigos están'} aquí
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={styles.infoRow}>
+          <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
+          <Text style={styles.infoText} numberOfLines={1}>
+            {local.direccion}
+          </Text>
+        </View>
+
+        {categoriasAMostrar.length > 0 && (
+          <View style={styles.categoriasContainer}>
+            {categoriasAMostrar.map((categoria, index) => (
+              <View key={index} style={styles.categoriaBadge}>
+                <Text style={styles.categoriaIcon}>{getCategoryIcon(categoria)}</Text>
+                <Text style={styles.categoriaText} numberOfLines={1}>{categoria}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.actionButtonsContainer}>
+          {!checkingSocialProfile && hasSocialProfile && (
+            <TouchableOpacity style={styles.perfilSocialButton} onPress={handlePerfilSocial}>
+              <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={16} color={colors.headerText} />
+              <Text style={styles.perfilSocialText} numberOfLines={1}>Perfil Social</Text>
+            </TouchableOpacity>
           )}
           
-          <View style={styles.header}>
-            <Text style={styles.nombre} numberOfLines={1}>
-              {local.nombre}
-            </Text>
-          </View>
-
-          {/* ✅ UPDATED: Check-in indicators with BarLive colors */}
-          {(isUserHere || followedUsersHere.length > 0) && (
-            <View style={styles.checkInIndicators}>
-              {isUserHere && (
-                <View style={styles.userHereBadge}>
-                  <View style={styles.userHereBadgeContent}>
-                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
-                    <Text style={styles.userHereText}>Estás en este local</Text>
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.checkOutButton}
-                    onPress={handleCheckOut}
-                    disabled={checkingOut}
-                  >
-                    {checkingOut ? (
-                      <ActivityIndicator size="small" color={colors.textSecondary} />
-                    ) : (
-                      <React.Fragment>
-                        <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={14} color={colors.textSecondary} />
-                        <Text style={styles.checkOutButtonText}>Salir</Text>
-                      </React.Fragment>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              )}
-              {followedUsersHere.length > 0 && (
-                <View style={styles.friendsHereBadge}>
-                  <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={14} color={colors.secondary} />
-                  <Text style={styles.friendsHereText}>
-                    {followedUsersHere.length} {followedUsersHere.length === 1 ? 'amigo está' : 'amigos están'} aquí
+          <TouchableOpacity 
+            style={[
+              styles.comoLlegarButton,
+              !hasSocialProfile && styles.comoLlegarButtonFull
+            ]} 
+            onPress={handleComoLlegar}
+          >
+            <View style={styles.comoLlegarContent}>
+              <View style={styles.comoLlegarLeft}>
+                <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={16} color={colors.headerText} />
+                <Text style={styles.comoLlegarText} numberOfLines={1}>Cómo llegar</Text>
+              </View>
+              
+              {local.distancia !== null && local.distancia !== undefined && (
+                <View style={styles.distanciaInButton}>
+                  <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={14} color={colors.headerText} />
+                  <Text style={styles.distanciaInButtonText} numberOfLines={1}>
+                    {local.distancia.toFixed(1)} km
                   </Text>
                 </View>
               )}
             </View>
-          )}
-
-          <View style={styles.infoRow}>
-            <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
-            <Text style={styles.infoText} numberOfLines={1}>
-              {local.direccion}
-            </Text>
-          </View>
-
-          {categoriasAMostrar.length > 0 && (
-            <View style={styles.categoriasContainer}>
-              {categoriasAMostrar.map((categoria, index) => (
-                <View key={index} style={styles.categoriaBadge}>
-                  <Text style={styles.categoriaIcon}>{getCategoryIcon(categoria)}</Text>
-                  <Text style={styles.categoriaText} numberOfLines={1}>{categoria}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity 
-              style={styles.comoLlegarButton} 
-              onPress={handleComoLlegar}
-            >
-              <View style={styles.comoLlegarContent}>
-                <View style={styles.comoLlegarLeft}>
-                  <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={16} color={colors.headerText} />
-                  <Text style={styles.comoLlegarText} numberOfLines={1}>Cómo llegar</Text>
-                </View>
-                
-                {local.distancia !== null && local.distancia !== undefined && (
-                  <View style={styles.distanciaInButton}>
-                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={14} color={colors.headerText} />
-                    <Text style={styles.distanciaInButtonText} numberOfLines={1}>
-                      {local.distancia.toFixed(1)} km
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
-
-      {/* ✅ NEW: Modal opens on single click */}
-      <LocalDetailsModal
-        visible={modalVisible}
-        localId={local.id}
-        onClose={() => setModalVisible(false)}
-      />
-    </React.Fragment>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -705,6 +743,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  perfilSocialButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.secondary + '99',
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
+    minWidth: 0,
+  },
+  perfilSocialText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.headerText,
+    flexShrink: 1,
+  },
   comoLlegarButton: {
     flex: 1,
     backgroundColor: colors.primary + '99',
@@ -712,6 +768,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     minWidth: 0,
+  },
+  comoLlegarButtonFull: {
+    flex: 1,
   },
   comoLlegarContent: {
     flexDirection: 'row',
