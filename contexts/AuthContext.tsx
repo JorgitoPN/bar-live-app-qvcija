@@ -201,7 +201,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
         
         // ✅ CRITICAL FIX: Wait a bit to ensure session is fully persisted
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // ✅ CRITICAL FIX: Verify session is still valid after wait
+        const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+        
+        if (!verifiedSession) {
+          console.error('[AuthContext] ❌ Session lost after wait');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('[AuthContext] ✅ Session verified after wait');
         
         // Load user profile
         const { user: userData, error: userError } = await getCurrentUser();

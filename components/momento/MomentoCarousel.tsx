@@ -68,6 +68,32 @@ export default function MomentoCarousel() {
       console.log('[MomentoCarousel] 🔄 Loading momentos for user:', user.id);
       console.log('[MomentoCarousel] 🔄 Active profile:', { activeProfileType, activeProfileId });
 
+      // ✅ CRITICAL FIX: Get list of followed users and locals
+      const { data: followedData, error: followedError } = await supabase
+        .from('seguidores')
+        .select('seguido_id, local_id')
+        .eq('seguidor_id', user.id);
+
+      if (followedError) {
+        console.error('[MomentoCarousel] ❌ Error fetching followed users:', followedError);
+      }
+
+      const followedUserIds = new Set(
+        followedData
+          ?.filter(f => f.seguido_id)
+          .map(f => f.seguido_id) || []
+      );
+      
+      const followedLocalIds = new Set(
+        followedData
+          ?.filter(f => f.local_id)
+          .map(f => f.local_id) || []
+      );
+
+      console.log('[MomentoCarousel] 👥 Following users:', followedUserIds.size);
+      console.log('[MomentoCarousel] 🏢 Following locals:', followedLocalIds.size);
+
+      // ✅ CRITICAL FIX: Only fetch momentos from followed users/locals OR own momentos
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
         .select(`
@@ -100,9 +126,39 @@ export default function MomentoCarousel() {
         return;
       }
 
-      console.log('[MomentoCarousel] ✅ Found momentos:', momentosData.length);
+      console.log('[MomentoCarousel] ✅ Found momentos (before filtering):', momentosData.length);
 
-      const momentoIds = momentosData.map(m => m.id);
+      // ✅ CRITICAL FIX: Filter momentos to only show from followed users/locals
+      const filteredMomentos = momentosData.filter((momento: any) => {
+        // Always show own momentos
+        const isInteractingAsUser = activeProfileType === 'usuario' || activeProfileType === 'cliente';
+        const isOwnUserMomento = isInteractingAsUser && 
+                                 momento.tipo === 'usuario' && 
+                                 momento.autor_id === user.id;
+        const isOwnLocalMomento = activeProfileType === 'local' && 
+                                  momento.tipo === 'local' && 
+                                  momento.local_id === activeProfileId;
+        
+        if (isOwnUserMomento || isOwnLocalMomento) {
+          return true;
+        }
+
+        // Show momentos from followed users
+        if (momento.tipo === 'usuario' && followedUserIds.has(momento.autor_id)) {
+          return true;
+        }
+
+        // Show momentos from followed locals
+        if (momento.tipo === 'local' && momento.local_id && followedLocalIds.has(momento.local_id)) {
+          return true;
+        }
+
+        return false;
+      });
+
+      console.log('[MomentoCarousel] ✅ Filtered momentos (after following filter):', filteredMomentos.length);
+
+      const momentoIds = filteredMomentos.map(m => m.id);
       const { data: viewsData } = await supabase
         .from('momento_views')
         .select('momento_id')
@@ -114,7 +170,7 @@ export default function MomentoCarousel() {
       const authorsMap = new Map<string, MomentoAuthor>();
       let currentUserMomento: MomentoAuthor | null = null;
 
-      momentosData.forEach((momento: any) => {
+      filteredMomentos.forEach((momento: any) => {
         const authorKey = momento.tipo === 'local' 
           ? `local-${momento.local_id}` 
           : `user-${momento.autor_id}`;

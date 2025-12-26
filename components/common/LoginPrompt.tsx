@@ -50,7 +50,7 @@ export default function LoginPrompt({
       
       <TouchableOpacity
         style={styles.loginButton}
-        onPress={() => router.push('/auth/login')}
+        onPress={() => router.push('/auth/login-v6')}
       >
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -62,7 +62,7 @@ export default function LoginPrompt({
       
       <TouchableOpacity
         style={styles.registerButton}
-        onPress={() => router.push('/auth/registro-email')}
+        onPress={() => router.push('/auth/registro-v6')}
       >
         <Text style={styles.registerButtonText}>
           ¿No tienes cuenta? <Text style={styles.registerButtonTextBold}>Regístrate</Text>

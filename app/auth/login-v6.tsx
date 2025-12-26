@@ -211,14 +211,30 @@ export default function LoginV6Screen() {
         return;
       }
 
-      if (!authData.user) {
+      if (!authData.user || !authData.session) {
         Alert.alert('Error', 'No se pudo iniciar sesión');
         setLoading(false);
         return;
       }
 
       console.log('[Login v6.3 - Token] ✅ Login successful:', authData.user.id);
+      console.log('[Login v6.3 - Token] ✅ Session obtained:', authData.session.access_token ? 'Yes' : 'No');
       
+      // ✅ CRITICAL FIX: Wait for session to be fully persisted before navigating
+      console.log('[Login v6.3 - Token] ⏳ Waiting for session to persist...');
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Verify session is still valid
+      const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+      
+      if (!verifiedSession) {
+        console.error('[Login v6.3 - Token] ❌ Session lost after login');
+        Alert.alert('Error', 'Hubo un problema con la sesión. Por favor, intenta nuevamente.');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('[Login v6.3 - Token] ✅ Session verified and persisted');
       console.log('[Login v6.3 - Token] 🚀 Redirigiendo a lista de locales...');
       router.replace('/(tabs)/explorar');
     } catch (error: any) {
