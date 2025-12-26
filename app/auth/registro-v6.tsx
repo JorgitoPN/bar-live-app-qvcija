@@ -186,7 +186,7 @@ export default function RegistroV6Screen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[Registro v6.4 - Token] 📝 Registrando nuevo usuario:', normalizedEmail);
+      console.log('[Registro v6.5 - Token Only] 📝 Registrando nuevo usuario:', normalizedEmail);
 
       // Check if user already exists
       const { data: existingUser, error: checkError } = await supabase
@@ -196,7 +196,7 @@ export default function RegistroV6Screen() {
         .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') {
-        console.error('[Registro v6.4 - Token] Error checking email:', checkError);
+        console.error('[Registro v6.5 - Token Only] Error checking email:', checkError);
         Alert.alert('Error', 'No se pudo verificar el correo. Por favor, intenta nuevamente.');
         setLoading(false);
         return;
@@ -249,7 +249,7 @@ export default function RegistroV6Screen() {
                       });
                     }
                   } catch (err) {
-                    console.error('[Registro v6.4 - Token] Error resending token:', err);
+                    console.error('[Registro v6.5 - Token Only] Error resending token:', err);
                     Alert.alert('Error', 'Ocurrió un error al reenviar el código');
                   }
                 },
@@ -263,11 +263,12 @@ export default function RegistroV6Screen() {
       }
 
       // Generate unique username
-      console.log('[Registro v6.4 - Token] 🔤 Generando nombre de usuario...');
+      console.log('[Registro v6.5 - Token Only] 🔤 Generando nombre de usuario...');
       const generatedUsername = await generateUsername(nombre.trim());
-      console.log('[Registro v6.4 - Token] ✅ Nombre de usuario generado:', generatedUsername);
+      console.log('[Registro v6.5 - Token Only] ✅ Nombre de usuario generado:', generatedUsername);
 
-      // Create auth user (without email confirmation requirement)
+      // Create auth user WITHOUT triggering email confirmation
+      // We use emailRedirectTo with a dummy value to prevent Supabase from sending the default email
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,
         password: password,
@@ -278,12 +279,13 @@ export default function RegistroV6Screen() {
             provider: 'barlive',
             email_verified: false,
           },
-          // Don't use emailRedirectTo - we'll handle verification with tokens
+          // IMPORTANT: Don't include emailRedirectTo to prevent default Supabase email
+          // The email confirmation will be handled by our custom token system
         },
       });
 
       if (authError) {
-        console.error('[Registro v6.4 - Token] ❌ Error creating auth user:', authError);
+        console.error('[Registro v6.5 - Token Only] ❌ Error creating auth user:', authError);
         
         if (authError.message.includes('already registered')) {
           Alert.alert('Error', 'Este correo ya está registrado. Por favor, inicia sesión.');
@@ -301,7 +303,7 @@ export default function RegistroV6Screen() {
         return;
       }
 
-      console.log('[Registro v6.4 - Token] ✅ Usuario creado exitosamente:', authData.user.id);
+      console.log('[Registro v6.5 - Token Only] ✅ Usuario creado exitosamente:', authData.user.id);
 
       // Update user profile with username
       const { error: updateError } = await supabase
@@ -310,14 +312,14 @@ export default function RegistroV6Screen() {
         .eq('id', authData.user.id);
 
       if (updateError) {
-        console.error('[Registro v6.4 - Token] ⚠️ Error updating username:', updateError);
+        console.error('[Registro v6.5 - Token Only] ⚠️ Error updating username:', updateError);
         // Don't fail registration if username update fails
       } else {
-        console.log('[Registro v6.4 - Token] ✅ Username actualizado en la base de datos');
+        console.log('[Registro v6.5 - Token Only] ✅ Username actualizado en la base de datos');
       }
 
-      // Send verification token
-      console.log('[Registro v6.4 - Token] 📧 Enviando token de verificación...');
+      // Send verification token (our custom email)
+      console.log('[Registro v6.5 - Token Only] 📧 Enviando token de verificación...');
       
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
       
@@ -332,7 +334,7 @@ export default function RegistroV6Screen() {
       const tokenResult = await tokenResponse.json();
 
       if (!tokenResponse.ok || tokenResult.error) {
-        console.error('[Registro v6.4 - Token] ⚠️ Error enviando token:', tokenResult);
+        console.error('[Registro v6.5 - Token Only] ⚠️ Error enviando token:', tokenResult);
         // Don't fail registration if email fails - user can request resend
         Alert.alert(
           'Cuenta creada',
@@ -350,7 +352,7 @@ export default function RegistroV6Screen() {
           ]
         );
       } else {
-        console.log('[Registro v6.4 - Token] ✅ Token enviado exitosamente');
+        console.log('[Registro v6.5 - Token Only] ✅ Token enviado exitosamente');
         
         // Show success message and navigate to token verification screen
         Alert.alert(
@@ -370,7 +372,7 @@ export default function RegistroV6Screen() {
         );
       }
     } catch (error: any) {
-      console.error('[Registro v6.4 - Token] ❌ Error in handleRegister:', error);
+      console.error('[Registro v6.5 - Token Only] ❌ Error in handleRegister:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
