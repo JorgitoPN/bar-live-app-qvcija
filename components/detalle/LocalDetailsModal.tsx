@@ -27,6 +27,7 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { calcularDistancia } from '@/utils/locationUtils';
+import { trackProfileView } from '@/utils/activityTracker';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -85,12 +86,13 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v3.0 - FIXED DISTANCE DISPLAY ON ANDROID
+ * ✅ LOCAL DETAILS MODAL v4.0 - SOCIAL PROFILE BUTTON ADDED
  * 
  * Changes:
  * - ✅ Added user location tracking
  * - ✅ Calculate distance to local
  * - ✅ Display distance next to "Cómo llegar" button on Android
+ * - ✅ Added social profile button inside modal
  */
 
 export default function LocalDetailsModal({
@@ -106,10 +108,12 @@ export default function LocalDetailsModal({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [distance, setDistance] = useState<string | null>(null);
+  const [hasSocialProfile, setHasSocialProfile] = useState(false);
+  const [checkingSocialProfile, setCheckingSocialProfile] = useState(true);
 
   const localIsFavorite = localId ? isFavorite(localId) : false;
 
-  // ✅ CRITICAL FIX v3.0: Load user location for distance calculation
+  // ✅ Load user location for distance calculation
   useEffect(() => {
     (async () => {
       try {
@@ -143,7 +147,7 @@ export default function LocalDetailsModal({
     })();
   }, []);
 
-  // ✅ CRITICAL FIX v3.0: Calculate distance when location and local data are available
+  // ✅ Calculate distance when location and local data are available
   useEffect(() => {
     if (userLocation && local?.latitud && local?.longitud) {
       const distKm = calcularDistancia(
@@ -161,6 +165,42 @@ export default function LocalDetailsModal({
       console.log('[LocalDetailsModal] 📏 Distance calculated:', dist);
     }
   }, [userLocation, local]);
+
+  // ✅ NEW: Check if local has social profile
+  useEffect(() => {
+    const checkSocialProfile = async () => {
+      if (!localId) {
+        setCheckingSocialProfile(false);
+        return;
+      }
+
+      try {
+        const { data: posts, error: postsError } = await supabase
+          .from('posts')
+          .select('id')
+          .eq('tipo', 'local')
+          .eq('local_id', localId)
+          .limit(1);
+
+        if (postsError) throw postsError;
+
+        if (posts && posts.length > 0) {
+          setHasSocialProfile(true);
+        } else {
+          setHasSocialProfile(false);
+        }
+      } catch (error) {
+        console.error('[LocalDetailsModal] Error checking social profile:', error);
+        setHasSocialProfile(false);
+      } finally {
+        setCheckingSocialProfile(false);
+      }
+    };
+
+    if (visible) {
+      checkSocialProfile();
+    }
+  }, [visible, localId]);
 
   const loadLocalData = useCallback(async () => {
     try {
@@ -219,6 +259,15 @@ export default function LocalDetailsModal({
     onClose();
     setTimeout(() => {
       router.push({ pathname: '/detalle/local', params: { id: localId } });
+    }, 300);
+  };
+
+  // ✅ NEW: Handle social profile navigation
+  const handlePerfilSocial = () => {
+    trackProfileView(localId, user?.id, 'social');
+    onClose();
+    setTimeout(() => {
+      router.push(`/perfil/local?localId=${localId}`);
     }, 300);
   };
 
@@ -379,7 +428,6 @@ export default function LocalDetailsModal({
                     </View>
                   )}
 
-                  {/* ✅ CRITICAL FIX v3.0: Display distance if available */}
                   {distance && (
                     <View style={styles.distanceContainer}>
                       <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={16} color={colors.primary} />
@@ -409,6 +457,21 @@ export default function LocalDetailsModal({
                   </TouchableOpacity>
                   
                   <View style={styles.actionsRow}>
+                    {/* ✅ NEW: Social profile button */}
+                    {!checkingSocialProfile && hasSocialProfile && (
+                      <TouchableOpacity style={styles.actionBtn} onPress={handlePerfilSocial}>
+                        <LinearGradient
+                          colors={[colors.secondary, '#9333EA']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.actionBtnGradient}
+                        >
+                          <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color="#fff" />
+                          <Text style={styles.actionBtnText}>Perfil Social</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    )}
+
                     {local.telefono && (
                       <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
                         <LinearGradient
@@ -434,7 +497,6 @@ export default function LocalDetailsModal({
                           <View style={styles.actionBtnContent}>
                             <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
                             <Text style={styles.actionBtnText}>Cómo llegar</Text>
-                            {/* ✅ CRITICAL FIX v3.0: Show distance on Android */}
                             {distance && Platform.OS === 'android' && (
                               <Text style={styles.actionBtnDistance}>({distance})</Text>
                             )}
@@ -712,10 +774,12 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
   actionBtn: {
     flex: 1,
+    minWidth: '45%',
     borderRadius: 12,
     overflow: 'hidden',
   },
