@@ -11,6 +11,7 @@ import {
   Alert,
   Modal,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -39,6 +40,7 @@ export default function ConfiguracionScreen() {
   const [idioma, setIdioma] = useState('es');
   const [cacheSizeMB, setCacheSizeMB] = useState(0);
   const [showIdiomaModal, setShowIdiomaModal] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // ✅ Check if user is authorized admin
   const userIsAdmin = user ? isAdminUser(user) : false;
@@ -135,35 +137,98 @@ export default function ConfiguracionScreen() {
   const handleEliminarCuenta = () => {
     Alert.alert(
       'Eliminar Cuenta',
-      '¿Estás seguro? Esta acción no se puede deshacer. Se eliminarán todos tus datos permanentemente.',
+      '⚠️ ADVERTENCIA: Esta acción es PERMANENTE e IRREVERSIBLE.\n\n' +
+      'Se eliminarán:\n' +
+      '• Tu perfil y toda tu información personal\n' +
+      '• Todas tus publicaciones, comentarios y me gusta\n' +
+      '• Todos tus mensajes y conversaciones\n' +
+      '• Tu historial de check-ins y actividad\n' +
+      '• Todas tus suscripciones y configuraciones\n\n' +
+      'Tu correo electrónico quedará liberado y podrás crear una nueva cuenta con él en el futuro.\n\n' +
+      '¿Estás completamente seguro de que deseas eliminar tu cuenta?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Eliminar',
+          text: 'Eliminar Permanentemente',
           style: 'destructive',
           onPress: async () => {
-            try {
-              if (!user) return;
-
-              const { error } = await supabase
-                .from('usuarios')
-                .update({ activo: false, fecha_eliminacion: new Date().toISOString() })
-                .eq('id', user.id);
-
-              if (error) throw error;
-
-              await signOut();
-              router.replace('/(tabs)/explorar');
-              
-              Alert.alert('Cuenta eliminada', 'Tu cuenta ha sido eliminada exitosamente');
-            } catch (error) {
-              console.error('[Configuracion] Error eliminando cuenta:', error);
-              Alert.alert('Error', 'No se pudo eliminar la cuenta');
-            }
+            // Second confirmation
+            Alert.alert(
+              'Confirmación Final',
+              'Esta es tu última oportunidad para cancelar. ¿Realmente deseas eliminar tu cuenta de forma permanente?',
+              [
+                { text: 'No, Cancelar', style: 'cancel' },
+                {
+                  text: 'Sí, Eliminar',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await deleteAccount();
+                  },
+                },
+              ]
+            );
           },
         },
       ]
     );
+  };
+
+  const deleteAccount = async () => {
+    try {
+      if (!user) return;
+
+      setDeletingAccount(true);
+      console.log('[Configuracion] 🗑️ Iniciando eliminación de cuenta...');
+
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No hay sesión activa');
+      }
+
+      // Call the Edge Function to delete the account
+      const { data, error } = await supabase.functions.invoke('delete-user-account', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('[Configuracion] ❌ Error eliminando cuenta:', error);
+        throw error;
+      }
+
+      console.log('[Configuracion] ✅ Cuenta eliminada exitosamente');
+
+      // Sign out the user
+      await signOut();
+
+      // Clear all local data
+      await AsyncStorage.clear();
+
+      // Show success message and redirect
+      Alert.alert(
+        'Cuenta Eliminada',
+        'Tu cuenta ha sido eliminada permanentemente. Lamentamos verte partir.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              router.replace('/(tabs)/explorar');
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('[Configuracion] ❌ Error eliminando cuenta:', error);
+      Alert.alert(
+        'Error',
+        'No se pudo eliminar la cuenta. Por favor, intenta nuevamente o contacta con soporte si el problema persiste.'
+      );
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   const handleCambiarContrasena = () => {
@@ -597,8 +662,19 @@ export default function ConfiguracionScreen() {
             <Text style={styles.dangerButtonText}>Cerrar Sesión</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.dangerButton} onPress={handleEliminarCuenta}>
-            <Text style={styles.dangerButtonText}>Eliminar Cuenta</Text>
+          <TouchableOpacity 
+            style={[styles.dangerButton, deletingAccount && styles.dangerButtonDisabled]} 
+            onPress={handleEliminarCuenta}
+            disabled={deletingAccount}
+          >
+            {deletingAccount ? (
+              <View style={styles.deletingContainer}>
+                <ActivityIndicator color="#DC2626" size="small" />
+                <Text style={[styles.dangerButtonText, { marginLeft: 8 }]}>Eliminando cuenta...</Text>
+              </View>
+            ) : (
+              <Text style={styles.dangerButtonText}>Eliminar Cuenta</Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -770,10 +846,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
     alignItems: 'center',
   },
+  dangerButtonDisabled: {
+    opacity: 0.6,
+  },
   dangerButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#DC2626',
+  },
+  deletingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   modalOverlay: {
     flex: 1,
