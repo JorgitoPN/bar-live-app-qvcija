@@ -1,6 +1,6 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v31.0
+ * TAB NAVIGATION BAR - VERSION v33.0
  * 
  * Clean tab navigation bar with Instagram-style filled/outlined icons.
  * Active icons are filled with white, inactive icons are outlined with white.
@@ -12,8 +12,9 @@
  * - Android-specific optimizations (native touch feedback)
  * - Native ripple effect on Android
  * - Smooth animations
- * - ✅ FIXED v31.0: MAXIMUM z-index and elevation for guaranteed visibility
- * - ✅ FIXED v31.0: Tab bar ALWAYS visible above all content
+ * - ✅ FIXED v33.0: MAXIMUM z-index and elevation for guaranteed visibility
+ * - ✅ FIXED v33.0: Tab bar ALWAYS visible above all content
+ * - ✅ FIXED v33.0: Profile avatar properly visible on Android
  */
 
 import React from 'react';
@@ -54,14 +55,14 @@ export function TabNavigationBar({
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
     console.log(
-      `🔍 [TabNav v31.0] Checking tab "${tab.id}": ` +
+      `🔍 [TabNav v33.0] Checking tab "${tab.id}": ` +
       `route="${cleanRoute}", path="${cleanPath}"`
     );
 
     // Special case: gestion tab is active when viewing local profiles
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `✅ [TabNav v31.0] Tab "${tab.id}" is ACTIVE ` +
+        `✅ [TabNav v33.0] Tab "${tab.id}" is ACTIVE ` +
         `(special case: perfil/local)`
       );
       return true;
@@ -70,7 +71,7 @@ export function TabNavigationBar({
     // Special case: perfil tab is NOT active when viewing local profiles
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `❌ [TabNav v31.0] Tab "${tab.id}" is INACTIVE ` +
+        `❌ [TabNav v33.0] Tab "${tab.id}" is INACTIVE ` +
         `(special case: perfil/local)`
       );
       return false;
@@ -87,7 +88,7 @@ export function TabNavigationBar({
 
       if (mainRouteSegment === mainPathSegment) {
         console.log(
-          `✅ [TabNav v31.0] Tab "${tab.id}" is ACTIVE ` +
+          `✅ [TabNav v33.0] Tab "${tab.id}" is ACTIVE ` +
           `(segment match: "${mainRouteSegment}")`
         );
         return true;
@@ -96,24 +97,24 @@ export function TabNavigationBar({
 
     // Fallback: check if path starts with route
     if (cleanPath.startsWith(cleanRoute)) {
-      console.log(`✅ [TabNav v31.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
+      console.log(`✅ [TabNav v33.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
       return true;
     }
 
     // Check exact match
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
-      console.log(`✅ [TabNav v31.0] Tab "${tab.id}" is ACTIVE (exact match)`);
+      console.log(`✅ [TabNav v33.0] Tab "${tab.id}" is ACTIVE (exact match)`);
       return true;
     }
 
-    console.log(`❌ [TabNav v31.0] Tab "${tab.id}" is INACTIVE`);
+    console.log(`❌ [TabNav v33.0] Tab "${tab.id}" is INACTIVE`);
     return false;
   };
 
   const handleTabPress = async (tab: TabDefinition) => {
-    console.log(`🔘 [TabNav v31.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
+    console.log(`🔘 [TabNav v33.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
     
-    // ✅ CRITICAL FIX v31.0: Provide native haptic feedback on Android
+    // ✅ CRITICAL FIX v33.0: Provide native haptic feedback on Android
     await provideHapticFeedback('light');
     
     if (tab.id === 'perfil' && onProfilePress) {
@@ -128,11 +129,11 @@ export function TabNavigationBar({
     const isCenter = tab.id === 'explorar';
 
     console.log(
-      `🎨 [TabNav v31.0] Rendering tab "${tab.id}": ` +
-      `isActive=${isActive}, isCenter=${isCenter}`
+      `🎨 [TabNav v33.0] Rendering tab "${tab.id}": ` +
+      `isActive=${isActive}, isCenter=${isCenter}, avatar=${activeProfileAvatar?.substring(0, 30)}`
     );
 
-    // ✅ CRITICAL FIX v31.0: Use TouchableNativeFeedback on Android for native ripple effect
+    // ✅ CRITICAL FIX v33.0: Use TouchableNativeFeedback on Android for native ripple effect
     const TouchableComponent = Platform.OS === 'android' ? TouchableNativeFeedback : TouchableOpacity;
     const touchableProps = Platform.OS === 'android' 
       ? {
@@ -187,6 +188,14 @@ export function TabNavigationBar({
                   source={{ uri: activeProfileAvatar }}
                   style={styles.avatar}
                   resizeMode="cover"
+                  // ✅ ANDROID FIX v33.0: Force cache for better loading
+                  {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
+                  onError={(error) => {
+                    console.error('[TabNav v33.0] ❌ Avatar failed to load:', activeProfileAvatar, error.nativeEvent?.error);
+                  }}
+                  onLoad={() => {
+                    console.log('[TabNav v33.0] ✅ Avatar loaded successfully');
+                  }}
                 />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
@@ -259,7 +268,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 80,
     backgroundColor: 'transparent',
-    // ✅ CRITICAL FIX v31.0: MAXIMUM z-index and elevation for guaranteed visibility
+    // ✅ CRITICAL FIX v33.0: MAXIMUM z-index and elevation for guaranteed visibility
     zIndex: 999999,
     elevation: 999,
   },
@@ -326,6 +335,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   avatarContainerActive: {
     borderWidth: 2.5,

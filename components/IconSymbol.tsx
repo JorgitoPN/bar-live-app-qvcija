@@ -13,7 +13,7 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 // ✅ COMPREHENSIVE SF Symbol to Ionicons mapping
-// VERSION v32.0: COMPLETE ANDROID ICON FIX - ALL QUESTION MARKS ELIMINATED
+// VERSION v33.0: COMPLETE ANDROID ICON FIX - ALL QUESTION MARKS ELIMINATED
 // ✅ FIXED: Comprehensive Material Design icon mappings
 // ✅ FIXED: All common icons properly mapped
 // ✅ FIXED: Better fallback system
@@ -295,7 +295,7 @@ const MAPPING = {
   "text.aligncenter": "text",
   "text.alignright": "text",
   
-  // ✅ CRITICAL FIX v32.0: Complete Material Design icon mappings
+  // ✅ CRITICAL FIX v33.0: Complete Material Design icon mappings
   // These are ALL the icons that were showing as question marks
   "expand_more": "chevron-down",
   "expand_less": "chevron-up",
@@ -415,8 +415,8 @@ const MAPPING = {
   "add_circle": "add-circle",
   "lock": "lock-closed",
   "refresh": "refresh",
-  "arrow_undo": "arrow-undo",
-  "arrow_redo": "arrow-redo",
+  "rotate_left": "arrow-undo",
+  "rotate_right": "arrow-redo",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -432,7 +432,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
  * 
- * VERSION v32.0: COMPLETE ANDROID ICON FIX - ALL QUESTION MARKS ELIMINATED
+ * VERSION v33.0: COMPLETE ANDROID ICON FIX - ALL QUESTION MARKS ELIMINATED
  * ✅ FIXED: Comprehensive Material Design icon mappings
  * ✅ FIXED: All common icons properly mapped
  * ✅ FIXED: Better fallback system (uses generic icon instead of question mark)
@@ -483,12 +483,12 @@ export function IconSymbol({
     }
   }
   
-  // ✅ CRITICAL FIX v32.0: Better fallback - use a generic icon instead of question mark
+  // ✅ CRITICAL FIX v33.0: Better fallback - use a generic icon instead of question mark
   if (!iconName) {
     const sfSymbolName = name || ios_icon_name || android_material_icon_name;
     if (Platform.OS === 'android') {
       console.warn(
-        `⚠️ [IconSymbol v32.0 Android] No icon mapping found for "${sfSymbolName}". ` +
+        `⚠️ [IconSymbol v33.0 Android] No icon mapping found for "${sfSymbolName}". ` +
         `Using fallback icon. Please add mapping to MAPPING object in components/IconSymbol.tsx`
       );
     }

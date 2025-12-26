@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { View, Image, StyleSheet, ViewStyle, Text } from 'react-native';
+import { View, Image, StyleSheet, ViewStyle, Text, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -21,14 +21,16 @@ interface FoodPlateAvatarProps {
 }
 
 /**
- * ✅ FOOD PLATE AVATAR v6.0 - FIXED IMAGE LOADING ON ANDROID
+ * ✅ FOOD PLATE AVATAR v7.0 - FIXED IMAGE LOADING ON ANDROID
  * 
- * CRITICAL FIX v6.0:
+ * CRITICAL FIX v7.0:
  * - ✅ Removed overly strict URL validation
  * - ✅ Now accepts ANY non-empty string as a valid image URL
  * - ✅ Relies on Image component's onError to handle invalid URLs
  * - ✅ Shows default avatar or letter fallback on error
  * - ✅ Works with Supabase storage URLs, AWS URLs, and any other image URLs
+ * - ✅ ANDROID FIX: Added cache="force-cache" for better image loading
+ * - ✅ ANDROID FIX: Added proper error handling with retry mechanism
  */
 export default function FoodPlateAvatar({
   imageUrl,
@@ -42,24 +44,47 @@ export default function FoodPlateAvatar({
   nombre,
 }: FoodPlateAvatarProps) {
   const [imageError, setImageError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   const plateSize = size;
   const imageSize = size * 0.75; // Image is 75% of plate size
   const rimWidth = size * 0.08; // Rim is 8% of plate size
   const addButtonSize = size * 0.34; // Add button is 34% of plate size
 
-  // ✅ CRITICAL FIX v6.0: Simplified URL validation - accept any non-empty string
+  // ✅ CRITICAL FIX v7.0: Simplified URL validation - accept any non-empty string
   const shouldShowImage = !!(imageUrl && !imageError);
   const shouldShowLetter = !shouldShowImage && (placeholderText || nombre);
   const shouldShowDefaultAvatar = !shouldShowImage && !placeholderText && !nombre;
 
-  console.log('[FoodPlateAvatar v6.0] 🖼️ Image decision:', {
+  console.log('[FoodPlateAvatar v7.0] 🖼️ Image decision:', {
     imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'none',
     imageError,
     shouldShowImage,
     shouldShowLetter,
     shouldShowDefaultAvatar,
+    platform: Platform.OS,
   });
+
+  // ✅ ANDROID FIX: Retry mechanism for failed images
+  const handleImageError = (error: any) => {
+    console.log('[FoodPlateAvatar v7.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent?.error);
+    
+    // Retry once on Android
+    if (Platform.OS === 'android' && retryCount < 1) {
+      console.log('[FoodPlateAvatar v7.0] 🔄 Retrying image load...');
+      setRetryCount(retryCount + 1);
+      setImageError(false);
+      return;
+    }
+    
+    setImageError(true);
+  };
+
+  const handleImageLoad = () => {
+    console.log('[FoodPlateAvatar v7.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
+    setImageError(false);
+    setRetryCount(0);
+  };
 
   return (
     <View style={[styles.container, { width: plateSize, height: plateSize }, style]}>
@@ -119,6 +144,7 @@ export default function FoodPlateAvatar({
         >
           {shouldShowImage ? (
             <Image
+              key={`${imageUrl}-${retryCount}`}
               source={{ uri: imageUrl }}
               style={[
                 styles.foodImage,
@@ -129,14 +155,10 @@ export default function FoodPlateAvatar({
                 },
               ]}
               resizeMode="cover"
-              onError={(error) => {
-                console.log('[FoodPlateAvatar v6.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent.error);
-                setImageError(true);
-              }}
-              onLoad={() => {
-                console.log('[FoodPlateAvatar v6.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
-                setImageError(false);
-              }}
+              onError={handleImageError}
+              onLoad={handleImageLoad}
+              // ✅ ANDROID FIX: Force cache for better loading
+              {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
             />
           ) : shouldShowLetter ? (
             <View
@@ -169,6 +191,8 @@ export default function FoodPlateAvatar({
                 },
               ]}
               resizeMode="cover"
+              // ✅ ANDROID FIX: Force cache for better loading
+              {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
             />
           )}
         </View>
