@@ -19,7 +19,7 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ VERIFICAR CUENTA TOKEN v2.2 - IMPROVED ERROR HANDLING
+ * ✅ VERIFICAR CUENTA TOKEN v2.3 - IMPROVED ERROR HANDLING & SQL FUNCTION
  * 
  * Pantalla para verificar la cuenta del usuario mediante un código de 6 dígitos
  * enviado por correo electrónico. Similar al flujo de recuperación de contraseña.
@@ -31,9 +31,10 @@ import { supabase } from '@/utils/supabase';
  * 4. Se valida el token y se verifica la cuenta
  * 5. Usuario puede iniciar sesión
  * 
- * CAMBIOS v2.2:
- * - Mejorado el manejo de errores con más logging
- * - Añadido método alternativo de verificación en el edge function
+ * CAMBIOS v2.3:
+ * - Añadido función SQL verify_user_email para actualizar auth.users directamente
+ * - Mejorado el manejo de errores con mensajes más específicos
+ * - Añadido fallback a Admin API si la función SQL falla
  * - Mejores mensajes de error para el usuario
  */
 
@@ -168,20 +169,38 @@ export default function VerificarCuentaTokenScreen() {
         
         const errorMessage = verifyResult.error || 'No se pudo verificar tu cuenta. Por favor, intenta nuevamente.';
         
-        Alert.alert(
-          '❌ Error al verificar cuenta',
-          errorMessage,
-          [
+        // Check if it's a specific error that we can provide better guidance for
+        let alertTitle = '❌ Error al verificar cuenta';
+        let alertMessage = errorMessage;
+        let alertButtons: any[] = [
+          {
+            text: 'Reintentar',
+            style: 'cancel',
+          },
+        ];
+
+        // If error mentions "updating user" or "contacta con soporte", provide support contact
+        if (errorMessage.includes('updating user') || errorMessage.includes('contacta con soporte')) {
+          alertTitle = '⚠️ Error técnico';
+          alertMessage = 'Hubo un problema técnico al verificar tu cuenta. Por favor, contacta con soporte técnico en soporte@barlive.es o intenta nuevamente más tarde.';
+          alertButtons = [
             {
               text: 'Solicitar nuevo código',
               onPress: handleResendToken,
             },
             {
-              text: 'Reintentar',
+              text: 'Cerrar',
               style: 'cancel',
             },
-          ]
-        );
+          ];
+        } else {
+          alertButtons.unshift({
+            text: 'Solicitar nuevo código',
+            onPress: handleResendToken,
+          });
+        }
+        
+        Alert.alert(alertTitle, alertMessage, alertButtons);
         return;
       }
 
