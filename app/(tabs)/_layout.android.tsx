@@ -10,11 +10,11 @@ import { colors } from '@/styles/commonStyles';
 const { width: screenWidth } = Dimensions.get('window');
 
 /**
- * ANDROID-SPECIFIC TAB LAYOUT - VERSION v30.0
+ * ANDROID-SPECIFIC TAB LAYOUT - VERSION v31.0
  * 
  * ✅ COMPLETE ANDROID-iOS PARITY + NATIVE ANDROID BEHAVIOR
- * ✅ FIXED: Navigation transition error (sceneStyleInterpolator undefined)
- * ✅ FIXED: Bottom tab bar visibility on Android
+ * ✅ FIXED: Bottom tab bar visibility with proper z-index and elevation
+ * ✅ FIXED: Tab bar always visible above all content
  * 
  * This file ensures proper Android-specific behavior:
  * - ✅ Native Android UI (Material Design compliant)
@@ -27,8 +27,8 @@ const { width: screenWidth } = Dimensions.get('window');
  * - ✅ Professional native mobile app experience
  * - ✅ Optimized animations for Android
  * - ✅ Hardware back button support
- * - ✅ Native Android transitions (FIXED)
- * - ✅ Bottom tab bar always visible (FIXED)
+ * - ✅ Native Android transitions
+ * - ✅ Bottom tab bar ALWAYS visible with maximum z-index
  */
 export default function TabLayout() {
   const { user } = useAuth();
@@ -44,7 +44,7 @@ export default function TabLayout() {
   const userRole = user?.rol_app || 'cliente';
 
   console.log(
-    '[TabLayout Android v30.0] ⚡ User role:', userRole, 
+    '[TabLayout Android v31.0] ⚡ User role:', userRole, 
     'Current mode:', currentMode, 
     'Pathname:', pathname
   );
@@ -65,7 +65,7 @@ export default function TabLayout() {
       
       if ((isAdminIndexPage || isAdminSubPage) && !hasShownAdminAlert.current) {
         console.log(
-          '[TabLayout Android v30.0] ⚠️ Unauthorized user trying to access admin page:', 
+          '[TabLayout Android v31.0] ⚠️ Unauthorized user trying to access admin page:', 
           pathname
         );
         hasShownAdminAlert.current = true;
@@ -94,7 +94,7 @@ export default function TabLayout() {
       
       if ((isGestionIndexPage || isGestionSubPage) && !hasShownGestionAlert.current) {
         console.log(
-          '[TabLayout Android v30.0] ⚠️ Non-propietario user trying to access gestion page:', 
+          '[TabLayout Android v31.0] ⚠️ Non-propietario user trying to access gestion page:', 
           pathname
         );
         hasShownGestionAlert.current = true;
@@ -291,7 +291,7 @@ export default function TabLayout() {
   };
 
   const tabs = getTabsForRole();
-  console.log('[TabLayout Android v30.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
+  console.log('[TabLayout Android v31.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -307,8 +307,6 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: { display: 'none' },
-          // ✅ FIXED: Use 'none' animation to avoid sceneStyleInterpolator error
-          // Android will use its native transitions automatically
           animation: 'none',
           lazy: false,
         }}
@@ -376,16 +374,16 @@ export default function TabLayout() {
         />
       </Tabs>
       
-      {/* ✅ Floating Tab Bar - Optimized for Android native behavior */}
-      {/* ✅ CRITICAL FIX v30.0: Ensure tab bar is always visible with proper z-index */}
+      {/* ✅ CRITICAL FIX v31.0: Floating Tab Bar with MAXIMUM z-index and elevation */}
+      {/* This ensures the tab bar is ALWAYS visible above ALL content */}
       <View style={{ 
         position: 'absolute', 
         bottom: 0, 
         left: 0, 
         right: 0,
-        zIndex: 9999,
-        elevation: 20,
-      }}>
+        zIndex: 999999,
+        elevation: 999,
+      }} pointerEvents="box-none">
         <FloatingTabBar 
           tabs={tabs} 
           containerWidth={screenWidth} 

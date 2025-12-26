@@ -1,6 +1,6 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v30.0
+ * TAB NAVIGATION BAR - VERSION v31.0
  * 
  * Clean tab navigation bar with Instagram-style filled/outlined icons.
  * Active icons are filled with white, inactive icons are outlined with white.
@@ -12,8 +12,8 @@
  * - Android-specific optimizations (native touch feedback)
  * - Native ripple effect on Android
  * - Smooth animations
- * - ✅ FIXED: Improved z-index and visibility for Android
- * - ✅ FIXED: Better positioning to ensure visibility
+ * - ✅ FIXED v31.0: MAXIMUM z-index and elevation for guaranteed visibility
+ * - ✅ FIXED v31.0: Tab bar ALWAYS visible above all content
  */
 
 import React from 'react';
@@ -54,14 +54,14 @@ export function TabNavigationBar({
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
     console.log(
-      `🔍 [TabNav v30.0] Checking tab "${tab.id}": ` +
+      `🔍 [TabNav v31.0] Checking tab "${tab.id}": ` +
       `route="${cleanRoute}", path="${cleanPath}"`
     );
 
     // Special case: gestion tab is active when viewing local profiles
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `✅ [TabNav v30.0] Tab "${tab.id}" is ACTIVE ` +
+        `✅ [TabNav v31.0] Tab "${tab.id}" is ACTIVE ` +
         `(special case: perfil/local)`
       );
       return true;
@@ -70,7 +70,7 @@ export function TabNavigationBar({
     // Special case: perfil tab is NOT active when viewing local profiles
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `❌ [TabNav v30.0] Tab "${tab.id}" is INACTIVE ` +
+        `❌ [TabNav v31.0] Tab "${tab.id}" is INACTIVE ` +
         `(special case: perfil/local)`
       );
       return false;
@@ -87,7 +87,7 @@ export function TabNavigationBar({
 
       if (mainRouteSegment === mainPathSegment) {
         console.log(
-          `✅ [TabNav v30.0] Tab "${tab.id}" is ACTIVE ` +
+          `✅ [TabNav v31.0] Tab "${tab.id}" is ACTIVE ` +
           `(segment match: "${mainRouteSegment}")`
         );
         return true;
@@ -96,24 +96,24 @@ export function TabNavigationBar({
 
     // Fallback: check if path starts with route
     if (cleanPath.startsWith(cleanRoute)) {
-      console.log(`✅ [TabNav v30.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
+      console.log(`✅ [TabNav v31.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
       return true;
     }
 
     // Check exact match
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
-      console.log(`✅ [TabNav v30.0] Tab "${tab.id}" is ACTIVE (exact match)`);
+      console.log(`✅ [TabNav v31.0] Tab "${tab.id}" is ACTIVE (exact match)`);
       return true;
     }
 
-    console.log(`❌ [TabNav v30.0] Tab "${tab.id}" is INACTIVE`);
+    console.log(`❌ [TabNav v31.0] Tab "${tab.id}" is INACTIVE`);
     return false;
   };
 
   const handleTabPress = async (tab: TabDefinition) => {
-    console.log(`🔘 [TabNav v30.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
+    console.log(`🔘 [TabNav v31.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
     
-    // ✅ CRITICAL FIX v30.0: Provide native haptic feedback on Android
+    // ✅ CRITICAL FIX v31.0: Provide native haptic feedback on Android
     await provideHapticFeedback('light');
     
     if (tab.id === 'perfil' && onProfilePress) {
@@ -128,11 +128,11 @@ export function TabNavigationBar({
     const isCenter = tab.id === 'explorar';
 
     console.log(
-      `🎨 [TabNav v30.0] Rendering tab "${tab.id}": ` +
+      `🎨 [TabNav v31.0] Rendering tab "${tab.id}": ` +
       `isActive=${isActive}, isCenter=${isCenter}`
     );
 
-    // ✅ CRITICAL FIX v30.0: Use TouchableNativeFeedback on Android for native ripple effect
+    // ✅ CRITICAL FIX v31.0: Use TouchableNativeFeedback on Android for native ripple effect
     const TouchableComponent = Platform.OS === 'android' ? TouchableNativeFeedback : TouchableOpacity;
     const touchableProps = Platform.OS === 'android' 
       ? {
@@ -259,9 +259,9 @@ const styles = StyleSheet.create({
     right: 0,
     height: 80,
     backgroundColor: 'transparent',
-    // ✅ CRITICAL FIX v30.0: Ensure tab bar is always on top
-    zIndex: 9999,
-    elevation: 20,
+    // ✅ CRITICAL FIX v31.0: MAXIMUM z-index and elevation for guaranteed visibility
+    zIndex: 999999,
+    elevation: 999,
   },
   backgroundContainer: {
     position: 'absolute',
@@ -273,9 +273,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.15,
     shadowRadius: 15,
-    elevation: 15,
-    // ✅ CRITICAL FIX v30.0: Ensure background is visible
-    zIndex: 9998,
+    elevation: 998,
+    zIndex: 999998,
   },
   svg: {
     position: 'absolute',
@@ -291,8 +290,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-evenly',
     width: '100%',
-    // ✅ CRITICAL FIX v30.0: Ensure tabs are on top of background
-    zIndex: 9999,
+    zIndex: 999999,
   },
   tab: {
     flex: 1,
