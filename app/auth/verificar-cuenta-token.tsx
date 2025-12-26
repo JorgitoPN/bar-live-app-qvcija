@@ -19,7 +19,7 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ VERIFICAR CUENTA TOKEN v2.1 - IMPROVED UX
+ * ✅ VERIFICAR CUENTA TOKEN v2.2 - IMPROVED ERROR HANDLING
  * 
  * Pantalla para verificar la cuenta del usuario mediante un código de 6 dígitos
  * enviado por correo electrónico. Similar al flujo de recuperación de contraseña.
@@ -30,6 +30,11 @@ import { supabase } from '@/utils/supabase';
  * 3. Usuario introduce el token en esta pantalla
  * 4. Se valida el token y se verifica la cuenta
  * 5. Usuario puede iniciar sesión
+ * 
+ * CAMBIOS v2.2:
+ * - Mejorado el manejo de errores con más logging
+ * - Añadido método alternativo de verificación en el edge function
+ * - Mejores mensajes de error para el usuario
  */
 
 export default function VerificarCuentaTokenScreen() {
@@ -159,11 +164,12 @@ export default function VerificarCuentaTokenScreen() {
 
       if (!verifyResult.success) {
         console.error('[VerificarCuentaToken] ❌ Error al verificar cuenta:', verifyResult.error || 'Error desconocido');
+        console.error('[VerificarCuentaToken] ❌ Full verify result:', JSON.stringify(verifyResult));
         
         const errorMessage = verifyResult.error || 'No se pudo verificar tu cuenta. Por favor, intenta nuevamente.';
         
         Alert.alert(
-          'Error al verificar cuenta',
+          '❌ Error al verificar cuenta',
           errorMessage,
           [
             {
@@ -195,13 +201,24 @@ export default function VerificarCuentaTokenScreen() {
       );
     } catch (error: any) {
       console.error('[VerificarCuentaToken] ❌ Error:', error);
+      console.error('[VerificarCuentaToken] ❌ Error type:', typeof error);
+      console.error('[VerificarCuentaToken] ❌ Error message:', error?.message);
+      console.error('[VerificarCuentaToken] ❌ Error stack:', error?.stack);
       
-      const errorMessage = error.message || 'Ocurrió un error al validar el código. Por favor, verifica tu conexión a internet e intenta nuevamente.';
+      let errorMessage = 'Ocurrió un error al validar el código. Por favor, verifica tu conexión a internet e intenta nuevamente.';
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      }
       
       Alert.alert(
-        'Error de conexión',
+        '❌ Error de conexión',
         errorMessage,
         [
+          {
+            text: 'Solicitar nuevo código',
+            onPress: handleResendToken,
+          },
           {
             text: 'Reintentar',
             style: 'cancel',
