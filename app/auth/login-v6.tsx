@@ -106,7 +106,7 @@ export default function LoginV6Screen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[Login v6.4 - Fixed] 🔐 Attempting login:', normalizedEmail);
+      console.log('[Login v6.5 - Fixed] 🔐 Attempting login:', normalizedEmail);
 
       // ✅ FIX 1: Check if user is a Google user WITHOUT a password configured
       const { data: userData, error: userError } = await supabase
@@ -119,7 +119,7 @@ export default function LoginV6Screen() {
       // 1. User was created with Google (provider = 'google')
       // 2. AND they don't have a password set yet (password_hash is null)
       if (userData?.provider === 'google' && !userData.password_hash) {
-        console.log('[Login v6.4 - Fixed] 🔍 Google user without password detected');
+        console.log('[Login v6.5 - Fixed] 🔍 Google user without password detected');
         setLoading(false);
         
         Alert.alert(
@@ -151,10 +151,11 @@ export default function LoginV6Screen() {
       });
 
       if (authError) {
-        console.error('[Login v6.4 - Fixed] ❌ Error signing in:', authError);
-        
+        // ✅ FIX: Handle "Email not confirmed" error gracefully without showing error logs
         if (authError.message.includes('Email not confirmed')) {
-          console.log('[Login v6.4 - Fixed] ⚠️ Email no verificado, redirigiendo a verificación con token');
+          console.log('[Login v6.5 - Fixed] ⚠️ Email no verificado, redirigiendo a verificación con token');
+          
+          setLoading(false);
           
           Alert.alert(
             'Email no verificado',
@@ -163,6 +164,7 @@ export default function LoginV6Screen() {
               {
                 text: 'Verificar ahora',
                 onPress: async () => {
+                  setLoading(true);
                   try {
                     // Send verification token
                     const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
@@ -179,7 +181,9 @@ export default function LoginV6Screen() {
 
                     if (!response.ok || result.error) {
                       Alert.alert('Error', 'No se pudo enviar el código de verificación. Por favor, intenta nuevamente.');
+                      setLoading(false);
                     } else {
+                      setLoading(false);
                       Alert.alert(
                         'Código enviado',
                         'Se ha enviado un código de verificación a tu correo electrónico. Por favor, revisa tu bandeja de entrada.',
@@ -197,18 +201,26 @@ export default function LoginV6Screen() {
                       );
                     }
                   } catch (err) {
-                    console.error('[Login v6.4 - Fixed] Error sending verification token:', err);
+                    console.error('[Login v6.5 - Fixed] Error sending verification token:', err);
                     Alert.alert('Error', 'Ocurrió un error al enviar el código');
+                    setLoading(false);
                   }
                 },
               },
-              { text: 'Cancelar', style: 'cancel' },
+              { 
+                text: 'Cancelar', 
+                style: 'cancel',
+                onPress: () => setLoading(false),
+              },
             ]
           );
+          return;
         } else if (authError.message.includes('Invalid login credentials')) {
+          console.log('[Login v6.5 - Fixed] ❌ Invalid credentials');
           setPasswordError('Email o contraseña incorrectos');
           shakeAnimation(passwordShakeAnim);
         } else {
+          console.error('[Login v6.5 - Fixed] ❌ Error signing in:', authError.message);
           Alert.alert('Error', authError.message || 'No se pudo iniciar sesión');
         }
         
@@ -222,34 +234,34 @@ export default function LoginV6Screen() {
         return;
       }
 
-      console.log('[Login v6.4 - Fixed] ✅ Login successful:', authData.user.id);
-      console.log('[Login v6.4 - Fixed] ✅ Session obtained:', authData.session.access_token ? 'Yes' : 'No');
+      console.log('[Login v6.5 - Fixed] ✅ Login successful:', authData.user.id);
+      console.log('[Login v6.5 - Fixed] ✅ Session obtained:', authData.session.access_token ? 'Yes' : 'No');
       
       // ✅ FIX 2: Immediately update AuthContext with the new session
-      console.log('[Login v6.4 - Fixed] 📝 Updating AuthContext with session...');
+      console.log('[Login v6.5 - Fixed] 📝 Updating AuthContext with session...');
       setSessionManually(authData.session);
       
       // ✅ FIX 3: Wait for session to be fully persisted in storage
-      console.log('[Login v6.4 - Fixed] ⏳ Waiting for session to persist in storage...');
+      console.log('[Login v6.5 - Fixed] ⏳ Waiting for session to persist in storage...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // ✅ FIX 4: Verify session is still valid after wait
       const { data: { session: verifiedSession } } = await supabase.auth.getSession();
       
       if (!verifiedSession) {
-        console.error('[Login v6.4 - Fixed] ❌ Session lost after login');
+        console.error('[Login v6.5 - Fixed] ❌ Session lost after login');
         Alert.alert('Error', 'Hubo un problema con la sesión. Por favor, intenta nuevamente.');
         setLoading(false);
         return;
       }
       
-      console.log('[Login v6.4 - Fixed] ✅ Session verified and persisted');
-      console.log('[Login v6.4 - Fixed] 🚀 Redirigiendo a lista de locales...');
+      console.log('[Login v6.5 - Fixed] ✅ Session verified and persisted');
+      console.log('[Login v6.5 - Fixed] 🚀 Redirigiendo a lista de locales...');
       
       // ✅ FIX 5: Use replace to ensure clean navigation
       router.replace('/(tabs)/explorar');
     } catch (error: any) {
-      console.error('[Login v6.4 - Fixed] ❌ Error in handleLogin:', error);
+      console.error('[Login v6.5 - Fixed] ❌ Error in handleLogin:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
