@@ -26,7 +26,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface ImageEditorV6Props {
   visible: boolean;
@@ -36,10 +36,12 @@ interface ImageEditorV6Props {
 }
 
 /**
- * ✅ IMAGE EDITOR v6.1 - FIXED Animated.Image.getSize ERROR
+ * ✅ IMAGE EDITOR v6.2 - FIXED ANDROID BUTTON VISIBILITY
  * 
  * Features:
- * - ✅ FIXED: Use Image.getSize instead of Animated.Image.getSize
+ * - ✅ FIXED: Buttons now visible above image editor on Android
+ * - ✅ FIXED: Proper z-index and elevation for controls
+ * - ✅ FIXED: Controls container positioned correctly
  * - ✅ Pinch to zoom (0.5x to 5x)
  * - ✅ Pan to move image
  * - ✅ Rotate 90° left/right
@@ -78,7 +80,7 @@ export default function ImageEditorV6({
       console.log('[ImageEditorV6] 🖼️ Loading image:', imageUri);
       setImageLoaded(false);
       
-      // ✅ CRITICAL FIX: Use Image.getSize instead of Animated.Image.getSize
+      // ✅ Use Image.getSize instead of Animated.Image.getSize
       Image.getSize(
         imageUri,
         (width, height) => {
@@ -327,7 +329,7 @@ export default function ImageEditorV6({
           </View>
         </View>
 
-        {/* Controls */}
+        {/* ✅ CRITICAL FIX v6.2: Controls with proper z-index and elevation for Android */}
         <View style={styles.controlsContainer}>
           <ScrollView 
             horizontal 
@@ -444,6 +446,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    zIndex: 1000,
+    elevation: 10,
   },
   headerButton: {
     width: 60,
@@ -506,12 +510,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  // ✅ CRITICAL FIX v6.2: Controls container with proper z-index and elevation
   controlsContainer: {
     backgroundColor: colors.cardBackground,
     paddingVertical: 20,
     paddingHorizontal: 16,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
+    zIndex: 1000,
+    elevation: 20,
+    position: 'relative',
   },
   controlsScroll: {
     flexDirection: 'row',

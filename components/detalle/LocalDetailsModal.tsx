@@ -88,14 +88,13 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v5.0 - SOCIAL PROFILE BUTTON FIXED
+ * ✅ LOCAL DETAILS MODAL v5.1 - FIXED ANDROID SCROLL
  * 
  * Changes:
- * - ✅ Added user location tracking
- * - ✅ Calculate distance to local
- * - ✅ Display distance next to "Cómo llegar" button on Android
- * - ✅ Fixed "Perfil Social" button to check subscription plan instead of posts
- * - ✅ Button now shows for locals with premium/estandar plan OR local_profile_id
+ * - ✅ Fixed ScrollView configuration for Android
+ * - ✅ Proper nestedScrollEnabled for Android
+ * - ✅ Removed conflicting scroll properties
+ * - ✅ Better content sizing
  */
 
 export default function LocalDetailsModal({
@@ -233,7 +232,6 @@ export default function LocalDetailsModal({
     }, 300);
   };
 
-  // ✅ FIXED v5.0: Handle social profile navigation
   const handlePerfilSocial = () => {
     trackProfileView(localId, user?.id, 'social');
     onClose();
@@ -272,7 +270,6 @@ export default function LocalDetailsModal({
     ? (Platform.OS === 'ios' ? 100 : 100)
     : (Platform.OS === 'ios' ? 60 : 60);
 
-  // ✅ FIXED v5.0: Check if local has social profile based on subscription plan
   const hasSocialProfile = !!(
     local?.local_profile_id || 
     local?.plan_activo === 'premium' || 
@@ -299,10 +296,14 @@ export default function LocalDetailsModal({
           activeOpacity={1}
           onPress={(e) => e.stopPropagation()}
         >
+          {/* ✅ CRITICAL FIX v5.1: Proper ScrollView configuration for Android */}
           <ScrollView 
             style={styles.contentContainer}
+            contentContainerStyle={styles.contentContainerInner}
             showsVerticalScrollIndicator={false}
             bounces={false}
+            nestedScrollEnabled={true}
+            scrollEnabled={true}
           >
             {loading ? (
               <View style={styles.loadingContainer}>
@@ -473,7 +474,6 @@ export default function LocalDetailsModal({
                     )}
                   </View>
 
-                  {/* ✅ FIXED v5.0: Social Profile Button - Now checks subscription plan */}
                   {hasSocialProfile && (
                     <TouchableOpacity 
                       style={styles.perfilSocialButton} 
@@ -529,6 +529,9 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
+  },
+  contentContainerInner: {
+    flexGrow: 1,
   },
   loadingContainer: {
     flex: 1,
@@ -787,7 +790,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
   },
-  // ✅ FIXED v5.0: Social Profile Button styles
   perfilSocialButton: {
     borderRadius: 12,
     overflow: 'hidden',

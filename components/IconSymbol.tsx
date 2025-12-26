@@ -12,8 +12,8 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-// COMPREHENSIVE SF Symbol to Ionicons mapping
-// VERSION v31.0: COMPLETE ANDROID ICON FIX - ALL QUESTION MARKS ELIMINATED
+// ✅ COMPREHENSIVE SF Symbol to Ionicons mapping
+// VERSION v32.0: COMPLETE ANDROID ICON FIX - ALL QUESTION MARKS ELIMINATED
 // ✅ FIXED: Comprehensive Material Design icon mappings
 // ✅ FIXED: All common icons properly mapped
 // ✅ FIXED: Better fallback system
@@ -260,6 +260,12 @@ const MAPPING = {
   "mug.fill": "beer",
   "mug": "beer-outline",
   
+  // Rotation & Transform icons
+  "rotate.left": "arrow-undo",
+  "rotate.right": "arrow-redo",
+  "arrow.left.and.right": "swap-horizontal",
+  "arrow.up.and.down": "swap-vertical",
+  
   // Direct Ionicons mappings for tab navigation
   "home": "home",
   "home-outline": "home-outline",
@@ -280,6 +286,7 @@ const MAPPING = {
   "person": "person",
   "person-outline": "person-outline",
   "account-circle": "person-circle",
+  "person-circle": "person-circle",
   
   // Additional common icons
   "list.bullet": "list",
@@ -288,7 +295,7 @@ const MAPPING = {
   "text.aligncenter": "text",
   "text.alignright": "text",
   
-  // ✅ CRITICAL FIX v31.0: Complete Material Design icon mappings
+  // ✅ CRITICAL FIX v32.0: Complete Material Design icon mappings
   // These are ALL the icons that were showing as question marks
   "expand_more": "chevron-down",
   "expand_less": "chevron-up",
@@ -338,6 +345,8 @@ const MAPPING = {
   "photo": "image",
   "image": "image",
   "camera": "camera",
+  "camera_alt": "camera",
+  "photo_library": "images",
   "videocam": "videocam",
   "mic": "mic",
   "volume_up": "volume-high",
@@ -402,8 +411,12 @@ const MAPPING = {
   "work_outline": "briefcase-outline",
   "shopping_cart": "cart",
   "swap_horiz": "swap-horizontal",
+  "swap_vert": "swap-vertical",
   "add_circle": "add-circle",
   "lock": "lock-closed",
+  "refresh": "refresh",
+  "arrow_undo": "arrow-undo",
+  "arrow_redo": "arrow-redo",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -419,7 +432,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
  * 
- * VERSION v31.0: COMPLETE ANDROID ICON FIX - ALL QUESTION MARKS ELIMINATED
+ * VERSION v32.0: COMPLETE ANDROID ICON FIX - ALL QUESTION MARKS ELIMINATED
  * ✅ FIXED: Comprehensive Material Design icon mappings
  * ✅ FIXED: All common icons properly mapped
  * ✅ FIXED: Better fallback system (uses generic icon instead of question mark)
@@ -470,25 +483,18 @@ export function IconSymbol({
     }
   }
   
-  // ✅ CRITICAL FIX v31.0: Better fallback - use a generic icon instead of question mark
+  // ✅ CRITICAL FIX v32.0: Better fallback - use a generic icon instead of question mark
   if (!iconName) {
     const sfSymbolName = name || ios_icon_name || android_material_icon_name;
     if (Platform.OS === 'android') {
       console.warn(
-        `⚠️ [IconSymbol v31.0 Android] No icon mapping found for "${sfSymbolName}". ` +
+        `⚠️ [IconSymbol v32.0 Android] No icon mapping found for "${sfSymbolName}". ` +
         `Using fallback icon. Please add mapping to MAPPING object in components/IconSymbol.tsx`
       );
     }
     // ✅ Use a generic icon that looks better than a question mark
     iconName = 'ellipse-outline'; // Generic circle icon
     iconSource = 'fallback';
-  }
-  
-  if (Platform.OS === 'android' && iconSource === 'fallback') {
-    console.log(
-      `🎨 [IconSymbol v31.0 Android] Rendering "${iconName}" (${iconSource}), ` +
-      `size: ${size}, color: ${color}`
-    );
   }
   
   return (

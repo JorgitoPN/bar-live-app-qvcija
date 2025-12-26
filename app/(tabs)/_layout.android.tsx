@@ -1,7 +1,8 @@
 
 import React, { useEffect, useRef } from 'react';
-import { Dimensions, Alert, StatusBar, Platform, View } from 'react-native';
+import { Dimensions, Alert, StatusBar, Platform, View, StyleSheet } from 'react-native';
 import { Tabs, useRouter, usePathname } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
@@ -10,11 +11,13 @@ import { colors } from '@/styles/commonStyles';
 const { width: screenWidth } = Dimensions.get('window');
 
 /**
- * ANDROID-SPECIFIC TAB LAYOUT - VERSION v31.0
+ * ANDROID-SPECIFIC TAB LAYOUT - VERSION v32.0
  * 
  * ✅ COMPLETE ANDROID-iOS PARITY + NATIVE ANDROID BEHAVIOR
  * ✅ FIXED: Bottom tab bar visibility with proper z-index and elevation
  * ✅ FIXED: Tab bar always visible above all content
+ * ✅ FIXED: Proper safe area handling for system buttons
+ * ✅ FIXED: Content padding to prevent overlap with tab bar
  * 
  * This file ensures proper Android-specific behavior:
  * - ✅ Native Android UI (Material Design compliant)
@@ -29,12 +32,14 @@ const { width: screenWidth } = Dimensions.get('window');
  * - ✅ Hardware back button support
  * - ✅ Native Android transitions
  * - ✅ Bottom tab bar ALWAYS visible with maximum z-index
+ * - ✅ Safe area insets for system navigation buttons
  */
 export default function TabLayout() {
   const { user } = useAuth();
   const { currentMode } = useMode();
   const router = useRouter();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   
   // Track if we've already shown alerts to prevent duplicates
   const hasShownAdminAlert = useRef(false);
@@ -44,9 +49,10 @@ export default function TabLayout() {
   const userRole = user?.rol_app || 'cliente';
 
   console.log(
-    '[TabLayout Android v31.0] ⚡ User role:', userRole, 
+    '[TabLayout Android v32.0] ⚡ User role:', userRole, 
     'Current mode:', currentMode, 
-    'Pathname:', pathname
+    'Pathname:', pathname,
+    'Bottom inset:', insets.bottom
   );
 
   // Prevent access to admin pages for non-admin users (silently redirect)
@@ -65,7 +71,7 @@ export default function TabLayout() {
       
       if ((isAdminIndexPage || isAdminSubPage) && !hasShownAdminAlert.current) {
         console.log(
-          '[TabLayout Android v31.0] ⚠️ Unauthorized user trying to access admin page:', 
+          '[TabLayout Android v32.0] ⚠️ Unauthorized user trying to access admin page:', 
           pathname
         );
         hasShownAdminAlert.current = true;
@@ -94,7 +100,7 @@ export default function TabLayout() {
       
       if ((isGestionIndexPage || isGestionSubPage) && !hasShownGestionAlert.current) {
         console.log(
-          '[TabLayout Android v31.0] ⚠️ Non-propietario user trying to access gestion page:', 
+          '[TabLayout Android v32.0] ⚠️ Non-propietario user trying to access gestion page:', 
           pathname
         );
         hasShownGestionAlert.current = true;
@@ -291,10 +297,14 @@ export default function TabLayout() {
   };
 
   const tabs = getTabsForRole();
-  console.log('[TabLayout Android v31.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
+  console.log('[TabLayout Android v32.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
+
+  // ✅ Calculate tab bar height including safe area
+  const TAB_BAR_HEIGHT = 70;
+  const totalTabBarHeight = TAB_BAR_HEIGHT + insets.bottom;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={styles.container}>
       {/* ✅ ANDROID STATUS BAR - Proper native configuration */}
       <StatusBar 
         barStyle="light-content" 
@@ -303,87 +313,89 @@ export default function TabLayout() {
         animated={true}
       />
       
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: { display: 'none' },
-          animation: 'none',
-          lazy: false,
-        }}
-      >
-        <Tabs.Screen 
-          name="explorar" 
-          options={{ 
-            href: '/(tabs)/explorar',
+      {/* ✅ Content area with bottom padding to prevent overlap */}
+      <View style={[styles.contentContainer, { paddingBottom: totalTabBarHeight }]}>
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarStyle: { display: 'none' },
+            animation: 'none',
             lazy: false,
-          }} 
-        />
-        <Tabs.Screen 
-          name="eventos" 
-          options={{ 
-            href: '/(tabs)/eventos',
-            lazy: false,
-          }} 
-        />
-        <Tabs.Screen 
-          name="favoritos" 
-          options={{ 
-            href: '/(tabs)/favoritos',
-            lazy: false,
-          }} 
-        />
-        <Tabs.Screen 
-          name="social" 
-          options={{ 
-            href: '/(tabs)/social',
-            lazy: false,
-          }} 
-        />
-        <Tabs.Screen 
-          name="perfil" 
-          options={{ 
-            href: '/(tabs)/perfil',
-            lazy: false,
-          }} 
-        />
-        <Tabs.Screen 
-          name="gestion" 
-          options={{ 
-            href: userRole === 'propietario' || userRole === 'admin' ? '/(tabs)/gestion' : null,
-            lazy: false,
-          }} 
-        />
-        <Tabs.Screen 
-          name="admin" 
-          options={{ 
-            href: (userRole === 'admin' && user?.email === 'jorgepereznoyagh@gmail.com') ? '/(tabs)/admin' : null,
-            lazy: false,
-          }} 
-        />
-        <Tabs.Screen 
-          name="(home)" 
-          options={{ 
-            href: null,
-          }} 
-        />
-        <Tabs.Screen 
-          name="empleo" 
-          options={{ 
-            href: null,
-          }} 
-        />
-      </Tabs>
+          }}
+        >
+          <Tabs.Screen 
+            name="explorar" 
+            options={{ 
+              href: '/(tabs)/explorar',
+              lazy: false,
+            }} 
+          />
+          <Tabs.Screen 
+            name="eventos" 
+            options={{ 
+              href: '/(tabs)/eventos',
+              lazy: false,
+            }} 
+          />
+          <Tabs.Screen 
+            name="favoritos" 
+            options={{ 
+              href: '/(tabs)/favoritos',
+              lazy: false,
+            }} 
+          />
+          <Tabs.Screen 
+            name="social" 
+            options={{ 
+              href: '/(tabs)/social',
+              lazy: false,
+            }} 
+          />
+          <Tabs.Screen 
+            name="perfil" 
+            options={{ 
+              href: '/(tabs)/perfil',
+              lazy: false,
+            }} 
+          />
+          <Tabs.Screen 
+            name="gestion" 
+            options={{ 
+              href: userRole === 'propietario' || userRole === 'admin' ? '/(tabs)/gestion' : null,
+              lazy: false,
+            }} 
+          />
+          <Tabs.Screen 
+            name="admin" 
+            options={{ 
+              href: (userRole === 'admin' && user?.email === 'jorgepereznoyagh@gmail.com') ? '/(tabs)/admin' : null,
+              lazy: false,
+            }} 
+          />
+          <Tabs.Screen 
+            name="(home)" 
+            options={{ 
+              href: null,
+            }} 
+          />
+          <Tabs.Screen 
+            name="empleo" 
+            options={{ 
+              href: null,
+            }} 
+          />
+        </Tabs>
+      </View>
       
-      {/* ✅ CRITICAL FIX v31.0: Floating Tab Bar with MAXIMUM z-index and elevation */}
-      {/* This ensures the tab bar is ALWAYS visible above ALL content */}
-      <View style={{ 
-        position: 'absolute', 
-        bottom: 0, 
-        left: 0, 
-        right: 0,
-        zIndex: 999999,
-        elevation: 999,
-      }} pointerEvents="box-none">
+      {/* ✅ CRITICAL FIX v32.0: Floating Tab Bar with MAXIMUM z-index, elevation, and safe area */}
+      {/* This ensures the tab bar is ALWAYS visible above ALL content and respects system buttons */}
+      <View style={[
+        styles.tabBarContainer,
+        { 
+          height: totalTabBarHeight,
+          paddingBottom: insets.bottom,
+        }
+      ]} pointerEvents="box-none">
         <FloatingTabBar 
           tabs={tabs} 
           containerWidth={screenWidth} 
@@ -393,3 +405,22 @@ export default function TabLayout() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  tabBarContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 999999,
+    elevation: 999,
+    backgroundColor: 'transparent',
+  },
+});
