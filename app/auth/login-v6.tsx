@@ -18,9 +18,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginV6Screen() {
   const router = useRouter();
+  const { setSessionManually } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -104,17 +106,20 @@ export default function LoginV6Screen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[Login v6.3 - Token] 🔐 Attempting login:', normalizedEmail);
+      console.log('[Login v6.4 - Fixed] 🔐 Attempting login:', normalizedEmail);
 
-      // Check if user is a Google user first
+      // ✅ FIX 1: Check if user is a Google user WITHOUT a password configured
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('provider, email_verified')
+        .select('provider, email_verified, password_hash')
         .eq('email', normalizedEmail)
         .maybeSingle();
 
-      if (userData?.provider === 'google') {
-        console.log('[Login v6.3 - Token] 🔍 Google user detected');
+      // Only show Google password setup if:
+      // 1. User was created with Google (provider = 'google')
+      // 2. AND they don't have a password set yet (password_hash is null)
+      if (userData?.provider === 'google' && !userData.password_hash) {
+        console.log('[Login v6.4 - Fixed] 🔍 Google user without password detected');
         setLoading(false);
         
         Alert.alert(
@@ -146,10 +151,10 @@ export default function LoginV6Screen() {
       });
 
       if (authError) {
-        console.error('[Login v6.3 - Token] ❌ Error signing in:', authError);
+        console.error('[Login v6.4 - Fixed] ❌ Error signing in:', authError);
         
         if (authError.message.includes('Email not confirmed')) {
-          console.log('[Login v6.3 - Token] ⚠️ Email no verificado, redirigiendo a verificación con token');
+          console.log('[Login v6.4 - Fixed] ⚠️ Email no verificado, redirigiendo a verificación con token');
           
           Alert.alert(
             'Email no verificado',
@@ -192,7 +197,7 @@ export default function LoginV6Screen() {
                       );
                     }
                   } catch (err) {
-                    console.error('[Login v6.3 - Token] Error sending verification token:', err);
+                    console.error('[Login v6.4 - Fixed] Error sending verification token:', err);
                     Alert.alert('Error', 'Ocurrió un error al enviar el código');
                   }
                 },
@@ -217,28 +222,34 @@ export default function LoginV6Screen() {
         return;
       }
 
-      console.log('[Login v6.3 - Token] ✅ Login successful:', authData.user.id);
-      console.log('[Login v6.3 - Token] ✅ Session obtained:', authData.session.access_token ? 'Yes' : 'No');
+      console.log('[Login v6.4 - Fixed] ✅ Login successful:', authData.user.id);
+      console.log('[Login v6.4 - Fixed] ✅ Session obtained:', authData.session.access_token ? 'Yes' : 'No');
       
-      // ✅ CRITICAL FIX: Wait for session to be fully persisted before navigating
-      console.log('[Login v6.3 - Token] ⏳ Waiting for session to persist...');
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // ✅ FIX 2: Immediately update AuthContext with the new session
+      console.log('[Login v6.4 - Fixed] 📝 Updating AuthContext with session...');
+      setSessionManually(authData.session);
       
-      // Verify session is still valid
+      // ✅ FIX 3: Wait for session to be fully persisted in storage
+      console.log('[Login v6.4 - Fixed] ⏳ Waiting for session to persist in storage...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // ✅ FIX 4: Verify session is still valid after wait
       const { data: { session: verifiedSession } } = await supabase.auth.getSession();
       
       if (!verifiedSession) {
-        console.error('[Login v6.3 - Token] ❌ Session lost after login');
+        console.error('[Login v6.4 - Fixed] ❌ Session lost after login');
         Alert.alert('Error', 'Hubo un problema con la sesión. Por favor, intenta nuevamente.');
         setLoading(false);
         return;
       }
       
-      console.log('[Login v6.3 - Token] ✅ Session verified and persisted');
-      console.log('[Login v6.3 - Token] 🚀 Redirigiendo a lista de locales...');
+      console.log('[Login v6.4 - Fixed] ✅ Session verified and persisted');
+      console.log('[Login v6.4 - Fixed] 🚀 Redirigiendo a lista de locales...');
+      
+      // ✅ FIX 5: Use replace to ensure clean navigation
       router.replace('/(tabs)/explorar');
     } catch (error: any) {
-      console.error('[Login v6.3 - Token] ❌ Error in handleLogin:', error);
+      console.error('[Login v6.4 - Fixed] ❌ Error in handleLogin:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);

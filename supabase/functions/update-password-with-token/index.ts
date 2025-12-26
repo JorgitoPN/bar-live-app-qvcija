@@ -142,6 +142,25 @@ serve(async (req) => {
       );
     }
 
+    console.log('[UpdatePasswordWithToken] ✅ Password updated in auth.users');
+
+    // ✅ CRITICAL FIX: Update usuarios table to mark that password is now set
+    // This prevents the Google password setup loop
+    const { error: usuariosUpdateError } = await supabaseAdmin
+      .from('usuarios')
+      .update({ 
+        password_hash: 'SET', // Mark as having a password (actual hash is in auth.users)
+        email_verified: true, // Ensure email is verified when setting password
+      })
+      .eq('email', normalizedEmail);
+
+    if (usuariosUpdateError) {
+      console.error('[UpdatePasswordWithToken] Error updating usuarios table:', usuariosUpdateError);
+      // Don't fail the request - password is already updated in auth
+    } else {
+      console.log('[UpdatePasswordWithToken] ✅ Updated usuarios table with password marker');
+    }
+
     // Mark token as used
     const { error: markUsedError } = await supabaseAdmin
       .from('password_tokens')
