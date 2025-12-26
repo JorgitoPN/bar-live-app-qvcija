@@ -27,6 +27,7 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { calcularDistancia } from '@/utils/locationUtils';
+import { trackProfileView } from '@/utils/activityTracker';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -85,12 +86,14 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v3.0 - FIXED DISTANCE DISPLAY ON ANDROID
+ * ✅ LOCAL DETAILS MODAL v4.0 - SOCIAL PROFILE BUTTON ADDED
  * 
  * Changes:
  * - ✅ Added user location tracking
  * - ✅ Calculate distance to local
  * - ✅ Display distance next to "Cómo llegar" button on Android
+ * - ✅ Added "Perfil Social" button (NEW)
+ * - ✅ Check if local has social profile before showing button
  */
 
 export default function LocalDetailsModal({
@@ -106,6 +109,8 @@ export default function LocalDetailsModal({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [distance, setDistance] = useState<string | null>(null);
+  const [hasSocialProfile, setHasSocialProfile] = useState(false);
+  const [checkingSocialProfile, setCheckingSocialProfile] = useState(true);
 
   const localIsFavorite = localId ? isFavorite(localId) : false;
 
@@ -162,6 +167,44 @@ export default function LocalDetailsModal({
     }
   }, [userLocation, local]);
 
+  // ✅ NEW v4.0: Check if local has social profile
+  useEffect(() => {
+    const checkSocialProfile = async () => {
+      if (!localId) {
+        setCheckingSocialProfile(false);
+        return;
+      }
+
+      try {
+        const { data: posts, error: postsError } = await supabase
+          .from('posts')
+          .select('id')
+          .eq('tipo', 'local')
+          .eq('local_id', localId)
+          .limit(1);
+
+        if (postsError) throw postsError;
+
+        if (posts && posts.length > 0) {
+          setHasSocialProfile(true);
+          console.log('[LocalDetailsModal] ✅ Local has social profile');
+        } else {
+          setHasSocialProfile(false);
+          console.log('[LocalDetailsModal] ℹ️ Local does not have social profile');
+        }
+      } catch (error) {
+        console.error('[LocalDetailsModal] Error checking social profile:', error);
+        setHasSocialProfile(false);
+      } finally {
+        setCheckingSocialProfile(false);
+      }
+    };
+
+    if (visible) {
+      checkSocialProfile();
+    }
+  }, [visible, localId]);
+
   const loadLocalData = useCallback(async () => {
     try {
       setLoading(true);
@@ -188,6 +231,8 @@ export default function LocalDetailsModal({
     } else {
       setLocal(null);
       setLoading(true);
+      setHasSocialProfile(false);
+      setCheckingSocialProfile(true);
     }
   }, [visible, localId, loadLocalData]);
 
@@ -219,6 +264,15 @@ export default function LocalDetailsModal({
     onClose();
     setTimeout(() => {
       router.push({ pathname: '/detalle/local', params: { id: localId } });
+    }, 300);
+  };
+
+  // ✅ NEW v4.0: Handle social profile navigation
+  const handlePerfilSocial = () => {
+    trackProfileView(localId, user?.id, 'social');
+    onClose();
+    setTimeout(() => {
+      router.push(`/perfil/local?localId=${localId}`);
     }, 300);
   };
 
@@ -443,6 +497,24 @@ export default function LocalDetailsModal({
                       </TouchableOpacity>
                     )}
                   </View>
+
+                  {/* ✅ NEW v4.0: Social Profile Button */}
+                  {!checkingSocialProfile && hasSocialProfile && (
+                    <TouchableOpacity 
+                      style={styles.perfilSocialButton} 
+                      onPress={handlePerfilSocial}
+                    >
+                      <LinearGradient
+                        colors={[colors.secondary, colors.secondary + 'CC']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.perfilSocialGradient}
+                      >
+                        <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color="#fff" />
+                        <Text style={styles.perfilSocialText}>Ver Perfil Social</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </React.Fragment>
             ) : (
@@ -713,6 +785,7 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     gap: 10,
+    marginBottom: 10,
   },
   actionBtn: {
     flex: 1,
@@ -737,5 +810,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
+  },
+  // ✅ NEW v4.0: Social Profile Button styles
+  perfilSocialButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  perfilSocialGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  perfilSocialText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
   },
 });

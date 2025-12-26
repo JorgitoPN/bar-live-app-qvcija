@@ -18,6 +18,15 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 
+/**
+ * ✅ VERIFICAR CUENTA TOKEN v2.0 - ERROR HANDLING FIXED
+ * 
+ * Changes:
+ * - ✅ Improved error handling with better error messages
+ * - ✅ Fixed undefined error display issue
+ * - ✅ Added more detailed logging
+ */
+
 export default function VerificarCuentaTokenScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -109,7 +118,7 @@ export default function VerificarCuentaTokenScreen() {
       console.log('[VerificarCuentaToken] 📦 Validate response data:', JSON.stringify(validateResult));
 
       if (!validateResult.valid) {
-        console.error('[VerificarCuentaToken] ❌ Token inválido:', validateResult.error || 'undefined');
+        console.error('[VerificarCuentaToken] ❌ Token inválido:', validateResult.error || 'Error desconocido');
         Alert.alert(
           'Código inválido',
           validateResult.error || 'El código ingresado es inválido o ha expirado. Por favor, verifica e intenta nuevamente.',
@@ -144,10 +153,24 @@ export default function VerificarCuentaTokenScreen() {
       console.log('[VerificarCuentaToken] 📦 Verify response data:', JSON.stringify(verifyResult));
 
       if (!verifyResult.success) {
-        console.error('[VerificarCuentaToken] ❌ Error al verificar cuenta:', verifyResult.error || 'undefined');
+        console.error('[VerificarCuentaToken] ❌ Error al verificar cuenta:', verifyResult.error || 'Error desconocido');
+        
+        // ✅ FIXED v2.0: Better error message handling
+        const errorMessage = verifyResult.error || 'No se pudo verificar tu cuenta. Por favor, intenta nuevamente.';
+        
         Alert.alert(
-          'Error',
-          verifyResult.error || 'No se pudo verificar tu cuenta. Por favor, intenta nuevamente.'
+          'Error al verificar cuenta',
+          errorMessage,
+          [
+            {
+              text: 'Solicitar nuevo código',
+              onPress: handleResendToken,
+            },
+            {
+              text: 'Reintentar',
+              style: 'cancel',
+            },
+          ]
         );
         return;
       }
@@ -168,9 +191,19 @@ export default function VerificarCuentaTokenScreen() {
       );
     } catch (error: any) {
       console.error('[VerificarCuentaToken] ❌ Error:', error);
+      
+      // ✅ FIXED v2.0: Better error message for network errors
+      const errorMessage = error.message || 'Ocurrió un error al validar el código. Por favor, verifica tu conexión a internet e intenta nuevamente.';
+      
       Alert.alert(
-        'Error',
-        'Ocurrió un error al validar el código. Por favor, intenta nuevamente.'
+        'Error de conexión',
+        errorMessage,
+        [
+          {
+            text: 'Reintentar',
+            style: 'cancel',
+          },
+        ]
       );
     } finally {
       setValidatingToken(false);
@@ -199,7 +232,7 @@ export default function VerificarCuentaTokenScreen() {
 
       if (!response.ok || result.error) {
         console.error('[VerificarCuentaToken] ❌ Error al reenviar:', result);
-        Alert.alert('Error', 'No se pudo reenviar el código. Por favor, intenta nuevamente.');
+        Alert.alert('Error', result.error || 'No se pudo reenviar el código. Por favor, intenta nuevamente.');
         return;
       }
 
@@ -214,7 +247,7 @@ export default function VerificarCuentaTokenScreen() {
       inputRefs.current[0]?.focus();
     } catch (error: any) {
       console.error('[VerificarCuentaToken] ❌ Error:', error);
-      Alert.alert('Error', 'Ocurrió un error al reenviar el código.');
+      Alert.alert('Error', error.message || 'Ocurrió un error al reenviar el código.');
     } finally {
       setResending(false);
     }
