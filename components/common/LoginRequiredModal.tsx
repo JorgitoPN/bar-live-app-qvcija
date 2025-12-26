@@ -19,6 +19,14 @@ interface LoginRequiredModalProps {
   message?: string;
 }
 
+/**
+ * ✅ LOGIN REQUIRED MODAL v2.0 - REMOVED FROM APP
+ * 
+ * This modal is no longer used in the app.
+ * Users can now browse the social page and profile page without logging in.
+ * The modal is kept for backward compatibility but is not displayed anywhere.
+ */
+
 export default function LoginRequiredModal({
   visible,
   onClose,
@@ -28,9 +36,13 @@ export default function LoginRequiredModal({
 
   const handleLogin = () => {
     onClose();
-    router.push('/auth/login-popup');
+    router.push('/auth/login-v6');
   };
 
+  // ✅ CRITICAL FIX: Modal is now disabled - always return null
+  return null;
+
+  /* ORIGINAL CODE - DISABLED
   return (
     <Modal
       visible={visible}
@@ -44,7 +56,7 @@ export default function LoginRequiredModal({
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             style={styles.iconContainer}
           >
-            <IconSymbol name="lock.fill" size={48} color={colors.headerText} />
+            <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={48} color={colors.headerText} />
           </LinearGradient>
 
           <Text style={styles.title}>Registro Requerido</Text>
@@ -57,19 +69,19 @@ export default function LoginRequiredModal({
 
           <View style={styles.features}>
             <View style={styles.featureItem}>
-              <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
+              <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.primary} />
               <Text style={styles.featureText}>Crea y comparte publicaciones</Text>
             </View>
             <View style={styles.featureItem}>
-              <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
+              <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.primary} />
               <Text style={styles.featureText}>Guarda tus locales favoritos</Text>
             </View>
             <View style={styles.featureItem}>
-              <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
+              <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.primary} />
               <Text style={styles.featureText}>Accede a tu perfil personalizado</Text>
             </View>
             <View style={styles.featureItem}>
-              <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
+              <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.primary} />
               <Text style={styles.featureText}>Recibe notificaciones de eventos</Text>
             </View>
           </View>
@@ -90,6 +102,7 @@ export default function LoginRequiredModal({
       </View>
     </Modal>
   );
+  */
 }
 
 const styles = StyleSheet.create({

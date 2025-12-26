@@ -25,6 +25,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRouter } from 'expo-router';
+import * as Location from 'expo-location';
+import { calcularDistancia } from '@/utils/locationUtils';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -83,11 +85,12 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v2.0 - UI CLEANUP
+ * ✅ LOCAL DETAILS MODAL v3.0 - FIXED DISTANCE DISPLAY ON ANDROID
  * 
  * Changes:
- * - ✅ Removed redundant local name text between "Estoy en este local" and action buttons
- * - ✅ Clean, unified button layout
+ * - ✅ Added user location tracking
+ * - ✅ Calculate distance to local
+ * - ✅ Display distance next to "Cómo llegar" button on Android
  */
 
 export default function LocalDetailsModal({
@@ -101,8 +104,63 @@ export default function LocalDetailsModal({
   const [local, setLocal] = useState<Local | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [distance, setDistance] = useState<string | null>(null);
 
   const localIsFavorite = localId ? isFavorite(localId) : false;
+
+  // ✅ CRITICAL FIX v3.0: Load user location for distance calculation
+  useEffect(() => {
+    (async () => {
+      try {
+        const isAvailable = await Location.hasServicesEnabledAsync();
+        if (!isAvailable) {
+          console.log('[LocalDetailsModal] ⚠️ Location services are disabled');
+          return;
+        }
+
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.log('[LocalDetailsModal] ⚠️ Location permission denied');
+          return;
+        }
+
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 5000,
+          distanceInterval: 0,
+        });
+        
+        setUserLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        console.log('[LocalDetailsModal] 📍 User location obtained');
+      } catch (error: any) {
+        console.error('[LocalDetailsModal] ❌ Error getting location:', error?.message);
+        setUserLocation(null);
+      }
+    })();
+  }, []);
+
+  // ✅ CRITICAL FIX v3.0: Calculate distance when location and local data are available
+  useEffect(() => {
+    if (userLocation && local?.latitud && local?.longitud) {
+      const distKm = calcularDistancia(
+        userLocation.latitude, 
+        userLocation.longitude, 
+        Number(local.latitud), 
+        Number(local.longitud)
+      );
+
+      const dist = distKm < 1 
+        ? `${Math.round(distKm * 1000)} m` 
+        : `${distKm.toFixed(1)} km`;
+
+      setDistance(dist);
+      console.log('[LocalDetailsModal] 📏 Distance calculated:', dist);
+    }
+  }, [userLocation, local]);
 
   const loadLocalData = useCallback(async () => {
     try {
@@ -321,14 +379,20 @@ export default function LocalDetailsModal({
                     </View>
                   )}
 
+                  {/* ✅ CRITICAL FIX v3.0: Display distance if available */}
+                  {distance && (
+                    <View style={styles.distanceContainer}>
+                      <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={16} color={colors.primary} />
+                      <Text style={styles.distanceText}>A {distance} de tu ubicación</Text>
+                    </View>
+                  )}
+
                   {(local.descripcion_google || local.descripcion) && (
                     <Text style={styles.descriptionText} numberOfLines={3}>
                       {local.descripcion_google || local.descripcion}
                     </Text>
                   )}
                   
-                  {/* ✅ CLEANED UP: Removed redundant local name text */}
-                  {/* Check-in button directly followed by action buttons */}
                   <TouchableOpacity 
                     style={styles.checkInButton}
                     onPress={handleViewFullDetails}
@@ -344,7 +408,6 @@ export default function LocalDetailsModal({
                     </LinearGradient>
                   </TouchableOpacity>
                   
-                  {/* ✅ Action buttons immediately after check-in button - no gap */}
                   <View style={styles.actionsRow}>
                     {local.telefono && (
                       <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
@@ -368,8 +431,14 @@ export default function LocalDetailsModal({
                           end={{ x: 1, y: 1 }}
                           style={styles.actionBtnGradient}
                         >
-                          <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
-                          <Text style={styles.actionBtnText}>Cómo llegar</Text>
+                          <View style={styles.actionBtnContent}>
+                            <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
+                            <Text style={styles.actionBtnText}>Cómo llegar</Text>
+                            {/* ✅ CRITICAL FIX v3.0: Show distance on Android */}
+                            {distance && Platform.OS === 'android' && (
+                              <Text style={styles.actionBtnDistance}>({distance})</Text>
+                            )}
+                          </View>
                         </LinearGradient>
                       </TouchableOpacity>
                     )}
@@ -601,6 +670,23 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '600',
   },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  distanceText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '700',
+  },
   descriptionText: {
     fontSize: 15,
     color: colors.text,
@@ -634,15 +720,22 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   actionBtnGradient: {
+    paddingVertical: 12,
+  },
+  actionBtnContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
   },
   actionBtnText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#fff',
+  },
+  actionBtnDistance: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
 });

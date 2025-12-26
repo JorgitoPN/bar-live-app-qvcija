@@ -22,20 +22,14 @@ interface MiniFoodPlateAvatarProps {
 }
 
 /**
- * ✅ MINI FOOD PLATE AVATAR v10.0 - FIXED IMAGE LOADING ON ANDROID
+ * ✅ MINI FOOD PLATE AVATAR v11.0 - FIXED IMAGE LOADING ON ANDROID
  * 
- * Features:
- * - Smaller size optimized for inline use
- * - Default avatar with user icon (non-realistic)
- * - ALWAYS shows an avatar (never empty)
- * - ✅ FIXED: Real-time sync for momento border
- * - ✅ Shows neon green border ONLY if user/local has UNVIEWED momentos
- * - ✅ Removes border when all momentos are viewed
- * - ✅ Subscribes to real-time updates for momento_views
- * - ✅ Uses effective user for impersonation support
- * - ✅ FIXED: Relaxed URL validation for Android compatibility
- * - ✅ FIXED: Handles Supabase storage URLs correctly
- * - ✅ FIXED: Better error handling with onError callback
+ * CRITICAL FIX v11.0:
+ * - ✅ Removed overly strict URL validation
+ * - ✅ Now accepts ANY non-empty string as a valid image URL
+ * - ✅ Relies on Image component's onError to handle invalid URLs
+ * - ✅ Shows default icon on error
+ * - ✅ Works with Supabase storage URLs, AWS URLs, and any other image URLs
  */
 export default function MiniFoodPlateAvatar({
   imageUrl,
@@ -155,24 +149,11 @@ export default function MiniFoodPlateAvatar({
   const rimWidth = size * 0.06;
   const borderWidth = 3;
 
-  // ✅ CRITICAL FIX v10.0: More relaxed URL validation for Android
-  // Accept any URL that looks like it could be an image
-  const isValidUrl = imageUrl && !imageError && (
-    imageUrl.startsWith('http://') || 
-    imageUrl.startsWith('https://') ||
-    imageUrl.startsWith('file://') ||
-    imageUrl.includes('supabase') ||
-    imageUrl.includes('storage') ||
-    imageUrl.includes('amazonaws') ||
-    imageUrl.includes('cloudinary') ||
-    imageUrl.includes('unsplash')
-  );
-  
-  const shouldShowImage = isValidUrl;
+  // ✅ CRITICAL FIX v11.0: Simplified URL validation - accept any non-empty string
+  const shouldShowImage = !!(imageUrl && !imageError);
 
-  console.log('[MiniFoodPlateAvatar v10.0] 🖼️ Image decision:', {
+  console.log('[MiniFoodPlateAvatar v11.0] 🖼️ Image decision:', {
     imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'none',
-    isValidUrl,
     imageError,
     shouldShowImage,
   });
@@ -225,11 +206,11 @@ export default function MiniFoodPlateAvatar({
                   ]}
                   resizeMode="cover"
                   onError={(error) => {
-                    console.log('[MiniFoodPlateAvatar v10.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent.error);
+                    console.log('[MiniFoodPlateAvatar v11.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent.error);
                     setImageError(true);
                   }}
                   onLoad={() => {
-                    console.log('[MiniFoodPlateAvatar v10.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
+                    console.log('[MiniFoodPlateAvatar v11.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
                     setImageError(false);
                   }}
                 />
@@ -295,11 +276,11 @@ export default function MiniFoodPlateAvatar({
               ]}
               resizeMode="cover"
               onError={(error) => {
-                console.log('[MiniFoodPlateAvatar v10.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent.error);
+                console.log('[MiniFoodPlateAvatar v11.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent.error);
                 setImageError(true);
               }}
               onLoad={() => {
-                console.log('[MiniFoodPlateAvatar v10.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
+                console.log('[MiniFoodPlateAvatar v11.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
                 setImageError(false);
               }}
             />

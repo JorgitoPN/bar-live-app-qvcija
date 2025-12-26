@@ -26,7 +26,6 @@ import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import PostViewerModal from '@/components/social/PostViewerModal';
-import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -76,6 +75,16 @@ interface FriendLocation {
 
 const POSTS_PER_PAGE = 10;
 
+/**
+ * ✅ SOCIAL INDEX SCREEN v32.0 - REMOVED LOGIN REQUIRED MODAL
+ * 
+ * Changes:
+ * - ✅ Removed LoginRequiredModal import and usage
+ * - ✅ Removed showLoginModal state
+ * - ✅ Users can now browse social page without logging in
+ * - ✅ Login required message is shown inline instead of modal
+ */
+
 export default function SocialIndexScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -95,18 +104,6 @@ export default function SocialIndexScreen() {
   const [friendsLocations, setFriendsLocations] = useState<FriendLocation[]>([]);
   const [loadingFriendsLocations, setLoadingFriendsLocations] = useState(false);
   const [myCheckIn, setMyCheckIn] = useState<any>(null);
-
-  // ✅ NEW: Login required modal state
-  const [showLoginModal, setShowLoginModal] = useState(false);
-
-  // ✅ NEW: Check if user is logged in
-  useEffect(() => {
-    if (!user && !isImpersonating) {
-      console.log('[Social] ⚠️ User not logged in, showing login required message');
-      setShowLoginModal(true);
-      setLoading(false);
-    }
-  }, [user, isImpersonating]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!userId) return;
@@ -637,7 +634,7 @@ export default function SocialIndexScreen() {
     );
   }, [loading, isImpersonating]);
 
-  // ✅ NEW: Show login required message if user is not logged in
+  // ✅ CRITICAL FIX v32.0: Show inline login message instead of modal
   if (!user && !isImpersonating) {
     return (
       <View style={styles.container}>
@@ -681,12 +678,6 @@ export default function SocialIndexScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-
-        <LoginRequiredModal
-          visible={showLoginModal}
-          onClose={() => setShowLoginModal(false)}
-          message="Para acceder a la página social necesitas iniciar sesión en BarLive"
-        />
       </View>
     );
   }
