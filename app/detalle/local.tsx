@@ -324,6 +324,16 @@ const formatOpeningHours = (hours: string[]): string => {
   return sortedHours.join(', ');
 };
 
+/**
+ * ✅ DETALLE LOCAL SCREEN v36.0 - FIXED ANDROID SCROLL
+ * 
+ * CRITICAL FIX v36.0:
+ * - ✅ Removed gesture-based dismissal that was blocking scroll on Android
+ * - ✅ Simplified to standard ScrollView without gesture conflicts
+ * - ✅ Proper ScrollView configuration for Android
+ * - ✅ Removed Animated.ScrollView that was causing issues
+ * - ✅ Standard back button for dismissal
+ */
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -358,16 +368,11 @@ export default function DetalleLocalScreen() {
 
   const [showReviewsModal, setShowReviewsModal] = useState(false);
 
-  const scrollY = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const contextY = useSharedValue(0);
-
   useEffect(() => {
     (async () => {
       try {
         console.log('[DetalleLocal] 🔍 Requesting location permissions...');
         
-        // Check if location services are available
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
           console.log('[DetalleLocal] ⚠️ Location services are disabled');
@@ -401,7 +406,6 @@ export default function DetalleLocalScreen() {
           message: error?.message || 'Unknown error',
           code: error?.code,
         });
-        // Don't show alert, just log the error and continue without location
         setUserLocation(null);
       }
     })();
@@ -832,53 +836,6 @@ export default function DetalleLocalScreen() {
     setDisplayedReviewsCount(prev => prev + 5);
   };
 
-  const dismissModal = () => {
-    router.back();
-  };
-
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
-    },
-  });
-
-  const panGesture = Gesture.Pan()
-    .onBegin(() => {
-      'worklet';
-      contextY.value = translateY.value;
-    })
-    .onUpdate((event) => {
-      'worklet';
-      if (scrollY.value <= 0 && event.translationY > 0) {
-        translateY.value = contextY.value + event.translationY;
-      }
-    })
-    .onEnd((event) => {
-      'worklet';
-      if (translateY.value > DISMISS_THRESHOLD || event.velocityY > VELOCITY_THRESHOLD) {
-        translateY.value = withTiming(
-          SCREEN_HEIGHT,
-          { duration: 300 },
-          (finished) => {
-            if (finished) {
-              runOnJS(dismissModal)();
-            }
-          }
-        );
-      } else {
-        translateY.value = withSpring(0, {
-          damping: 25,
-          stiffness: 400,
-        });
-      }
-    });
-
-  const animatedModalStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: translateY.value }],
-    };
-  });
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -900,7 +857,6 @@ export default function DetalleLocalScreen() {
     );
   }
 
-  // ✅ CRITICAL FIX v28.0: Use galeria_urls instead of fotos (which doesn't exist)
   const allImages = [
     local.imagen_url || local.foto_principal,
     ...(local.galeria_urls || [])
@@ -917,9 +873,6 @@ export default function DetalleLocalScreen() {
   const estadoLocal = getEstadoLocal(local);
   const isOpen = estadoLocal.estaAbierto === true;
   
-  // ✅ Show social profile button if:
-  // 1. Local has a local_profile_id (has created a social profile)
-  // 2. OR local has premium/estandar plan (can create social profile)
   const hasSocialProfile = !!(
     local.local_profile_id || 
     local.plan_activo === 'premium' || 
@@ -1023,631 +976,640 @@ export default function DetalleLocalScreen() {
   const displayedReviews: (Review | (GoogleReview & { source: 'google' }))[] = allReviews.slice(0, displayedReviewsCount);
 
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      <GestureDetector gesture={panGesture}>
-        <Animated.View style={[styles.modalContainer, animatedModalStyle]}>
-          <Animated.ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-            scrollEventThrottle={16}
-            onScroll={scrollHandler}
-          >
-            {allImages.length > 0 && (
-              <View style={styles.coverContainer}>
-                <TouchableOpacity activeOpacity={0.9} onPress={() => handleOpenGallery(currentImageIndex)}>
-                  <ScrollView
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    onScroll={(event) => {
-                      const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-                      setCurrentImageIndex(index);
-                    }}
-                    scrollEventThrottle={16}
-                  >
-                    {allImages.map((image, index) => (
-                      <View key={index} style={{ width: SCREEN_WIDTH, height: 300 }}>
-                        <OptimizedImage source={{ uri: image }} style={styles.coverImage} resizeMode="cover" />
-                      </View>
-                    ))}
-                  </ScrollView>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-                  <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
-                    <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
-                  </BlurView>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-                  <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
-                    <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
-                  </BlurView>
-                </TouchableOpacity>
-
-                {displayRating > 0 && (
-                  <View style={styles.ratingBadge}>
-                    <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
-                      <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
-                      <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
-                    </BlurView>
+      {/* ✅ CRITICAL FIX v36.0: Standard ScrollView without gesture conflicts */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        scrollEnabled={true}
+        // ✅ ANDROID FIX: Enable nested scrolling for Android
+        nestedScrollEnabled={Platform.OS === 'android'}
+      >
+        {allImages.length > 0 && (
+          <View style={styles.coverContainer}>
+            <TouchableOpacity activeOpacity={0.9} onPress={() => handleOpenGallery(currentImageIndex)}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={(event) => {
+                  const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                  setCurrentImageIndex(index);
+                }}
+                scrollEventThrottle={16}
+              >
+                {allImages.map((image, index) => (
+                  <View key={index} style={{ width: SCREEN_WIDTH, height: 300 }}>
+                    <OptimizedImage source={{ uri: image }} style={styles.coverImage} resizeMode="cover" />
                   </View>
-                )}
+                ))}
+              </ScrollView>
+            </TouchableOpacity>
 
-                <View style={styles.statusBadge}>
-                  <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
-                    <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
-                    <Text style={styles.statusText}>{estadoLocal.badge}</Text>
-                    {estadoLocal.tiempoRestante && <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>}
-                  </BlurView>
-                </View>
+            <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+              <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
+              </BlurView>
+            </TouchableOpacity>
 
-                {local.destacado && (
-                  <View style={styles.destacadoBadge}>
-                    <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
-                      <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#F59E0B" />
-                      <Text style={styles.destacadoText}>Destacado</Text>
-                    </BlurView>
-                  </View>
-                )}
+            <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+              <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+                <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
+              </BlurView>
+            </TouchableOpacity>
 
-                <TouchableOpacity style={styles.favoritoButton} onPress={handleToggleFavorito} disabled={loadingFavorite}>
-                  <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
-                    {loadingFavorite ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <IconSymbol
-                        ios_icon_name={localIsFavorite ? 'heart.fill' : 'heart'}
-                        android_material_icon_name={localIsFavorite ? 'favorite' : 'favorite_border'}
-                        size={22}
-                        color={localIsFavorite ? '#EF4444' : '#FFFFFF'}
-                      />
-                    )}
-                  </BlurView>
-                </TouchableOpacity>
+            {displayRating > 0 && (
+              <View style={styles.ratingBadge}>
+                <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
+                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
+                  <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
+                </BlurView>
               </View>
             )}
 
-            {/* ✅ CRITICAL FIX v28.0: Gallery section now properly displays images */}
-            {allImages.length > 1 && (
-              <View style={styles.gallerySection}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
-                  {allImages.slice(1, 6).map((image, index) => (
-                    <TouchableOpacity key={index} style={styles.galleryItem} onPress={() => handleOpenGallery(index + 1)}>
-                      <OptimizedImage source={{ uri: image }} style={styles.galleryImage} resizeMode="cover" />
-                    </TouchableOpacity>
-                  ))}
-                  {allImages.length > 6 && (
-                    <TouchableOpacity style={styles.galleryItem} onPress={() => handleOpenGallery(6)}>
-                      <OptimizedImage source={{ uri: allImages[6] }} style={styles.galleryImage} resizeMode="cover" />
-                      <View style={styles.galleryOverlay}>
-                        <Text style={styles.galleryOverlayText}>+{allImages.length - 6}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                </ScrollView>
+            <View style={styles.statusBadge}>
+              <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
+                <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
+                <Text style={styles.statusText}>{estadoLocal.badge}</Text>
+                {estadoLocal.tiempoRestante && <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>}
+              </BlurView>
+            </View>
+
+            {local.destacado && (
+              <View style={styles.destacadoBadge}>
+                <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
+                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#F59E0B" />
+                  <Text style={styles.destacadoText}>Destacado</Text>
+                </BlurView>
               </View>
             )}
 
-            <View style={styles.contentCard}>
-              <View style={styles.headerSection}>
-                <Text style={styles.localNameText}>{local.nombre}</Text>
-
-                {allCategories.length > 0 && (
-                  <View style={styles.categoriesRow}>
-                    {allCategories.map((categoria, index) => {
-                      const icon = getCategoryIcon(categoria);
-                      return (
-                        <View key={index} style={[styles.categoryChipHighlighted, { backgroundColor: icon.color }]}>
-                          <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={18} color="#fff" />
-                          <Text style={styles.categoryChipTextHighlighted}>{categoria.toUpperCase()}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
+            <TouchableOpacity style={styles.favoritoButton} onPress={handleToggleFavorito} disabled={loadingFavorite}>
+              <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
+                {loadingFavorite ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <IconSymbol
+                    ios_icon_name={localIsFavorite ? 'heart.fill' : 'heart'}
+                    android_material_icon_name={localIsFavorite ? 'favorite' : 'favorite_border'}
+                    size={22}
+                    color={localIsFavorite ? '#EF4444' : '#FFFFFF'}
+                  />
                 )}
+              </BlurView>
+            </TouchableOpacity>
+          </View>
+        )}
 
-                {local.direccion && (
-                  <View style={styles.addressCompact}>
-                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
-                    <Text style={styles.addressTextCompact} numberOfLines={1}>
-                      {local.direccion}
-                    </Text>
-                  </View>
-                )}
-
-                {distance && (
-                  <View style={styles.distanceContainer}>
-                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={16} color={colors.primary} />
-                    <Text style={styles.distanceText}>A {distance} de tu ubicación</Text>
-                  </View>
-                )}
-              </View>
-
-              {!hasOwner && (
-                <TouchableOpacity 
-                  style={styles.claimLocalCard}
-                  onPress={handleClaimLocal}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.claimLocalCardContent}>
-                    <IconSymbol 
-                      ios_icon_name="building.2" 
-                      android_material_icon_name="business" 
-                      size={16} 
-                      color={colors.primary} 
-                    />
-                    <Text style={styles.claimLocalCardText}>
-                      ¿Este es tu local? Reclámalo ahora
-                    </Text>
-                    <IconSymbol 
-                      ios_icon_name="chevron.right" 
-                      android_material_icon_name="chevron_right" 
-                      size={14} 
-                      color={colors.textSecondary} 
-                    />
+        {allImages.length > 1 && (
+          <View style={styles.gallerySection}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
+              {allImages.slice(1, 6).map((image, index) => (
+                <TouchableOpacity key={index} style={styles.galleryItem} onPress={() => handleOpenGallery(index + 1)}>
+                  <OptimizedImage source={{ uri: image }} style={styles.galleryImage} resizeMode="cover" />
+                </TouchableOpacity>
+              ))}
+              {allImages.length > 6 && (
+                <TouchableOpacity style={styles.galleryItem} onPress={() => handleOpenGallery(6)}>
+                  <OptimizedImage source={{ uri: allImages[6] }} style={styles.galleryImage} resizeMode="cover" />
+                  <View style={styles.galleryOverlay}>
+                    <Text style={styles.galleryOverlayText}>+{allImages.length - 6}</Text>
                   </View>
                 </TouchableOpacity>
               )}
+            </ScrollView>
+          </View>
+        )}
 
-              {checkedInUsers.length > 0 && (
-                <TouchableOpacity 
-                  style={styles.checkedInSection}
-                  onPress={() => setShowUsersModal(true)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.checkedInHeader}>
-                    <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color={colors.primary} />
-                    <Text style={styles.checkedInTitle}>
-                      {checkedInUsers.length} {checkedInUsers.length === 1 ? 'persona está' : 'personas están'} en este local
+        <View style={styles.contentCard}>
+          <View style={styles.headerSection}>
+            <Text style={styles.localNameText}>{local.nombre}</Text>
+
+            {allCategories.length > 0 && (
+              <View style={styles.categoriesRow}>
+                {allCategories.map((categoria, index) => {
+                  const icon = getCategoryIcon(categoria);
+                  return (
+                    <View key={index} style={[styles.categoryChipHighlighted, { backgroundColor: icon.color }]}>
+                      <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={18} color="#fff" />
+                      <Text style={styles.categoryChipTextHighlighted}>{categoria.toUpperCase()}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            {local.direccion && (
+              <View style={styles.addressCompact}>
+                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
+                <Text style={styles.addressTextCompact} numberOfLines={1}>
+                  {local.direccion}
+                </Text>
+              </View>
+            )}
+
+            {distance && (
+              <View style={styles.distanceContainer}>
+                <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={16} color={colors.primary} />
+                <Text style={styles.distanceText}>A {distance} de tu ubicación</Text>
+              </View>
+            )}
+          </View>
+
+          {!hasOwner && (
+            <TouchableOpacity 
+              style={styles.claimLocalCard}
+              onPress={handleClaimLocal}
+              activeOpacity={0.8}
+            >
+              <View style={styles.claimLocalCardContent}>
+                <IconSymbol 
+                  ios_icon_name="building.2" 
+                  android_material_icon_name="business" 
+                  size={16} 
+                  color={colors.primary} 
+                />
+                <Text style={styles.claimLocalCardText}>
+                  ¿Este es tu local? Reclámalo ahora
+                </Text>
+                <IconSymbol 
+                  ios_icon_name="chevron.right" 
+                  android_material_icon_name="chevron_right" 
+                  size={14} 
+                  color={colors.textSecondary} 
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {checkedInUsers.length > 0 && (
+            <TouchableOpacity 
+              style={styles.checkedInSection}
+              onPress={() => setShowUsersModal(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.checkedInHeader}>
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color={colors.primary} />
+                <Text style={styles.checkedInTitle}>
+                  {checkedInUsers.length} {checkedInUsers.length === 1 ? 'persona está' : 'personas están'} en este local
+                </Text>
+                <IconSymbol
+                  ios_icon_name="chevron.right"
+                  android_material_icon_name="chevron_right"
+                  size={18}
+                  color={colors.primary}
+                />
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.checkedInUsersScroll}>
+                {checkedInUsers.slice(0, 5).map((checkedUser) => (
+                  <View
+                    key={checkedUser.id}
+                    style={styles.checkedInUserCard}
+                  >
+                    <View style={styles.checkedInUserAvatar}>
+                      {checkedUser.avatar ? (
+                        <RNImage 
+                          source={{ uri: checkedUser.avatar }} 
+                          style={styles.checkedInUserAvatarImage}
+                          // ✅ ANDROID FIX v36.0: Force cache for better loading
+                          {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
+                        />
+                      ) : (
+                        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.headerText} />
+                      )}
+                    </View>
+                    <Text style={styles.checkedInUserName} numberOfLines={1}>
+                      {checkedUser.nombre}
                     </Text>
-                    <IconSymbol
-                      ios_icon_name="chevron.right"
-                      android_material_icon_name="chevron_right"
-                      size={18}
-                      color={colors.primary}
-                    />
                   </View>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.checkedInUsersScroll}>
-                    {checkedInUsers.slice(0, 5).map((checkedUser) => (
-                      <View
-                        key={checkedUser.id}
-                        style={styles.checkedInUserCard}
-                      >
-                        <View style={styles.checkedInUserAvatar}>
-                          {checkedUser.avatar ? (
-                            <RNImage source={{ uri: checkedUser.avatar }} style={styles.checkedInUserAvatarImage} />
-                          ) : (
-                            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.headerText} />
-                          )}
-                        </View>
-                        <Text style={styles.checkedInUserName} numberOfLines={1}>
-                          {checkedUser.nombre}
-                        </Text>
-                      </View>
-                    ))}
-                  </ScrollView>
+                ))}
+              </ScrollView>
+            </TouchableOpacity>
+          )}
+
+          {user && isOpen && (
+            <View style={styles.checkInButtonsContainer}>
+              {!isCheckedIn ? (
+                <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
+                  <LinearGradient colors={['#10B981', '#059669']} style={styles.checkInButtonGradient}>
+                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="add_location" size={22} color="#fff" />
+                    <Text style={styles.checkInButtonText}>Estoy en este local</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
-              )}
-
-              {/* ✅ FIXED: Only show "Estoy en este local" button when local is OPEN */}
-              {user && isOpen && (
-                <View style={styles.checkInButtonsContainer}>
-                  {!isCheckedIn ? (
-                    <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
-                      <LinearGradient colors={['#10B981', '#059669']} style={styles.checkInButtonGradient}>
-                        <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="add_location" size={22} color="#fff" />
-                        <Text style={styles.checkInButtonText}>Estoy en este local</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity style={styles.checkOutButton} onPress={handleCheckOut}>
-                      <LinearGradient colors={['#9CA3AF', '#6B7280']} style={styles.checkInButtonGradient}>
-                        <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={22} color="#fff" />
-                        <Text style={styles.checkInButtonText}>Ya no estoy en este local</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-
-              <View style={styles.actionsRow}>
-                {local.telefono && (
-                  <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
-                    <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtnGradient}>
-                      <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
-                      <Text style={styles.actionBtnText}>Llamar</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                )}
-
-                {local.latitud && local.longitud && (
-                  <TouchableOpacity style={styles.actionBtn} onPress={handleDirections}>
-                    <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtnGradient}>
-                      <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
-                      <Text style={styles.actionBtnText}>Cómo llegar</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <View style={styles.socialButtonsContainer}>
-                {/* ✅ FIXED: Show social profile button when local has profile or premium/estandar plan */}
-                {hasSocialProfile && (
-                  <TouchableOpacity style={styles.specialButton} onPress={handleSocialProfile}>
-                    <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.specialButtonGradient}>
-                      <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
-                      <Text style={styles.specialButtonText}>Ver Perfil Social</Text>
-                      <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
-                    </LinearGradient>
-                  </TouchableOpacity>
-                )}
-
-                {(local.website || local.email) && (
-                  <TouchableOpacity 
-                    style={styles.specialButton} 
-                    onPress={() => {
-                      if (local.website) {
-                        Linking.openURL(local.website.startsWith('http') ? local.website : `https://${local.website}`);
-                      } else if (local.email) {
-                        Linking.openURL(`mailto:${local.email}`);
-                      }
-                    }}
-                  >
-                    <LinearGradient 
-                      colors={['#10B981', '#059669']} 
-                      start={{ x: 0, y: 0 }} 
-                      end={{ x: 1, y: 1 }} 
-                      style={styles.specialButtonGradient}
-                    >
-                      <IconSymbol 
-                        ios_icon_name={local.website ? "globe" : "envelope.fill"} 
-                        android_material_icon_name={local.website ? "language" : "email"} 
-                        size={22} 
-                        color="#fff" 
-                      />
-                      <Text style={styles.specialButtonText}>
-                        {local.website ? 'Sitio Web' : 'Enviar Email'}
-                      </Text>
-                      <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
-                    </LinearGradient>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {isOpen && (
-                <TouchableOpacity
-                  style={styles.virtualRoomButton}
-                  onPress={() => router.push({ pathname: '/detalle/sala-virtual', params: { localId: params.id } })}
-                >
-                  <LinearGradient 
-                    colors={['#8B5CF6', '#7C3AED', '#6D28D9']} 
-                    start={{ x: 0, y: 0 }} 
-                    end={{ x: 1, y: 1 }} 
-                    style={styles.virtualRoomButtonGradient}
-                  >
-                    <View style={styles.virtualRoomIconContainer}>
-                      <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={24} color="#fff" />
-                    </View>
-                    <View style={styles.virtualRoomTextContainer}>
-                      <Text style={styles.virtualRoomButtonTitle}>Sala Virtual</Text>
-                      <Text style={styles.virtualRoomButtonSubtitle}>Chatea con otros usuarios</Text>
-                    </View>
-                    <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={22} color="#fff" />
+              ) : (
+                <TouchableOpacity style={styles.checkOutButton} onPress={handleCheckOut}>
+                  <LinearGradient colors={['#9CA3AF', '#6B7280']} style={styles.checkInButtonGradient}>
+                    <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={22} color="#fff" />
+                    <Text style={styles.checkInButtonText}>Ya no estoy en este local</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               )}
-
-              {eventos.length > 0 && (
-                <View style={styles.compactSection}>
-                  <View style={styles.compactSectionHeader}>
-                    <View style={[styles.compactIconCircle, { backgroundColor: colors.primary + '20' }]}>
-                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={20} color={colors.primary} />
-                    </View>
-                    <Text style={styles.compactSectionTitle}>Eventos Próximos</Text>
-                  </View>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.eventsScroll}>
-                    {eventos.map((evento) => (
-                      <TouchableOpacity
-                        key={evento.id}
-                        style={styles.eventCard}
-                        onPress={() => router.push({ pathname: '/detalle/evento', params: { id: evento.id } })}
-                      >
-                        {evento.imagen_url && (
-                          <OptimizedImage source={{ uri: `${evento.imagen_url}?v=${Date.now()}` }} style={styles.eventImage} resizeMode="cover" />
-                        )}
-                        <View style={styles.eventContent}>
-                          <Text style={styles.eventTitle} numberOfLines={2}>
-                            {evento.titulo}
-                          </Text>
-                          <Text style={styles.eventDate}>
-                            {new Date(evento.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-
-              {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
-                <View style={styles.compactSection}>
-                  <View style={styles.compactSectionHeader}>
-                    <View style={[styles.compactIconCircle, { backgroundColor: '#3B82F6' + '20' }]}>
-                      <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={20} color="#3B82F6" />
-                    </View>
-                    <Text style={styles.compactSectionTitle}>Horarios</Text>
-                  </View>
-                  <View style={styles.scheduleCompact}>
-                    {orderedDaysDisplay.map((dayDisplay) => {
-                      const dayNormalized = normalizeDayName(dayDisplay);
-                      const hours = local.horarios_completos?.[dayNormalized] || [];
-                      const isToday = dayNormalized.toLowerCase() === normalizeDayName(diaLogicoParaResaltar).toLowerCase();
-
-                      const formattedHours = formatOpeningHours(hours);
-
-                      return (
-                        <View key={dayDisplay} style={[styles.scheduleRow, isToday && styles.scheduleRowToday]}>
-                          <View style={styles.scheduleDayContainer}>
-                            <Text style={[styles.scheduleDayCompact, isToday && styles.scheduleDayTodayCompact]}>
-                              {dayDisplay.charAt(0).toUpperCase() + dayDisplay.slice(1, 3)}
-                            </Text>
-                            {isToday && <View style={styles.todayDot} />}
-                          </View>
-                          <Text style={[styles.scheduleHoursCompact, isToday && styles.scheduleHoursTodayCompact]} numberOfLines={2}>
-                            {formattedHours}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-              )}
-
-              {allServices.length > 0 && (
-                <View style={styles.compactSection}>
-                  <View style={styles.compactSectionHeader}>
-                    <View style={[styles.compactIconCircle, { backgroundColor: '#10B981' + '20' }]}>
-                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
-                    </View>
-                    <Text style={styles.compactSectionTitle}>Servicios Disponibles</Text>
-                  </View>
-                  <View style={styles.tagsGrid}>
-                    {allServices.map((servicio, index) => {
-                      const icon = getServiceIcon(servicio);
-                      return (
-                        <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
-                          <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
-                          <Text style={[styles.tagText, { color: icon.color }]}>{servicio}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-              )}
-
-              {ambienteTags.length > 0 && (
-                <View style={styles.compactSection}>
-                  <View style={styles.compactSectionHeader}>
-                    <View style={[styles.compactIconCircle, { backgroundColor: '#8B5CF6' + '20' }]}>
-                      <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color="#8B5CF6" />
-                    </View>
-                    <Text style={styles.compactSectionTitle}>Ambiente</Text>
-                  </View>
-                  <View style={styles.tagsGrid}>
-                    {ambienteTags.map((tag, index) => {
-                      const icon = getAmbienteIcon(tag);
-                      return (
-                        <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
-                          <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
-                          <Text style={[styles.tagText, { color: icon.color }]}>{tag}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-              )}
-
-              {clientelaTags.length > 0 && (
-                <View style={styles.compactSection}>
-                  <View style={styles.compactSectionHeader}>
-                    <View style={[styles.compactIconCircle, { backgroundColor: '#EC4899' + '20' }]}>
-                      <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color="#EC4899" />
-                    </View>
-                    <Text style={styles.compactSectionTitle}>Clientela Típica</Text>
-                  </View>
-                  <View style={styles.tagsGrid}>
-                    {clientelaTags.map((tag, index) => {
-                      const icon = getClientelaIcon(tag);
-                      return (
-                        <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
-                          <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
-                          <Text style={[styles.tagText, { color: icon.color }]}>{tag}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-              )}
-
-              {((local.analisis_reviews && Object.keys(local.analisis_reviews).length > 0) || allReviews.length > 0) && (
-                <View style={styles.compactSection}>
-                  <View style={styles.compactSectionHeader}>
-                    <View style={[styles.compactIconCircle, { backgroundColor: '#F59E0B' + '20' }]}>
-                      <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="analytics" size={20} color="#F59E0B" />
-                    </View>
-                    <Text style={styles.compactSectionTitle}>Análisis de Reseñas</Text>
-                  </View>
-                  <View style={styles.analysisBox}>
-                    {averageRating > 0 && (
-                      <View style={styles.analysisItem}>
-                        <Text style={styles.analysisLabel}>Sentimiento General</Text>
-                        <View style={[styles.sentimentBadge, { backgroundColor: calculateSentiment(averageRating).color + '20' }]}>
-                          <Text style={[styles.sentimentText, { color: calculateSentiment(averageRating).color }]}>
-                            {calculateSentiment(averageRating).sentiment}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-                    {local.analisis_reviews?.palabras_destacadas_google && local.analisis_reviews.palabras_destacadas_google.length > 0 && (
-                      <View style={styles.analysisItem}>
-                        <Text style={styles.analysisLabel}>Palabras Clave</Text>
-                        <View style={styles.keywordsRow}>
-                          {local.analisis_reviews.palabras_destacadas_google.slice(0, 5).map((keyword: string, index: number) => (
-                            <View key={index} style={[styles.keywordTag, { backgroundColor: '#F59E0B' + '20', borderColor: '#F59E0B' + '30' }]}>
-                              <Text style={[styles.keywordTagText, { color: '#F59E0B' }]}>{keyword}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      </View>
-                    )}
-                    {local.analisis_reviews?.resumen_automatico && (
-                      <View style={styles.analysisItem}>
-                        <Text style={styles.analysisLabel}>Resumen</Text>
-                        <Text style={styles.analysisSummary}>{local.analisis_reviews.resumen_automatico}</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              )}
-
-              {allReviews.length > 0 && (
-                <View style={styles.compactSection}>
-                  <View style={styles.compactSectionHeader}>
-                    <View style={[styles.compactIconCircle, { backgroundColor: '#FFD700' + '20' }]}>
-                      <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color="#FFD700" />
-                    </View>
-                    <Text style={styles.compactSectionTitle}>Reseñas</Text>
-                    <Text style={styles.reviewsCount}>({allReviews.length})</Text>
-                  </View>
-
-                  {displayedReviews.map((review, index) => {
-                    const isGoogleReview = 'source' in review && review.source === 'google';
-                    
-                    if (isGoogleReview) {
-                      const googleReview = review as GoogleReview & { source: 'google' };
-                      const reviewText = googleReview.text || '';
-                      const { summary, needsExpansion } = summarizeText(reviewText, 150);
-                      const isExpanded = expandedReviews.has(`google-${index}`);
-                      const displayText = isExpanded ? reviewText : summary;
-
-                      return (
-                        <View key={`google-${index}`} style={styles.reviewCard}>
-                          <View style={styles.reviewHeader}>
-                            <View style={styles.reviewAvatar}>
-                              {googleReview.profile_photo_url ? (
-                                <RNImage source={{ uri: googleReview.profile_photo_url }} style={styles.avatar} />
-                              ) : (
-                                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
-                                </View>
-                              )}
-                            </View>
-                            <View style={styles.reviewInfo}>
-                              <View style={styles.reviewAuthorRow}>
-                                <Text style={styles.reviewAuthor}>Cliente del local</Text>
-                              </View>
-                              <View style={styles.reviewRating}>
-                                <Ionicons name="star" size={14} color="#FFD700" />
-                                <Text style={styles.reviewRatingText}>{googleReview.rating}</Text>
-                              </View>
-                            </View>
-                            <Text style={styles.googleReviewTime}>{googleReview.relative_time_description}</Text>
-                          </View>
-                          {reviewText && (
-                            <React.Fragment>
-                              <Text style={styles.reviewText}>{displayText}</Text>
-                              {needsExpansion && (
-                                <TouchableOpacity onPress={() => toggleReviewExpansion(`google-${index}`)}>
-                                  <Text style={styles.expandButton}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
-                                </TouchableOpacity>
-                              )}
-                            </React.Fragment>
-                          )}
-                        </View>
-                      );
-                    } else {
-                      const barliveReview = review as Review;
-                      const isExpanded = expandedReviews.has(barliveReview.id);
-                      const reviewText = barliveReview.texto || '';
-                      const { summary, needsExpansion } = summarizeText(reviewText);
-                      const displayText = isExpanded ? reviewText : summary;
-                      const isOwner = user && barliveReview.usuario_id === user.id;
-
-                      return (
-                        <View key={barliveReview.id} style={styles.reviewCard}>
-                          <View style={styles.reviewHeader}>
-                            <View style={styles.reviewAvatar}>
-                              {barliveReview.usuario?.avatar ? (
-                                <RNImage source={{ uri: barliveReview.usuario.avatar }} style={styles.avatar} />
-                              ) : (
-                                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
-                                </View>
-                              )}
-                            </View>
-                            <View style={styles.reviewInfo}>
-                              <View style={styles.reviewAuthorRow}>
-                                <Text style={styles.reviewAuthor}>
-                                  {isOwner ? 'Tu reseña' : barliveReview.usuario?.nombre || 'Usuario de Barlive'}
-                                </Text>
-                              </View>
-                              <View style={styles.reviewRating}>
-                                <Ionicons name="star" size={14} color="#FFD700" />
-                                <Text style={styles.reviewRatingText}>{barliveReview.rating}</Text>
-                              </View>
-                            </View>
-                          </View>
-                          {reviewText && (
-                            <React.Fragment>
-                              <ParsedText text={displayText} style={styles.reviewText} />
-                              {needsExpansion && (
-                                <TouchableOpacity onPress={() => toggleReviewExpansion(barliveReview.id)}>
-                                  <Text style={styles.expandButton}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
-                                </TouchableOpacity>
-                              )}
-                            </React.Fragment>
-                          )}
-                        </View>
-                      );
-                    }
-                  })}
-
-                  {allReviews.length > displayedReviewsCount && (
-                    <TouchableOpacity 
-                      style={styles.loadMoreReviewsButton}
-                      onPress={handleLoadMoreReviews}
-                    >
-                      <Text style={styles.loadMoreReviewsText}>Ver más</Text>
-                      <IconSymbol
-                        ios_icon_name="chevron.down"
-                        android_material_icon_name="expand_more"
-                        size={16}
-                        color={colors.primary}
-                      />
-                    </TouchableOpacity>
-                  )}
-
-                  <TouchableOpacity style={styles.addReviewBtn} onPress={handleAddReview}>
-                    <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addReviewGradient}>
-                      <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color="#fff" />
-                      <Text style={styles.addReviewText}>
-                        {allReviews.some((r) => 'usuario_id' in r && r.usuario_id === user?.id) ? 'Editar Reseña' : 'Añadir Reseña'}
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-              )}
             </View>
-          </Animated.ScrollView>
-        </Animated.View>
-      </GestureDetector>
+          )}
 
-      {/* ✅ CRITICAL FIX v28.0: Gallery modal now receives correct images array */}
+          <View style={styles.actionsRow}>
+            {local.telefono && (
+              <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
+                <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtnGradient}>
+                  <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
+                  <Text style={styles.actionBtnText}>Llamar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+
+            {local.latitud && local.longitud && (
+              <TouchableOpacity style={styles.actionBtn} onPress={handleDirections}>
+                <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtnGradient}>
+                  <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
+                  <Text style={styles.actionBtnText}>Cómo llegar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.socialButtonsContainer}>
+            {hasSocialProfile && (
+              <TouchableOpacity style={styles.specialButton} onPress={handleSocialProfile}>
+                <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.specialButtonGradient}>
+                  <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
+                  <Text style={styles.specialButtonText}>Ver Perfil Social</Text>
+                  <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+
+            {(local.website || local.email) && (
+              <TouchableOpacity 
+                style={styles.specialButton} 
+                onPress={() => {
+                  if (local.website) {
+                    Linking.openURL(local.website.startsWith('http') ? local.website : `https://${local.website}`);
+                  } else if (local.email) {
+                    Linking.openURL(`mailto:${local.email}`);
+                  }
+                }}
+              >
+                <LinearGradient 
+                  colors={['#10B981', '#059669']} 
+                  start={{ x: 0, y: 0 }} 
+                  end={{ x: 1, y: 1 }} 
+                  style={styles.specialButtonGradient}
+                >
+                  <IconSymbol 
+                    ios_icon_name={local.website ? "globe" : "envelope.fill"} 
+                    android_material_icon_name={local.website ? "language" : "email"} 
+                    size={22} 
+                    color="#fff" 
+                  />
+                  <Text style={styles.specialButtonText}>
+                    {local.website ? 'Sitio Web' : 'Enviar Email'}
+                  </Text>
+                  <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {isOpen && (
+            <TouchableOpacity
+              style={styles.virtualRoomButton}
+              onPress={() => router.push({ pathname: '/detalle/sala-virtual', params: { localId: params.id } })}
+            >
+              <LinearGradient 
+                colors={['#8B5CF6', '#7C3AED', '#6D28D9']} 
+                start={{ x: 0, y: 0 }} 
+                end={{ x: 1, y: 1 }} 
+                style={styles.virtualRoomButtonGradient}
+              >
+                <View style={styles.virtualRoomIconContainer}>
+                  <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={24} color="#fff" />
+                </View>
+                <View style={styles.virtualRoomTextContainer}>
+                  <Text style={styles.virtualRoomButtonTitle}>Sala Virtual</Text>
+                  <Text style={styles.virtualRoomButtonSubtitle}>Chatea con otros usuarios</Text>
+                </View>
+                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={22} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          {eventos.length > 0 && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: colors.primary + '20' }]}>
+                  <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={20} color={colors.primary} />
+                </View>
+                <Text style={styles.compactSectionTitle}>Eventos Próximos</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.eventsScroll}>
+                {eventos.map((evento) => (
+                  <TouchableOpacity
+                    key={evento.id}
+                    style={styles.eventCard}
+                    onPress={() => router.push({ pathname: '/detalle/evento', params: { id: evento.id } })}
+                  >
+                    {evento.imagen_url && (
+                      <OptimizedImage source={{ uri: `${evento.imagen_url}?v=${Date.now()}` }} style={styles.eventImage} resizeMode="cover" />
+                    )}
+                    <View style={styles.eventContent}>
+                      <Text style={styles.eventTitle} numberOfLines={2}>
+                        {evento.titulo}
+                      </Text>
+                      <Text style={styles.eventDate}>
+                        {new Date(evento.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: '#3B82F6' + '20' }]}>
+                  <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={20} color="#3B82F6" />
+                </View>
+                <Text style={styles.compactSectionTitle}>Horarios</Text>
+              </View>
+              <View style={styles.scheduleCompact}>
+                {orderedDaysDisplay.map((dayDisplay) => {
+                  const dayNormalized = normalizeDayName(dayDisplay);
+                  const hours = local.horarios_completos?.[dayNormalized] || [];
+                  const isToday = dayNormalized.toLowerCase() === normalizeDayName(diaLogicoParaResaltar).toLowerCase();
+
+                  const formattedHours = formatOpeningHours(hours);
+
+                  return (
+                    <View key={dayDisplay} style={[styles.scheduleRow, isToday && styles.scheduleRowToday]}>
+                      <View style={styles.scheduleDayContainer}>
+                        <Text style={[styles.scheduleDayCompact, isToday && styles.scheduleDayTodayCompact]}>
+                          {dayDisplay.charAt(0).toUpperCase() + dayDisplay.slice(1, 3)}
+                        </Text>
+                        {isToday && <View style={styles.todayDot} />}
+                      </View>
+                      <Text style={[styles.scheduleHoursCompact, isToday && styles.scheduleHoursTodayCompact]} numberOfLines={2}>
+                        {formattedHours}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {allServices.length > 0 && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: '#10B981' + '20' }]}>
+                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
+                </View>
+                <Text style={styles.compactSectionTitle}>Servicios Disponibles</Text>
+              </View>
+              <View style={styles.tagsGrid}>
+                {allServices.map((servicio, index) => {
+                  const icon = getServiceIcon(servicio);
+                  return (
+                    <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
+                      <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
+                      <Text style={[styles.tagText, { color: icon.color }]}>{servicio}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {ambienteTags.length > 0 && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: '#8B5CF6' + '20' }]}>
+                  <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color="#8B5CF6" />
+                </View>
+                <Text style={styles.compactSectionTitle}>Ambiente</Text>
+              </View>
+              <View style={styles.tagsGrid}>
+                {ambienteTags.map((tag, index) => {
+                  const icon = getAmbienteIcon(tag);
+                  return (
+                    <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
+                      <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
+                      <Text style={[styles.tagText, { color: icon.color }]}>{tag}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {clientelaTags.length > 0 && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: '#EC4899' + '20' }]}>
+                  <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color="#EC4899" />
+                </View>
+                <Text style={styles.compactSectionTitle}>Clientela Típica</Text>
+              </View>
+              <View style={styles.tagsGrid}>
+                {clientelaTags.map((tag, index) => {
+                  const icon = getClientelaIcon(tag);
+                  return (
+                    <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
+                      <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
+                      <Text style={[styles.tagText, { color: icon.color }]}>{tag}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {((local.analisis_reviews && Object.keys(local.analisis_reviews).length > 0) || allReviews.length > 0) && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: '#F59E0B' + '20' }]}>
+                  <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="analytics" size={20} color="#F59E0B" />
+                </View>
+                <Text style={styles.compactSectionTitle}>Análisis de Reseñas</Text>
+              </View>
+              <View style={styles.analysisBox}>
+                {averageRating > 0 && (
+                  <View style={styles.analysisItem}>
+                    <Text style={styles.analysisLabel}>Sentimiento General</Text>
+                    <View style={[styles.sentimentBadge, { backgroundColor: calculateSentiment(averageRating).color + '20' }]}>
+                      <Text style={[styles.sentimentText, { color: calculateSentiment(averageRating).color }]}>
+                        {calculateSentiment(averageRating).sentiment}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                {local.analisis_reviews?.palabras_destacadas_google && local.analisis_reviews.palabras_destacadas_google.length > 0 && (
+                  <View style={styles.analysisItem}>
+                    <Text style={styles.analysisLabel}>Palabras Clave</Text>
+                    <View style={styles.keywordsRow}>
+                      {local.analisis_reviews.palabras_destacadas_google.slice(0, 5).map((keyword: string, index: number) => (
+                        <View key={index} style={[styles.keywordTag, { backgroundColor: '#F59E0B' + '20', borderColor: '#F59E0B' + '30' }]}>
+                          <Text style={[styles.keywordTagText, { color: '#F59E0B' }]}>{keyword}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+                {local.analisis_reviews?.resumen_automatico && (
+                  <View style={styles.analysisItem}>
+                    <Text style={styles.analysisLabel}>Resumen</Text>
+                    <Text style={styles.analysisSummary}>{local.analisis_reviews.resumen_automatico}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {allReviews.length > 0 && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: '#FFD700' + '20' }]}>
+                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color="#FFD700" />
+                </View>
+                <Text style={styles.compactSectionTitle}>Reseñas</Text>
+                <Text style={styles.reviewsCount}>({allReviews.length})</Text>
+              </View>
+
+              {displayedReviews.map((review, index) => {
+                const isGoogleReview = 'source' in review && review.source === 'google';
+                
+                if (isGoogleReview) {
+                  const googleReview = review as GoogleReview & { source: 'google' };
+                  const reviewText = googleReview.text || '';
+                  const { summary, needsExpansion } = summarizeText(reviewText, 150);
+                  const isExpanded = expandedReviews.has(`google-${index}`);
+                  const displayText = isExpanded ? reviewText : summary;
+
+                  return (
+                    <View key={`google-${index}`} style={styles.reviewCard}>
+                      <View style={styles.reviewHeader}>
+                        <View style={styles.reviewAvatar}>
+                          {googleReview.profile_photo_url ? (
+                            <RNImage 
+                              source={{ uri: googleReview.profile_photo_url }} 
+                              style={styles.avatar}
+                              // ✅ ANDROID FIX v36.0: Force cache for better loading
+                              {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
+                            />
+                          ) : (
+                            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.reviewInfo}>
+                          <View style={styles.reviewAuthorRow}>
+                            <Text style={styles.reviewAuthor}>Cliente del local</Text>
+                          </View>
+                          <View style={styles.reviewRating}>
+                            <Ionicons name="star" size={14} color="#FFD700" />
+                            <Text style={styles.reviewRatingText}>{googleReview.rating}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.googleReviewTime}>{googleReview.relative_time_description}</Text>
+                      </View>
+                      {reviewText && (
+                        <React.Fragment>
+                          <Text style={styles.reviewText}>{displayText}</Text>
+                          {needsExpansion && (
+                            <TouchableOpacity onPress={() => toggleReviewExpansion(`google-${index}`)}>
+                              <Text style={styles.expandButton}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
+                            </TouchableOpacity>
+                          )}
+                        </React.Fragment>
+                      )}
+                    </View>
+                  );
+                } else {
+                  const barliveReview = review as Review;
+                  const isExpanded = expandedReviews.has(barliveReview.id);
+                  const reviewText = barliveReview.texto || '';
+                  const { summary, needsExpansion } = summarizeText(reviewText);
+                  const displayText = isExpanded ? reviewText : summary;
+                  const isOwner = user && barliveReview.usuario_id === user.id;
+
+                  return (
+                    <View key={barliveReview.id} style={styles.reviewCard}>
+                      <View style={styles.reviewHeader}>
+                        <View style={styles.reviewAvatar}>
+                          {barliveReview.usuario?.avatar ? (
+                            <RNImage 
+                              source={{ uri: barliveReview.usuario.avatar }} 
+                              style={styles.avatar}
+                              // ✅ ANDROID FIX v36.0: Force cache for better loading
+                              {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
+                            />
+                          ) : (
+                            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.reviewInfo}>
+                          <View style={styles.reviewAuthorRow}>
+                            <Text style={styles.reviewAuthor}>
+                              {isOwner ? 'Tu reseña' : barliveReview.usuario?.nombre || 'Usuario de Barlive'}
+                            </Text>
+                          </View>
+                          <View style={styles.reviewRating}>
+                            <Ionicons name="star" size={14} color="#FFD700" />
+                            <Text style={styles.reviewRatingText}>{barliveReview.rating}</Text>
+                          </View>
+                        </View>
+                      </View>
+                      {reviewText && (
+                        <React.Fragment>
+                          <ParsedText text={displayText} style={styles.reviewText} />
+                          {needsExpansion && (
+                            <TouchableOpacity onPress={() => toggleReviewExpansion(barliveReview.id)}>
+                              <Text style={styles.expandButton}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
+                            </TouchableOpacity>
+                          )}
+                        </React.Fragment>
+                      )}
+                    </View>
+                  );
+                }
+              })}
+
+              {allReviews.length > displayedReviewsCount && (
+                <TouchableOpacity 
+                  style={styles.loadMoreReviewsButton}
+                  onPress={handleLoadMoreReviews}
+                >
+                  <Text style={styles.loadMoreReviewsText}>Ver más</Text>
+                  <IconSymbol
+                    ios_icon_name="chevron.down"
+                    android_material_icon_name="expand_more"
+                    size={16}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity style={styles.addReviewBtn} onPress={handleAddReview}>
+                <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addReviewGradient}>
+                  <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color="#fff" />
+                  <Text style={styles.addReviewText}>
+                    {allReviews.some((r) => 'usuario_id' in r && r.usuario_id === user?.id) ? 'Editar Reseña' : 'Añadir Reseña'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
       {galleryVisible && (
         <ImageGalleryModal 
           visible={galleryVisible} 
@@ -1689,16 +1651,12 @@ export default function DetalleLocalScreen() {
           localName={local?.nombre || ''}
         />
       )}
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  modalContainer: {
     flex: 1,
     backgroundColor: colors.background,
   },
