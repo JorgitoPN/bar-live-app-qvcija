@@ -23,6 +23,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import LoginPrompt from '@/components/common/LoginPrompt';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import * as Location from 'expo-location';
@@ -759,28 +760,12 @@ export default function FavoritosScreen() {
           <Text style={styles.headerTitle}>Locales Favoritos</Text>
         </LinearGradient>
 
-        <View style={styles.loginRequiredContainer}>
-          <IconSymbol 
-            ios_icon_name="heart.circle" 
-            android_material_icon_name="favorite" 
-            size={80} 
-            color={colors.primary} 
-          />
-          <Text style={styles.loginRequiredTitle}>
-            Inicia sesión para ver tus favoritos
-          </Text>
-          <Text style={styles.loginRequiredText}>
-            Regístrate o inicia sesión en BarLive para guardar tus locales favoritos
-            y acceder a ellos desde cualquier dispositivo.
-          </Text>
-          <TouchableOpacity 
-            style={styles.loginButton}
-            onPress={() => router.push('/auth/login-v6')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
-          </TouchableOpacity>
-        </View>
+        <LoginPrompt
+          title="Inicia sesión para ver tus favoritos"
+          message="Regístrate o inicia sesión en BarLive para guardar tus locales favoritos y acceder a ellos desde cualquier dispositivo."
+          icon="heart.circle"
+          androidIcon="favorite"
+        />
       </View>
     );
   }
@@ -1282,40 +1267,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.headerText,
-  },
-  loginRequiredContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  loginRequiredTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 12,
-    textAlign: 'center',
-    marginTop: 24,
-  },
-  loginRequiredText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 24,
-  },
-  loginButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
-    minWidth: 200,
-    alignItems: 'center',
-  },
-  loginButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   card: {
     backgroundColor: colors.cardBackground,

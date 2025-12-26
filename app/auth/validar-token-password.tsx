@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,200 +21,162 @@ import { supabase } from '@/utils/supabase';
 export default function ValidarTokenPasswordScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const email = params.email as string || '';
+  const email = params.email as string;
   const isGoogleUser = params.isGoogleUser === 'true';
   
-  const [token, setToken] = useState<string[]>(['', '', '', '', '', '']);
+  const [token, setToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const inputRefs = useRef<(TextInput | null)[]>([]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [tokenValidated, setTokenValidated] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => {
-      if (inputRefs.current[0]) {
-        inputRefs.current[0].focus();
-      }
-    }, 100);
-  }, []);
-
-  const handleTokenChange = (value: string, index: number) => {
-    if (value && !/^\d$/.test(value)) {
-      return;
+    if (!email) {
+      Alert.alert('Error', 'No se proporcionó un correo electrónico');
+      router.back();
     }
+  }, [email, router]);
 
-    const newToken = [...token];
-    
-    if (value.length > 1) {
-      const digits = value.replace(/\D/g, '').split('').slice(0, 6);
-      digits.forEach((digit, i) => {
-        if (index + i < 6) {
-          newToken[index + i] = digit;
-        }
-      });
-      setToken(newToken);
-      
-      const nextEmptyIndex = newToken.findIndex((digit, i) => i > index && !digit);
-      if (nextEmptyIndex !== -1) {
-        inputRefs.current[nextEmptyIndex]?.focus();
-      } else if (index + digits.length < 6) {
-        inputRefs.current[index + digits.length]?.focus();
-      }
-      return;
-    }
-
-    newToken[index] = value;
-    setToken(newToken);
-
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace') {
-      if (!token[index] && index > 0) {
-        const newToken = [...token];
-        newToken[index - 1] = '';
-        setToken(newToken);
-        inputRefs.current[index - 1]?.focus();
-      } else if (token[index]) {
-        const newToken = [...token];
-        newToken[index] = '';
-        setToken(newToken);
-      }
-    }
-  };
-
-  const handleFocus = (index: number) => {
-    if (token[index]) {
-      inputRefs.current[index]?.setNativeProps({
-        selection: { start: 0, end: 1 }
-      });
-    }
-  };
-
-  const handleValidateToken = async () => {
-    // ✅ CRITICAL FIX: Join token array and ensure it's a string
-    const fullToken = token.join('').trim();
-
-    console.log('[ValidarTokenPassword] 🔍 Token array:', token);
-    console.log('[ValidarTokenPassword] 🔍 Full token:', fullToken);
-    console.log('[ValidarTokenPassword] 🔍 Token length:', fullToken.length);
-    console.log('[ValidarTokenPassword] 🔍 Token type:', typeof fullToken);
-
-    if (fullToken.length !== 6) {
-      Alert.alert('Error', 'Por favor, ingresa el código completo de 6 dígitos');
-      return;
-    }
-
-    // Validate that all characters are digits
-    if (!/^\d{6}$/.test(fullToken)) {
-      Alert.alert('Error', 'El código debe contener solo números');
+  const validateToken = async () => {
+    if (!token || token.length !== 6) {
+      Alert.alert('Error', 'Por favor, ingresa un código de 6 dígitos');
       return;
     }
 
     setLoading(true);
 
     try {
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('[ValidarTokenPassword] 🔍 VALIDACIÓN DE TOKEN');
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('[ValidarTokenPassword] 📧 Email:', email);
-      console.log('[ValidarTokenPassword] 🔢 Token:', fullToken);
-      console.log('[ValidarTokenPassword] 🔐 Google User:', isGoogleUser);
+      console.log('[ValidarTokenPassword] 🔍 Validando token:', token);
 
-      // ✅ FIXED: Get Supabase URL from environment variable
-      const functionsUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-      
-      if (!functionsUrl) {
-        console.error('[ValidarTokenPassword] ❌ EXPO_PUBLIC_SUPABASE_URL is not defined');
-        throw new Error('Configuration error. Please contact support.');
-      }
-
-      // ✅ FIXED: Get current session token for authorization
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token || '';
-
-      console.log('[ValidarTokenPassword] 🌐 Functions URL:', functionsUrl);
-      console.log('[ValidarTokenPassword] 🔑 Has access token:', !!accessToken);
-
-      // ✅ CRITICAL FIX: Create request body with explicit string values
-      const normalizedEmail = email.trim().toLowerCase();
-      const normalizedToken = String(fullToken).trim();
-      
-      const requestBody = { 
-        email: normalizedEmail,
-        token: normalizedToken
-      };
-
-      console.log('[ValidarTokenPassword] 📦 Request body:', JSON.stringify(requestBody, null, 2));
-      console.log('[ValidarTokenPassword] 📦 Email value:', requestBody.email);
-      console.log('[ValidarTokenPassword] 📦 Email type:', typeof requestBody.email);
-      console.log('[ValidarTokenPassword] 📦 Token value:', requestBody.token);
-      console.log('[ValidarTokenPassword] 📦 Token type:', typeof requestBody.token);
-      console.log('[ValidarTokenPassword] 📦 Token is defined:', requestBody.token !== undefined);
-      console.log('[ValidarTokenPassword] 📦 Token is not null:', requestBody.token !== null);
-      console.log('[ValidarTokenPassword] 📦 Token length:', requestBody.token.length);
-
-      const response = await fetch(`${functionsUrl}/functions/v1/validate-password-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
+      const { data, error } = await supabase.functions.invoke('validate-password-token', {
+        body: { 
+          email: email.trim().toLowerCase(),
+          token: token.trim()
         },
-        body: JSON.stringify(requestBody),
       });
 
-      console.log('[ValidarTokenPassword] 📡 Response status:', response.status);
-      console.log('[ValidarTokenPassword] 📡 Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
+      if (error) {
+        console.error('[ValidarTokenPassword] ❌ Error:', error);
+        throw error;
+      }
 
-      const result = await response.json();
-      console.log('[ValidarTokenPassword] 📦 Response data:', JSON.stringify(result, null, 2));
-
-      if (!response.ok || !result.valid) {
-        console.error('[ValidarTokenPassword] ❌ Token inválido:', result.error || 'undefined');
+      if (!data || !data.valid) {
+        console.error('[ValidarTokenPassword] ❌ Token inválido o expirado');
         Alert.alert(
           'Código inválido',
-          result.error || 'El código ingresado es inválido o ha expirado. Por favor, verifica e intenta nuevamente.',
+          'El código ingresado es incorrecto o ha expirado. Por favor, solicita un nuevo código.',
           [
             {
               text: 'Solicitar nuevo código',
               onPress: () => router.back(),
             },
-            {
-              text: 'Reintentar',
-              style: 'cancel',
-            },
+            { text: 'Reintentar', style: 'cancel' },
           ]
         );
+        setLoading(false);
         return;
       }
 
       console.log('[ValidarTokenPassword] ✅ Token válido');
-
-      router.push({
-        pathname: '/auth/nueva-password-token',
-        params: { 
-          email: normalizedEmail,
-          token: normalizedToken,
-          isGoogleUser: isGoogleUser ? 'true' : 'false'
-        },
-      });
+      setTokenValidated(true);
+      Alert.alert(
+        '✅ Código verificado',
+        'Ahora puedes configurar tu nueva contraseña',
+        [{ text: 'Continuar' }]
+      );
     } catch (error: any) {
       console.error('[ValidarTokenPassword] ❌ Error:', error);
-      console.error('[ValidarTokenPassword] ❌ Error stack:', error.stack);
       Alert.alert(
         'Error',
-        'Ocurrió un error al validar el código. Por favor, intenta nuevamente.'
+        'No se pudo validar el código. Por favor, intenta nuevamente.'
       );
     } finally {
       setLoading(false);
-      console.log('[ValidarTokenPassword] 🏁 Proceso finalizado');
-      console.log('═══════════════════════════════════════════════════════');
     }
   };
 
-  const handleResendCode = () => {
-    router.back();
+  const handleUpdatePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      Alert.alert('Error', 'Por favor, completa todos los campos');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'Las contraseñas no coinciden');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      console.log('[ValidarTokenPassword] 🔐 Actualizando contraseña...');
+
+      const { data, error } = await supabase.functions.invoke('update-password-with-token', {
+        body: { 
+          email: email.trim().toLowerCase(),
+          token: token.trim(),
+          newPassword: newPassword,
+          isGoogleUser: isGoogleUser
+        },
+      });
+
+      if (error) {
+        console.error('[ValidarTokenPassword] ❌ Error:', error);
+        throw error;
+      }
+
+      console.log('[ValidarTokenPassword] ✅ Contraseña actualizada exitosamente');
+
+      // ✅ CRITICAL FIX: Update provider field in usuarios table for Google users
+      if (isGoogleUser) {
+        console.log('[ValidarTokenPassword] 🔄 Updating provider field for Google user...');
+        
+        const { error: updateError } = await supabase
+          .from('usuarios')
+          .update({ 
+            provider: 'email',
+            updated_at: new Date().toISOString()
+          })
+          .eq('email', email.trim().toLowerCase());
+
+        if (updateError) {
+          console.error('[ValidarTokenPassword] ⚠️ Error updating provider:', updateError);
+          // Don't fail the whole operation, just log the error
+        } else {
+          console.log('[ValidarTokenPassword] ✅ Provider updated to email');
+        }
+      }
+
+      Alert.alert(
+        '✅ Contraseña configurada',
+        isGoogleUser 
+          ? 'Tu contraseña ha sido configurada exitosamente. Ahora puedes iniciar sesión con tu email y contraseña.'
+          : 'Tu contraseña ha sido actualizada exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.',
+        [
+          {
+            text: 'Iniciar sesión',
+            onPress: () => {
+              router.replace('/auth/login');
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('[ValidarTokenPassword] ❌ Error:', error);
+      Alert.alert(
+        'Error',
+        'No se pudo actualizar la contraseña. Por favor, intenta nuevamente.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -237,9 +199,11 @@ export default function ValidarTokenPasswordScreen() {
             color="#fff"
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Introduce el código</Text>
+        <Text style={styles.headerTitle}>
+          {tokenValidated ? 'Nueva contraseña' : 'Verificar código'}
+        </Text>
         <Text style={styles.headerSubtitle}>
-          {isGoogleUser ? 'Configuración de contraseña' : 'Revisa tu correo electrónico'}
+          {tokenValidated ? 'Configura tu contraseña' : 'Ingresa el código de 6 dígitos'}
         </Text>
       </LinearGradient>
 
@@ -249,115 +213,157 @@ export default function ValidarTokenPasswordScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.formContainer}>
-          <View style={styles.infoBox}>
-            <IconSymbol
-              ios_icon_name="envelope.badge.fill"
-              android_material_icon_name="mark_email_read"
-              size={80}
-              color={colors.primary}
-            />
-            <Text style={styles.infoTitle}>Código enviado</Text>
-            <Text style={styles.infoText}>
-              Hemos enviado un código de 6 dígitos a:
-            </Text>
-            <View style={styles.emailBadge}>
-              <IconSymbol
-                ios_icon_name="envelope.fill"
-                android_material_icon_name="email"
-                size={16}
-                color={colors.primary}
-              />
-              <Text style={styles.emailText}>{email}</Text>
-            </View>
-          </View>
+          {!tokenValidated ? (
+            <>
+              <View style={styles.infoBox}>
+                <IconSymbol
+                  ios_icon_name="envelope.fill"
+                  android_material_icon_name="email"
+                  size={48}
+                  color={colors.primary}
+                />
+                <Text style={styles.infoTitle}>Revisa tu correo</Text>
+                <Text style={styles.infoText}>
+                  Hemos enviado un código de verificación de 6 dígitos a:
+                </Text>
+                <Text style={styles.emailText}>{email}</Text>
+              </View>
 
-          <Text style={styles.label}>Código de verificación</Text>
-          <View style={styles.tokenContainer}>
-            {token.map((digit, index) => (
+              <Text style={styles.label}>Código de verificación</Text>
               <TextInput
-                key={index}
-                ref={(ref) => (inputRefs.current[index] = ref)}
-                style={[
-                  styles.tokenInput,
-                  digit && styles.tokenInputFilled,
-                ]}
-                value={digit}
-                onChangeText={(value) => handleTokenChange(value, index)}
-                onKeyPress={(e) => handleKeyPress(e, index)}
-                onFocus={() => handleFocus(index)}
+                style={styles.input}
+                placeholder="000000"
+                placeholderTextColor={colors.textSecondary}
+                value={token}
+                onChangeText={setToken}
                 keyboardType="number-pad"
-                maxLength={1}
-                selectTextOnFocus
+                maxLength={6}
+                autoCapitalize="none"
+                autoCorrect={false}
                 editable={!loading}
-                returnKeyType={index === 5 ? 'done' : 'next'}
-                blurOnSubmit={index === 5}
               />
-            ))}
-          </View>
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleValidateToken}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <React.Fragment>
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={validateToken}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Verificar código</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.resendButton}
+                onPress={() => router.back()}
+              >
+                <Text style={styles.resendButtonText}>
+                  ¿No recibiste el código? <Text style={styles.resendButtonTextBold}>Reenviar</Text>
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={styles.successBox}>
                 <IconSymbol
                   ios_icon_name="checkmark.circle.fill"
                   android_material_icon_name="check_circle"
-                  size={20}
-                  color="#fff"
-                  style={styles.buttonIcon}
+                  size={64}
+                  color="#10b981"
                 />
-                <Text style={styles.buttonText}>Validar código</Text>
-              </React.Fragment>
-            )}
-          </TouchableOpacity>
+                <Text style={styles.successTitle}>Código verificado</Text>
+                <Text style={styles.successText}>
+                  Ahora puedes configurar tu nueva contraseña
+                </Text>
+              </View>
 
-          <View style={styles.helpBox}>
-            <Text style={styles.helpTitle}>¿No recibiste el código?</Text>
-            <Text style={styles.helpText}>
-              • Revisa tu carpeta de spam o correo no deseado
-            </Text>
-            <Text style={styles.helpText}>
-              • Asegúrate de haber ingresado el correo correcto
-            </Text>
-            <Text style={styles.helpText}>
-              • El código expira en 1 hora
-            </Text>
-          </View>
+              <Text style={styles.label}>Nueva contraseña</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Mínimo 8 caracteres"
+                  placeholderTextColor={colors.textSecondary}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <IconSymbol
+                    ios_icon_name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
+                    android_material_icon_name={showPassword ? 'visibility_off' : 'visibility'}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
 
-          <TouchableOpacity
-            style={styles.resendButton}
-            onPress={handleResendCode}
-          >
-            <IconSymbol
-              ios_icon_name="arrow.clockwise"
-              android_material_icon_name="refresh"
-              size={20}
-              color={colors.primary}
-              style={styles.buttonIcon}
-            />
-            <Text style={styles.resendButtonText}>Solicitar nuevo código</Text>
-          </TouchableOpacity>
+              <Text style={styles.label}>Confirmar contraseña</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Repite tu contraseña"
+                  placeholderTextColor={colors.textSecondary}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <IconSymbol
+                    ios_icon_name={showConfirmPassword ? 'eye.slash.fill' : 'eye.fill'}
+                    android_material_icon_name={showConfirmPassword ? 'visibility_off' : 'visibility'}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
 
-          <TouchableOpacity
-            style={styles.backToLoginButton}
-            onPress={() => router.replace('/auth/login')}
-          >
-            <IconSymbol
-              ios_icon_name="arrow.left"
-              android_material_icon_name="arrow_back"
-              size={16}
-              color={colors.primary}
-              style={styles.backToLoginIcon}
-            />
-            <Text style={styles.backToLoginText}>
-              Volver a <Text style={styles.backToLoginTextBold}>Iniciar sesión</Text>
-            </Text>
-          </TouchableOpacity>
+              <View style={styles.requirementsBox}>
+                <Text style={styles.requirementsTitle}>Requisitos de la contraseña:</Text>
+                <View style={styles.requirementItem}>
+                  <IconSymbol
+                    ios_icon_name={newPassword.length >= 8 ? 'checkmark.circle.fill' : 'circle'}
+                    android_material_icon_name={newPassword.length >= 8 ? 'check_circle' : 'radio_button_unchecked'}
+                    size={16}
+                    color={newPassword.length >= 8 ? '#10b981' : colors.textSecondary}
+                  />
+                  <Text style={styles.requirementText}>Mínimo 8 caracteres</Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <IconSymbol
+                    ios_icon_name={newPassword === confirmPassword && newPassword.length > 0 ? 'checkmark.circle.fill' : 'circle'}
+                    android_material_icon_name={newPassword === confirmPassword && newPassword.length > 0 ? 'check_circle' : 'radio_button_unchecked'}
+                    size={16}
+                    color={newPassword === confirmPassword && newPassword.length > 0 ? '#10b981' : colors.textSecondary}
+                  />
+                  <Text style={styles.requirementText}>Las contraseñas coinciden</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleUpdatePassword}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Configurar contraseña</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -371,20 +377,14 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 60,
-    paddingBottom: 32,
+    paddingBottom: 24,
     paddingHorizontal: 24,
   },
   backButton: {
-    marginBottom: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 8,
@@ -406,167 +406,132 @@ const styles = StyleSheet.create({
   infoBox: {
     alignItems: 'center',
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 32,
-    marginBottom: 32,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    borderRadius: 12,
+    padding: 24,
+    marginBottom: 24,
   },
   infoTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
-    marginTop: 20,
+    marginTop: 16,
     marginBottom: 12,
   },
   infoText: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 16,
-  },
-  emailBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: `${colors.primary}15`,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   emailText: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.primary,
-    marginLeft: 8,
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 16,
     textAlign: 'center',
+    marginTop: 8,
   },
-  tokenContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 32,
-    paddingHorizontal: 8,
-  },
-  tokenInput: {
-    width: 50,
-    height: 60,
+  successBox: {
+    alignItems: 'center',
     backgroundColor: colors.cardBackground,
-    borderWidth: 2,
-    borderColor: colors.cardBorder,
     borderRadius: 12,
+    padding: 24,
+    marginBottom: 24,
+  },
+  successTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    textAlign: 'center',
     color: colors.text,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    marginTop: 16,
+    marginBottom: 12,
   },
-  tokenInputFilled: {
-    borderColor: colors.primary,
-    backgroundColor: `${colors.primary}10`,
+  successText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 24,
+    color: colors.text,
+    marginBottom: 24,
+    textAlign: 'center',
+    letterSpacing: 8,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    fontSize: 16,
+    color: colors.text,
+  },
+  eyeButton: {
+    padding: 16,
+  },
+  requirementsBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  requirementsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  requirementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  requirementText: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   button: {
     backgroundColor: colors.primary,
     borderRadius: 12,
-    padding: 18,
-    flexDirection: 'row',
+    padding: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
+    marginBottom: 16,
   },
   buttonDisabled: {
     opacity: 0.6,
-  },
-  buttonIcon: {
-    marginRight: 8,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  helpBox: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-  },
-  helpTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  helpText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 8,
-    lineHeight: 18,
-  },
   resendButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
   },
   resendButtonText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  backToLoginButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  backToLoginIcon: {
-    marginRight: 8,
-  },
-  backToLoginText: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textSecondary,
   },
-  backToLoginTextBold: {
+  resendButtonTextBold: {
     fontWeight: '600',
     color: colors.primary,
   },

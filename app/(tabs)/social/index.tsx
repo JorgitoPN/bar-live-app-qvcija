@@ -26,6 +26,7 @@ import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import PostViewerModal from '@/components/social/PostViewerModal';
+import LoginPrompt from '@/components/common/LoginPrompt';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -644,40 +645,12 @@ export default function SocialIndexScreen() {
           onCreatePost={handleCreatePost}
         />
         
-        <View style={styles.loginRequiredContainer}>
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            style={styles.loginRequiredIconContainer}
-          >
-            <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={64} color={colors.white} />
-          </LinearGradient>
-          
-          <Text style={styles.loginRequiredTitle}>Inicia sesión para ver el contenido</Text>
-          <Text style={styles.loginRequiredMessage}>
-            Para acceder a la página social y ver las publicaciones de tus amigos, necesitas iniciar sesión en BarLive.
-          </Text>
-          
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => router.push('/auth/login-v6')}
-          >
-            <LinearGradient
-              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-              style={styles.loginButtonGradient}
-            >
-              <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.registerButton}
-            onPress={() => router.push('/auth/registro-v6')}
-          >
-            <Text style={styles.registerButtonText}>
-              ¿No tienes cuenta? <Text style={styles.registerButtonTextBold}>Regístrate</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <LoginPrompt
+          title="Inicia sesión para ver el contenido"
+          message="Para acceder a la página social y ver las publicaciones de tus amigos, necesitas iniciar sesión en BarLive."
+          icon="person.2.fill"
+          androidIcon="people"
+        />
       </View>
     );
   }
@@ -927,60 +900,5 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.textSecondary,
     flex: 1,
-  },
-  loginRequiredContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  loginRequiredIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  loginRequiredTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  loginRequiredMessage: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 24,
-  },
-  loginButton: {
-    width: '100%',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  loginButtonGradient: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  loginButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.white,
-  },
-  registerButton: {
-    paddingVertical: 12,
-  },
-  registerButtonText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  registerButtonTextBold: {
-    fontWeight: '600',
-    color: colors.primary,
   },
 });
