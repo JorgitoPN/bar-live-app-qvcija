@@ -31,6 +31,7 @@ interface MiLocal {
   motivo_denegacion: string | null;
   comentarios_admin: string | null;
   activo: boolean;
+  propietario_id: string | null;
 }
 
 interface Notificacion {
@@ -54,17 +55,81 @@ export default function MisLocalesScreen() {
     if (!user) return;
 
     try {
-      // Load locales
-      const { data: localesData, error: localesError } = await supabase
+      console.log('[MisLocales] 🔄 Loading locales for user:', user.id);
+
+      // ✅ FIXED: Query from propietarios_locales junction table
+      const { data: assignmentsData, error: assignmentsError } = await supabase
+        .from('propietarios_locales')
+        .select(`
+          id,
+          local_id,
+          rol,
+          activo,
+          fecha_asignacion,
+          locales!propietarios_locales_local_id_fkey(
+            id,
+            nombre,
+            tipo,
+            direccion,
+            provincia,
+            imagen_url,
+            estado_solicitud,
+            fecha_solicitud,
+            fecha_revision,
+            motivo_denegacion,
+            comentarios_admin,
+            activo,
+            propietario_id
+          )
+        `)
+        .eq('propietario_id', user.id)
+        .eq('activo', true)
+        .order('fecha_asignacion', { ascending: false });
+
+      if (assignmentsError) {
+        console.error('[MisLocales] ❌ Error loading assignments:', assignmentsError);
+        throw assignmentsError;
+      }
+
+      // Extract locales from assignments
+      const localesData = assignmentsData
+        ?.map(assignment => assignment.locales)
+        .filter(Boolean) || [];
+
+      console.log('[MisLocales] ✅ Loaded', localesData.length, 'locales from assignments');
+
+      // Also load locales where user is directly the propietario_id (legacy support)
+      const { data: directLocalesData, error: directLocalesError } = await supabase
         .from('locales')
         .select('*')
         .eq('propietario_id', user.id)
         .order('fecha_solicitud', { ascending: false });
 
-      if (localesError) {
-        console.error('Error loading locales:', localesError);
+      if (!directLocalesError && directLocalesData) {
+        console.log('[MisLocales] ✅ Loaded', directLocalesData.length, 'locales from direct ownership');
+        
+        // Merge both sources, avoiding duplicates
+        const allLocalesMap = new Map<string, MiLocal>();
+        
+        // Add from assignments first (priority)
+        localesData.forEach(local => {
+          if (local) {
+            allLocalesMap.set(local.id, local);
+          }
+        });
+        
+        // Add from direct ownership (if not already in map)
+        directLocalesData.forEach(local => {
+          if (!allLocalesMap.has(local.id)) {
+            allLocalesMap.set(local.id, local);
+          }
+        });
+        
+        const mergedLocales = Array.from(allLocalesMap.values());
+        console.log('[MisLocales] ✅ Total unique locales:', mergedLocales.length);
+        setLocales(mergedLocales);
       } else {
-        setLocales(localesData || []);
+        setLocales(localesData);
       }
 
       // Load notifications
@@ -76,12 +141,14 @@ export default function MisLocalesScreen() {
         .limit(10);
 
       if (notificacionesError) {
-        console.error('Error loading notifications:', notificacionesError);
+        console.error('[MisLocales] ⚠️ Error loading notifications:', notificacionesError);
       } else {
         setNotificaciones(notificacionesData || []);
+        console.log('[MisLocales] ✅ Loaded', notificacionesData?.length || 0, 'notifications');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('[MisLocales] ❌ Error:', error);
+      Alert.alert('Error', 'No se pudieron cargar tus locales');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -108,7 +175,7 @@ export default function MisLocalesScreen() {
         prev.map(n => n.id === notificacionId ? { ...n, leida: true } : n)
       );
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('[MisLocales] Error marking notification as read:', error);
     }
   };
 
@@ -291,7 +358,10 @@ export default function MisLocalesScreen() {
           {locales.length === 0 ? (
             <View style={styles.emptyContainer}>
               <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={64} color={colors.textSecondary} />
-              <Text style={styles.emptyText}>No tienes locales creados</Text>
+              <Text style={styles.emptyText}>No tienes locales asignados</Text>
+              <Text style={styles.emptySubtext}>
+                Solicita ser propietario de un local o crea uno nuevo
+              </Text>
               <TouchableOpacity
                 style={styles.createButton}
                 onPress={() => router.push('/crear/local')}
@@ -492,6 +562,13 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 16,
     fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    marginTop: 8,
+    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
   },

@@ -74,12 +74,10 @@ export default function AsignarLocalUsuarioScreen() {
   const [selectedRole, setSelectedRole] = useState<'propietario' | 'administrador' | 'editor'>('propietario');
   const [assigning, setAssigning] = useState(false);
 
-  // ✅ NEW: Current assignments state
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ✅ NEW: Load current assignments
   const loadAssignments = useCallback(async () => {
     try {
       console.log('[AsignarLocal] Loading current assignments...');
@@ -133,7 +131,6 @@ export default function AsignarLocalUsuarioScreen() {
     loadAssignments();
   }, [loadAssignments]);
 
-  // Search users with debounce
   const searchUsers = useCallback(async (query: string) => {
     if (query.trim().length < 2) {
       setUserResults([]);
@@ -160,7 +157,6 @@ export default function AsignarLocalUsuarioScreen() {
     }
   }, []);
 
-  // Search locals with debounce
   const searchLocals = useCallback(async (query: string) => {
     if (query.trim().length < 2) {
       setLocalResults([]);
@@ -188,7 +184,6 @@ export default function AsignarLocalUsuarioScreen() {
     }
   }, []);
 
-  // Handle user query change with debounce
   const handleUserQueryChange = useCallback((text: string) => {
     setUserQuery(text);
     
@@ -203,7 +198,6 @@ export default function AsignarLocalUsuarioScreen() {
     }
   }, [searchUsers]);
 
-  // Handle local query change with debounce
   const handleLocalQueryChange = useCallback((text: string) => {
     setLocalQuery(text);
     
@@ -246,7 +240,12 @@ export default function AsignarLocalUsuarioScreen() {
           onPress: async () => {
             setAssigning(true);
             try {
-              // 1. Check if assignment already exists
+              console.log('[AsignarLocal] 🔄 Starting assignment process...');
+              console.log('[AsignarLocal] User:', selectedUser.id, selectedUser.nombre);
+              console.log('[AsignarLocal] Local:', selectedLocal.id, selectedLocal.nombre);
+              console.log('[AsignarLocal] Role:', selectedRole);
+
+              // ✅ STEP 1: Check if assignment already exists in propietarios_locales
               const { data: existing, error: checkError } = await supabase
                 .from('propietarios_locales')
                 .select('id, rol, activo')
@@ -259,6 +258,8 @@ export default function AsignarLocalUsuarioScreen() {
               }
 
               if (existing) {
+                console.log('[AsignarLocal] ♻️ Updating existing assignment in propietarios_locales');
+                
                 // Update existing assignment
                 const { error: updateError } = await supabase
                   .from('propietarios_locales')
@@ -271,8 +272,10 @@ export default function AsignarLocalUsuarioScreen() {
 
                 if (updateError) throw updateError;
 
-                console.log('[AsignarLocal] ✅ Updated existing assignment');
+                console.log('[AsignarLocal] ✅ Updated existing assignment in propietarios_locales');
               } else {
+                console.log('[AsignarLocal] ➕ Creating new assignment in propietarios_locales');
+                
                 // Create new assignment
                 const { error: insertError } = await supabase
                   .from('propietarios_locales')
@@ -285,34 +288,68 @@ export default function AsignarLocalUsuarioScreen() {
 
                 if (insertError) throw insertError;
 
-                console.log('[AsignarLocal] ✅ Created new assignment');
+                console.log('[AsignarLocal] ✅ Created new assignment in propietarios_locales');
               }
 
-              // 2. Update user role to propietario if not already
+              // ✅ STEP 2: Update locales.propietario_id (CRITICAL FIX)
+              console.log('[AsignarLocal] 🔧 Updating locales.propietario_id...');
+              
+              const { error: localUpdateError } = await supabase
+                .from('locales')
+                .update({ 
+                  propietario_id: selectedUser.id,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', selectedLocal.id);
+
+              if (localUpdateError) {
+                console.error('[AsignarLocal] ❌ Error updating locales.propietario_id:', localUpdateError);
+                throw localUpdateError;
+              }
+
+              console.log('[AsignarLocal] ✅ Updated locales.propietario_id successfully');
+
+              // ✅ STEP 3: Update user role to propietario if not already
               if (selectedRole === 'propietario') {
+                console.log('[AsignarLocal] 🔧 Updating user role to propietario...');
+                
                 const { error: roleError } = await supabase
                   .from('usuarios')
-                  .update({ rol_app: 'propietario' })
+                  .update({ 
+                    rol_app: 'propietario',
+                    updated_at: new Date().toISOString(),
+                  })
                   .eq('id', selectedUser.id);
 
                 if (roleError) {
-                  console.error('[AsignarLocal] Error updating user role:', roleError);
+                  console.error('[AsignarLocal] ⚠️ Error updating user role:', roleError);
+                } else {
+                  console.log('[AsignarLocal] ✅ Updated user role to propietario');
                 }
               }
 
-              // 3. Send notification to user
+              // ✅ STEP 4: Subscription is now created automatically by database trigger
+              // The trigger ensure_local_subscription_trigger will create a free subscription
+              // with welcome credits when the assignment is created
+              console.log('[AsignarLocal] ℹ️ Subscription will be created automatically by database trigger');
+
+              // ✅ STEP 5: Send notification to user
+              console.log('[AsignarLocal] 📧 Sending notification to user...');
+              
               await supabase
                 .from('notificaciones')
                 .insert({
                   usuario_id: selectedUser.id,
                   tipo: 'sistema',
                   titulo: 'Local Asignado',
-                  mensaje: `Se te ha asignado el local "${selectedLocal.nombre}" como ${selectedRole}. Ahora puedes gestionarlo desde tu panel.`,
+                  mensaje: `¡Felicidades! Se te ha asignado el local "${selectedLocal.nombre}" como ${selectedRole}. Ahora puedes gestionarlo desde tu panel. Te hemos regalado 1 Crédito de Evento y 1 Crédito de Destacado para que veas cómo suben tus visitas.`,
                 });
+
+              console.log('[AsignarLocal] ✅ Notification sent');
 
               Alert.alert(
                 '✅ Asignación Exitosa',
-                `El local "${selectedLocal.nombre}" ha sido asignado a ${selectedUser.nombre} como ${selectedRole}.`,
+                `El local "${selectedLocal.nombre}" ha sido asignado a ${selectedUser.nombre} como ${selectedRole}.\n\n✨ Se ha creado una suscripción gratuita con créditos de bienvenida.`,
                 [
                   {
                     text: 'OK',
@@ -328,8 +365,8 @@ export default function AsignarLocalUsuarioScreen() {
                 ]
               );
             } catch (error) {
-              console.error('[AsignarLocal] Error assigning local:', error);
-              Alert.alert('Error', 'No se pudo asignar el local al usuario');
+              console.error('[AsignarLocal] ❌ Error assigning local:', error);
+              Alert.alert('Error', 'No se pudo asignar el local al usuario. Por favor, verifica los logs.');
             } finally {
               setAssigning(false);
             }
@@ -339,7 +376,6 @@ export default function AsignarLocalUsuarioScreen() {
     );
   };
 
-  // ✅ NEW: Remove assignment
   const handleRemoveAssignment = useCallback(async (assignmentId: string, localName: string, userName: string) => {
     Alert.alert(
       'Quitar Asignación',
@@ -351,17 +387,60 @@ export default function AsignarLocalUsuarioScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const { error } = await supabase
+              console.log('[AsignarLocal] 🔄 Removing assignment:', assignmentId);
+
+              // Get the assignment details before removing
+              const { data: assignment, error: getError } = await supabase
+                .from('propietarios_locales')
+                .select('local_id, propietario_id')
+                .eq('id', assignmentId)
+                .single();
+
+              if (getError) throw getError;
+
+              // Deactivate the assignment
+              const { error: deactivateError } = await supabase
                 .from('propietarios_locales')
                 .update({ activo: false })
                 .eq('id', assignmentId);
 
-              if (error) throw error;
+              if (deactivateError) throw deactivateError;
+
+              // ✅ CRITICAL: Also clear locales.propietario_id
+              console.log('[AsignarLocal] 🔧 Clearing locales.propietario_id...');
+              
+              const { error: localClearError } = await supabase
+                .from('locales')
+                .update({ 
+                  propietario_id: null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', assignment.local_id);
+
+              if (localClearError) {
+                console.error('[AsignarLocal] ⚠️ Error clearing locales.propietario_id:', localClearError);
+              } else {
+                console.log('[AsignarLocal] ✅ Cleared locales.propietario_id');
+              }
+
+              // Deactivate subscription
+              const { error: subError } = await supabase
+                .from('suscripciones_locales')
+                .update({ 
+                  estado: 'cancelada',
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('local_id', assignment.local_id)
+                .eq('propietario_id', assignment.propietario_id);
+
+              if (subError) {
+                console.error('[AsignarLocal] ⚠️ Error deactivating subscription:', subError);
+              }
 
               Alert.alert('✅ Asignación Eliminada', 'El local ahora está libre');
               loadAssignments();
             } catch (error) {
-              console.error('[AsignarLocal] Error removing assignment:', error);
+              console.error('[AsignarLocal] ❌ Error removing assignment:', error);
               Alert.alert('Error', 'No se pudo quitar la asignación');
             }
           },
@@ -390,7 +469,7 @@ export default function AsignarLocalUsuarioScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* ✅ NEW: Current Assignments Section */}
+        {/* Current Assignments Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <IconSymbol ios_icon_name="list.bullet.rectangle" android_material_icon_name="list" size={24} color={colors.primary} />
@@ -766,7 +845,8 @@ export default function AsignarLocalUsuarioScreen() {
           <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
           <Text style={styles.infoText}>
             Al asignar un local a un usuario, este podrá gestionar el local desde su panel de gestión. 
-            El rol determina los permisos que tendrá sobre el local.
+            El rol determina los permisos que tendrá sobre el local. Se creará automáticamente una suscripción 
+            gratuita con créditos de bienvenida.
           </Text>
         </View>
       </ScrollView>
@@ -831,7 +911,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
   },
-  // ✅ NEW: Current assignments styles
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
