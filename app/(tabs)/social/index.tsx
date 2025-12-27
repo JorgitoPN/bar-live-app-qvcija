@@ -21,7 +21,6 @@ import { useEffectiveUser } from '@/hooks/useEffectiveUser';
 import { useImpersonation } from '@/contexts/ImpersonationContext';
 import PublicacionCard from '@/components/social/PublicacionCard';
 import NewPostCard from '@/components/social/NewPostCard';
-import MomentoCarousel from '@/components/momento/MomentoCarousel';
 import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -77,13 +76,12 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL INDEX SCREEN v32.0 - REMOVED LOGIN REQUIRED MODAL
+ * ✅ SOCIAL INDEX SCREEN v39.0 - MOMENTOS SECTION REMOVED
  * 
  * Changes:
- * - ✅ Removed LoginRequiredModal import and usage
- * - ✅ Removed showLoginModal state
- * - ✅ Users can now browse social page without logging in
- * - ✅ Login required message is shown inline instead of modal
+ * - ✅ Removed MomentoCarousel component
+ * - ✅ Momentos section no longer displays for any users
+ * - ✅ Cleaner social feed focused on posts only
  */
 
 export default function SocialIndexScreen() {
@@ -467,7 +465,7 @@ export default function SocialIndexScreen() {
         </View>
       )}
 
-      <MomentoCarousel />
+      {/* ✅ REMOVED: MomentoCarousel component */}
 
       {(myCheckIn || friendsLocations.length > 0) && (
         <View style={styles.friendsLocationsSection}>
@@ -635,7 +633,6 @@ export default function SocialIndexScreen() {
     );
   }, [loading, isImpersonating]);
 
-  // ✅ CRITICAL FIX v32.0: Show inline login message instead of modal
   if (!user && !isImpersonating) {
     return (
       <View style={styles.container}>

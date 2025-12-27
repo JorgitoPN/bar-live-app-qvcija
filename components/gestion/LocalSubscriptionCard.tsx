@@ -14,6 +14,8 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'expo-router';
+import CustomerPotentialBar from './CustomerPotentialBar';
+import HighlightActiveCounter from './HighlightActiveCounter';
 
 interface LocalSubscriptionData {
   id: string;
@@ -54,6 +56,15 @@ interface Props {
   isSelected: boolean;
   onSelect: () => void;
 }
+
+/**
+ * ✅ LOCAL SUBSCRIPTION CARD v2.0 - WITH CUSTOMER POTENTIAL BAR
+ * 
+ * NEW FEATURES:
+ * - ✅ Customer potential progress bar
+ * - ✅ Real-time highlight counter when active
+ * - ✅ Psychological incentive to maintain high percentage
+ */
 
 export default function LocalSubscriptionCard({ local, onRefresh, isSelected, onSelect }: Props) {
   const router = useRouter();
@@ -112,6 +123,35 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
   const calculateProgress = (used: number, total: number) => {
     if (total === 0) return 0;
     return Math.min((used / total) * 100, 100);
+  };
+
+  // ✅ Calculate customer potential percentage
+  const calculateCustomerPotential = (): number => {
+    if (!local.suscripcion) return 20; // Base 20% without plan
+
+    let percentage = 20; // Base
+
+    // Add 30% if highlight is active
+    if (local.suscripcion.destacado_activo) {
+      percentage += 30;
+    }
+
+    // Add 20% if has active event
+    if (local.evento_activo) {
+      percentage += 20;
+    }
+
+    // Add 15% for Standard plan
+    if (local.suscripcion.plan_nombre.toLowerCase() === 'estandar') {
+      percentage += 15;
+    }
+
+    // Add 30% for Premium plan
+    if (local.suscripcion.plan_nombre.toLowerCase() === 'premium') {
+      percentage += 30;
+    }
+
+    return Math.min(percentage, 100);
   };
 
   const handleToggleDestacado = async () => {
@@ -263,7 +303,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
   };
 
   const handleCancelPlan = () => {
-    if (!local.suscripcion || local.suscripcion.plan_nombre === 'basico') {
+    if (!local.suscripcion || local.suscripcion.plan_nombre === 'free') {
       Alert.alert('Información', 'No tienes un plan de pago activo para cancelar.');
       return;
     }
@@ -377,7 +417,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
   return (
     <View style={styles.card}>
-      {/* ✅ IMPROVED: Cover Image with Gradient Overlay */}
+      {/* ✅ Cover Image with Gradient Overlay */}
       <TouchableOpacity 
         style={styles.coverImageContainer}
         onPress={() => router.push(`/detalle/local?id=${local.id}`)}
@@ -442,6 +482,21 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       )}
 
       <View style={styles.content}>
+        {/* ✅ NEW: Customer Potential Bar */}
+        <CustomerPotentialBar
+          percentage={calculateCustomerPotential()}
+          hasActiveHighlight={local.suscripcion?.destacado_activo || false}
+          hasActiveEvent={!!local.evento_activo}
+        />
+
+        {/* ✅ NEW: Highlight Active Counter */}
+        {local.suscripcion?.destacado_activo && local.suscripcion.destacado_fecha_fin && (
+          <HighlightActiveCounter
+            localNombre={local.nombre}
+            endDate={local.suscripcion.destacado_fecha_fin}
+          />
+        )}
+
         {/* Pending Plan Change Warning */}
         {local.suscripcion?.plan_pendiente_id && (
           <View style={styles.warningBanner}>
@@ -470,86 +525,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
         {local.suscripcion && (
           <React.Fragment>
-            {/* Plan Renewal Time */}
-            {local.suscripcion.plan_nombre !== 'basico' && (
-              <View style={styles.timeSection}>
-                <View style={styles.timeSectionHeader}>
-                  <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={18} color={colors.primary} />
-                  <Text style={styles.timeSectionTitle}>Renovación del Plan</Text>
-                </View>
-                {local.suscripcion.fecha_proximo_pago ? (
-                  <React.Fragment>
-                    <View style={styles.timeInfo}>
-                      <Text style={styles.timeLabel}>Tiempo restante:</Text>
-                      <Text style={styles.timeValue}>
-                        {calculateTimeRemaining(local.suscripcion.fecha_proximo_pago)}
-                      </Text>
-                    </View>
-                    <View style={styles.timeInfo}>
-                      <Text style={styles.timeLabel}>Fecha de renovación:</Text>
-                      <Text style={styles.timeValue}>
-                        {new Date(local.suscripcion.fecha_proximo_pago).toLocaleDateString('es-ES')}
-                      </Text>
-                    </View>
-                    <View style={styles.progressBarBackground}>
-                      <View
-                        style={[
-                          styles.progressBarFill,
-                          {
-                            width: `${calculateRenewalProgress(local.suscripcion.fecha_proximo_pago)}%`,
-                            backgroundColor: colors.primary,
-                          },
-                        ]}
-                      />
-                    </View>
-                  </React.Fragment>
-                ) : (
-                  <View style={styles.warningBox}>
-                    <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={16} color="#F59E0B" />
-                    <Text style={styles.warningBoxText}>
-                      Fecha de renovación no configurada. Contacta con soporte.
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Active Promotion Time */}
-            {local.suscripcion.destacado_activo && local.suscripcion.destacado_fecha_fin && (
-              <View style={styles.timeSection}>
-                <View style={styles.timeSectionHeader}>
-                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={18} color={colors.badgeDestacado} />
-                  <Text style={styles.timeSectionTitle}>Promoción Destacada</Text>
-                </View>
-                <View style={styles.timeInfo}>
-                  <Text style={styles.timeLabel}>Tiempo restante:</Text>
-                  <Text style={styles.timeValue}>
-                    {calculateTimeRemaining(local.suscripcion.destacado_fecha_fin)}
-                  </Text>
-                </View>
-                <View style={styles.progressBarBackground}>
-                  <View
-                    style={[
-                      styles.progressBarFill,
-                      {
-                        width: `${Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            ((new Date(local.suscripcion.destacado_fecha_fin).getTime() -
-                              new Date().getTime()) /
-                              (30 * 24 * 60 * 60 * 1000)) *
-                              100
-                          )
-                        )}%`,
-                        backgroundColor: colors.badgeDestacado,
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
-            )}
-
             {/* Credits Section */}
             <View style={styles.creditsSection}>
               <View style={styles.creditsSectionHeader}>
@@ -650,7 +625,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                 </LinearGradient>
               </TouchableOpacity>
 
-              {local.suscripcion.plan_nombre !== 'basico' &&
+              {local.suscripcion.plan_nombre !== 'free' &&
                 !local.suscripcion.cancelar_al_final_periodo && (
                   <TouchableOpacity
                     style={styles.planActionButton}
@@ -906,54 +881,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#92400E',
     fontWeight: '600',
-  },
-  warningBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 8,
-  },
-  warningBoxText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#92400E',
-  },
-  timeSection: {
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  timeSectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  timeSectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  timeInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  timeLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  timeValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.text,
   },
   creditsSection: {
     backgroundColor: colors.background,

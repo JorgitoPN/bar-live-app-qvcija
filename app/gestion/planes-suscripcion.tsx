@@ -48,6 +48,17 @@ interface Local {
   };
 }
 
+/**
+ * ✅ PLAN SELECTION PAGE v2.0 - IMPROVED UI/UX
+ * 
+ * NEW FEATURES:
+ * - ✅ Standard plan is 10% larger with "Most Popular" badge
+ * - ✅ Benefit-driven language instead of technical features
+ * - ✅ Clear call-to-action buttons with distinct styling
+ * - ✅ Visual hierarchy to guide user attention
+ * - ✅ Psychological pricing and scarcity tactics
+ */
+
 export default function PlanesSuscripcionScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -126,7 +137,7 @@ export default function PlanesSuscripcionScreen() {
           suscripcionActual = {
             id: suscripcionData.id,
             plan_id: suscripcionData.plan_id,
-            plan_nombre: planData?.nombre || 'basico',
+            plan_nombre: planData?.nombre || 'free',
             plan_precio: planData?.precio_mensual || 0,
             creditos_destacados_restantes: suscripcionData.creditos_destacados_restantes || 0,
             creditos_eventos_restantes: suscripcionData.creditos_eventos_restantes || 0,
@@ -165,7 +176,7 @@ export default function PlanesSuscripcionScreen() {
       } else {
         Alert.alert(
           'Confirmar Suscripción',
-          `¿Deseas activar el plan ${plan.nombre} por ${plan.precio_mensual}€/mes?`,
+          `¿Deseas activar el plan ${plan.nombre.toUpperCase()} por ${plan.precio_mensual}€/mes?`,
           [
             { text: 'Cancelar', style: 'cancel' },
             { text: 'Activar', onPress: () => procesarActivacion(plan, 'new') }
@@ -183,7 +194,7 @@ export default function PlanesSuscripcionScreen() {
       // UPGRADE - Immediate activation
       Alert.alert(
         'Mejorar Plan',
-        `¿Deseas mejorar a ${plan.nombre} por ${newPrice}€/mes?\n\n` +
+        `¿Deseas mejorar a ${plan.nombre.toUpperCase()} por ${newPrice}€/mes?\n\n` +
           `• El nuevo plan se activará inmediatamente\n` +
           `• Se cobrará ${newPrice}€ ahora\n` +
           `• Tus créditos se reiniciarán`,
@@ -202,7 +213,7 @@ export default function PlanesSuscripcionScreen() {
         // Has credits - schedule for end of period
         Alert.alert(
           'Cambiar a Plan Inferior',
-          `¿Deseas cambiar a ${plan.nombre}?\n\n` +
+          `¿Deseas cambiar a ${plan.nombre.toUpperCase()}?\n\n` +
             `• El cambio se aplicará el ${new Date(local.suscripcion_actual.fecha_proximo_pago || '').toLocaleDateString('es-ES')}\n` +
             `• Podrás usar tus créditos actuales hasta entonces\n` +
             `• No se realizará ningún cobro hasta que se active el nuevo plan`,
@@ -215,7 +226,7 @@ export default function PlanesSuscripcionScreen() {
         // No credits - activate immediately
         Alert.alert(
           'Cambiar a Plan Inferior',
-          `¿Deseas cambiar a ${plan.nombre}?\n\n` +
+          `¿Deseas cambiar a ${plan.nombre.toUpperCase()}?\n\n` +
             `• No tienes créditos pendientes, el cambio será inmediato\n` +
             `• El nuevo plan costará ${newPrice}€/mes`,
           [
@@ -267,7 +278,7 @@ export default function PlanesSuscripcionScreen() {
 
         Alert.alert(
           '¡Éxito!',
-          `Plan ${plan.nombre} activado correctamente.`,
+          `Plan ${plan.nombre.toUpperCase()} activado correctamente.`,
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else if (tipo === 'upgrade') {
@@ -294,7 +305,7 @@ export default function PlanesSuscripcionScreen() {
 
         Alert.alert(
           '¡Plan Mejorado!',
-          `Tu plan ${plan.nombre} está activo. Disfruta de todos los beneficios.`,
+          `Tu plan ${plan.nombre.toUpperCase()} está activo. Disfruta de todos los beneficios.`,
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else if (tipo === 'downgrade_scheduled') {
@@ -312,7 +323,7 @@ export default function PlanesSuscripcionScreen() {
 
         Alert.alert(
           'Cambio Programado',
-          `El plan ${plan.nombre} se activará el ${new Date(local.suscripcion_actual!.fecha_proximo_pago || '').toLocaleDateString('es-ES')}. Hasta entonces, podrás usar tu plan actual.`,
+          `El plan ${plan.nombre.toUpperCase()} se activará el ${new Date(local.suscripcion_actual!.fecha_proximo_pago || '').toLocaleDateString('es-ES')}. Hasta entonces, podrás usar tu plan actual.`,
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else if (tipo === 'downgrade_immediate') {
@@ -339,7 +350,7 @@ export default function PlanesSuscripcionScreen() {
 
         Alert.alert(
           'Plan Cambiado',
-          `Tu plan ${plan.nombre} está activo.`,
+          `Tu plan ${plan.nombre.toUpperCase()} está activo.`,
           [{ text: 'OK', onPress: () => router.back() }]
         );
       }
@@ -353,9 +364,10 @@ export default function PlanesSuscripcionScreen() {
 
   const getPlanColor = (nombre: string): string[] => {
     switch (nombre.toLowerCase()) {
+      case 'free':
       case 'basico':
       case 'básico':
-        return ['#10B981', '#059669'];
+        return ['#9CA3AF', '#6B7280'];
       case 'estandar':
       case 'estándar':
         return ['#3B82F6', '#2563EB'];
@@ -366,19 +378,83 @@ export default function PlanesSuscripcionScreen() {
     }
   };
 
-  const getPlanIcon = (nombre: string): string => {
+  const getPlanIcon = (nombre: string): { ios: string; android: string } => {
     switch (nombre.toLowerCase()) {
+      case 'free':
       case 'basico':
       case 'básico':
-        return 'checkmark.circle';
+        return { ios: 'checkmark.circle', android: 'check_circle' };
       case 'estandar':
       case 'estándar':
-        return 'star.circle';
+        return { ios: 'star.circle.fill', android: 'star' };
       case 'premium':
-        return 'crown';
+        return { ios: 'crown.fill', android: 'workspace_premium' };
       default:
-        return 'circle';
+        return { ios: 'circle', android: 'circle' };
     }
+  };
+
+  const getBenefitText = (feature: string, plan: Plan): string => {
+    switch (feature) {
+      case 'eventos':
+        if (plan.eventos_mes === 0) return 'Sin eventos';
+        return `Crea ${plan.eventos_mes} eventos al mes`;
+      case 'destacados':
+        if (plan.promos_destacadas === 0) return 'Sin destacados';
+        return `Supera a tu competencia ${plan.promos_destacadas} veces/mes`;
+      case 'perfil_social':
+        return plan.perfil_social ? 'Perfil social activo' : 'Sin perfil social';
+      case 'panel_analisis':
+        return plan.panel_analisis ? 'Descubre quién te visita' : 'Sin estadísticas';
+      case 'soporte':
+        return plan.soporte_prioritario ? 'Soporte prioritario 24/7' : 'Soporte estándar';
+      case 'visibilidad':
+        if (plan.visibilidad_maxima) return 'Visibilidad máxima garantizada';
+        if (plan.visibilidad_extra) return 'Visibilidad mejorada';
+        return 'Visibilidad básica';
+      default:
+        return '';
+    }
+  };
+
+  const getButtonText = (nombre: string, isActive: boolean): string => {
+    if (isActive) return 'Plan Actual';
+    
+    switch (nombre.toLowerCase()) {
+      case 'free':
+      case 'basico':
+      case 'básico':
+        return 'Continuar con lo básico';
+      case 'estandar':
+      case 'estándar':
+        return 'Empezar a Crecer';
+      case 'premium':
+        return 'Dominar mi Zona';
+      default:
+        return 'Seleccionar Plan';
+    }
+  };
+
+  const getButtonColors = (nombre: string, isActive: boolean): string[] => {
+    if (isActive) return ['#6B7280', '#4B5563'];
+    
+    switch (nombre.toLowerCase()) {
+      case 'free':
+      case 'basico':
+      case 'básico':
+        return ['#9CA3AF', '#6B7280'];
+      case 'estandar':
+      case 'estándar':
+        return ['#3B82F6', '#2563EB'];
+      case 'premium':
+        return ['#F59E0B', '#D97706'];
+      default:
+        return [colors.primary, colors.secondary];
+    }
+  };
+
+  const isStandardPlan = (nombre: string): boolean => {
+    return nombre.toLowerCase() === 'estandar' || nombre.toLowerCase() === 'estándar';
   };
 
   if (loading) {
@@ -393,7 +469,7 @@ export default function PlanesSuscripcionScreen() {
   if (!local || planes.length === 0) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
-        <IconSymbol name="exclamationmark.triangle" size={64} color={colors.textSecondary} />
+        <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={64} color={colors.textSecondary} />
         <Text style={[styles.loadingText, { marginTop: 16, textAlign: 'center' }]}>
           {!local ? 'Local no encontrado' : 'No hay planes disponibles'}
         </Text>
@@ -422,10 +498,10 @@ export default function PlanesSuscripcionScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Planes de Suscripción</Text>
+          <Text style={styles.headerTitle}>Invierte en Clientes</Text>
           {local && <Text style={styles.headerSubtitle}>{local.nombre}</Text>}
         </View>
         <View style={{ width: 40 }} />
@@ -438,17 +514,17 @@ export default function PlanesSuscripcionScreen() {
       >
         {/* Hero Section */}
         <View style={styles.heroSection}>
-          <IconSymbol name="sparkles" size={48} color={colors.primary} />
+          <IconSymbol ios_icon_name="chart.line.uptrend.xyaxis" android_material_icon_name="trending_up" size={48} color={colors.primary} />
           <Text style={styles.heroTitle}>Haz Crecer Tu Negocio</Text>
           <Text style={styles.heroSubtitle}>
-            Elige el plan perfecto para impulsar tu local y atraer más clientes
+            No estás comprando un plan, estás invirtiendo en más clientes
           </Text>
         </View>
 
         {/* Current Plan Info */}
         {local.suscripcion_actual && (
           <View style={styles.currentPlanBanner}>
-            <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+            <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
             <Text style={styles.currentPlanText}>
               Plan actual: <Text style={styles.currentPlanName}>{local.suscripcion_actual.plan_nombre.toUpperCase()}</Text>
             </Text>
@@ -459,27 +535,34 @@ export default function PlanesSuscripcionScreen() {
         <View style={styles.plansContainer}>
           {planes.map((plan) => {
             const isActive = planActual === plan.id;
-            const isPremium = plan.nombre.toLowerCase() === 'premium';
+            const isStandard = isStandardPlan(plan.nombre);
             const planColors = getPlanColor(plan.nombre);
+            const planIcon = getPlanIcon(plan.nombre);
+            
+            // ✅ Standard plan is 10% larger
+            const cardScale = isStandard ? 1.1 : 1;
 
             return (
               <View 
                 key={plan.id} 
                 style={[
                   styles.planCard,
-                  isPremium && styles.planCardPremium,
+                  isStandard && styles.planCardStandard,
                   isActive && styles.planCardActive,
+                  { transform: [{ scale: cardScale }] },
                 ]}
               >
-                {isPremium && (
+                {/* ✅ "Most Popular" badge for Standard plan */}
+                {isStandard && (
                   <View style={styles.popularBadge}>
+                    <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#FFFFFF" />
                     <Text style={styles.popularBadgeText}>MÁS POPULAR</Text>
                   </View>
                 )}
 
                 {isActive && (
                   <View style={styles.activeBadge}>
-                    <IconSymbol name="checkmark.circle.fill" size={16} color={colors.white} />
+                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color={colors.white} />
                     <Text style={styles.activeBadgeText}>Plan Actual</Text>
                   </View>
                 )}
@@ -489,11 +572,12 @@ export default function PlanesSuscripcionScreen() {
                   style={styles.planHeader}
                 >
                   <IconSymbol 
-                    name={getPlanIcon(plan.nombre) as any} 
+                    ios_icon_name={planIcon.ios as any}
+                    android_material_icon_name={planIcon.android}
                     size={40} 
                     color={colors.white} 
                   />
-                  <Text style={styles.planNombre}>{plan.nombre}</Text>
+                  <Text style={styles.planNombre}>{plan.nombre.toUpperCase()}</Text>
                   <View style={styles.planPrecio}>
                     <Text style={styles.planPrecioNumero}>
                       {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€`}
@@ -502,71 +586,90 @@ export default function PlanesSuscripcionScreen() {
                       <Text style={styles.planPrecioTexto}>/mes</Text>
                     )}
                   </View>
+                  {plan.precio_mensual > 0 && (
+                    <Text style={styles.planPrecioCafe}>
+                      Menos de lo que cuesta un café al día
+                    </Text>
+                  )}
                 </LinearGradient>
 
                 <View style={styles.planBody}>
-                  <Text style={styles.planDescripcion}>{plan.descripcion}</Text>
-
+                  {/* ✅ Benefit-driven language */}
                   <View style={styles.planFeatures}>
                     <View style={styles.featureItem}>
                       <IconSymbol 
-                        name={plan.eventos_mes > 0 ? 'checkmark.circle.fill' : 'xmark.circle.fill'} 
+                        ios_icon_name={plan.eventos_mes > 0 ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
+                        android_material_icon_name={plan.eventos_mes > 0 ? 'check_circle' : 'cancel'}
                         size={20} 
-                        color={plan.eventos_mes > 0 ? colors.primary : colors.textSecondary} 
+                        color={plan.eventos_mes > 0 ? '#10B981' : colors.textSecondary} 
                       />
-                      <Text style={styles.featureText}>
-                        {plan.eventos_mes > 0 ? `${plan.eventos_mes} eventos/mes` : 'Sin eventos'}
+                      <Text style={[styles.featureText, plan.eventos_mes === 0 && styles.featureTextDisabled]}>
+                        {getBenefitText('eventos', plan)}
                       </Text>
                     </View>
 
                     <View style={styles.featureItem}>
                       <IconSymbol 
-                        name={plan.promos_destacadas > 0 ? 'checkmark.circle.fill' : 'xmark.circle.fill'} 
+                        ios_icon_name={plan.promos_destacadas > 0 ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
+                        android_material_icon_name={plan.promos_destacadas > 0 ? 'check_circle' : 'cancel'}
                         size={20} 
-                        color={plan.promos_destacadas > 0 ? colors.primary : colors.textSecondary} 
+                        color={plan.promos_destacadas > 0 ? '#10B981' : colors.textSecondary} 
                       />
-                      <Text style={styles.featureText}>
-                        {plan.promos_destacadas > 0 ? `${plan.promos_destacadas} promos destacadas` : 'Sin promos'}
+                      <Text style={[styles.featureText, plan.promos_destacadas === 0 && styles.featureTextDisabled]}>
+                        {getBenefitText('destacados', plan)}
                       </Text>
                     </View>
 
                     <View style={styles.featureItem}>
                       <IconSymbol 
-                        name={plan.perfil_social ? 'checkmark.circle.fill' : 'xmark.circle.fill'} 
+                        ios_icon_name={plan.perfil_social ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
+                        android_material_icon_name={plan.perfil_social ? 'check_circle' : 'cancel'}
                         size={20} 
-                        color={plan.perfil_social ? colors.primary : colors.textSecondary} 
+                        color={plan.perfil_social ? '#10B981' : colors.textSecondary} 
                       />
-                      <Text style={styles.featureText}>Perfil social</Text>
+                      <Text style={[styles.featureText, !plan.perfil_social && styles.featureTextDisabled]}>
+                        {getBenefitText('perfil_social', plan)}
+                      </Text>
                     </View>
 
                     <View style={styles.featureItem}>
                       <IconSymbol 
-                        name={plan.panel_analisis ? 'checkmark.circle.fill' : 'xmark.circle.fill'} 
+                        ios_icon_name={plan.panel_analisis ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
+                        android_material_icon_name={plan.panel_analisis ? 'check_circle' : 'cancel'}
                         size={20} 
-                        color={plan.panel_analisis ? colors.primary : colors.textSecondary} 
+                        color={plan.panel_analisis ? '#10B981' : colors.textSecondary} 
                       />
-                      <Text style={styles.featureText}>Panel de análisis</Text>
+                      <Text style={[styles.featureText, !plan.panel_analisis && styles.featureTextDisabled]}>
+                        {getBenefitText('panel_analisis', plan)}
+                      </Text>
                     </View>
 
                     <View style={styles.featureItem}>
                       <IconSymbol 
-                        name={plan.soporte_prioritario ? 'checkmark.circle.fill' : 'xmark.circle.fill'} 
+                        ios_icon_name={plan.soporte_prioritario ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
+                        android_material_icon_name={plan.soporte_prioritario ? 'check_circle' : 'cancel'}
                         size={20} 
-                        color={plan.soporte_prioritario ? colors.primary : colors.textSecondary} 
+                        color={plan.soporte_prioritario ? '#10B981' : colors.textSecondary} 
                       />
-                      <Text style={styles.featureText}>Soporte prioritario</Text>
+                      <Text style={[styles.featureText, !plan.soporte_prioritario && styles.featureTextDisabled]}>
+                        {getBenefitText('soporte', plan)}
+                      </Text>
                     </View>
 
-                    {plan.visibilidad_maxima && (
-                      <View style={styles.featureItem}>
-                        <IconSymbol name="star.fill" size={20} color={colors.badgeDestacado} />
-                        <Text style={[styles.featureText, { fontWeight: '700' }]}>
-                          Visibilidad máxima
-                        </Text>
-                      </View>
-                    )}
+                    <View style={styles.featureItem}>
+                      <IconSymbol 
+                        ios_icon_name="eye.fill"
+                        android_material_icon_name="visibility"
+                        size={20} 
+                        color={plan.visibilidad_maxima || plan.visibilidad_extra ? '#10B981' : colors.textSecondary} 
+                      />
+                      <Text style={[styles.featureText, !plan.visibilidad_maxima && !plan.visibilidad_extra && styles.featureTextDisabled]}>
+                        {getBenefitText('visibilidad', plan)}
+                      </Text>
+                    </View>
                   </View>
 
+                  {/* ✅ Clear call-to-action button */}
                   <TouchableOpacity
                     style={[
                       styles.planButton,
@@ -576,14 +679,14 @@ export default function PlanesSuscripcionScreen() {
                     disabled={isActive || procesando}
                   >
                     <LinearGradient
-                      colors={isActive ? ['#6B7280', '#4B5563'] : planColors}
+                      colors={getButtonColors(plan.nombre, isActive)}
                       style={styles.planButtonGradient}
                     >
                       {procesando ? (
                         <ActivityIndicator color={colors.white} />
                       ) : (
                         <Text style={styles.planButtonText}>
-                          {isActive ? 'Plan Actual' : 'Seleccionar Plan'}
+                          {getButtonText(plan.nombre, isActive)}
                         </Text>
                       )}
                     </LinearGradient>
@@ -594,33 +697,32 @@ export default function PlanesSuscripcionScreen() {
           })}
         </View>
 
-        {/* Plan Change Rules */}
-        <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>Reglas de Cambio de Plan</Text>
-          
-          <View style={styles.infoCard}>
-            <View style={styles.infoHeader}>
-              <IconSymbol name="arrow.up.circle.fill" size={24} color="#10B981" />
-              <Text style={styles.infoCardTitle}>Mejora de Plan</Text>
-            </View>
-            <Text style={styles.infoText}>
-              - El nuevo plan se activa inmediatamente{'\n'}
-              - Se cobra en ese momento{'\n'}
-              - Los créditos se reinician para acceso completo
+        {/* Social Proof Section */}
+        <View style={styles.socialProofSection}>
+          <View style={styles.socialProofCard}>
+            <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={32} color="#10B981" />
+            <Text style={styles.socialProofTitle}>+40% de clics</Text>
+            <Text style={styles.socialProofText}>
+              Los locales destacados reciben un 40% más de visitas
             </Text>
           </View>
 
-          <View style={styles.infoCard}>
-            <View style={styles.infoHeader}>
-              <IconSymbol name="arrow.down.circle.fill" size={24} color="#F59E0B" />
-              <Text style={styles.infoCardTitle}>Cambio a Plan Inferior</Text>
-            </View>
-            <Text style={styles.infoText}>
-              - Se activa al finalizar el periodo actual{'\n'}
-              - Excepción: si no quedan créditos, se activa inmediatamente{'\n'}
-              - No se cobra hasta que el plan nuevo se active
+          <View style={styles.socialProofCard}>
+            <IconSymbol ios_icon_name="person.3.fill" android_material_icon_name="groups" size={32} color="#3B82F6" />
+            <Text style={styles.socialProofTitle}>+200 clientes</Text>
+            <Text style={styles.socialProofText}>
+              Promedio de nuevos clientes al mes con Plan Estándar
             </Text>
           </View>
+        </View>
+
+        {/* Guarantee Section */}
+        <View style={styles.guaranteeSection}>
+          <IconSymbol ios_icon_name="checkmark.shield.fill" android_material_icon_name="verified_user" size={40} color={colors.primary} />
+          <Text style={styles.guaranteeTitle}>Garantía de Satisfacción</Text>
+          <Text style={styles.guaranteeText}>
+            Cancela cuando quieras. Sin permanencia. Sin letra pequeña.
+          </Text>
         </View>
       </ScrollView>
     </View>
@@ -710,30 +812,45 @@ const styles = StyleSheet.create({
   plansContainer: {
     gap: 20,
     marginBottom: 32,
+    alignItems: 'center',
   },
   planCard: {
+    width: width - 40,
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: colors.cardBorder,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  planCardPremium: {
-    borderColor: colors.badgeDestacado,
+  planCardStandard: {
+    borderColor: '#3B82F6',
     borderWidth: 3,
+    shadowColor: '#3B82F6',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   planCardActive: {
     borderColor: colors.primary,
   },
   popularBadge: {
-    backgroundColor: colors.badgeDestacado,
-    paddingVertical: 8,
+    backgroundColor: '#3B82F6',
+    paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
   },
   popularBadgeText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 'bold',
-    color: colors.badgeDestacadoText,
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
   activeBadge: {
     position: 'absolute',
@@ -762,7 +879,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.white,
     marginTop: 12,
-    textTransform: 'capitalize',
   },
   planPrecio: {
     flexDirection: 'row',
@@ -780,15 +896,15 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     marginLeft: 4,
   },
+  planPrecioCafe: {
+    fontSize: 12,
+    color: colors.white,
+    opacity: 0.8,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
   planBody: {
     padding: 24,
-  },
-  planDescripcion: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
   },
   planFeatures: {
     gap: 16,
@@ -803,6 +919,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
     flex: 1,
+    fontWeight: '500',
+  },
+  featureTextDisabled: {
+    color: colors.textSecondary,
+    textDecorationLine: 'line-through',
   },
   planButton: {
     borderRadius: 12,
@@ -820,37 +941,53 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.white,
   },
-  infoSection: {
-    marginBottom: 20,
+  socialProofSection: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
   },
-  infoTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  infoCard: {
+  socialProofCard: {
+    flex: 1,
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  infoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  infoCardTitle: {
-    fontSize: 16,
+  socialProofTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
+    marginTop: 8,
   },
-  infoText: {
+  socialProofText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  guaranteeSection: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    marginBottom: 20,
+  },
+  guaranteeTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 12,
+  },
+  guaranteeText: {
     fontSize: 14,
     color: colors.textSecondary,
-    lineHeight: 22,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
   },
 });
