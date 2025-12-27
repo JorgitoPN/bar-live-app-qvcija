@@ -26,6 +26,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import PostViewerModal from '@/components/social/PostViewerModal';
 import LoginPrompt from '@/components/common/LoginPrompt';
+import MomentoCarousel from '@/components/momento/MomentoCarousel';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -76,12 +77,12 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL INDEX SCREEN v39.0 - MOMENTOS SECTION REMOVED
+ * ✅ SOCIAL INDEX SCREEN v40.0 - MOMENTOS SECTION ALWAYS VISIBLE
  * 
  * Changes:
- * - ✅ Removed MomentoCarousel component
- * - ✅ Momentos section no longer displays for any users
- * - ✅ Cleaner social feed focused on posts only
+ * - ✅ Momentos section always visible (restored)
+ * - ✅ Avatar upload functionality restored
+ * - ✅ Cleaner social feed with momentos at top
  */
 
 export default function SocialIndexScreen() {
@@ -136,18 +137,18 @@ export default function SocialIndexScreen() {
         }
         setUnreadMessages(totalUnread);
         
-        console.log('[Social] ✅ Loaded unread counts:', {
+        console.log('[Social v40.0] ✅ Loaded unread counts:', {
           notifications: notifCount || 0,
           messages: totalUnread,
         });
       } else {
-        console.log('[Social] ✅ Loaded unread counts:', {
+        console.log('[Social v40.0] ✅ Loaded unread counts:', {
           notifications: notifCount || 0,
           messages: 0,
         });
       }
     } catch (error) {
-      console.error('[Social] Error loading unread counts:', error);
+      console.error('[Social v40.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -168,12 +169,12 @@ export default function SocialIndexScreen() {
         .single();
 
       if (myCheckInError && myCheckInError.code !== 'PGRST116') {
-        console.error('[Social] Error loading my check-in:', myCheckInError);
+        console.error('[Social v40.0] Error loading my check-in:', myCheckInError);
       }
 
       if (myCheckInData && myCheckInData.locales) {
         setMyCheckIn(myCheckInData);
-        console.log('[Social] ✅ I am checked in to:', myCheckInData.locales.nombre);
+        console.log('[Social v40.0] ✅ I am checked in to:', myCheckInData.locales.nombre);
       } else {
         setMyCheckIn(null);
       }
@@ -232,9 +233,9 @@ export default function SocialIndexScreen() {
 
       const locations = Array.from(locationsByLocal.values());
       setFriendsLocations(locations);
-      console.log('[Social] ✅ Loaded friends locations:', locations.length);
+      console.log('[Social v40.0] ✅ Loaded friends locations:', locations.length);
     } catch (error) {
-      console.error('[Social] Error loading friends locations:', error);
+      console.error('[Social v40.0] Error loading friends locations:', error);
     } finally {
       setLoadingFriendsLocations(false);
     }
@@ -256,7 +257,7 @@ export default function SocialIndexScreen() {
           filter: `usuario_id=eq.${userId}`,
         },
         () => {
-          console.log('[Social] 🔔 Notification update detected');
+          console.log('[Social v40.0] 🔔 Notification update detected');
           loadUnreadCounts();
         }
       )
@@ -268,7 +269,7 @@ export default function SocialIndexScreen() {
           table: 'mensajes',
         },
         () => {
-          console.log('[Social] 💬 Message update detected');
+          console.log('[Social v40.0] 💬 Message update detected');
           loadUnreadCounts();
         }
       )
@@ -281,7 +282,7 @@ export default function SocialIndexScreen() {
 
   const cargarPosts = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
     if (!userId) {
-      console.log('[Social] No user ID, skipping load');
+      console.log('[Social v40.0] No user ID, skipping load');
       setLoading(false);
       return;
     }
@@ -298,7 +299,7 @@ export default function SocialIndexScreen() {
       const from = (pageNum - 1) * POSTS_PER_PAGE;
       const to = from + POSTS_PER_PAGE - 1;
 
-      console.log(`[Social] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
+      console.log(`[Social v40.0] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
 
       const { data: followingData, error: followingError } = await supabase
         .from('seguidores')
@@ -383,7 +384,7 @@ export default function SocialIndexScreen() {
         setHasMore(false);
       }
     } catch (error) {
-      console.error('[Social] Error cargando posts:', error);
+      console.error('[Social v40.0] Error cargando posts:', error);
       Alert.alert('Error', 'No se pudieron cargar las publicaciones');
     } finally {
       setLoading(false);
@@ -432,7 +433,7 @@ export default function SocialIndexScreen() {
             table: 'check_ins',
           },
           () => {
-            console.log('[Social] 🔔 Check-ins updated');
+            console.log('[Social v40.0] 🔔 Check-ins updated');
             loadFriendsLocations();
           }
         )
@@ -465,7 +466,8 @@ export default function SocialIndexScreen() {
         </View>
       )}
 
-      {/* ✅ REMOVED: MomentoCarousel component */}
+      {/* ✅ CRITICAL FIX: Momentos section always visible */}
+      <MomentoCarousel />
 
       {(myCheckIn || friendsLocations.length > 0) && (
         <View style={styles.friendsLocationsSection}>

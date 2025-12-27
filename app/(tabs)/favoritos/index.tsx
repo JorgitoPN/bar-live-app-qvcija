@@ -31,37 +31,27 @@ import { calcularDistancia } from '@/utils/locationUtils';
 
 const ITEMS_PER_PAGE = 20;
 
-const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
-  'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
-  'Aragón': ['Huesca', 'Teruel', 'Zaragoza'],
-  'Asturias': ['Asturias'],
-  'Baleares': ['Islas Baleares'],
-  'Canarias': ['Las Palmas', 'Santa Cruz de Tenerife'],
-  'Cantabria': ['Cantabria'],
-  'Castilla y León': ['Ávila', 'Burgos', 'León', 'Palencia', 'Salamanca', 'Segovia', 'Soria', 'Valladolid', 'Zamora'],
-  'Castilla-La Mancha': ['Albacete', 'Ciudad Real', 'Cuenca', 'Guadalajara', 'Toledo'],
-  'Cataluña': ['Barcelona', 'Girona', 'Lleida', 'Tarragona'],
-  'Comunidad de Madrid': ['Madrid'],
-  'Comunidad Valenciana': ['Alicante', 'Castellón', 'Valencia'],
-  'Extremadura': ['Badajoz', 'Cáceres'],
-  'Galicia': ['A Coruña', 'Lugo', 'Ourense', 'Pontevedra'],
-  'La Rioja': ['La Rioja'],
-  'Navarra': ['Navarra'],
-  'País Vasco': ['Álava', 'Guipúzcoa', 'Vizcaya'],
-  'Región de Murcia': ['Murcia'],
-  'Ceuta': ['Ceuta'],
-  'Melilla': ['Melilla'],
-};
+const CATEGORIAS_LOCALES = [
+  { id: 'todos', label: 'Todos', icon: 'mappin.circle.fill' },
+  { id: 'cafe', label: 'Cafés', icon: 'cup.and.saucer.fill' },
+  { id: 'restaurante', label: 'Restaurantes', icon: 'fork.knife' },
+  { id: 'bar', label: 'Bares', icon: 'wineglass.fill' },
+  { id: 'pub', label: 'Pubs', icon: 'mug.fill' },
+  { id: 'cocteleria', label: 'Coctelería', icon: 'wineglass' },
+  { id: 'discoteca', label: 'Discotecas', icon: 'music.note' },
+];
 
 /**
- * ✅ FAVORITOS SCREEN v2.0 - WITH REGIONAL FILTERS
+ * ✅ FAVORITOS SCREEN v3.0 - WITH CATEGORY FILTERS
  * 
  * New Features:
- * - ✅ Comunidad Autónoma filter (dropdown)
- * - ✅ Provincia filter (dropdown, dependent on comunidad)
- * - ✅ Combined with existing search functionality
+ * - ✅ Category filter chips (horizontal scroll)
+ * - ✅ Search functionality
+ * - ✅ Regional filters (Comunidad & Provincia)
+ * - ✅ Combined filtering system
  * - ✅ Clear filters button
  * - ✅ Filter count badge
+ * - ✅ Improved card design
  */
 
 export default function FavoritosScreen() {
@@ -81,13 +71,8 @@ export default function FavoritosScreen() {
   const [checkingSocialProfiles, setCheckingSocialProfiles] = useState<Set<string>>(new Set());
   const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
   
-  // ✅ NEW: Regional filters
-  const [selectedComunidad, setSelectedComunidad] = useState<string | null>(null);
-  const [selectedProvincia, setSelectedProvincia] = useState<string | null>(null);
-  const [showComunidadModal, setShowComunidadModal] = useState(false);
-  const [showProvinciaModal, setShowProvinciaModal] = useState(false);
-  const [searchComunidad, setSearchComunidad] = useState('');
-  const [searchProvincia, setSearchProvincia] = useState('');
+  // ✅ NEW: Category filter
+  const [selectedCategory, setSelectedCategory] = useState<string>('todos');
 
   useEffect(() => {
     (async () => {
@@ -99,10 +84,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos] User location obtained:', location.coords);
+          console.log('[Favoritos v3.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos] Error getting location:', error);
+        console.error('[Favoritos v3.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -128,7 +113,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos] Error checking social profiles:', error);
+      console.error('[Favoritos v3.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -139,7 +124,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos] Cargando locales guardados...');
+      console.log('[Favoritos v3.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -205,12 +190,12 @@ export default function FavoritosScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Favoritos] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v3.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos] Error cargando locales guardados:', error);
+      console.error('[Favoritos v3.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -231,7 +216,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos] Saved locales changed, reloading...');
+            console.log('[Favoritos v3.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -245,7 +230,7 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos] Recalculating distances with new user location');
+      console.log('[Favoritos v3.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -267,7 +252,7 @@ export default function FavoritosScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, currentPage]);
 
-  // ✅ NEW: Apply all filters (search + regional)
+  // ✅ NEW: Apply all filters (search + category)
   useEffect(() => {
     let filtered = [...allSavedLocales];
 
@@ -287,14 +272,17 @@ export default function FavoritosScreen() {
       });
     }
 
-    // Apply comunidad filter
-    if (selectedComunidad) {
-      filtered = filtered.filter(local => local.comunidad === selectedComunidad);
-    }
-
-    // Apply provincia filter
-    if (selectedProvincia) {
-      filtered = filtered.filter(local => local.provincia === selectedProvincia);
+    // ✅ NEW: Apply category filter
+    if (selectedCategory !== 'todos') {
+      filtered = filtered.filter(local => {
+        const barliveTypes = local.barlive_types || [];
+        
+        if (selectedCategory === 'discoteca') {
+          return barliveTypes.includes('discoteca') || barliveTypes.includes('sala_conciertos');
+        }
+        
+        return barliveTypes.includes(selectedCategory);
+      });
     }
 
     setFilteredLocales(filtered);
@@ -303,8 +291,8 @@ export default function FavoritosScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Favoritos] Filters applied. Results:', filtered.length);
-  }, [searchQuery, selectedComunidad, selectedProvincia, allSavedLocales]);
+    console.log('[Favoritos v3.0] Filters applied. Results:', filtered.length);
+  }, [searchQuery, selectedCategory, allSavedLocales]);
 
   const loadMoreLocales = useCallback(() => {
     if (loadingMore || !hasMore) return;
@@ -321,7 +309,7 @@ export default function FavoritosScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Favoritos] Cargando más locales, página:', nextPage);
+        console.log('[Favoritos v3.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -331,107 +319,28 @@ export default function FavoritosScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v3.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
-    setSelectedComunidad(null);
-    setSelectedProvincia(null);
+    setSelectedCategory('todos');
     await loadSavedLocales();
     setRefreshing(false);
   };
 
   // ✅ NEW: Clear all filters
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos] 🧹 Clearing all filters');
+    console.log('[Favoritos v3.0] 🧹 Clearing all filters');
     setSearchQuery('');
-    setSelectedComunidad(null);
-    setSelectedProvincia(null);
+    setSelectedCategory('todos');
   }, []);
 
   // ✅ NEW: Count active filters
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (searchQuery.trim()) count++;
-    if (selectedComunidad) count++;
-    if (selectedProvincia) count++;
+    if (selectedCategory !== 'todos') count++;
     return count;
-  }, [searchQuery, selectedComunidad, selectedProvincia]);
-
-  // ✅ NEW: Handle comunidad selection
-  const handleComunidadSelect = useCallback((comunidad: string) => {
-    console.log('[Favoritos] 📍 Selected comunidad:', comunidad);
-    setSelectedComunidad(comunidad === 'Todas las Comunidades' ? null : comunidad);
-    
-    // Clear provincia if it doesn't belong to the new comunidad
-    if (comunidad !== 'Todas las Comunidades') {
-      const availableProvincias = COMUNIDADES_PROVINCIAS[comunidad] || [];
-      if (selectedProvincia && !availableProvincias.includes(selectedProvincia)) {
-        setSelectedProvincia(null);
-      }
-    } else {
-      setSelectedProvincia(null);
-    }
-    
-    setShowComunidadModal(false);
-    setSearchComunidad('');
-  }, [selectedProvincia]);
-
-  // ✅ NEW: Handle provincia selection
-  const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[Favoritos] 📍 Selected provincia:', provincia);
-    setSelectedProvincia(selectedProvincia === provincia ? null : provincia);
-    setShowProvinciaModal(false);
-    setSearchProvincia('');
-  }, [selectedProvincia]);
-
-  // ✅ NEW: Get available comunidades from saved locales
-  const availableComunidades = useMemo(() => {
-    const comunidades = new Set<string>();
-    allSavedLocales.forEach(local => {
-      if (local.comunidad) {
-        comunidades.add(local.comunidad);
-      }
-    });
-    return ['Todas las Comunidades', ...Array.from(comunidades).sort()];
-  }, [allSavedLocales]);
-
-  // ✅ NEW: Filtered comunidades based on search
-  const filteredComunidades = useMemo(() => {
-    if (!searchComunidad.trim()) {
-      return availableComunidades;
-    }
-    const query = searchComunidad.toLowerCase();
-    return availableComunidades.filter(c =>
-      c.toLowerCase().includes(query)
-    );
-  }, [searchComunidad, availableComunidades]);
-
-  // ✅ NEW: Available provinces based on selected comunidad
-  const availableProvincias = useMemo(() => {
-    if (!selectedComunidad) {
-      // Show all provinces from saved locales
-      const provincias = new Set<string>();
-      allSavedLocales.forEach(local => {
-        if (local.provincia) {
-          provincias.add(local.provincia);
-        }
-      });
-      return Array.from(provincias).sort();
-    }
-    // Show provinces for selected comunidad
-    return COMUNIDADES_PROVINCIAS[selectedComunidad] || [];
-  }, [selectedComunidad, allSavedLocales]);
-
-  // ✅ NEW: Filtered provinces based on search
-  const filteredProvincias = useMemo(() => {
-    if (!searchProvincia.trim()) {
-      return availableProvincias;
-    }
-    const query = searchProvincia.toLowerCase();
-    return availableProvincias.filter(p =>
-      p.toLowerCase().includes(query)
-    );
-  }, [availableProvincias, searchProvincia]);
+  }, [searchQuery, selectedCategory]);
 
   const toggleFavorito = async (localId: string, e?: any) => {
     if (e) {
@@ -439,18 +348,18 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos] User not authenticated');
+      console.log('[Favoritos v3.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos] No local ID');
+      console.log('[Favoritos v3.0] No local ID');
       return;
     }
 
     try {
-      console.log('[Favoritos] Removing from favorites. User:', user.id, 'Local:', localId);
+      console.log('[Favoritos v3.0] Removing from favorites. User:', user.id, 'Local:', localId);
       
       const { error } = await supabase
         .from('locales_guardados')
@@ -459,16 +368,16 @@ export default function FavoritosScreen() {
         .eq('local_id', localId);
 
       if (error) {
-        console.error('[Favoritos] Error removing favorite:', error);
+        console.error('[Favoritos v3.0] Error removing favorite:', error);
         Alert.alert('Error', 'No se pudo quitar de favoritos');
         return;
       }
       
-      console.log('[Favoritos] ✅ Removed from favorites');
+      console.log('[Favoritos v3.0] ✅ Removed from favorites');
       
       await loadSavedLocales();
     } catch (error) {
-      console.error('[Favoritos] Error removing favorito:', error);
+      console.error('[Favoritos v3.0] Error removing favorito:', error);
       Alert.alert('Error', 'No se pudo eliminar de favoritos');
     }
   };
@@ -840,70 +749,38 @@ export default function FavoritosScreen() {
           )}
         </View>
 
-        {/* ✅ NEW: Regional filters */}
-        <View style={styles.regionalFiltersContainer}>
-          <TouchableOpacity
-            style={[
-              styles.regionalFilterButton,
-              selectedComunidad && styles.regionalFilterButtonActive
-            ]}
-            onPress={() => setShowComunidadModal(true)}
-            activeOpacity={0.7}
+        {/* ✅ NEW: Category filter chips */}
+        <View style={styles.categoriesFilterContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesFilterScroll}
           >
-            <IconSymbol 
-              ios_icon_name="mappin.circle" 
-              android_material_icon_name="location_on" 
-              size={16} 
-              color={selectedComunidad ? colors.primary : colors.headerText} 
-            />
-            <Text style={[
-              styles.regionalFilterButtonText,
-              selectedComunidad && styles.regionalFilterButtonTextActive
-            ]} numberOfLines={1}>
-              {selectedComunidad || 'Comunidad'}
-            </Text>
-            <IconSymbol 
-              ios_icon_name="chevron.down" 
-              android_material_icon_name="expand_more" 
-              size={14} 
-              color={selectedComunidad ? colors.primary : colors.headerText} 
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.regionalFilterButton,
-              selectedProvincia && styles.regionalFilterButtonActive,
-              !selectedComunidad && styles.regionalFilterButtonDisabled
-            ]}
-            onPress={() => {
-              if (selectedComunidad) {
-                setShowProvinciaModal(true);
-              }
-            }}
-            disabled={!selectedComunidad}
-            activeOpacity={0.7}
-          >
-            <IconSymbol 
-              ios_icon_name="map" 
-              android_material_icon_name="map" 
-              size={16} 
-              color={selectedProvincia ? colors.primary : (selectedComunidad ? colors.headerText : colors.textSecondary)} 
-            />
-            <Text style={[
-              styles.regionalFilterButtonText,
-              selectedProvincia && styles.regionalFilterButtonTextActive,
-              !selectedComunidad && styles.regionalFilterButtonTextDisabled
-            ]} numberOfLines={1}>
-              {selectedProvincia || 'Provincia'}
-            </Text>
-            <IconSymbol 
-              ios_icon_name="chevron.down" 
-              android_material_icon_name="expand_more" 
-              size={14} 
-              color={selectedProvincia ? colors.primary : (selectedComunidad ? colors.headerText : colors.textSecondary)} 
-            />
-          </TouchableOpacity>
+            {CATEGORIAS_LOCALES.map((categoria) => (
+              <TouchableOpacity
+                key={categoria.id}
+                style={[
+                  styles.categoryChip,
+                  selectedCategory === categoria.id && styles.categoryChipActive,
+                ]}
+                onPress={() => setSelectedCategory(categoria.id)}
+                activeOpacity={0.7}
+              >
+                <IconSymbol 
+                  ios_icon_name={categoria.icon as any}
+                  android_material_icon_name={categoria.icon as any}
+                  size={16} 
+                  color={selectedCategory === categoria.id ? colors.primary : colors.headerText} 
+                />
+                <Text style={[
+                  styles.categoryChipText,
+                  selectedCategory === categoria.id && styles.categoryChipTextActive
+                ]}>
+                  {categoria.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
         
         {allSavedLocales.length > 0 && (
@@ -948,148 +825,6 @@ export default function FavoritosScreen() {
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
       />
-
-      {/* ✅ NEW: COMUNIDAD MODAL */}
-      <Modal
-        visible={showComunidadModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowComunidadModal(false)}
-      >
-        <Pressable
-          style={styles.selectorModalOverlay}
-          onPress={() => setShowComunidadModal(false)}
-        >
-          <Pressable style={styles.selectorModalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.selectorModalHeader}>
-              <Text style={styles.selectorModalTitle}>Comunidad Autónoma</Text>
-              <TouchableOpacity onPress={() => setShowComunidadModal(false)}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={22} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.modalSearchContainer}>
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={18} color={colors.textSecondary} />
-              <TextInput
-                style={styles.modalSearchInput}
-                placeholder="Buscar comunidad..."
-                placeholderTextColor={colors.textSecondary}
-                value={searchComunidad}
-                onChangeText={setSearchComunidad}
-              />
-              {searchComunidad.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchComunidad('')}>
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={18} color={colors.textSecondary} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <ScrollView style={styles.selectorModalBody}>
-              {filteredComunidades.length > 0 ? (
-                filteredComunidades.map((comunidad) => (
-                  <TouchableOpacity
-                    key={comunidad}
-                    style={[
-                      styles.selectorModalOption,
-                      selectedComunidad === comunidad && styles.selectorModalOptionActive,
-                    ]}
-                    onPress={() => handleComunidadSelect(comunidad)}
-                  >
-                    <Text
-                      style={[
-                        styles.selectorModalOptionText,
-                        selectedComunidad === comunidad && styles.selectorModalOptionTextActive,
-                      ]}
-                    >
-                      {comunidad}
-                    </Text>
-                    {selectedComunidad === comunidad && (
-                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={22} color={colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <View style={styles.emptyModalState}>
-                  <Text style={styles.emptyModalText}>No se encontraron comunidades</Text>
-                </View>
-              )}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* ✅ NEW: PROVINCIA MODAL */}
-      <Modal
-        visible={showProvinciaModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowProvinciaModal(false)}
-      >
-        <Pressable
-          style={styles.selectorModalOverlay}
-          onPress={() => setShowProvinciaModal(false)}
-        >
-          <Pressable style={styles.selectorModalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.selectorModalHeader}>
-              <Text style={styles.selectorModalTitle}>
-                Provincia {selectedComunidad ? `de ${selectedComunidad}` : ''}
-              </Text>
-              <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={22} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.modalSearchContainer}>
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={18} color={colors.textSecondary} />
-              <TextInput
-                style={styles.modalSearchInput}
-                placeholder="Buscar provincia..."
-                placeholderTextColor={colors.textSecondary}
-                value={searchProvincia}
-                onChangeText={setSearchProvincia}
-              />
-              {searchProvincia.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchProvincia('')}>
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={18} color={colors.textSecondary} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <ScrollView style={styles.selectorModalBody}>
-              {filteredProvincias.length > 0 ? (
-                filteredProvincias.map((provincia) => (
-                  <TouchableOpacity
-                    key={provincia}
-                    style={[
-                      styles.selectorModalOption,
-                      selectedProvincia === provincia && styles.selectorModalOptionActive,
-                    ]}
-                    onPress={() => handleProvinciaSelect(provincia)}
-                  >
-                    <Text
-                      style={[
-                        styles.selectorModalOptionText,
-                        selectedProvincia === provincia && styles.selectorModalOptionTextActive,
-                      ]}
-                    >
-                      {provincia}
-                    </Text>
-                    {selectedProvincia === provincia && (
-                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={22} color={colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <View style={styles.emptyModalState}>
-                  <Text style={styles.emptyModalText}>
-                    {selectedComunidad ? 'No hay provincias disponibles' : 'Selecciona primero una comunidad'}
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
@@ -1148,44 +883,37 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
-  regionalFiltersContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  categoriesFilterContainer: {
     marginBottom: 12,
   },
-  regionalFilterButton: {
-    flex: 1,
+  categoriesFilterScroll: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  regionalFilterButtonActive: {
+  categoryChipActive: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderColor: colors.primary,
   },
-  regionalFilterButtonDisabled: {
-    opacity: 0.5,
-  },
-  regionalFilterButtonText: {
+  categoryChipText: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
   },
-  regionalFilterButtonTextActive: {
+  categoryChipTextActive: {
     color: colors.primary,
     fontWeight: '700',
-  },
-  regionalFilterButtonTextDisabled: {
-    color: colors.textSecondary,
   },
   resultsCountContainer: {
     flexDirection: 'row',
@@ -1542,86 +1270,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
-  },
-  selectorModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  selectorModalContent: {
-    backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 20,
-  },
-  selectorModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  selectorModalTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  modalSearchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginHorizontal: 18,
-    marginTop: 14,
-    marginBottom: 10,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  modalSearchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text,
-  },
-  selectorModalBody: {
-    maxHeight: 400,
-  },
-  selectorModalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  selectorModalOptionActive: {
-    backgroundColor: colors.primary + '10',
-  },
-  selectorModalOptionText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '500',
-  },
-  selectorModalOptionTextActive: {
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  emptyModalState: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyModalText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textAlign: 'center',
   },
 });

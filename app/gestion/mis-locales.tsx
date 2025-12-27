@@ -10,6 +10,7 @@ import {
   Alert,
   RefreshControl,
   Image,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -17,6 +18,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+
+const { width } = Dimensions.get('window');
 
 interface MiLocal {
   id: string;
@@ -43,6 +46,17 @@ interface Notificacion {
   created_at: string;
 }
 
+/**
+ * ✅ MIS LOCALES SCREEN v2.0 - IMPROVED CARD DESIGN
+ * 
+ * NEW FEATURES:
+ * - ✅ Better visual hierarchy with cover images
+ * - ✅ Clear status indicators with icons
+ * - ✅ Improved action buttons layout
+ * - ✅ Better spacing and typography
+ * - ✅ More intuitive information organization
+ */
+
 export default function MisLocalesScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -55,9 +69,8 @@ export default function MisLocalesScreen() {
     if (!user) return;
 
     try {
-      console.log('[MisLocales] 🔄 Loading locales for user:', user.id);
+      console.log('[MisLocales v2.0] 🔄 Loading locales for user:', user.id);
 
-      // ✅ FIXED: Query from propietarios_locales junction table
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('propietarios_locales')
         .select(`
@@ -87,18 +100,16 @@ export default function MisLocalesScreen() {
         .order('fecha_asignacion', { ascending: false });
 
       if (assignmentsError) {
-        console.error('[MisLocales] ❌ Error loading assignments:', assignmentsError);
+        console.error('[MisLocales v2.0] ❌ Error loading assignments:', assignmentsError);
         throw assignmentsError;
       }
 
-      // Extract locales from assignments
       const localesData = assignmentsData
         ?.map(assignment => assignment.locales)
         .filter(Boolean) || [];
 
-      console.log('[MisLocales] ✅ Loaded', localesData.length, 'locales from assignments');
+      console.log('[MisLocales v2.0] ✅ Loaded', localesData.length, 'locales from assignments');
 
-      // Also load locales where user is directly the propietario_id (legacy support)
       const { data: directLocalesData, error: directLocalesError } = await supabase
         .from('locales')
         .select('*')
@@ -106,19 +117,16 @@ export default function MisLocalesScreen() {
         .order('fecha_solicitud', { ascending: false });
 
       if (!directLocalesError && directLocalesData) {
-        console.log('[MisLocales] ✅ Loaded', directLocalesData.length, 'locales from direct ownership');
+        console.log('[MisLocales v2.0] ✅ Loaded', directLocalesData.length, 'locales from direct ownership');
         
-        // Merge both sources, avoiding duplicates
         const allLocalesMap = new Map<string, MiLocal>();
         
-        // Add from assignments first (priority)
         localesData.forEach(local => {
           if (local) {
             allLocalesMap.set(local.id, local);
           }
         });
         
-        // Add from direct ownership (if not already in map)
         directLocalesData.forEach(local => {
           if (!allLocalesMap.has(local.id)) {
             allLocalesMap.set(local.id, local);
@@ -126,13 +134,12 @@ export default function MisLocalesScreen() {
         });
         
         const mergedLocales = Array.from(allLocalesMap.values());
-        console.log('[MisLocales] ✅ Total unique locales:', mergedLocales.length);
+        console.log('[MisLocales v2.0] ✅ Total unique locales:', mergedLocales.length);
         setLocales(mergedLocales);
       } else {
         setLocales(localesData);
       }
 
-      // Load notifications
       const { data: notificacionesData, error: notificacionesError } = await supabase
         .from('notificaciones_locales')
         .select('*')
@@ -141,13 +148,13 @@ export default function MisLocalesScreen() {
         .limit(10);
 
       if (notificacionesError) {
-        console.error('[MisLocales] ⚠️ Error loading notifications:', notificacionesError);
+        console.error('[MisLocales v2.0] ⚠️ Error loading notifications:', notificacionesError);
       } else {
         setNotificaciones(notificacionesData || []);
-        console.log('[MisLocales] ✅ Loaded', notificacionesData?.length || 0, 'notifications');
+        console.log('[MisLocales v2.0] ✅ Loaded', notificacionesData?.length || 0, 'notifications');
       }
     } catch (error) {
-      console.error('[MisLocales] ❌ Error:', error);
+      console.error('[MisLocales v2.0] ❌ Error:', error);
       Alert.alert('Error', 'No se pudieron cargar tus locales');
     } finally {
       setLoading(false);
@@ -175,146 +182,245 @@ export default function MisLocalesScreen() {
         prev.map(n => n.id === notificacionId ? { ...n, leida: true } : n)
       );
     } catch (error) {
-      console.error('[MisLocales] Error marking notification as read:', error);
+      console.error('[MisLocales v2.0] Error marking notification as read:', error);
     }
   };
 
-  const getEstadoBadge = (estado: string) => {
-    const badges: Record<string, { color: string; text: string; icon: string }> = {
-      pendiente: { color: '#F59E0B', text: 'Pendiente', icon: 'clock.fill' },
-      en_revision: { color: '#3B82F6', text: 'En Revisión', icon: 'eye.fill' },
-      aprobado: { color: '#10B981', text: 'Aprobado', icon: 'checkmark.circle.fill' },
-      denegado: { color: '#EF4444', text: 'Denegado', icon: 'xmark.circle.fill' },
+  const getEstadoConfig = (estado: string) => {
+    const configs: Record<string, { color: string; bgColor: string; text: string; icon: string; androidIcon: string }> = {
+      pendiente: { 
+        color: '#F59E0B', 
+        bgColor: '#FEF3C7',
+        text: 'Pendiente de Revisión', 
+        icon: 'clock.fill',
+        androidIcon: 'schedule'
+      },
+      en_revision: { 
+        color: '#3B82F6', 
+        bgColor: '#DBEAFE',
+        text: 'En Revisión', 
+        icon: 'eye.fill',
+        androidIcon: 'visibility'
+      },
+      aprobado: { 
+        color: '#10B981', 
+        bgColor: '#D1FAE5',
+        text: 'Aprobado y Publicado', 
+        icon: 'checkmark.circle.fill',
+        androidIcon: 'check_circle'
+      },
+      denegado: { 
+        color: '#EF4444', 
+        bgColor: '#FEE2E2',
+        text: 'Solicitud Denegada', 
+        icon: 'xmark.circle.fill',
+        androidIcon: 'cancel'
+      },
     };
 
-    const badge = badges[estado] || badges.pendiente;
-
-    return (
-      <View style={[styles.badge, { backgroundColor: badge.color + '20' }]}>
-        <IconSymbol ios_icon_name={badge.icon} android_material_icon_name="info" size={16} color={badge.color} />
-        <Text style={[styles.badgeText, { color: badge.color }]}>{badge.text}</Text>
-      </View>
-    );
+    return configs[estado] || configs.pendiente;
   };
 
-  const renderLocalCard = (local: MiLocal) => (
-    <TouchableOpacity
-      key={local.id}
-      style={styles.card}
-      onPress={() => {
-        if (local.estado_solicitud === 'aprobado') {
-          router.push(`/detalle/local?id=${local.id}`);
-        }
-      }}
-    >
-      <View style={styles.cardHeader}>
-        {local.imagen_url && (
-          <Image source={{ uri: local.imagen_url }} style={styles.cardImage} />
-        )}
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardTitle}>{local.nombre}</Text>
-          <Text style={styles.cardSubtitle}>{local.tipo} • {local.provincia}</Text>
-          <Text style={styles.cardDate}>
-            Solicitado: {new Date(local.fecha_solicitud).toLocaleDateString()}
-          </Text>
-        </View>
-      </View>
+  const renderLocalCard = (local: MiLocal) => {
+    const estadoConfig = getEstadoConfig(local.estado_solicitud);
 
-      <View style={styles.cardBody}>
-        {getEstadoBadge(local.estado_solicitud)}
+    return (
+      <TouchableOpacity
+        key={local.id}
+        style={styles.card}
+        onPress={() => {
+          if (local.estado_solicitud === 'aprobado') {
+            router.push(`/detalle/local?id=${local.id}`);
+          }
+        }}
+        activeOpacity={local.estado_solicitud === 'aprobado' ? 0.8 : 1}
+      >
+        {/* ✅ NEW: Cover Image with Gradient */}
+        <View style={styles.cardCoverContainer}>
+          {local.imagen_url ? (
+            <React.Fragment>
+              <Image source={{ uri: local.imagen_url }} style={styles.cardCover} resizeMode="cover" />
+              <LinearGradient
+                colors={['transparent', 'rgba(0, 0, 0, 0.7)']}
+                style={styles.cardCoverGradient}
+              />
+            </React.Fragment>
+          ) : (
+            <View style={[styles.cardCover, styles.cardCoverPlaceholder]}>
+              <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={48} color="rgba(255, 255, 255, 0.4)" />
+            </View>
+          )}
 
-        {local.estado_solicitud === 'pendiente' && (
-          <View style={styles.statusInfo}>
-            <Text style={styles.statusText}>
-              Tu solicitud está pendiente de revisión por el administrador.
-            </Text>
+          {/* ✅ NEW: Status Badge on Image */}
+          <View style={[styles.statusBadgeOnImage, { backgroundColor: estadoConfig.color }]}>
+            <IconSymbol 
+              ios_icon_name={estadoConfig.icon as any}
+              android_material_icon_name={estadoConfig.androidIcon}
+              size={14} 
+              color="#FFFFFF" 
+            />
+            <Text style={styles.statusBadgeOnImageText}>{estadoConfig.text}</Text>
           </View>
-        )}
 
-        {local.estado_solicitud === 'en_revision' && (
-          <View style={styles.statusInfo}>
-            <Text style={styles.statusText}>
-              Tu solicitud está siendo revisada por el administrador.
-            </Text>
-            {local.comentarios_admin && (
-              <View style={styles.adminComments}>
+          {/* ✅ NEW: Local Name Overlay */}
+          <View style={styles.cardCoverOverlay}>
+            <Text style={styles.cardCoverLocalName} numberOfLines={1}>{local.nombre}</Text>
+            <View style={styles.cardCoverMeta}>
+              <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={12} color="rgba(255, 255, 255, 0.9)" />
+              <Text style={styles.cardCoverMetaText}>{local.tipo} • {local.provincia}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ✅ NEW: Card Body with Better Hierarchy */}
+        <View style={styles.cardBody}>
+          {/* Status Message */}
+          <View style={[styles.statusMessageContainer, { backgroundColor: estadoConfig.bgColor }]}>
+            <IconSymbol 
+              ios_icon_name={estadoConfig.icon as any}
+              android_material_icon_name={estadoConfig.androidIcon}
+              size={20} 
+              color={estadoConfig.color} 
+            />
+            <View style={styles.statusMessageText}>
+              {local.estado_solicitud === 'pendiente' && (
+                <Text style={[styles.statusMessage, { color: estadoConfig.color }]}>
+                  Tu solicitud está pendiente de revisión por el administrador.
+                </Text>
+              )}
+
+              {local.estado_solicitud === 'en_revision' && (
+                <Text style={[styles.statusMessage, { color: estadoConfig.color }]}>
+                  Tu solicitud está siendo revisada por el administrador.
+                </Text>
+              )}
+
+              {local.estado_solicitud === 'aprobado' && (
+                <Text style={[styles.statusMessage, { color: estadoConfig.color }]}>
+                  ¡Tu local ha sido aprobado y está publicado!
+                </Text>
+              )}
+
+              {local.estado_solicitud === 'denegado' && (
+                <Text style={[styles.statusMessage, { color: estadoConfig.color }]}>
+                  Tu solicitud ha sido denegada.
+                </Text>
+              )}
+            </View>
+          </View>
+
+          {/* Admin Comments */}
+          {local.comentarios_admin && (
+            <View style={styles.adminCommentsContainer}>
+              <View style={styles.adminCommentsHeader}>
+                <IconSymbol ios_icon_name="person.badge.shield.checkmark.fill" android_material_icon_name="admin_panel_settings" size={16} color="#3B82F6" />
                 <Text style={styles.adminCommentsLabel}>Comentarios del administrador:</Text>
-                <Text style={styles.adminCommentsText}>{local.comentarios_admin}</Text>
+              </View>
+              <Text style={styles.adminCommentsText}>{local.comentarios_admin}</Text>
+            </View>
+          )}
+
+          {/* Denial Reason */}
+          {local.motivo_denegacion && (
+            <View style={[styles.adminCommentsContainer, { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }]}>
+              <View style={styles.adminCommentsHeader}>
+                <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={16} color="#DC2626" />
+                <Text style={[styles.adminCommentsLabel, { color: '#DC2626' }]}>Motivo de denegación:</Text>
+              </View>
+              <Text style={[styles.adminCommentsText, { color: '#DC2626' }]}>{local.motivo_denegacion}</Text>
+            </View>
+          )}
+
+          {/* Metadata */}
+          <View style={styles.metadataContainer}>
+            <View style={styles.metadataItem}>
+              <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={14} color={colors.textSecondary} />
+              <Text style={styles.metadataText}>
+                Solicitado: {new Date(local.fecha_solicitud).toLocaleDateString('es-ES', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+              </Text>
+            </View>
+            {local.fecha_revision && (
+              <View style={styles.metadataItem}>
+                <IconSymbol ios_icon_name="checkmark.circle" android_material_icon_name="check_circle" size={14} color={colors.textSecondary} />
+                <Text style={styles.metadataText}>
+                  Revisado: {new Date(local.fecha_revision).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                  })}
+                </Text>
               </View>
             )}
           </View>
-        )}
+        </View>
 
+        {/* ✅ NEW: Action Buttons with Better Design */}
         {local.estado_solicitud === 'aprobado' && (
-          <View style={styles.statusInfo}>
-            <Text style={[styles.statusText, { color: '#10B981' }]}>
-              ¡Tu local ha sido aprobado y está publicado!
-            </Text>
-            {local.comentarios_admin && (
-              <View style={styles.adminComments}>
-                <Text style={styles.adminCommentsLabel}>Comentarios del administrador:</Text>
-                <Text style={styles.adminCommentsText}>{local.comentarios_admin}</Text>
+          <View style={styles.cardActions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push(`/editar/local?id=${local.id}`)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.actionButtonIcon, { backgroundColor: '#DBEAFE' }]}>
+                <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color="#3B82F6" />
               </View>
-            )}
+              <Text style={styles.actionButtonText}>Editar Local</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push(`/detalle/local?id=${local.id}`)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.actionButtonIcon, { backgroundColor: '#D1FAE5' }]}>
+                <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color="#10B981" />
+              </View>
+              <Text style={styles.actionButtonText}>Ver Perfil</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push(`/gestion/planes-suscripcion?localId=${local.id}`)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.actionButtonIcon, { backgroundColor: '#FEF3C7' }]}>
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={18} color="#F59E0B" />
+              </View>
+              <Text style={styles.actionButtonText}>Planes</Text>
+            </TouchableOpacity>
           </View>
         )}
-
-        {local.estado_solicitud === 'denegado' && (
-          <View style={styles.statusInfo}>
-            <Text style={[styles.statusText, { color: '#EF4444' }]}>
-              Tu solicitud ha sido denegada.
-            </Text>
-            {local.motivo_denegacion && (
-              <View style={[styles.adminComments, { backgroundColor: '#FEE2E2' }]}>
-                <Text style={[styles.adminCommentsLabel, { color: '#DC2626' }]}>Motivo:</Text>
-                <Text style={[styles.adminCommentsText, { color: '#DC2626' }]}>{local.motivo_denegacion}</Text>
-              </View>
-            )}
-            {local.comentarios_admin && (
-              <View style={styles.adminComments}>
-                <Text style={styles.adminCommentsLabel}>Comentarios adicionales:</Text>
-                <Text style={styles.adminCommentsText}>{local.comentarios_admin}</Text>
-              </View>
-            )}
-          </View>
-        )}
-      </View>
-
-      {local.estado_solicitud === 'aprobado' && (
-        <View style={styles.cardActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push(`/editar/local?id=${local.id}`)}
-          >
-            <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
-            <Text style={styles.actionButtonText}>Editar</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push(`/detalle/local?id=${local.id}`)}
-          >
-            <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.primary} />
-            <Text style={styles.actionButtonText}>Ver</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderNotificacion = (notificacion: Notificacion) => (
     <TouchableOpacity
       key={notificacion.id}
       style={[styles.notificationCard, !notificacion.leida && styles.notificationCardUnread]}
       onPress={() => marcarNotificacionLeida(notificacion.id)}
+      activeOpacity={0.8}
     >
       <View style={styles.notificationHeader}>
-        <Text style={styles.notificationTitle}>{notificacion.titulo}</Text>
+        <View style={styles.notificationTitleContainer}>
+          <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={16} color={colors.primary} />
+          <Text style={styles.notificationTitle}>{notificacion.titulo}</Text>
+        </View>
         {!notificacion.leida && <View style={styles.unreadDot} />}
       </View>
       <Text style={styles.notificationMessage}>{notificacion.mensaje}</Text>
       <Text style={styles.notificationDate}>
-        {new Date(notificacion.created_at).toLocaleString()}
+        {new Date(notificacion.created_at).toLocaleString('es-ES', {
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}
       </Text>
     </TouchableOpacity>
   );
@@ -331,11 +437,11 @@ export default function MisLocalesScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Mis Locales</Text>
-        <TouchableOpacity onPress={() => router.push('/crear/local')}>
+        <TouchableOpacity onPress={() => router.push('/crear/local')} style={styles.addButton}>
           <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={28} color="white" />
         </TouchableOpacity>
       </LinearGradient>
@@ -347,17 +453,23 @@ export default function MisLocalesScreen() {
         {/* Notifications Section */}
         {notificaciones.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notificaciones Recientes</Text>
+            <View style={styles.sectionHeader}>
+              <IconSymbol ios_icon_name="bell.badge.fill" android_material_icon_name="notifications_active" size={20} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Notificaciones Recientes</Text>
+            </View>
             {notificaciones.slice(0, 3).map(renderNotificacion)}
           </View>
         )}
 
         {/* Locales Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tus Locales</Text>
+          <View style={styles.sectionHeader}>
+            <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={20} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Tus Locales</Text>
+          </View>
           {locales.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={64} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={64} color={colors.textSecondary} />
               <Text style={styles.emptyText}>No tienes locales asignados</Text>
               <Text style={styles.emptySubtext}>
                 Solicita ser propietario de un local o crea uno nuevo
@@ -365,6 +477,7 @@ export default function MisLocalesScreen() {
               <TouchableOpacity
                 style={styles.createButton}
                 onPress={() => router.push('/crear/local')}
+                activeOpacity={0.8}
               >
                 <LinearGradient
                   colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -399,10 +512,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  backButton: {
+    padding: 4,
+  },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
+  },
+  addButton: {
+    padding: 4,
   },
   content: {
     flex: 1,
@@ -410,122 +529,203 @@ const styles = StyleSheet.create({
   section: {
     padding: 16,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 16,
   },
   card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    ...commonStyles.shadow,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 20,
+    marginBottom: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    marginBottom: 12,
+  cardCoverContainer: {
+    width: '100%',
+    height: 160,
+    position: 'relative',
   },
-  cardImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: colors.border,
+  cardCover: {
+    width: '100%',
+    height: '100%',
   },
-  cardInfo: {
-    flex: 1,
+  cardCoverPlaceholder: {
+    backgroundColor: '#1F2937',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
+  cardCoverGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '60%',
   },
-  cardSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  cardDate: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  cardBody: {
-    marginBottom: 12,
-  },
-  badge: {
+  statusBadgeOnImage: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  statusBadgeOnImageText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  cardCoverOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    right: 12,
+  },
+  cardCoverLocalName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  cardCoverMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  cardCoverMetaText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  cardBody: {
+    padding: 16,
+  },
+  statusMessageContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: 14,
     borderRadius: 12,
-    gap: 6,
     marginBottom: 12,
   },
-  badgeText: {
-    fontSize: 13,
-    fontWeight: '600',
+  statusMessageText: {
+    flex: 1,
   },
-  statusInfo: {
-    marginTop: 8,
-  },
-  statusText: {
+  statusMessage: {
     fontSize: 14,
-    color: colors.text,
+    fontWeight: '600',
     lineHeight: 20,
   },
-  adminComments: {
-    marginTop: 12,
-    padding: 12,
+  adminCommentsContainer: {
     backgroundColor: '#DBEAFE',
-    borderRadius: 8,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#93C5FD',
+  },
+  adminCommentsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   adminCommentsLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#1E40AF',
-    marginBottom: 4,
   },
   adminCommentsText: {
     fontSize: 13,
     color: '#1E40AF',
     lineHeight: 18,
   },
+  metadataContainer: {
+    gap: 8,
+  },
+  metadataItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  metadataText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
   cardActions: {
     flexDirection: 'row',
-    gap: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   actionButton: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    backgroundColor: colors.primary + '15',
-    borderRadius: 8,
-    gap: 6,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    gap: 8,
+  },
+  actionButtonIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
   },
   notificationCard: {
-    backgroundColor: 'white',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    ...commonStyles.shadow,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   notificationCardUnread: {
     borderLeftWidth: 4,
     borderLeftColor: colors.primary,
+    backgroundColor: colors.primary + '05',
   },
   notificationHeader: {
     flexDirection: 'row',
@@ -533,9 +733,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 8,
   },
+  notificationTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
   notificationTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.text,
     flex: 1,
   },
@@ -554,6 +760,7 @@ const styles = StyleSheet.create({
   notificationDate: {
     fontSize: 12,
     color: colors.textSecondary,
+    fontWeight: '500',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -561,16 +768,17 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: 16,
-    fontSize: 16,
-    color: colors.textSecondary,
+    fontSize: 18,
+    color: colors.text,
     textAlign: 'center',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   emptySubtext: {
     marginTop: 8,
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
+    lineHeight: 20,
   },
   createButton: {
     marginTop: 24,
