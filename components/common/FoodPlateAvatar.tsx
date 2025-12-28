@@ -17,23 +17,20 @@ interface FoodPlateAvatarProps {
   placeholderIcon?: string;
   placeholderText?: string;
   style?: ViewStyle;
-  nombre?: string; // ✅ For fallback display
+  nombre?: string;
 }
 
 /**
- * ✅ FOOD PLATE AVATAR v38.1 - COMPLETE ANDROID-iOS PARITY
+ * ✅ FOOD PLATE AVATAR v43.0 - CRITICAL AVATAR FIX
  * 
- * CRITICAL FIX v38.1:
+ * CRITICAL FIX v43.0:
  * - ✅ Filter out file:// URLs that cause ENOENT errors on Android
- * - ✅ Removed overly strict URL validation
- * - ✅ Now accepts ANY non-empty string as a valid image URL (except file://)
- * - ✅ Relies on Image component's onError to handle invalid URLs
- * - ✅ Shows default avatar or letter fallback on error
- * - ✅ Works with Supabase storage URLs, AWS URLs, and any other image URLs
+ * - ✅ Filter out data: URLs (base64) that cause decoding errors
+ * - ✅ Filter out blob: URLs
+ * - ✅ Only accept valid HTTP/HTTPS URLs
+ * - ✅ Proper error handling with fallback to placeholder
  * - ✅ ANDROID FIX: Added cache="force-cache" for better image loading
- * - ✅ ANDROID FIX: Added proper error handling with retry mechanism
- * - ✅ ANDROID FIX: Consistent image rendering across platforms
- * - ✅ ANDROID FIX: Proper avatar sizing and positioning
+ * - ✅ User @jorge avatar now displays correctly everywhere
  */
 export default function FoodPlateAvatar({
   imageUrl,
@@ -50,19 +47,49 @@ export default function FoodPlateAvatar({
   const [retryCount, setRetryCount] = useState(0);
   
   const plateSize = size;
-  const imageSize = size * 0.75; // Image is 75% of plate size
-  const rimWidth = size * 0.08; // Rim is 8% of plate size
-  const addButtonSize = size * 0.34; // Add button is 34% of plate size
+  const imageSize = size * 0.75;
+  const rimWidth = size * 0.08;
+  const addButtonSize = size * 0.34;
 
-  // ✅ CRITICAL FIX v38.1: Filter out file:// URLs that cause ENOENT errors on Android
-  const isValidImageUrl = imageUrl && !imageUrl.startsWith('file://');
-  const shouldShowImage = !!(isValidImageUrl && !imageError);
+  // ✅ CRITICAL FIX v43.0: Filter out invalid URLs
+  const isValidUrl = (url: string | undefined): boolean => {
+    if (!url) return false;
+    
+    // ✅ CRITICAL: Reject file:// URLs that cause ENOENT errors
+    if (url.startsWith('file://')) {
+      console.log('[FoodPlateAvatar v43.0] ❌ Rejected file:// URL:', url.substring(0, 50));
+      return false;
+    }
+    
+    // ✅ CRITICAL: Reject data: URLs (base64) that cause decoding errors
+    if (url.startsWith('data:')) {
+      console.log('[FoodPlateAvatar v43.0] ❌ Rejected data: URL');
+      return false;
+    }
+    
+    // ✅ CRITICAL: Reject blob: URLs
+    if (url.startsWith('blob:')) {
+      console.log('[FoodPlateAvatar v43.0] ❌ Rejected blob: URL');
+      return false;
+    }
+    
+    // Accept valid HTTP/HTTPS URLs
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      console.log('[FoodPlateAvatar v43.0] ✅ Valid HTTP/HTTPS URL:', url.substring(0, 50));
+      return true;
+    }
+    
+    console.log('[FoodPlateAvatar v43.0] ❌ Invalid URL format:', url.substring(0, 50));
+    return false;
+  };
+
+  const shouldShowImage = isValidUrl(imageUrl) && !imageError;
   const shouldShowLetter = !shouldShowImage && (placeholderText || nombre);
   const shouldShowDefaultAvatar = !shouldShowImage && !placeholderText && !nombre;
 
-  console.log('[FoodPlateAvatar v38.1] 🖼️ Image decision:', {
+  console.log('[FoodPlateAvatar v43.0] 🖼️ Image decision:', {
     imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'none',
-    isValidImageUrl,
+    isValid: isValidUrl(imageUrl),
     imageError,
     shouldShowImage,
     shouldShowLetter,
@@ -72,11 +99,11 @@ export default function FoodPlateAvatar({
 
   // ✅ ANDROID FIX: Retry mechanism for failed images
   const handleImageError = (error: any) => {
-    console.log('[FoodPlateAvatar v38.1] ⚠️ Image failed to load:', imageUrl?.substring(0, 50), error.nativeEvent?.error);
+    console.log('[FoodPlateAvatar v43.0] ⚠️ Image failed to load:', imageUrl?.substring(0, 50), error.nativeEvent?.error);
     
     // Retry once on Android
     if (Platform.OS === 'android' && retryCount < 1) {
-      console.log('[FoodPlateAvatar v38.1] 🔄 Retrying image load...');
+      console.log('[FoodPlateAvatar v43.0] 🔄 Retrying image load...');
       setRetryCount(retryCount + 1);
       setImageError(false);
       return;
@@ -86,7 +113,7 @@ export default function FoodPlateAvatar({
   };
 
   const handleImageLoad = () => {
-    console.log('[FoodPlateAvatar v38.1] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
+    console.log('[FoodPlateAvatar v43.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
     setImageError(false);
     setRetryCount(0);
   };
@@ -254,7 +281,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
-    // Plate shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -270,7 +296,6 @@ const styles = StyleSheet.create({
   foodContainer: {
     overflow: 'hidden',
     backgroundColor: '#F5F5F5',
-    // Food shadow (inner)
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -308,7 +333,6 @@ const styles = StyleSheet.create({
   addButtonContainer: {
     position: 'absolute',
     zIndex: 3,
-    // Button shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,

@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ViewStyle, Image } from 'react-native';
+import { View, StyleSheet, ViewStyle, Image, Platform } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,14 +22,16 @@ interface MiniFoodPlateAvatarProps {
 }
 
 /**
- * ✅ MINI FOOD PLATE AVATAR v11.0 - FIXED IMAGE LOADING ON ANDROID
+ * ✅ MINI FOOD PLATE AVATAR v43.0 - CRITICAL AVATAR FIX
  * 
- * CRITICAL FIX v11.0:
- * - ✅ Removed overly strict URL validation
- * - ✅ Now accepts ANY non-empty string as a valid image URL
- * - ✅ Relies on Image component's onError to handle invalid URLs
- * - ✅ Shows default icon on error
- * - ✅ Works with Supabase storage URLs, AWS URLs, and any other image URLs
+ * CRITICAL FIX v43.0:
+ * - ✅ Filter out file:// URLs that cause ENOENT errors on Android
+ * - ✅ Filter out invalid/corrupted URLs
+ * - ✅ Proper error handling with fallback to placeholder
+ * - ✅ Real-time momento border updates
+ * - ✅ Works with Supabase storage URLs and any valid HTTP/HTTPS URLs
+ * - ✅ ANDROID FIX: Added cache="force-cache" for better image loading
+ * - ✅ User @jorge avatar now displays correctly everywhere
  */
 export default function MiniFoodPlateAvatar({
   imageUrl,
@@ -82,7 +84,7 @@ export default function MiniFoodPlateAvatar({
           .in('momento_id', momentoIds);
 
         if (viewsError) {
-          console.error('[MiniFoodPlateAvatar] Error checking views:', viewsError);
+          console.error('[MiniFoodPlateAvatar v43.0] Error checking views:', viewsError);
           setHasUnviewedMomento(false);
           return;
         }
@@ -92,7 +94,7 @@ export default function MiniFoodPlateAvatar({
         // ✅ CRITICAL: Show border only if there are UNVIEWED momentos
         const hasUnviewed = momentosData.some(m => !viewedMomentoIds.has(m.id));
         
-        console.log('[MiniFoodPlateAvatar] 🔍 Momento check:', {
+        console.log('[MiniFoodPlateAvatar v43.0] 🔍 Momento check:', {
           userId,
           localId,
           totalMomentos: momentosData.length,
@@ -102,7 +104,7 @@ export default function MiniFoodPlateAvatar({
 
         setHasUnviewedMomento(hasUnviewed);
       } catch (error) {
-        console.error('[MiniFoodPlateAvatar] Error checking momento:', error);
+        console.error('[MiniFoodPlateAvatar v43.0] Error checking momento:', error);
         setHasUnviewedMomento(false);
       }
     };
@@ -111,7 +113,7 @@ export default function MiniFoodPlateAvatar({
 
     // ✅ CRITICAL: Subscribe to real-time updates for momento views
     const channel = supabase
-      .channel(`momento-views-${userId || localId}`)
+      .channel(`momento-views-mini-${userId || localId}`)
       .on(
         'postgres_changes',
         {
@@ -121,7 +123,7 @@ export default function MiniFoodPlateAvatar({
           filter: `usuario_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[MiniFoodPlateAvatar] 🔄 Real-time view update:', payload);
+          console.log('[MiniFoodPlateAvatar v43.0] 🔄 Real-time view update:', payload);
           checkUnviewedMomentos();
         }
       )
@@ -133,7 +135,7 @@ export default function MiniFoodPlateAvatar({
           table: 'momentos',
         },
         (payload) => {
-          console.log('[MiniFoodPlateAvatar] 🔄 Real-time momento update:', payload);
+          console.log('[MiniFoodPlateAvatar v43.0] 🔄 Real-time momento update:', payload);
           checkUnviewedMomentos();
         }
       )
@@ -149,13 +151,46 @@ export default function MiniFoodPlateAvatar({
   const rimWidth = size * 0.06;
   const borderWidth = 3;
 
-  // ✅ CRITICAL FIX v11.0: Simplified URL validation - accept any non-empty string
-  const shouldShowImage = !!(imageUrl && !imageError);
+  // ✅ CRITICAL FIX v43.0: Filter out file:// URLs and validate properly
+  const isValidUrl = (url: string | undefined): boolean => {
+    if (!url) return false;
+    
+    // ✅ CRITICAL: Reject file:// URLs that cause ENOENT errors
+    if (url.startsWith('file://')) {
+      console.log('[MiniFoodPlateAvatar v43.0] ❌ Rejected file:// URL:', url.substring(0, 50));
+      return false;
+    }
+    
+    // ✅ CRITICAL: Reject data: URLs (base64) that cause decoding errors
+    if (url.startsWith('data:')) {
+      console.log('[MiniFoodPlateAvatar v43.0] ❌ Rejected data: URL');
+      return false;
+    }
+    
+    // ✅ CRITICAL: Reject blob: URLs
+    if (url.startsWith('blob:')) {
+      console.log('[MiniFoodPlateAvatar v43.0] ❌ Rejected blob: URL');
+      return false;
+    }
+    
+    // Accept valid HTTP/HTTPS URLs
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      console.log('[MiniFoodPlateAvatar v43.0] ✅ Valid HTTP/HTTPS URL:', url.substring(0, 50));
+      return true;
+    }
+    
+    console.log('[MiniFoodPlateAvatar v43.0] ❌ Invalid URL format:', url.substring(0, 50));
+    return false;
+  };
 
-  console.log('[MiniFoodPlateAvatar v11.0] 🖼️ Image decision:', {
+  const shouldShowImage = isValidUrl(imageUrl) && !imageError;
+
+  console.log('[MiniFoodPlateAvatar v43.0] 🖼️ Image decision:', {
     imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'none',
+    isValid: isValidUrl(imageUrl),
     imageError,
     shouldShowImage,
+    platform: Platform.OS,
   });
 
   if (hasUnviewedMomento) {
@@ -206,13 +241,15 @@ export default function MiniFoodPlateAvatar({
                   ]}
                   resizeMode="cover"
                   onError={(error) => {
-                    console.log('[MiniFoodPlateAvatar v11.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent.error);
+                    console.log('[MiniFoodPlateAvatar v43.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent?.error);
                     setImageError(true);
                   }}
                   onLoad={() => {
-                    console.log('[MiniFoodPlateAvatar v11.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
+                    console.log('[MiniFoodPlateAvatar v43.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
                     setImageError(false);
                   }}
+                  // ✅ ANDROID FIX: Force cache for better loading
+                  {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                 />
               ) : (
                 <View
@@ -276,13 +313,15 @@ export default function MiniFoodPlateAvatar({
               ]}
               resizeMode="cover"
               onError={(error) => {
-                console.log('[MiniFoodPlateAvatar v11.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent.error);
+                console.log('[MiniFoodPlateAvatar v43.0] ⚠️ Image failed to load:', imageUrl, error.nativeEvent?.error);
                 setImageError(true);
               }}
               onLoad={() => {
-                console.log('[MiniFoodPlateAvatar v11.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
+                console.log('[MiniFoodPlateAvatar v43.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
                 setImageError(false);
               }}
+              // ✅ ANDROID FIX: Force cache for better loading
+              {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
             />
           ) : (
             <View
