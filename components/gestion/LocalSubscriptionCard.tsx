@@ -16,6 +16,7 @@ import { supabase } from '@/utils/supabase';
 import { useRouter } from 'expo-router';
 import CustomerPotentialBar from './CustomerPotentialBar';
 import HighlightActiveCounter from './HighlightActiveCounter';
+import SimplifiedCreditsCard from './SimplifiedCreditsCard';
 
 interface LocalSubscriptionData {
   id: string;
@@ -58,14 +59,14 @@ interface Props {
 }
 
 /**
- * ✅ LOCAL SUBSCRIPTION CARD v3.0 - FIXED POTENTIAL CALCULATION
+ * ✅ LOCAL SUBSCRIPTION CARD v44.0 - SIMPLIFIED CREDITS
  * 
  * NEW FEATURES:
+ * - ✅ Simplified credits card for better UX
  * - ✅ Customer potential progress bar
  * - ✅ Real-time highlight counter when active
  * - ✅ FIXED: Potential calculation excludes event publications
  * - ✅ FIXED: Potential calculation includes plan level and highlight status
- * - ✅ Psychological incentive to maintain high percentage
  */
 
 export default function LocalSubscriptionCard({ local, onRefresh, isSelected, onSelect }: Props) {
@@ -99,32 +100,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
   const hasPremiumAccess = () => {
     return local.suscripcion?.plan_nombre?.toLowerCase() === 'premium';
-  };
-
-  const calculateTimeRemaining = (endDate: string | null | undefined) => {
-    if (!endDate) return 'No disponible';
-    
-    try {
-      const now = new Date();
-      const end = new Date(endDate);
-      const diff = end.getTime() - now.getTime();
-
-      if (diff <= 0) return 'Finalizado';
-
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-      if (days > 0) return `${days}d ${hours}h`;
-      return `${hours}h`;
-    } catch (error) {
-      console.error('[LocalSubscriptionCard] Error calculating time:', error);
-      return 'Error';
-    }
-  };
-
-  const calculateProgress = (used: number, total: number) => {
-    if (total === 0) return 0;
-    return Math.min((used / total) * 100, 100);
   };
 
   // ✅ FIXED: Calculate customer potential percentage (EXCLUDES event publications)
@@ -384,40 +359,24 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
     router.push(`/gestion/panel-analisis?localId=${local.id}`);
   };
 
-  const renderProgressBar = (remaining: number, total: number, color: string, label: string) => {
-    const progress = total === 0 ? 0 : Math.min((remaining / total) * 100, 100);
-
-    return (
-      <View style={styles.progressContainer}>
-        <View style={styles.progressHeader}>
-          <Text style={styles.progressLabel}>{label}</Text>
-          <Text style={styles.progressValue}>
-            {remaining} / {total === 0 ? '∞' : total}
-          </Text>
-        </View>
-        <View style={styles.progressBarBackground}>
-          <View style={[styles.progressBarFill, { width: `${progress}%`, backgroundColor: color }]} />
-        </View>
-      </View>
-    );
-  };
-
-  const calculateRenewalProgress = (fechaProximoPago: string | null | undefined) => {
-    if (!fechaProximoPago) return 0;
+  const calculateTimeRemaining = (endDate: string | null | undefined) => {
+    if (!endDate) return 'No disponible';
     
     try {
       const now = new Date();
-      const end = new Date(fechaProximoPago);
-      const start = new Date(end);
-      start.setMonth(start.getMonth() - 1);
-      
-      const totalDuration = end.getTime() - start.getTime();
-      const elapsed = now.getTime() - start.getTime();
-      const progress = (elapsed / totalDuration) * 100;
-      
-      return Math.max(0, Math.min(100, 100 - progress));
+      const end = new Date(endDate);
+      const diff = end.getTime() - now.getTime();
+
+      if (diff <= 0) return 'Finalizado';
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+      if (days > 0) return `${days}d ${hours}h`;
+      return `${hours}h`;
     } catch (error) {
-      return 0;
+      console.error('[LocalSubscriptionCard] Error calculating time:', error);
+      return 'Error';
     }
   };
 
@@ -533,42 +492,13 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
         {local.suscripcion && (
           <React.Fragment>
-            {/* Credits Section */}
-            <View style={styles.creditsSection}>
-              <View style={styles.creditsSectionHeader}>
-                <IconSymbol ios_icon_name="creditcard.fill" android_material_icon_name="credit_card" size={18} color={colors.primary} />
-                <Text style={styles.creditsSectionTitle}>Créditos Disponibles</Text>
-              </View>
-
-              {/* Featured Credits */}
-              {renderProgressBar(
-                local.suscripcion.creditos_destacados_restantes,
-                local.suscripcion.creditos_destacados_restantes + (local.suscripcion.destacado_activo ? 1 : 0),
-                colors.badgeDestacado,
-                'Destacados'
-              )}
-
-              {/* Event Credits */}
-              {renderProgressBar(
-                local.suscripcion.creditos_eventos_restantes,
-                local.suscripcion.eventos_disponibles,
-                '#8B5CF6',
-                'Eventos'
-              )}
-
-              {/* Renewal Date */}
-              {local.suscripcion.fecha_renovacion_creditos && (
-                <View style={styles.renewalInfo}>
-                  <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={16} color={colors.textSecondary} />
-                  <Text style={styles.renewalText}>
-                    Renovación de créditos:{' '}
-                    {new Date(local.suscripcion.fecha_renovacion_creditos).toLocaleDateString(
-                      'es-ES'
-                    )}
-                  </Text>
-                </View>
-              )}
-            </View>
+            {/* ✅ NEW: Simplified Credits Card */}
+            <SimplifiedCreditsCard
+              creditosDestacados={local.suscripcion.creditos_destacados_restantes}
+              creditosEventos={local.suscripcion.creditos_eventos_restantes}
+              localId={local.id}
+              fechaRenovacion={local.suscripcion.fecha_renovacion_creditos}
+            />
 
             {/* Featured Toggle */}
             <View style={styles.destacadoSection}>
@@ -889,64 +819,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#92400E',
     fontWeight: '600',
-  },
-  creditsSection: {
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  creditsSectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  creditsSectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  progressContainer: {
-    marginBottom: 12,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  progressLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  progressValue: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  progressBarBackground: {
-    height: 8,
-    backgroundColor: colors.cardBorder,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  renewalInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  renewalText: {
-    fontSize: 12,
-    color: colors.textSecondary,
   },
   destacadoSection: {
     flexDirection: 'row',
