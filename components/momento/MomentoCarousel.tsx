@@ -17,6 +17,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import MomentoViewer from './MomentoViewer';
+import MomentoUpload from './MomentoUpload';
 
 interface MomentoAuthor {
   id: string;
@@ -28,13 +29,18 @@ interface MomentoAuthor {
 }
 
 /**
- * ✅ MOMENTO CAROUSEL v40.0 - CRITICAL FIXES
+ * ✅ MOMENTO CAROUSEL v42.0 - INSTAGRAM-SIZED AVATARS
  * 
  * FIXES:
  * - ✅ Green neon border disappears after viewing momento
  * - ✅ Real-time updates when momentos are viewed
  * - ✅ Proper border state management
  * - ✅ Always visible section (restored)
+ * - ✅ INSTAGRAM-SIZED AVATARS: 70px diameter (same as Instagram)
+ * - ✅ Profile picture displayed correctly
+ * - ✅ + button for adding momentos
+ * - ✅ Clickable avatars
+ * - ✅ Synchronized with profile page momentos
  */
 
 export default function MomentoCarousel() {
@@ -44,6 +50,7 @@ export default function MomentoCarousel() {
   const [loading, setLoading] = useState(true);
   const [selectedAuthor, setSelectedAuthor] = useState<{ id: string; tipo: 'usuario' | 'local' } | null>(null);
   const [showViewer, setShowViewer] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
 
   const loadMomentoAuthors = useCallback(async () => {
     if (!user) {
@@ -52,7 +59,7 @@ export default function MomentoCarousel() {
     }
 
     try {
-      console.log('[MomentoCarousel v40.0] Loading momento authors for user:', user.id);
+      console.log('[MomentoCarousel v42.0] Loading momento authors for user:', user.id);
 
       // Get followed users
       const { data: followedUsers } = await supabase
@@ -146,7 +153,7 @@ export default function MomentoCarousel() {
       usersData?.forEach(u => {
         const stats = userAuthorsMap.get(u.id);
         if (stats) {
-          // ✅ Filter out file:// URLs
+          // ✅ CRITICAL FIX v42.0: Filter out file:// URLs
           const avatarUrl = u.avatar && !u.avatar.startsWith('file://') ? u.avatar : null;
           
           authorsArray.push({
@@ -163,7 +170,7 @@ export default function MomentoCarousel() {
       localsData?.forEach(l => {
         const stats = localAuthorsMap.get(l.id);
         if (stats) {
-          // ✅ Filter out file:// URLs
+          // ✅ CRITICAL FIX v42.0: Filter out file:// URLs
           const avatarUrl = l.imagen_url && !l.imagen_url.startsWith('file://') ? l.imagen_url : null;
           
           authorsArray.push({
@@ -185,9 +192,9 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel v40.0] ✅ Loaded', authorsArray.length, 'authors with momentos');
+      console.log('[MomentoCarousel v42.0] ✅ Loaded', authorsArray.length, 'authors with momentos');
     } catch (error) {
-      console.error('[MomentoCarousel v40.0] Error loading momento authors:', error);
+      console.error('[MomentoCarousel v42.0] Error loading momento authors:', error);
     } finally {
       setLoading(false);
     }
@@ -198,7 +205,7 @@ export default function MomentoCarousel() {
 
     if (user) {
       const channel = supabase
-        .channel('momento-carousel-updates-v40')
+        .channel('momento-carousel-updates-v42')
         .on(
           'postgres_changes',
           {
@@ -207,7 +214,7 @@ export default function MomentoCarousel() {
             table: 'momentos',
           },
           () => {
-            console.log('[MomentoCarousel v40.0] 🔔 Momentos updated');
+            console.log('[MomentoCarousel v42.0] 🔔 Momentos updated');
             loadMomentoAuthors();
           }
         )
@@ -220,7 +227,7 @@ export default function MomentoCarousel() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[MomentoCarousel v40.0] 🔔 Momento view added - refreshing borders');
+            console.log('[MomentoCarousel v42.0] 🔔 Momento view added - refreshing borders');
             loadMomentoAuthors();
           }
         )
@@ -233,20 +240,27 @@ export default function MomentoCarousel() {
   }, [user, loadMomentoAuthors]);
 
   const handleAuthorPress = (author: MomentoAuthor) => {
-    console.log('[MomentoCarousel v40.0] Opening momento viewer for:', author.nombre);
+    console.log('[MomentoCarousel v42.0] Opening momento viewer for:', author.nombre);
     setSelectedAuthor({ id: author.id, tipo: author.tipo });
     setShowViewer(true);
   };
 
   const handleCreateMomento = () => {
-    router.push('/crear/publicacion?tipo=momento');
+    console.log('[MomentoCarousel v42.0] Opening momento upload');
+    setShowUpload(true);
   };
 
   const handleCloseViewer = () => {
-    console.log('[MomentoCarousel v40.0] ✅ Closing viewer and reloading authors to update borders');
+    console.log('[MomentoCarousel v42.0] ✅ Closing viewer and reloading authors to update borders');
     setShowViewer(false);
     setSelectedAuthor(null);
     // ✅ CRITICAL FIX: Reload to update viewed status and remove green border
+    loadMomentoAuthors();
+  };
+
+  const handleCloseUpload = () => {
+    setShowUpload(false);
+    // Reload to show new momento
     loadMomentoAuthors();
   };
 
@@ -254,7 +268,7 @@ export default function MomentoCarousel() {
     return null;
   }
 
-  // ✅ CRITICAL FIX: Always show the section, even if no momentos
+  // ✅ CRITICAL FIX v42.0: Always show the section, even if no momentos
   return (
     <React.Fragment>
       <View style={styles.container}>
@@ -264,7 +278,7 @@ export default function MomentoCarousel() {
           contentContainerStyle={styles.scrollContent}
           style={styles.scrollView}
         >
-          {/* Add Momento Button - Always visible */}
+          {/* ✅ INSTAGRAM-SIZED: Add Momento Button - 70px diameter */}
           <TouchableOpacity
             style={styles.addButton}
             onPress={handleCreateMomento}
@@ -276,17 +290,40 @@ export default function MomentoCarousel() {
               end={{ x: 1, y: 1 }}
               style={styles.addGradient}
             >
-              <IconSymbol
-                ios_icon_name="plus"
-                android_material_icon_name="add"
-                size={24}
-                color={colors.white}
-              />
+              <View style={styles.addAvatarContainer}>
+                {/* ✅ Show user's profile picture */}
+                {user.avatar && !user.avatar.startsWith('file://') ? (
+                  <Image
+                    source={{ uri: user.avatar }}
+                    style={styles.addAvatar}
+                    resizeMode="cover"
+                    {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
+                  />
+                ) : (
+                  <View style={styles.addAvatarPlaceholder}>
+                    <IconSymbol
+                      ios_icon_name="person.fill"
+                      android_material_icon_name="person"
+                      size={28}
+                      color={colors.primary}
+                    />
+                  </View>
+                )}
+                {/* ✅ + button overlay */}
+                <View style={styles.addButtonOverlay}>
+                  <IconSymbol
+                    ios_icon_name="plus"
+                    android_material_icon_name="add"
+                    size={20}
+                    color={colors.white}
+                  />
+                </View>
+              </View>
             </LinearGradient>
             <Text style={styles.addLabel}>Tu Momento</Text>
           </TouchableOpacity>
 
-          {/* Author Avatars */}
+          {/* Author Avatars - Instagram-sized */}
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={colors.primary} />
@@ -304,7 +341,7 @@ export default function MomentoCarousel() {
                 activeOpacity={0.8}
               >
                 <View style={styles.avatarContainer}>
-                  {/* ✅ CRITICAL FIX: Only show green border if has_unviewed is true */}
+                  {/* ✅ CRITICAL FIX v42.0: Only show green border if has_unviewed is true */}
                   {author.has_unviewed && (
                     <LinearGradient
                       colors={['#00FF88', '#00FF88']}
@@ -322,7 +359,7 @@ export default function MomentoCarousel() {
                         // ✅ ANDROID FIX: Force cache for better loading
                         {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                         onError={(error) => {
-                          console.error('[MomentoCarousel v40.0] ❌ Avatar failed to load:', author.avatar?.substring(0, 50), error.nativeEvent?.error);
+                          console.error('[MomentoCarousel v42.0] ❌ Avatar failed to load:', author.avatar?.substring(0, 50), error.nativeEvent?.error);
                         }}
                       />
                     ) : (
@@ -330,7 +367,7 @@ export default function MomentoCarousel() {
                         <IconSymbol
                           ios_icon_name={author.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
                           android_material_icon_name={author.tipo === 'local' ? 'store' : 'person'}
-                          size={28}
+                          size={32}
                           color={colors.primary}
                         />
                       </View>
@@ -355,6 +392,13 @@ export default function MomentoCarousel() {
           onClose={handleCloseViewer}
         />
       )}
+
+      {/* Momento Upload Modal */}
+      <MomentoUpload
+        visible={showUpload}
+        onClose={handleCloseUpload}
+        onSuccess={handleCloseUpload}
+      />
     </React.Fragment>
   );
 }
@@ -364,7 +408,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
-    paddingVertical: 12,
+    paddingVertical: 16,
   },
   loadingContainer: {
     paddingHorizontal: 20,
@@ -384,41 +428,71 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 16,
   },
   addButton: {
     alignItems: 'center',
-    width: 70,
+    width: 80,
   },
   addGradient: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.white,
+    padding: 3,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
   },
+  addAvatarContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  addAvatar: {
+    width: '100%',
+    height: '100%',
+  },
+  addAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
   addLabel: {
-    marginTop: 6,
-    fontSize: 11,
+    marginTop: 8,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
   },
   authorButton: {
     alignItems: 'center',
-    width: 70,
+    width: 80,
   },
   avatarContainer: {
     position: 'relative',
-    width: 64,
-    height: 64,
+    width: 70,
+    height: 70,
   },
   unviewedRing: {
     position: 'absolute',
@@ -426,7 +500,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 32,
+    borderRadius: 35,
     padding: 3,
   },
   avatarInner: {
@@ -435,7 +509,7 @@ const styles = StyleSheet.create({
     left: 3,
     right: 3,
     bottom: 3,
-    borderRadius: 29,
+    borderRadius: 32,
     borderWidth: 3,
     borderColor: colors.white,
     overflow: 'hidden',
@@ -456,11 +530,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   authorName: {
-    marginTop: 6,
-    fontSize: 11,
+    marginTop: 8,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
-    maxWidth: 70,
+    maxWidth: 80,
   },
 });

@@ -12,6 +12,7 @@ import {
   RefreshControl,
   Alert,
   Animated,
+  Platform,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,13 +29,14 @@ const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
 
 /**
- * ✅ USER PROFILE v2.0 - INSTANT LOADING WITH PERSISTENCE
+ * ✅ USER PROFILE v42.0 - INSTANT LOADING WITH PERSISTENCE + FILE:// FIX
  * 
  * Features:
  * - ✅ NO loading screens - instant display with cached data
  * - ✅ Background sync for fresh data without blocking UI
  * - ✅ Persistent state - doesn't unmount when navigating away
  * - ✅ Same system as Lista de Locales and Feed Social
+ * - ✅ FIXED v42.0: Filter out file:// URLs that cause ENOENT errors
  */
 
 export default function UsuarioPerfilScreen() {
@@ -74,21 +76,21 @@ export default function UsuarioPerfilScreen() {
   // ✅ NEW: Keep-Alive - Don't reset state when screen loses focus
   useFocusEffect(
     useCallback(() => {
-      console.log('[UsuarioPerfil] ⚡ Screen focused - keeping state alive');
+      console.log('[UsuarioPerfil v42.0] ⚡ Screen focused - keeping state alive');
       
       // Only load if we haven't loaded yet
       if (!hasLoadedOnce.current) {
         loadUserDataWithCache();
       } else {
         // Silent background refresh
-        console.log('[UsuarioPerfil] 🔄 Background refresh...');
+        console.log('[UsuarioPerfil v42.0] 🔄 Background refresh...');
         loadUserData(true);
       }
       
       return () => {
-        console.log('[UsuarioPerfil] Screen unfocused - state persisted');
+        console.log('[UsuarioPerfil v42.0] Screen unfocused - state persisted');
       };
-    }, [userId, loadUserDataWithCache, loadUserData])
+    }, [userId])
   );
 
   useEffect(() => {
@@ -123,12 +125,20 @@ export default function UsuarioPerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[UsuarioPerfil] Error loading current local:', error);
+        console.error('[UsuarioPerfil v42.0] Error loading current local:', error);
         return;
       }
 
       if (checkIn && checkIn.locales) {
-        setCurrentLocal(checkIn.locales);
+        // ✅ FIXED v42.0: Filter out file:// URLs
+        const safeImageUrl = checkIn.locales.imagen_url && !checkIn.locales.imagen_url.startsWith('file://') 
+          ? checkIn.locales.imagen_url 
+          : null;
+        
+        setCurrentLocal({
+          ...checkIn.locales,
+          imagen_url: safeImageUrl,
+        });
         
         if (isAdminView) {
           setCanViewLocation(true);
@@ -160,7 +170,7 @@ export default function UsuarioPerfilScreen() {
         setCanViewLocation(false);
       }
     } catch (error) {
-      console.error('[UsuarioPerfil] Error loading current local:', error);
+      console.error('[UsuarioPerfil v42.0] Error loading current local:', error);
     }
   }, [userId, isOwnProfile, currentUser, isAdminView]);
 
@@ -170,14 +180,14 @@ export default function UsuarioPerfilScreen() {
         .rpc('get_total_seguidores_count', { p_usuario_id: targetUserId });
 
       if (seguidoresError) {
-        console.error('[UsuarioPerfil] Error counting followers:', seguidoresError);
+        console.error('[UsuarioPerfil v42.0] Error counting followers:', seguidoresError);
       }
 
       const { data: seguidosData, error: seguidosError } = await supabase
         .rpc('get_total_siguiendo_count', { p_usuario_id: targetUserId });
 
       if (seguidosError) {
-        console.error('[UsuarioPerfil] Error counting following:', seguidosError);
+        console.error('[UsuarioPerfil v42.0] Error counting following:', seguidosError);
       }
 
       const actualSeguidores = seguidoresData || 0;
@@ -192,12 +202,12 @@ export default function UsuarioPerfilScreen() {
         .eq('id', targetUserId);
 
       if (updateError) {
-        console.error('[UsuarioPerfil] Error updating user counters:', updateError);
+        console.error('[UsuarioPerfil v42.0] Error updating user counters:', updateError);
       }
 
       return { seguidores: actualSeguidores, seguidos: actualSeguidos };
     } catch (error) {
-      console.error('[UsuarioPerfil] Error loading follower counts:', error);
+      console.error('[UsuarioPerfil v42.0] Error loading follower counts:', error);
       return { seguidores: 0, seguidos: 0 };
     }
   }, []);
@@ -210,29 +220,38 @@ export default function UsuarioPerfilScreen() {
     }
 
     try {
-      console.log('[UsuarioPerfil] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
+      console.log('[UsuarioPerfil v42.0] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
       
       // Try to load from cache first
       const cachedData = await profileCache.get(userId, 'user');
       
       if (cachedData) {
-        console.log('[UsuarioPerfil] ⚡ INSTANT display with cached data');
-        setUsuario(cachedData.profile);
+        console.log('[UsuarioPerfil v42.0] ⚡ INSTANT display with cached data');
+        
+        // ✅ FIXED v42.0: Filter out file:// URLs from cached data
+        const safeProfile = {
+          ...cachedData.profile,
+          avatar: cachedData.profile.avatar && !cachedData.profile.avatar.startsWith('file://') 
+            ? cachedData.profile.avatar 
+            : null,
+        };
+        
+        setUsuario(safeProfile);
         setPosts(cachedData.posts);
         setStats(cachedData.stats);
         hasLoadedOnce.current = true;
         
         // Background refresh
         setTimeout(() => {
-          console.log('[UsuarioPerfil] 🔄 Background refresh...');
+          console.log('[UsuarioPerfil v42.0] 🔄 Background refresh...');
           loadUserData(true);
         }, 100);
       } else {
-        console.log('[UsuarioPerfil] 📡 No cache, loading from database...');
+        console.log('[UsuarioPerfil v42.0] 📡 No cache, loading from database...');
         await loadUserData(false);
       }
     } catch (error) {
-      console.error('[UsuarioPerfil] Error in loadUserDataWithCache:', error);
+      console.error('[UsuarioPerfil v42.0] Error in loadUserDataWithCache:', error);
       await loadUserData(false);
     }
   }, [userId, router]);
@@ -255,7 +274,7 @@ export default function UsuarioPerfilScreen() {
         .single();
 
       if (userError || !userData) {
-        console.error('[UsuarioPerfil] Error loading user:', userError);
+        console.error('[UsuarioPerfil v42.0] Error loading user:', userError);
         if (!silent) {
           Alert.alert('Error', 'No se pudo cargar el perfil del usuario');
           router.back();
@@ -273,18 +292,33 @@ export default function UsuarioPerfilScreen() {
             .single();
 
           if (!followData) {
-            setUsuario(userData);
+            // ✅ FIXED v42.0: Filter out file:// URLs
+            const safeUserData = {
+              ...userData,
+              avatar: userData.avatar && !userData.avatar.startsWith('file://') ? userData.avatar : null,
+            };
+            setUsuario(safeUserData);
             if (!silent) setLoading(false);
             return;
           }
         } else {
-          setUsuario(userData);
+          // ✅ FIXED v42.0: Filter out file:// URLs
+          const safeUserData = {
+            ...userData,
+            avatar: userData.avatar && !userData.avatar.startsWith('file://') ? userData.avatar : null,
+          };
+          setUsuario(safeUserData);
           if (!silent) setLoading(false);
           return;
         }
       }
 
-      setUsuario(userData);
+      // ✅ FIXED v42.0: Filter out file:// URLs
+      const safeUserData = {
+        ...userData,
+        avatar: userData.avatar && !userData.avatar.startsWith('file://') ? userData.avatar : null,
+      };
+      setUsuario(safeUserData);
 
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
@@ -310,12 +344,12 @@ export default function UsuarioPerfilScreen() {
 
       // ✅ Save to cache for instant loading next time
       await profileCache.set(userId, 'user', {
-        profile: userData,
+        profile: safeUserData,
         posts: postsData || [],
         stats: newStats,
       });
 
-      console.log('[UsuarioPerfil] ✅ Data loaded and cached');
+      console.log('[UsuarioPerfil v42.0] ✅ Data loaded and cached');
 
       if (currentUser) {
         const { data: followData } = await supabase
@@ -340,7 +374,7 @@ export default function UsuarioPerfilScreen() {
       await loadCurrentLocal();
       hasLoadedOnce.current = true;
     } catch (error) {
-      console.error('[UsuarioPerfil] Error loading data:', error);
+      console.error('[UsuarioPerfil v42.0] Error loading data:', error);
     } finally {
       if (!silent) {
         setLoading(false);
@@ -361,7 +395,7 @@ export default function UsuarioPerfilScreen() {
             filter: `seguido_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil] ⚡ INSTANT update - Followers changed');
+            console.log('[UsuarioPerfil v42.0] ⚡ INSTANT update - Followers changed');
             const followerCounts = await loadFollowerCounts(userId);
             setStats(prev => ({
               ...prev,
@@ -378,7 +412,7 @@ export default function UsuarioPerfilScreen() {
             filter: `seguidor_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil] ⚡ INSTANT update - Following changed');
+            console.log('[UsuarioPerfil v42.0] ⚡ INSTANT update - Following changed');
             const followerCounts = await loadFollowerCounts(userId);
             setStats(prev => ({
               ...prev,
@@ -395,7 +429,7 @@ export default function UsuarioPerfilScreen() {
             filter: `autor_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil] ⚡ INSTANT update - Posts changed');
+            console.log('[UsuarioPerfil v42.0] ⚡ INSTANT update - Posts changed');
             await loadUserData(true);
           }
         )
@@ -408,7 +442,7 @@ export default function UsuarioPerfilScreen() {
             filter: `usuario_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil] ⚡ INSTANT update - Check-in changed');
+            console.log('[UsuarioPerfil v42.0] ⚡ INSTANT update - Check-in changed');
             await loadCurrentLocal();
           }
         )
@@ -422,7 +456,7 @@ export default function UsuarioPerfilScreen() {
 
   useEffect(() => {
     if (params.openMomento === 'true' && !loading && usuario) {
-      console.log('[UsuarioPerfil] 🎬 Auto-opening momento viewer from message');
+      console.log('[UsuarioPerfil v42.0] 🎬 Auto-opening momento viewer from message');
       setShowMomentoViewer(true);
     }
   }, [params.openMomento, loading, usuario]);
@@ -512,7 +546,7 @@ export default function UsuarioPerfilScreen() {
         seguidores: updatedCounts.seguidores,
       }));
     } catch (error) {
-      console.error('[UsuarioPerfil] Error toggling follow:', error);
+      console.error('[UsuarioPerfil v42.0] Error toggling follow:', error);
       
       setIsFollowing(wasFollowing);
       setStats(prev => ({
@@ -586,7 +620,7 @@ export default function UsuarioPerfilScreen() {
                 Alert.alert('Éxito', 'Usuario bloqueado');
               }
             } catch (error) {
-              console.error('[UsuarioPerfil] Error toggling block:', error);
+              console.error('[UsuarioPerfil v42.0] Error toggling block:', error);
               Alert.alert('Error', 'No se pudo completar la acción');
             }
           },
@@ -645,7 +679,7 @@ export default function UsuarioPerfilScreen() {
               setCanViewLocation(false);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[UsuarioPerfil] Error exiting local:', error);
+              console.error('[UsuarioPerfil v42.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -775,6 +809,7 @@ export default function UsuarioPerfilScreen() {
                       source={{ uri: currentLocal.imagen_url }} 
                       style={styles.statusLocalImage}
                       resizeMode="cover"
+                      {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                     />
                   ) : (
                     <View style={[styles.statusLocalImage, styles.statusLocalImagePlaceholder]}>
@@ -899,7 +934,8 @@ export default function UsuarioPerfilScreen() {
                   <Image 
                     source={{ uri: post.imagenes && post.imagenes.length > 0 ? post.imagenes[0] : post.imagen }} 
                     style={styles.gridImage} 
-                    resizeMode="cover" 
+                    resizeMode="cover"
+                    {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                   />
                 ) : (
                   <View style={[styles.gridImage, styles.gridImagePlaceholder]}>

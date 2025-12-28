@@ -19,6 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 
 const { width } = Dimensions.get('window');
+const CARD_WIDTH = width - 40;
 
 interface Plan {
   id: string;
@@ -49,14 +50,16 @@ interface Local {
 }
 
 /**
- * ✅ PLAN SELECTION PAGE v2.0 - IMPROVED UI/UX
+ * ✅ PLAN SELECTION PAGE v42.0 - FIXED OVERLAPPING CARDS
  * 
  * NEW FEATURES:
- * - ✅ Standard plan is 10% larger with "Most Popular" badge
+ * - ✅ Fixed overlapping cards with proper spacing
+ * - ✅ Standard plan is highlighted with "Most Popular" badge
  * - ✅ Benefit-driven language instead of technical features
  * - ✅ Clear call-to-action buttons with distinct styling
  * - ✅ Visual hierarchy to guide user attention
  * - ✅ Psychological pricing and scarcity tactics
+ * - ✅ Better card structure and layout
  */
 
 export default function PlanesSuscripcionScreen() {
@@ -71,14 +74,14 @@ export default function PlanesSuscripcionScreen() {
 
   const cargarDatos = useCallback(async () => {
     if (!localId) {
-      console.error('[PlanesSuscripcion] No localId provided');
+      console.error('[PlanesSuscripcion v42.0] No localId provided');
       Alert.alert('Error', 'No se especificó el local');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('[PlanesSuscripcion] Cargando datos para local:', localId);
+      console.log('[PlanesSuscripcion v42.0] Cargando datos para local:', localId);
       
       // Cargar planes disponibles
       const { data: planesData, error: planesError } = await supabase
@@ -88,11 +91,11 @@ export default function PlanesSuscripcionScreen() {
         .order('precio_mensual', { ascending: true });
 
       if (planesError) {
-        console.error('[PlanesSuscripcion] Error cargando planes:', planesError);
+        console.error('[PlanesSuscripcion v42.0] Error cargando planes:', planesError);
         throw planesError;
       }
       
-      console.log('[PlanesSuscripcion] Planes cargados:', planesData?.length || 0);
+      console.log('[PlanesSuscripcion v42.0] Planes cargados:', planesData?.length || 0);
       setPlanes(planesData || []);
 
       // Cargar información del local
@@ -103,11 +106,11 @@ export default function PlanesSuscripcionScreen() {
         .single();
 
       if (localError) {
-        console.error('[PlanesSuscripcion] Error cargando local:', localError);
+        console.error('[PlanesSuscripcion v42.0] Error cargando local:', localError);
         throw localError;
       }
       
-      console.log('[PlanesSuscripcion] Local cargado:', localData?.nombre);
+      console.log('[PlanesSuscripcion v42.0] Local cargado:', localData?.nombre);
 
       // Verificar si el local tiene una suscripción activa
       const { data: suscripcionData, error: suscripcionError } = await supabase
@@ -118,7 +121,7 @@ export default function PlanesSuscripcionScreen() {
         .maybeSingle();
 
       if (suscripcionError && suscripcionError.code !== 'PGRST116') {
-        console.error('[PlanesSuscripcion] Error cargando suscripción:', suscripcionError);
+        console.error('[PlanesSuscripcion v42.0] Error cargando suscripción:', suscripcionError);
       }
 
       let suscripcionActual = undefined;
@@ -132,7 +135,7 @@ export default function PlanesSuscripcionScreen() {
           .single();
 
         if (planError) {
-          console.error('[PlanesSuscripcion] Error cargando plan:', planError);
+          console.error('[PlanesSuscripcion v42.0] Error cargando plan:', planError);
         } else {
           suscripcionActual = {
             id: suscripcionData.id,
@@ -151,9 +154,9 @@ export default function PlanesSuscripcionScreen() {
         suscripcion_actual: suscripcionActual,
       });
 
-      console.log('[PlanesSuscripcion] Datos cargados exitosamente');
+      console.log('[PlanesSuscripcion v42.0] Datos cargados exitosamente');
     } catch (error: any) {
-      console.error('[PlanesSuscripcion] Error cargando datos:', error);
+      console.error('[PlanesSuscripcion v42.0] Error cargando datos:', error);
       Alert.alert(
         'Error', 
         error.message || 'No se pudieron cargar los planes de suscripción',
@@ -249,7 +252,7 @@ export default function PlanesSuscripcionScreen() {
     setProcesando(true);
 
     try {
-      console.log('[PlanesSuscripcion] Activando plan:', plan.nombre, 'tipo:', tipo);
+      console.log('[PlanesSuscripcion v42.0] Activando plan:', plan.nombre, 'tipo:', tipo);
 
       const now = new Date();
       const nextMonth = new Date(now);
@@ -355,7 +358,7 @@ export default function PlanesSuscripcionScreen() {
         );
       }
     } catch (error: any) {
-      console.error('[PlanesSuscripcion] Error activando plan:', error);
+      console.error('[PlanesSuscripcion v42.0] Error activando plan:', error);
       Alert.alert('Error', error.message || 'No se pudo activar el plan. Intenta de nuevo.');
     } finally {
       setProcesando(false);
@@ -531,16 +534,13 @@ export default function PlanesSuscripcionScreen() {
           </View>
         )}
 
-        {/* Plans */}
+        {/* ✅ FIXED v42.0: Plans with proper spacing to prevent overlapping */}
         <View style={styles.plansContainer}>
-          {planes.map((plan) => {
+          {planes.map((plan, index) => {
             const isActive = planActual === plan.id;
             const isStandard = isStandardPlan(plan.nombre);
             const planColors = getPlanColor(plan.nombre);
             const planIcon = getPlanIcon(plan.nombre);
-            
-            // ✅ Standard plan is 10% larger
-            const cardScale = isStandard ? 1.1 : 1;
 
             return (
               <View 
@@ -549,7 +549,6 @@ export default function PlanesSuscripcionScreen() {
                   styles.planCard,
                   isStandard && styles.planCardStandard,
                   isActive && styles.planCardActive,
-                  { transform: [{ scale: cardScale }] },
                 ]}
               >
                 {/* ✅ "Most Popular" badge for Standard plan */}
@@ -810,12 +809,12 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   plansContainer: {
-    gap: 20,
+    gap: 24,
     marginBottom: 32,
     alignItems: 'center',
   },
   planCard: {
-    width: width - 40,
+    width: CARD_WIDTH,
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
     borderWidth: 2,
@@ -826,6 +825,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    marginBottom: 8,
   },
   planCardStandard: {
     borderColor: '#3B82F6',
@@ -834,6 +834,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
+    transform: [{ scale: 1.05 }],
+    marginVertical: 12,
   },
   planCardActive: {
     borderColor: colors.primary,
