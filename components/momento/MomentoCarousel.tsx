@@ -28,14 +28,13 @@ interface MomentoAuthor {
 }
 
 /**
- * ✅ MOMENTO CAROUSEL v38.1 - ANDROID-iOS PARITY
+ * ✅ MOMENTO CAROUSEL v40.0 - CRITICAL FIXES
  * 
- * CRITICAL FIXES:
- * - ✅ All icons properly mapped for Android
- * - ✅ Proper avatar loading with error handling
- * - ✅ Filter out file:// URLs that cause ENOENT errors
- * - ✅ Consistent rendering across platforms
- * - ✅ Performance optimizations
+ * FIXES:
+ * - ✅ Green neon border disappears after viewing momento
+ * - ✅ Real-time updates when momentos are viewed
+ * - ✅ Proper border state management
+ * - ✅ Always visible section (restored)
  */
 
 export default function MomentoCarousel() {
@@ -53,7 +52,7 @@ export default function MomentoCarousel() {
     }
 
     try {
-      console.log('[MomentoCarousel v38.1] Loading momento authors for user:', user.id);
+      console.log('[MomentoCarousel v40.0] Loading momento authors for user:', user.id);
 
       // Get followed users
       const { data: followedUsers } = await supabase
@@ -147,7 +146,7 @@ export default function MomentoCarousel() {
       usersData?.forEach(u => {
         const stats = userAuthorsMap.get(u.id);
         if (stats) {
-          // ✅ ANDROID FIX v38.1: Filter out file:// URLs
+          // ✅ Filter out file:// URLs
           const avatarUrl = u.avatar && !u.avatar.startsWith('file://') ? u.avatar : null;
           
           authorsArray.push({
@@ -164,7 +163,7 @@ export default function MomentoCarousel() {
       localsData?.forEach(l => {
         const stats = localAuthorsMap.get(l.id);
         if (stats) {
-          // ✅ ANDROID FIX v38.1: Filter out file:// URLs
+          // ✅ Filter out file:// URLs
           const avatarUrl = l.imagen_url && !l.imagen_url.startsWith('file://') ? l.imagen_url : null;
           
           authorsArray.push({
@@ -186,9 +185,9 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel v38.1] ✅ Loaded', authorsArray.length, 'authors with momentos');
+      console.log('[MomentoCarousel v40.0] ✅ Loaded', authorsArray.length, 'authors with momentos');
     } catch (error) {
-      console.error('[MomentoCarousel v38.1] Error loading momento authors:', error);
+      console.error('[MomentoCarousel v40.0] Error loading momento authors:', error);
     } finally {
       setLoading(false);
     }
@@ -199,7 +198,7 @@ export default function MomentoCarousel() {
 
     if (user) {
       const channel = supabase
-        .channel('momento-carousel-updates')
+        .channel('momento-carousel-updates-v40')
         .on(
           'postgres_changes',
           {
@@ -208,7 +207,20 @@ export default function MomentoCarousel() {
             table: 'momentos',
           },
           () => {
-            console.log('[MomentoCarousel v38.1] 🔔 Momentos updated');
+            console.log('[MomentoCarousel v40.0] 🔔 Momentos updated');
+            loadMomentoAuthors();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'momento_views',
+            filter: `usuario_id=eq.${user.id}`,
+          },
+          () => {
+            console.log('[MomentoCarousel v40.0] 🔔 Momento view added - refreshing borders');
             loadMomentoAuthors();
           }
         )
@@ -221,7 +233,7 @@ export default function MomentoCarousel() {
   }, [user, loadMomentoAuthors]);
 
   const handleAuthorPress = (author: MomentoAuthor) => {
-    console.log('[MomentoCarousel v38.1] Opening momento viewer for:', author.nombre);
+    console.log('[MomentoCarousel v40.0] Opening momento viewer for:', author.nombre);
     setSelectedAuthor({ id: author.id, tipo: author.tipo });
     setShowViewer(true);
   };
@@ -231,9 +243,10 @@ export default function MomentoCarousel() {
   };
 
   const handleCloseViewer = () => {
+    console.log('[MomentoCarousel v40.0] ✅ Closing viewer and reloading authors to update borders');
     setShowViewer(false);
     setSelectedAuthor(null);
-    // Reload to update viewed status
+    // ✅ CRITICAL FIX: Reload to update viewed status and remove green border
     loadMomentoAuthors();
   };
 
@@ -241,18 +254,7 @@ export default function MomentoCarousel() {
     return null;
   }
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (authors.length === 0) {
-    return null;
-  }
-
+  // ✅ CRITICAL FIX: Always show the section, even if no momentos
   return (
     <React.Fragment>
       <View style={styles.container}>
@@ -262,7 +264,7 @@ export default function MomentoCarousel() {
           contentContainerStyle={styles.scrollContent}
           style={styles.scrollView}
         >
-          {/* Add Momento Button */}
+          {/* Add Momento Button - Always visible */}
           <TouchableOpacity
             style={styles.addButton}
             onPress={handleCreateMomento}
@@ -285,51 +287,62 @@ export default function MomentoCarousel() {
           </TouchableOpacity>
 
           {/* Author Avatars */}
-          {authors.map((author) => (
-            <TouchableOpacity
-              key={`${author.tipo}-${author.id}`}
-              style={styles.authorButton}
-              onPress={() => handleAuthorPress(author)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.avatarContainer}>
-                {author.has_unviewed && (
-                  <LinearGradient
-                    colors={[colors.primary, colors.secondary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.unviewedRing}
-                  />
-                )}
-                <View style={[styles.avatarInner, !author.has_unviewed && styles.avatarViewed]}>
-                  {author.avatar ? (
-                    <Image
-                      source={{ uri: author.avatar }}
-                      style={styles.avatar}
-                      resizeMode="cover"
-                      // ✅ ANDROID FIX v38.1: Force cache for better loading
-                      {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
-                      onError={(error) => {
-                        console.error('[MomentoCarousel v38.1] ❌ Avatar failed to load:', author.avatar?.substring(0, 50), error.nativeEvent?.error);
-                      }}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : authors.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No hay momentos disponibles</Text>
+            </View>
+          ) : (
+            authors.map((author) => (
+              <TouchableOpacity
+                key={`${author.tipo}-${author.id}`}
+                style={styles.authorButton}
+                onPress={() => handleAuthorPress(author)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.avatarContainer}>
+                  {/* ✅ CRITICAL FIX: Only show green border if has_unviewed is true */}
+                  {author.has_unviewed && (
+                    <LinearGradient
+                      colors={['#00FF88', '#00FF88']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.unviewedRing}
                     />
-                  ) : (
-                    <View style={styles.avatarPlaceholder}>
-                      <IconSymbol
-                        ios_icon_name={author.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                        android_material_icon_name={author.tipo === 'local' ? 'store' : 'person'}
-                        size={28}
-                        color={colors.primary}
-                      />
-                    </View>
                   )}
+                  <View style={[styles.avatarInner, !author.has_unviewed && styles.avatarViewed]}>
+                    {author.avatar ? (
+                      <Image
+                        source={{ uri: author.avatar }}
+                        style={styles.avatar}
+                        resizeMode="cover"
+                        // ✅ ANDROID FIX: Force cache for better loading
+                        {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
+                        onError={(error) => {
+                          console.error('[MomentoCarousel v40.0] ❌ Avatar failed to load:', author.avatar?.substring(0, 50), error.nativeEvent?.error);
+                        }}
+                      />
+                    ) : (
+                      <View style={styles.avatarPlaceholder}>
+                        <IconSymbol
+                          ios_icon_name={author.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                          android_material_icon_name={author.tipo === 'local' ? 'store' : 'person'}
+                          size={28}
+                          color={colors.primary}
+                        />
+                      </View>
+                    )}
+                  </View>
                 </View>
-              </View>
-              <Text style={styles.authorName} numberOfLines={1}>
-                {author.nombre}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text style={styles.authorName} numberOfLines={1}>
+                  {author.nombre}
+                </Text>
+              </TouchableOpacity>
+            ))
+          )}
         </ScrollView>
       </View>
 
@@ -354,12 +367,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   loadingContainer: {
-    backgroundColor: colors.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-    paddingVertical: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  emptyContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  emptyText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   scrollView: {
     flexGrow: 0,

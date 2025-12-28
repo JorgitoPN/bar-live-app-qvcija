@@ -58,11 +58,13 @@ interface Props {
 }
 
 /**
- * ✅ LOCAL SUBSCRIPTION CARD v2.0 - WITH CUSTOMER POTENTIAL BAR
+ * ✅ LOCAL SUBSCRIPTION CARD v3.0 - FIXED POTENTIAL CALCULATION
  * 
  * NEW FEATURES:
  * - ✅ Customer potential progress bar
  * - ✅ Real-time highlight counter when active
+ * - ✅ FIXED: Potential calculation excludes event publications
+ * - ✅ FIXED: Potential calculation includes plan level and highlight status
  * - ✅ Psychological incentive to maintain high percentage
  */
 
@@ -125,7 +127,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
     return Math.min((used / total) * 100, 100);
   };
 
-  // ✅ Calculate customer potential percentage
+  // ✅ FIXED: Calculate customer potential percentage (EXCLUDES event publications)
   const calculateCustomerPotential = (): number => {
     if (!local.suscripcion) return 20; // Base 20% without plan
 
@@ -136,13 +138,11 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       percentage += 30;
     }
 
-    // Add 20% if has active event
-    if (local.evento_activo) {
-      percentage += 20;
-    }
+    // ✅ CRITICAL FIX: DO NOT add percentage for active events
+    // Events are NOT counted in potential calculation
 
     // Add 15% for Standard plan
-    if (local.suscripcion.plan_nombre.toLowerCase() === 'estandar') {
+    if (local.suscripcion.plan_nombre.toLowerCase() === 'estandar' || local.suscripcion.plan_nombre.toLowerCase() === 'estándar') {
       percentage += 15;
     }
 
@@ -221,19 +221,25 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
     try {
       setUpdatingDestacado(true);
 
+      // ✅ CRITICAL FIX: Set destacado duration to exactly 24 hours
+      const fechaInicio = new Date();
+      const fechaFin = new Date();
+      fechaFin.setHours(fechaFin.getHours() + 24); // Exactly 24 hours
+
       // Update local destacado status
       const { error: localError } = await supabase
         .from('locales')
-        .update({ destacado: true })
+        .update({ 
+          destacado: true,
+          destacado_inicio: fechaInicio.toISOString(),
+          destacado_fin: fechaFin.toISOString(),
+          destacado_horas: 24,
+        })
         .eq('id', local.id);
 
       if (localError) throw localError;
 
       // Update subscription credits and destacado status
-      const fechaInicio = new Date();
-      const fechaFin = new Date();
-      fechaFin.setDate(fechaFin.getDate() + 30);
-
       const { error: subError } = await supabase
         .from('suscripciones_locales')
         .update({
@@ -249,7 +255,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
       Alert.alert(
         '✅ Destacado Activado',
-        'Tu local ahora está destacado y aparecerá en las primeras posiciones durante 30 días.\n\nCrédito consumido: 1'
+        'Tu local ahora está destacado y aparecerá en las primeras posiciones durante 24 horas.\n\nCrédito consumido: 1'
       );
 
       onRefresh();
@@ -482,11 +488,13 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       )}
 
       <View style={styles.content}>
-        {/* ✅ NEW: Customer Potential Bar */}
+        {/* ✅ FIXED: Customer Potential Bar with corrected calculation */}
         <CustomerPotentialBar
           percentage={calculateCustomerPotential()}
           hasActiveHighlight={local.suscripcion?.destacado_activo || false}
           hasActiveEvent={!!local.evento_activo}
+          planName={local.suscripcion?.plan_nombre || 'free'}
+          localId={local.id}
         />
 
         {/* ✅ NEW: Highlight Active Counter */}
@@ -567,7 +575,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
               <View style={styles.destacadoInfo}>
                 <View style={styles.destacadoHeader}>
                   <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={18} color={colors.badgeDestacado} />
-                  <Text style={styles.destacadoTitle}>Local Destacado</Text>
+                  <Text style={styles.destacadoTitle}>Local Destacado (24h)</Text>
                 </View>
                 <Text style={styles.destacadoSubtitle}>
                   {local.destacado && local.suscripcion.destacado_activo

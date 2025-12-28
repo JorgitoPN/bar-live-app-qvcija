@@ -35,7 +35,7 @@ import { useLocalEvent } from '@/hooks/useLocalEvent';
 import MomentoViewer from '@/components/momento/MomentoViewer';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 
-const SCREEN_VERSION = '11.0.0';
+const SCREEN_VERSION = '40.0.0';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -93,12 +93,14 @@ interface Seguidor {
 }
 
 /**
- * ✅ LOCAL PROFILE v11.0 - CRITICAL FIXES
+ * ✅ LOCAL PROFILE v40.0 - CRITICAL FIXES
  * 
  * Changes:
  * - ✅ FIXED: Hide social metrics (followers/following) when social profile is not active
  * - ✅ FIXED: Show persuasive message when local has no active subscription
  * - ✅ FIXED: Momentos section always visible with upload functionality
+ * - ✅ FIXED: Removed "Estoy en este local" action (not applicable for local profiles)
+ * - ✅ FIXED: Removed "Entrar en la sala virtual" action (not applicable for local profiles)
  * - ✅ Virtual room button navigation fixed
  */
 
@@ -185,7 +187,7 @@ export default function LocalPerfilScreen() {
     if (!user || !localId) return;
 
     try {
-      console.log('[LocalPerfil v11.0] 🔍 Checking momentos for local:', localId);
+      console.log('[LocalPerfil v40.0] 🔍 Checking momentos for local:', localId);
 
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
@@ -212,7 +214,7 @@ export default function LocalPerfilScreen() {
       const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
       const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
 
-      console.log('[LocalPerfil v11.0] 🎯 Momentos check:', {
+      console.log('[LocalPerfil v40.0] 🎯 Momentos check:', {
         total: momentosData.length,
         viewed: viewedIds.size,
         hasUnviewed,
@@ -221,7 +223,7 @@ export default function LocalPerfilScreen() {
 
       setHasUnviewedMomentos(hasUnviewed);
     } catch (error) {
-      console.error('[LocalPerfil v11.0] ❌ Error checking momentos:', error);
+      console.error('[LocalPerfil v40.0] ❌ Error checking momentos:', error);
       setHasUnviewedMomentos(false);
       setHasMomentos(false);
     }
@@ -231,7 +233,7 @@ export default function LocalPerfilScreen() {
     if (!localId) return;
 
     try {
-      console.log('[LocalPerfil v11.0] 🔍 Checking subscription and permissions for local:', localId);
+      console.log('[LocalPerfil v40.0] 🔍 Checking subscription and permissions for local:', localId);
 
       const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('suscripciones_locales')
@@ -240,6 +242,7 @@ export default function LocalPerfilScreen() {
           estado,
           plan_id,
           planes_suscripcion!suscripciones_locales_plan_id_fkey(
+            nombre,
             panel_analisis,
             perfil_social
           )
@@ -249,7 +252,7 @@ export default function LocalPerfilScreen() {
         .maybeSingle();
 
       if (subscriptionError) {
-        console.error('[LocalPerfil v11.0] ❌ Error checking subscription:', subscriptionError);
+        console.error('[LocalPerfil v40.0] ❌ Error checking subscription:', subscriptionError);
         setHasAnalyticsPermission(false);
         setHasSocialProfile(false);
         setHasActiveSubscription(false);
@@ -257,11 +260,13 @@ export default function LocalPerfilScreen() {
       }
 
       const hasActiveSub = !!subscriptionData;
+      const planName = subscriptionData?.planes_suscripcion?.nombre?.toLowerCase() || 'free';
       const hasAnalytics = subscriptionData?.planes_suscripcion?.panel_analisis || false;
       const hasSocial = subscriptionData?.planes_suscripcion?.perfil_social || false;
 
-      console.log('[LocalPerfil v11.0] 📊 Permissions:', {
+      console.log('[LocalPerfil v40.0] 📊 Permissions:', {
         hasActiveSubscription: hasActiveSub,
+        planName,
         hasAnalytics,
         hasSocial,
       });
@@ -270,7 +275,7 @@ export default function LocalPerfilScreen() {
       setHasAnalyticsPermission(hasAnalytics);
       setHasSocialProfile(hasSocial);
     } catch (error) {
-      console.error('[LocalPerfil v11.0] ❌ Error checking permissions:', error);
+      console.error('[LocalPerfil v40.0] ❌ Error checking permissions:', error);
       setHasAnalyticsPermission(false);
       setHasSocialProfile(false);
       setHasActiveSubscription(false);
@@ -283,7 +288,7 @@ export default function LocalPerfilScreen() {
       checkSubscriptionAndPermissions();
 
       const momentosChannel = supabase
-        .channel(`local-momentos-${localId}`)
+        .channel(`local-momentos-${localId}-v40`)
         .on(
           'postgres_changes',
           {
@@ -293,7 +298,20 @@ export default function LocalPerfilScreen() {
             filter: `local_id=eq.${localId}`,
           },
           () => {
-            console.log('[LocalPerfil v11.0] 🔄 Momento update detected');
+            console.log('[LocalPerfil v40.0] 🔄 Momento update detected');
+            checkUnviewedMomentos();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'momento_views',
+            filter: `usuario_id=eq.${user.id}`,
+          },
+          () => {
+            console.log('[LocalPerfil v40.0] 🔄 Momento view detected - updating border');
             checkUnviewedMomentos();
           }
         )
@@ -310,7 +328,7 @@ export default function LocalPerfilScreen() {
     
     setLoadingSeguidores(true);
     try {
-      console.log('[LocalPerfil v11.0] 📊 Loading followers for local:', localId);
+      console.log('[LocalPerfil v40.0] 📊 Loading followers for local:', localId);
 
       const { data, error } = await supabase
         .from('seguidores')
@@ -327,7 +345,7 @@ export default function LocalPerfilScreen() {
         .eq('seguido_id', local?.propietario_id);
 
       if (error) {
-        console.error('[LocalPerfil v11.0] Error loading followers:', error);
+        console.error('[LocalPerfil v40.0] Error loading followers:', error);
         return;
       }
 
@@ -344,10 +362,10 @@ export default function LocalPerfilScreen() {
 
         setSeguidores(formattedSeguidores);
         setSeguidoresCount(formattedSeguidores.length);
-        console.log('[LocalPerfil v11.0] ✅ Loaded followers:', formattedSeguidores.length);
+        console.log('[LocalPerfil v40.0] ✅ Loaded followers:', formattedSeguidores.length);
       }
     } catch (error) {
-      console.error('[LocalPerfil v11.0] Error loading followers:', error);
+      console.error('[LocalPerfil v40.0] Error loading followers:', error);
     } finally {
       setLoadingSeguidores(false);
     }
@@ -358,7 +376,7 @@ export default function LocalPerfilScreen() {
     
     setLoadingSeguidos(true);
     try {
-      console.log('[LocalPerfil v11.0] 📊 Loading following for local:', localId);
+      console.log('[LocalPerfil v40.0] 📊 Loading following for local:', localId);
 
       const { data, error } = await supabase
         .from('seguidores')
@@ -375,7 +393,7 @@ export default function LocalPerfilScreen() {
         .eq('seguidor_id', local.propietario_id);
 
       if (error) {
-        console.error('[LocalPerfil v11.0] Error loading following:', error);
+        console.error('[LocalPerfil v40.0] Error loading following:', error);
         return;
       }
 
@@ -392,10 +410,10 @@ export default function LocalPerfilScreen() {
 
         setSeguidos(formattedSeguidos);
         setSeguidosCount(formattedSeguidos.length);
-        console.log('[LocalPerfil v11.0] ✅ Loaded following:', formattedSeguidos.length);
+        console.log('[LocalPerfil v40.0] ✅ Loaded following:', formattedSeguidos.length);
       }
     } catch (error) {
-      console.error('[LocalPerfil v11.0] Error loading following:', error);
+      console.error('[LocalPerfil v40.0] Error loading following:', error);
     } finally {
       setLoadingSeguidos(false);
     }
@@ -403,7 +421,7 @@ export default function LocalPerfilScreen() {
 
   const loadLocalData = useCallback(async () => {
     if (!localId) {
-      console.error('[LocalPerfil v11.0] ❌ No localId provided');
+      console.error('[LocalPerfil v40.0] ❌ No localId provided');
       Alert.alert('Error', 'No se pudo cargar el perfil del local', [
         { text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }
       ]);
@@ -411,7 +429,7 @@ export default function LocalPerfilScreen() {
     }
 
     try {
-      console.log('[LocalPerfil v11.0] ✅ Loading local data for:', localId);
+      console.log('[LocalPerfil v40.0] ✅ Loading local data for:', localId);
 
       const { data: localData, error: localError } = await supabase
         .from('locales')
@@ -420,7 +438,7 @@ export default function LocalPerfilScreen() {
         .single();
 
       if (localError || !localData) {
-        console.error('[LocalPerfil v11.0] Error loading local:', localError);
+        console.error('[LocalPerfil v40.0] Error loading local:', localError);
         Alert.alert('Error', 'No se pudo cargar el perfil del local', [
           { text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }
         ]);
@@ -430,31 +448,51 @@ export default function LocalPerfilScreen() {
       // ✅ CRITICAL FIX: Check if local has active subscription
       const { data: subscriptionData } = await supabase
         .from('suscripciones_locales')
-        .select('id, estado, plan_id, planes_suscripcion!suscripciones_locales_plan_id_fkey(perfil_social)')
+        .select(`
+          id, 
+          estado, 
+          plan_id, 
+          planes_suscripcion!suscripciones_locales_plan_id_fkey(
+            nombre,
+            perfil_social,
+            panel_analisis
+          )
+        `)
         .eq('local_id', localId)
         .eq('estado', 'activa')
         .maybeSingle();
 
       const hasActiveSub = !!subscriptionData;
+      const planName = subscriptionData?.planes_suscripcion?.nombre?.toLowerCase() || 'free';
       const hasSocial = subscriptionData?.planes_suscripcion?.perfil_social || false;
+      const hasAnalytics = subscriptionData?.planes_suscripcion?.panel_analisis || false;
 
       setHasActiveSubscription(hasActiveSub);
       setHasSocialProfile(hasSocial);
+      setHasAnalyticsPermission(hasAnalytics);
 
-      // ✅ CRITICAL FIX: If no active subscription and not owner, show persuasive message
-      if (!hasActiveSub && (!user || localData.propietario_id !== user.id)) {
-        console.log('[LocalPerfil v11.0] ⚠️ No active subscription and not owner');
+      // ✅ CRITICAL FIX: If no social profile and not owner, show persuasive message
+      const userIsOwner = user && localData.propietario_id === user.id;
+      
+      if (!hasSocial && !userIsOwner) {
+        console.log('[LocalPerfil v40.0] ⚠️ No social profile and not owner - showing persuasive message');
         Alert.alert(
-          'Perfil No Disponible',
-          'Este perfil de local no está disponible actualmente.\n\n' +
-          '💡 ¿Eres el propietario? Activa un plan de suscripción para:\n\n' +
-          '• Hacer visible tu perfil\n' +
-          '• Publicar eventos y promociones\n' +
-          '• Destacar tu local\n' +
-          '• Acceder a estadísticas avanzadas\n\n' +
-          'Invierte en más clientes hoy.',
+          '🔒 Perfil Social No Disponible',
+          `Este local no tiene un perfil social activo.\n\n` +
+          `💡 ¿Eres el propietario?\n\n` +
+          `Activa un plan de suscripción para:\n\n` +
+          `✓ Hacer visible tu perfil social\n` +
+          `✓ Publicar eventos y promociones\n` +
+          `✓ Destacar tu local en búsquedas\n` +
+          `✓ Acceder a estadísticas avanzadas\n` +
+          `✓ Atraer más clientes cada día\n\n` +
+          `No estás comprando un plan, estás invirtiendo en más clientes.`,
           [
-            { text: 'Volver', style: 'cancel', onPress: () => router.replace('/(tabs)/explorar') },
+            { 
+              text: 'Volver', 
+              style: 'cancel', 
+              onPress: () => router.replace('/(tabs)/explorar') 
+            },
             {
               text: 'Ver Planes',
               onPress: () => {
@@ -473,10 +511,10 @@ export default function LocalPerfilScreen() {
 
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
-        console.log('[LocalPerfil v11.0] ✅ User IS OWNER of this local');
+        console.log('[LocalPerfil v40.0] ✅ User IS OWNER of this local');
       } else {
         setIsOwner(false);
-        console.log('[LocalPerfil v11.0] ✅ User is NOT owner of this local');
+        console.log('[LocalPerfil v40.0] ✅ User is NOT owner of this local');
       }
 
       // ✅ CRITICAL FIX: Only load social metrics if social profile is active
@@ -487,7 +525,7 @@ export default function LocalPerfilScreen() {
           .eq('seguido_id', localData.propietario_id);
 
         setSeguidoresCount(followersCount || 0);
-        console.log('[LocalPerfil v11.0] ✅ Followers count:', followersCount || 0);
+        console.log('[LocalPerfil v40.0] ✅ Followers count:', followersCount || 0);
 
         if (localData.propietario_id) {
           const { count: followingCount } = await supabase
@@ -496,10 +534,10 @@ export default function LocalPerfilScreen() {
             .eq('seguidor_id', localData.propietario_id);
 
           setSeguidosCount(followingCount || 0);
-          console.log('[LocalPerfil v11.0] ✅ Following count:', followingCount || 0);
+          console.log('[LocalPerfil v40.0] ✅ Following count:', followingCount || 0);
         }
       } else {
-        console.log('[LocalPerfil v11.0] ⚠️ Social profile not active, hiding metrics');
+        console.log('[LocalPerfil v40.0] ⚠️ Social profile not active, hiding metrics');
         setSeguidoresCount(0);
         setSeguidosCount(0);
       }
@@ -530,7 +568,7 @@ export default function LocalPerfilScreen() {
       ]);
 
       if (!postsResult.error) {
-        console.log('[LocalPerfil v11.0] ✅ Loaded', postsResult.data?.length || 0, 'posts for local');
+        console.log('[LocalPerfil v40.0] ✅ Loaded', postsResult.data?.length || 0, 'posts for local');
         setPosts(postsResult.data || []);
         setContentLoaded(prev => ({ ...prev, posts: true }));
       }
@@ -541,12 +579,12 @@ export default function LocalPerfilScreen() {
       }
 
       setIsFollowing(!!followResult.data);
-      console.log('[LocalPerfil v11.0] ✅ Is following:', !!followResult.data);
+      console.log('[LocalPerfil v40.0] ✅ Is following:', !!followResult.data);
       setContentLoaded(prev => ({ ...prev, info: true }));
 
-      console.log('[LocalPerfil v11.0] ✅ Local data loaded successfully');
+      console.log('[LocalPerfil v40.0] ✅ Local data loaded successfully');
     } catch (error) {
-      console.error('[LocalPerfil v11.0] Error loading data:', error);
+      console.error('[LocalPerfil v40.0] Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -557,7 +595,7 @@ export default function LocalPerfilScreen() {
     
     setLoadingEmpleo(true);
     try {
-      console.log('[LocalPerfil v11.0] Loading job offers for local:', localId);
+      console.log('[LocalPerfil v40.0] Loading job offers for local:', localId);
 
       const { data: ofertasData, error: ofertasError } = await supabase
         .from('ofertas_trabajo')
@@ -573,13 +611,13 @@ export default function LocalPerfilScreen() {
         .order('created_at', { ascending: false});
 
       if (!ofertasError && ofertasData) {
-        console.log('[LocalPerfil v11.0] ✅ Loaded', ofertasData.length, 'job offers for this local');
+        console.log('[LocalPerfil v40.0] ✅ Loaded', ofertasData.length, 'job offers for this local');
         setOfertasTrabajo(ofertasData);
       }
 
       setContentLoaded(prev => ({ ...prev, empleo: true }));
     } catch (error) {
-      console.error('[LocalPerfil v11.0] Error loading employment data:', error);
+      console.error('[LocalPerfil v40.0] Error loading employment data:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -618,7 +656,7 @@ export default function LocalPerfilScreen() {
     }
 
     if (isTogglingFollow.current) {
-      console.log('[LocalPerfil v11.0] Already toggling follow, skipping...');
+      console.log('[LocalPerfil v40.0] Already toggling follow, skipping...');
       return;
     }
 
@@ -628,13 +666,13 @@ export default function LocalPerfilScreen() {
     const previousSeguidores = seguidoresCount;
 
     try {
-      console.log('[LocalPerfil v11.0] 🔄 Toggling FOLLOW status (social network)');
+      console.log('[LocalPerfil v40.0] 🔄 Toggling FOLLOW status (social network)');
 
       setIsFollowing(!wasFollowing);
       setSeguidoresCount(wasFollowing ? Math.max(0, previousSeguidores - 1) : previousSeguidores + 1);
 
       if (wasFollowing) {
-        console.log('[LocalPerfil v11.0] ➖ Unfollowing local in social network...');
+        console.log('[LocalPerfil v40.0] ➖ Unfollowing local in social network...');
         
         const { error: deleteError } = await supabase
           .from('seguidores')
@@ -644,9 +682,9 @@ export default function LocalPerfilScreen() {
 
         if (deleteError) throw deleteError;
 
-        console.log('[LocalPerfil v11.0] ✅ Unfollow successful');
+        console.log('[LocalPerfil v40.0] ✅ Unfollow successful');
       } else {
-        console.log('[LocalPerfil v11.0] ➕ Following local in social network...');
+        console.log('[LocalPerfil v40.0] ➕ Following local in social network...');
 
         const { data: existingFollow } = await supabase
           .from('seguidores')
@@ -656,7 +694,7 @@ export default function LocalPerfilScreen() {
           .single();
 
         if (existingFollow) {
-          console.log('[LocalPerfil v11.0] Already following, skipping insert');
+          console.log('[LocalPerfil v40.0] Already following, skipping insert');
           isTogglingFollow.current = false;
           return;
         }
@@ -680,7 +718,7 @@ export default function LocalPerfilScreen() {
             usuario_origen_id: user.id,
           });
 
-        console.log('[LocalPerfil v11.0] ✅ Follow successful');
+        console.log('[LocalPerfil v40.0] ✅ Follow successful');
       }
 
       const { count: updatedFollowersCount } = await supabase
@@ -690,7 +728,7 @@ export default function LocalPerfilScreen() {
 
       setSeguidoresCount(updatedFollowersCount || 0);
     } catch (error) {
-      console.error('[LocalPerfil v11.0] Error toggling follow:', error);
+      console.error('[LocalPerfil v40.0] Error toggling follow:', error);
       
       setIsFollowing(wasFollowing);
       setSeguidoresCount(previousSeguidores);
@@ -702,17 +740,17 @@ export default function LocalPerfilScreen() {
   };
 
   const handleAvatarPress = () => {
-    console.log('[LocalPerfil v11.0] Avatar pressed:', {
+    console.log('[LocalPerfil v40.0] Avatar pressed:', {
       hasMomentos,
       hasUnviewedMomentos,
       isOwner,
     });
 
     if (hasMomentos) {
-      console.log('[LocalPerfil v11.0] Opening momento viewer (momentos exist)');
+      console.log('[LocalPerfil v40.0] Opening momento viewer (momentos exist)');
       setShowMomentoViewer(true);
     } else if (isOwner) {
-      console.log('[LocalPerfil v11.0] Opening momento upload (owner, no momentos)');
+      console.log('[LocalPerfil v40.0] Opening momento upload (owner, no momentos)');
       setShowMomentoUpload(true);
     }
   };
@@ -740,11 +778,6 @@ export default function LocalPerfilScreen() {
     }
   };
 
-  const handleSalaVirtual = () => {
-    console.log('[LocalPerfil v11.0] ✅ Navigating to virtual room with localId:', localId);
-    router.push({ pathname: '/detalle/sala-virtual', params: { localId: localId } });
-  };
-
   const handleVerPost = (postId: string) => {
     router.push(`/social/post?id=${postId}`);
   };
@@ -767,7 +800,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v11.0] Setting interaction state for creating post');
+    console.log('[LocalPerfil v40.0] Setting interaction state for creating post');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -784,7 +817,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v11.0] Setting interaction state for creating event');
+    console.log('[LocalPerfil v40.0] Setting interaction state for creating event');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -801,7 +834,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v11.0] Setting interaction state for creating job offer');
+    console.log('[LocalPerfil v40.0] Setting interaction state for creating job offer');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -818,7 +851,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v11.0] Setting interaction state for editing local');
+    console.log('[LocalPerfil v40.0] Setting interaction state for editing local');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -850,7 +883,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v11.0] Navigating to analytics panel');
+    console.log('[LocalPerfil v40.0] Navigating to analytics panel');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -869,11 +902,11 @@ export default function LocalPerfilScreen() {
     }
 
     try {
-      console.log('[LocalPerfil v11.0] Opening chat with LOCAL PROFILE (isolated messaging)');
+      console.log('[LocalPerfil v40.0] Opening chat with LOCAL PROFILE (isolated messaging)');
       
       router.push(`/chat/conversacion?localId=${localId}&userId=${user.id}`);
     } catch (error) {
-      console.error('[LocalPerfil v11.0] Error opening local chat:', error);
+      console.error('[LocalPerfil v40.0] Error opening local chat:', error);
       Alert.alert('Error', 'No se pudo abrir el chat');
     }
   };
@@ -881,14 +914,14 @@ export default function LocalPerfilScreen() {
   const handleGoBack = () => {
     try {
       if (router.canGoBack()) {
-        console.log('[LocalPerfil v11.0] ✅ Going back to previous screen');
+        console.log('[LocalPerfil v40.0] ✅ Going back to previous screen');
         router.back();
       } else {
-        console.log('[LocalPerfil v11.0] ⚠️ No previous screen, navigating to explorar');
+        console.log('[LocalPerfil v40.0] ⚠️ No previous screen, navigating to explorar');
         router.replace('/(tabs)/explorar');
       }
     } catch (error) {
-      console.error('[LocalPerfil v11.0] ❌ Error navigating back:', error);
+      console.error('[LocalPerfil v40.0] ❌ Error navigating back:', error);
       router.replace('/(tabs)/explorar');
     }
   };
@@ -1065,7 +1098,7 @@ export default function LocalPerfilScreen() {
 
   const tabs = getTabsForRole();
 
-  console.log('🎯🎯🎯 [LocalPerfil v11.0] Rendering with tabs:', tabs.map(t => `${t.name}(${t.icon})`).join(', '));
+  console.log('🎯🎯🎯 [LocalPerfil v40.0] Rendering with tabs:', tabs.map(t => `${t.name}(${t.icon})`).join(', '));
 
   return (
     <View style={styles.container}>
@@ -1139,7 +1172,8 @@ export default function LocalPerfilScreen() {
                 onPress={handleAvatarPress}
                 activeOpacity={0.8}
               >
-                {hasMomentos ? (
+                {/* ✅ CRITICAL FIX: Green border only shows if has unviewed momentos */}
+                {hasUnviewedMomentos ? (
                   <LinearGradient
                     colors={['#00FF88', '#00FF88', '#00FF88']}
                     start={{ x: 0, y: 0 }}
@@ -1585,30 +1619,7 @@ export default function LocalPerfilScreen() {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.infoSection}>
-                <Text style={styles.infoSectionTitle}>Sala Virtual</Text>
-                <TouchableOpacity 
-                  style={styles.virtualRoomButton} 
-                  onPress={handleSalaVirtual}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient 
-                    colors={['#8B5CF6', '#7C3AED', '#6D28D9']} 
-                    start={{ x: 0, y: 0 }} 
-                    end={{ x: 1, y: 1 }} 
-                    style={styles.virtualRoomButtonGradient}
-                  >
-                    <View style={styles.virtualRoomIconContainer}>
-                      <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={24} color="#fff" />
-                    </View>
-                    <View style={styles.virtualRoomTextContainer}>
-                      <Text style={styles.virtualRoomButtonTitle}>Sala Virtual</Text>
-                      <Text style={styles.virtualRoomButtonSubtitle}>Chatea con otros usuarios</Text>
-                    </View>
-                    <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={22} color="#fff" />
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
+              {/* ✅ CRITICAL FIX: Removed "Sala Virtual" section - not applicable for local profiles */}
 
               <View style={styles.infoSection}>
                 <TouchableOpacity 
@@ -1815,7 +1826,7 @@ export default function LocalPerfilScreen() {
             checkUnviewedMomentos();
           }}
           onSuccess={() => {
-            console.log('[LocalPerfil v11.0] Momento uploaded successfully');
+            console.log('[LocalPerfil v40.0] Momento uploaded successfully');
             checkUnviewedMomentos();
           }}
         />
@@ -2329,44 +2340,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.white,
-  },
-  virtualRoomButton: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  virtualRoomButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  virtualRoomIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  virtualRoomTextContainer: {
-    flex: 1,
-  },
-  virtualRoomButtonTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 2,
-  },
-  virtualRoomButtonSubtitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.85)',
   },
   moreInfoButton: {
     flexDirection: 'row',
