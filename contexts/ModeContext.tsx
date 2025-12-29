@@ -46,9 +46,15 @@ const ACTIVE_PROFILE_STORAGE_KEY = '@barlive_active_profile';
 const ACTIVE_PROFILE_TYPE_STORAGE_KEY = '@barlive_active_profile_type';
 
 /**
- * ✅ MODE CONTEXT v53.0 - FIXED PROPIETARIO MODE AUTO-ASSIGNMENT
+ * ✅ MODE CONTEXT v55.0 - FIXED INACTIVE LOCAL ASSIGNMENT FILTERING
  * 
- * CRITICAL FIXES v53.0:
+ * CRITICAL FIXES v55.0:
+ * - ✅ Only loads ACTIVE local assignments (activo=true) from propietarios_locales
+ * - ✅ Prevents residual inactive assignments from appearing in owned locals
+ * - ✅ Validates local ownership with activo=true check before switching profiles
+ * - ✅ Ensures users can't interact with locals they no longer own
+ * 
+ * PREVIOUS FIXES v53.0:
  * - ✅ When switching to propietario mode, automatically assigns first local's role
  * - ✅ When user selects user profile, automatically switches back to cliente mode
  * - ✅ Proper mode synchronization with profile switching
@@ -70,7 +76,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Define loadOwnedLocals BEFORE using it in useEffect
-  // ✅ FIXED: Use effective user ID for loading owned locals
+  // ✅ FIXED v55.0: Use effective user ID for loading owned locals AND filter by activo=true
   const loadOwnedLocals = useCallback(async () => {
     if (!user) {
       setOwnedLocals([]);
@@ -78,8 +84,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      console.log('[ModeContext v53.0] 🔄 Loading owned locals for user:', user.id, isImpersonating ? '(impersonated)' : '(actual)');
+      console.log('[ModeContext v55.0] 🔄 Loading owned locals for user:', user.id, isImpersonating ? '(impersonated)' : '(actual)');
       
+      // ✅ CRITICAL FIX v55.0: Only load ACTIVE local assignments
       const { data, error } = await supabase
         .from('propietarios_locales')
         .select(`
@@ -91,10 +98,11 @@ export function ModeProvider({ children }: { children: ReactNode }) {
             tipo
           )
         `)
-        .eq('propietario_id', user.id);
+        .eq('propietario_id', user.id)
+        .eq('activo', true); // ✅ CRITICAL: Only load active assignments
 
       if (error) {
-        console.error('[ModeContext v53.0] ❌ Error loading owned locals:', error);
+        console.error('[ModeContext v55.0] ❌ Error loading owned locals:', error);
         return;
       }
 
@@ -108,10 +116,10 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           tipo: local.tipo,
         })) || [];
 
-      console.log('[ModeContext v53.0] ✅ Loaded', locals.length, 'owned locals');
+      console.log('[ModeContext v55.0] ✅ Loaded', locals.length, 'active owned locals');
       setOwnedLocals(locals);
     } catch (error) {
-      console.error('[ModeContext v53.0] ❌ Error loading owned locals:', error);
+      console.error('[ModeContext v55.0] ❌ Error loading owned locals:', error);
       setOwnedLocals([]);
     }
   }, [user, isImpersonating]);
@@ -120,7 +128,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeMode = async () => {
       try {
-        console.log('[ModeContext v53.0] 🔄 Initializing from AsyncStorage...');
+        console.log('[ModeContext v55.0] 🔄 Initializing from AsyncStorage...');
         
         const [savedMode, savedProfileId, savedProfileType] = await Promise.all([
           AsyncStorage.getItem(MODE_STORAGE_KEY),
@@ -128,7 +136,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           AsyncStorage.getItem(ACTIVE_PROFILE_TYPE_STORAGE_KEY),
         ]);
         
-        console.log('[ModeContext v53.0] 📦 Loaded from storage:', { savedMode, savedProfileId, savedProfileType });
+        console.log('[ModeContext v55.0] 📦 Loaded from storage:', { savedMode, savedProfileId, savedProfileType });
         
         // Restore mode
         if (savedMode && (savedMode === 'cliente' || savedMode === 'propietario' || savedMode === 'admin')) {
@@ -170,12 +178,13 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           if (savedProfileType === 'local' && user) {
             console.log('[ModeContext v53.0] 🔄 Verifying local ownership and loading data for:', savedProfileId);
             
-            // Verify user owns this local
+            // ✅ CRITICAL FIX v55.0: Verify user owns this local AND it's active
             const { data: ownershipData, error: ownershipError } = await supabase
               .from('propietarios_locales')
               .select('id')
               .eq('propietario_id', user.id)
               .eq('local_id', savedProfileId)
+              .eq('activo', true) // ✅ CRITICAL: Only allow active assignments
               .single();
 
             if (ownershipError || !ownershipData) {
@@ -324,6 +333,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         
         // Wait a bit for state to update
         setTimeout(async () => {
+          // ✅ CRITICAL FIX v55.0: Only load ACTIVE local assignments
           const { data, error } = await supabase
             .from('propietarios_locales')
             .select(`
@@ -336,16 +346,17 @@ export function ModeProvider({ children }: { children: ReactNode }) {
               )
             `)
             .eq('propietario_id', user.id)
+            .eq('activo', true) // ✅ CRITICAL: Only load active assignments
             .limit(1);
 
           if (!error && data && data.length > 0) {
             const firstLocal = data[0].locales;
             if (firstLocal) {
-              console.log('[ModeContext v53.0] ✅ Auto-selecting first local:', firstLocal.nombre);
+              console.log('[ModeContext v55.0] ✅ Auto-selecting first local:', firstLocal.nombre);
               await switchToLocalProfile(firstLocal.id);
             }
           } else {
-            console.log('[ModeContext v53.0] ℹ️ User has no locals, staying in cliente mode');
+            console.log('[ModeContext v55.0] ℹ️ User has no active locals, staying in cliente mode');
             // If no locals, switch back to cliente mode
             await switchToClientProfile();
           }
@@ -406,12 +417,13 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     try {
       console.log('[ModeContext v53.0] 🔄 Switching to local profile:', localId);
       
-      // Verify user owns this local
+      // ✅ CRITICAL FIX v55.0: Verify user owns this local AND it's active
       const { data: ownershipData, error: ownershipError } = await supabase
         .from('propietarios_locales')
         .select('id')
         .eq('propietario_id', user.id)
         .eq('local_id', localId)
+        .eq('activo', true) // ✅ CRITICAL: Only allow active assignments
         .single();
 
       if (ownershipError || !ownershipData) {
