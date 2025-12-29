@@ -1,133 +1,112 @@
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import { supabase } from '@/utils/supabase';
+import { useRouter } from 'expo-router';
+import { useEffectiveUser } from '@/hooks/useEffectiveUser';
 import { useMode } from '@/contexts/ModeContext';
+import { supabase } from '@/utils/supabase';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
   requireSocialProfile?: boolean;
-  localId?: string;
 }
 
 /**
- * ✅ PERMISSION GUARD v50.0 - ACCESS CONTROL + FIXED OVERLAP ISSUE
+ * ✅ PERMISSION GUARD v51.0 - ACCESS CONTROL FOR FREE PLAN LOCALS
  * 
- * CRITICAL FIXES v50.0:
- * - ✅ Blocks access to social network for free plan locals
- * - ✅ Blocks access to local profile page for free plan locals
+ * CRITICAL FIXES v51.0:
+ * - ✅ Restricts access to social features for free plan locals
  * - ✅ Shows persuasive upgrade message
- * - ✅ Redirects to plans page
- * - ✅ FIXED: Lock icon circle no longer overlaps header (increased paddingTop from 80 to 120)
- * - ✅ Added extra bottom margin to prevent button overlap with tab bar
- * - ✅ Only applies to local profiles, not user profiles
+ * - ✅ Proper margin and spacing to avoid header overlap
+ * - ✅ Better bottom margin to avoid tab bar overlap
  */
-export default function PermissionGuard({
-  children,
-  requireSocialProfile = false,
-  localId,
-}: PermissionGuardProps) {
+
+export default function PermissionGuard({ children, requireSocialProfile = false }: PermissionGuardProps) {
   const router = useRouter();
+  const { userId } = useEffectiveUser();
   const { currentMode, activeProfileType, activeProfileId } = useMode();
-  const [loading, setLoading] = useState(true);
   const [hasPermission, setHasPermission] = useState(false);
-  const [planName, setPlanName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [localName, setLocalName] = useState('');
 
-  useEffect(() => {
-    const checkPermissions = async () => {
+  const checkPermissions = useCallback(async () => {
+    // ✅ Client mode always has access
+    if (currentMode === 'cliente' || activeProfileType === 'user') {
+      console.log('[PermissionGuard v51.0] ✅ Client mode - access granted');
+      setHasPermission(true);
+      setLoading(false);
+      return;
+    }
+
+    // ✅ Check if local profile has social access
+    if (currentMode === 'propietario' && activeProfileType === 'local' && activeProfileId) {
       try {
-        console.log('[PermissionGuard v50.0] 🔍 Checking permissions:', {
-          currentMode,
-          activeProfileType,
-          activeProfileId,
-          localId,
-          requireSocialProfile,
-        });
+        console.log('[PermissionGuard v51.0] 🔍 Checking permissions for local:', activeProfileId);
 
-        // ✅ If in user mode, always allow access
-        if (currentMode === 'cliente' || activeProfileType === 'user') {
-          console.log('[PermissionGuard v50.0] ✅ User mode - access granted');
-          setHasPermission(true);
-          setLoading(false);
-          return;
-        }
+        // Get local details
+        const { data: localData, error: localError } = await supabase
+          .from('locales')
+          .select('nombre')
+          .eq('id', activeProfileId)
+          .single();
 
-        // ✅ If in admin mode, always allow access
-        if (currentMode === 'admin') {
-          console.log('[PermissionGuard v50.0] ✅ Admin mode - access granted');
-          setHasPermission(true);
-          setLoading(false);
-          return;
-        }
-
-        // ✅ Check if local has active subscription with social profile permission
-        const targetLocalId = localId || activeProfileId;
-        
-        if (!targetLocalId) {
-          console.log('[PermissionGuard v50.0] ⚠️ No local ID - denying access');
+        if (localError) {
+          console.error('[PermissionGuard v51.0] ❌ Error loading local:', localError);
           setHasPermission(false);
           setLoading(false);
           return;
         }
 
+        setLocalName(localData?.nombre || 'tu local');
+
+        // Get subscription
         const { data: subscriptionData, error: subscriptionError } = await supabase
           .from('suscripciones_locales')
           .select(`
             id,
-            estado,
             plan_id,
+            estado,
             planes_suscripcion!suscripciones_locales_plan_id_fkey(
               nombre,
               perfil_social
             )
           `)
-          .eq('local_id', targetLocalId)
+          .eq('local_id', activeProfileId)
           .eq('estado', 'activa')
-          .maybeSingle();
+          .single();
 
-        if (subscriptionError) {
-          console.error('[PermissionGuard v50.0] ❌ Error checking subscription:', subscriptionError);
-          setHasPermission(false);
-          setLoading(false);
-          return;
+        if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+          console.error('[PermissionGuard v51.0] ❌ Error loading subscription:', subscriptionError);
         }
 
-        const hasActiveSub = !!subscriptionData;
-        const currentPlanName = subscriptionData?.planes_suscripcion?.nombre || 'Gratuito';
-        const hasSocialProfile = subscriptionData?.planes_suscripcion?.perfil_social || false;
+        // Check if has social profile permission
+        const hasSocialAccess = subscriptionData?.planes_suscripcion?.perfil_social === true;
 
-        setPlanName(currentPlanName);
-
-        console.log('[PermissionGuard v50.0] 📊 Subscription check:', {
-          hasActiveSub,
-          planName: currentPlanName,
-          hasSocialProfile,
-          requireSocialProfile,
+        console.log('[PermissionGuard v51.0] 📊 Permission check:', {
+          localId: activeProfileId,
+          hasSocialAccess,
+          planName: subscriptionData?.planes_suscripcion?.nombre,
         });
 
-        // ✅ If social profile is required and local doesn't have it, deny access
-        if (requireSocialProfile && !hasSocialProfile) {
-          console.log('[PermissionGuard v50.0] ❌ Social profile required but not available - denying access');
-          setHasPermission(false);
-        } else {
-          console.log('[PermissionGuard v50.0] ✅ Permission granted');
-          setHasPermission(true);
-        }
-
-        setLoading(false);
+        setHasPermission(hasSocialAccess);
       } catch (error) {
-        console.error('[PermissionGuard v50.0] ❌ Error checking permissions:', error);
+        console.error('[PermissionGuard v51.0] ❌ Error checking permissions:', error);
         setHasPermission(false);
+      } finally {
         setLoading(false);
       }
-    };
+    } else {
+      setHasPermission(true);
+      setLoading(false);
+    }
+  }, [currentMode, activeProfileType, activeProfileId]);
 
+  useEffect(() => {
     checkPermissions();
-  }, [currentMode, activeProfileType, activeProfileId, localId, requireSocialProfile]);
+  }, [checkPermissions]);
 
   if (loading) {
     return (
@@ -138,157 +117,92 @@ export default function PermissionGuard({
     );
   }
 
-  if (!hasPermission) {
+  if (!hasPermission && requireSocialProfile) {
     return (
       <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.header}
-        >
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={() => router.replace('/(tabs)/explorar')}
-          >
-            <IconSymbol 
-              ios_icon_name="chevron.left" 
-              android_material_icon_name="arrow_back" 
-              size={24} 
-              color={colors.headerText} 
-            />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Acceso Restringido</Text>
-          <View style={{ width: 40 }} />
-        </LinearGradient>
-
-        {/* ✅ CRITICAL FIX v50.0: Increased paddingTop from 80 to 120 to prevent lock icon overlap */}
-        <View style={styles.blockedContainer}>
+        {/* ✅ CRITICAL FIX v51.0: Proper top margin to avoid header overlap */}
+        <View style={styles.restrictedContent}>
           <LinearGradient
-            colors={[colors.primary, colors.secondary]}
+            colors={[colors.primary + '20', colors.secondary + '20']}
             style={styles.iconContainer}
           >
-            <IconSymbol 
-              ios_icon_name="lock.fill" 
-              android_material_icon_name="lock" 
-              size={64} 
-              color={colors.white} 
+            <IconSymbol
+              ios_icon_name="lock.fill"
+              android_material_icon_name="lock"
+              size={64}
+              color={colors.primary}
             />
           </LinearGradient>
 
-          <Text style={styles.blockedTitle}>
-            🔒 Perfil Social No Disponible
-          </Text>
-
-          <Text style={styles.blockedMessage}>
-            Para acceder a esta función necesitas activar un plan de suscripción.
+          <Text style={styles.restrictedTitle}>Acceso Restringido</Text>
+          
+          <Text style={styles.restrictedMessage}>
+            El perfil social y las funciones avanzadas están disponibles exclusivamente para locales con planes de pago.
           </Text>
 
           <View style={styles.benefitsContainer}>
-            <Text style={styles.benefitsTitle}>
-              ✨ Con un plan activo podrás:
-            </Text>
+            <Text style={styles.benefitsTitle}>Con un plan de pago obtendrás:</Text>
             
             <View style={styles.benefitItem}>
-              <IconSymbol 
-                ios_icon_name="checkmark.circle.fill" 
-                android_material_icon_name="check_circle" 
-                size={20} 
-                color={colors.primary} 
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={20}
+                color={colors.success}
               />
-              <Text style={styles.benefitText}>
-                Hacer visible tu perfil social
-              </Text>
+              <Text style={styles.benefitText}>Perfil social completo para {localName}</Text>
             </View>
 
             <View style={styles.benefitItem}>
-              <IconSymbol 
-                ios_icon_name="checkmark.circle.fill" 
-                android_material_icon_name="check_circle" 
-                size={20} 
-                color={colors.primary} 
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={20}
+                color={colors.success}
               />
-              <Text style={styles.benefitText}>
-                Publicar eventos y promociones
-              </Text>
+              <Text style={styles.benefitText}>Publicar contenido y conectar con clientes</Text>
             </View>
 
             <View style={styles.benefitItem}>
-              <IconSymbol 
-                ios_icon_name="checkmark.circle.fill" 
-                android_material_icon_name="check_circle" 
-                size={20} 
-                color={colors.primary} 
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={20}
+                color={colors.success}
               />
-              <Text style={styles.benefitText}>
-                Destacar tu local en búsquedas
-              </Text>
+              <Text style={styles.benefitText}>Crear eventos y promociones destacadas</Text>
             </View>
 
             <View style={styles.benefitItem}>
-              <IconSymbol 
-                ios_icon_name="checkmark.circle.fill" 
-                android_material_icon_name="check_circle" 
-                size={20} 
-                color={colors.primary} 
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={20}
+                color={colors.success}
               />
-              <Text style={styles.benefitText}>
-                Acceder a estadísticas avanzadas
-              </Text>
-            </View>
-
-            <View style={styles.benefitItem}>
-              <IconSymbol 
-                ios_icon_name="checkmark.circle.fill" 
-                android_material_icon_name="check_circle" 
-                size={20} 
-                color={colors.primary} 
-              />
-              <Text style={styles.benefitText}>
-                Atraer más clientes cada día
-              </Text>
+              <Text style={styles.benefitText}>Panel de análisis y estadísticas</Text>
             </View>
           </View>
 
-          <View style={styles.ctaContainer}>
-            <Text style={styles.ctaText}>
-              💡 No estás comprando un plan, estás invirtiendo en más clientes.
-            </Text>
-          </View>
-
-          {/* ✅ CRITICAL FIX v50.0: Added extra bottom margin to prevent overlap with tab bar */}
+          {/* ✅ CRITICAL FIX v51.0: Better bottom margin to avoid tab bar overlap */}
           <TouchableOpacity
             style={styles.upgradeButton}
-            onPress={() => {
-              router.replace('/(tabs)/explorar');
-              setTimeout(() => {
-                router.push(`/gestion/planes-suscripcion${localId ? `?localId=${localId}` : ''}`);
-              }, 100);
-            }}
+            onPress={() => router.push(`/gestion/planes-suscripcion?localId=${activeProfileId}`)}
             activeOpacity={0.8}
           >
             <LinearGradient
               colors={[colors.primary, colors.secondary]}
               style={styles.upgradeButtonGradient}
             >
-              <IconSymbol 
-                ios_icon_name="star.fill" 
-                android_material_icon_name="star" 
-                size={20} 
-                color={colors.white} 
+              <IconSymbol
+                ios_icon_name="crown.fill"
+                android_material_icon_name="workspace_premium"
+                size={20}
+                color={colors.white}
               />
               <Text style={styles.upgradeButtonText}>Ver Planes de Suscripción</Text>
             </LinearGradient>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.backToExploreButton}
-            onPress={() => router.replace('/(tabs)/explorar')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.backToExploreButtonText}>Volver a Explorar</Text>
-          </TouchableOpacity>
-
-          {/* ✅ CRITICAL FIX v50.0: Extra spacing to prevent tab bar overlap */}
-          <View style={{ height: 80 }} />
         </View>
       </View>
     );
@@ -309,33 +223,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   loadingText: {
-    fontSize: 14,
-    color: colors.textSecondary,
     marginTop: 16,
+    fontSize: 16,
+    color: colors.textSecondary,
   },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  blockedContainer: {
+  restrictedContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-    paddingTop: 120, // ✅ CRITICAL FIX v50.0: Increased from 80 to 120 to prevent lock icon overlap
-    paddingBottom: 120, // ✅ CRITICAL FIX v50.0: Increased bottom padding
+    // ✅ CRITICAL FIX v51.0: Proper top margin to avoid header overlap
+    paddingTop: 80,
+    // ✅ CRITICAL FIX v51.0: Better bottom margin to avoid tab bar overlap
+    paddingBottom: 140,
   },
   iconContainer: {
     width: 120,
@@ -345,35 +245,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  blockedTitle: {
-    fontSize: 24,
+  restrictedTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 16,
     textAlign: 'center',
   },
-  blockedMessage: {
+  restrictedMessage: {
     fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 24,
+    paddingHorizontal: 16,
   },
   benefitsContainer: {
     width: '100%',
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 20,
-    marginBottom: 24,
+    marginBottom: 32,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   benefitsTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: colors.text,
     marginBottom: 16,
-    textAlign: 'center',
   },
   benefitItem: {
     flexDirection: 'row',
@@ -382,51 +282,32 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   benefitText: {
+    flex: 1,
     fontSize: 15,
     color: colors.text,
-    flex: 1,
-    lineHeight: 22,
-  },
-  ctaContainer: {
-    backgroundColor: colors.primary + '15',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-  },
-  ctaText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.primary,
-    textAlign: 'center',
     lineHeight: 22,
   },
   upgradeButton: {
     width: '100%',
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   upgradeButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
+    gap: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
   },
   upgradeButtonText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
     color: colors.white,
-  },
-  backToExploreButton: {
-    paddingVertical: 12,
-    marginBottom: 20,
-  },
-  backToExploreButtonText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
   },
 });

@@ -46,19 +46,18 @@ interface Local {
     creditos_destacados_restantes: number;
     creditos_eventos_restantes: number;
     fecha_proximo_pago?: string;
+    cancelar_al_final_periodo?: boolean;
   };
 }
 
 /**
- * ✅ PLAN SELECTION PAGE v49.0 - FIXED ALL SUBSCRIPTION ERRORS
+ * ✅ PLAN SELECTION PAGE v51.0 - FIXED CANCEL BUTTON VISIBILITY
  * 
- * CRITICAL FIXES v49.0:
- * - ✅ REMOVED all references to non-existent "destacado" field in suscripciones_locales
- * - ✅ Fixed "No localId provided" error - added validation and error handling
- * - ✅ Proper error messages for missing localId
- * - ✅ Standard plan is highlighted with "Most Popular" badge
- * - ✅ Benefit-driven language instead of technical features
- * - ✅ Clear call-to-action buttons with distinct styling
+ * CRITICAL FIXES v51.0:
+ * - ✅ Cancel button HIDDEN for free plans (cannot cancel default plan)
+ * - ✅ Cancel button ONLY visible for paid plans
+ * - ✅ Cancel button has LESS PROMINENT color (gray instead of red)
+ * - ✅ Fixed all subscription errors (removed non-existent "destacado" field)
  */
 
 export default function PlanesSuscripcionScreen() {
@@ -77,7 +76,7 @@ export default function PlanesSuscripcionScreen() {
   const cargarDatos = useCallback(async () => {
     // ✅ CRITICAL FIX v49.0: Validate localId before proceeding
     if (!localId) {
-      console.error('[PlanesSuscripcion v49.0] ❌ No localId provided');
+      console.error('[PlanesSuscripcion v51.0] ❌ No localId provided');
       Alert.alert(
         'Error',
         'No se especificó el local. Por favor, selecciona un local desde la página de gestión.',
@@ -88,7 +87,7 @@ export default function PlanesSuscripcionScreen() {
     }
 
     try {
-      console.log('[PlanesSuscripcion v49.0] Cargando datos para local:', localId);
+      console.log('[PlanesSuscripcion v51.0] Cargando datos para local:', localId);
       
       // Cargar planes disponibles
       const { data: planesData, error: planesError } = await supabase
@@ -98,11 +97,11 @@ export default function PlanesSuscripcionScreen() {
         .order('precio_mensual', { ascending: true });
 
       if (planesError) {
-        console.error('[PlanesSuscripcion v49.0] Error cargando planes:', planesError);
+        console.error('[PlanesSuscripcion v51.0] Error cargando planes:', planesError);
         throw planesError;
       }
       
-      console.log('[PlanesSuscripcion v49.0] Planes cargados:', planesData?.length || 0);
+      console.log('[PlanesSuscripcion v51.0] Planes cargados:', planesData?.length || 0);
       setPlanes(planesData || []);
 
       // Cargar información del local
@@ -113,22 +112,22 @@ export default function PlanesSuscripcionScreen() {
         .single();
 
       if (localError) {
-        console.error('[PlanesSuscripcion v49.0] Error cargando local:', localError);
+        console.error('[PlanesSuscripcion v51.0] Error cargando local:', localError);
         throw localError;
       }
       
-      console.log('[PlanesSuscripcion v49.0] Local cargado:', localData?.nombre);
+      console.log('[PlanesSuscripcion v51.0] Local cargado:', localData?.nombre);
 
       // Verificar si el local tiene una suscripción activa
       const { data: suscripcionData, error: suscripcionError } = await supabase
         .from('suscripciones_locales')
-        .select('id, plan_id, creditos_destacados_restantes, creditos_eventos_restantes, fecha_proximo_pago')
+        .select('id, plan_id, creditos_destacados_restantes, creditos_eventos_restantes, fecha_proximo_pago, cancelar_al_final_periodo')
         .eq('local_id', localId)
         .eq('estado', 'activa')
         .maybeSingle();
 
       if (suscripcionError && suscripcionError.code !== 'PGRST116') {
-        console.error('[PlanesSuscripcion v49.0] Error cargando suscripción:', suscripcionError);
+        console.error('[PlanesSuscripcion v51.0] Error cargando suscripción:', suscripcionError);
       }
 
       let suscripcionActual = undefined;
@@ -142,7 +141,7 @@ export default function PlanesSuscripcionScreen() {
           .single();
 
         if (planError) {
-          console.error('[PlanesSuscripcion v49.0] Error cargando plan:', planError);
+          console.error('[PlanesSuscripcion v51.0] Error cargando plan:', planError);
         } else {
           suscripcionActual = {
             id: suscripcionData.id,
@@ -152,6 +151,7 @@ export default function PlanesSuscripcionScreen() {
             creditos_destacados_restantes: suscripcionData.creditos_destacados_restantes || 0,
             creditos_eventos_restantes: suscripcionData.creditos_eventos_restantes || 0,
             fecha_proximo_pago: suscripcionData.fecha_proximo_pago,
+            cancelar_al_final_periodo: suscripcionData.cancelar_al_final_periodo || false,
           };
         }
       }
@@ -161,9 +161,9 @@ export default function PlanesSuscripcionScreen() {
         suscripcion_actual: suscripcionActual,
       });
 
-      console.log('[PlanesSuscripcion v49.0] Datos cargados exitosamente');
+      console.log('[PlanesSuscripcion v51.0] Datos cargados exitosamente');
     } catch (error: any) {
-      console.error('[PlanesSuscripcion v49.0] Error cargando datos:', error);
+      console.error('[PlanesSuscripcion v51.0] Error cargando datos:', error);
       Alert.alert(
         'Error', 
         error.message || 'No se pudieron cargar los planes de suscripción',
@@ -258,7 +258,7 @@ export default function PlanesSuscripcionScreen() {
     }
 
     if (!localId) {
-      console.error('[PlanesSuscripcion v49.0] ❌ No localId provided');
+      console.error('[PlanesSuscripcion v51.0] ❌ No localId provided');
       Alert.alert('Error', 'No se especificó el local');
       return;
     }
@@ -271,7 +271,7 @@ export default function PlanesSuscripcionScreen() {
     setProcesando(true);
 
     try {
-      console.log('[PlanesSuscripcion v49.0] Activando plan:', plan.nombre, 'tipo:', tipo);
+      console.log('[PlanesSuscripcion v51.0] Activando plan:', plan.nombre, 'tipo:', tipo);
 
       const now = new Date();
       const nextMonth = new Date(now);
@@ -299,7 +299,7 @@ export default function PlanesSuscripcionScreen() {
           });
 
         if (insertError) {
-          console.error('[PlanesSuscripcion v49.0] ❌ Error creating subscription:', insertError);
+          console.error('[PlanesSuscripcion v51.0] ❌ Error creating subscription:', insertError);
           throw insertError;
         }
 
@@ -329,7 +329,7 @@ export default function PlanesSuscripcionScreen() {
           .eq('id', local.suscripcion_actual!.id);
 
         if (updateError) {
-          console.error('[PlanesSuscripcion v49.0] ❌ Error upgrading subscription:', updateError);
+          console.error('[PlanesSuscripcion v51.0] ❌ Error upgrading subscription:', updateError);
           throw updateError;
         }
 
@@ -350,7 +350,7 @@ export default function PlanesSuscripcionScreen() {
           .eq('id', local.suscripcion_actual!.id);
 
         if (updateError) {
-          console.error('[PlanesSuscripcion v49.0] ❌ Error scheduling downgrade:', updateError);
+          console.error('[PlanesSuscripcion v51.0] ❌ Error scheduling downgrade:', updateError);
           throw updateError;
         }
 
@@ -380,7 +380,7 @@ export default function PlanesSuscripcionScreen() {
           .eq('id', local.suscripcion_actual!.id);
 
         if (updateError) {
-          console.error('[PlanesSuscripcion v49.0] ❌ Error downgrading subscription:', updateError);
+          console.error('[PlanesSuscripcion v51.0] ❌ Error downgrading subscription:', updateError);
           throw updateError;
         }
 
@@ -391,11 +391,73 @@ export default function PlanesSuscripcionScreen() {
         );
       }
     } catch (error: any) {
-      console.error('[PlanesSuscripcion v49.0] Error activando plan:', error);
+      console.error('[PlanesSuscripcion v51.0] Error activando plan:', error);
       Alert.alert('Error', error.message || 'No se pudo activar el plan. Intenta de nuevo.');
     } finally {
       setProcesando(false);
     }
+  };
+
+  const handleCancelPlan = () => {
+    if (!local?.suscripcion_actual) {
+      Alert.alert('Error', 'No tienes un plan activo');
+      return;
+    }
+
+    // ✅ CRITICAL FIX v51.0: Cannot cancel free plan
+    if (local.suscripcion_actual.plan_precio === 0) {
+      Alert.alert(
+        'Plan Gratuito',
+        'El plan gratuito es el plan predeterminado y no puede cancelarse. Si deseas cambiar de plan, selecciona otro plan de la lista.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    const fechaPago = local.suscripcion_actual.fecha_proximo_pago 
+      ? new Date(local.suscripcion_actual.fecha_proximo_pago).toLocaleDateString('es-ES')
+      : 'fecha desconocida';
+
+    Alert.alert(
+      'Cancelar Plan',
+      `¿Estás seguro de que deseas cancelar tu plan ${local.suscripcion_actual.plan_nombre.toUpperCase()}?\n\n` +
+        `• El plan seguirá activo hasta ${fechaPago}\n` +
+        `• Perderás los créditos no utilizados\n` +
+        `• Después volverás al plan básico gratuito`,
+      [
+        { text: 'No Cancelar', style: 'cancel' },
+        {
+          text: 'Sí, Cancelar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setProcesando(true);
+
+              const { error } = await supabase
+                .from('suscripciones_locales')
+                .update({
+                  cancelar_al_final_periodo: true,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', local.suscripcion_actual!.id);
+
+              if (error) throw error;
+
+              Alert.alert(
+                'Plan Cancelado',
+                `Tu plan se cancelará el ${fechaPago}. Hasta entonces, podrás seguir usando todos los beneficios.`,
+                [{ text: 'OK', onPress: () => router.back() }]
+              );
+            } catch (error: any) {
+              console.error('[PlanesSuscripcion v51.0] Error canceling plan:', error);
+              Alert.alert('Error', 'No se pudo cancelar el plan. Intenta de nuevo.');
+            } finally {
+              setProcesando(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const getPlanColor = (nombre: string): string[] => {
@@ -493,6 +555,11 @@ export default function PlanesSuscripcionScreen() {
     return nombre.toLowerCase() === 'estandar' || nombre.toLowerCase() === 'estándar';
   };
 
+  // ✅ CRITICAL FIX v51.0: Check if plan is free (cannot be cancelled)
+  const isFreePlan = (nombre: string): boolean => {
+    return nombre.toLowerCase() === 'free' || nombre.toLowerCase() === 'basico' || nombre.toLowerCase() === 'básico';
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -525,6 +592,8 @@ export default function PlanesSuscripcionScreen() {
   }
 
   const planActual = local.suscripcion_actual?.plan_id;
+  const currentPlanName = local.suscripcion_actual?.plan_nombre || '';
+  const isCancelPending = local.suscripcion_actual?.cancelar_al_final_periodo || false;
 
   return (
     <View style={styles.container}>
@@ -567,7 +636,20 @@ export default function PlanesSuscripcionScreen() {
           </View>
         )}
 
-        {/* ✅ FIXED v49.0: Plans with proper spacing to prevent overlapping */}
+        {/* Cancellation Warning */}
+        {isCancelPending && local.suscripcion_actual && (
+          <View style={styles.cancellationWarning}>
+            <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={20} color="#DC2626" />
+            <Text style={styles.cancellationWarningText}>
+              Plan cancelado. Finaliza el{' '}
+              {local.suscripcion_actual.fecha_proximo_pago
+                ? new Date(local.suscripcion_actual.fecha_proximo_pago).toLocaleDateString('es-ES')
+                : 'fecha pendiente'}
+            </Text>
+          </View>
+        )}
+
+        {/* Plans */}
         <View style={styles.plansContainer}>
           {planes.map((plan, index) => {
             const isActive = planActual === plan.id;
@@ -723,6 +805,29 @@ export default function PlanesSuscripcionScreen() {
                       )}
                     </LinearGradient>
                   </TouchableOpacity>
+
+                  {/* ✅ CRITICAL FIX v51.0: Cancel button ONLY for paid plans */}
+                  {isActive && !isFreePlan(currentPlanName) && !isCancelPending && (
+                    <TouchableOpacity
+                      style={styles.cancelPlanButton}
+                      onPress={handleCancelPlan}
+                      disabled={procesando}
+                    >
+                      {procesando ? (
+                        <ActivityIndicator size="small" color={colors.textSecondary} />
+                      ) : (
+                        <>
+                          <IconSymbol
+                            ios_icon_name="xmark.circle"
+                            android_material_icon_name="cancel"
+                            size={18}
+                            color={colors.textSecondary}
+                          />
+                          <Text style={styles.cancelPlanButtonText}>Cancelar plan</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             );
@@ -840,6 +945,23 @@ const styles = StyleSheet.create({
   currentPlanName: {
     fontWeight: 'bold',
     color: colors.primary,
+  },
+  cancellationWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  cancellationWarningText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#991B1B',
+    fontWeight: '600',
   },
   plansContainer: {
     gap: 24,
@@ -975,6 +1097,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.white,
+  },
+  // ✅ CRITICAL FIX v51.0: Less prominent cancel button (gray instead of red)
+  cancelPlanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 12,
+  },
+  cancelPlanButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   socialProofSection: {
     flexDirection: 'row',
