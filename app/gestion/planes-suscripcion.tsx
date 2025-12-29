@@ -51,13 +51,13 @@ interface Local {
 }
 
 /**
- * ✅ PLAN SELECTION PAGE v51.0 - FIXED CANCEL BUTTON VISIBILITY
+ * ✅ PLAN SELECTION PAGE v52.0 - FIXED CANCEL BUTTON FOR FREE PLANS
  * 
- * CRITICAL FIXES v51.0:
- * - ✅ Cancel button HIDDEN for free plans (cannot cancel default plan)
- * - ✅ Cancel button ONLY visible for paid plans
- * - ✅ Cancel button has LESS PROMINENT color (gray instead of red)
- * - ✅ Fixed all subscription errors (removed non-existent "destacado" field)
+ * CRITICAL FIXES v52.0:
+ * - ✅ Cancel button HIDDEN for free plans (precio_mensual === 0)
+ * - ✅ Cancel button ONLY visible for paid plans (precio_mensual > 0)
+ * - ✅ Cancel button has LESS PROMINENT color (#6B7280 gray instead of red)
+ * - ✅ Fixed all subscription errors
  */
 
 export default function PlanesSuscripcionScreen() {
@@ -65,7 +65,6 @@ export default function PlanesSuscripcionScreen() {
   const { user } = useAuth();
   const params = useLocalSearchParams();
   
-  // ✅ CRITICAL FIX v49.0: Validate localId parameter
   const localId = params.localId as string | undefined;
   
   const [loading, setLoading] = useState(true);
@@ -74,9 +73,8 @@ export default function PlanesSuscripcionScreen() {
   const [local, setLocal] = useState<Local | null>(null);
 
   const cargarDatos = useCallback(async () => {
-    // ✅ CRITICAL FIX v49.0: Validate localId before proceeding
     if (!localId) {
-      console.error('[PlanesSuscripcion v51.0] ❌ No localId provided');
+      console.error('[PlanesSuscripcion v52.0] ❌ No localId provided');
       Alert.alert(
         'Error',
         'No se especificó el local. Por favor, selecciona un local desde la página de gestión.',
@@ -87,9 +85,8 @@ export default function PlanesSuscripcionScreen() {
     }
 
     try {
-      console.log('[PlanesSuscripcion v51.0] Cargando datos para local:', localId);
+      console.log('[PlanesSuscripcion v52.0] Cargando datos para local:', localId);
       
-      // Cargar planes disponibles
       const { data: planesData, error: planesError } = await supabase
         .from('planes_suscripcion')
         .select('*')
@@ -97,14 +94,13 @@ export default function PlanesSuscripcionScreen() {
         .order('precio_mensual', { ascending: true });
 
       if (planesError) {
-        console.error('[PlanesSuscripcion v51.0] Error cargando planes:', planesError);
+        console.error('[PlanesSuscripcion v52.0] Error cargando planes:', planesError);
         throw planesError;
       }
       
-      console.log('[PlanesSuscripcion v51.0] Planes cargados:', planesData?.length || 0);
+      console.log('[PlanesSuscripcion v52.0] Planes cargados:', planesData?.length || 0);
       setPlanes(planesData || []);
 
-      // Cargar información del local
       const { data: localData, error: localError } = await supabase
         .from('locales')
         .select('id, nombre')
@@ -112,13 +108,12 @@ export default function PlanesSuscripcionScreen() {
         .single();
 
       if (localError) {
-        console.error('[PlanesSuscripcion v51.0] Error cargando local:', localError);
+        console.error('[PlanesSuscripcion v52.0] Error cargando local:', localError);
         throw localError;
       }
       
-      console.log('[PlanesSuscripcion v51.0] Local cargado:', localData?.nombre);
+      console.log('[PlanesSuscripcion v52.0] Local cargado:', localData?.nombre);
 
-      // Verificar si el local tiene una suscripción activa
       const { data: suscripcionData, error: suscripcionError } = await supabase
         .from('suscripciones_locales')
         .select('id, plan_id, creditos_destacados_restantes, creditos_eventos_restantes, fecha_proximo_pago, cancelar_al_final_periodo')
@@ -127,13 +122,12 @@ export default function PlanesSuscripcionScreen() {
         .maybeSingle();
 
       if (suscripcionError && suscripcionError.code !== 'PGRST116') {
-        console.error('[PlanesSuscripcion v51.0] Error cargando suscripción:', suscripcionError);
+        console.error('[PlanesSuscripcion v52.0] Error cargando suscripción:', suscripcionError);
       }
 
       let suscripcionActual = undefined;
 
       if (suscripcionData) {
-        // Get plan details separately
         const { data: planData, error: planError } = await supabase
           .from('planes_suscripcion')
           .select('nombre, precio_mensual')
@@ -141,7 +135,7 @@ export default function PlanesSuscripcionScreen() {
           .single();
 
         if (planError) {
-          console.error('[PlanesSuscripcion v51.0] Error cargando plan:', planError);
+          console.error('[PlanesSuscripcion v52.0] Error cargando plan:', planError);
         } else {
           suscripcionActual = {
             id: suscripcionData.id,
@@ -161,9 +155,9 @@ export default function PlanesSuscripcionScreen() {
         suscripcion_actual: suscripcionActual,
       });
 
-      console.log('[PlanesSuscripcion v51.0] Datos cargados exitosamente');
+      console.log('[PlanesSuscripcion v52.0] Datos cargados exitosamente');
     } catch (error: any) {
-      console.error('[PlanesSuscripcion v51.0] Error cargando datos:', error);
+      console.error('[PlanesSuscripcion v52.0] Error cargando datos:', error);
       Alert.alert(
         'Error', 
         error.message || 'No se pudieron cargar los planes de suscripción',
@@ -180,7 +174,6 @@ export default function PlanesSuscripcionScreen() {
 
   const activarPlan = (plan: Plan) => {
     if (!local?.suscripcion_actual) {
-      // No current plan - activate directly
       if (plan.precio_mensual === 0) {
         procesarActivacion(plan, 'new');
       } else {
@@ -196,12 +189,10 @@ export default function PlanesSuscripcionScreen() {
       return;
     }
 
-    // Has current plan - check if upgrade or downgrade
     const currentPrice = local.suscripcion_actual.plan_precio;
     const newPrice = plan.precio_mensual;
 
     if (newPrice > currentPrice) {
-      // UPGRADE - Immediate activation
       Alert.alert(
         'Mejorar Plan',
         `¿Deseas mejorar a ${plan.nombre.toUpperCase()} por ${newPrice}€/mes?\n\n` +
@@ -214,13 +205,11 @@ export default function PlanesSuscripcionScreen() {
         ]
       );
     } else if (newPrice < currentPrice) {
-      // DOWNGRADE - Check if has credits
       const hasCredits =
         local.suscripcion_actual.creditos_destacados_restantes > 0 ||
         local.suscripcion_actual.creditos_eventos_restantes > 0;
 
       if (hasCredits) {
-        // Has credits - schedule for end of period
         Alert.alert(
           'Cambiar a Plan Inferior',
           `¿Deseas cambiar a ${plan.nombre.toUpperCase()}?\n\n` +
@@ -233,7 +222,6 @@ export default function PlanesSuscripcionScreen() {
           ]
         );
       } else {
-        // No credits - activate immediately
         Alert.alert(
           'Cambiar a Plan Inferior',
           `¿Deseas cambiar a ${plan.nombre.toUpperCase()}?\n\n` +
@@ -251,14 +239,13 @@ export default function PlanesSuscripcionScreen() {
   };
 
   const procesarActivacion = async (plan: Plan, tipo: 'new' | 'upgrade' | 'downgrade_scheduled' | 'downgrade_immediate') => {
-    // ✅ CRITICAL FIX v49.0: Validate user and localId
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para activar un plan');
       return;
     }
 
     if (!localId) {
-      console.error('[PlanesSuscripcion v51.0] ❌ No localId provided');
+      console.error('[PlanesSuscripcion v52.0] ❌ No localId provided');
       Alert.alert('Error', 'No se especificó el local');
       return;
     }
@@ -271,14 +258,13 @@ export default function PlanesSuscripcionScreen() {
     setProcesando(true);
 
     try {
-      console.log('[PlanesSuscripcion v51.0] Activando plan:', plan.nombre, 'tipo:', tipo);
+      console.log('[PlanesSuscripcion v52.0] Activando plan:', plan.nombre, 'tipo:', tipo);
 
       const now = new Date();
       const nextMonth = new Date(now);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
 
       if (tipo === 'new') {
-        // ✅ CRITICAL FIX v49.0: REMOVED "destacado" field completely - it doesn't exist in suscripciones_locales table
         const { error: insertError } = await supabase
           .from('suscripciones_locales')
           .insert({
@@ -295,11 +281,10 @@ export default function PlanesSuscripcionScreen() {
             creditos_destacados_restantes: plan.promos_destacadas,
             creditos_eventos_restantes: plan.eventos_mes,
             ultimo_reset_contador: now.toISOString(),
-            // ✅ REMOVED: destacado field (doesn't exist in table)
           });
 
         if (insertError) {
-          console.error('[PlanesSuscripcion v51.0] ❌ Error creating subscription:', insertError);
+          console.error('[PlanesSuscripcion v52.0] ❌ Error creating subscription:', insertError);
           throw insertError;
         }
 
@@ -309,7 +294,6 @@ export default function PlanesSuscripcionScreen() {
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else if (tipo === 'upgrade') {
-        // Upgrade - immediate activation with credit reset
         const { error: updateError } = await supabase
           .from('suscripciones_locales')
           .update({
@@ -329,7 +313,7 @@ export default function PlanesSuscripcionScreen() {
           .eq('id', local.suscripcion_actual!.id);
 
         if (updateError) {
-          console.error('[PlanesSuscripcion v51.0] ❌ Error upgrading subscription:', updateError);
+          console.error('[PlanesSuscripcion v52.0] ❌ Error upgrading subscription:', updateError);
           throw updateError;
         }
 
@@ -339,7 +323,6 @@ export default function PlanesSuscripcionScreen() {
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else if (tipo === 'downgrade_scheduled') {
-        // Downgrade scheduled for end of period
         const { error: updateError } = await supabase
           .from('suscripciones_locales')
           .update({
@@ -350,7 +333,7 @@ export default function PlanesSuscripcionScreen() {
           .eq('id', local.suscripcion_actual!.id);
 
         if (updateError) {
-          console.error('[PlanesSuscripcion v51.0] ❌ Error scheduling downgrade:', updateError);
+          console.error('[PlanesSuscripcion v52.0] ❌ Error scheduling downgrade:', updateError);
           throw updateError;
         }
 
@@ -360,7 +343,6 @@ export default function PlanesSuscripcionScreen() {
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else if (tipo === 'downgrade_immediate') {
-        // Downgrade immediate (no credits remaining)
         const { error: updateError } = await supabase
           .from('suscripciones_locales')
           .update({
@@ -380,7 +362,7 @@ export default function PlanesSuscripcionScreen() {
           .eq('id', local.suscripcion_actual!.id);
 
         if (updateError) {
-          console.error('[PlanesSuscripcion v51.0] ❌ Error downgrading subscription:', updateError);
+          console.error('[PlanesSuscripcion v52.0] ❌ Error downgrading subscription:', updateError);
           throw updateError;
         }
 
@@ -391,7 +373,7 @@ export default function PlanesSuscripcionScreen() {
         );
       }
     } catch (error: any) {
-      console.error('[PlanesSuscripcion v51.0] Error activando plan:', error);
+      console.error('[PlanesSuscripcion v52.0] Error activando plan:', error);
       Alert.alert('Error', error.message || 'No se pudo activar el plan. Intenta de nuevo.');
     } finally {
       setProcesando(false);
@@ -404,7 +386,7 @@ export default function PlanesSuscripcionScreen() {
       return;
     }
 
-    // ✅ CRITICAL FIX v51.0: Cannot cancel free plan
+    // ✅ CRITICAL FIX v52.0: Cannot cancel free plan (precio_mensual === 0)
     if (local.suscripcion_actual.plan_precio === 0) {
       Alert.alert(
         'Plan Gratuito',
@@ -449,7 +431,7 @@ export default function PlanesSuscripcionScreen() {
                 [{ text: 'OK', onPress: () => router.back() }]
               );
             } catch (error: any) {
-              console.error('[PlanesSuscripcion v51.0] Error canceling plan:', error);
+              console.error('[PlanesSuscripcion v52.0] Error canceling plan:', error);
               Alert.alert('Error', 'No se pudo cancelar el plan. Intenta de nuevo.');
             } finally {
               setProcesando(false);
@@ -555,11 +537,6 @@ export default function PlanesSuscripcionScreen() {
     return nombre.toLowerCase() === 'estandar' || nombre.toLowerCase() === 'estándar';
   };
 
-  // ✅ CRITICAL FIX v51.0: Check if plan is free (cannot be cancelled)
-  const isFreePlan = (nombre: string): boolean => {
-    return nombre.toLowerCase() === 'free' || nombre.toLowerCase() === 'basico' || nombre.toLowerCase() === 'básico';
-  };
-
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -592,12 +569,11 @@ export default function PlanesSuscripcionScreen() {
   }
 
   const planActual = local.suscripcion_actual?.plan_id;
-  const currentPlanName = local.suscripcion_actual?.plan_nombre || '';
+  const currentPlanPrice = local.suscripcion_actual?.plan_precio || 0;
   const isCancelPending = local.suscripcion_actual?.cancelar_al_final_periodo || false;
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -617,7 +593,6 @@ export default function PlanesSuscripcionScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Section */}
         <View style={styles.heroSection}>
           <IconSymbol ios_icon_name="chart.line.uptrend.xyaxis" android_material_icon_name="trending_up" size={48} color={colors.primary} />
           <Text style={styles.heroTitle}>Haz Crecer Tu Negocio</Text>
@@ -626,7 +601,6 @@ export default function PlanesSuscripcionScreen() {
           </Text>
         </View>
 
-        {/* Current Plan Info */}
         {local.suscripcion_actual && (
           <View style={styles.currentPlanBanner}>
             <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
@@ -636,7 +610,6 @@ export default function PlanesSuscripcionScreen() {
           </View>
         )}
 
-        {/* Cancellation Warning */}
         {isCancelPending && local.suscripcion_actual && (
           <View style={styles.cancellationWarning}>
             <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={20} color="#DC2626" />
@@ -649,9 +622,8 @@ export default function PlanesSuscripcionScreen() {
           </View>
         )}
 
-        {/* Plans */}
         <View style={styles.plansContainer}>
-          {planes.map((plan, index) => {
+          {planes.map((plan) => {
             const isActive = planActual === plan.id;
             const isStandard = isStandardPlan(plan.nombre);
             const planColors = getPlanColor(plan.nombre);
@@ -666,7 +638,6 @@ export default function PlanesSuscripcionScreen() {
                   isActive && styles.planCardActive,
                 ]}
               >
-                {/* ✅ "Most Popular" badge for Standard plan */}
                 {isStandard && (
                   <View style={styles.popularBadge}>
                     <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#FFFFFF" />
@@ -708,7 +679,6 @@ export default function PlanesSuscripcionScreen() {
                 </LinearGradient>
 
                 <View style={styles.planBody}>
-                  {/* ✅ Benefit-driven language */}
                   <View style={styles.planFeatures}>
                     <View style={styles.featureItem}>
                       <IconSymbol 
@@ -783,7 +753,6 @@ export default function PlanesSuscripcionScreen() {
                     </View>
                   </View>
 
-                  {/* ✅ Clear call-to-action button */}
                   <TouchableOpacity
                     style={[
                       styles.planButton,
@@ -806,22 +775,22 @@ export default function PlanesSuscripcionScreen() {
                     </LinearGradient>
                   </TouchableOpacity>
 
-                  {/* ✅ CRITICAL FIX v51.0: Cancel button ONLY for paid plans */}
-                  {isActive && !isFreePlan(currentPlanName) && !isCancelPending && (
+                  {/* ✅ CRITICAL FIX v52.0: Cancel button ONLY for paid plans (precio_mensual > 0) */}
+                  {isActive && currentPlanPrice > 0 && !isCancelPending && (
                     <TouchableOpacity
                       style={styles.cancelPlanButton}
                       onPress={handleCancelPlan}
                       disabled={procesando}
                     >
                       {procesando ? (
-                        <ActivityIndicator size="small" color={colors.textSecondary} />
+                        <ActivityIndicator size="small" color="#6B7280" />
                       ) : (
                         <>
                           <IconSymbol
                             ios_icon_name="xmark.circle"
                             android_material_icon_name="cancel"
                             size={18}
-                            color={colors.textSecondary}
+                            color="#6B7280"
                           />
                           <Text style={styles.cancelPlanButtonText}>Cancelar plan</Text>
                         </>
@@ -834,7 +803,6 @@ export default function PlanesSuscripcionScreen() {
           })}
         </View>
 
-        {/* Social Proof Section */}
         <View style={styles.socialProofSection}>
           <View style={styles.socialProofCard}>
             <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={32} color="#10B981" />
@@ -853,7 +821,6 @@ export default function PlanesSuscripcionScreen() {
           </View>
         </View>
 
-        {/* Guarantee Section */}
         <View style={styles.guaranteeSection}>
           <IconSymbol ios_icon_name="checkmark.shield.fill" android_material_icon_name="verified_user" size={40} color={colors.primary} />
           <Text style={styles.guaranteeTitle}>Garantía de Satisfacción</Text>
@@ -1098,7 +1065,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.white,
   },
-  // ✅ CRITICAL FIX v51.0: Less prominent cancel button (gray instead of red)
+  // ✅ CRITICAL FIX v52.0: Less prominent cancel button (gray #6B7280 instead of red)
   cancelPlanButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1106,7 +1073,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: '#E5E7EB',
     paddingVertical: 12,
     borderRadius: 12,
     marginTop: 12,
@@ -1114,7 +1081,7 @@ const styles = StyleSheet.create({
   cancelPlanButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: '#6B7280',
   },
   socialProofSection: {
     flexDirection: 'row',
