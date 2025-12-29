@@ -25,9 +25,10 @@ interface MomentoAuthor {
 }
 
 /**
- * ✅ MOMENTO CAROUSEL v47.0 - UNIFIED AVATAR DESIGN
+ * ✅ MOMENTO CAROUSEL v47.1 - INSTAGRAM STORIES SIZE
  * 
- * Changes:
+ * Changes v47.1:
+ * - ✅ Increased avatar size to 88px (Instagram stories style)
  * - ✅ Uses UnifiedMomentoAvatar for consistent design
  * - ✅ Same avatar and + button as profile pages
  * - ✅ Green border disappears after viewing
@@ -50,7 +51,7 @@ export default function MomentoCarousel() {
     }
 
     try {
-      console.log('[MomentoCarousel v47.0] Loading momento authors for user:', user.id);
+      console.log('[MomentoCarousel v47.1] Loading momento authors for user:', user.id);
 
       // Get followed users
       const { data: followedUsers } = await supabase
@@ -177,9 +178,9 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel v47.0] ✅ Loaded', authorsArray.length, 'authors with momentos');
+      console.log('[MomentoCarousel v47.1] ✅ Loaded', authorsArray.length, 'authors with momentos');
     } catch (error) {
-      console.error('[MomentoCarousel v47.0] Error loading momento authors:', error);
+      console.error('[MomentoCarousel v47.1] Error loading momento authors:', error);
     } finally {
       setLoading(false);
     }
@@ -199,7 +200,7 @@ export default function MomentoCarousel() {
             table: 'momentos',
           },
           () => {
-            console.log('[MomentoCarousel v47.0] 🔔 Momentos updated');
+            console.log('[MomentoCarousel v47.1] 🔔 Momentos updated');
             loadMomentoAuthors();
           }
         )
@@ -212,7 +213,7 @@ export default function MomentoCarousel() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[MomentoCarousel v47.0] 🔔 Momento view added - refreshing borders');
+            console.log('[MomentoCarousel v47.1] 🔔 Momento view added - refreshing borders');
             loadMomentoAuthors();
           }
         )
@@ -225,18 +226,18 @@ export default function MomentoCarousel() {
   }, [user, loadMomentoAuthors]);
 
   const handleAuthorPress = (author: MomentoAuthor) => {
-    console.log('[MomentoCarousel v47.0] Opening momento viewer for:', author.nombre);
+    console.log('[MomentoCarousel v47.1] Opening momento viewer for:', author.nombre);
     setSelectedAuthor({ id: author.id, tipo: author.tipo });
     setShowViewer(true);
   };
 
   const handleCreateMomento = () => {
-    console.log('[MomentoCarousel v47.0] Opening momento upload');
+    console.log('[MomentoCarousel v47.1] Opening momento upload');
     setShowUpload(true);
   };
 
   const handleCloseViewer = () => {
-    console.log('[MomentoCarousel v47.0] ✅ Closing viewer and reloading authors to update borders');
+    console.log('[MomentoCarousel v47.1] ✅ Closing viewer and reloading authors to update borders');
     setShowViewer(false);
     setSelectedAuthor(null);
     // ✅ CRITICAL: Reload to update viewed status and remove green border
@@ -263,12 +264,12 @@ export default function MomentoCarousel() {
           contentContainerStyle={styles.scrollContent}
           style={styles.scrollView}
         >
-          {/* ✅ Current user's momento avatar with + button */}
+          {/* ✅ CRITICAL FIX v47.1: Increased size to 88px for Instagram stories feel */}
           <View style={styles.authorItem}>
             <UnifiedMomentoAvatar
               userId={user.id}
               imageUrl={user.avatar}
-              size={70}
+              size={88}
               showAddButton={true}
               isOwner={true}
               onPress={handleCreateMomento}
@@ -295,7 +296,7 @@ export default function MomentoCarousel() {
                   userId={author.tipo === 'usuario' ? author.id : undefined}
                   localId={author.tipo === 'local' ? author.id : undefined}
                   imageUrl={author.avatar}
-                  size={70}
+                  size={88}
                   onPress={() => handleAuthorPress(author)}
                 />
                 <Text style={styles.authorName} numberOfLines={1}>
@@ -343,7 +344,7 @@ const styles = StyleSheet.create({
   },
   authorItem: {
     alignItems: 'center',
-    width: 80,
+    width: 96,
   },
   authorName: {
     marginTop: 8,
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
-    maxWidth: 80,
+    maxWidth: 96,
   },
   loadingContainer: {
     paddingHorizontal: 20,

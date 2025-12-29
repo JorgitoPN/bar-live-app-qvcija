@@ -20,7 +20,13 @@ interface UnifiedMomentoAvatarProps {
 }
 
 /**
- * ✅ UNIFIED MOMENTO AVATAR v47.0 - CONSISTENT DESIGN EVERYWHERE
+ * ✅ UNIFIED MOMENTO AVATAR v47.2 - INSTAGRAM STORIES SIZE + NO WHITE BORDER + SMART CACHE-BUSTING
+ * 
+ * Changes v47.2:
+ * - ✅ Uses avatar_updated_at timestamp for smart cache-busting
+ * - ✅ Removed white border (only green neon border for unviewed momentos)
+ * - ✅ Larger default size for Instagram stories feel
+ * - ✅ Real-time avatar updates across all components
  * 
  * This component ensures the same avatar design and functionality across:
  * - User profile page
@@ -35,6 +41,7 @@ interface UnifiedMomentoAvatarProps {
  * - ✅ Real-time sync across all pages
  * - ✅ Filters out file:// URLs
  * - ✅ Works on Android and iOS
+ * - ✅ Smart cache-busting for immediate avatar updates
  */
 export default function UnifiedMomentoAvatar({
   userId,
@@ -51,11 +58,71 @@ export default function UnifiedMomentoAvatar({
   const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
   const [hasMomentos, setHasMomentos] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [avatarTimestamp, setAvatarTimestamp] = useState<string | null>(null);
 
   const BORDER_WIDTH = 4;
   const avatarSize = size;
   const innerSize = size - BORDER_WIDTH * 2;
   const addButtonSize = size * 0.32;
+
+  // Load avatar timestamp for cache-busting
+  useEffect(() => {
+    const loadAvatarTimestamp = async () => {
+      if (userId) {
+        const { data } = await supabase
+          .from('usuarios')
+          .select('avatar_updated_at')
+          .eq('id', userId)
+          .single();
+        
+        if (data?.avatar_updated_at) {
+          setAvatarTimestamp(data.avatar_updated_at);
+        }
+      } else if (localId) {
+        const { data } = await supabase
+          .from('locales')
+          .select('avatar_updated_at')
+          .eq('id', localId)
+          .single();
+        
+        if (data?.avatar_updated_at) {
+          setAvatarTimestamp(data.avatar_updated_at);
+        }
+      }
+    };
+
+    loadAvatarTimestamp();
+
+    // Subscribe to avatar updates
+    if (userId || localId) {
+      const table = userId ? 'usuarios' : 'locales';
+      const id = userId || localId;
+      
+      const channel = supabase
+        .channel(`avatar-updates-${table}-${id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: table,
+            filter: `id=eq.${id}`,
+          },
+          (payload: any) => {
+            console.log('[UnifiedMomentoAvatar v47.2] 🔄 Avatar updated:', payload.new);
+            if (payload.new.avatar_updated_at) {
+              setAvatarTimestamp(payload.new.avatar_updated_at);
+              setImageError(false); // Reset error state to retry loading
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [userId, localId]);
 
   const checkUnviewedMomentos = useCallback(async () => {
     if (!user) {
@@ -71,7 +138,7 @@ export default function UnifiedMomentoAvatar({
     }
 
     try {
-      console.log('[UnifiedMomentoAvatar v47.0] 🔍 Checking momentos for:', { userId, localId });
+      console.log('[UnifiedMomentoAvatar v47.2] 🔍 Checking momentos for:', { userId, localId });
 
       // Get momentos for this user/local
       let query = supabase
@@ -106,7 +173,7 @@ export default function UnifiedMomentoAvatar({
       const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
       const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
 
-      console.log('[UnifiedMomentoAvatar v47.0] 🎯 Result:', {
+      console.log('[UnifiedMomentoAvatar v47.2] 🎯 Result:', {
         total: momentosData.length,
         viewed: viewedIds.size,
         hasUnviewed,
@@ -114,7 +181,7 @@ export default function UnifiedMomentoAvatar({
 
       setHasUnviewedMomentos(hasUnviewed);
     } catch (error) {
-      console.error('[UnifiedMomentoAvatar v47.0] ❌ Error checking momentos:', error);
+      console.error('[UnifiedMomentoAvatar v47.2] ❌ Error checking momentos:', error);
       setHasUnviewedMomentos(false);
       setHasMomentos(false);
     }
@@ -138,7 +205,7 @@ export default function UnifiedMomentoAvatar({
           table: 'momentos',
         },
         () => {
-          console.log('[UnifiedMomentoAvatar v47.0] 🔄 Momento update detected');
+          console.log('[UnifiedMomentoAvatar v47.2] 🔄 Momento update detected');
           checkUnviewedMomentos();
         }
       )
@@ -151,7 +218,7 @@ export default function UnifiedMomentoAvatar({
           filter: `usuario_id=eq.${user.id}`,
         },
         () => {
-          console.log('[UnifiedMomentoAvatar v47.0] 🔄 View update detected - updating border');
+          console.log('[UnifiedMomentoAvatar v47.2] 🔄 View update detected - updating border');
           checkUnviewedMomentos();
         }
       )
@@ -162,9 +229,15 @@ export default function UnifiedMomentoAvatar({
     };
   }, [user, userId, localId, checkUnviewedMomentos]);
 
-  // ✅ Filter out file:// URLs
+  // ✅ Filter out file:// URLs and add smart cache-busting with avatar_updated_at
   const safeImageUrl = imageUrl && !imageUrl.startsWith('file://') ? imageUrl : null;
-  const shouldShowImage = !!(safeImageUrl && !imageError);
+  
+  // ✅ CRITICAL FIX v47.2: Use avatar_updated_at timestamp for smart cache-busting
+  const cacheBustedImageUrl = safeImageUrl && avatarTimestamp
+    ? `${safeImageUrl}${safeImageUrl.includes('?') ? '&' : '?'}t=${new Date(avatarTimestamp).getTime()}`
+    : safeImageUrl;
+  
+  const shouldShowImage = !!(cacheBustedImageUrl && !imageError);
 
   const renderAvatar = () => (
     <View
@@ -179,7 +252,7 @@ export default function UnifiedMomentoAvatar({
     >
       {shouldShowImage ? (
         <Image
-          source={{ uri: safeImageUrl }}
+          source={{ uri: cacheBustedImageUrl }}
           style={[
             styles.avatarImage,
             {
@@ -190,14 +263,15 @@ export default function UnifiedMomentoAvatar({
           ]}
           resizeMode="cover"
           onError={(error) => {
-            console.error('[UnifiedMomentoAvatar v47.0] ❌ Image failed to load:', error.nativeEvent?.error);
+            console.error('[UnifiedMomentoAvatar v47.2] ❌ Image failed to load:', error.nativeEvent?.error);
             setImageError(true);
           }}
           onLoad={() => {
-            console.log('[UnifiedMomentoAvatar v47.0] ✅ Image loaded successfully');
+            console.log('[UnifiedMomentoAvatar v47.2] ✅ Image loaded successfully');
             setImageError(false);
           }}
-          {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
+          // ✅ CRITICAL FIX v47.2: Remove force-cache to allow updates
+          {...(Platform.OS === 'android' && { cache: 'reload' as any })}
         />
       ) : (
         <View
@@ -232,7 +306,7 @@ export default function UnifiedMomentoAvatar({
         style,
       ]}
     >
-      {/* ✅ Green neon border only if has unviewed momentos */}
+      {/* ✅ CRITICAL FIX v47.2: Only show border if has unviewed momentos, no white border */}
       {hasUnviewedMomentos ? (
         <LinearGradient
           colors={['#00FF88', '#00FF88', '#00FF88']}
@@ -251,19 +325,8 @@ export default function UnifiedMomentoAvatar({
           {renderAvatar()}
         </LinearGradient>
       ) : (
-        <View
-          style={[
-            styles.normalBorder,
-            {
-              width: avatarSize,
-              height: avatarSize,
-              borderRadius: avatarSize / 2,
-              padding: BORDER_WIDTH,
-            },
-          ]}
-        >
-          {renderAvatar()}
-        </View>
+        // ✅ CRITICAL FIX v47.2: No border when no unviewed momentos
+        renderAvatar()
       )}
 
       {/* ✅ + button for owners */}
@@ -325,11 +388,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   momentoBorder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  normalBorder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },

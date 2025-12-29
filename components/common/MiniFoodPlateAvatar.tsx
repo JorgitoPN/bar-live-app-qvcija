@@ -22,9 +22,11 @@ interface MiniFoodPlateAvatarProps {
 }
 
 /**
- * ✅ MINI FOOD PLATE AVATAR v47.0 - FIXED FOR ALL USERS
+ * ✅ MINI FOOD PLATE AVATAR v47.1 - CACHE-BUSTING FOR IMMEDIATE UPDATES
  * 
- * CRITICAL FIX v47.0:
+ * CRITICAL FIX v47.1:
+ * - ✅ Added cache-busting to force image reload on updates
+ * - ✅ Changed cache strategy from 'force-cache' to 'reload'
  * - ✅ Filters out file:// URLs that cause ENOENT errors
  * - ✅ Accepts any valid HTTP/HTTPS URL
  * - ✅ Shows default icon on error
@@ -84,7 +86,7 @@ export default function MiniFoodPlateAvatar({
           .in('momento_id', momentoIds);
 
         if (viewsError) {
-          console.error('[MiniFoodPlateAvatar v47.0] Error checking views:', viewsError);
+          console.error('[MiniFoodPlateAvatar v47.1] Error checking views:', viewsError);
           setHasUnviewedMomento(false);
           return;
         }
@@ -94,7 +96,7 @@ export default function MiniFoodPlateAvatar({
         // ✅ CRITICAL: Show border only if there are UNVIEWED momentos
         const hasUnviewed = momentosData.some(m => !viewedMomentoIds.has(m.id));
         
-        console.log('[MiniFoodPlateAvatar v47.0] 🔍 Momento check:', {
+        console.log('[MiniFoodPlateAvatar v47.1] 🔍 Momento check:', {
           userId,
           localId,
           totalMomentos: momentosData.length,
@@ -104,7 +106,7 @@ export default function MiniFoodPlateAvatar({
 
         setHasUnviewedMomento(hasUnviewed);
       } catch (error) {
-        console.error('[MiniFoodPlateAvatar v47.0] Error checking momento:', error);
+        console.error('[MiniFoodPlateAvatar v47.1] Error checking momento:', error);
         setHasUnviewedMomento(false);
       }
     };
@@ -123,7 +125,7 @@ export default function MiniFoodPlateAvatar({
           filter: `usuario_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[MiniFoodPlateAvatar v47.0] 🔄 Real-time view update:', payload);
+          console.log('[MiniFoodPlateAvatar v47.1] 🔄 Real-time view update:', payload);
           checkUnviewedMomentos();
         }
       )
@@ -135,7 +137,7 @@ export default function MiniFoodPlateAvatar({
           table: 'momentos',
         },
         (payload) => {
-          console.log('[MiniFoodPlateAvatar v47.0] 🔄 Real-time momento update:', payload);
+          console.log('[MiniFoodPlateAvatar v47.1] 🔄 Real-time momento update:', payload);
           checkUnviewedMomentos();
         }
       )
@@ -151,11 +153,17 @@ export default function MiniFoodPlateAvatar({
   const rimWidth = size * 0.06;
   const borderWidth = 3;
 
-  // ✅ CRITICAL FIX v47.0: Filter out file:// URLs and validate
+  // ✅ CRITICAL FIX v47.1: Filter out file:// URLs and add cache-busting
   const safeImageUrl = imageUrl && !imageUrl.startsWith('file://') ? imageUrl : null;
-  const shouldShowImage = !!(safeImageUrl && !imageError);
+  
+  // ✅ CRITICAL FIX v47.1: Add cache-busting parameter to force image reload
+  const cacheBustedImageUrl = safeImageUrl 
+    ? `${safeImageUrl}${safeImageUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
+    : null;
+  
+  const shouldShowImage = !!(cacheBustedImageUrl && !imageError);
 
-  console.log('[MiniFoodPlateAvatar v47.0] 🖼️ Image decision:', {
+  console.log('[MiniFoodPlateAvatar v47.1] 🖼️ Image decision:', {
     imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'none',
     safeImageUrl: safeImageUrl ? 'valid' : 'none',
     imageError,
@@ -199,7 +207,7 @@ export default function MiniFoodPlateAvatar({
             >
               {shouldShowImage ? (
                 <Image
-                  source={{ uri: safeImageUrl }}
+                  source={{ uri: cacheBustedImageUrl }}
                   style={[
                     styles.foodImage,
                     {
@@ -210,14 +218,15 @@ export default function MiniFoodPlateAvatar({
                   ]}
                   resizeMode="cover"
                   onError={(error) => {
-                    console.log('[MiniFoodPlateAvatar v47.0] ⚠️ Image failed to load:', safeImageUrl, error.nativeEvent.error);
+                    console.log('[MiniFoodPlateAvatar v47.1] ⚠️ Image failed to load:', cacheBustedImageUrl, error.nativeEvent.error);
                     setImageError(true);
                   }}
                   onLoad={() => {
-                    console.log('[MiniFoodPlateAvatar v47.0] ✅ Image loaded successfully:', safeImageUrl?.substring(0, 50));
+                    console.log('[MiniFoodPlateAvatar v47.1] ✅ Image loaded successfully:', cacheBustedImageUrl?.substring(0, 50));
                     setImageError(false);
                   }}
-                  {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
+                  // ✅ CRITICAL FIX v47.1: Change cache strategy to allow updates
+                  {...(Platform.OS === 'android' && { cache: 'reload' as any })}
                 />
               ) : (
                 <View
@@ -270,7 +279,7 @@ export default function MiniFoodPlateAvatar({
         >
           {shouldShowImage ? (
             <Image
-              source={{ uri: safeImageUrl }}
+              source={{ uri: cacheBustedImageUrl }}
               style={[
                 styles.foodImage,
                 {
@@ -281,14 +290,15 @@ export default function MiniFoodPlateAvatar({
               ]}
               resizeMode="cover"
               onError={(error) => {
-                console.log('[MiniFoodPlateAvatar v47.0] ⚠️ Image failed to load:', safeImageUrl, error.nativeEvent.error);
+                console.log('[MiniFoodPlateAvatar v47.1] ⚠️ Image failed to load:', cacheBustedImageUrl, error.nativeEvent.error);
                 setImageError(true);
               }}
               onLoad={() => {
-                console.log('[MiniFoodPlateAvatar v47.0] ✅ Image loaded successfully:', safeImageUrl?.substring(0, 50));
+                console.log('[MiniFoodPlateAvatar v47.1] ✅ Image loaded successfully:', cacheBustedImageUrl?.substring(0, 50));
                 setImageError(false);
               }}
-              {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
+              // ✅ CRITICAL FIX v47.1: Change cache strategy to allow updates
+              {...(Platform.OS === 'android' && { cache: 'reload' as any })}
             />
           ) : (
             <View
