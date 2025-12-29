@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import { Dimensions, Alert, StatusBar, Platform, View, StyleSheet } from 'react-native';
+import { Dimensions, Alert, StatusBar, View, StyleSheet } from 'react-native';
 import { Tabs, useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
@@ -11,18 +11,18 @@ import { colors } from '@/styles/commonStyles';
 const { width: screenWidth } = Dimensions.get('window');
 
 /**
- * ANDROID-SPECIFIC TAB LAYOUT - VERSION v32.0
+ * ANDROID-SPECIFIC TAB LAYOUT - VERSION v56.0
  * 
- * ✅ COMPLETE ANDROID-iOS PARITY + NATIVE ANDROID BEHAVIOR
- * ✅ FIXED: Bottom tab bar visibility with proper z-index and elevation
- * ✅ FIXED: Tab bar always visible above all content
- * ✅ FIXED: Proper safe area handling for system buttons
- * ✅ FIXED: Content padding to prevent overlap with tab bar
+ * ✅ COMPLETE ANDROID-iOS PARITY + OPTIMIZED LAYOUT v56.0
+ * ✅ FIXED: Reduced header and tab bar heights to match iOS
+ * ✅ FIXED: Optimized spacing for maximum content visibility
+ * ✅ FIXED: Tab bar height reduced from 70px to 56px
+ * ✅ FIXED: Better visual balance and usability
  * 
  * This file ensures proper Android-specific behavior:
  * - ✅ Native Android UI (Material Design compliant)
  * - ✅ Proper status bar handling with correct colors
- * - ✅ Correct padding for notch/status bar
+ * - ✅ Minimal padding for notch/status bar
  * - ✅ Android-specific navigation behavior
  * - ✅ Native touch feedback and gestures (ripple effects)
  * - ✅ Consistent with iOS functionality
@@ -33,6 +33,7 @@ const { width: screenWidth } = Dimensions.get('window');
  * - ✅ Native Android transitions
  * - ✅ Bottom tab bar ALWAYS visible with maximum z-index
  * - ✅ Safe area insets for system navigation buttons
+ * - ✅ MAXIMUM CONTENT VISIBILITY - Reduced UI chrome
  */
 export default function TabLayout() {
   const { user } = useAuth();
@@ -49,7 +50,7 @@ export default function TabLayout() {
   const userRole = user?.rol_app || 'cliente';
 
   console.log(
-    '[TabLayout Android v32.0] ⚡ User role:', userRole, 
+    '[TabLayout Android v56.0] ⚡ User role:', userRole, 
     'Current mode:', currentMode, 
     'Pathname:', pathname,
     'Bottom inset:', insets.bottom
@@ -71,7 +72,7 @@ export default function TabLayout() {
       
       if ((isAdminIndexPage || isAdminSubPage) && !hasShownAdminAlert.current) {
         console.log(
-          '[TabLayout Android v32.0] ⚠️ Unauthorized user trying to access admin page:', 
+          '[TabLayout Android v56.0] ⚠️ Unauthorized user trying to access admin page:', 
           pathname
         );
         hasShownAdminAlert.current = true;
@@ -100,7 +101,7 @@ export default function TabLayout() {
       
       if ((isGestionIndexPage || isGestionSubPage) && !hasShownGestionAlert.current) {
         console.log(
-          '[TabLayout Android v32.0] ⚠️ Non-propietario user trying to access gestion page:', 
+          '[TabLayout Android v56.0] ⚠️ Non-propietario user trying to access gestion page:', 
           pathname
         );
         hasShownGestionAlert.current = true;
@@ -297,10 +298,10 @@ export default function TabLayout() {
   };
 
   const tabs = getTabsForRole();
-  console.log('[TabLayout Android v32.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
+  console.log('[TabLayout Android v56.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
 
-  // ✅ Calculate tab bar height including safe area
-  const TAB_BAR_HEIGHT = 70;
+  // ✅ ANDROID FIX v56.0: Reduced tab bar height from 70 to 56
+  const TAB_BAR_HEIGHT = 56;
   const totalTabBarHeight = TAB_BAR_HEIGHT + insets.bottom;
 
   return (
@@ -387,8 +388,7 @@ export default function TabLayout() {
         </Tabs>
       </View>
       
-      {/* ✅ CRITICAL FIX v32.0: Floating Tab Bar with MAXIMUM z-index, elevation, and safe area */}
-      {/* This ensures the tab bar is ALWAYS visible above ALL content and respects system buttons */}
+      {/* ✅ CRITICAL FIX v56.0: Floating Tab Bar with REDUCED height and safe area */}
       <View style={[
         styles.tabBarContainer,
         { 

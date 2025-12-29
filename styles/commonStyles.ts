@@ -2,14 +2,13 @@
 import { StyleSheet, Platform } from 'react-native';
 
 /**
- * ✅ COMMON STYLES v38.0 - COMPLETE ANDROID-iOS PARITY
+ * ✅ COMMON STYLES v56.0 - ANDROID-iOS PARITY FIX
  * 
- * CRITICAL FIXES v38.0:
- * - ✅ Consistent colors across all platforms
- * - ✅ Proper safe area handling for Android
- * - ✅ Platform-specific adjustments for optimal UX
- * - ✅ Unified design system
- * - ✅ Production-ready styling
+ * CRITICAL FIXES v56.0:
+ * - ✅ Reduced header padding for Android to match iOS
+ * - ✅ Optimized spacing for better content visibility
+ * - ✅ Consistent design across platforms
+ * - ✅ Fixed excessive header height on Android
  */
 
 // Header gradient colors - abc
@@ -70,17 +69,15 @@ export const colors = {
 };
 
 export const commonStyles = StyleSheet.create({
-  // ✅ ANDROID FIX: Container with proper padding for Android notch
+  // ✅ ANDROID FIX v56.0: Container with NO extra padding
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    // ✅ ANDROID FIX: Add top padding for Android notch/status bar
-    paddingTop: Platform.OS === 'android' ? 0 : 0,
   },
   
-  // ✅ ANDROID FIX: Header gradient with proper padding
+  // ✅ ANDROID FIX v56.0: Reduced header padding to match iOS
   headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: Platform.OS === 'ios' ? 50 : 12,
     paddingBottom: 16,
     paddingHorizontal: 20,
   },

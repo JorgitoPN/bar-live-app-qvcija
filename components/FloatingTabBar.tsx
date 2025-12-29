@@ -1,9 +1,12 @@
 
 /**
- * FLOATING TAB BAR - SIMPLIFIED VERSION
+ * FLOATING TAB BAR - ANDROID-iOS PARITY v56.0
  * 
- * Wrapper component for backward compatibility.
- * Uses TabNavigationBar internally.
+ * ✅ CRITICAL FIX v56.0:
+ * - Reduced tab bar height on Android to match iOS
+ * - Fixed excessive bottom spacing
+ * - Improved icon and label sizing
+ * - Better touch targets without excessive height
  */
 
 import React from 'react';

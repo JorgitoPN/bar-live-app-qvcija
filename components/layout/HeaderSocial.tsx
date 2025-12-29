@@ -30,6 +30,15 @@ interface SearchResult {
   provincia?: string;
 }
 
+/**
+ * ✅ HEADER SOCIAL v56.0 - ANDROID-iOS PARITY FIX
+ * 
+ * CRITICAL FIXES v56.0:
+ * - ✅ Reduced header padding on Android from 40px to 12px
+ * - ✅ Consistent header height across platforms
+ * - ✅ Better content visibility
+ */
+
 export default function HeaderSocial({
   unreadNotifications: propUnreadNotifications,
   unreadMessages: propUnreadMessages,
@@ -51,19 +60,17 @@ export default function HeaderSocial({
   
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  // ✅ FIXED: Load unread counts from database (source of truth)
   const loadUnreadCounts = useCallback(async () => {
     if (!user) {
-      console.log('[HeaderSocial v35.0] ℹ️ No user, resetting counts to 0');
+      console.log('[HeaderSocial v56.0] ℹ️ No user, resetting counts to 0');
       setUnreadNotifications(0);
       setUnreadMessages(0);
       return;
     }
 
     try {
-      console.log('[HeaderSocial v35.0] 🔄 Loading unread counts from database...');
+      console.log('[HeaderSocial v56.0] 🔄 Loading unread counts from database...');
       
-      // ✅ Load notifications count
       const { count: notifCount, error: notifError } = await supabase
         .from('notificaciones')
         .select('*', { count: 'exact', head: true })
@@ -71,24 +78,22 @@ export default function HeaderSocial({
         .eq('leida', false);
 
       if (notifError) {
-        console.error('[HeaderSocial v35.0] ❌ Error loading notifications count:', notifError);
+        console.error('[HeaderSocial v56.0] ❌ Error loading notifications count:', notifError);
       } else {
         setUnreadNotifications(notifCount || 0);
-        console.log('[HeaderSocial v35.0] ✅ Unread notifications:', notifCount || 0);
+        console.log('[HeaderSocial v56.0] ✅ Unread notifications:', notifCount || 0);
       }
 
-      // ✅ FIXED: Load messages count - only messages with leido = false AND no leido_at timestamp
       const { data: chatsData, error: chatsError } = await supabase
         .from('chats')
         .select('id')
         .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
 
       if (chatsError) {
-        console.error('[HeaderSocial v35.0] ❌ Error loading chats:', chatsError);
+        console.error('[HeaderSocial v56.0] ❌ Error loading chats:', chatsError);
       } else if (chatsData) {
         let totalUnread = 0;
         for (const chat of chatsData) {
-          // ✅ FIXED: Count only messages that are NOT read (leido = false AND leido_at IS NULL)
           const { count, error: countError } = await supabase
             .from('mensajes')
             .select('*', { count: 'exact', head: true })
@@ -102,19 +107,17 @@ export default function HeaderSocial({
           }
         }
         setUnreadMessages(totalUnread);
-        console.log('[HeaderSocial v35.0] ✅ Unread messages:', totalUnread);
+        console.log('[HeaderSocial v56.0] ✅ Unread messages:', totalUnread);
       }
     } catch (error) {
-      console.error('[HeaderSocial v35.0] ❌ Error loading unread counts:', error);
+      console.error('[HeaderSocial v56.0] ❌ Error loading unread counts:', error);
     }
   }, [user]);
 
-  // ✅ Load counts on mount and when user changes
   useEffect(() => {
     loadUnreadCounts();
   }, [loadUnreadCounts]);
 
-  // ✅ Update from props if provided
   useEffect(() => {
     if (propUnreadNotifications !== undefined) {
       setUnreadNotifications(propUnreadNotifications);
@@ -127,11 +130,10 @@ export default function HeaderSocial({
     }
   }, [propUnreadMessages]);
 
-  // ✅ FIXED: Real-time subscriptions for immediate updates (persistent badge removal)
   useEffect(() => {
     if (!user) return;
 
-    console.log('[HeaderSocial v35.0] 🔄 Setting up real-time subscriptions for user:', user.id);
+    console.log('[HeaderSocial v56.0] 🔄 Setting up real-time subscriptions for user:', user.id);
 
     const subscription = supabase
       .channel('header-social-updates')
@@ -144,7 +146,7 @@ export default function HeaderSocial({
           filter: `usuario_id=eq.${user.id}`,
         },
         () => {
-          console.log('[HeaderSocial v35.0] 🔔 Notification update detected, reloading count...');
+          console.log('[HeaderSocial v56.0] 🔔 Notification update detected, reloading count...');
           loadUnreadCounts();
         }
       )
@@ -156,10 +158,9 @@ export default function HeaderSocial({
           table: 'mensajes',
         },
         (payload) => {
-          console.log('[HeaderSocial v35.0] 💬 Message UPDATE detected:', payload.new);
-          // ✅ FIXED: Reload counts when messages are marked as read
+          console.log('[HeaderSocial v56.0] 💬 Message UPDATE detected:', payload.new);
           if (payload.new && (payload.new as any).leido === true) {
-            console.log('[HeaderSocial v35.0] ✅ Message marked as read, reloading counts...');
+            console.log('[HeaderSocial v56.0] ✅ Message marked as read, reloading counts...');
             loadUnreadCounts();
           }
         }
@@ -172,16 +173,16 @@ export default function HeaderSocial({
           table: 'mensajes',
         },
         () => {
-          console.log('[HeaderSocial v35.0] 💬 New message INSERT detected, reloading count...');
+          console.log('[HeaderSocial v56.0] 💬 New message INSERT detected, reloading count...');
           loadUnreadCounts();
         }
       )
       .subscribe((status) => {
-        console.log('[HeaderSocial v35.0] 📡 Subscription status:', status);
+        console.log('[HeaderSocial v56.0] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[HeaderSocial v35.0] 🔄 Cleaning up subscriptions');
+      console.log('[HeaderSocial v56.0] 🔄 Cleaning up subscriptions');
       supabase.removeChannel(subscription);
     };
   }, [user, loadUnreadCounts]);
@@ -191,7 +192,6 @@ export default function HeaderSocial({
     return count.toString();
   };
 
-  // ✅ FIX v35.0: CRITICAL FIX - Search locals with active subscriptions regardless of owner activity
   const performSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -200,11 +200,10 @@ export default function HeaderSocial({
 
     setSearchLoading(true);
     try {
-      console.log('[HeaderSocial v35.0] 🔍 Searching for:', query);
+      console.log('[HeaderSocial v56.0] 🔍 Searching for:', query);
 
       const cleanQuery = query.replace('@', '').trim().toLowerCase();
       
-      // ✅ Search users
       const { data: usersData, error: usersError } = await supabase
         .from('usuarios')
         .select('id, nombre, username, avatar')
@@ -212,16 +211,9 @@ export default function HeaderSocial({
         .limit(10);
 
       if (usersError) {
-        console.error('[HeaderSocial v35.0] ❌ Error searching users:', usersError);
+        console.error('[HeaderSocial v56.0] ❌ Error searching users:', usersError);
       }
 
-      // ✅ FIX v35.0: CRITICAL FIX - Search locals with active subscriptions
-      // The issue was that we were filtering by active subscriptions FIRST, then searching
-      // This caused locals to not appear if the subscription query failed
-      // NEW APPROACH: Search locals first, then check if they have active subscriptions
-      
-      console.log('[HeaderSocial v35.0] 🔍 Searching locals with query:', cleanQuery);
-      
       const { data: localsData, error: localsError } = await supabase
         .from('locales')
         .select(`
@@ -245,38 +237,7 @@ export default function HeaderSocial({
         .limit(10);
 
       if (localsError) {
-        console.error('[HeaderSocial v35.0] ❌ Error searching locals:', localsError);
-        console.error('[HeaderSocial v35.0] ❌ Error details:', JSON.stringify(localsError, null, 2));
-      }
-
-      console.log('[HeaderSocial v35.0] ✅ Found locals:', localsData?.length || 0);
-      
-      // ✅ DEBUG: Log Casa Adolfo if found
-      const casaAdolfo = localsData?.find(l => l.nombre.toLowerCase().includes('casa adolfo'));
-      if (casaAdolfo) {
-        console.log('[HeaderSocial v35.0] ✅ Casa Adolfo found in results:', casaAdolfo);
-      } else {
-        console.log('[HeaderSocial v35.0] ⚠️ Casa Adolfo NOT found in results');
-        
-        // ✅ DEBUG: Check if Casa Adolfo exists and meets criteria
-        const { data: casaAdolfoDebug, error: debugError } = await supabase
-          .from('locales')
-          .select(`
-            id,
-            nombre,
-            activo,
-            perfil_visible,
-            username,
-            suscripciones_locales(id, estado)
-          `)
-          .ilike('nombre', '%casa adolfo%')
-          .single();
-        
-        if (debugError) {
-          console.error('[HeaderSocial v35.0] ❌ Debug query error:', debugError);
-        } else {
-          console.log('[HeaderSocial v35.0] 🔍 Casa Adolfo debug info:', casaAdolfoDebug);
-        }
+        console.error('[HeaderSocial v56.0] ❌ Error searching locals:', localsError);
       }
 
       const results: SearchResult[] = [
@@ -299,10 +260,10 @@ export default function HeaderSocial({
         })),
       ];
 
-      console.log('[HeaderSocial v35.0] 📊 Search results:', results.length, '(users:', usersData?.length || 0, ', locals:', localsData?.length || 0, ')');
+      console.log('[HeaderSocial v56.0] 📊 Search results:', results.length);
       setSearchResults(results);
     } catch (error) {
-      console.error('[HeaderSocial v35.0] ❌ Error searching:', error);
+      console.error('[HeaderSocial v56.0] ❌ Error searching:', error);
     } finally {
       setSearchLoading(false);
     }
@@ -318,7 +279,7 @@ export default function HeaderSocial({
 
   const handleSearchResultPress = (result: SearchResult) => {
     try {
-      console.log('[HeaderSocial v35.0] 🔗 Navigating to:', result.type, result.id);
+      console.log('[HeaderSocial v56.0] 🔗 Navigating to:', result.type, result.id);
       
       setShowSearch(false);
       setSearchQuery('');
@@ -331,11 +292,11 @@ export default function HeaderSocial({
           router.push(`/perfil/usuario?userId=${result.id}`);
         }
       } else {
-        console.log('[HeaderSocial v35.0] 🏢 Navigating to local profile:', result.id);
+        console.log('[HeaderSocial v56.0] 🏢 Navigating to local profile:', result.id);
         router.push(`/perfil/local?localId=${result.id}`);
       }
     } catch (error) {
-      console.error('[HeaderSocial v35.0] ❌ Error navigating to profile:', error);
+      console.error('[HeaderSocial v56.0] ❌ Error navigating to profile:', error);
       Alert.alert('Error', 'No se pudo abrir el perfil');
     }
   };
@@ -399,7 +360,6 @@ export default function HeaderSocial({
               activeOpacity={0.7}
             >
               <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
-              {/* ✅ FIXED: Badge disappears permanently after messages are read */}
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -533,7 +493,7 @@ export default function HeaderSocial({
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: Platform.OS === 'ios' ? 50 : 12,
     paddingBottom: 12,
     paddingHorizontal: 16,
   },
@@ -591,7 +551,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   searchHeader: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: Platform.OS === 'ios' ? 50 : 12,
     paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
