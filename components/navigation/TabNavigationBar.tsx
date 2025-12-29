@@ -138,7 +138,7 @@ export function TabNavigationBar({
           activeOpacity: 0.7,
         };
 
-    // ✅ ANDROID FIX v57.0: Central button protrudes upwards (matching iOS)
+    // ✅ ANDROID FIX v58.0: Central button with reduced icon size on Android
     if (isCenter) {
       return (
         <TouchableComponent
@@ -159,7 +159,7 @@ export function TabNavigationBar({
                 androidIconFilled={tab.androidIconFilled}
                 androidIconOutlined={tab.androidIconOutlined}
                 isActive={true}
-                size={26}
+                size={Platform.OS === 'ios' ? 26 : 22}
               />
             </LinearGradient>
           </View>
@@ -198,7 +198,7 @@ export function TabNavigationBar({
                     androidIconFilled="person"
                     androidIconOutlined="person-outline"
                     isActive={isActive}
-                    size={18}
+                    size={Platform.OS === 'ios' ? 18 : 16}
                   />
                 </View>
               )}
@@ -208,7 +208,7 @@ export function TabNavigationBar({
       );
     }
 
-    // ✅ ANDROID FIX v57.0: Regular tab icon size matches iOS
+    // ✅ ANDROID FIX v58.0: Reduced tab icon size on Android
     return (
       <TouchableComponent
         key={tab.id}
@@ -222,30 +222,33 @@ export function TabNavigationBar({
             androidIconFilled={tab.androidIconFilled}
             androidIconOutlined={tab.androidIconOutlined}
             isActive={isActive}
-            size={24}
+            size={Platform.OS === 'ios' ? 24 : 20}
           />
         </View>
       </TouchableComponent>
     );
   };
 
-  // ✅ ANDROID FIX v57.0: Tab bar height IDENTICAL to iOS
+  // ✅ ANDROID FIX v58.0: Tab bar height and central button positioning
   const baseHeight = 60;
   const containerHeight = baseHeight + (Platform.OS === 'android' ? Math.max(insets.bottom, 8) : 0);
   const tabBarPaddingBottom = Platform.OS === 'ios' ? 20 : Math.max(insets.bottom, 8);
+  
+  // ✅ CRITICAL FIX v58.0: Background only reaches halfway up the central button (28px = half of 56px button)
+  const backgroundHeight = baseHeight - 28;
 
   return (
     <View style={[styles.container, { height: containerHeight }]}>
-      <View style={[styles.backgroundContainer, { height: containerHeight }]}>
+      <View style={[styles.backgroundContainer, { height: backgroundHeight, bottom: Platform.OS === 'android' ? Math.max(insets.bottom, 8) : 0 }]}>
         <Svg
           width="100%"
-          height={containerHeight}
-          viewBox={`0 0 375 ${containerHeight}`}
+          height={backgroundHeight}
+          viewBox={`0 0 375 ${backgroundHeight}`}
           preserveAspectRatio="none"
           style={styles.svg}
         >
           <Path
-            d={`M0,0 H375 V${containerHeight} H0 Z`}
+            d={`M0,0 H375 V${backgroundHeight} H0 Z`}
             fill={colors.primary}
           />
         </Svg>

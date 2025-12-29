@@ -354,7 +354,7 @@ export default function HeaderSocial({
               onPress={() => router.push('/(tabs)/perfil/chats')}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={22} color={colors.headerText} />
+              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={Platform.OS === 'ios' ? 22 : 20} color={colors.headerText} />
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -369,7 +369,7 @@ export default function HeaderSocial({
               onPress={() => router.push('/(tabs)/perfil/notificaciones')}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={22} color={colors.headerText} />
+              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={Platform.OS === 'ios' ? 22 : 20} color={colors.headerText} />
               {unreadNotifications > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -384,7 +384,7 @@ export default function HeaderSocial({
               onPress={() => setShowSearch(true)}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={22} color={colors.headerText} />
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 22 : 20} color={colors.headerText} />
             </TouchableOpacity>
 
             {(onCreatePress || onCreatePost) && (
@@ -393,7 +393,7 @@ export default function HeaderSocial({
                 onPress={onCreatePress || onCreatePost}
                 activeOpacity={0.7}
               >
-                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={22} color={colors.headerText} />
+                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={Platform.OS === 'ios' ? 22 : 20} color={colors.headerText} />
               </TouchableOpacity>
             )}
           </View>
@@ -420,11 +420,11 @@ export default function HeaderSocial({
               }}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={Platform.OS === 'ios' ? 24 : 22} color={colors.headerText} />
             </TouchableOpacity>
             
             <View style={styles.searchInputContainer}>
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.headerText} />
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 20 : 18} color={colors.headerText} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Buscar usuarios o locales..."
@@ -443,7 +443,7 @@ export default function HeaderSocial({
                   }}
                   activeOpacity={0.7}
                 >
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={Platform.OS === 'ios' ? 20 : 18} color={colors.headerText} />
                 </TouchableOpacity>
               )}
             </View>
@@ -487,10 +487,10 @@ export default function HeaderSocial({
 }
 
 const styles = StyleSheet.create({
-  // ✅ ANDROID FIX v57.0: Header padding IDENTICAL to iOS
+  // ✅ ANDROID FIX v58.0: Unified header padding matching Explorar page
   header: {
-    paddingTop: 50, // Same on both platforms
-    paddingBottom: 10,
+    paddingTop: 50, // Same on both platforms - matches Explorar
+    paddingBottom: Platform.OS === 'ios' ? 10 : 8,
     paddingHorizontal: 16,
   },
   headerContent: {
@@ -504,9 +504,9 @@ const styles = StyleSheet.create({
     gap: 12,
     flex: 1,
   },
-  // ✅ ANDROID FIX v57.0: Font size IDENTICAL to iOS
+  // ✅ ANDROID FIX v58.0: Reduced font size on Android to match iOS visual hierarchy
   headerTitle: {
-    fontSize: 32, // Same on both platforms
+    fontSize: Platform.OS === 'ios' ? 32 : 28, // 12.5% smaller on Android
     fontWeight: 'bold',
     color: colors.headerText,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
@@ -547,10 +547,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  // ✅ ANDROID FIX v57.0: Search header padding IDENTICAL to iOS
+  // ✅ ANDROID FIX v58.0: Unified search header padding matching Explorar
   searchHeader: {
-    paddingTop: 50, // Same on both platforms
-    paddingBottom: 10,
+    paddingTop: 50, // Same on both platforms - matches Explorar
+    paddingBottom: Platform.OS === 'ios' ? 10 : 8,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 14,
     color: colors.headerText,
     fontWeight: '500',
   },
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   },
   searchLoadingText: {
     marginTop: 16,
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 14,
     color: colors.textSecondary,
   },
   searchResultsList: {
@@ -621,24 +621,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchResultName: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 14,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
   searchResultUsername: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 13,
     color: colors.textSecondary,
     marginBottom: 2,
   },
   searchResultType: {
-    fontSize: 13,
+    fontSize: Platform.OS === 'ios' ? 13 : 12,
     color: colors.primary,
     fontWeight: '600',
     textTransform: 'capitalize',
   },
   searchResultLocation: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'ios' ? 12 : 11,
     color: colors.textSecondary,
     marginTop: 2,
   },
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981' + '20',
   },
   searchResultBadgeText: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'ios' ? 12 : 11,
     fontWeight: '700',
     color: colors.primary,
   },
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   searchEmptyText: {
-    fontSize: 20,
+    fontSize: Platform.OS === 'ios' ? 20 : 18,
     fontWeight: '700',
     color: colors.text,
     marginTop: 16,
@@ -675,9 +675,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   searchEmptySubtext: {
-    fontSize: 15,
+    fontSize: Platform.OS === 'ios' ? 15 : 14,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: Platform.OS === 'ios' ? 22 : 20,
   },
 });

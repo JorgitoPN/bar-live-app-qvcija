@@ -69,9 +69,15 @@ function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /**
- * ✅ EXPLORAR SCREEN v56.2 - ANDROID-iOS PARITY
+ * ✅ EXPLORAR SCREEN v58.0 - ANDROID-iOS PARITY
  * 
- * CRITICAL FIXES v56.2:
+ * CRITICAL FIXES v58.0:
+ * - ✅ Reduced text sizes on Android to match iOS visual hierarchy (12-16% smaller)
+ * - ✅ Reduced icon sizes on Android to match iOS proportions
+ * - ✅ Unified header margins across all pages
+ * - ✅ Fixed white background in "Reclama un local" section
+ * 
+ * PREVIOUS FIXES v56.2:
  * - ✅ Fixed header text clipping on Android (increased padding from 12 to 24)
  * - ✅ Fixed header height to prevent "Explorar" and map icon from being cut off
  * - ✅ Restored font size to match iOS exactly (32px)
@@ -675,13 +681,13 @@ export default function ExplorarScreen() {
                 style={styles.headerIconButton}
                 onPress={() => router.push('/explorar/mapa')}
               >
-                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={24} color={colors.headerText} />
+                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={Platform.OS === 'ios' ? 24 : 20} color={colors.headerText} />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.searchContainer}>
-            <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 20 : 18} color={colors.textSecondary} />
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar locales..."
@@ -690,7 +696,7 @@ export default function ExplorarScreen() {
               onChangeText={setBusqueda}
             />
             <TouchableOpacity onPress={() => setMostrarFiltros(true)} style={styles.filterButtonContainer}>
-              <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle.fill" android_material_icon_name="filter_list" size={24} color={colors.primary} />
+              <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle.fill" android_material_icon_name="filter_list" size={Platform.OS === 'ios' ? 24 : 20} color={colors.primary} />
               {hasActiveFilters && (
                 <View style={styles.filterBadge}>
                   <View style={styles.filterBadgeDot} />
@@ -730,7 +736,7 @@ export default function ExplorarScreen() {
                     categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive,
                   ]}
                 >
-                  <IconSymbol ios_icon_name={categoria.icon as any} android_material_icon_name={categoria.icon as any} size={28} color={colors.primary} />
+                  <IconSymbol ios_icon_name={categoria.icon as any} android_material_icon_name={categoria.icon as any} size={Platform.OS === 'ios' ? 28 : 24} color={colors.primary} />
                 </View>
                 <Text
                   style={[
@@ -797,7 +803,7 @@ export default function ExplorarScreen() {
                 <IconSymbol 
                   ios_icon_name="building.2.fill" 
                   android_material_icon_name="store"
-                  size={22} 
+                  size={Platform.OS === 'ios' ? 22 : 20} 
                   color={colors.primary} 
                 />
               </View>
@@ -813,7 +819,7 @@ export default function ExplorarScreen() {
                 <IconSymbol 
                   ios_icon_name="chevron.right" 
                   android_material_icon_name="chevron_right"
-                  size={18} 
+                  size={Platform.OS === 'ios' ? 18 : 16} 
                   color={colors.primary} 
                 />
               </View>
@@ -823,7 +829,7 @@ export default function ExplorarScreen() {
 
         {localesVisibles.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <IconSymbol ios_icon_name="mappin.slash" android_material_icon_name="location_off" size={64} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="mappin.slash" android_material_icon_name="location_off" size={Platform.OS === 'ios' ? 64 : 56} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No se encontraron locales</Text>
             <Text style={styles.emptySubtext}>Intenta ajustar los filtros de búsqueda</Text>
           </View>
@@ -889,7 +895,7 @@ export default function ExplorarScreen() {
                     <IconSymbol 
                       ios_icon_name={getModoIcon(modo)} 
                       android_material_icon_name={getModoIcon(modo)}
-                      size={24} 
+                      size={Platform.OS === 'ios' ? 24 : 20} 
                       color={currentMode === modo ? colors.headerText : colors.primary} 
                     />
                   </View>
@@ -908,7 +914,7 @@ export default function ExplorarScreen() {
                   </View>
                 </View>
                 {currentMode === modo && (
-                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
+                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={Platform.OS === 'ios' ? 24 : 20} color={colors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -925,11 +931,11 @@ export default function ExplorarScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ✅ ANDROID FIX v56.2: Increased padding to prevent text clipping (was 12, now 24)
+  // ✅ ANDROID FIX v58.0: Unified header padding across all pages
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 24,
+    paddingTop: 50, // Same on both platforms
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 16 : 16,
+    paddingBottom: Platform.OS === 'ios' ? 16 : 12,
   },
   headerContent: {
     flexDirection: 'row',
@@ -937,9 +943,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  // ✅ ANDROID FIX v56.2: Restored font size to match iOS exactly (was 28, now 32)
+  // ✅ ANDROID FIX v58.0: Reduced font size on Android to match iOS visual hierarchy
   headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 32,
+    fontSize: Platform.OS === 'ios' ? 32 : 28, // 12.5% smaller on Android
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -958,7 +964,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   modoButtonText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 13,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -976,7 +982,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 14,
     color: colors.text,
   },
   filterButtonContainer: {
@@ -1033,7 +1039,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary + '15',
   },
   categoriaLabel: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'ios' ? 12 : 11,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
@@ -1072,11 +1078,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
+    backgroundColor: 'transparent', // ✅ FIX v58.0: Prevent white background on Android
   },
   claimLocalGradient: {
     borderWidth: 1.5,
     borderColor: colors.primary + '30',
     borderRadius: 12,
+    backgroundColor: 'transparent', // ✅ FIX v58.0: Prevent white background on Android
   },
   claimLocalContent: {
     flexDirection: 'row',
@@ -1100,14 +1108,14 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   claimLocalTitle: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 13,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 2,
     letterSpacing: -0.2,
   },
   claimLocalSubtitle: {
-    fontSize: 11.5,
+    fontSize: Platform.OS === 'ios' ? 11.5 : 11,
     color: colors.textSecondary,
     fontWeight: '500',
   },
@@ -1127,13 +1135,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'ios' ? 18 : 16,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 13,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -1145,7 +1153,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingMoreText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 13,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1155,7 +1163,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   endText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 13,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -1174,13 +1182,13 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: Platform.OS === 'ios' ? 20 : 18,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 8,
   },
   modalSubtitle: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 13,
     color: colors.textSecondary,
     marginBottom: 24,
   },
@@ -1217,7 +1225,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   modoOptionLabel: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 14,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 2,
@@ -1226,7 +1234,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   modoOptionDescription: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'ios' ? 12 : 11,
     color: colors.textSecondary,
   },
 });
