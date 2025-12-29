@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -15,13 +15,14 @@ interface PermissionGuardProps {
 }
 
 /**
- * ✅ PERMISSION GUARD v48.0 - ACCESS CONTROL + BOTTOM MARGIN FIX
+ * ✅ PERMISSION GUARD v49.0 - ACCESS CONTROL + INCREASED TOP MARGIN
  * 
- * CRITICAL FIXES v48.0:
+ * CRITICAL FIXES v49.0:
  * - ✅ Blocks access to social network for free plan locals
  * - ✅ Blocks access to local profile page for free plan locals
  * - ✅ Shows persuasive upgrade message
  * - ✅ Redirects to plans page
+ * - ✅ INCREASED top margin to prevent lock icon from overlapping header
  * - ✅ Added extra bottom margin to prevent button overlap with tab bar
  * - ✅ Only applies to local profiles, not user profiles
  */
@@ -39,7 +40,7 @@ export default function PermissionGuard({
   useEffect(() => {
     const checkPermissions = async () => {
       try {
-        console.log('[PermissionGuard v48.0] 🔍 Checking permissions:', {
+        console.log('[PermissionGuard v49.0] 🔍 Checking permissions:', {
           currentMode,
           activeProfileType,
           activeProfileId,
@@ -49,7 +50,7 @@ export default function PermissionGuard({
 
         // ✅ If in user mode, always allow access
         if (currentMode === 'cliente' || activeProfileType === 'user') {
-          console.log('[PermissionGuard v48.0] ✅ User mode - access granted');
+          console.log('[PermissionGuard v49.0] ✅ User mode - access granted');
           setHasPermission(true);
           setLoading(false);
           return;
@@ -57,7 +58,7 @@ export default function PermissionGuard({
 
         // ✅ If in admin mode, always allow access
         if (currentMode === 'admin') {
-          console.log('[PermissionGuard v48.0] ✅ Admin mode - access granted');
+          console.log('[PermissionGuard v49.0] ✅ Admin mode - access granted');
           setHasPermission(true);
           setLoading(false);
           return;
@@ -67,7 +68,7 @@ export default function PermissionGuard({
         const targetLocalId = localId || activeProfileId;
         
         if (!targetLocalId) {
-          console.log('[PermissionGuard v48.0] ⚠️ No local ID - denying access');
+          console.log('[PermissionGuard v49.0] ⚠️ No local ID - denying access');
           setHasPermission(false);
           setLoading(false);
           return;
@@ -89,7 +90,7 @@ export default function PermissionGuard({
           .maybeSingle();
 
         if (subscriptionError) {
-          console.error('[PermissionGuard v48.0] ❌ Error checking subscription:', subscriptionError);
+          console.error('[PermissionGuard v49.0] ❌ Error checking subscription:', subscriptionError);
           setHasPermission(false);
           setLoading(false);
           return;
@@ -101,7 +102,7 @@ export default function PermissionGuard({
 
         setPlanName(currentPlanName);
 
-        console.log('[PermissionGuard v48.0] 📊 Subscription check:', {
+        console.log('[PermissionGuard v49.0] 📊 Subscription check:', {
           hasActiveSub,
           planName: currentPlanName,
           hasSocialProfile,
@@ -110,16 +111,16 @@ export default function PermissionGuard({
 
         // ✅ If social profile is required and local doesn't have it, deny access
         if (requireSocialProfile && !hasSocialProfile) {
-          console.log('[PermissionGuard v48.0] ❌ Social profile required but not available - denying access');
+          console.log('[PermissionGuard v49.0] ❌ Social profile required but not available - denying access');
           setHasPermission(false);
         } else {
-          console.log('[PermissionGuard v48.0] ✅ Permission granted');
+          console.log('[PermissionGuard v49.0] ✅ Permission granted');
           setHasPermission(true);
         }
 
         setLoading(false);
       } catch (error) {
-        console.error('[PermissionGuard v48.0] ❌ Error checking permissions:', error);
+        console.error('[PermissionGuard v49.0] ❌ Error checking permissions:', error);
         setHasPermission(false);
         setLoading(false);
       }
@@ -159,6 +160,7 @@ export default function PermissionGuard({
           <View style={{ width: 40 }} />
         </LinearGradient>
 
+        {/* ✅ CRITICAL FIX v49.0: Increased top margin to prevent lock icon overlap */}
         <View style={styles.blockedContainer}>
           <LinearGradient
             colors={[colors.primary, colors.secondary]}
@@ -252,7 +254,7 @@ export default function PermissionGuard({
             </Text>
           </View>
 
-          {/* ✅ CRITICAL FIX v48.0: Added extra bottom margin to prevent overlap with tab bar */}
+          {/* ✅ CRITICAL FIX v49.0: Added extra bottom margin to prevent overlap with tab bar */}
           <TouchableOpacity
             style={styles.upgradeButton}
             onPress={() => {
@@ -285,8 +287,8 @@ export default function PermissionGuard({
             <Text style={styles.backToExploreButtonText}>Volver a Explorar</Text>
           </TouchableOpacity>
 
-          {/* ✅ CRITICAL FIX v48.0: Extra spacing to prevent tab bar overlap */}
-          <View style={{ height: 40 }} />
+          {/* ✅ CRITICAL FIX v49.0: Extra spacing to prevent tab bar overlap */}
+          <View style={{ height: 60 }} />
         </View>
       </View>
     );
@@ -312,7 +314,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   header: {
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -332,7 +334,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-    paddingBottom: 80,
+    paddingTop: 80, // ✅ CRITICAL FIX v49.0: Increased from 32 to 80 to prevent lock icon overlap
+    paddingBottom: 100, // ✅ CRITICAL FIX v49.0: Increased bottom padding
   },
   iconContainer: {
     width: 120,

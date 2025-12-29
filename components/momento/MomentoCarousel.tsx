@@ -26,12 +26,12 @@ interface MomentoAuthor {
 }
 
 /**
- * ✅ MOMENTO CAROUSEL v48.0 - FIXED USER MOMENTO PLACEMENT
+ * ✅ MOMENTO CAROUSEL v49.0 - ALWAYS SHOW + ICON FOR USER
  * 
- * CRITICAL FIXES v48.0:
+ * CRITICAL FIXES v49.0:
  * - ✅ User's own momento appears in the SAME avatar (not adjacent)
- * - ✅ Clicking on user's avatar opens viewer if momentos exist, otherwise opens upload
- * - ✅ + button only appears when user has NO momentos
+ * - ✅ + button ALWAYS visible on user's avatar (even when momentos exist)
+ * - ✅ Clicking on user's avatar opens viewer if momentos exist
  * - ✅ Adjacent avatars are ONLY for other users' momentos
  * - ✅ Green neon border synchronization across all pages
  * - ✅ Instagram stories size (88px)
@@ -55,7 +55,7 @@ export default function MomentoCarousel() {
     }
 
     try {
-      console.log('[MomentoCarousel v48.0] Loading momento authors for user:', user.id);
+      console.log('[MomentoCarousel v49.0] Loading momento authors for user:', user.id);
 
       // Get followed users
       const { data: followedUsers } = await supabase
@@ -74,7 +74,7 @@ export default function MomentoCarousel() {
       const followedUserIds = followedUsers?.map(f => f.seguido_id) || [];
       const followedLocalIds = followedLocals?.map(f => f.local_id) || [];
 
-      // ✅ CRITICAL FIX v48.0: Check if current user has momentos
+      // ✅ CRITICAL FIX v49.0: Check if current user has momentos
       const { data: currentUserMomentos } = await supabase
         .from('momentos')
         .select('id')
@@ -84,7 +84,7 @@ export default function MomentoCarousel() {
 
       const hasUserMomentos = (currentUserMomentos?.length || 0) > 0;
       setUserHasMomentos(hasUserMomentos);
-      console.log('[MomentoCarousel v48.0] ✅ User has momentos:', hasUserMomentos);
+      console.log('[MomentoCarousel v49.0] ✅ User has momentos:', hasUserMomentos);
 
       // Get active momentos from followed users (NOT including current user)
       const { data: userMomentos } = await supabase
@@ -193,9 +193,9 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel v48.0] ✅ Loaded', authorsArray.length, 'authors with momentos (excluding current user)');
+      console.log('[MomentoCarousel v49.0] ✅ Loaded', authorsArray.length, 'authors with momentos (excluding current user)');
     } catch (error) {
-      console.error('[MomentoCarousel v48.0] Error loading momento authors:', error);
+      console.error('[MomentoCarousel v49.0] Error loading momento authors:', error);
     } finally {
       setLoading(false);
     }
@@ -206,7 +206,7 @@ export default function MomentoCarousel() {
 
     if (user) {
       const channel = supabase
-        .channel('momento-carousel-updates-v48')
+        .channel('momento-carousel-updates-v49')
         .on(
           'postgres_changes',
           {
@@ -215,7 +215,7 @@ export default function MomentoCarousel() {
             table: 'momentos',
           },
           () => {
-            console.log('[MomentoCarousel v48.0] 🔔 Momentos updated');
+            console.log('[MomentoCarousel v49.0] 🔔 Momentos updated');
             loadMomentoAuthors();
           }
         )
@@ -228,7 +228,7 @@ export default function MomentoCarousel() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[MomentoCarousel v48.0] 🔔 Momento view added - refreshing borders');
+            console.log('[MomentoCarousel v49.0] 🔔 Momento view added - refreshing borders');
             loadMomentoAuthors();
           }
         )
@@ -241,32 +241,32 @@ export default function MomentoCarousel() {
   }, [user, loadMomentoAuthors]);
 
   const handleAuthorPress = (author: MomentoAuthor) => {
-    console.log('[MomentoCarousel v48.0] Opening momento viewer for:', author.nombre);
+    console.log('[MomentoCarousel v49.0] Opening momento viewer for:', author.nombre);
     setSelectedAuthor({ id: author.id, tipo: author.tipo });
     setShowViewer(true);
   };
 
-  // ✅ CRITICAL FIX v48.0: User avatar click behavior
+  // ✅ CRITICAL FIX v49.0: User avatar click behavior
   const handleUserAvatarPress = () => {
     if (userHasMomentos) {
       // User has momentos - open viewer
-      console.log('[MomentoCarousel v48.0] User has momentos, opening viewer');
+      console.log('[MomentoCarousel v49.0] User has momentos, opening viewer');
       setSelectedAuthor({ id: user!.id, tipo: 'usuario' });
       setShowViewer(true);
     } else {
       // User has no momentos - open upload
-      console.log('[MomentoCarousel v48.0] User has no momentos, opening upload');
+      console.log('[MomentoCarousel v49.0] User has no momentos, opening upload');
       setShowUpload(true);
     }
   };
 
   const handleCreateMomento = () => {
-    console.log('[MomentoCarousel v48.0] Opening momento upload from + button');
+    console.log('[MomentoCarousel v49.0] Opening momento upload from + button');
     setShowUpload(true);
   };
 
   const handleCloseViewer = () => {
-    console.log('[MomentoCarousel v48.0] ✅ Closing viewer and reloading authors to update borders');
+    console.log('[MomentoCarousel v49.0] ✅ Closing viewer and reloading authors to update borders');
     setShowViewer(false);
     setSelectedAuthor(null);
     // ✅ CRITICAL: Reload to update viewed status and remove green border
@@ -292,13 +292,13 @@ export default function MomentoCarousel() {
           contentContainerStyle={styles.scrollContent}
           style={styles.scrollView}
         >
-          {/* ✅ CRITICAL FIX v48.0: User's own avatar - shows momento if exists, otherwise shows + button */}
+          {/* ✅ CRITICAL FIX v49.0: User's own avatar - ALWAYS shows + button */}
           <View style={styles.authorItem}>
             <UnifiedMomentoAvatar
               userId={user.id}
               imageUrl={user.avatar}
               size={88}
-              showAddButton={!userHasMomentos}
+              showAddButton={true} // ✅ CRITICAL FIX v49.0: ALWAYS show + button
               isOwner={true}
               onPress={handleUserAvatarPress}
               onAddPress={handleCreateMomento}
@@ -308,7 +308,7 @@ export default function MomentoCarousel() {
             </Text>
           </View>
 
-          {/* ✅ CRITICAL FIX v48.0: Other users' momentos (adjacent avatars) */}
+          {/* ✅ CRITICAL FIX v49.0: Other users' momentos (adjacent avatars) */}
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={colors.primary} />

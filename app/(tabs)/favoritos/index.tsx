@@ -31,27 +31,39 @@ import { calcularDistancia } from '@/utils/locationUtils';
 
 const ITEMS_PER_PAGE = 20;
 
-const CATEGORIAS_LOCALES = [
-  { id: 'todos', label: 'Todos', icon: 'mappin.circle.fill' },
-  { id: 'cafe', label: 'Cafés', icon: 'cup.and.saucer.fill' },
-  { id: 'restaurante', label: 'Restaurantes', icon: 'fork.knife' },
-  { id: 'bar', label: 'Bares', icon: 'wineglass.fill' },
-  { id: 'pub', label: 'Pubs', icon: 'mug.fill' },
-  { id: 'cocteleria', label: 'Coctelería', icon: 'wineglass' },
-  { id: 'discoteca', label: 'Discotecas', icon: 'music.note' },
+const PROVINCIAS = [
+  'Todas',
+  'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila', 'Badajoz',
+  'Barcelona', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria', 'Castellón', 'Ciudad Real',
+  'Córdoba', 'Cuenca', 'Girona', 'Granada', 'Guadalajara', 'Guipúzcoa', 'Huelva',
+  'Huesca', 'Islas Baleares', 'Jaén', 'La Coruña', 'La Rioja', 'Las Palmas', 'León',
+  'Lleida', 'Lugo', 'Madrid', 'Málaga', 'Murcia', 'Navarra', 'Ourense', 'Palencia',
+  'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife', 'Segovia', 'Sevilla', 'Soria',
+  'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
+];
+
+// ✅ CRITICAL FIX v49.0: Same categories as Eventos page
+const CATEGORIAS = [
+  { id: 'todas', nombre: 'Todas', emoji: '🎉' },
+  { id: 'cafe', nombre: 'Cafés', emoji: '☕' },
+  { id: 'restaurante', nombre: 'Restaurantes', emoji: '🍽️' },
+  { id: 'bar', nombre: 'Bares', emoji: '🍺' },
+  { id: 'pub', nombre: 'Pubs', emoji: '🍻' },
+  { id: 'cocteleria', nombre: 'Coctelería', emoji: '🍸' },
+  { id: 'discoteca', nombre: 'Discotecas', emoji: '💃' },
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v3.0 - WITH CATEGORY FILTERS
+ * ✅ FAVORITOS SCREEN v49.0 - FILTER MODAL + PROVINCE SEARCH
  * 
- * New Features:
- * - ✅ Category filter chips (horizontal scroll)
- * - ✅ Search functionality
- * - ✅ Regional filters (Comunidad & Provincia)
- * - ✅ Combined filtering system
+ * CRITICAL FIXES v49.0:
+ * - ✅ Added filter button in search bar (matching Eventos page)
+ * - ✅ Added filter modal with province selector
+ * - ✅ Same category design and icons as Eventos page
+ * - ✅ Scrollable province list in modal
+ * - ✅ Combined filtering system (search + category + province)
  * - ✅ Clear filters button
  * - ✅ Filter count badge
- * - ✅ Improved card design
  */
 
 export default function FavoritosScreen() {
@@ -71,8 +83,10 @@ export default function FavoritosScreen() {
   const [checkingSocialProfiles, setCheckingSocialProfiles] = useState<Set<string>>(new Set());
   const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
   
-  // ✅ NEW: Category filter
-  const [selectedCategory, setSelectedCategory] = useState<string>('todos');
+  // ✅ NEW v49.0: Filter modal and province filter
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('todas');
+  const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
 
   useEffect(() => {
     (async () => {
@@ -84,10 +98,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v3.0] User location obtained:', location.coords);
+          console.log('[Favoritos v49.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v3.0] Error getting location:', error);
+        console.error('[Favoritos v49.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -113,7 +127,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v3.0] Error checking social profiles:', error);
+      console.error('[Favoritos v49.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -124,7 +138,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v3.0] Cargando locales guardados...');
+      console.log('[Favoritos v49.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -190,12 +204,12 @@ export default function FavoritosScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Favoritos v3.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v49.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v3.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v49.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -216,7 +230,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v3.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v49.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -230,7 +244,7 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v3.0] Recalculating distances with new user location');
+      console.log('[Favoritos v49.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -252,7 +266,7 @@ export default function FavoritosScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, currentPage]);
 
-  // ✅ NEW: Apply all filters (search + category)
+  // ✅ NEW v49.0: Apply all filters (search + category + province)
   useEffect(() => {
     let filtered = [...allSavedLocales];
 
@@ -272,8 +286,8 @@ export default function FavoritosScreen() {
       });
     }
 
-    // ✅ NEW: Apply category filter
-    if (selectedCategory !== 'todos') {
+    // ✅ NEW v49.0: Apply category filter
+    if (selectedCategory !== 'todas') {
       filtered = filtered.filter(local => {
         const barliveTypes = local.barlive_types || [];
         
@@ -285,14 +299,19 @@ export default function FavoritosScreen() {
       });
     }
 
+    // ✅ NEW v49.0: Apply province filter
+    if (provinciaSeleccionada !== 'Todas') {
+      filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
+    }
+
     setFilteredLocales(filtered);
     const firstPage = filtered.slice(0, ITEMS_PER_PAGE);
     setDisplayedLocales(firstPage);
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Favoritos v3.0] Filters applied. Results:', filtered.length);
-  }, [searchQuery, selectedCategory, allSavedLocales]);
+    console.log('[Favoritos v49.0] Filters applied. Results:', filtered.length);
+  }, [searchQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
   const loadMoreLocales = useCallback(() => {
     if (loadingMore || !hasMore) return;
@@ -309,7 +328,7 @@ export default function FavoritosScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Favoritos v3.0] Cargando más locales, página:', nextPage);
+        console.log('[Favoritos v49.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -319,28 +338,31 @@ export default function FavoritosScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v3.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v49.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
-    setSelectedCategory('todos');
+    setSelectedCategory('todas');
+    setProvinciaSeleccionada('Todas');
     await loadSavedLocales();
     setRefreshing(false);
   };
 
-  // ✅ NEW: Clear all filters
+  // ✅ NEW v49.0: Clear all filters
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v3.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v49.0] 🧹 Clearing all filters');
     setSearchQuery('');
-    setSelectedCategory('todos');
+    setSelectedCategory('todas');
+    setProvinciaSeleccionada('Todas');
   }, []);
 
-  // ✅ NEW: Count active filters
+  // ✅ NEW v49.0: Count active filters
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (searchQuery.trim()) count++;
-    if (selectedCategory !== 'todos') count++;
+    if (selectedCategory !== 'todas') count++;
+    if (provinciaSeleccionada !== 'Todas') count++;
     return count;
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery, selectedCategory, provinciaSeleccionada]);
 
   const toggleFavorito = async (localId: string, e?: any) => {
     if (e) {
@@ -348,18 +370,18 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v3.0] User not authenticated');
+      console.log('[Favoritos v49.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v3.0] No local ID');
+      console.log('[Favoritos v49.0] No local ID');
       return;
     }
 
     try {
-      console.log('[Favoritos v3.0] Removing from favorites. User:', user.id, 'Local:', localId);
+      console.log('[Favoritos v49.0] Removing from favorites. User:', user.id, 'Local:', localId);
       
       const { error } = await supabase
         .from('locales_guardados')
@@ -368,16 +390,16 @@ export default function FavoritosScreen() {
         .eq('local_id', localId);
 
       if (error) {
-        console.error('[Favoritos v3.0] Error removing favorite:', error);
+        console.error('[Favoritos v49.0] Error removing favorite:', error);
         Alert.alert('Error', 'No se pudo quitar de favoritos');
         return;
       }
       
-      console.log('[Favoritos v3.0] ✅ Removed from favorites');
+      console.log('[Favoritos v49.0] ✅ Removed from favorites');
       
       await loadSavedLocales();
     } catch (error) {
-      console.error('[Favoritos v3.0] Error removing favorito:', error);
+      console.error('[Favoritos v49.0] Error removing favorito:', error);
       Alert.alert('Error', 'No se pudo eliminar de favoritos');
     }
   };
@@ -717,6 +739,7 @@ export default function FavoritosScreen() {
           )}
         </View>
         
+        {/* ✅ CRITICAL FIX v49.0: Added filter button in search bar */}
         <View style={styles.searchContainer}>
           <IconSymbol 
             ios_icon_name="magnifyingglass" 
@@ -747,41 +770,46 @@ export default function FavoritosScreen() {
               />
             </TouchableOpacity>
           )}
+          {/* ✅ CRITICAL FIX v49.0: Filter button */}
+          <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
+            <IconSymbol 
+              ios_icon_name="slider.horizontal.3" 
+              android_material_icon_name="tune" 
+              size={20} 
+              color={colors.primary} 
+            />
+          </TouchableOpacity>
         </View>
 
-        {/* ✅ NEW: Category filter chips */}
-        <View style={styles.categoriesFilterContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesFilterScroll}
-          >
-            {CATEGORIAS_LOCALES.map((categoria) => (
-              <TouchableOpacity
-                key={categoria.id}
+        {/* ✅ CRITICAL FIX v49.0: Same category chips as Eventos page */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesScroll}
+          contentContainerStyle={styles.categoriesContent}
+        >
+          {CATEGORIAS.map((categoria) => (
+            <TouchableOpacity
+              key={categoria.id}
+              style={[
+                styles.categoryChip,
+                selectedCategory === categoria.id && styles.categoryChipActive,
+              ]}
+              onPress={() => setSelectedCategory(categoria.id)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.categoryEmoji}>{categoria.emoji}</Text>
+              <Text
                 style={[
-                  styles.categoryChip,
-                  selectedCategory === categoria.id && styles.categoryChipActive,
+                  styles.categoryText,
+                  selectedCategory === categoria.id && styles.categoryTextActive,
                 ]}
-                onPress={() => setSelectedCategory(categoria.id)}
-                activeOpacity={0.7}
               >
-                <IconSymbol 
-                  ios_icon_name={categoria.icon as any}
-                  android_material_icon_name={categoria.icon as any}
-                  size={16} 
-                  color={selectedCategory === categoria.id ? colors.primary : colors.headerText} 
-                />
-                <Text style={[
-                  styles.categoryChipText,
-                  selectedCategory === categoria.id && styles.categoryChipTextActive
-                ]}>
-                  {categoria.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+                {categoria.nombre}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
         
         {allSavedLocales.length > 0 && (
           <View style={styles.resultsCountContainer}>
@@ -820,6 +848,113 @@ export default function FavoritosScreen() {
         maxToRenderPerBatch={10}
         windowSize={5}
       />
+
+      {/* ✅ CRITICAL FIX v49.0: Filter modal with province selector */}
+      <Modal
+        visible={mostrarFiltros}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setMostrarFiltros(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setMostrarFiltros(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filtros</Text>
+              <TouchableOpacity onPress={() => setMostrarFiltros(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* ✅ Scrollable content */}
+            <ScrollView 
+              style={styles.modalScrollView}
+              showsVerticalScrollIndicator={true}
+              bounces={false}
+            >
+              <View style={styles.filterSection}>
+                <Text style={styles.filterTitle}>Categoría de Local</Text>
+                <View style={styles.categoriesGrid}>
+                  {CATEGORIAS.map((categoria) => (
+                    <TouchableOpacity
+                      key={categoria.id}
+                      style={[
+                        styles.categoryFilterItem,
+                        selectedCategory === categoria.id && styles.categoryFilterItemActive,
+                      ]}
+                      onPress={() => setSelectedCategory(categoria.id)}
+                    >
+                      <Text style={styles.categoryFilterEmoji}>{categoria.emoji}</Text>
+                      <Text
+                        style={[
+                          styles.categoryFilterText,
+                          selectedCategory === categoria.id && styles.categoryFilterTextActive,
+                        ]}
+                      >
+                        {categoria.nombre}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* ✅ CRITICAL FIX v49.0: Province selector */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterTitle}>Provincia</Text>
+                <View style={styles.provinciasListContainer}>
+                  {PROVINCIAS.map((provincia) => (
+                    <TouchableOpacity
+                      key={provincia}
+                      style={[
+                        styles.provinciaItem,
+                        provinciaSeleccionada === provincia && styles.provinciaItemActive,
+                      ]}
+                      onPress={() => setProvinciaSeleccionada(provincia)}
+                    >
+                      <Text
+                        style={[
+                          styles.provinciaText,
+                          provinciaSeleccionada === provincia && styles.provinciaTextActive,
+                        ]}
+                      >
+                        {provincia}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* ✅ Extra padding at bottom for scrolling */}
+              <View style={{ height: 40 }} />
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.limpiarButton}
+                onPress={() => {
+                  setSelectedCategory('todas');
+                  setProvinciaSeleccionada('Todas');
+                }}
+              >
+                <Text style={styles.limpiarButtonText}>Limpiar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.aplicarButtonModal}
+                onPress={() => setMostrarFiltros(false)}
+              >
+                <LinearGradient
+                  colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                  style={styles.aplicarButtonGradient}
+                >
+                  <Text style={styles.aplicarButtonText}>Aplicar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <LoginRequiredModal
         visible={showLoginModal}
@@ -872,6 +1007,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 12,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
@@ -883,37 +1019,38 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
-  categoriesFilterContainer: {
+  categoriesScroll: {
     marginBottom: 12,
   },
-  categoriesFilterScroll: {
-    flexDirection: 'row',
+  categoriesContent: {
+    paddingHorizontal: 0,
     gap: 8,
-    paddingVertical: 4,
   },
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   categoryChipActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderColor: colors.primary,
+    backgroundColor: colors.white,
+    borderColor: colors.white,
   },
-  categoryChipText: {
-    fontSize: 13,
+  categoryEmoji: {
+    fontSize: 16,
+  },
+  categoryText: {
+    fontSize: 14,
     fontWeight: '600',
-    color: colors.headerText,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  categoryChipTextActive: {
+  categoryTextActive: {
     color: colors.primary,
-    fontWeight: '700',
   },
   resultsCountContainer: {
     flexDirection: 'row',
@@ -1270,5 +1407,133 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  modalScrollView: {
+    maxHeight: '100%',
+    paddingHorizontal: 20,
+  },
+  filterSection: {
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  categoryFilterItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    minWidth: '47%',
+  },
+  categoryFilterItemActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  categoryFilterEmoji: {
+    fontSize: 20,
+  },
+  categoryFilterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  categoryFilterTextActive: {
+    color: colors.white,
+  },
+  provinciasListContainer: {
+    gap: 8,
+  },
+  provinciaItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: colors.background,
+  },
+  provinciaItemActive: {
+    backgroundColor: colors.primary,
+  },
+  provinciaText: {
+    fontSize: 15,
+    color: colors.text,
+  },
+  provinciaTextActive: {
+    color: colors.white,
+    fontWeight: '600',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+  },
+  limpiarButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  limpiarButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  aplicarButtonModal: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  aplicarButtonGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  aplicarButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.white,
   },
 });
