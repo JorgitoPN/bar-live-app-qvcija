@@ -53,14 +53,14 @@ export default function HeaderSocial({
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) {
-      console.log('[HeaderSocial v57.0] ℹ️ No user, resetting counts to 0');
+      console.log('[HeaderSocial v59.0] ℹ️ No user, resetting counts to 0');
       setUnreadNotifications(0);
       setUnreadMessages(0);
       return;
     }
 
     try {
-      console.log('[HeaderSocial v57.0] 🔄 Loading unread counts from database...');
+      console.log('[HeaderSocial v59.0] 🔄 Loading unread counts from database...');
       
       const { count: notifCount, error: notifError } = await supabase
         .from('notificaciones')
@@ -69,10 +69,10 @@ export default function HeaderSocial({
         .eq('leida', false);
 
       if (notifError) {
-        console.error('[HeaderSocial v57.0] ❌ Error loading notifications count:', notifError);
+        console.error('[HeaderSocial v59.0] ❌ Error loading notifications count:', notifError);
       } else {
         setUnreadNotifications(notifCount || 0);
-        console.log('[HeaderSocial v57.0] ✅ Unread notifications:', notifCount || 0);
+        console.log('[HeaderSocial v59.0] ✅ Unread notifications:', notifCount || 0);
       }
 
       const { data: chatsData, error: chatsError } = await supabase
@@ -81,7 +81,7 @@ export default function HeaderSocial({
         .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
 
       if (chatsError) {
-        console.error('[HeaderSocial v57.0] ❌ Error loading chats:', chatsError);
+        console.error('[HeaderSocial v59.0] ❌ Error loading chats:', chatsError);
       } else if (chatsData) {
         let totalUnread = 0;
         for (const chat of chatsData) {
@@ -98,10 +98,10 @@ export default function HeaderSocial({
           }
         }
         setUnreadMessages(totalUnread);
-        console.log('[HeaderSocial v57.0] ✅ Unread messages:', totalUnread);
+        console.log('[HeaderSocial v59.0] ✅ Unread messages:', totalUnread);
       }
     } catch (error) {
-      console.error('[HeaderSocial v57.0] ❌ Error loading unread counts:', error);
+      console.error('[HeaderSocial v59.0] ❌ Error loading unread counts:', error);
     }
   }, [user]);
 
@@ -124,7 +124,7 @@ export default function HeaderSocial({
   useEffect(() => {
     if (!user) return;
 
-    console.log('[HeaderSocial v57.0] 🔄 Setting up real-time subscriptions for user:', user.id);
+    console.log('[HeaderSocial v59.0] 🔄 Setting up real-time subscriptions for user:', user.id);
 
     const subscription = supabase
       .channel('header-social-updates')
@@ -137,7 +137,7 @@ export default function HeaderSocial({
           filter: `usuario_id=eq.${user.id}`,
         },
         () => {
-          console.log('[HeaderSocial v57.0] 🔔 Notification update detected, reloading count...');
+          console.log('[HeaderSocial v59.0] 🔔 Notification update detected, reloading count...');
           loadUnreadCounts();
         }
       )
@@ -149,9 +149,9 @@ export default function HeaderSocial({
           table: 'mensajes',
         },
         (payload) => {
-          console.log('[HeaderSocial v57.0] 💬 Message UPDATE detected:', payload.new);
+          console.log('[HeaderSocial v59.0] 💬 Message UPDATE detected:', payload.new);
           if (payload.new && (payload.new as any).leido === true) {
-            console.log('[HeaderSocial v57.0] ✅ Message marked as read, reloading counts...');
+            console.log('[HeaderSocial v59.0] ✅ Message marked as read, reloading counts...');
             loadUnreadCounts();
           }
         }
@@ -164,16 +164,16 @@ export default function HeaderSocial({
           table: 'mensajes',
         },
         () => {
-          console.log('[HeaderSocial v57.0] 💬 New message INSERT detected, reloading count...');
+          console.log('[HeaderSocial v59.0] 💬 New message INSERT detected, reloading count...');
           loadUnreadCounts();
         }
       )
       .subscribe((status) => {
-        console.log('[HeaderSocial v57.0] 📡 Subscription status:', status);
+        console.log('[HeaderSocial v59.0] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[HeaderSocial v57.0] 🔄 Cleaning up subscriptions');
+      console.log('[HeaderSocial v59.0] 🔄 Cleaning up subscriptions');
       supabase.removeChannel(subscription);
     };
   }, [user, loadUnreadCounts]);
@@ -191,7 +191,7 @@ export default function HeaderSocial({
 
     setSearchLoading(true);
     try {
-      console.log('[HeaderSocial v57.0] 🔍 Searching for:', query);
+      console.log('[HeaderSocial v59.0] 🔍 Searching for:', query);
 
       const cleanQuery = query.replace('@', '').trim().toLowerCase();
       
@@ -202,10 +202,10 @@ export default function HeaderSocial({
         .limit(10);
 
       if (usersError) {
-        console.error('[HeaderSocial v57.0] ❌ Error searching users:', usersError);
+        console.error('[HeaderSocial v59.0] ❌ Error searching users:', usersError);
       }
 
-      console.log('[HeaderSocial v57.0] 🔍 Searching locals with query:', cleanQuery);
+      console.log('[HeaderSocial v59.0] 🔍 Searching locals with query:', cleanQuery);
       
       const { data: localsData, error: localsError } = await supabase
         .from('locales')
@@ -230,10 +230,10 @@ export default function HeaderSocial({
         .limit(10);
 
       if (localsError) {
-        console.error('[HeaderSocial v57.0] ❌ Error searching locals:', localsError);
+        console.error('[HeaderSocial v59.0] ❌ Error searching locals:', localsError);
       }
 
-      console.log('[HeaderSocial v57.0] ✅ Found locals:', localsData?.length || 0);
+      console.log('[HeaderSocial v59.0] ✅ Found locals:', localsData?.length || 0);
 
       const results: SearchResult[] = [
         ...(usersData || []).map(u => ({
@@ -255,10 +255,10 @@ export default function HeaderSocial({
         })),
       ];
 
-      console.log('[HeaderSocial v57.0] 📊 Search results:', results.length);
+      console.log('[HeaderSocial v59.0] 📊 Search results:', results.length);
       setSearchResults(results);
     } catch (error) {
-      console.error('[HeaderSocial v57.0] ❌ Error searching:', error);
+      console.error('[HeaderSocial v59.0] ❌ Error searching:', error);
     } finally {
       setSearchLoading(false);
     }
@@ -274,7 +274,7 @@ export default function HeaderSocial({
 
   const handleSearchResultPress = (result: SearchResult) => {
     try {
-      console.log('[HeaderSocial v57.0] 🔗 Navigating to:', result.type, result.id);
+      console.log('[HeaderSocial v59.0] 🔗 Navigating to:', result.type, result.id);
       
       setShowSearch(false);
       setSearchQuery('');
@@ -287,11 +287,11 @@ export default function HeaderSocial({
           router.push(`/perfil/usuario?userId=${result.id}`);
         }
       } else {
-        console.log('[HeaderSocial v57.0] 🏢 Navigating to local profile:', result.id);
+        console.log('[HeaderSocial v59.0] 🏢 Navigating to local profile:', result.id);
         router.push(`/perfil/local?localId=${result.id}`);
       }
     } catch (error) {
-      console.error('[HeaderSocial v57.0] ❌ Error navigating to profile:', error);
+      console.error('[HeaderSocial v59.0] ❌ Error navigating to profile:', error);
       Alert.alert('Error', 'No se pudo abrir el perfil');
     }
   };
@@ -354,7 +354,7 @@ export default function HeaderSocial({
               onPress={() => router.push('/(tabs)/perfil/chats')}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={Platform.OS === 'ios' ? 22 : 20} color={colors.headerText} />
+              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={Platform.OS === 'ios' ? 22 : 18} color={colors.headerText} />
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -369,7 +369,7 @@ export default function HeaderSocial({
               onPress={() => router.push('/(tabs)/perfil/notificaciones')}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={Platform.OS === 'ios' ? 22 : 20} color={colors.headerText} />
+              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={Platform.OS === 'ios' ? 22 : 18} color={colors.headerText} />
               {unreadNotifications > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -384,7 +384,7 @@ export default function HeaderSocial({
               onPress={() => setShowSearch(true)}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 22 : 20} color={colors.headerText} />
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 22 : 18} color={colors.headerText} />
             </TouchableOpacity>
 
             {(onCreatePress || onCreatePost) && (
@@ -393,7 +393,7 @@ export default function HeaderSocial({
                 onPress={onCreatePress || onCreatePost}
                 activeOpacity={0.7}
               >
-                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={Platform.OS === 'ios' ? 22 : 20} color={colors.headerText} />
+                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={Platform.OS === 'ios' ? 22 : 18} color={colors.headerText} />
               </TouchableOpacity>
             )}
           </View>
@@ -420,11 +420,11 @@ export default function HeaderSocial({
               }}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={Platform.OS === 'ios' ? 24 : 22} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={Platform.OS === 'ios' ? 24 : 20} color={colors.headerText} />
             </TouchableOpacity>
             
             <View style={styles.searchInputContainer}>
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 20 : 18} color={colors.headerText} />
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 20 : 16} color={colors.headerText} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Buscar usuarios o locales..."
@@ -443,7 +443,7 @@ export default function HeaderSocial({
                   }}
                   activeOpacity={0.7}
                 >
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={Platform.OS === 'ios' ? 20 : 18} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={Platform.OS === 'ios' ? 20 : 16} color={colors.headerText} />
                 </TouchableOpacity>
               )}
             </View>
@@ -487,9 +487,9 @@ export default function HeaderSocial({
 }
 
 const styles = StyleSheet.create({
-  // ✅ ANDROID FIX v58.0: Unified header padding matching Explorar page
+  // ✅ ANDROID FIX v59.0: Minimal header padding to avoid clipping
   header: {
-    paddingTop: 50, // Same on both platforms - matches Explorar
+    paddingTop: Platform.OS === 'ios' ? 50 : 44,
     paddingBottom: Platform.OS === 'ios' ? 10 : 8,
     paddingHorizontal: 16,
   },
@@ -504,9 +504,9 @@ const styles = StyleSheet.create({
     gap: 12,
     flex: 1,
   },
-  // ✅ ANDROID FIX v58.0: Reduced font size on Android to match iOS visual hierarchy
+  // ✅ ANDROID FIX v59.0: Significantly reduced font size on Android (25% smaller)
   headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 28, // 12.5% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 32 : 24,
     fontWeight: 'bold',
     color: colors.headerText,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
@@ -547,9 +547,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  // ✅ ANDROID FIX v58.0: Unified search header padding matching Explorar
+  // ✅ ANDROID FIX v59.0: Minimal search header padding to avoid clipping
   searchHeader: {
-    paddingTop: 50, // Same on both platforms - matches Explorar
+    paddingTop: Platform.OS === 'ios' ? 50 : 44,
     paddingBottom: Platform.OS === 'ios' ? 10 : 8,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: Platform.OS === 'ios' ? 16 : 14,
+    fontSize: Platform.OS === 'ios' ? 16 : 13,
     color: colors.headerText,
     fontWeight: '500',
   },
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   },
   searchLoadingText: {
     marginTop: 16,
-    fontSize: Platform.OS === 'ios' ? 16 : 14,
+    fontSize: Platform.OS === 'ios' ? 16 : 13,
     color: colors.textSecondary,
   },
   searchResultsList: {
@@ -621,24 +621,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchResultName: {
-    fontSize: Platform.OS === 'ios' ? 16 : 14,
+    fontSize: Platform.OS === 'ios' ? 16 : 13,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
   searchResultUsername: {
-    fontSize: Platform.OS === 'ios' ? 14 : 13,
+    fontSize: Platform.OS === 'ios' ? 14 : 12,
     color: colors.textSecondary,
     marginBottom: 2,
   },
   searchResultType: {
-    fontSize: Platform.OS === 'ios' ? 13 : 12,
+    fontSize: Platform.OS === 'ios' ? 13 : 11,
     color: colors.primary,
     fontWeight: '600',
     textTransform: 'capitalize',
   },
   searchResultLocation: {
-    fontSize: Platform.OS === 'ios' ? 12 : 11,
+    fontSize: Platform.OS === 'ios' ? 12 : 10,
     color: colors.textSecondary,
     marginTop: 2,
   },
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981' + '20',
   },
   searchResultBadgeText: {
-    fontSize: Platform.OS === 'ios' ? 12 : 11,
+    fontSize: Platform.OS === 'ios' ? 12 : 10,
     fontWeight: '700',
     color: colors.primary,
   },
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   searchEmptyText: {
-    fontSize: Platform.OS === 'ios' ? 20 : 18,
+    fontSize: Platform.OS === 'ios' ? 20 : 16,
     fontWeight: '700',
     color: colors.text,
     marginTop: 16,
@@ -675,9 +675,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   searchEmptySubtext: {
-    fontSize: Platform.OS === 'ios' ? 15 : 14,
+    fontSize: Platform.OS === 'ios' ? 15 : 12,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: Platform.OS === 'ios' ? 22 : 20,
+    lineHeight: Platform.OS === 'ios' ? 22 : 18,
   },
 });

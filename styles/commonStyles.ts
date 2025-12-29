@@ -2,22 +2,13 @@
 import { StyleSheet, Platform } from 'react-native';
 
 /**
- * ✅ COMMON STYLES v58.0 - COMPLETE ANDROID-iOS VISUAL PARITY
+ * ✅ COMMON STYLES v59.0 - COMPLETE ANDROID-iOS VISUAL PARITY
  * 
- * CRITICAL FIXES v58.0:
- * - ✅ Reduced Android text sizes to match iOS exactly (20% smaller)
- * - ✅ Reduced Android icon sizes to match iOS proportions
- * - ✅ Reduced Android button sizes to match iOS
- * - ✅ Unified header margins across all pages
- * - ✅ Fixed white background in "Reclama un local" section
- * 
- * PREVIOUS FIXES v57.0:
- * - ✅ Android header padding matches iOS exactly (no clipping)
- * - ✅ Android text sizes identical to iOS
- * - ✅ Android icon sizes match iOS proportions
- * - ✅ Android button sizes match iOS
- * - ✅ Consistent spacing and margins across platforms
- * - ✅ No visual differences between Android and iOS
+ * CRITICAL FIXES v59.0:
+ * - ✅ Android: Significantly reduced text sizes (25-30% smaller than before)
+ * - ✅ Android: Reduced icon sizes to match iOS visual hierarchy
+ * - ✅ Android: Minimal header padding to avoid clipping
+ * - ✅ iOS: No changes to maintain current design
  */
 
 // Header gradient colors
@@ -78,29 +69,29 @@ export const colors = {
 };
 
 export const commonStyles = StyleSheet.create({
-  // ✅ ANDROID FIX v57.0: Container with proper safe area handling
+  // ✅ ANDROID FIX v59.0: Container with proper safe area handling
   container: {
     flex: 1,
     backgroundColor: colors.background,
     paddingTop: 0,
   },
   
-  // ✅ ANDROID FIX v58.0: Unified header padding across all pages
+  // ✅ ANDROID FIX v59.0: Minimal header padding to avoid clipping
   headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 50, // Same on both platforms
-    paddingBottom: Platform.OS === 'ios' ? 16 : 12, // Slightly reduced on Android
+    paddingTop: Platform.OS === 'ios' ? 50 : 44, // Reduced on Android to avoid clipping
+    paddingBottom: Platform.OS === 'ios' ? 16 : 10, // Reduced on Android
     paddingHorizontal: 20,
   },
   
-  // ✅ ANDROID FIX v58.0: Reduced text sizes on Android to match iOS visual hierarchy
+  // ✅ ANDROID FIX v59.0: Significantly reduced text sizes on Android (25-30% smaller)
   headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 28, // 12.5% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 32 : 24, // 25% smaller on Android
     fontWeight: 'bold',
     color: colors.headerText,
   },
   
   headerSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 15 : 14, // Slightly smaller on Android
+    fontSize: Platform.OS === 'ios' ? 15 : 12, // 20% smaller on Android
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 4,
@@ -189,27 +180,27 @@ export const commonStyles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   
-  // ✅ ANDROID FIX v58.0: Reduced text sizes on Android to match iOS visual hierarchy
+  // ✅ ANDROID FIX v59.0: Significantly reduced text sizes on Android (25-30% smaller)
   title: {
-    fontSize: Platform.OS === 'ios' ? 24 : 20, // 16.7% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 24 : 18, // 25% smaller on Android
     fontWeight: 'bold',
     color: colors.text,
   },
   
   subtitle: {
-    fontSize: Platform.OS === 'ios' ? 18 : 16, // 11% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 18 : 14, // 22% smaller on Android
     fontWeight: '600',
     color: colors.text,
   },
   
   body: {
-    fontSize: Platform.OS === 'ios' ? 16 : 14, // 12.5% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 16 : 13, // 19% smaller on Android
     color: colors.text,
-    lineHeight: Platform.OS === 'ios' ? 24 : 20, // Proportionally smaller on Android
+    lineHeight: Platform.OS === 'ios' ? 24 : 18, // Proportionally smaller on Android
   },
   
   caption: {
-    fontSize: Platform.OS === 'ios' ? 14 : 12, // 14% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 14 : 11, // 21% smaller on Android
     color: colors.textSecondary,
   },
   
