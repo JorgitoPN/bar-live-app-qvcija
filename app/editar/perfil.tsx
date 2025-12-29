@@ -19,11 +19,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { trackUsernameChange, isUsernameReserved } from '@/utils/usernameGenerator';
 import { UsernameSuggestions } from '@/components/auth/UsernameSuggestions';
-import { decode } from 'base64-arraybuffer';
 
 export default function EditarPerfilScreen() {
   const router = useRouter();
@@ -33,7 +33,7 @@ export default function EditarPerfilScreen() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const [avatar, setAvatar] = useState('');
-  const [avatarLocalUri, setAvatarLocalUri] = useState(''); // Local URI for preview
+  const [avatarLocalUri, setAvatarLocalUri] = useState('');
   const [nombre, setNombre] = useState('');
   const [username, setUsername] = useState('');
   const [originalUsername, setOriginalUsername] = useState('');
@@ -62,7 +62,6 @@ export default function EditarPerfilScreen() {
       }
 
       if (data) {
-        // Filter out file:// URLs
         const safeAvatar = data.avatar && !data.avatar.startsWith('file://') ? data.avatar : '';
         setAvatar(safeAvatar);
         setAvatarLocalUri(safeAvatar);
@@ -109,8 +108,18 @@ export default function EditarPerfilScreen() {
       console.log('[EditarPerfil v48.0] 📤 Uploading avatar to Supabase Storage...');
       setUploadingImage(true);
 
-      // Read the file as base64
-      const response = await fetch(uri);
+      // ✅ CRITICAL FIX v48.0: Convert image to PNG format to avoid MIME type issues
+      console.log('[EditarPerfil v48.0] 🔄 Converting image to PNG format...');
+      const manipResult = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 800 } }],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.PNG }
+      );
+
+      console.log('[EditarPerfil v48.0] ✅ Image converted to PNG:', manipResult.uri);
+
+      // Read the file as blob
+      const response = await fetch(manipResult.uri);
       const blob = await response.blob();
       const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
         const reader = new FileReader();
@@ -119,9 +128,8 @@ export default function EditarPerfilScreen() {
         reader.readAsArrayBuffer(blob);
       });
 
-      // Generate unique filename
-      const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${user!.id}-${Date.now()}.${fileExt}`;
+      // Generate unique filename with PNG extension
+      const fileName = `${user!.id}-${Date.now()}.png`;
       const filePath = `${user!.id}/${fileName}`;
 
       console.log('[EditarPerfil v48.0] 📁 Uploading to path:', filePath);
@@ -130,7 +138,7 @@ export default function EditarPerfilScreen() {
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, arrayBuffer, {
-          contentType: `image/${fileExt}`,
+          contentType: 'image/png',
           upsert: false,
         });
 
@@ -323,7 +331,12 @@ export default function EditarPerfilScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol 
+            ios_icon_name="chevron.left" 
+            android_material_icon_name="arrow_back" 
+            size={24} 
+            color={colors.headerText} 
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Editar Perfil</Text>
         <TouchableOpacity 
@@ -359,18 +372,28 @@ export default function EditarPerfilScreen() {
                 <Image 
                   source={{ uri: avatarLocalUri }} 
                   style={styles.avatar}
-                  key={avatarLocalUri} // Force re-render on change
+                  key={avatarLocalUri}
                 />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <IconSymbol name="person.fill" size={48} color={colors.textSecondary} />
+                  <IconSymbol 
+                    ios_icon_name="person.fill" 
+                    android_material_icon_name="person" 
+                    size={48} 
+                    color={colors.textSecondary} 
+                  />
                 </View>
               )}
               <View style={styles.avatarOverlay}>
                 {uploadingImage ? (
                   <ActivityIndicator color={colors.headerText} size="small" />
                 ) : (
-                  <IconSymbol name="camera.fill" size={24} color={colors.headerText} />
+                  <IconSymbol 
+                    ios_icon_name="camera.fill" 
+                    android_material_icon_name="camera_alt" 
+                    size={24} 
+                    color={colors.headerText} 
+                  />
                 )}
               </View>
             </TouchableOpacity>
@@ -407,7 +430,6 @@ export default function EditarPerfilScreen() {
                 Solo letras, números, puntos y guiones bajos
               </Text>
               
-              {/* Username suggestions */}
               {nombre && (
                 <UsernameSuggestions
                   name={nombre}

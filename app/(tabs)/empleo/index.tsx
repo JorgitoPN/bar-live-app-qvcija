@@ -23,6 +23,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import PermissionGuard from '@/components/social/PermissionGuard';
 
 const { width } = Dimensions.get('window');
 
@@ -103,7 +104,7 @@ interface PerfilProfesional {
   };
 }
 
-export default function EmpleoScreen() {
+function EmpleoContent() {
   const router = useRouter();
   const { user } = useAuth();
   const { currentMode } = useMode();
@@ -535,18 +536,33 @@ export default function EmpleoScreen() {
 
           <View style={styles.ofertaDetalles}>
             <View style={styles.detalleChip}>
-              <IconSymbol name="briefcase" size={14} color={colors.primary} />
+              <IconSymbol 
+                ios_icon_name="briefcase.fill" 
+                android_material_icon_name="work" 
+                size={14} 
+                color={colors.primary} 
+              />
               <Text style={styles.detalleTexto}>{oferta.tipo}</Text>
             </View>
             {oferta.salario && (
               <View style={styles.detalleChip}>
-                <IconSymbol name="eurosign.circle" size={14} color={colors.primary} />
+                <IconSymbol 
+                  ios_icon_name="eurosign.circle.fill" 
+                  android_material_icon_name="euro" 
+                  size={14} 
+                  color={colors.primary} 
+                />
                 <Text style={styles.detalleTexto}>{oferta.salario}</Text>
               </View>
             )}
             {oferta.provincia && (
               <View style={styles.detalleChip}>
-                <IconSymbol name="mappin" size={14} color={colors.primary} />
+                <IconSymbol 
+                  ios_icon_name="mappin.circle.fill" 
+                  android_material_icon_name="location_on" 
+                  size={14} 
+                  color={colors.primary} 
+                />
                 <Text style={styles.detalleTexto}>{oferta.provincia}</Text>
               </View>
             )}
@@ -596,7 +612,12 @@ export default function EmpleoScreen() {
             />
           ) : (
             <View style={styles.perfilFotoPlaceholder}>
-              <IconSymbol name="person.circle" size={40} color={colors.textSecondary} />
+              <IconSymbol 
+                ios_icon_name="person.circle.fill" 
+                android_material_icon_name="account_circle" 
+                size={40} 
+                color={colors.textSecondary} 
+              />
             </View>
           )}
           
@@ -618,13 +639,23 @@ export default function EmpleoScreen() {
         <View style={styles.ofertaDetalles}>
           {perfil.disponibilidad && (
             <View style={styles.detalleChip}>
-              <IconSymbol name="clock" size={14} color={colors.primary} />
+              <IconSymbol 
+                ios_icon_name="clock.fill" 
+                android_material_icon_name="schedule" 
+                size={14} 
+                color={colors.primary} 
+              />
               <Text style={styles.detalleTexto}>{perfil.disponibilidad}</Text>
             </View>
           )}
           {perfil.provincia && (
             <View style={styles.detalleChip}>
-              <IconSymbol name="mappin" size={14} color={colors.primary} />
+              <IconSymbol 
+                ios_icon_name="mappin.circle.fill" 
+                android_material_icon_name="location_on" 
+                size={14} 
+                color={colors.primary} 
+              />
               <Text style={styles.detalleTexto}>{perfil.provincia}</Text>
             </View>
           )}
@@ -686,16 +717,26 @@ export default function EmpleoScreen() {
         <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Bolsa de Trabajo</Text>
 
         <View style={styles.searchContainer}>
-          <IconSymbol name="magnifyingglass" size={20} color="#9CA3AF" />
+          <IconSymbol 
+            ios_icon_name="magnifyingglass" 
+            android_material_icon_name="search" 
+            size={20} 
+            color={colors.white} 
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar ofertas o profesionales..."
-            placeholderTextColor={colors.white}
+            placeholderTextColor="rgba(255, 255, 255, 0.7)"
             value={busqueda}
             onChangeText={setBusqueda}
           />
           <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
-            <IconSymbol name="slider.horizontal.3" size={20} color={colors.white} />
+            <IconSymbol 
+              ios_icon_name="slider.horizontal.3" 
+              android_material_icon_name="tune" 
+              size={20} 
+              color={colors.white} 
+            />
           </TouchableOpacity>
         </View>
 
@@ -750,7 +791,12 @@ export default function EmpleoScreen() {
               ofertasFiltradas.map(renderOferta)
             ) : (
               <View style={styles.emptyState}>
-                <IconSymbol name="briefcase" size={64} color={colors.textSecondary} />
+                <IconSymbol 
+                  ios_icon_name="briefcase.fill" 
+                  android_material_icon_name="work" 
+                  size={64} 
+                  color={colors.textSecondary} 
+                />
                 <Text style={styles.emptyStateText}>
                   No hay ofertas de trabajo disponibles
                 </Text>
@@ -761,7 +807,12 @@ export default function EmpleoScreen() {
               perfilesFiltrados.map(renderPerfil)
             ) : (
               <View style={styles.emptyState}>
-                <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
+                <IconSymbol 
+                  ios_icon_name="person.2.fill" 
+                  android_material_icon_name="people" 
+                  size={64} 
+                  color={colors.textSecondary} 
+                />
                 <Text style={styles.emptyStateText}>
                   No hay perfiles profesionales disponibles
                 </Text>
@@ -769,7 +820,6 @@ export default function EmpleoScreen() {
             )
           )}
 
-          {/* Loading indicator for infinite scroll */}
           {loadingMore && (
             <View style={styles.loadingMoreContainer}>
               <ActivityIndicator size="small" color={colors.primary} />
@@ -777,7 +827,6 @@ export default function EmpleoScreen() {
             </View>
           )}
 
-          {/* End of list indicator */}
           {!hasMoreOfertas && ofertasFiltradas.length > 0 && tabActual === 'ofertas' && (
             <View style={styles.endOfListContainer}>
               <Text style={styles.endOfListText}>No hay más ofertas</Text>
@@ -800,7 +849,12 @@ export default function EmpleoScreen() {
             colors={[colors.primary, colors.secondary]}
             style={styles.fabGradient}
           >
-            <IconSymbol name="plus" size={28} color={colors.white} />
+            <IconSymbol 
+              ios_icon_name="plus" 
+              android_material_icon_name="add" 
+              size={28} 
+              color={colors.white} 
+            />
           </LinearGradient>
         </TouchableOpacity>
       )}
@@ -820,7 +874,12 @@ export default function EmpleoScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
               <TouchableOpacity onPress={() => setMostrarFiltros(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol 
+                  ios_icon_name="xmark" 
+                  android_material_icon_name="close" 
+                  size={24} 
+                  color={colors.text} 
+                />
               </TouchableOpacity>
             </View>
 
@@ -941,7 +1000,12 @@ export default function EmpleoScreen() {
               style={styles.detailHeader}
             >
               <TouchableOpacity onPress={() => setShowProfileDetail(false)}>
-                <IconSymbol name="chevron.left" size={24} color={colors.white} />
+                <IconSymbol 
+                  ios_icon_name="chevron.left" 
+                  android_material_icon_name="arrow_back" 
+                  size={24} 
+                  color={colors.white} 
+                />
               </TouchableOpacity>
               <Text style={styles.detailHeaderTitle}>Perfil Profesional</Text>
               <View style={{ width: 24 }} />
@@ -957,7 +1021,12 @@ export default function EmpleoScreen() {
                   />
                 ) : (
                   <View style={[styles.detailProfilePhoto, styles.perfilFotoPlaceholder]}>
-                    <IconSymbol name="person.circle" size={60} color={colors.textSecondary} />
+                    <IconSymbol 
+                      ios_icon_name="person.circle.fill" 
+                      android_material_icon_name="account_circle" 
+                      size={60} 
+                      color={colors.textSecondary} 
+                    />
                   </View>
                 )}
                 <Text style={styles.detailProfileName}>{selectedProfile.nombre_completo}</Text>
@@ -1048,7 +1117,12 @@ export default function EmpleoScreen() {
               style={styles.detailHeader}
             >
               <TouchableOpacity onPress={() => setShowOfferDetail(false)}>
-                <IconSymbol name="chevron.left" size={24} color={colors.white} />
+                <IconSymbol 
+                  ios_icon_name="chevron.left" 
+                  android_material_icon_name="arrow_back" 
+                  size={24} 
+                  color={colors.white} 
+                />
               </TouchableOpacity>
               <Text style={styles.detailHeaderTitle}>Oferta de Trabajo</Text>
               <View style={{ width: 24 }} />
@@ -1132,6 +1206,23 @@ export default function EmpleoScreen() {
         onClose={() => setShowLoginModal(false)}
       />
     </View>
+  );
+}
+
+export default function EmpleoScreen() {
+  const { currentMode } = useMode();
+  
+  // ✅ Restrict access for free plan users
+  if (currentMode === 'cliente') {
+    // Users in client mode always have access
+    return <EmpleoContent />;
+  }
+  
+  // For local owners, check if they have a paid plan
+  return (
+    <PermissionGuard requireSocialProfile={true}>
+      <EmpleoContent />
+    </PermissionGuard>
   );
 }
 
