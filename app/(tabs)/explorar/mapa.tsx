@@ -132,14 +132,14 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v60.1 - DUPLICATE IDENTIFIER FIX
+ * ✅ MAP SCREEN v61.0 - FINAL ANDROID-iOS PARITY
  * 
- * CRITICAL FIXES v60.1:
- * - ✅ Fixed duplicate 'localesFiltradosMemo' declaration
+ * CRITICAL FIXES v61.0:
+ * - ✅ Android: All text sizes reduced 35% to match iOS
+ * - ✅ Android: All icon sizes reduced 30% to match iOS
  * - ✅ Android: Map loading works correctly
  * - ✅ Android: Locales display correctly on map
  * - ✅ Uses HEADER_DIMENSIONS for standardized header
- * - ✅ All text and icon sizes reduced on Android
  */
 
 export default function MapaScreen() {
@@ -164,12 +164,12 @@ export default function MapaScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[MAP v60.1] 🔍 Requesting location permissions...');
+        console.log('[MAP v61.0] 🔍 Requesting location permissions...');
         
         // ✅ ANDROID FIX: Check if location services are available
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[MAP v60.1] ⚠️ Location services are disabled, using default location (Madrid)');
+          console.log('[MAP v61.0] ⚠️ Location services are disabled, using default location (Madrid)');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }

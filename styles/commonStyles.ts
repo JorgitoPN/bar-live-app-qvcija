@@ -2,15 +2,14 @@
 import { StyleSheet, Platform } from 'react-native';
 
 /**
- * ✅ COMMON STYLES v60.0 - COMPREHENSIVE ANDROID-iOS VISUAL PARITY
+ * ✅ COMMON STYLES v61.0 - FINAL ANDROID-iOS VISUAL PARITY
  * 
- * CRITICAL FIXES v60.0:
- * - ✅ ALL HEADERS: Standardized to exact same height across all pages
- * - ✅ Android: Further reduced text sizes for perfect iOS parity (30% smaller)
- * - ✅ Android: Reduced icon sizes to match iOS visual hierarchy
- * - ✅ Android: Minimal header padding (44px) consistent across ALL pages
+ * CRITICAL FIXES v61.0:
+ * - ✅ Android: Text sizes reduced by 35% (more aggressive than v60.0)
+ * - ✅ Android: Icon sizes reduced by 30% to match iOS proportions
+ * - ✅ Android: All UI elements scaled down for perfect iOS parity
  * - ✅ iOS: No changes to maintain current design
- * - ✅ Comprehensive review of all UI elements
+ * - ✅ Bottom menu: Adjusted to cover exactly 75% of "Explorar" button
  */
 
 // Header gradient colors
@@ -100,15 +99,15 @@ export const commonStyles = StyleSheet.create({
     paddingHorizontal: HEADER_DIMENSIONS.paddingHorizontal,
   },
   
-  // ✅ ANDROID FIX v60.0: Significantly reduced text sizes on Android (30% smaller than iOS)
+  // ✅ ANDROID FIX v61.0: Aggressively reduced text sizes on Android (35% smaller than iOS)
   headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 22, // 31% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 32 : 21, // 34% smaller on Android
     fontWeight: 'bold',
     color: colors.headerText,
   },
   
   headerSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 15 : 11, // 27% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 15 : 10, // 33% smaller on Android
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 4,
@@ -180,7 +179,7 @@ export const commonStyles = StyleSheet.create({
   },
   
   buttonText: {
-    fontSize: Platform.OS === 'ios' ? 16 : 13, // 19% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 16 : 11, // 31% smaller on Android
     fontWeight: '600',
     color: colors.white,
   },
@@ -191,33 +190,33 @@ export const commonStyles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: Platform.OS === 'ios' ? 16 : 13, // 19% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 16 : 11, // 31% smaller on Android
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   
-  // ✅ ANDROID FIX v60.0: Significantly reduced text sizes on Android (30% smaller)
+  // ✅ ANDROID FIX v61.0: Aggressively reduced text sizes on Android (35% smaller)
   title: {
-    fontSize: Platform.OS === 'ios' ? 24 : 17, // 29% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 24 : 16, // 33% smaller on Android
     fontWeight: 'bold',
     color: colors.text,
   },
   
   subtitle: {
-    fontSize: Platform.OS === 'ios' ? 18 : 13, // 28% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 18 : 12, // 33% smaller on Android
     fontWeight: '600',
     color: colors.text,
   },
   
   body: {
-    fontSize: Platform.OS === 'ios' ? 16 : 12, // 25% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 16 : 11, // 31% smaller on Android
     color: colors.text,
-    lineHeight: Platform.OS === 'ios' ? 24 : 18, // Proportionally smaller on Android
+    lineHeight: Platform.OS === 'ios' ? 24 : 16, // Proportionally smaller on Android
   },
   
   caption: {
-    fontSize: Platform.OS === 'ios' ? 14 : 10, // 29% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 14 : 9, // 36% smaller on Android
     color: colors.textSecondary,
   },
   

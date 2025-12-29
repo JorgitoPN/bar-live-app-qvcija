@@ -67,12 +67,12 @@ function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /**
- * ✅ EXPLORAR SCREEN v60.0 - COMPREHENSIVE ANDROID-iOS PARITY
+ * ✅ EXPLORAR SCREEN v61.0 - FINAL ANDROID-iOS PARITY
  * 
- * CRITICAL FIXES v60.0:
+ * CRITICAL FIXES v61.0:
+ * - ✅ Android: All text sizes reduced 35% to match iOS
+ * - ✅ Android: All icon sizes reduced 30% to match iOS
  * - ✅ Android: Uses HEADER_DIMENSIONS for standardized header
- * - ✅ Android: All text sizes reduced 30% to match iOS
- * - ✅ Android: All icon sizes reduced to match iOS
  * - ✅ Android: COMPLETELY REMOVED white background from "Reclama un local" banner
  * - ✅ iOS: No changes to maintain current design
  */
@@ -641,13 +641,13 @@ export default function ExplorarScreen() {
                 style={styles.headerIconButton}
                 onPress={() => router.push('/explorar/mapa')}
               >
-                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={Platform.OS === 'ios' ? 24 : 18} color={colors.headerText} />
+                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={Platform.OS === 'ios' ? 24 : 17} color={colors.headerText} />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.searchContainer}>
-            <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 20 : 15} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 20 : 14} color={colors.textSecondary} />
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar locales..."
@@ -656,7 +656,7 @@ export default function ExplorarScreen() {
               onChangeText={setBusqueda}
             />
             <TouchableOpacity onPress={() => setMostrarFiltros(true)} style={styles.filterButtonContainer}>
-              <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle.fill" android_material_icon_name="filter_list" size={Platform.OS === 'ios' ? 24 : 18} color={colors.primary} />
+              <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle.fill" android_material_icon_name="filter_list" size={Platform.OS === 'ios' ? 24 : 17} color={colors.primary} />
               {hasActiveFilters && (
                 <View style={styles.filterBadge}>
                   <View style={styles.filterBadgeDot} />
@@ -764,7 +764,7 @@ export default function ExplorarScreen() {
                 <IconSymbol 
                   ios_icon_name="building.2.fill" 
                   android_material_icon_name="store"
-                  size={Platform.OS === 'ios' ? 22 : 17} 
+                  size={Platform.OS === 'ios' ? 22 : 15} 
                   color={colors.primary} 
                 />
               </View>
@@ -780,7 +780,7 @@ export default function ExplorarScreen() {
                 <IconSymbol 
                   ios_icon_name="chevron.right" 
                   android_material_icon_name="chevron_right"
-                  size={Platform.OS === 'ios' ? 18 : 14} 
+                  size={Platform.OS === 'ios' ? 18 : 13} 
                   color={colors.primary} 
                 />
               </View>
@@ -903,9 +903,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  // ✅ ANDROID FIX v60.0: Significantly reduced font size on Android (31% smaller)
+  // ✅ ANDROID FIX v61.0: Aggressively reduced font size on Android (34% smaller)
   headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 22,
+    fontSize: Platform.OS === 'ios' ? 32 : 21,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -942,7 +942,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: Platform.OS === 'ios' ? 16 : 12,
+    fontSize: Platform.OS === 'ios' ? 16 : 11,
     color: colors.text,
   },
   filterButtonContainer: {
@@ -1066,14 +1066,14 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   claimLocalTitle: {
-    fontSize: Platform.OS === 'ios' ? 14 : 10,
+    fontSize: Platform.OS === 'ios' ? 14 : 9,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 2,
     letterSpacing: -0.2,
   },
   claimLocalSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 11.5 : 8.5,
+    fontSize: Platform.OS === 'ios' ? 11.5 : 8,
     color: colors.textSecondary,
     fontWeight: '500',
   },
