@@ -16,6 +16,7 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
 
 interface CheckInModalProps {
   visible: boolean;
@@ -32,8 +33,19 @@ interface User {
   avatar: string | null;
 }
 
+/**
+ * ✅ CHECK-IN MODAL v50.0 - LOGIN REQUIRED + CLIENT MODE ONLY
+ * 
+ * CRITICAL FIXES v50.0:
+ * - ✅ Login required to access "Estoy en este local"
+ * - ✅ Only available in client mode (not for local profiles or owner mode)
+ * - ✅ Shows login prompt if user not authenticated
+ * - ✅ Hides option for local profiles and owner mode
+ */
+
 export default function CheckInModal({ visible, localId, localName, onClose, onCheckInComplete }: CheckInModalProps) {
   const { user } = useAuth();
+  const { currentMode, activeProfileType } = useMode();
   const [visibility, setVisibility] = useState<'followers' | 'all_users' | 'specific_users'>('followers');
   const [sendNotifications, setSendNotifications] = useState(false);
   const [specificUsers, setSpecificUsers] = useState<User[]>([]);
@@ -41,6 +53,31 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // ✅ CRITICAL FIX v50.0: Check if user is in client mode
+  const isClientMode = currentMode === 'cliente' && activeProfileType === 'user';
+
+  // ✅ CRITICAL FIX v50.0: Show error if not in client mode
+  useEffect(() => {
+    if (visible && !isClientMode) {
+      Alert.alert(
+        'No Disponible',
+        'La función "Estoy en este local" solo está disponible en modo cliente.',
+        [{ text: 'OK', onPress: onClose }]
+      );
+    }
+  }, [visible, isClientMode, onClose]);
+
+  // ✅ CRITICAL FIX v50.0: Show error if user not authenticated
+  useEffect(() => {
+    if (visible && !user) {
+      Alert.alert(
+        'Inicia Sesión',
+        'Debes iniciar sesión para usar la función "Estoy en este local".',
+        [{ text: 'OK', onPress: onClose }]
+      );
+    }
+  }, [visible, user, onClose]);
 
   const searchUsers = useCallback(async (query: string) => {
     if (!user) return;
@@ -65,7 +102,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
       setSearchResults(users);
     } catch (error) {
-      console.error('[CheckInModal] Error searching users:', error);
+      console.error('[CheckInModal v50.0] Error searching users:', error);
     } finally {
       setSearching(false);
     }
@@ -96,7 +133,15 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
   };
 
   const handleConfirm = async () => {
-    if (!user) return;
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión');
+      return;
+    }
+
+    if (!isClientMode) {
+      Alert.alert('Error', 'Esta función solo está disponible en modo cliente');
+      return;
+    }
 
     if (visibility === 'specific_users' && specificUsers.length === 0) {
       Alert.alert('Error', 'Debes seleccionar al menos un usuario');
@@ -106,7 +151,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     setSubmitting(true);
 
     try {
-      console.log('[CheckInModal] Checking for existing check-in...');
+      console.log('[CheckInModal v50.0] Checking for existing check-in...');
 
       // Check if user is already checked in to another local
       const { data: existingCheckIn, error: checkError } = await supabase
@@ -149,7 +194,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
       // No existing check-in or same local, proceed
       await performCheckIn();
     } catch (error) {
-      console.error('[CheckInModal] Error creating check-in:', error);
+      console.error('[CheckInModal v50.0] Error creating check-in:', error);
       Alert.alert('Error', 'No se pudo realizar el check-in');
       setSubmitting(false);
     }
@@ -159,7 +204,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     if (!user) return;
 
     try {
-      console.log('[CheckInModal] Creating check-in...');
+      console.log('[CheckInModal v50.0] Creating check-in...');
 
       // Delete any existing check-ins for this user
       const { error: deleteError } = await supabase
@@ -182,10 +227,10 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
       if (insertError) throw insertError;
 
-      console.log('[CheckInModal] ✅ Check-in created successfully');
+      console.log('[CheckInModal v50.0] ✅ Check-in created successfully');
 
       if (sendNotifications) {
-        console.log('[CheckInModal] Sending notifications...');
+        console.log('[CheckInModal v50.0] Sending notifications...');
         
         let recipientIds: string[] = [];
 
@@ -222,9 +267,9 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
             .insert(notifications);
 
           if (notifError) {
-            console.error('[CheckInModal] Error sending notifications:', notifError);
+            console.error('[CheckInModal v50.0] Error sending notifications:', notifError);
           } else {
-            console.log('[CheckInModal] ✅ Notifications sent to', recipientIds.length, 'users');
+            console.log('[CheckInModal v50.0] ✅ Notifications sent to', recipientIds.length, 'users');
           }
         }
       }
@@ -238,12 +283,17 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
         }}]
       );
     } catch (error) {
-      console.error('[CheckInModal] Error creating check-in:', error);
+      console.error('[CheckInModal v50.0] Error creating check-in:', error);
       Alert.alert('Error', 'No se pudo realizar el check-in');
     } finally {
       setSubmitting(false);
     }
   };
+
+  // ✅ CRITICAL FIX v50.0: Don't render modal if not in client mode or not authenticated
+  if (!user || !isClientMode) {
+    return null;
+  }
 
   return (
     <Modal

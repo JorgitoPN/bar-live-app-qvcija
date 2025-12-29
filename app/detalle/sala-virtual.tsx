@@ -18,11 +18,13 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import LoginPrompt from '@/components/common/LoginPrompt';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -72,6 +74,7 @@ interface Local {
   horarios_completos?: Record<string, string[]>;
   google_business_status?: string;
   estado_actual?: string;
+  propietario_id?: string;
 }
 
 const EMOTICONS = ['❤️', '🔥', '😎', '😄', '👏', '🍹', '🎶', '😍', '🤝', '👋', '🎉', '💃', '🕺', '🎊', '🥳'];
@@ -79,10 +82,22 @@ const EMOTICONS = ['❤️', '🔥', '😎', '😄', '👏', '🍹', '🎶', '�
 const CLOSING_WARNING_THRESHOLD = 30;
 const CLOSING_CRITICAL_THRESHOLD = 10;
 
+/**
+ * ✅ SALA VIRTUAL v50.0 - LOGIN REQUIRED + OWNER BUTTON HIDDEN
+ * 
+ * CRITICAL FIXES v50.0:
+ * - ✅ Login required to access Sala Virtual
+ * - ✅ Owner button hidden (only available in client mode)
+ * - ✅ Shows login prompt if user not authenticated
+ * - ✅ Auto checkout when modal closes
+ * - ✅ Volatile chat (ephemeral messages)
+ */
+
 export default function SalaVirtualScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { currentMode, activeProfileType } = useMode();
   
   const [local, setLocal] = useState<Local | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -97,6 +112,7 @@ export default function SalaVirtualScreen() {
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [closingWarningShown, setClosingWarningShown] = useState(false);
   const [minutesUntilClosing, setMinutesUntilClosing] = useState<number | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
   const chatChannelRef = useRef<RealtimeChannel | null>(null);
@@ -141,6 +157,34 @@ export default function SalaVirtualScreen() {
     ).start();
   }, [pulseAnim, glowAnim]);
 
+  // ✅ CRITICAL FIX v50.0: Check if user is owner
+  useEffect(() => {
+    const checkOwnership = async () => {
+      if (!user || !localId) return;
+
+      try {
+        const { data: localData } = await supabase
+          .from('locales')
+          .select('propietario_id')
+          .eq('id', localId)
+          .single();
+
+        if (localData && localData.propietario_id === user.id) {
+          setIsOwner(true);
+          console.log('[SalaVirtual v50.0] ✅ User IS OWNER of this local');
+        } else {
+          setIsOwner(false);
+          console.log('[SalaVirtual v50.0] ✅ User is NOT owner of this local');
+        }
+      } catch (error) {
+        console.error('[SalaVirtual v50.0] Error checking ownership:', error);
+        setIsOwner(false);
+      }
+    };
+
+    checkOwnership();
+  }, [user, localId]);
+
   const checkClosingTime = useCallback(() => {
     if (!local) return;
 
@@ -166,7 +210,7 @@ export default function SalaVirtualScreen() {
       
       setMinutesUntilClosing(totalMinutes);
       
-      console.log(`[SalaVirtual] ⏰ Tiempo hasta cierre: ${totalMinutes} minutos`);
+      console.log(`[SalaVirtual v50.0] ⏰ Tiempo hasta cierre: ${totalMinutes} minutos`);
       
       if (totalMinutes <= CLOSING_WARNING_THRESHOLD && !closingWarningShown) {
         setClosingWarningShown(true);
@@ -192,7 +236,7 @@ export default function SalaVirtualScreen() {
         }
       }
     } else if (!estadoLocal.estaAbierto) {
-      console.log('[SalaVirtual] ❌ Local cerrado, expulsando usuarios');
+      console.log('[SalaVirtual v50.0] ❌ Local cerrado, expulsando usuarios');
       setLocalClosed(true);
       
       if (chatChannelRef.current) {
@@ -227,7 +271,7 @@ export default function SalaVirtualScreen() {
 
   const loadLocalData = useCallback(async () => {
     if (!localId) {
-      console.error('[SalaVirtual] No localId provided');
+      console.error('[SalaVirtual v50.0] No localId provided');
       setLoading(false);
       Alert.alert('Error', 'No se especificó el local', [
         { text: 'OK', onPress: () => router.back() }
@@ -236,16 +280,16 @@ export default function SalaVirtualScreen() {
     }
 
     try {
-      console.log('[SalaVirtual] Loading local:', localId);
+      console.log('[SalaVirtual v50.0] Loading local:', localId);
       
       const { data, error } = await supabase
         .from('locales')
-        .select('id, nombre, imagen_url, horarios_completos, google_business_status, estado_actual')
+        .select('id, nombre, imagen_url, horarios_completos, google_business_status, estado_actual, propietario_id')
         .eq('id', localId)
         .single();
 
       if (error) {
-        console.error('[SalaVirtual] Error loading local:', error);
+        console.error('[SalaVirtual v50.0] Error loading local:', error);
         setLoading(false);
         Alert.alert('Error', 'No se pudo cargar la información del local', [
           { text: 'OK', onPress: () => router.back() }
@@ -253,13 +297,13 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      console.log('[SalaVirtual] Local loaded:', data);
+      console.log('[SalaVirtual v50.0] Local loaded:', data);
       setLocal(data);
       
       const estadoLocal = getEstadoLocal(data);
       const isOpen = estadoLocal.estaAbierto === true;
       
-      console.log('[SalaVirtual] Estado del local:', estadoLocal);
+      console.log('[SalaVirtual v50.0] Estado del local:', estadoLocal);
       
       if (!isOpen) {
         setLocalClosed(true);
@@ -277,14 +321,14 @@ export default function SalaVirtualScreen() {
         setLocalClosed(false);
       }
     } catch (error) {
-      console.error('[SalaVirtual] Error:', error);
+      console.error('[SalaVirtual v50.0] Error:', error);
       setLoading(false);
     }
   }, [localId, router]);
 
   const checkUserCheckin = useCallback(async () => {
     if (!user || !localId) {
-      console.log('[SalaVirtual] No user or localId');
+      console.log('[SalaVirtual v50.0] No user or localId');
       return false;
     }
 
@@ -298,17 +342,17 @@ export default function SalaVirtualScreen() {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[SalaVirtual] Error checking checkin:', error);
+        console.error('[SalaVirtual v50.0] Error checking checkin:', error);
         return false;
       }
 
       const checkedIn = !!data;
       setIsCheckedIn(checkedIn);
-      console.log('[SalaVirtual] User checked in:', checkedIn);
+      console.log('[SalaVirtual v50.0] User checked in:', checkedIn);
       
       return checkedIn;
     } catch (error) {
-      console.error('[SalaVirtual] Error:', error);
+      console.error('[SalaVirtual v50.0] Error:', error);
       return false;
     }
   }, [user?.id, localId]);
@@ -335,10 +379,10 @@ export default function SalaVirtualScreen() {
 
     try {
       setCheckingIn(true);
-      console.log('[SalaVirtual] 🔄 Starting check-in for user:', user.id);
+      console.log('[SalaVirtual v50.0] 🔄 Starting check-in for user:', user.id);
 
       setIsCheckedIn(true);
-      console.log('[SalaVirtual] ✅ Optimistic check-in: user is now in_room: true');
+      console.log('[SalaVirtual v50.0] ✅ Optimistic check-in: user is now in_room: true');
 
       const { error: closeError } = await supabase
         .from('sala_virtual_checkins')
@@ -350,12 +394,12 @@ export default function SalaVirtualScreen() {
         .eq('activo', true);
 
       if (closeError) {
-        console.error('[SalaVirtual] ❌ Error closing previous check-ins:', closeError);
+        console.error('[SalaVirtual v50.0] ❌ Error closing previous check-ins:', closeError);
         setIsCheckedIn(false);
         throw new Error('No se pudo cerrar la sesión anterior');
       }
 
-      console.log('[SalaVirtual] ✅ All previous check-ins closed');
+      console.log('[SalaVirtual v50.0] ✅ All previous check-ins closed');
 
       await new Promise(resolve => setTimeout(resolve, 200));
 
@@ -371,12 +415,12 @@ export default function SalaVirtualScreen() {
         .single();
 
       if (error) {
-        console.error('[SalaVirtual] ❌ Error inserting checkin:', error);
+        console.error('[SalaVirtual v50.0] ❌ Error inserting checkin:', error);
         setIsCheckedIn(false);
         throw new Error('No se pudo entrar en la sala');
       }
 
-      console.log('[SalaVirtual] ✅ Checked in successfully');
+      console.log('[SalaVirtual v50.0] ✅ Checked in successfully');
       
       if (presenceChannelRef.current) {
         try {
@@ -388,28 +432,27 @@ export default function SalaVirtualScreen() {
               nombre: user.user_metadata?.nombre || user.email,
             },
           });
-          console.log('[SalaVirtual] ✅ Broadcasted user joined');
+          console.log('[SalaVirtual v50.0] ✅ Broadcasted user joined');
         } catch (broadcastError) {
-          console.error('[SalaVirtual] Error broadcasting user joined:', broadcastError);
+          console.error('[SalaVirtual v50.0] Error broadcasting user joined:', broadcastError);
         }
       }
       
       setCheckingIn(false);
       return true;
     } catch (error: any) {
-      console.error('[SalaVirtual] ❌ Unexpected error during checkin:', error);
+      console.error('[SalaVirtual v50.0] ❌ Unexpected error during checkin:', error);
       Alert.alert('Error', error.message || 'Ocurrió un error inesperado al entrar en la sala');
       setCheckingIn(false);
       return false;
     }
   }, [user?.id, localId, local]);
 
-  // ✅ NEW: Auto checkout when modal closes
   const handleAutoCheckOut = useCallback(async () => {
     if (!user || !localId || !isCheckedIn) return;
 
     try {
-      console.log('[SalaVirtual] 🔄 Auto checking out user on modal close:', user.id);
+      console.log('[SalaVirtual v50.0] 🔄 Auto checking out user on modal close:', user.id);
 
       const { error } = await supabase
         .from('sala_virtual_checkins')
@@ -422,7 +465,7 @@ export default function SalaVirtualScreen() {
         .eq('activo', true);
 
       if (error) {
-        console.error('[SalaVirtual] ❌ Error auto checking out:', error);
+        console.error('[SalaVirtual v50.0] ❌ Error auto checking out:', error);
         return;
       }
 
@@ -436,19 +479,18 @@ export default function SalaVirtualScreen() {
             },
           });
         } catch (broadcastError) {
-          console.error('[SalaVirtual] Error broadcasting user left:', broadcastError);
+          console.error('[SalaVirtual v50.0] Error broadcasting user left:', broadcastError);
         }
       }
 
-      console.log('[SalaVirtual] ✅ Auto checked out successfully');
+      console.log('[SalaVirtual v50.0] ✅ Auto checked out successfully');
     } catch (error) {
-      console.error('[SalaVirtual] ❌ Error in auto checkout:', error);
+      console.error('[SalaVirtual v50.0] ❌ Error in auto checkout:', error);
     }
   }, [user, localId, isCheckedIn]);
 
-  // ✅ NEW: Handle modal close with auto checkout
   const handleModalClose = useCallback(async () => {
-    console.log('[SalaVirtual] 🚪 Modal closing, auto checking out user...');
+    console.log('[SalaVirtual v50.0] 🚪 Modal closing, auto checking out user...');
     await handleAutoCheckOut();
     router.back();
   }, [handleAutoCheckOut, router]);
@@ -477,12 +519,12 @@ export default function SalaVirtualScreen() {
     if (!localId) return;
 
     try {
-      console.log('[SalaVirtual] ✅ Volatile chat: Starting with empty message array (no database load)');
+      console.log('[SalaVirtual v50.0] ✅ Volatile chat: Starting with empty message array (no database load)');
       setMessages([]);
       setLoading(false);
-      console.log('[SalaVirtual] ✅ Chat initialized as volatile (ephemeral)');
+      console.log('[SalaVirtual v50.0] ✅ Chat initialized as volatile (ephemeral)');
     } catch (error) {
-      console.error('[SalaVirtual] Error:', error);
+      console.error('[SalaVirtual v50.0] Error:', error);
       setLoading(false);
     }
   }, [localId]);
@@ -508,7 +550,7 @@ export default function SalaVirtualScreen() {
         .order('checked_in_at', { ascending: false });
 
       if (error) {
-        console.error('[SalaVirtual] Error loading active users:', error);
+        console.error('[SalaVirtual v50.0] Error loading active users:', error);
         return;
       }
 
@@ -523,16 +565,16 @@ export default function SalaVirtualScreen() {
         }));
 
       setActiveUsers(users);
-      console.log('[SalaVirtual] ⚡ Active users updated:', users.length);
+      console.log('[SalaVirtual v50.0] ⚡ Active users updated:', users.length);
     } catch (error) {
-      console.error('[SalaVirtual] Error:', error);
+      console.error('[SalaVirtual v50.0] Error:', error);
     }
   }, [localId]);
 
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
-    console.log('[SalaVirtual] 📡 Subscribing to real-time updates (volatile chat mode + user list)');
+    console.log('[SalaVirtual v50.0] 📡 Subscribing to real-time updates (volatile chat mode + user list)');
 
     const chatChannel = supabase
       .channel(`room:${localId}:chat`, {
@@ -542,10 +584,10 @@ export default function SalaVirtualScreen() {
         },
       })
       .on('broadcast', { event: 'message_created' }, (payload) => {
-        console.log('[SalaVirtual] ⚡ INSTANT new volatile message received:', payload);
+        console.log('[SalaVirtual v50.0] ⚡ INSTANT new volatile message received:', payload);
         
         if (payload.payload.usuario_id === user.id) {
-          console.log('[SalaVirtual] ⏭️ Own message, skipping');
+          console.log('[SalaVirtual v50.0] ⏭️ Own message, skipping');
           return;
         }
 
@@ -571,11 +613,11 @@ export default function SalaVirtualScreen() {
         }, 100);
       })
       .on('broadcast', { event: 'message_deleted' }, (payload) => {
-        console.log('[SalaVirtual] 🗑️ Message deleted:', payload.payload.id);
+        console.log('[SalaVirtual v50.0] 🗑️ Message deleted:', payload.payload.id);
         setMessages((prev) => prev.filter(m => m.id !== payload.payload.id));
       })
       .on('broadcast', { event: 'user_typing' }, (payload) => {
-        console.log('[SalaVirtual] ⌨️ User typing:', payload.payload.usuario_id);
+        console.log('[SalaVirtual v50.0] ⌨️ User typing:', payload.payload.usuario_id);
         setTypingUsers((prev) => new Set(prev).add(payload.payload.usuario_id));
         
         setTimeout(() => {
@@ -587,7 +629,7 @@ export default function SalaVirtualScreen() {
         }, 3000);
       })
       .on('broadcast', { event: 'room_closing_soon' }, (payload) => {
-        console.log('[SalaVirtual] ⏰ Room closing soon');
+        console.log('[SalaVirtual v50.0] ⏰ Room closing soon');
         Alert.alert(
           'Sala Virtual Cerrando',
           `El local cerrará en ${payload.payload.minutes} minutos. La sala virtual se cerrará automáticamente.`,
@@ -595,7 +637,7 @@ export default function SalaVirtualScreen() {
         );
       })
       .on('broadcast', { event: 'room_closed' }, () => {
-        console.log('[SalaVirtual] 🔒 Room closed');
+        console.log('[SalaVirtual v50.0] 🔒 Room closed');
         Alert.alert(
           'Sala Virtual Cerrada',
           'El local ha cerrado. Has sido expulsado de la sala virtual.',
@@ -603,7 +645,7 @@ export default function SalaVirtualScreen() {
         );
       })
       .subscribe((status) => {
-        console.log('[SalaVirtual] 📡 Chat channel status:', status);
+        console.log('[SalaVirtual v50.0] 📡 Chat channel status:', status);
       });
 
     const presenceChannel = supabase
@@ -621,7 +663,7 @@ export default function SalaVirtualScreen() {
           filter: `local_id=eq.${localId}`,
         },
         (payload) => {
-          console.log('[SalaVirtual] ⚡ INSTANT user joined (postgres):', payload.new);
+          console.log('[SalaVirtual v50.0] ⚡ INSTANT user joined (postgres):', payload.new);
           updateActiveUsers();
         }
       )
@@ -634,27 +676,27 @@ export default function SalaVirtualScreen() {
           filter: `local_id=eq.${localId}`,
         },
         (payload) => {
-          console.log('[SalaVirtual] ⚡ User check-in updated (postgres):', payload.new);
+          console.log('[SalaVirtual v50.0] ⚡ User check-in updated (postgres):', payload.new);
           updateActiveUsers();
         }
       )
       .on('broadcast', { event: 'user_joined' }, () => {
-        console.log('[SalaVirtual] ⚡ User joined (broadcast)');
+        console.log('[SalaVirtual v50.0] ⚡ User joined (broadcast)');
         updateActiveUsers();
       })
       .on('broadcast', { event: 'user_left' }, () => {
-        console.log('[SalaVirtual] ⚡ User left (broadcast)');
+        console.log('[SalaVirtual v50.0] ⚡ User left (broadcast)');
         updateActiveUsers();
       })
       .subscribe((status) => {
-        console.log('[SalaVirtual] 📡 Presence channel status:', status);
+        console.log('[SalaVirtual v50.0] 📡 Presence channel status:', status);
       });
 
     chatChannelRef.current = chatChannel;
     presenceChannelRef.current = presenceChannel;
 
     return () => {
-      console.log('[SalaVirtual] 🔄 Unsubscribing from real-time updates');
+      console.log('[SalaVirtual v50.0] 🔄 Unsubscribing from real-time updates');
       supabase.removeChannel(chatChannel);
       supabase.removeChannel(presenceChannel);
     };
@@ -676,13 +718,13 @@ export default function SalaVirtualScreen() {
       const checkedIn = await checkUserCheckin();
       
       if (!checkedIn && !localClosed && user) {
-        console.log('[SalaVirtual] 🔄 Auto check-in starting...');
+        console.log('[SalaVirtual v50.0] 🔄 Auto check-in starting...');
         const success = await handleCheckIn();
         if (!success) {
-          console.log('[SalaVirtual] ❌ Auto check-in failed, aborting initialization');
+          console.log('[SalaVirtual v50.0] ❌ Auto check-in failed, aborting initialization');
           return;
         }
-        console.log('[SalaVirtual] ✅ Auto check-in successful');
+        console.log('[SalaVirtual v50.0] ✅ Auto check-in successful');
       }
       
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -705,7 +747,6 @@ export default function SalaVirtualScreen() {
       if (unsubscribeFn) {
         unsubscribeFn();
       }
-      // ✅ NEW: Auto checkout on unmount
       handleAutoCheckOut();
     };
   }, [localId, loadLocalData, checkUserCheckin, handleCheckIn, loadMessages, subscribeToUpdates, updateActiveUsers, localClosed, user, handleAutoCheckOut]);
@@ -737,7 +778,7 @@ export default function SalaVirtualScreen() {
     }
 
     if (!isCheckedIn) {
-      console.error('[SalaVirtual] ❌ User not checked in, cannot send message');
+      console.error('[SalaVirtual v50.0] ❌ User not checked in, cannot send message');
       Alert.alert('Error', 'Debes entrar en la sala para enviar mensajes');
       return;
     }
@@ -752,7 +793,7 @@ export default function SalaVirtualScreen() {
 
     try {
       setSending(true);
-      console.log('[SalaVirtual] 📤 Sending volatile message (broadcast only)...');
+      console.log('[SalaVirtual v50.0] 📤 Sending volatile message (broadcast only)...');
 
       const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
@@ -785,10 +826,10 @@ export default function SalaVirtualScreen() {
           event: 'message_created',
           payload: newMsg,
         });
-        console.log('[SalaVirtual] ✅ Volatile message broadcasted successfully');
+        console.log('[SalaVirtual v50.0] ✅ Volatile message broadcasted successfully');
       }
     } catch (error) {
-      console.error('[SalaVirtual] ❌ Error:', error);
+      console.error('[SalaVirtual v50.0] ❌ Error:', error);
       Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
     } finally {
       setSending(false);
@@ -809,9 +850,9 @@ export default function SalaVirtualScreen() {
         });
       }
 
-      console.log('[SalaVirtual] Message deleted successfully (volatile)');
+      console.log('[SalaVirtual v50.0] Message deleted successfully (volatile)');
     } catch (error) {
-      console.error('[SalaVirtual] Error:', error);
+      console.error('[SalaVirtual v50.0] Error:', error);
     }
   }, [user]);
 
@@ -832,14 +873,14 @@ export default function SalaVirtualScreen() {
         .single();
 
       if (error) {
-        console.error('[SalaVirtual] Error sending emoticon:', error);
+        console.error('[SalaVirtual v50.0] Error sending emoticon:', error);
         Alert.alert('Error', 'No se pudo enviar el emoticono');
         return;
       }
 
       Alert.alert('Enviado', `Emoticono ${emoticon} enviado`);
     } catch (error) {
-      console.error('[SalaVirtual] Error:', error);
+      console.error('[SalaVirtual v50.0] Error:', error);
     }
   }, [user, localId]);
 
@@ -1048,6 +1089,35 @@ export default function SalaVirtualScreen() {
       </TouchableOpacity>
     );
   };
+
+  // ✅ CRITICAL FIX v50.0: Show login prompt if user not authenticated
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen
+          options={{
+            title: 'Sala Virtual',
+            headerLeft: () => (
+              <TouchableOpacity onPress={() => router.back()}>
+                <IconSymbol
+                  ios_icon_name="xmark"
+                  android_material_icon_name="close"
+                  size={24}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            ),
+          }}
+        />
+        <LoginPrompt
+          title="Inicia sesión para acceder"
+          message="Para acceder a la Sala Virtual necesitas iniciar sesión en BarLive."
+          icon="person.2.fill"
+          androidIcon="people"
+        />
+      </View>
+    );
+  }
 
   if (loading) {
     return (
