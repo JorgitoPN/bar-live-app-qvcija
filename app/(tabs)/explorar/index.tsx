@@ -46,12 +46,12 @@ const CATEGORIAS_LOCALES = [
 ];
 
 const LOCALES_POR_PAGINA = 20;
-// ✅ ANDROID FIX v56.0: Reduced header height to match iOS (was 100, now 90)
-const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 90;
-// ✅ ANDROID FIX v56.0: Reduced categories height to match iOS (was 110, now 100)
-const CATEGORIAS_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
-// ✅ ANDROID FIX v56.0: Adjusted top position to match iOS (was 170, now 140)
-const CATEGORIAS_TOP_POSITION = Platform.OS === 'ios' ? 170 : 140;
+// ✅ ANDROID FIX v56.2: Increased header height to prevent text clipping (was 90, now 120)
+const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 120;
+// ✅ ANDROID FIX v56.2: Adjusted categories height (was 100, now 110)
+const CATEGORIAS_HEIGHT = Platform.OS === 'ios' ? 110 : 110;
+// ✅ ANDROID FIX v56.2: Adjusted top position to account for larger header (was 140, now 170)
+const CATEGORIAS_TOP_POSITION = Platform.OS === 'ios' ? 170 : 170;
 const SPACING_BETWEEN_FILTERS_AND_LIST = 24;
 
 const MAX_FEATURED_DISTANCE_KM = 100;
@@ -69,9 +69,15 @@ function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /**
- * ✅ EXPLORAR SCREEN v56.0 - ANDROID-iOS PARITY
+ * ✅ EXPLORAR SCREEN v56.2 - ANDROID-iOS PARITY
  * 
- * CRITICAL FIXES v56.0:
+ * CRITICAL FIXES v56.2:
+ * - ✅ Fixed header text clipping on Android (increased padding from 12 to 24)
+ * - ✅ Fixed header height to prevent "Explorar" and map icon from being cut off
+ * - ✅ Restored font size to match iOS exactly (32px)
+ * - ✅ Adjusted categories position to account for larger header
+ * 
+ * PREVIOUS FIXES v56.0:
  * - ✅ Reduced header height on Android to match iOS
  * - ✅ Reduced categories section height on Android
  * - ✅ Adjusted text sizes to match iOS hierarchy
@@ -919,11 +925,11 @@ export default function ExplorarScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ✅ ANDROID FIX v56.0: Reduced padding to match iOS (was 40, now 12)
+  // ✅ ANDROID FIX v56.2: Increased padding to prevent text clipping (was 12, now 24)
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 12,
+    paddingTop: Platform.OS === 'ios' ? 50 : 24,
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 16 : 12,
+    paddingBottom: Platform.OS === 'ios' ? 16 : 16,
   },
   headerContent: {
     flexDirection: 'row',
@@ -931,9 +937,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  // ✅ ANDROID FIX v56.0: Reduced font size to match iOS (was 32, now 28)
+  // ✅ ANDROID FIX v56.2: Restored font size to match iOS exactly (was 28, now 32)
   headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 28,
+    fontSize: Platform.OS === 'ios' ? 32 : 32,
     fontWeight: 'bold',
     color: colors.headerText,
   },
