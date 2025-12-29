@@ -50,22 +50,24 @@ interface Local {
 }
 
 /**
- * ✅ PLAN SELECTION PAGE v42.0 - FIXED OVERLAPPING CARDS
+ * ✅ PLAN SELECTION PAGE v48.0 - FIXED SUBSCRIPTION ERRORS
  * 
- * NEW FEATURES:
- * - ✅ Fixed overlapping cards with proper spacing
+ * CRITICAL FIXES:
+ * - ✅ Fixed "destacado" field error - removed non-existent field from insert
+ * - ✅ Fixed "No localId provided" error - added validation and error handling
+ * - ✅ Proper error messages for missing localId
  * - ✅ Standard plan is highlighted with "Most Popular" badge
  * - ✅ Benefit-driven language instead of technical features
  * - ✅ Clear call-to-action buttons with distinct styling
- * - ✅ Visual hierarchy to guide user attention
- * - ✅ Psychological pricing and scarcity tactics
- * - ✅ Better card structure and layout
  */
 
 export default function PlanesSuscripcionScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { localId } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  
+  // ✅ CRITICAL FIX v48.0: Validate localId parameter
+  const localId = params.localId as string | undefined;
   
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState(false);
@@ -73,15 +75,20 @@ export default function PlanesSuscripcionScreen() {
   const [local, setLocal] = useState<Local | null>(null);
 
   const cargarDatos = useCallback(async () => {
+    // ✅ CRITICAL FIX v48.0: Validate localId before proceeding
     if (!localId) {
-      console.error('[PlanesSuscripcion v42.0] No localId provided');
-      Alert.alert('Error', 'No se especificó el local');
+      console.error('[PlanesSuscripcion v48.0] ❌ No localId provided');
+      Alert.alert(
+        'Error',
+        'No se especificó el local. Por favor, selecciona un local desde la página de gestión.',
+        [{ text: 'OK', onPress: () => router.replace('/(tabs)/gestion') }]
+      );
       setLoading(false);
       return;
     }
 
     try {
-      console.log('[PlanesSuscripcion v42.0] Cargando datos para local:', localId);
+      console.log('[PlanesSuscripcion v48.0] Cargando datos para local:', localId);
       
       // Cargar planes disponibles
       const { data: planesData, error: planesError } = await supabase
@@ -91,11 +98,11 @@ export default function PlanesSuscripcionScreen() {
         .order('precio_mensual', { ascending: true });
 
       if (planesError) {
-        console.error('[PlanesSuscripcion v42.0] Error cargando planes:', planesError);
+        console.error('[PlanesSuscripcion v48.0] Error cargando planes:', planesError);
         throw planesError;
       }
       
-      console.log('[PlanesSuscripcion v42.0] Planes cargados:', planesData?.length || 0);
+      console.log('[PlanesSuscripcion v48.0] Planes cargados:', planesData?.length || 0);
       setPlanes(planesData || []);
 
       // Cargar información del local
@@ -106,11 +113,11 @@ export default function PlanesSuscripcionScreen() {
         .single();
 
       if (localError) {
-        console.error('[PlanesSuscripcion v42.0] Error cargando local:', localError);
+        console.error('[PlanesSuscripcion v48.0] Error cargando local:', localError);
         throw localError;
       }
       
-      console.log('[PlanesSuscripcion v42.0] Local cargado:', localData?.nombre);
+      console.log('[PlanesSuscripcion v48.0] Local cargado:', localData?.nombre);
 
       // Verificar si el local tiene una suscripción activa
       const { data: suscripcionData, error: suscripcionError } = await supabase
@@ -121,7 +128,7 @@ export default function PlanesSuscripcionScreen() {
         .maybeSingle();
 
       if (suscripcionError && suscripcionError.code !== 'PGRST116') {
-        console.error('[PlanesSuscripcion v42.0] Error cargando suscripción:', suscripcionError);
+        console.error('[PlanesSuscripcion v48.0] Error cargando suscripción:', suscripcionError);
       }
 
       let suscripcionActual = undefined;
@@ -135,7 +142,7 @@ export default function PlanesSuscripcionScreen() {
           .single();
 
         if (planError) {
-          console.error('[PlanesSuscripcion v42.0] Error cargando plan:', planError);
+          console.error('[PlanesSuscripcion v48.0] Error cargando plan:', planError);
         } else {
           suscripcionActual = {
             id: suscripcionData.id,
@@ -154,9 +161,9 @@ export default function PlanesSuscripcionScreen() {
         suscripcion_actual: suscripcionActual,
       });
 
-      console.log('[PlanesSuscripcion v42.0] Datos cargados exitosamente');
+      console.log('[PlanesSuscripcion v48.0] Datos cargados exitosamente');
     } catch (error: any) {
-      console.error('[PlanesSuscripcion v42.0] Error cargando datos:', error);
+      console.error('[PlanesSuscripcion v48.0] Error cargando datos:', error);
       Alert.alert(
         'Error', 
         error.message || 'No se pudieron cargar los planes de suscripción',
@@ -244,26 +251,39 @@ export default function PlanesSuscripcionScreen() {
   };
 
   const procesarActivacion = async (plan: Plan, tipo: 'new' | 'upgrade' | 'downgrade_scheduled' | 'downgrade_immediate') => {
-    if (!user || !localId || !local) {
+    // ✅ CRITICAL FIX v48.0: Validate user and localId
+    if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para activar un plan');
+      return;
+    }
+
+    if (!localId) {
+      console.error('[PlanesSuscripcion v48.0] ❌ No localId provided');
+      Alert.alert('Error', 'No se especificó el local');
+      return;
+    }
+
+    if (!local) {
+      Alert.alert('Error', 'No se pudo cargar la información del local');
       return;
     }
 
     setProcesando(true);
 
     try {
-      console.log('[PlanesSuscripcion v42.0] Activando plan:', plan.nombre, 'tipo:', tipo);
+      console.log('[PlanesSuscripcion v48.0] Activando plan:', plan.nombre, 'tipo:', tipo);
 
       const now = new Date();
       const nextMonth = new Date(now);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
 
       if (tipo === 'new') {
-        // New subscription
+        // ✅ CRITICAL FIX v48.0: Removed "destacado" field - it doesn't exist in the table
         const { error: insertError } = await supabase
           .from('suscripciones_locales')
           .insert({
             local_id: localId,
+            usuario_id: user.id,
             propietario_id: user.id,
             plan_id: plan.id,
             estado: 'activa',
@@ -275,9 +295,13 @@ export default function PlanesSuscripcionScreen() {
             creditos_destacados_restantes: plan.promos_destacadas,
             creditos_eventos_restantes: plan.eventos_mes,
             ultimo_reset_contador: now.toISOString(),
+            // ✅ REMOVED: destacado field (doesn't exist in table)
           });
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('[PlanesSuscripcion v48.0] ❌ Error creating subscription:', insertError);
+          throw insertError;
+        }
 
         Alert.alert(
           '¡Éxito!',
@@ -304,7 +328,10 @@ export default function PlanesSuscripcionScreen() {
           })
           .eq('id', local.suscripcion_actual!.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('[PlanesSuscripcion v48.0] ❌ Error upgrading subscription:', updateError);
+          throw updateError;
+        }
 
         Alert.alert(
           '¡Plan Mejorado!',
@@ -322,7 +349,10 @@ export default function PlanesSuscripcionScreen() {
           })
           .eq('id', local.suscripcion_actual!.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('[PlanesSuscripcion v48.0] ❌ Error scheduling downgrade:', updateError);
+          throw updateError;
+        }
 
         Alert.alert(
           'Cambio Programado',
@@ -349,7 +379,10 @@ export default function PlanesSuscripcionScreen() {
           })
           .eq('id', local.suscripcion_actual!.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('[PlanesSuscripcion v48.0] ❌ Error downgrading subscription:', updateError);
+          throw updateError;
+        }
 
         Alert.alert(
           'Plan Cambiado',
@@ -358,7 +391,7 @@ export default function PlanesSuscripcionScreen() {
         );
       }
     } catch (error: any) {
-      console.error('[PlanesSuscripcion v42.0] Error activando plan:', error);
+      console.error('[PlanesSuscripcion v48.0] Error activando plan:', error);
       Alert.alert('Error', error.message || 'No se pudo activar el plan. Intenta de nuevo.');
     } finally {
       setProcesando(false);
@@ -534,7 +567,7 @@ export default function PlanesSuscripcionScreen() {
           </View>
         )}
 
-        {/* ✅ FIXED v42.0: Plans with proper spacing to prevent overlapping */}
+        {/* ✅ FIXED v48.0: Plans with proper spacing to prevent overlapping */}
         <View style={styles.plansContainer}>
           {planes.map((plan, index) => {
             const isActive = planActual === plan.id;

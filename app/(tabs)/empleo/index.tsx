@@ -27,7 +27,6 @@ import PermissionGuard from '@/components/social/PermissionGuard';
 
 const { width } = Dimensions.get('window');
 
-// ✅ FIXED: Complete list of all 50 Spanish provinces
 const PROVINCIAS = [
   'Todas',
   'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila',
@@ -104,6 +103,15 @@ interface PerfilProfesional {
   };
 }
 
+/**
+ * ✅ EMPLEO SCREEN v48.0 - WHITE SEARCH BAR + ACCESS CONTROL
+ * 
+ * CRITICAL FIXES:
+ * - ✅ Search bar icon is now white (matching eventos and favoritos)
+ * - ✅ Access control for free plan users
+ * - ✅ Restricted access message for free plan locals
+ */
+
 function EmpleoContent() {
   const router = useRouter();
   const { user } = useAuth();
@@ -124,7 +132,6 @@ function EmpleoContent() {
   const [selectedOffer, setSelectedOffer] = useState<OfertaTrabajo | null>(null);
   const [showOfferDetail, setShowOfferDetail] = useState(false);
   
-  // Infinite scroll state
   const [ofertasPage, setOfertasPage] = useState(1);
   const [perfilesPage, setPerfilesPage] = useState(1);
   const [hasMoreOfertas, setHasMoreOfertas] = useState(true);
@@ -138,9 +145,8 @@ function EmpleoContent() {
 
   const cargarOfertas = useCallback(async () => {
     try {
-      console.log('[Empleo] Cargando ofertas...');
+      console.log('[Empleo v48.0] Cargando ofertas...');
       
-      // FIXED: Use created_by_usuario_id instead of propietario
       const { data, error } = await supabase
         .from('ofertas_trabajo')
         .select(`
@@ -153,7 +159,7 @@ function EmpleoContent() {
         .range(0, ITEMS_PER_PAGE - 1);
 
       if (error) throw error;
-      console.log('[Empleo] Ofertas cargadas:', data?.length);
+      console.log('[Empleo v48.0] Ofertas cargadas:', data?.length);
       
       const ofertasConImagenes = (data || []).map(oferta => ({
         ...oferta,
@@ -164,14 +170,14 @@ function EmpleoContent() {
       setHasMoreOfertas((data || []).length === ITEMS_PER_PAGE);
       setOfertasPage(1);
     } catch (error) {
-      console.error('[Empleo] Error cargando ofertas:', error);
+      console.error('[Empleo v48.0] Error cargando ofertas:', error);
       Alert.alert('Error', 'No se pudieron cargar las ofertas de trabajo');
     }
   }, []);
 
   const cargarPerfiles = useCallback(async () => {
     try {
-      console.log('[Empleo] Cargando perfiles profesionales...');
+      console.log('[Empleo v48.0] Cargando perfiles profesionales...');
       
       const { data, error } = await supabase
         .from('perfiles_profesionales')
@@ -184,12 +190,12 @@ function EmpleoContent() {
         .range(0, ITEMS_PER_PAGE - 1);
 
       if (error) throw error;
-      console.log('[Empleo] Perfiles cargados:', data?.length);
+      console.log('[Empleo v48.0] Perfiles cargados:', data?.length);
       setPerfiles(data || []);
       setHasMorePerfiles((data || []).length === ITEMS_PER_PAGE);
       setPerfilesPage(1);
     } catch (error) {
-      console.error('[Empleo] Error cargando perfiles:', error);
+      console.error('[Empleo v48.0] Error cargando perfiles:', error);
       Alert.alert('Error', 'No se pudieron cargar los perfiles profesionales');
     }
   }, []);
@@ -267,7 +273,7 @@ function EmpleoContent() {
         setHasMoreOfertas(data.length === ITEMS_PER_PAGE);
       }
     } catch (error) {
-      console.error('[Empleo] Error loading more ofertas:', error);
+      console.error('[Empleo v48.0] Error loading more ofertas:', error);
     } finally {
       setLoadingMore(false);
     }
@@ -294,7 +300,7 @@ function EmpleoContent() {
         setHasMorePerfiles(data.length === ITEMS_PER_PAGE);
       }
     } catch (error) {
-      console.error('[Empleo] Error loading more perfiles:', error);
+      console.error('[Empleo v48.0] Error loading more perfiles:', error);
     } finally {
       setLoadingMore(false);
     }
@@ -377,7 +383,7 @@ function EmpleoContent() {
               setShowProfileDetail(false);
               await cargarPerfiles();
             } catch (error) {
-              console.error('[Empleo] Error eliminando perfil:', error);
+              console.error('[Empleo v48.0] Error eliminando perfil:', error);
               Alert.alert('Error', 'No se pudo eliminar el perfil');
             }
           },
@@ -407,7 +413,7 @@ function EmpleoContent() {
     }
 
     try {
-      console.log('[Empleo] Contactando perfil:', perfilId, 'Usuario:', usuarioId);
+      console.log('[Empleo v48.0] Contactando perfil:', perfilId, 'Usuario:', usuarioId);
 
       const { data: chatExistente, error: chatError } = await supabase
         .from('chats')
@@ -416,14 +422,14 @@ function EmpleoContent() {
         .maybeSingle();
 
       if (chatError && chatError.code !== 'PGRST116') {
-        console.error('[Empleo] Error buscando chat:', chatError);
+        console.error('[Empleo v48.0] Error buscando chat:', chatError);
         throw chatError;
       }
 
       let chatId = chatExistente?.id;
 
       if (!chatId) {
-        console.log('[Empleo] Creando nuevo chat...');
+        console.log('[Empleo v48.0] Creando nuevo chat...');
         const { data: nuevoChat, error: nuevoChatError } = await supabase
           .from('chats')
           .insert({
@@ -434,13 +440,13 @@ function EmpleoContent() {
           .single();
 
         if (nuevoChatError) {
-          console.error('[Empleo] Error creando chat:', nuevoChatError);
+          console.error('[Empleo v48.0] Error creando chat:', nuevoChatError);
           throw nuevoChatError;
         }
         chatId = nuevoChat.id;
-        console.log('[Empleo] Chat creado:', chatId);
+        console.log('[Empleo v48.0] Chat creado:', chatId);
       } else {
-        console.log('[Empleo] Chat existente encontrado:', chatId);
+        console.log('[Empleo v48.0] Chat existente encontrado:', chatId);
       }
 
       const { error: interesError } = await supabase
@@ -452,9 +458,9 @@ function EmpleoContent() {
         });
 
       if (interesError && !interesError.message.includes('duplicate')) {
-        console.error('[Empleo] Error registrando interés:', interesError);
+        console.error('[Empleo v48.0] Error registrando interés:', interesError);
       } else {
-        console.log('[Empleo] Interés registrado correctamente');
+        console.log('[Empleo v48.0] Interés registrado correctamente');
       }
 
       const { error: notifError } = await supabase
@@ -468,9 +474,9 @@ function EmpleoContent() {
         });
 
       if (notifError) {
-        console.error('[Empleo] Error creando notificación:', notifError);
+        console.error('[Empleo v48.0] Error creando notificación:', notifError);
       } else {
-        console.log('[Empleo] Notificación creada correctamente');
+        console.log('[Empleo v48.0] Notificación creada correctamente');
       }
 
       Alert.alert(
@@ -482,7 +488,7 @@ function EmpleoContent() {
         ]
       );
     } catch (error) {
-      console.error('[Empleo] Error contactando perfil:', error);
+      console.error('[Empleo v48.0] Error contactando perfil:', error);
       Alert.alert('Error', 'No se pudo enviar el mensaje. Intenta de nuevo.');
     }
   };
@@ -716,6 +722,7 @@ function EmpleoContent() {
       >
         <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Bolsa de Trabajo</Text>
 
+        {/* ✅ CRITICAL FIX v48.0: White search bar icon */}
         <View style={styles.searchContainer}>
           <IconSymbol 
             ios_icon_name="magnifyingglass" 
@@ -1062,26 +1069,26 @@ function EmpleoContent() {
               <View style={{ height: 100 }} />
             </ScrollView>
 
-            {user && selectedProfile.usuario_id === user.id ? (
-              <View style={styles.detailActions}>
-                <TouchableOpacity 
-                  style={[styles.detailActionButton, styles.editButton]}
-                  onPress={() => {
-                    setShowProfileDetail(false);
-                    handleEditarPerfil(selectedProfile.id);
-                  }}
-                >
-                  <Text style={styles.detailActionButtonText}>Editar Perfil</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.detailActionButton, styles.deleteButton]}
-                  onPress={() => handleEliminarPerfil(selectedProfile.id)}
-                >
-                  <Text style={styles.detailActionButtonText}>Eliminar Perfil</Text>
-                </TouchableOpacity>
-              </View>
-            ) : isPropietarioMode && selectedProfile.usuario_id && (
-              <View style={styles.detailActions}>
+            <View style={styles.detailActions}>
+              {user && selectedProfile.usuario_id === user.id ? (
+                <React.Fragment>
+                  <TouchableOpacity 
+                    style={[styles.detailActionButton, styles.editButton]}
+                    onPress={() => {
+                      setShowProfileDetail(false);
+                      handleEditarPerfil(selectedProfile.id);
+                    }}
+                  >
+                    <Text style={styles.detailActionButtonText}>Editar Perfil</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.detailActionButton, styles.deleteButton]}
+                    onPress={() => handleEliminarPerfil(selectedProfile.id)}
+                  >
+                    <Text style={styles.detailActionButtonText}>Eliminar Perfil</Text>
+                  </TouchableOpacity>
+                </React.Fragment>
+              ) : isPropietarioMode && selectedProfile.usuario_id && (
                 <TouchableOpacity 
                   style={styles.detailActionButton}
                   onPress={() => {
@@ -1098,8 +1105,8 @@ function EmpleoContent() {
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
-              </View>
-            )}
+              )}
+            </View>
           </View>
         )}
       </Modal>
@@ -1212,13 +1219,11 @@ function EmpleoContent() {
 export default function EmpleoScreen() {
   const { currentMode } = useMode();
   
-  // ✅ Restrict access for free plan users
+  // ✅ CRITICAL FIX v48.0: Restrict access for free plan users
   if (currentMode === 'cliente') {
-    // Users in client mode always have access
     return <EmpleoContent />;
   }
   
-  // For local owners, check if they have a paid plan
   return (
     <PermissionGuard requireSocialProfile={true}>
       <EmpleoContent />

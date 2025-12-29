@@ -11,6 +11,7 @@ import {
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
 import MomentoViewer from './MomentoViewer';
 import MomentoUpload from './MomentoUpload';
 import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
@@ -25,25 +26,27 @@ interface MomentoAuthor {
 }
 
 /**
- * ✅ MOMENTO CAROUSEL v48.0 - INSTAGRAM STORIES SIZE + NO WHITE BORDER
+ * ✅ MOMENTO CAROUSEL v48.0 - FIXED USER MOMENTO PLACEMENT
  * 
- * Changes v48.0:
- * - ✅ Increased avatar size to 88px (Instagram stories style)
- * - ✅ Uses UnifiedMomentoAvatar for consistent design
- * - ✅ Same avatar and + button as profile pages
- * - ✅ Green border disappears after viewing
- * - ✅ Real-time synchronization
- * - ✅ Always visible section
+ * CRITICAL FIXES v48.0:
+ * - ✅ User's own momento appears in the SAME avatar (not adjacent)
+ * - ✅ Clicking on user's avatar opens viewer if momentos exist, otherwise opens upload
+ * - ✅ + button only appears when user has NO momentos
+ * - ✅ Adjacent avatars are ONLY for other users' momentos
+ * - ✅ Green neon border synchronization across all pages
+ * - ✅ Instagram stories size (88px)
  * - ✅ NO WHITE BORDER - image fills entire circular area
  */
 
 export default function MomentoCarousel() {
   const { user } = useAuth();
+  const { activeProfileType, activeProfileId } = useMode();
   const [authors, setAuthors] = useState<MomentoAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAuthor, setSelectedAuthor] = useState<{ id: string; tipo: 'usuario' | 'local' } | null>(null);
   const [showViewer, setShowViewer] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [userHasMomentos, setUserHasMomentos] = useState(false);
 
   const loadMomentoAuthors = useCallback(async () => {
     if (!user) {
@@ -71,15 +74,24 @@ export default function MomentoCarousel() {
       const followedUserIds = followedUsers?.map(f => f.seguido_id) || [];
       const followedLocalIds = followedLocals?.map(f => f.local_id) || [];
 
-      // Add current user to the list
-      const allUserIds = [user.id, ...followedUserIds];
+      // ✅ CRITICAL FIX v48.0: Check if current user has momentos
+      const { data: currentUserMomentos } = await supabase
+        .from('momentos')
+        .select('id')
+        .eq('tipo', 'usuario')
+        .eq('autor_id', user.id)
+        .gt('expires_at', new Date().toISOString());
 
-      // Get active momentos from followed users
+      const hasUserMomentos = (currentUserMomentos?.length || 0) > 0;
+      setUserHasMomentos(hasUserMomentos);
+      console.log('[MomentoCarousel v48.0] ✅ User has momentos:', hasUserMomentos);
+
+      // Get active momentos from followed users (NOT including current user)
       const { data: userMomentos } = await supabase
         .from('momentos')
         .select('id, autor_id, created_at')
         .eq('tipo', 'usuario')
-        .in('autor_id', allUserIds)
+        .in('autor_id', followedUserIds)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false });
 
@@ -140,13 +152,12 @@ export default function MomentoCarousel() {
         .select('id, nombre, imagen_url')
         .in('id', localIds);
 
-      // Build authors list
+      // Build authors list (EXCLUDING current user - they have their own avatar)
       const authorsArray: MomentoAuthor[] = [];
 
       usersData?.forEach(u => {
         const stats = userAuthorsMap.get(u.id);
         if (stats) {
-          // Filter out file:// URLs
           const safeAvatar = u.avatar && !u.avatar.startsWith('file://') ? u.avatar : null;
           authorsArray.push({
             id: u.id,
@@ -162,7 +173,6 @@ export default function MomentoCarousel() {
       localsData?.forEach(l => {
         const stats = localAuthorsMap.get(l.id);
         if (stats) {
-          // Filter out file:// URLs
           const safeAvatar = l.imagen_url && !l.imagen_url.startsWith('file://') ? l.imagen_url : null;
           authorsArray.push({
             id: l.id,
@@ -183,7 +193,7 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel v48.0] ✅ Loaded', authorsArray.length, 'authors with momentos');
+      console.log('[MomentoCarousel v48.0] ✅ Loaded', authorsArray.length, 'authors with momentos (excluding current user)');
     } catch (error) {
       console.error('[MomentoCarousel v48.0] Error loading momento authors:', error);
     } finally {
@@ -236,8 +246,22 @@ export default function MomentoCarousel() {
     setShowViewer(true);
   };
 
+  // ✅ CRITICAL FIX v48.0: User avatar click behavior
+  const handleUserAvatarPress = () => {
+    if (userHasMomentos) {
+      // User has momentos - open viewer
+      console.log('[MomentoCarousel v48.0] User has momentos, opening viewer');
+      setSelectedAuthor({ id: user!.id, tipo: 'usuario' });
+      setShowViewer(true);
+    } else {
+      // User has no momentos - open upload
+      console.log('[MomentoCarousel v48.0] User has no momentos, opening upload');
+      setShowUpload(true);
+    }
+  };
+
   const handleCreateMomento = () => {
-    console.log('[MomentoCarousel v48.0] Opening momento upload');
+    console.log('[MomentoCarousel v48.0] Opening momento upload from + button');
     setShowUpload(true);
   };
 
@@ -259,7 +283,6 @@ export default function MomentoCarousel() {
     return null;
   }
 
-  // ✅ Always show the section
   return (
     <React.Fragment>
       <View style={styles.container}>
@@ -269,30 +292,30 @@ export default function MomentoCarousel() {
           contentContainerStyle={styles.scrollContent}
           style={styles.scrollView}
         >
-          {/* ✅ CRITICAL FIX v48.0: Increased size to 88px for Instagram stories feel + NO WHITE BORDER */}
+          {/* ✅ CRITICAL FIX v48.0: User's own avatar - shows momento if exists, otherwise shows + button */}
           <View style={styles.authorItem}>
             <UnifiedMomentoAvatar
               userId={user.id}
               imageUrl={user.avatar}
               size={88}
-              showAddButton={true}
+              showAddButton={!userHasMomentos}
               isOwner={true}
-              onPress={handleCreateMomento}
+              onPress={handleUserAvatarPress}
               onAddPress={handleCreateMomento}
             />
             <Text style={styles.authorName} numberOfLines={1}>
-              Tu Momento
+              {userHasMomentos ? 'Tu Momento' : 'Crear Momento'}
             </Text>
           </View>
 
-          {/* Other authors */}
+          {/* ✅ CRITICAL FIX v48.0: Other users' momentos (adjacent avatars) */}
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={colors.primary} />
             </View>
           ) : authors.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No hay momentos disponibles</Text>
+              <Text style={styles.emptyText}>No hay momentos de tus amigos</Text>
             </View>
           ) : (
             authors.map((author) => (

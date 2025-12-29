@@ -15,13 +15,14 @@ interface PermissionGuardProps {
 }
 
 /**
- * ✅ PERMISSION GUARD v48.0 - ACCESS CONTROL FOR FREE PLAN LOCALS
+ * ✅ PERMISSION GUARD v48.0 - ACCESS CONTROL + BOTTOM MARGIN FIX
  * 
- * Features:
+ * CRITICAL FIXES v48.0:
  * - ✅ Blocks access to social network for free plan locals
  * - ✅ Blocks access to local profile page for free plan locals
  * - ✅ Shows persuasive upgrade message
  * - ✅ Redirects to plans page
+ * - ✅ Added extra bottom margin to prevent button overlap with tab bar
  * - ✅ Only applies to local profiles, not user profiles
  */
 export default function PermissionGuard({
@@ -251,6 +252,7 @@ export default function PermissionGuard({
             </Text>
           </View>
 
+          {/* ✅ CRITICAL FIX v48.0: Added extra bottom margin to prevent overlap with tab bar */}
           <TouchableOpacity
             style={styles.upgradeButton}
             onPress={() => {
@@ -282,6 +284,9 @@ export default function PermissionGuard({
           >
             <Text style={styles.backToExploreButtonText}>Volver a Explorar</Text>
           </TouchableOpacity>
+
+          {/* ✅ CRITICAL FIX v48.0: Extra spacing to prevent tab bar overlap */}
+          <View style={{ height: 40 }} />
         </View>
       </View>
     );
@@ -327,7 +332,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-    paddingBottom: 150,
+    paddingBottom: 80,
   },
   iconContainer: {
     width: 120,
@@ -414,6 +419,7 @@ const styles = StyleSheet.create({
   },
   backToExploreButton: {
     paddingVertical: 12,
+    marginBottom: 20,
   },
   backToExploreButtonText: {
     fontSize: 14,

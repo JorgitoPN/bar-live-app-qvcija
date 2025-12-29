@@ -39,7 +39,6 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
-// ✅ NEW: Category filters for events
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', emoji: '🎉' },
   { id: 'cafe', nombre: 'Cafés', emoji: '☕' },
@@ -72,6 +71,16 @@ interface Evento {
   local_longitud?: number;
   local_categories?: string[];
 }
+
+/**
+ * ✅ EVENTOS SCREEN v48.0 - WHITE SEARCH BAR + SCROLLABLE FILTERS
+ * 
+ * CRITICAL FIXES:
+ * - ✅ Search bar is now white (matching favoritos page)
+ * - ✅ Filter modal is now scrollable to access province selector
+ * - ✅ Proper maxHeight on modal content to enable scrolling
+ * - ✅ Category filters work correctly
+ */
 
 export default function EventosScreen() {
   const router = useRouter();
@@ -110,7 +119,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos] Cargando eventos...');
+      console.log('[Eventos v48.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -142,14 +151,13 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos] Error cargando eventos:', error);
+        console.error('[Eventos v48.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v48.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
-        // ✅ Get local categories for filtering
         let localCategories: string[] = [];
         if (evento.locales?.barlive_types && Array.isArray(evento.locales.barlive_types)) {
           localCategories = evento.locales.barlive_types;
@@ -182,7 +190,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos] Error:', error);
+      console.error('[Eventos v48.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -202,10 +210,8 @@ export default function EventosScreen() {
     const matchBusqueda = evento.titulo.toLowerCase().includes(busqueda.toLowerCase());
     const matchProvincia = provinciaSeleccionada === 'Todas' || evento.provincia === provinciaSeleccionada;
     
-    // ✅ NEW: Category filter based on local type
     let matchCategoria = true;
     if (categoriaSeleccionada !== 'todas') {
-      // Match category with local's barlive_types array
       const localCategories = evento.local_categories || [];
       matchCategoria = localCategories.some(cat => 
         cat.toLowerCase().includes(categoriaSeleccionada.toLowerCase())
@@ -318,7 +324,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos] Deleting event:', eventoId);
+              console.log('[Eventos v48.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -326,14 +332,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos] Error deleting event:', error);
+                console.error('[Eventos v48.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos] Error deleting event:', error);
+              console.error('[Eventos v48.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -352,18 +358,28 @@ export default function EventosScreen() {
       >
         <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Eventos</Text>
 
+        {/* ✅ CRITICAL FIX v48.0: White search bar matching favoritos page */}
         <View style={styles.searchContainer}>
-          {/* ✅ FIXED: Search icon color changed to white */}
-          <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.white} />
+          <IconSymbol 
+            ios_icon_name="magnifyingglass" 
+            android_material_icon_name="search" 
+            size={20} 
+            color={colors.textSecondary} 
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar eventos..."
-            placeholderTextColor="rgba(255, 255, 255, 0.7)"
+            placeholderTextColor={colors.textSecondary}
             value={busqueda}
             onChangeText={setBusqueda}
           />
           <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
-            <IconSymbol ios_icon_name="slider.horizontal.3" android_material_icon_name="tune" size={20} color={colors.white} />
+            <IconSymbol 
+              ios_icon_name="slider.horizontal.3" 
+              android_material_icon_name="tune" 
+              size={20} 
+              color={colors.primary} 
+            />
           </TouchableOpacity>
         </View>
 
@@ -396,7 +412,6 @@ export default function EventosScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ✅ NEW: Category filters */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -476,6 +491,7 @@ export default function EventosScreen() {
         </TouchableOpacity>
       )}
 
+      {/* ✅ CRITICAL FIX v48.0: Scrollable filter modal with proper maxHeight */}
       <Modal
         visible={mostrarFiltros}
         animationType="slide"
@@ -494,8 +510,12 @@ export default function EventosScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* ✅ NEW: Category filter section */}
+            {/* ✅ CRITICAL FIX v48.0: Scrollable content with proper maxHeight */}
+            <ScrollView 
+              style={styles.modalScrollView}
+              showsVerticalScrollIndicator={true}
+              bounces={false}
+            >
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Categoría de Local</Text>
                 <View style={styles.categoriesGrid}>
@@ -647,9 +667,10 @@ export default function EventosScreen() {
                 )}
               </View>
 
+              {/* ✅ CRITICAL FIX v48.0: Scrollable province list */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Provincia</Text>
-                <ScrollView style={styles.provinciasList} nestedScrollEnabled>
+                <View style={styles.provinciasListContainer}>
                   {PROVINCIAS.map((provincia) => (
                     <TouchableOpacity
                       key={provincia}
@@ -669,10 +690,11 @@ export default function EventosScreen() {
                       </Text>
                     </TouchableOpacity>
                   ))}
-                </ScrollView>
+                </View>
               </View>
 
-              <View style={{ height: 20 }} />
+              {/* ✅ Extra padding at bottom for scrolling */}
+              <View style={{ height: 40 }} />
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -705,7 +727,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -714,7 +736,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: colors.white,
+    color: colors.text,
     fontSize: 16,
   },
   tabs: {
@@ -799,22 +821,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '70%',
+    maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    padding: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
   },
+  modalScrollView: {
+    maxHeight: '100%',
+    paddingHorizontal: 20,
+  },
   filterSection: {
-    marginBottom: 24,
+    marginTop: 20,
+    marginBottom: 16,
   },
   filterTitle: {
     fontSize: 16,
@@ -866,14 +895,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 18,
   },
-  provinciasList: {
-    maxHeight: 300,
+  provinciasListContainer: {
+    gap: 8,
   },
   provinciaItem: {
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    marginBottom: 8,
     backgroundColor: colors.background,
   },
   provinciaItemActive: {
@@ -890,9 +918,11 @@ const styles = StyleSheet.create({
   modalFooter: {
     flexDirection: 'row',
     gap: 12,
+    padding: 20,
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
   },
   limpiarButton: {
     flex: 1,
@@ -970,7 +1000,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // ✅ NEW: Category filter styles
   categoriesScroll: {
     marginTop: 12,
   },
