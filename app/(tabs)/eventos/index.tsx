@@ -1002,9 +1002,11 @@ const styles = StyleSheet.create({
   },
   categoriesScroll: {
     marginTop: 12,
+    marginRight: -16,
   },
   categoriesContent: {
     paddingHorizontal: 0,
+    paddingRight: 16,
     gap: 8,
   },
   categoryChip: {

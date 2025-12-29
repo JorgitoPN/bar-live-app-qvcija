@@ -445,6 +445,20 @@ export default function MomentoViewer({
     const currentMomento = momentos[currentIndex];
     if (!currentMomento) return;
 
+    // ✅ CRITICAL FIX: Pause momento when opening stats
+    console.log('[MomentoViewer] 📊 Opening stats, pausing momento');
+    setPaused(true);
+    
+    // Stop progress animation
+    if (progressAnimationRef.current) {
+      progressAnimationRef.current.stop();
+      progressAnimationRef.current = null;
+    }
+    if (progressTimerRef.current) {
+      clearTimeout(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+
     try {
       const [viewersResult, likersResult] = await Promise.all([
         supabase
@@ -732,9 +746,9 @@ export default function MomentoViewer({
     }
   }, [visible, authorId, authorType, fadeAnim, loadMomentos]);
 
-  // ✅ FIXED: Pause when message input is open
+  // ✅ FIXED: Pause when message input or stats modal is open
   useEffect(() => {
-    if (!paused && !showMessageInput && momentos.length > 0 && !loading && visible) {
+    if (!paused && !showMessageInput && !showStats && momentos.length > 0 && !loading && visible) {
       console.log('[MomentoViewer] ▶️ Starting/resuming progress for momento', currentIndex);
       
       if (progressTimerRef.current) {
@@ -775,7 +789,7 @@ export default function MomentoViewer({
         }
       };
     }
-  }, [currentIndex, paused, showMessageInput, momentos, loading, progressAnims, handleNext, visible]);
+  }, [currentIndex, paused, showMessageInput, showStats, momentos, loading, progressAnims, handleNext, visible]);
 
   if (!visible) return null;
 
@@ -806,40 +820,46 @@ export default function MomentoViewer({
         <View style={styles.backgroundOverlay} />
         
         <View style={styles.imageContainer} {...panResponder.panHandlers} ref={momentoViewRef} collapsable={false}>
-          <TouchableOpacity
-            style={styles.imageTouchable}
-            activeOpacity={1}
-            onPress={(e) => {
-              const x = e.nativeEvent.locationX;
-              if (x < SCREEN_WIDTH / 2) {
-                handlePrevious();
-              } else {
-                handleNext();
-              }
-            }}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            delayLongPress={0}
-          >
-            <View style={styles.imageWrapper}>
-              {currentMomento.imagen_url ? (
-                <Image
-                  source={{ uri: currentMomento.imagen_url }}
-                  style={styles.image}
-                  resizeMode="contain"
+          {/* ✅ CRITICAL FIX: Left and right tap zones for navigation */}
+          <View style={styles.imageTouchable}>
+            {/* Left tap zone - Previous momento */}
+            <TouchableOpacity
+              style={styles.leftTapZone}
+              activeOpacity={1}
+              onPress={handlePrevious}
+              onPressIn={handlePressIn}
+              onPressOut={handlePressOut}
+            />
+            
+            {/* Right tap zone - Next momento */}
+            <TouchableOpacity
+              style={styles.rightTapZone}
+              activeOpacity={1}
+              onPress={handleNext}
+              onPressIn={handlePressIn}
+              onPressOut={handlePressOut}
+            />
+          </View>
+          
+          {/* Image display */}
+          <View style={styles.imageWrapper} pointerEvents="none">
+            {currentMomento.imagen_url ? (
+              <Image
+                source={{ uri: currentMomento.imagen_url }}
+                style={styles.image}
+                resizeMode="contain"
+              />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <IconSymbol
+                  ios_icon_name="photo"
+                  android_material_icon_name="photo"
+                  size={64}
+                  color="#fff"
                 />
-              ) : (
-                <View style={styles.imagePlaceholder}>
-                  <IconSymbol
-                    ios_icon_name="photo"
-                    android_material_icon_name="photo"
-                    size={64}
-                    color="#fff"
-                  />
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
 
         <View style={styles.progressContainer}>
@@ -1016,7 +1036,10 @@ export default function MomentoViewer({
             <View style={styles.statsContent}>
               <View style={styles.statsHeader}>
                 <Text style={styles.statsTitle}>Estadísticas</Text>
-                <TouchableOpacity onPress={() => setShowStats(false)}>
+                <TouchableOpacity onPress={() => {
+                  setShowStats(false);
+                  setPaused(false);
+                }}>
                   <IconSymbol
                     ios_icon_name="xmark"
                     android_material_icon_name="close"
@@ -1026,56 +1049,66 @@ export default function MomentoViewer({
                 </TouchableOpacity>
               </View>
 
+              {/* ✅ CRITICAL FIX: Unified list with likes prioritized */}
               <View style={styles.statsSection}>
                 <Text style={styles.statsSectionTitle}>
-                  Vistas ({viewers.length})
+                  Visualizaciones ({viewers.length})
                 </Text>
-                {viewers.map((viewer: any, index: number) => (
-                  <View key={index} style={styles.statsItem}>
-                    {viewer.usuarios?.avatar ? (
-                      <Image
-                        source={{ uri: viewer.usuarios.avatar }}
-                        style={styles.statsAvatar}
-                      />
-                    ) : (
-                      <View style={styles.statsAvatarPlaceholder}>
-                        <IconSymbol
-                          ios_icon_name="person.fill"
-                          android_material_icon_name="person"
-                          size={16}
-                          color={colors.primary}
-                        />
+                {(() => {
+                  // Create a map of user IDs who liked
+                  const likerIds = new Set(likers.map((l: any) => l.usuario_id));
+                  
+                  // Create unified list with like status
+                  const unifiedList = viewers.map((viewer: any) => ({
+                    ...viewer,
+                    hasLiked: likerIds.has(viewer.usuario_id),
+                  }));
+                  
+                  // Sort: likers first, then by most recent view
+                  unifiedList.sort((a, b) => {
+                    if (a.hasLiked && !b.hasLiked) return -1;
+                    if (!a.hasLiked && b.hasLiked) return 1;
+                    
+                    // Within same group, sort by most recent
+                    const dateA = new Date(a.viewed_at).getTime();
+                    const dateB = new Date(b.viewed_at).getTime();
+                    return dateB - dateA;
+                  });
+                  
+                  return unifiedList.map((viewer: any, index: number) => (
+                    <View key={index} style={styles.statsItem}>
+                      <View style={styles.statsAvatarContainer}>
+                        {viewer.usuarios?.avatar ? (
+                          <Image
+                            source={{ uri: viewer.usuarios.avatar }}
+                            style={styles.statsAvatar}
+                          />
+                        ) : (
+                          <View style={styles.statsAvatarPlaceholder}>
+                            <IconSymbol
+                              ios_icon_name="person.fill"
+                              android_material_icon_name="person"
+                              size={16}
+                              color={colors.primary}
+                            />
+                          </View>
+                        )}
+                        {/* ✅ Heart icon overlay for users who liked */}
+                        {viewer.hasLiked && (
+                          <View style={styles.likeIconOverlay}>
+                            <IconSymbol
+                              ios_icon_name="heart.fill"
+                              android_material_icon_name="favorite"
+                              size={14}
+                              color="#FF3B30"
+                            />
+                          </View>
+                        )}
                       </View>
-                    )}
-                    <Text style={styles.statsName}>{viewer.usuarios?.nombre}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.statsSection}>
-                <Text style={styles.statsSectionTitle}>
-                  Me gusta ({likers.length})
-                </Text>
-                {likers.map((liker: any, index: number) => (
-                  <View key={index} style={styles.statsItem}>
-                    {liker.usuarios?.avatar ? (
-                      <Image
-                        source={{ uri: liker.usuarios.avatar }}
-                        style={styles.statsAvatar}
-                      />
-                    ) : (
-                      <View style={styles.statsAvatarPlaceholder}>
-                        <IconSymbol
-                          ios_icon_name="person.fill"
-                          android_material_icon_name="person"
-                          size={16}
-                          color={colors.primary}
-                        />
-                      </View>
-                    )}
-                    <Text style={styles.statsName}>{liker.usuarios?.nombre}</Text>
-                  </View>
-                ))}
+                      <Text style={styles.statsName}>{viewer.usuarios?.nombre}</Text>
+                    </View>
+                  ));
+                })()}
               </View>
             </View>
           </View>
@@ -1128,14 +1161,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   imageTouchable: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    zIndex: 5,
+  },
+  leftTapZone: {
+    flex: 1,
+    height: '100%',
+  },
+  rightTapZone: {
+    flex: 1,
+    height: '100%',
   },
   imageWrapper: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   image: {
     width: '100%',
@@ -1335,6 +1384,11 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 8,
   },
+  statsAvatarContainer: {
+    position: 'relative',
+    width: 32,
+    height: 32,
+  },
   statsAvatar: {
     width: 32,
     height: 32,
@@ -1347,6 +1401,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  likeIconOverlay: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
   },
   statsName: {
     fontSize: 14,
