@@ -46,9 +46,12 @@ const CATEGORIAS_LOCALES = [
 ];
 
 const LOCALES_POR_PAGINA = 20;
-const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
-const CATEGORIAS_HEIGHT = 110;
-const CATEGORIAS_TOP_POSITION = 170;
+// ✅ ANDROID FIX v56.0: Reduced header height to match iOS (was 100, now 90)
+const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 90;
+// ✅ ANDROID FIX v56.0: Reduced categories height to match iOS (was 110, now 100)
+const CATEGORIAS_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
+// ✅ ANDROID FIX v56.0: Adjusted top position to match iOS (was 170, now 140)
+const CATEGORIAS_TOP_POSITION = Platform.OS === 'ios' ? 170 : 140;
 const SPACING_BETWEEN_FILTERS_AND_LIST = 24;
 
 const MAX_FEATURED_DISTANCE_KM = 100;
@@ -66,9 +69,15 @@ function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /**
- * ✅ EXPLORAR SCREEN v35.0 - FIXED LOCAL VISIBILITY
+ * ✅ EXPLORAR SCREEN v56.0 - ANDROID-iOS PARITY
  * 
- * CRITICAL FIX:
+ * CRITICAL FIXES v56.0:
+ * - ✅ Reduced header height on Android to match iOS
+ * - ✅ Reduced categories section height on Android
+ * - ✅ Adjusted text sizes to match iOS hierarchy
+ * - ✅ Fixed spacing and padding for Android
+ * 
+ * PREVIOUS FIXES v35.0:
  * - Locals with active subscriptions are now visible regardless of owner activity status
  * - The visibility is based on:
  *   1. local.activo = true
@@ -910,10 +919,11 @@ export default function ExplorarScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ✅ ANDROID FIX v56.0: Reduced padding to match iOS (was 40, now 12)
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: Platform.OS === 'ios' ? 50 : 12,
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: Platform.OS === 'ios' ? 16 : 12,
   },
   headerContent: {
     flexDirection: 'row',
@@ -921,8 +931,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  // ✅ ANDROID FIX v56.0: Reduced font size to match iOS (was 32, now 28)
   headerTitle: {
-    fontSize: 32,
+    fontSize: Platform.OS === 'ios' ? 32 : 28,
     fontWeight: 'bold',
     color: colors.headerText,
   },

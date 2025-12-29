@@ -78,21 +78,22 @@ export const commonStyles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? 0 : 0,
   },
   
-  // ✅ ANDROID FIX: Header gradient with proper padding
+  // ✅ ANDROID FIX v56.0: Reduced header padding to match iOS
   headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 12,
+    paddingBottom: Platform.OS === 'ios' ? 16 : 12,
     paddingHorizontal: 20,
   },
   
+  // ✅ ANDROID FIX v56.0: Reduced text sizes to match iOS
   headerTitle: {
-    fontSize: 32,
+    fontSize: Platform.OS === 'ios' ? 32 : 28,
     fontWeight: 'bold',
     color: colors.headerText,
   },
   
   headerSubtitle: {
-    fontSize: 15,
+    fontSize: Platform.OS === 'ios' ? 15 : 14,
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 4,
@@ -181,27 +182,27 @@ export const commonStyles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   
-  // Text styles
+  // ✅ ANDROID FIX v56.0: Platform-specific text sizes
   title: {
-    fontSize: 24,
+    fontSize: Platform.OS === 'ios' ? 24 : 22,
     fontWeight: 'bold',
     color: colors.text,
   },
   
   subtitle: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'ios' ? 18 : 17,
     fontWeight: '600',
     color: colors.text,
   },
   
   body: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 15,
     color: colors.text,
-    lineHeight: 24,
+    lineHeight: Platform.OS === 'ios' ? 24 : 22,
   },
   
   caption: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 13,
     color: colors.textSecondary,
   },
   

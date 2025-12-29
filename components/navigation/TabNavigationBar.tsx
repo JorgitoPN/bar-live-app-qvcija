@@ -1,6 +1,6 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v47.0
+ * TAB NAVIGATION BAR - VERSION v56.0
  * 
  * Clean tab navigation bar with Instagram-style filled/outlined icons.
  * Active icons are filled with white, inactive icons are outlined with white.
@@ -18,6 +18,8 @@
  * - ✅ FIXED v47.0: Tab bar ALWAYS visible above all content
  * - ✅ FIXED v47.0: Profile avatar properly visible on Android
  * - ✅ FIXED v47.0: User @jorge avatar now displays correctly
+ * - ✅ FIXED v56.0: Reduced tab bar height on Android to match iOS
+ * - ✅ FIXED v56.0: Adjusted padding and spacing for Android
  */
 
 import React from 'react';
@@ -246,9 +248,10 @@ export function TabNavigationBar({
     );
   };
 
-  // ✅ ANDROID FIX v47.0: Add safe area padding for system buttons
-  const containerHeight = 80 + (Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 0);
-  const tabBarPaddingBottom = Platform.OS === 'ios' ? 20 : Math.max(insets.bottom, 12);
+  // ✅ ANDROID FIX v56.0: Reduced height to match iOS (was 80, now 70)
+  const baseHeight = Platform.OS === 'ios' ? 80 : 70;
+  const containerHeight = baseHeight + (Platform.OS === 'android' ? Math.max(insets.bottom, 8) : 0);
+  const tabBarPaddingBottom = Platform.OS === 'ios' ? 20 : Math.max(insets.bottom, 8);
 
   return (
     <View style={[styles.container, { height: containerHeight }]} pointerEvents="box-none">
@@ -280,7 +283,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
+    height: Platform.OS === 'ios' ? 80 : 70,
     backgroundColor: 'transparent',
     // ✅ CRITICAL FIX v47.0: MAXIMUM z-index and elevation for guaranteed visibility
     zIndex: 999999,
@@ -291,7 +294,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
+    height: Platform.OS === 'ios' ? 80 : 70,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.15,
@@ -307,7 +310,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    paddingTop: 12,
+    paddingTop: Platform.OS === 'ios' ? 12 : 8,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'space-evenly',
@@ -318,15 +321,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 6,
     overflow: 'hidden',
     borderRadius: 20,
   },
   centerButton: {
-    width: 60,
-    height: 60,
-    marginTop: -30,
-    borderRadius: 30,
+    width: Platform.OS === 'ios' ? 60 : 56,
+    height: Platform.OS === 'ios' ? 60 : 56,
+    marginTop: Platform.OS === 'ios' ? -30 : -28,
+    borderRadius: Platform.OS === 'ios' ? 30 : 28,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -337,21 +340,21 @@ const styles = StyleSheet.create({
   centerGradient: {
     width: '100%',
     height: '100%',
-    borderRadius: 30,
+    borderRadius: Platform.OS === 'ios' ? 30 : 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
+    borderWidth: Platform.OS === 'ios' ? 4 : 3,
     borderColor: '#FFFFFF',
   },
   avatarContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: Platform.OS === 'ios' ? 28 : 26,
+    height: Platform.OS === 'ios' ? 28 : 26,
+    borderRadius: Platform.OS === 'ios' ? 14 : 13,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   avatarContainerActive: {
-    borderWidth: 2.5,
+    borderWidth: Platform.OS === 'ios' ? 2.5 : 2,
     borderColor: '#FFFFFF',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },

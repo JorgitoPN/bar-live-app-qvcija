@@ -532,8 +532,9 @@ export default function HeaderSocial({
 }
 
 const styles = StyleSheet.create({
+  // ✅ ANDROID FIX v56.0: Reduced padding to match iOS (was 40, now 12)
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: Platform.OS === 'ios' ? 50 : 12,
     paddingBottom: 12,
     paddingHorizontal: 16,
   },
@@ -548,8 +549,9 @@ const styles = StyleSheet.create({
     gap: 12,
     flex: 1,
   },
+  // ✅ ANDROID FIX v56.0: Reduced font size to match iOS (was 32, now 28)
   headerTitle: {
-    fontSize: 32,
+    fontSize: Platform.OS === 'ios' ? 32 : 28,
     fontWeight: 'bold',
     color: colors.headerText,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
@@ -590,8 +592,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  // ✅ ANDROID FIX v56.0: Reduced padding to match iOS (was 40, now 12)
   searchHeader: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: Platform.OS === 'ios' ? 50 : 12,
     paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
