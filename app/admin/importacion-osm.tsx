@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -81,12 +81,7 @@ export default function ImportacionOSMScreen() {
     mensaje: '',
   });
 
-  // Verificar estado de la API al cargar
-  useEffect(() => {
-    verificarEstadoAPI();
-  }, []);
-
-  const verificarEstadoAPI = async () => {
+  const verificarEstadoAPI = useCallback(async () => {
     setEstadoAPI({ verificando: true, disponible: true, mensaje: '' });
     agregarLog('🔍 Verificando estado de Overpass API...');
     
@@ -112,7 +107,12 @@ export default function ImportacionOSMScreen() {
       });
       agregarLog('❌ Error al verificar estado de la API');
     }
-  };
+  }, []);
+
+  // Verificar estado de la API al cargar
+  useEffect(() => {
+    verificarEstadoAPI();
+  }, [verificarEstadoAPI]);
 
   const agregarLog = (mensaje: string) => {
     const timestamp = new Date().toLocaleTimeString();

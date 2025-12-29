@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -37,11 +37,7 @@ export default function HistorialUsernamesScreen() {
   const [history, setHistory] = useState<UsernameChange[]>([]);
   const [filter, setFilter] = useState<'all' | 'user' | 'local'>('all');
 
-  useEffect(() => {
-    loadHistory();
-  }, [filter]);
-
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -129,7 +125,11 @@ export default function HistorialUsernamesScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, filter, router]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

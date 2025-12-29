@@ -73,42 +73,6 @@ export default function UsuarioPerfilScreen() {
   const isOwnProfile = currentUser && currentUser.id === userId;
   const isAdminView = params.adminView === 'true' && currentUser?.rol_app === 'admin';
 
-  // ✅ NEW: Keep-Alive - Don't reset state when screen loses focus
-  useFocusEffect(
-    useCallback(() => {
-      console.log('[UsuarioPerfil v42.0] ⚡ Screen focused - keeping state alive');
-      
-      // Only load if we haven't loaded yet
-      if (!hasLoadedOnce.current) {
-        loadUserDataWithCache();
-      } else {
-        // Silent background refresh
-        console.log('[UsuarioPerfil v42.0] 🔄 Background refresh...');
-        loadUserData(true);
-      }
-      
-      return () => {
-        console.log('[UsuarioPerfil v42.0] Screen unfocused - state persisted');
-      };
-    }, [userId])
-  );
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, scaleAnim]);
-
   const loadCurrentLocal = useCallback(async () => {
     if (!userId) return;
 
@@ -211,50 +175,6 @@ export default function UsuarioPerfilScreen() {
       return { seguidores: 0, seguidos: 0 };
     }
   }, []);
-
-  // ✅ NEW: Load with cache first (instant), then refresh in background
-  const loadUserDataWithCache = useCallback(async () => {
-    if (!userId) {
-      router.back();
-      return;
-    }
-
-    try {
-      console.log('[UsuarioPerfil v42.0] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
-      
-      // Try to load from cache first
-      const cachedData = await profileCache.get(userId, 'user');
-      
-      if (cachedData) {
-        console.log('[UsuarioPerfil v42.0] ⚡ INSTANT display with cached data');
-        
-        // ✅ FIXED v42.0: Filter out file:// URLs from cached data
-        const safeProfile = {
-          ...cachedData.profile,
-          avatar: cachedData.profile.avatar && !cachedData.profile.avatar.startsWith('file://') 
-            ? cachedData.profile.avatar 
-            : null,
-        };
-        
-        setUsuario(safeProfile);
-        setPosts(cachedData.posts);
-        setStats(cachedData.stats);
-        hasLoadedOnce.current = true;
-        
-        // Background refresh
-        setTimeout(() => {
-          console.log('[UsuarioPerfil v42.0] 🔄 Background refresh...');
-          loadUserData(true);
-        }, 100);
-      } else {
-        console.log('[UsuarioPerfil v42.0] 📡 No cache, loading from database...');
-        await loadUserData(false);
-      }
-    } catch (error) {
-      console.error('[UsuarioPerfil v42.0] Error in loadUserDataWithCache:', error);
-      await loadUserData(false);
-    }
-  }, [userId, router]);
 
   const loadUserData = useCallback(async (silent: boolean = false) => {
     if (!userId) {
@@ -381,6 +301,86 @@ export default function UsuarioPerfilScreen() {
       }
     }
   }, [userId, currentUser, router, loadFollowerCounts, loadCurrentLocal, isOwnProfile, isAdminView]);
+
+  // ✅ NEW: Load with cache first (instant), then refresh in background
+  const loadUserDataWithCache = useCallback(async () => {
+    if (!userId) {
+      router.back();
+      return;
+    }
+
+    try {
+      console.log('[UsuarioPerfil v42.0] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
+      
+      // Try to load from cache first
+      const cachedData = await profileCache.get(userId, 'user');
+      
+      if (cachedData) {
+        console.log('[UsuarioPerfil v42.0] ⚡ INSTANT display with cached data');
+        
+        // ✅ FIXED v42.0: Filter out file:// URLs from cached data
+        const safeProfile = {
+          ...cachedData.profile,
+          avatar: cachedData.profile.avatar && !cachedData.profile.avatar.startsWith('file://') 
+            ? cachedData.profile.avatar 
+            : null,
+        };
+        
+        setUsuario(safeProfile);
+        setPosts(cachedData.posts);
+        setStats(cachedData.stats);
+        hasLoadedOnce.current = true;
+        
+        // Background refresh
+        setTimeout(() => {
+          console.log('[UsuarioPerfil v42.0] 🔄 Background refresh...');
+          loadUserData(true);
+        }, 100);
+      } else {
+        console.log('[UsuarioPerfil v42.0] 📡 No cache, loading from database...');
+        await loadUserData(false);
+      }
+    } catch (error) {
+      console.error('[UsuarioPerfil v42.0] Error in loadUserDataWithCache:', error);
+      await loadUserData(false);
+    }
+  }, [userId, router, loadUserData]);
+
+  // ✅ NEW: Keep-Alive - Don't reset state when screen loses focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[UsuarioPerfil v42.0] ⚡ Screen focused - keeping state alive');
+      
+      // Only load if we haven't loaded yet
+      if (!hasLoadedOnce.current) {
+        loadUserDataWithCache();
+      } else {
+        // Silent background refresh
+        console.log('[UsuarioPerfil v42.0] 🔄 Background refresh...');
+        loadUserData(true);
+      }
+      
+      return () => {
+        console.log('[UsuarioPerfil v42.0] Screen unfocused - state persisted');
+      };
+    }, [loadUserDataWithCache, loadUserData])
+  );
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, scaleAnim]);
 
   useEffect(() => {
     if (userId) {

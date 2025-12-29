@@ -114,7 +114,7 @@ export default function PermissionGuard({ children, requireSocialProfile = false
       setHasPermission(true);
       setLoading(false);
     }
-  }, [currentMode, activeProfileType, activeProfileId, activeLocalData]);
+  }, [currentMode, activeProfileType, activeProfileId, activeLocalData, localName]);
 
   useEffect(() => {
     checkPermissions();

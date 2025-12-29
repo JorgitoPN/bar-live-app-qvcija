@@ -355,7 +355,7 @@ export default function SalaVirtualScreen() {
       console.error('[SalaVirtual v50.0] Error:', error);
       return false;
     }
-  }, [user?.id, localId]);
+  }, [user, localId]);
 
   const handleCheckIn = useCallback(async () => {
     if (!user || !localId) {
@@ -446,7 +446,7 @@ export default function SalaVirtualScreen() {
       setCheckingIn(false);
       return false;
     }
-  }, [user?.id, localId, local]);
+  }, [user, localId, local]);
 
   const handleAutoCheckOut = useCallback(async () => {
     if (!user || !localId || !isCheckedIn) return;
@@ -700,7 +700,7 @@ export default function SalaVirtualScreen() {
       supabase.removeChannel(chatChannel);
       supabase.removeChannel(presenceChannel);
     };
-  }, [localId, user?.id, updateActiveUsers, router]);
+  }, [localId, user, updateActiveUsers, router]);
 
   useEffect(() => {
     if (!localId || hasInitialized.current) {

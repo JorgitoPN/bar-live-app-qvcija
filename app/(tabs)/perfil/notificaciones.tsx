@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Switch, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
@@ -39,12 +39,7 @@ export default function Notificaciones() {
   const [pushToken, setPushToken] = useState<string | null>(null);
   const pushAvailable = arePushNotificationsAvailable();
 
-  useEffect(() => {
-    loadSettings();
-    setupPushNotifications();
-  }, [user]);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -70,9 +65,9 @@ export default function Notificaciones() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const setupPushNotifications = async () => {
+  const setupPushNotifications = useCallback(async () => {
     if (!user || !pushAvailable) {
       console.log('[Notificaciones] Push notifications no disponibles');
       return;
@@ -87,7 +82,12 @@ export default function Notificaciones() {
     } catch (error) {
       console.error('Error configurando push notifications:', error);
     }
-  };
+  }, [user, pushAvailable]);
+
+  useEffect(() => {
+    loadSettings();
+    setupPushNotifications();
+  }, [loadSettings, setupPushNotifications]);
 
   const updateSetting = async (key: keyof NotificationSettings, value: boolean) => {
     if (!user) return;

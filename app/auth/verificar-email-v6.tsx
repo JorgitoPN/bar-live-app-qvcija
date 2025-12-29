@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -28,33 +28,7 @@ export default function VerificarEmailV6Screen() {
   const fadeAnim = useMemo(() => new Animated.Value(0), []);
   const pulseAnim = useMemo(() => new Animated.Value(1), []);
 
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // Automatically redirect to token verification
-    handleSendToken();
-  }, [fadeAnim, pulseAnim]);
-
-  const handleSendToken = async () => {
+  const handleSendToken = useCallback(async () => {
     if (sendingToken) return;
 
     setSendingToken(true);
@@ -124,7 +98,33 @@ export default function VerificarEmailV6Screen() {
         ]
       );
     }
-  };
+  }, [sendingToken, email, nombre, router]);
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Automatically redirect to token verification
+    handleSendToken();
+  }, [fadeAnim, pulseAnim, handleSendToken]);
 
   return (
     <View style={styles.container}>

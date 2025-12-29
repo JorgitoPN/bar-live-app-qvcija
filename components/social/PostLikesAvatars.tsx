@@ -47,6 +47,60 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
   const [currentTotalLikes, setCurrentTotalLikes] = useState(totalLikes);
   const [currentUserHasLiked, setCurrentUserHasLiked] = useState(false);
 
+  const handleUserPress = useCallback((userId: string, tipo: 'usuario' | 'local') => {
+    setShowModal(false);
+    
+    if (tipo === 'usuario' && user && userId === user.id) {
+      router.push('/(tabs)/perfil');
+    } else if (tipo === 'local') {
+      router.push({
+        pathname: '/perfil/local',
+        params: { localId: userId },
+      });
+    } else {
+      router.push({
+        pathname: '/perfil/usuario',
+        params: { userId },
+      });
+    }
+  }, [user, router]);
+
+  const handleOpenModal = useCallback(() => {
+    loadAllLikes();
+    setShowModal(true);
+  }, []);
+
+  const loadAllLikes = useCallback(async () => {
+    try {
+      setLoadingModal(true);
+      const { data, error } = await supabase
+        .from('likes')
+        .select(`
+          usuario_id,
+          usuarios!likes_usuario_id_fkey(id, nombre, username, avatar)
+        `)
+        .eq('post_id', postId)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        const users = data
+          .filter(like => like.usuarios)
+          .map((like: any) => ({
+            id: like.usuarios.id,
+            nombre: like.usuarios.nombre,
+            username: like.usuarios.username,
+            avatar: like.usuarios.avatar,
+            tipo: 'usuario' as const,
+          }));
+        setAllLikes(users);
+      }
+    } catch (error) {
+      console.error('[PostLikesAvatars] Error loading all likes:', error);
+    } finally {
+      setLoadingModal(false);
+    }
+  }, [postId]);
+
   // ✅ FIXED: Update state immediately when localLikes changes
   useEffect(() => {
     console.log('[PostLikesAvatars] 🔄 localLikes changed for post:', postId, {
@@ -142,37 +196,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     updateProfilesOptimistically();
   }, [postId, localLikes, user?.id]); // ✅ FIXED: Removed tempProfiles from dependencies
 
-  const loadAllLikes = useCallback(async () => {
-    try {
-      setLoadingModal(true);
-      const { data, error } = await supabase
-        .from('likes')
-        .select(`
-          usuario_id,
-          usuarios!likes_usuario_id_fkey(id, nombre, username, avatar)
-        `)
-        .eq('post_id', postId)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        const users = data
-          .filter(like => like.usuarios)
-          .map((like: any) => ({
-            id: like.usuarios.id,
-            nombre: like.usuarios.nombre,
-            username: like.usuarios.username,
-            avatar: like.usuarios.avatar,
-            tipo: 'usuario' as const,
-          }));
-        setAllLikes(users);
-      }
-    } catch (error) {
-      console.error('[PostLikesAvatars] Error loading all likes:', error);
-    } finally {
-      setLoadingModal(false);
-    }
-  }, [postId]);
-
   // ✅ FIXED: Real-time subscription for OTHER users' changes
   useEffect(() => {
     if (!user) return;
@@ -250,29 +273,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       setCurrentTotalLikes(totalLikes);
     }
   }, [totalLikes, localLikes.length]);
-
-  const handleOpenModal = useCallback(() => {
-    loadAllLikes();
-    setShowModal(true);
-  }, [loadAllLikes]);
-
-  const handleUserPress = useCallback((userId: string, tipo: 'usuario' | 'local') => {
-    setShowModal(false);
-    
-    if (tipo === 'usuario' && user && userId === user.id) {
-      router.push('/(tabs)/perfil');
-    } else if (tipo === 'local') {
-      router.push({
-        pathname: '/perfil/local',
-        params: { localId: userId },
-      });
-    } else {
-      router.push({
-        pathname: '/perfil/usuario',
-        params: { userId },
-      });
-    }
-  }, [user, router]);
 
   // ✅ CRITICAL FIX: Memoize text generation using tempProfiles
   const getLikesText = useMemo(() => {
