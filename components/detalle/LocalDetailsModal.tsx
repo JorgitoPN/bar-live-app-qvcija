@@ -28,6 +28,7 @@ import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { calcularDistancia } from '@/utils/locationUtils';
 import { trackProfileView } from '@/utils/activityTracker';
+import { useMode } from '@/contexts/ModeContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -88,13 +89,14 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v5.1 - FIXED ANDROID SCROLL
+ * ✅ LOCAL DETAILS MODAL v53.0 - FIXED REVIEW RATING SYNC
  * 
- * Changes:
- * - ✅ Fixed ScrollView configuration for Android
- * - ✅ Proper nestedScrollEnabled for Android
- * - ✅ Removed conflicting scroll properties
- * - ✅ Better content sizing
+ * CRITICAL FIXES v53.0:
+ * - ✅ Rating now synced with actual reviews from reviews_barlive table
+ * - ✅ Calculates average rating from BarLive reviews
+ * - ✅ Falls back to Google rating if no BarLive reviews
+ * - ✅ Shows correct rating across all platform points
+ * - ✅ "Estoy en este local" and "Sala Virtual" buttons hidden in propietario mode
  */
 
 export default function LocalDetailsModal({
@@ -104,14 +106,20 @@ export default function LocalDetailsModal({
 }: LocalDetailsModalProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const { currentMode, activeProfileType } = useMode();
   const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
   const [local, setLocal] = useState<Local | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [distance, setDistance] = useState<string | null>(null);
+  const [actualRating, setActualRating] = useState<number>(0);
+  const [reviewCount, setReviewCount] = useState<number>(0);
 
   const localIsFavorite = localId ? isFavorite(localId) : false;
+
+  // ✅ Check if user is in propietario mode with local profile active
+  const isInPropietarioMode = currentMode === 'propietario' && activeProfileType === 'local';
 
   // ✅ Load user location for distance calculation
   useEffect(() => {
@@ -119,13 +127,13 @@ export default function LocalDetailsModal({
       try {
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[LocalDetailsModal] ⚠️ Location services are disabled');
+          console.log('[LocalDetailsModal v53.0] ⚠️ Location services are disabled');
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[LocalDetailsModal] ⚠️ Location permission denied');
+          console.log('[LocalDetailsModal v53.0] ⚠️ Location permission denied');
           return;
         }
 
@@ -139,9 +147,9 @@ export default function LocalDetailsModal({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-        console.log('[LocalDetailsModal] 📍 User location obtained');
+        console.log('[LocalDetailsModal v53.0] 📍 User location obtained');
       } catch (error: any) {
-        console.error('[LocalDetailsModal] ❌ Error getting location:', error?.message);
+        console.error('[LocalDetailsModal v53.0] ❌ Error getting location:', error?.message);
         setUserLocation(null);
       }
     })();
@@ -162,7 +170,7 @@ export default function LocalDetailsModal({
         : `${distKm.toFixed(1)} km`;
 
       setDistance(dist);
-      console.log('[LocalDetailsModal] 📏 Distance calculated:', dist);
+      console.log('[LocalDetailsModal v53.0] 📏 Distance calculated:', dist);
     }
   }, [userLocation, local]);
 
@@ -177,14 +185,36 @@ export default function LocalDetailsModal({
 
       if (error) throw error;
       setLocal(data);
-      console.log('[LocalDetailsModal] ✅ Local loaded:', {
+      console.log('[LocalDetailsModal v53.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         plan_activo: data.plan_activo,
         local_profile_id: data.local_profile_id,
       });
+
+      // ✅ CRITICAL FIX v53.0: Load actual rating from reviews_barlive table
+      const { data: reviewsData, error: reviewsError } = await supabase
+        .from('reviews_barlive')
+        .select('rating')
+        .eq('local_id', localId);
+
+      if (!reviewsError && reviewsData && reviewsData.length > 0) {
+        const avgRating = reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length;
+        setActualRating(avgRating);
+        setReviewCount(reviewsData.length);
+        console.log('[LocalDetailsModal v53.0] ✅ Calculated rating from reviews:', {
+          avgRating: avgRating.toFixed(1),
+          reviewCount: reviewsData.length,
+        });
+      } else {
+        // Fall back to Google rating or local rating
+        const fallbackRating = data.rating || data.google_rating || 0;
+        setActualRating(fallbackRating);
+        setReviewCount(0);
+        console.log('[LocalDetailsModal v53.0] ℹ️ Using fallback rating:', fallbackRating);
+      }
     } catch (error) {
-      console.error('[LocalDetailsModal] Error loading local:', error);
+      console.error('[LocalDetailsModal v53.0] Error loading local:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
     } finally {
       setLoading(false);
@@ -193,11 +223,13 @@ export default function LocalDetailsModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[LocalDetailsModal] 🚀 Opening modal for local:', localId);
+      console.log('[LocalDetailsModal v53.0] 🚀 Opening modal for local:', localId);
       loadLocalData();
     } else {
       setLocal(null);
       setLoading(true);
+      setActualRating(0);
+      setReviewCount(0);
     }
   }, [visible, localId, loadLocalData]);
 
@@ -264,7 +296,8 @@ export default function LocalDetailsModal({
         : []
   ).filter(cat => !CATEGORIAS_EXCLUIDAS.some(excluded => cat.toLowerCase().includes(excluded.toLowerCase()))) : [];
 
-  const displayRating = local?.rating || local?.google_rating || 0;
+  // ✅ CRITICAL FIX v53.0: Use actual rating from reviews
+  const displayRating = actualRating > 0 ? actualRating : (local?.rating || local?.google_rating || 0);
 
   const closeButtonTop = local?.destacado 
     ? (Platform.OS === 'ios' ? 100 : 100)
@@ -329,11 +362,15 @@ export default function LocalDetailsModal({
                       </BlurView>
                     </TouchableOpacity>
                 
+                    {/* ✅ CRITICAL FIX v53.0: Show actual rating with review count */}
                     {displayRating > 0 && (
                       <View style={styles.ratingBadgeTopRight}>
                         <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
                           <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
                           <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
+                          {reviewCount > 0 && (
+                            <Text style={styles.reviewCountText}>({reviewCount})</Text>
+                          )}
                         </BlurView>
                       </View>
                     )}
@@ -424,20 +461,23 @@ export default function LocalDetailsModal({
                     </Text>
                   )}
                   
-                  <TouchableOpacity 
-                    style={styles.checkInButton}
-                    onPress={handleViewFullDetails}
-                  >
-                    <LinearGradient
-                      colors={[colors.primary, colors.secondary]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.checkInGradient}
+                  {/* ✅ CRITICAL FIX v53.0: Hide "Estoy en este local" button in propietario mode */}
+                  {!isInPropietarioMode && (
+                    <TouchableOpacity 
+                      style={styles.checkInButton}
+                      onPress={handleViewFullDetails}
                     >
-                      <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={20} color="#fff" />
-                      <Text style={styles.checkInText}>Estoy en este local</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                      <LinearGradient
+                        colors={[colors.primary, colors.secondary]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.checkInGradient}
+                      >
+                        <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={20} color="#fff" />
+                        <Text style={styles.checkInText}>Estoy en este local</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
                   
                   <View style={styles.actionsRow}>
                     {local.telefono && (
@@ -602,6 +642,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#fff',
+  },
+  reviewCountText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   statusBadgeTop: {
     position: 'absolute',

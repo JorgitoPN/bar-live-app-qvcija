@@ -26,15 +26,13 @@ interface ProfileSwitcherProps {
 }
 
 /**
- * ✅ PROFILE SWITCHER v4.1 - WITH IMPERSONATION SUPPORT
+ * ✅ PROFILE SWITCHER v53.0 - FIXED MODE SWITCHING
  * 
- * PURPOSE:
- * - Switch between user profile and owned local profiles
- * - Select which local to interact with
- * - Navigate to the selected profile
- * - Show impersonation status and allow ending impersonation
- * 
- * NOTE: This is NOT the mode selector from the Explorar page header
+ * CRITICAL FIXES v53.0:
+ * - ✅ When selecting user profile, automatically switches to cliente mode
+ * - ✅ When selecting local profile, automatically switches to propietario mode
+ * - ✅ Proper mode synchronization with profile switching
+ * - ✅ Impersonation support maintained
  */
 
 const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: ProfileSwitcherProps) {
@@ -45,6 +43,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     activeProfileType,
     switchToClientProfile,
     switchToLocalProfile,
+    setCurrentMode,
   } = useMode();
   const {
     isImpersonating,
@@ -61,13 +60,13 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     const effectiveId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
     
     if (!effectiveId) {
-      console.log('[ProfileSwitcher] ⚠️ No effective user ID, skipping load');
+      console.log('[ProfileSwitcher v53.0] ⚠️ No effective user ID, skipping load');
       return;
     }
 
     try {
       setLoading(true);
-      console.log('[ProfileSwitcher] 🔄 Loading owned locals for user:', effectiveId, isImpersonating ? '(impersonated)' : '(actual)');
+      console.log('[ProfileSwitcher v53.0] 🔄 Loading owned locals for user:', effectiveId, isImpersonating ? '(impersonated)' : '(actual)');
 
       const { data: propietariosData, error: propietariosError } = await supabase
         .from('propietarios_locales')
@@ -86,7 +85,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
         .eq('activo', true);
 
       if (propietariosError) {
-        console.error('[ProfileSwitcher] ❌ Error loading owned locals:', propietariosError);
+        console.error('[ProfileSwitcher v53.0] ❌ Error loading owned locals:', propietariosError);
         return;
       }
 
@@ -94,10 +93,10 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
         .filter(p => p.locales && p.locales.activo === true)
         .map(p => p.locales);
 
-      console.log('[ProfileSwitcher] ✅ Loaded', activeOwnedLocals.length, 'active owned locals');
+      console.log('[ProfileSwitcher v53.0] ✅ Loaded', activeOwnedLocals.length, 'active owned locals');
       setOwnedLocals(activeOwnedLocals);
     } catch (error) {
-      console.error('[ProfileSwitcher] ❌ Error loading owned locals:', error);
+      console.error('[ProfileSwitcher v53.0] ❌ Error loading owned locals:', error);
     } finally {
       setLoading(false);
     }
@@ -105,7 +104,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
 
   useEffect(() => {
     if (visible && user?.id) {
-      console.log('[ProfileSwitcher] 🔄 Modal opened, loading owned locals');
+      console.log('[ProfileSwitcher v53.0] 🔄 Modal opened, loading owned locals');
       loadOwnedLocals();
     }
   }, [visible, user?.id, loadOwnedLocals]);
@@ -113,42 +112,50 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
   const handleSwitchToClient = useCallback(async () => {
     setSwitching(true);
     try {
-      console.log('[ProfileSwitcher] 🔄 Switching to client profile');
+      console.log('[ProfileSwitcher v53.0] 🔄 Switching to client profile');
+      
+      // ✅ CRITICAL FIX v53.0: Switch to cliente mode when selecting user profile
+      await setCurrentMode('cliente');
       await switchToClientProfile();
-      console.log('[ProfileSwitcher] ✅ Profile switched to client');
+      
+      console.log('[ProfileSwitcher v53.0] ✅ Profile switched to client, mode set to cliente');
       
       onClose();
       
       setTimeout(() => {
-        console.log('[ProfileSwitcher] ✅ Navigating to user profile');
+        console.log('[ProfileSwitcher v53.0] ✅ Navigating to user profile');
         router.push('/(tabs)/perfil');
       }, 100);
     } catch (error) {
-      console.error('[ProfileSwitcher] ❌ Error switching to client:', error);
+      console.error('[ProfileSwitcher v53.0] ❌ Error switching to client:', error);
     } finally {
       setSwitching(false);
     }
-  }, [switchToClientProfile, onClose, router]);
+  }, [switchToClientProfile, setCurrentMode, onClose, router]);
 
   const handleSwitchToLocal = useCallback(async (localId: string) => {
     setSwitching(true);
     try {
-      console.log('[ProfileSwitcher] 🔄 Switching to local profile:', localId);
+      console.log('[ProfileSwitcher v53.0] 🔄 Switching to local profile:', localId);
+      
+      // ✅ CRITICAL FIX v53.0: Switch to propietario mode when selecting local profile
+      await setCurrentMode('propietario');
       await switchToLocalProfile(localId);
-      console.log('[ProfileSwitcher] ✅ Profile switched to local');
+      
+      console.log('[ProfileSwitcher v53.0] ✅ Profile switched to local, mode set to propietario');
       
       onClose();
       
       setTimeout(() => {
-        console.log('[ProfileSwitcher] ✅ Navigating to local profile');
+        console.log('[ProfileSwitcher v53.0] ✅ Navigating to local profile');
         router.push(`/perfil/local?localId=${localId}`);
       }, 100);
     } catch (error) {
-      console.error('[ProfileSwitcher] ❌ Error switching to local:', error);
+      console.error('[ProfileSwitcher v53.0] ❌ Error switching to local:', error);
     } finally {
       setSwitching(false);
     }
-  }, [switchToLocalProfile, onClose, router]);
+  }, [switchToLocalProfile, setCurrentMode, onClose, router]);
 
   const handleEndImpersonation = useCallback(async () => {
     Alert.alert(
@@ -180,7 +187,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
                 ]
               );
             } catch (error) {
-              console.error('[ProfileSwitcher] Error ending impersonation:', error);
+              console.error('[ProfileSwitcher v53.0] Error ending impersonation:', error);
               Alert.alert('Error', 'No se pudo finalizar la suplantación');
             } finally {
               setSwitching(false);
@@ -275,7 +282,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
                     <Text style={styles.profileName}>
                       {isImpersonating && impersonatedUser ? impersonatedUser.nombre : (user.nombre || 'Mi Perfil')}
                     </Text>
-                    <Text style={styles.profileType}>Perfil de usuario</Text>
+                    <Text style={styles.profileType}>Perfil de usuario • Modo Cliente</Text>
                   </View>
                 </View>
                 {isClientActive && (
@@ -288,6 +295,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
               {ownedLocals.length > 0 && (
                 <React.Fragment>
                   <Text style={styles.sectionTitle}>Mis Locales</Text>
+                  <Text style={styles.sectionNote}>Al seleccionar un local, cambiarás a modo Propietario</Text>
                   {ownedLocals.map((local) => {
                     const isActive = activeProfileType === 'local' && activeProfileId === local.id;
                     
@@ -309,7 +317,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
                           </View>
                           <View style={styles.profileText}>
                             <Text style={styles.profileName}>{local.nombre}</Text>
-                            <Text style={styles.profileType}>{local.tipo || 'Local'}</Text>
+                            <Text style={styles.profileType}>{local.tipo || 'Local'} • Modo Propietario</Text>
                           </View>
                         </View>
                         {isActive && (
@@ -438,7 +446,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     marginTop: 16,
+    marginBottom: 8,
+  },
+  sectionNote: {
+    fontSize: 13,
+    color: colors.textSecondary,
     marginBottom: 12,
+    fontStyle: 'italic',
   },
   profileCard: {
     flexDirection: 'row',
