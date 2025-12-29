@@ -19,10 +19,11 @@ interface UnifiedMomentoAvatarProps {
 }
 
 /**
- * ✅ UNIFIED MOMENTO AVATAR v51.0 - FIXED NEON BORDER VISIBILITY
+ * ✅ UNIFIED MOMENTO AVATAR v52.0 - REDUCED NEON BORDER THICKNESS
  * 
- * CRITICAL FIXES v51.0:
- * - ✅ Neon border is ALWAYS visible (not covered by image)
+ * CRITICAL FIXES v52.0:
+ * - ✅ Neon border thickness REDUCED to 2px (was 4px)
+ * - ✅ Border is ALWAYS visible (not covered by image)
  * - ✅ Image is rendered INSIDE the border with proper padding
  * - ✅ Border uses LinearGradient for neon effect
  * - ✅ Real-time synchronization of momento status
@@ -44,28 +45,28 @@ export default function UnifiedMomentoAvatar({
   const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ✅ CRITICAL FIX: Border width and padding to ensure border is always visible
-  const BORDER_WIDTH = 4; // Thick neon border
+  // ✅ CRITICAL FIX v52.0: Border width REDUCED from 4 to 2
+  const BORDER_WIDTH = 2; // Thinner neon border (was 4)
   const PADDING = 4; // Space between border and image
   const innerSize = size - (BORDER_WIDTH + PADDING) * 2;
 
   const checkUnviewedMomentos = useCallback(async () => {
     if (!user) {
-      console.log('[UnifiedMomentoAvatar v51.0] ℹ️ No user, skipping check');
+      console.log('[UnifiedMomentoAvatar v52.0] ℹ️ No user, skipping check');
       setLoading(false);
       setHasUnviewedMomentos(false);
       return;
     }
 
     if (!userId && !localId) {
-      console.log('[UnifiedMomentoAvatar v51.0] ℹ️ No userId or localId provided');
+      console.log('[UnifiedMomentoAvatar v52.0] ℹ️ No userId or localId provided');
       setLoading(false);
       setHasUnviewedMomentos(false);
       return;
     }
 
     try {
-      console.log('[UnifiedMomentoAvatar v51.0] 🔍 Checking momentos for:', { userId, localId });
+      console.log('[UnifiedMomentoAvatar v52.0] 🔍 Checking momentos for:', { userId, localId });
 
       // Get momentos for this user/local
       const query = supabase
@@ -82,20 +83,20 @@ export default function UnifiedMomentoAvatar({
       const { data: momentosData, error: momentosError } = await query;
 
       if (momentosError) {
-        console.error('[UnifiedMomentoAvatar v51.0] ❌ Error fetching momentos:', momentosError);
+        console.error('[UnifiedMomentoAvatar v52.0] ❌ Error fetching momentos:', momentosError);
         setHasUnviewedMomentos(false);
         setLoading(false);
         return;
       }
 
       if (!momentosData || momentosData.length === 0) {
-        console.log('[UnifiedMomentoAvatar v51.0] ℹ️ No momentos found');
+        console.log('[UnifiedMomentoAvatar v52.0] ℹ️ No momentos found');
         setHasUnviewedMomentos(false);
         setLoading(false);
         return;
       }
 
-      console.log('[UnifiedMomentoAvatar v51.0] ✅ Found momentos:', momentosData.length);
+      console.log('[UnifiedMomentoAvatar v52.0] ✅ Found momentos:', momentosData.length);
 
       // Check if user has viewed any of these momentos
       const momentoIds = momentosData.map(m => m.id);
@@ -106,13 +107,13 @@ export default function UnifiedMomentoAvatar({
         .in('momento_id', momentoIds);
 
       if (viewsError) {
-        console.error('[UnifiedMomentoAvatar v51.0] ❌ Error fetching views:', viewsError);
+        console.error('[UnifiedMomentoAvatar v52.0] ❌ Error fetching views:', viewsError);
       }
 
       const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
       const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
 
-      console.log('[UnifiedMomentoAvatar v51.0] 🎯 Result:', {
+      console.log('[UnifiedMomentoAvatar v52.0] 🎯 Result:', {
         totalMomentos: momentosData.length,
         viewedCount: viewedIds.size,
         hasUnviewed,
@@ -120,7 +121,7 @@ export default function UnifiedMomentoAvatar({
 
       setHasUnviewedMomentos(hasUnviewed);
     } catch (error) {
-      console.error('[UnifiedMomentoAvatar v51.0] ❌ Error checking momentos:', error);
+      console.error('[UnifiedMomentoAvatar v52.0] ❌ Error checking momentos:', error);
       setHasUnviewedMomentos(false);
     } finally {
       setLoading(false);
@@ -146,7 +147,7 @@ export default function UnifiedMomentoAvatar({
           filter: userId ? `autor_id=eq.${userId}` : `local_id=eq.${localId}`,
         },
         (payload) => {
-          console.log('[UnifiedMomentoAvatar v51.0] 🔄 Momento update detected:', payload);
+          console.log('[UnifiedMomentoAvatar v52.0] 🔄 Momento update detected:', payload);
           checkUnviewedMomentos();
         }
       )
@@ -164,7 +165,7 @@ export default function UnifiedMomentoAvatar({
           filter: `usuario_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[UnifiedMomentoAvatar v51.0] 🔄 View update detected:', payload);
+          console.log('[UnifiedMomentoAvatar v52.0] 🔄 View update detected:', payload);
           checkUnviewedMomentos();
         }
       )

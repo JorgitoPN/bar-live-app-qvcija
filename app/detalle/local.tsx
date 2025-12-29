@@ -315,12 +315,12 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL SCREEN v51.0 - FIXED ROLE-BASED VISIBILITY + REVIEW SYNC
+ * ✅ DETALLE LOCAL SCREEN v52.0 - FIXED ROLE-BASED VISIBILITY FOR OWNERS IN CLIENT MODE
  * 
- * CRITICAL FIXES v51.0:
- * - ✅ "Estoy en este local" button HIDDEN in owner mode
- * - ✅ "Sala Virtual" button HIDDEN in owner mode
- * - ✅ These buttons ONLY visible in client mode
+ * CRITICAL FIXES v52.0:
+ * - ✅ "Estoy en este local" button VISIBLE when owner is in client mode
+ * - ✅ "Sala Virtual" button VISIBLE when owner is in client mode
+ * - ✅ These buttons ONLY hidden when user has selected a local profile AND is in propietario mode
  * - ✅ Review ratings properly synchronized from database
  * - ✅ Rating updates when reviews are added/modified
  */
@@ -359,28 +359,40 @@ export default function DetalleLocalScreen() {
 
   const [showReviewsModal, setShowReviewsModal] = useState(false);
 
-  // ✅ CRITICAL FIX v51.0: Check if user is in client mode
-  const isClientMode = currentMode === 'cliente' && activeProfileType === 'user';
+  // ✅ CRITICAL FIX v52.0: Buttons should be visible when:
+  // - User is in client mode (currentMode === 'cliente'), OR
+  // - User is an owner but has NOT selected a local profile (activeProfileType === 'cliente')
+  // Buttons should ONLY be hidden when:
+  // - User has selected a local profile (activeProfileType === 'local') AND is in propietario mode
+  const isClientMode = currentMode === 'cliente' || activeProfileType === 'cliente';
   const isOwnerOfLocal = user && local && local.propietario_id === user.id;
+
+  console.log('[DetalleLocal v52.0] 🎭 Mode check:', {
+    currentMode,
+    activeProfileType,
+    isClientMode,
+    isOwnerOfLocal,
+    shouldShowButtons: isClientMode,
+  });
 
   useEffect(() => {
     (async () => {
       try {
-        console.log('[DetalleLocal v51.0] 🔍 Requesting location permissions...');
+        console.log('[DetalleLocal v52.0] 🔍 Requesting location permissions...');
         
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[DetalleLocal v51.0] ⚠️ Location services are disabled');
+          console.log('[DetalleLocal v52.0] ⚠️ Location services are disabled');
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[DetalleLocal v51.0] ⚠️ Location permission denied');
+          console.log('[DetalleLocal v52.0] ⚠️ Location permission denied');
           return;
         }
 
-        console.log('[DetalleLocal v51.0] ✅ Location permission granted, getting position...');
+        console.log('[DetalleLocal v52.0] ✅ Location permission granted, getting position...');
         
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -392,9 +404,9 @@ export default function DetalleLocalScreen() {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-        console.log('[DetalleLocal v51.0] 📍 User location obtained');
+        console.log('[DetalleLocal v52.0] 📍 User location obtained');
       } catch (error: any) {
-        console.error('[DetalleLocal v51.0] ❌ Error getting location:', error?.message);
+        console.error('[DetalleLocal v52.0] ❌ Error getting location:', error?.message);
         setUserLocation(null);
       }
     })();
@@ -456,9 +468,9 @@ export default function DetalleLocalScreen() {
       });
 
       setCheckedInUsers(visibleUsers);
-      console.log('[DetalleLocal v51.0] ✅ Loaded checked-in users:', visibleUsers.length);
+      console.log('[DetalleLocal v52.0] ✅ Loaded checked-in users:', visibleUsers.length);
     } catch (error) {
-      console.error('[DetalleLocal v51.0] Error loading checked-in users:', error);
+      console.error('[DetalleLocal v52.0] Error loading checked-in users:', error);
     } finally {
       setLoadingCheckIns(false);
     }
@@ -476,13 +488,13 @@ export default function DetalleLocalScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[DetalleLocal v51.0] Error checking check-in status:', error);
+        console.error('[DetalleLocal v52.0] Error checking check-in status:', error);
         return;
       }
 
       setIsCheckedIn(!!data);
     } catch (error) {
-      console.error('[DetalleLocal v51.0] Error checking check-in status:', error);
+      console.error('[DetalleLocal v52.0] Error checking check-in status:', error);
     }
   }, [user, params.id]);
 
@@ -490,7 +502,7 @@ export default function DetalleLocalScreen() {
     try {
       setLoadingReviews(true);
       
-      // ✅ CRITICAL FIX v51.0: Load Barlive reviews and calculate average
+      // ✅ CRITICAL FIX v52.0: Load Barlive reviews and calculate average
       const { data: barliveReviews, error: barliveError } = await supabase
         .from('reviews_barlive')
         .select(`
@@ -504,7 +516,7 @@ export default function DetalleLocalScreen() {
         .order('created_at', { ascending: false });
 
       if (barliveError) {
-        console.error('[DetalleLocal v51.0] Error loading Barlive reviews:', barliveError);
+        console.error('[DetalleLocal v52.0] Error loading Barlive reviews:', barliveError);
       }
 
       const { data: localData } = await supabase
@@ -525,39 +537,39 @@ export default function DetalleLocalScreen() {
       });
 
       setAllReviews(combinedReviews);
-      console.log('[DetalleLocal v51.0] ✅ Loaded unified reviews:', {
+      console.log('[DetalleLocal v52.0] ✅ Loaded unified reviews:', {
         barlive: barliveReviews?.length || 0,
         google: googleReviews.length,
         total: combinedReviews.length,
       });
 
-      // ✅ CRITICAL FIX v51.0: Calculate and sync average rating
+      // ✅ CRITICAL FIX v52.0: Calculate and sync average rating
       if (barliveReviews && barliveReviews.length > 0) {
         const avg = barliveReviews.reduce((sum, r) => sum + r.rating, 0) / barliveReviews.length;
         setAverageRating(avg);
         
-        console.log('[DetalleLocal v51.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
+        console.log('[DetalleLocal v52.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
         
-        // ✅ CRITICAL FIX v51.0: Update local rating in database
+        // ✅ CRITICAL FIX v52.0: Update local rating in database
         const { error: updateError } = await supabase
           .from('locales')
           .update({ rating: avg })
           .eq('id', params.id);
 
         if (updateError) {
-          console.error('[DetalleLocal v51.0] ❌ Error updating rating:', updateError);
+          console.error('[DetalleLocal v52.0] ❌ Error updating rating:', updateError);
         } else {
-          console.log('[DetalleLocal v51.0] ✅ Rating updated in database');
+          console.log('[DetalleLocal v52.0] ✅ Rating updated in database');
         }
       } else if (localData?.google_rating) {
         // Use Google rating if no Barlive reviews
         setAverageRating(localData.google_rating);
-        console.log('[DetalleLocal v51.0] 📊 Using Google rating:', localData.google_rating);
+        console.log('[DetalleLocal v52.0] 📊 Using Google rating:', localData.google_rating);
       }
 
       setLoadingReviews(false);
     } catch (error) {
-      console.error('[DetalleLocal v51.0] Error loading reviews:', error);
+      console.error('[DetalleLocal v52.0] Error loading reviews:', error);
       setLoadingReviews(false);
     }
   }, [params.id]);
@@ -575,14 +587,14 @@ export default function DetalleLocalScreen() {
         .limit(3);
 
       if (error) {
-        console.error('[DetalleLocal v51.0] Error loading eventos:', error);
+        console.error('[DetalleLocal v52.0] Error loading eventos:', error);
         return;
       }
 
       setEventos(data || []);
       setLoadingEventos(false);
     } catch (error) {
-      console.error('[DetalleLocal v51.0] Error loading eventos:', error);
+      console.error('[DetalleLocal v52.0] Error loading eventos:', error);
       setLoadingEventos(false);
     }
   }, [params.id]);
@@ -593,12 +605,12 @@ export default function DetalleLocalScreen() {
       const { data, error } = await supabase.from('locales').select('*').eq('id', params.id).single();
 
       if (error) {
-        console.error('[DetalleLocal v51.0] Error loading local:', error);
+        console.error('[DetalleLocal v52.0] Error loading local:', error);
         setLoading(false);
         return;
       }
 
-      console.log('[DetalleLocal v51.0] ✅ Local loaded:', {
+      console.log('[DetalleLocal v52.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         propietario_id: data.propietario_id,
@@ -613,7 +625,7 @@ export default function DetalleLocalScreen() {
       checkUserCheckInStatus();
       loadCheckedInUsers();
     } catch (error) {
-      console.error('[DetalleLocal v51.0] Error:', error);
+      console.error('[DetalleLocal v52.0] Error:', error);
       setLoading(false);
     }
   }, [params.id, cargarReviewsUnificadas, cargarEventos, checkUserCheckInStatus, loadCheckedInUsers]);
@@ -638,7 +650,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v51.0] 🔄 Reviews changed, reloading...');
+          console.log('[DetalleLocal v52.0] 🔄 Reviews changed, reloading...');
           cargarReviewsUnificadas();
         }
       )
@@ -663,7 +675,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v51.0] Check-ins changed, reloading...');
+          console.log('[DetalleLocal v52.0] Check-ins changed, reloading...');
           loadCheckedInUsers();
           checkUserCheckInStatus();
         }
@@ -757,7 +769,7 @@ export default function DetalleLocalScreen() {
         title: local?.nombre || 'Local en BarLive',
       });
     } catch (error) {
-      console.error('[DetalleLocal v51.0] Error sharing:', error);
+      console.error('[DetalleLocal v52.0] Error sharing:', error);
     }
   };
 
@@ -792,11 +804,11 @@ export default function DetalleLocalScreen() {
       return;
     }
     
-    // ✅ CRITICAL FIX v51.0: Only allow check-in in client mode
+    // ✅ CRITICAL FIX v52.0: Only allow check-in in client mode
     if (!isClientMode) {
       Alert.alert(
         'No Disponible',
-        'La función "Estoy en este local" solo está disponible en modo cliente.',
+        'La función "Estoy en este local" solo está disponible en modo cliente. Cambia a modo cliente para usar esta función.',
         [{ text: 'OK' }]
       );
       return;
@@ -829,7 +841,7 @@ export default function DetalleLocalScreen() {
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
               loadCheckedInUsers();
             } catch (error) {
-              console.error('[DetalleLocal v51.0] Error checking out:', error);
+              console.error('[DetalleLocal v52.0] Error checking out:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -846,7 +858,7 @@ export default function DetalleLocalScreen() {
   };
 
   const handleLoadMoreReviews = () => {
-    console.log('[DetalleLocal v51.0] 📄 Loading more reviews...');
+    console.log('[DetalleLocal v52.0] 📄 Loading more reviews...');
     setDisplayedReviewsCount(prev => prev + 5);
   };
 
@@ -856,11 +868,11 @@ export default function DetalleLocalScreen() {
       return;
     }
 
-    // ✅ CRITICAL FIX v51.0: Only allow virtual room in client mode
+    // ✅ CRITICAL FIX v52.0: Only allow virtual room in client mode
     if (!isClientMode) {
       Alert.alert(
         'No Disponible',
-        'La Sala Virtual solo está disponible en modo cliente.',
+        'La Sala Virtual solo está disponible en modo cliente. Cambia a modo cliente para acceder.',
         [{ text: 'OK' }]
       );
       return;
@@ -983,7 +995,7 @@ export default function DetalleLocalScreen() {
 
   const diaLogicoParaResaltar = estadoLocal.diaLogico || 'lunes';
 
-  // ✅ CRITICAL FIX v51.0: Use synchronized rating from database
+  // ✅ CRITICAL FIX v52.0: Use synchronized rating from database
   const displayRating = local.rating || local.google_rating || averageRating || 0;
 
   const allCategories = (
@@ -1217,7 +1229,7 @@ export default function DetalleLocalScreen() {
             </TouchableOpacity>
           )}
 
-          {/* ✅ CRITICAL FIX v51.0: Only show check-in buttons in client mode */}
+          {/* ✅ CRITICAL FIX v52.0: Show check-in buttons when in client mode (includes owners in client mode) */}
           {user && isOpen && isClientMode && (
             <View style={styles.checkInButtonsContainer}>
               {!isCheckedIn ? (
@@ -1301,7 +1313,7 @@ export default function DetalleLocalScreen() {
             )}
           </View>
 
-          {/* ✅ CRITICAL FIX v51.0: Only show virtual room button in client mode */}
+          {/* ✅ CRITICAL FIX v52.0: Show virtual room button when in client mode (includes owners in client mode) */}
           {isOpen && isClientMode && (
             <TouchableOpacity
               style={styles.virtualRoomButton}

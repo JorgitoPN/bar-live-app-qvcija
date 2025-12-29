@@ -290,13 +290,32 @@ export default function GestionarPlanesScreen() {
 
       const fechaInicio = new Date();
 
+      // ✅ CRITICAL FIX v52.0: Get plan details for credit initialization
+      const selectedPlanData = planes.find(p => p.id === selectedPlan);
+      if (!selectedPlanData) {
+        throw new Error('Plan no encontrado');
+      }
+
+      const nextMonth = new Date(fechaInicio);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+      // ✅ CRITICAL FIX v52.0: Initialize subscription with proper credits (NO "destacado" field)
       const { error: subscriptionError } = await supabase
         .from('suscripciones_locales')
         .insert({
           local_id: selectedLocal.id,
           plan_id: selectedPlan,
+          usuario_id: user?.id,
+          propietario_id: selectedLocal.propietario_id || user?.id,
           estado: 'activa',
           fecha_inicio: fechaInicio.toISOString(),
+          fecha_proximo_pago: nextMonth.toISOString(),
+          fecha_renovacion_creditos: nextMonth.toISOString(),
+          creditos_destacados_restantes: selectedPlanData.promos_destacadas || 0,
+          creditos_eventos_restantes: selectedPlanData.eventos_mes || 0,
+          eventos_usados_mes: 0,
+          promos_usadas_mes: 0,
+          ultimo_reset_contador: fechaInicio.toISOString(),
         });
 
       if (subscriptionError) throw subscriptionError;
