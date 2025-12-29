@@ -23,7 +23,7 @@ import TarjetaLocal from '@/components/home/TarjetaLocal';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useMode } from '@/contexts/ModeContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, commonStyles } from '@/styles/commonStyles';
+import { colors, commonStyles, HEADER_DIMENSIONS } from '@/styles/commonStyles';
 import * as Location from 'expo-location';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
@@ -46,8 +46,8 @@ const CATEGORIAS_LOCALES = [
 ];
 
 const LOCALES_POR_PAGINA = 20;
-// ✅ ANDROID FIX v59.0: Minimal header height to avoid clipping
-const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
+// ✅ ANDROID FIX v60.0: Standardized header height using HEADER_DIMENSIONS
+const HEADER_HEIGHT = HEADER_DIMENSIONS.totalHeight;
 const CATEGORIAS_HEIGHT = Platform.OS === 'ios' ? 110 : 110;
 const CATEGORIAS_TOP_POSITION = Platform.OS === 'ios' ? 170 : 160;
 const SPACING_BETWEEN_FILTERS_AND_LIST = 24;
@@ -67,13 +67,13 @@ function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /**
- * ✅ EXPLORAR SCREEN v59.0 - ANDROID-iOS PARITY
+ * ✅ EXPLORAR SCREEN v60.0 - COMPREHENSIVE ANDROID-iOS PARITY
  * 
- * CRITICAL FIXES v59.0:
- * - ✅ Android: Significantly reduced text sizes (25-30% smaller)
- * - ✅ Android: Reduced icon sizes to match iOS visual hierarchy
- * - ✅ Android: Minimal header margins to avoid clipping
- * - ✅ Android: Removed white background from "Reclama un local" section
+ * CRITICAL FIXES v60.0:
+ * - ✅ Android: Uses HEADER_DIMENSIONS for standardized header
+ * - ✅ Android: All text sizes reduced 30% to match iOS
+ * - ✅ Android: All icon sizes reduced to match iOS
+ * - ✅ Android: COMPLETELY REMOVED white background from "Reclama un local" banner
  * - ✅ iOS: No changes to maintain current design
  */
 
@@ -109,7 +109,7 @@ export default function ExplorarScreen() {
 
   const userIsAdmin = useMemo(() => {
     const isAdmin = isAdminUser(user);
-    console.log('[ExplorarScreen v59.0] Admin check for mode selector:', {
+    console.log('[ExplorarScreen v60.0] Admin check for mode selector:', {
       email: user?.email,
       role: user?.rol_app,
       isAdmin,
@@ -132,12 +132,12 @@ export default function ExplorarScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('[ExplorarScreen v59.0] ⚡ Screen focused');
+      console.log('[ExplorarScreen v60.0] ⚡ Screen focused');
       setMostrarFiltros(false);
       setMostrarSelectorModo(false);
       
       return () => {
-        console.log('[ExplorarScreen v59.0] Screen unfocused');
+        console.log('[ExplorarScreen v60.0] Screen unfocused');
       };
     }, [])
   );
@@ -155,16 +155,16 @@ export default function ExplorarScreen() {
   }, [scrollIndicatorOpacity]);
 
   const localesFiltradosCompletos = useMemo(() => {
-    console.log('[ExplorarScreen v59.0] ⚡ Applying filters...');
-    console.log('[ExplorarScreen v59.0] 📊 Total locales:', todosLosLocales.length);
-    console.log('[ExplorarScreen v59.0] 🔍 Selected category:', categoriaSeleccionada);
-    console.log('[ExplorarScreen v59.0] 🔍 Global filters:', globalFiltros);
+    console.log('[ExplorarScreen v60.0] ⚡ Applying filters...');
+    console.log('[ExplorarScreen v60.0] 📊 Total locales:', todosLosLocales.length);
+    console.log('[ExplorarScreen v60.0] 🔍 Selected category:', categoriaSeleccionada);
+    console.log('[ExplorarScreen v60.0] 🔍 Global filters:', globalFiltros);
 
     let localesFiltrados = todosLosLocales.filter(local => local.activo === true);
-    console.log('[ExplorarScreen v59.0] ✅ After activo filter:', localesFiltrados.length);
+    console.log('[ExplorarScreen v60.0] ✅ After activo filter:', localesFiltrados.length);
 
     if (categoriaSeleccionada !== 'todos') {
-      console.log('[ExplorarScreen v59.0] 🔍 Filtering by category:', categoriaSeleccionada);
+      console.log('[ExplorarScreen v60.0] 🔍 Filtering by category:', categoriaSeleccionada);
       
       localesFiltrados = localesFiltrados.filter(local => {
         const barliveTypes = local.barlive_types || [];
@@ -185,7 +185,7 @@ export default function ExplorarScreen() {
         return hasCategory;
       });
 
-      console.log(`[ExplorarScreen v59.0] ✅ After category filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v60.0] ✅ After category filter: ${localesFiltrados.length} locales`);
     }
 
     if (busqueda) {
@@ -195,17 +195,17 @@ export default function ExplorarScreen() {
         local.direccion?.toLowerCase().includes(searchLower) ||
         local.provincia?.toLowerCase().includes(searchLower)
       );
-      console.log(`[ExplorarScreen v59.0] 🔍 After search filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v60.0] 🔍 After search filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
       localesFiltrados = localesFiltrados.filter(local => local.comunidad === globalFiltros.comunidad);
-      console.log(`[ExplorarScreen v59.0] 🔍 After community filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v60.0] 🔍 After community filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.provincia) {
       localesFiltrados = localesFiltrados.filter(local => local.provincia === globalFiltros.provincia);
-      console.log(`[ExplorarScreen v59.0] 🔍 After province filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v60.0] 🔍 After province filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
@@ -215,7 +215,7 @@ export default function ExplorarScreen() {
           barliveTypes.some((cat: string) => cat.toLowerCase() === tipo.toLowerCase())
         );
       });
-      console.log(`[ExplorarScreen v59.0] 🔍 After type filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v60.0] 🔍 After type filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
@@ -223,7 +223,7 @@ export default function ExplorarScreen() {
         const localServices = local.servicios_disponibles || {};
         return globalFiltros.servicios!.every(servicio => localServices[servicio] === true);
       });
-      console.log(`[ExplorarScreen v59.0] 🔍 After services filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v60.0] 🔍 After services filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0 && !globalFiltros.ambiente.includes('cualquiera')) {
@@ -231,7 +231,7 @@ export default function ExplorarScreen() {
         const localAmbiente = local.ambiente_completo || local.ambiente_google || {};
         return globalFiltros.ambiente!.some(amb => localAmbiente[amb] === true);
       });
-      console.log(`[ExplorarScreen v59.0] 🔍 After ambiente filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v60.0] 🔍 After ambiente filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.clientela && globalFiltros.clientela.length > 0 && !globalFiltros.clientela.includes('cualquiera')) {
@@ -239,7 +239,7 @@ export default function ExplorarScreen() {
         const localClientela = local.clientela || {};
         return globalFiltros.clientela!.some(cli => localClientela[cli] === true);
       });
-      console.log(`[ExplorarScreen v59.0] 🔍 After clientela filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v60.0] 🔍 After clientela filter: ${localesFiltrados.length} locales`);
     }
 
     localesFiltrados = localesFiltrados.map(local => {
@@ -251,7 +251,7 @@ export default function ExplorarScreen() {
     });
 
     if (userLocation) {
-      console.log('[ExplorarScreen v59.0] 📍 User location:', userLocation);
+      console.log('[ExplorarScreen v60.0] 📍 User location:', userLocation);
       
       localesFiltrados = localesFiltrados.map(local => {
         if (local.latitud && local.longitud) {
@@ -270,15 +270,15 @@ export default function ExplorarScreen() {
         localesFiltrados = localesFiltrados.filter(local => 
           local.distancia !== undefined && local.distancia <= globalFiltros.distancia!
         );
-        console.log(`[ExplorarScreen v59.0] 🔍 After distance filter (${globalFiltros.distancia}km): ${localesFiltrados.length} locales`);
+        console.log(`[ExplorarScreen v60.0] 🔍 After distance filter (${globalFiltros.distancia}km): ${localesFiltrados.length} locales`);
       }
 
-      console.log('[ExplorarScreen v59.0] 🧠 Applying FIXED sorting algorithm...');
+      console.log('[ExplorarScreen v60.0] 🧠 Applying FIXED sorting algorithm...');
 
       const openLocals = localesFiltrados.filter(l => l.estaAbierto === true);
       const closedLocals = localesFiltrados.filter(l => l.estaAbierto !== true);
 
-      console.log('[ExplorarScreen v59.0] 📊 Open/Closed split:');
+      console.log('[ExplorarScreen v60.0] 📊 Open/Closed split:');
       console.log('  - Open locals:', openLocals.length);
       console.log('  - Closed locals:', closedLocals.length);
 
@@ -341,9 +341,9 @@ export default function ExplorarScreen() {
         ...closedGroupB_destacados,
       ];
 
-      console.log('[ExplorarScreen v59.0] ✅ FIXED SORTING APPLIED (OPEN FIRST) - Total locals:', localesFiltrados.length);
+      console.log('[ExplorarScreen v60.0] ✅ FIXED SORTING APPLIED (OPEN FIRST) - Total locals:', localesFiltrados.length);
     } else {
-      console.log('[ExplorarScreen v59.0] ⚠️ No user location available, sorting by open status, destacado and rating');
+      console.log('[ExplorarScreen v60.0] ⚠️ No user location available, sorting by open status, destacado and rating');
       
       localesFiltrados.sort((a, b) => {
         if (a.estaAbierto !== b.estaAbierto) {
@@ -363,7 +363,7 @@ export default function ExplorarScreen() {
       });
     }
 
-    console.log(`[ExplorarScreen v59.0] ⚡ Final filtered and sorted locals: ${localesFiltrados.length}`);
+    console.log(`[ExplorarScreen v60.0] ⚡ Final filtered and sorted locals: ${localesFiltrados.length}`);
     return localesFiltrados;
   }, [todosLosLocales, busqueda, categoriaSeleccionada, userLocation, activePromotions, globalFiltros]);
 
@@ -389,21 +389,21 @@ export default function ExplorarScreen() {
 
   const obtenerUbicacionUsuario = async () => {
     try {
-      console.log('[ExplorarScreen v59.0] 🔍 Requesting location permissions...');
+      console.log('[ExplorarScreen v60.0] 🔍 Requesting location permissions...');
       
       const isAvailable = await Location.hasServicesEnabledAsync();
       if (!isAvailable) {
-        console.log('[ExplorarScreen v59.0] ⚠️ Location services are disabled');
+        console.log('[ExplorarScreen v60.0] ⚠️ Location services are disabled');
         return;
       }
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        console.log('[ExplorarScreen v59.0] ⚠️ Location permission denied');
+        console.log('[ExplorarScreen v60.0] ⚠️ Location permission denied');
         return;
       }
 
-      console.log('[ExplorarScreen v59.0] ✅ Location permission granted, getting position...');
+      console.log('[ExplorarScreen v60.0] ✅ Location permission granted, getting position...');
       
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
@@ -415,12 +415,12 @@ export default function ExplorarScreen() {
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       });
-      console.log('[ExplorarScreen v59.0] 📍 User location obtained:', {
+      console.log('[ExplorarScreen v60.0] 📍 User location obtained:', {
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       });
     } catch (error: any) {
-      console.error('[ExplorarScreen v59.0] ❌ Error getting location:', {
+      console.error('[ExplorarScreen v60.0] ❌ Error getting location:', {
         message: error?.message || 'Unknown error',
         code: error?.code,
       });
@@ -430,7 +430,7 @@ export default function ExplorarScreen() {
 
   const cargarPromocionesActivas = async () => {
     try {
-      console.log('[ExplorarScreen v59.0] 🔄 Loading active promotions...');
+      console.log('[ExplorarScreen v60.0] 🔄 Loading active promotions...');
       
       const { data: suscripciones, error: subsError } = await supabase
         .from('suscripciones_locales')
@@ -438,12 +438,12 @@ export default function ExplorarScreen() {
         .eq('estado', 'activa');
 
       if (subsError) {
-        console.error('[ExplorarScreen v59.0] Error loading subscriptions:', subsError);
+        console.error('[ExplorarScreen v60.0] Error loading subscriptions:', subsError);
         return;
       }
 
       if (!suscripciones || suscripciones.length === 0) {
-        console.log('[ExplorarScreen v59.0] No active subscriptions found');
+        console.log('[ExplorarScreen v60.0] No active subscriptions found');
         setActivePromotions(new Set());
         return;
       }
@@ -457,12 +457,12 @@ export default function ExplorarScreen() {
         .gt('promos_destacadas', 0);
 
       if (planesError) {
-        console.error('[ExplorarScreen v59.0] Error loading plans:', planesError);
+        console.error('[ExplorarScreen v60.0] Error loading plans:', planesError);
         return;
       }
 
       if (!planes || planes.length === 0) {
-        console.log('[ExplorarScreen v59.0] No plans with promotions found');
+        console.log('[ExplorarScreen v60.0] No plans with promotions found');
         setActivePromotions(new Set());
         return;
       }
@@ -476,9 +476,9 @@ export default function ExplorarScreen() {
       );
 
       setActivePromotions(promotedLocalIds);
-      console.log('[ExplorarScreen v59.0] 💰 Active promotions loaded:', promotedLocalIds.size);
+      console.log('[ExplorarScreen v60.0] 💰 Active promotions loaded:', promotedLocalIds.size);
     } catch (error) {
-      console.error('[ExplorarScreen v59.0] Error in cargarPromocionesActivas:', error);
+      console.error('[ExplorarScreen v60.0] Error in cargarPromocionesActivas:', error);
       setActivePromotions(new Set());
     }
   };
@@ -491,7 +491,7 @@ export default function ExplorarScreen() {
   }, [refreshData]);
 
   const handleModoChange = (modo: ModoUsuario) => {
-    console.log('[ExplorarScreen v59.0] Mode change:', modo);
+    console.log('[ExplorarScreen v60.0] Mode change:', modo);
     setCurrentMode(modo);
     setMostrarSelectorModo(false);
   };
@@ -631,9 +631,9 @@ export default function ExplorarScreen() {
                   style={styles.modoButton}
                   onPress={() => setMostrarSelectorModo(true)}
                 >
-                  <IconSymbol ios_icon_name={getModoIcon(currentMode)} android_material_icon_name={getModoIcon(currentMode)} size={Platform.OS === 'ios' ? 20 : 16} color={colors.headerText} />
+                  <IconSymbol ios_icon_name={getModoIcon(currentMode)} android_material_icon_name={getModoIcon(currentMode)} size={Platform.OS === 'ios' ? 20 : 15} color={colors.headerText} />
                   <Text style={styles.modoButtonText}>{getModoLabel(currentMode)}</Text>
-                  <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={Platform.OS === 'ios' ? 16 : 14} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={Platform.OS === 'ios' ? 16 : 13} color={colors.headerText} />
                 </TouchableOpacity>
               )}
               
@@ -647,7 +647,7 @@ export default function ExplorarScreen() {
           </View>
 
           <View style={styles.searchContainer}>
-            <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 20 : 16} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 20 : 15} color={colors.textSecondary} />
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar locales..."
@@ -747,7 +747,7 @@ export default function ExplorarScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* ✅ CRITICAL FIX v59.0: Completely removed white background from banner */}
+        {/* ✅ CRITICAL FIX v60.0: COMPLETELY REMOVED white background - only gradient */}
         <TouchableOpacity 
           style={styles.claimLocalBanner}
           onPress={handleClaimOrCreateLocal}
@@ -764,7 +764,7 @@ export default function ExplorarScreen() {
                 <IconSymbol 
                   ios_icon_name="building.2.fill" 
                   android_material_icon_name="store"
-                  size={Platform.OS === 'ios' ? 22 : 18} 
+                  size={Platform.OS === 'ios' ? 22 : 17} 
                   color={colors.primary} 
                 />
               </View>
@@ -891,11 +891,11 @@ export default function ExplorarScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ✅ ANDROID FIX v59.0: Minimal header padding to avoid clipping
+  // ✅ CRITICAL v60.0: Uses HEADER_DIMENSIONS for consistency
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 44,
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 16 : 10,
+    paddingTop: HEADER_DIMENSIONS.paddingTop,
+    paddingHorizontal: HEADER_DIMENSIONS.paddingHorizontal,
+    paddingBottom: HEADER_DIMENSIONS.paddingBottom,
   },
   headerContent: {
     flexDirection: 'row',
@@ -903,9 +903,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  // ✅ ANDROID FIX v59.0: Significantly reduced font size on Android (25% smaller)
+  // ✅ ANDROID FIX v60.0: Significantly reduced font size on Android (31% smaller)
   headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 24,
+    fontSize: Platform.OS === 'ios' ? 32 : 22,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -924,7 +924,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   modoButtonText: {
-    fontSize: Platform.OS === 'ios' ? 14 : 11,
+    fontSize: Platform.OS === 'ios' ? 14 : 10,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -942,7 +942,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: Platform.OS === 'ios' ? 16 : 13,
+    fontSize: Platform.OS === 'ios' ? 16 : 12,
     color: colors.text,
   },
   filterButtonContainer: {
@@ -985,8 +985,8 @@ const styles = StyleSheet.create({
     minWidth: 70,
   },
   categoriaIconContainer: {
-    width: 56,
-    height: 56,
+    width: Platform.OS === 'ios' ? 56 : 50,
+    height: Platform.OS === 'ios' ? 56 : 50,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.cardBackground,
@@ -999,7 +999,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary + '15',
   },
   categoriaLabel: {
-    fontSize: Platform.OS === 'ios' ? 12 : 10,
+    fontSize: Platform.OS === 'ios' ? 12 : 9,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
@@ -1029,21 +1029,19 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 100,
   },
-  // ✅ CRITICAL FIX v59.0: Completely removed white background from banner
+  // ✅ CRITICAL FIX v60.0: COMPLETELY REMOVED white background - transparent banner
   claimLocalBanner: {
     marginBottom: 20,
     borderRadius: 12,
     overflow: 'hidden',
-    elevation: 2,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    elevation: 0, // ✅ No elevation to prevent white shadow
+    shadowOpacity: 0, // ✅ No shadow
   },
   claimLocalGradient: {
     borderWidth: 1.5,
     borderColor: colors.primary + '30',
     borderRadius: 12,
+    backgroundColor: 'transparent', // ✅ Explicitly transparent
   },
   claimLocalContent: {
     flexDirection: 'row',
@@ -1051,11 +1049,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 12,
+    backgroundColor: 'transparent', // ✅ Explicitly transparent
   },
   claimLocalIconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: Platform.OS === 'ios' ? 42 : 38,
+    height: Platform.OS === 'ios' ? 42 : 38,
+    borderRadius: Platform.OS === 'ios' ? 21 : 19,
     backgroundColor: colors.primary + '20',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1067,21 +1066,21 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   claimLocalTitle: {
-    fontSize: Platform.OS === 'ios' ? 14 : 11,
+    fontSize: Platform.OS === 'ios' ? 14 : 10,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 2,
     letterSpacing: -0.2,
   },
   claimLocalSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 11.5 : 9.5,
+    fontSize: Platform.OS === 'ios' ? 11.5 : 8.5,
     color: colors.textSecondary,
     fontWeight: '500',
   },
   claimLocalArrow: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: Platform.OS === 'ios' ? 28 : 24,
+    height: Platform.OS === 'ios' ? 28 : 24,
+    borderRadius: Platform.OS === 'ios' ? 14 : 12,
     backgroundColor: colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1100,7 +1099,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: Platform.OS === 'ios' ? 14 : 11,
+    fontSize: Platform.OS === 'ios' ? 14 : 10,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -1112,7 +1111,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingMoreText: {
-    fontSize: Platform.OS === 'ios' ? 14 : 11,
+    fontSize: Platform.OS === 'ios' ? 14 : 10,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1122,7 +1121,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   endText: {
-    fontSize: Platform.OS === 'ios' ? 14 : 11,
+    fontSize: Platform.OS === 'ios' ? 14 : 10,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -1141,13 +1140,13 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   modalTitle: {
-    fontSize: Platform.OS === 'ios' ? 20 : 16,
+    fontSize: Platform.OS === 'ios' ? 20 : 15,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 8,
   },
   modalSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 14 : 11,
+    fontSize: Platform.OS === 'ios' ? 14 : 10,
     color: colors.textSecondary,
     marginBottom: 24,
   },
@@ -1173,9 +1172,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modoOptionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: Platform.OS === 'ios' ? 48 : 42,
+    height: Platform.OS === 'ios' ? 48 : 42,
+    borderRadius: Platform.OS === 'ios' ? 24 : 21,
     backgroundColor: colors.primary + '20',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1184,7 +1183,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   modoOptionLabel: {
-    fontSize: Platform.OS === 'ios' ? 16 : 13,
+    fontSize: Platform.OS === 'ios' ? 16 : 12,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 2,
@@ -1193,7 +1192,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   modoOptionDescription: {
-    fontSize: Platform.OS === 'ios' ? 12 : 10,
+    fontSize: Platform.OS === 'ios' ? 12 : 9,
     color: colors.textSecondary,
   },
 });
