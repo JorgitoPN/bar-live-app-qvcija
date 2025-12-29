@@ -11,7 +11,7 @@ import { colors } from '@/styles/commonStyles';
 const { width: screenWidth } = Dimensions.get('window');
 
 /**
- * ANDROID-SPECIFIC TAB LAYOUT - VERSION v56.0
+ * ANDROID-SPECIFIC TAB LAYOUT - VERSION v56.1 (FORCE UPDATE)
  * 
  * ✅ COMPLETE ANDROID-iOS PARITY - DESIGN MATCHING
  * ✅ FIXED: Reduced header height to match iOS (was 35% of screen)
@@ -21,6 +21,8 @@ const { width: screenWidth } = Dimensions.get('window');
  * ✅ FIXED: Tab bar always visible above all content
  * ✅ FIXED: Proper safe area handling for system buttons
  * ✅ FIXED: Content padding to prevent overlap with tab bar
+ * 
+ * 🔄 v56.1 UPDATE: Force cache refresh
  * 
  * This file ensures proper Android-specific behavior:
  * - ✅ Native Android UI (Material Design compliant)
@@ -53,10 +55,11 @@ export default function TabLayout() {
   const userRole = user?.rol_app || 'cliente';
 
   console.log(
-    '[TabLayout Android v56.0] ⚡ User role:', userRole, 
+    '[TabLayout Android v56.1] ⚡ User role:', userRole, 
     'Current mode:', currentMode, 
     'Pathname:', pathname,
-    'Bottom inset:', insets.bottom
+    'Bottom inset:', insets.bottom,
+    'FORCE UPDATE: v56.1'
   );
 
   // Prevent access to admin pages for non-admin users (silently redirect)
@@ -75,7 +78,7 @@ export default function TabLayout() {
       
       if ((isAdminIndexPage || isAdminSubPage) && !hasShownAdminAlert.current) {
         console.log(
-          '[TabLayout Android v56.0] ⚠️ Unauthorized user trying to access admin page:', 
+          '[TabLayout Android v56.1] ⚠️ Unauthorized user trying to access admin page:', 
           pathname
         );
         hasShownAdminAlert.current = true;
@@ -104,7 +107,7 @@ export default function TabLayout() {
       
       if ((isGestionIndexPage || isGestionSubPage) && !hasShownGestionAlert.current) {
         console.log(
-          '[TabLayout Android v56.0] ⚠️ Non-propietario user trying to access gestion page:', 
+          '[TabLayout Android v56.1] ⚠️ Non-propietario user trying to access gestion page:', 
           pathname
         );
         hasShownGestionAlert.current = true;
@@ -301,7 +304,7 @@ export default function TabLayout() {
   };
 
   const tabs = getTabsForRole();
-  console.log('[TabLayout Android v56.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
+  console.log('[TabLayout Android v56.1] ⚡ Rendering tabs:', tabs.map(t => t.name));
 
   // ✅ CRITICAL FIX v56.0: Reduced tab bar height to match iOS (was 70, now 60)
   const TAB_BAR_HEIGHT = 60;
@@ -403,7 +406,7 @@ export default function TabLayout() {
         <FloatingTabBar 
           tabs={tabs} 
           containerWidth={screenWidth} 
-          key={`${userRole}-${currentMode}`} 
+          key={`${userRole}-${currentMode}-v56.1`} 
         />
       </View>
     </View>
