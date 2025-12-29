@@ -19,6 +19,7 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useEffectiveUser } from '@/hooks/useEffectiveUser';
 import { useImpersonation } from '@/contexts/ImpersonationContext';
+import { useMode } from '@/contexts/ModeContext';
 import PublicacionCard from '@/components/social/PublicacionCard';
 import NewPostCard from '@/components/social/NewPostCard';
 import HeaderSocial from '@/components/layout/HeaderSocial';
@@ -27,6 +28,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import PostViewerModal from '@/components/social/PostViewerModal';
 import LoginPrompt from '@/components/common/LoginPrompt';
 import MomentoCarousel from '@/components/momento/MomentoCarousel';
+import PermissionGuard from '@/components/social/PermissionGuard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -77,12 +79,13 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL INDEX SCREEN v40.0 - MOMENTOS SECTION ALWAYS VISIBLE
+ * ✅ SOCIAL INDEX SCREEN v48.0 - ACCESS CONTROL FOR FREE PLAN LOCALS
  * 
  * Changes:
  * - ✅ Momentos section always visible (restored)
  * - ✅ Avatar upload functionality restored
  * - ✅ Cleaner social feed with momentos at top
+ * - ✅ Access control for free plan locals
  */
 
 export default function SocialIndexScreen() {
@@ -90,6 +93,7 @@ export default function SocialIndexScreen() {
   const params = useLocalSearchParams();
   const { userId, user, isImpersonating, adminUser } = useEffectiveUser();
   const { impersonationSession } = useImpersonation();
+  const { currentMode, activeProfileType } = useMode();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -137,18 +141,18 @@ export default function SocialIndexScreen() {
         }
         setUnreadMessages(totalUnread);
         
-        console.log('[Social v40.0] ✅ Loaded unread counts:', {
+        console.log('[Social v48.0] ✅ Loaded unread counts:', {
           notifications: notifCount || 0,
           messages: totalUnread,
         });
       } else {
-        console.log('[Social v40.0] ✅ Loaded unread counts:', {
+        console.log('[Social v48.0] ✅ Loaded unread counts:', {
           notifications: notifCount || 0,
           messages: 0,
         });
       }
     } catch (error) {
-      console.error('[Social v40.0] Error loading unread counts:', error);
+      console.error('[Social v48.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -169,12 +173,12 @@ export default function SocialIndexScreen() {
         .single();
 
       if (myCheckInError && myCheckInError.code !== 'PGRST116') {
-        console.error('[Social v40.0] Error loading my check-in:', myCheckInError);
+        console.error('[Social v48.0] Error loading my check-in:', myCheckInError);
       }
 
       if (myCheckInData && myCheckInData.locales) {
         setMyCheckIn(myCheckInData);
-        console.log('[Social v40.0] ✅ I am checked in to:', myCheckInData.locales.nombre);
+        console.log('[Social v48.0] ✅ I am checked in to:', myCheckInData.locales.nombre);
       } else {
         setMyCheckIn(null);
       }
@@ -233,9 +237,9 @@ export default function SocialIndexScreen() {
 
       const locations = Array.from(locationsByLocal.values());
       setFriendsLocations(locations);
-      console.log('[Social v40.0] ✅ Loaded friends locations:', locations.length);
+      console.log('[Social v48.0] ✅ Loaded friends locations:', locations.length);
     } catch (error) {
-      console.error('[Social v40.0] Error loading friends locations:', error);
+      console.error('[Social v48.0] Error loading friends locations:', error);
     } finally {
       setLoadingFriendsLocations(false);
     }
@@ -247,7 +251,7 @@ export default function SocialIndexScreen() {
     loadUnreadCounts();
 
     const subscription = supabase
-      .channel('social-feed-updates')
+      .channel('social-feed-updates-v48')
       .on(
         'postgres_changes',
         {
@@ -257,7 +261,7 @@ export default function SocialIndexScreen() {
           filter: `usuario_id=eq.${userId}`,
         },
         () => {
-          console.log('[Social v40.0] 🔔 Notification update detected');
+          console.log('[Social v48.0] 🔔 Notification update detected');
           loadUnreadCounts();
         }
       )
@@ -269,7 +273,7 @@ export default function SocialIndexScreen() {
           table: 'mensajes',
         },
         () => {
-          console.log('[Social v40.0] 💬 Message update detected');
+          console.log('[Social v48.0] 💬 Message update detected');
           loadUnreadCounts();
         }
       )
@@ -282,7 +286,7 @@ export default function SocialIndexScreen() {
 
   const cargarPosts = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
     if (!userId) {
-      console.log('[Social v40.0] No user ID, skipping load');
+      console.log('[Social v48.0] No user ID, skipping load');
       setLoading(false);
       return;
     }
@@ -299,7 +303,7 @@ export default function SocialIndexScreen() {
       const from = (pageNum - 1) * POSTS_PER_PAGE;
       const to = from + POSTS_PER_PAGE - 1;
 
-      console.log(`[Social v40.0] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
+      console.log(`[Social v48.0] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
 
       const { data: followingData, error: followingError } = await supabase
         .from('seguidores')
@@ -384,7 +388,7 @@ export default function SocialIndexScreen() {
         setHasMore(false);
       }
     } catch (error) {
-      console.error('[Social v40.0] Error cargando posts:', error);
+      console.error('[Social v48.0] Error cargando posts:', error);
       Alert.alert('Error', 'No se pudieron cargar las publicaciones');
     } finally {
       setLoading(false);
@@ -424,7 +428,7 @@ export default function SocialIndexScreen() {
 
     if (userId) {
       const checkInsChannel = supabase
-        .channel('social-check-ins-updates')
+        .channel('social-check-ins-updates-v48')
         .on(
           'postgres_changes',
           {
@@ -433,7 +437,7 @@ export default function SocialIndexScreen() {
             table: 'check_ins',
           },
           () => {
-            console.log('[Social v40.0] 🔔 Check-ins updated');
+            console.log('[Social v48.0] 🔔 Check-ins updated');
             loadFriendsLocations();
           }
         )
@@ -663,7 +667,8 @@ export default function SocialIndexScreen() {
     );
   }
 
-  return (
+  // ✅ CRITICAL FIX v48.0: Wrap content in PermissionGuard for local profiles
+  const content = (
     <View style={styles.container}>
       <HeaderSocial
         unreadNotifications={unreadNotifications}
@@ -698,6 +703,17 @@ export default function SocialIndexScreen() {
       />
     </View>
   );
+
+  // ✅ CRITICAL FIX v48.0: Only apply permission guard if in local profile mode
+  if (currentMode === 'propietario' && activeProfileType === 'local') {
+    return (
+      <PermissionGuard requireSocialProfile={true}>
+        {content}
+      </PermissionGuard>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({

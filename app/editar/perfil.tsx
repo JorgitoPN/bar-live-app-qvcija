@@ -23,17 +23,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { trackUsernameChange, isUsernameReserved } from '@/utils/usernameGenerator';
 import { UsernameSuggestions } from '@/components/auth/UsernameSuggestions';
+import { decode } from 'base64-arraybuffer';
 
 export default function EditarPerfilScreen() {
   const router = useRouter();
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [avatar, setAvatar] = useState('');
+  const [avatarLocalUri, setAvatarLocalUri] = useState(''); // Local URI for preview
   const [nombre, setNombre] = useState('');
   const [username, setUsername] = useState('');
-  const [originalUsername, setOriginalUsername] = useState(''); // Track original username
+  const [originalUsername, setOriginalUsername] = useState('');
   const [bio, setBio] = useState('');
   const [sitioWeb, setSitioWeb] = useState('');
   const [perfilPrivado, setPerfilPrivado] = useState(false);
@@ -53,23 +56,26 @@ export default function EditarPerfilScreen() {
         .single();
 
       if (error) {
-        console.error('Error loading user data:', error);
+        console.error('[EditarPerfil v48.0] Error loading user data:', error);
         Alert.alert('Error', 'No se pudo cargar la información del perfil');
         return;
       }
 
       if (data) {
-        setAvatar(data.avatar || '');
+        // Filter out file:// URLs
+        const safeAvatar = data.avatar && !data.avatar.startsWith('file://') ? data.avatar : '';
+        setAvatar(safeAvatar);
+        setAvatarLocalUri(safeAvatar);
         setNombre(data.nombre || '');
         setUsername(data.username || '');
-        setOriginalUsername(data.username || ''); // Store original username
+        setOriginalUsername(data.username || '');
         setBio(data.bio || '');
         setSitioWeb(data.sitio_web || '');
         setPerfilPrivado(data.perfil_privado || false);
         setPermitirEtiquetas(data.permitir_etiquetas !== false);
       }
     } catch (error) {
-      console.error('Error in loadUserData:', error);
+      console.error('[EditarPerfil v48.0] Error in loadUserData:', error);
     } finally {
       setLoading(false);
     }
@@ -80,15 +86,75 @@ export default function EditarPerfilScreen() {
   }, [loadUserData]);
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
 
-    if (!result.canceled) {
-      setAvatar(result.assets[0].uri);
+      if (!result.canceled && result.assets[0]) {
+        console.log('[EditarPerfil v48.0] 📸 Image selected:', result.assets[0].uri);
+        setAvatarLocalUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('[EditarPerfil v48.0] Error picking image:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen');
+    }
+  };
+
+  const uploadAvatarToStorage = async (uri: string): Promise<string | null> => {
+    try {
+      console.log('[EditarPerfil v48.0] 📤 Uploading avatar to Supabase Storage...');
+      setUploadingImage(true);
+
+      // Read the file as base64
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as ArrayBuffer);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(blob);
+      });
+
+      // Generate unique filename
+      const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${user!.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${user!.id}/${fileName}`;
+
+      console.log('[EditarPerfil v48.0] 📁 Uploading to path:', filePath);
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, arrayBuffer, {
+          contentType: `image/${fileExt}`,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('[EditarPerfil v48.0] ❌ Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('[EditarPerfil v48.0] ✅ Upload successful:', uploadData.path);
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      console.log('[EditarPerfil v48.0] 🔗 Public URL:', urlData.publicUrl);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('[EditarPerfil v48.0] ❌ Error uploading avatar:', error);
+      Alert.alert('Error', 'No se pudo subir la imagen. Por favor, intenta nuevamente.');
+      return null;
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -131,7 +197,7 @@ export default function EditarPerfilScreen() {
 
     try {
       // Verificar que el username no esté en uso (si cambió)
-      if (username) {
+      if (username && username !== originalUsername) {
         const { data: existingUser } = await supabase
           .from('usuarios')
           .select('id')
@@ -144,6 +210,38 @@ export default function EditarPerfilScreen() {
           setSaving(false);
           return;
         }
+      }
+
+      // ✅ CRITICAL FIX v48.0: Upload avatar to Supabase Storage if changed
+      let finalAvatarUrl = avatar;
+      
+      if (avatarLocalUri && avatarLocalUri !== avatar) {
+        console.log('[EditarPerfil v48.0] 🔄 Avatar changed, uploading to storage...');
+        
+        // Delete old avatar if exists
+        if (avatar && avatar.includes('supabase')) {
+          try {
+            const oldPath = avatar.split('/avatars/')[1];
+            if (oldPath) {
+              await supabase.storage.from('avatars').remove([oldPath]);
+              console.log('[EditarPerfil v48.0] 🗑️ Deleted old avatar');
+            }
+          } catch (error) {
+            console.error('[EditarPerfil v48.0] Error deleting old avatar:', error);
+          }
+        }
+
+        // Upload new avatar
+        const uploadedUrl = await uploadAvatarToStorage(avatarLocalUri);
+        
+        if (!uploadedUrl) {
+          Alert.alert('Error', 'No se pudo subir la imagen de perfil');
+          setSaving(false);
+          return;
+        }
+
+        finalAvatarUrl = uploadedUrl;
+        console.log('[EditarPerfil v48.0] ✅ Avatar uploaded successfully:', finalAvatarUrl);
       }
 
       // Actualizar perfil
@@ -160,10 +258,14 @@ export default function EditarPerfilScreen() {
         updateData.username = username;
       }
 
-      if (avatar && avatar !== user.avatar) {
-        // En producción, aquí subirías la imagen a Supabase Storage
-        updateData.avatar = avatar;
+      // ✅ CRITICAL FIX v48.0: Update avatar and avatar_updated_at
+      if (finalAvatarUrl !== avatar) {
+        updateData.avatar = finalAvatarUrl;
+        updateData.avatar_updated_at = new Date().toISOString();
+        console.log('[EditarPerfil v48.0] 🔄 Updating avatar_updated_at for cache-busting');
       }
+
+      console.log('[EditarPerfil v48.0] 💾 Saving profile data:', updateData);
 
       const { error } = await supabase
         .from('usuarios')
@@ -171,14 +273,16 @@ export default function EditarPerfilScreen() {
         .eq('id', user.id);
 
       if (error) {
-        console.error('Error updating profile:', error);
+        console.error('[EditarPerfil v48.0] ❌ Error updating profile:', error);
         Alert.alert('Error', 'No se pudo guardar el perfil. Por favor, intenta nuevamente.');
         return;
       }
 
+      console.log('[EditarPerfil v48.0] ✅ Profile updated successfully');
+
       // Track username change if it was modified
       if (username && username !== originalUsername) {
-        console.log('[EditarPerfil] 📝 Username changed from', originalUsername, 'to', username);
+        console.log('[EditarPerfil v48.0] 📝 Username changed from', originalUsername, 'to', username);
         await trackUsernameChange(
           'user',
           user.id,
@@ -196,7 +300,7 @@ export default function EditarPerfilScreen() {
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error) {
-      console.error('Error in handleSave:', error);
+      console.error('[EditarPerfil v48.0] ❌ Error in handleSave:', error);
       Alert.alert('Error', 'Ocurrió un error al guardar el perfil');
     } finally {
       setSaving(false);
@@ -225,9 +329,9 @@ export default function EditarPerfilScreen() {
         <TouchableOpacity 
           style={styles.saveButton} 
           onPress={handleSave}
-          disabled={saving}
+          disabled={saving || uploadingImage}
         >
-          {saving ? (
+          {saving || uploadingImage ? (
             <ActivityIndicator color={colors.headerText} />
           ) : (
             <Text style={styles.saveText}>Guardar</Text>
@@ -246,115 +350,131 @@ export default function EditarPerfilScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.form}>
-          <TouchableOpacity style={styles.avatarContainer} onPress={pickImage}>
-            {avatar ? (
-              <Image source={{ uri: avatar }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <IconSymbol name="person.fill" size={48} color={colors.textSecondary} />
+            <TouchableOpacity 
+              style={styles.avatarContainer} 
+              onPress={pickImage}
+              disabled={uploadingImage}
+            >
+              {avatarLocalUri ? (
+                <Image 
+                  source={{ uri: avatarLocalUri }} 
+                  style={styles.avatar}
+                  key={avatarLocalUri} // Force re-render on change
+                />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <IconSymbol name="person.fill" size={48} color={colors.textSecondary} />
+                </View>
+              )}
+              <View style={styles.avatarOverlay}>
+                {uploadingImage ? (
+                  <ActivityIndicator color={colors.headerText} size="small" />
+                ) : (
+                  <IconSymbol name="camera.fill" size={24} color={colors.headerText} />
+                )}
               </View>
+            </TouchableOpacity>
+
+            {uploadingImage && (
+              <Text style={styles.uploadingText}>Subiendo imagen...</Text>
             )}
-            <View style={styles.avatarOverlay}>
-              <IconSymbol name="camera.fill" size={24} color={colors.headerText} />
-            </View>
-          </TouchableOpacity>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nombre</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Tu nombre"
-              placeholderTextColor={colors.textSecondary}
-              value={nombre}
-              onChangeText={setNombre}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nombre de usuario</Text>
-            <View style={styles.usernameInputContainer}>
-              <Text style={styles.usernamePrefix}>@</Text>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Nombre</Text>
               <TextInput
-                style={[styles.input, styles.usernameInput]}
-                placeholder="usuario"
+                style={styles.input}
+                placeholder="Tu nombre"
                 placeholderTextColor={colors.textSecondary}
-                value={username}
-                onChangeText={handleUsernameChange}
+                value={nombre}
+                onChangeText={setNombre}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Nombre de usuario</Text>
+              <View style={styles.usernameInputContainer}>
+                <Text style={styles.usernamePrefix}>@</Text>
+                <TextInput
+                  style={[styles.input, styles.usernameInput]}
+                  placeholder="usuario"
+                  placeholderTextColor={colors.textSecondary}
+                  value={username}
+                  onChangeText={handleUsernameChange}
+                  autoCapitalize="none"
+                />
+              </View>
+              <Text style={styles.helperText}>
+                Solo letras, números, puntos y guiones bajos
+              </Text>
+              
+              {/* Username suggestions */}
+              {nombre && (
+                <UsernameSuggestions
+                  name={nombre}
+                  currentUsername={username}
+                  onSelectUsername={setUsername}
+                />
+              )}
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Biografía</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Cuéntanos sobre ti..."
+                placeholderTextColor={colors.textSecondary}
+                value={bio}
+                onChangeText={setBio}
+                multiline
+                numberOfLines={4}
+                maxLength={150}
+              />
+              <Text style={styles.helperText}>{bio.length}/150 caracteres</Text>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Sitio web</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="https://tusitio.com"
+                placeholderTextColor={colors.textSecondary}
+                value={sitioWeb}
+                onChangeText={setSitioWeb}
+                keyboardType="url"
                 autoCapitalize="none"
               />
             </View>
-            <Text style={styles.helperText}>
-              Solo letras, números, puntos y guiones bajos
-            </Text>
-            
-            {/* Username suggestions */}
-            {nombre && (
-              <UsernameSuggestions
-                name={nombre}
-                currentUsername={username}
-                onSelectUsername={setUsername}
+
+            <View style={styles.privacyContainer}>
+              <View style={styles.privacyInfo}>
+                <Text style={styles.privacyTitle}>Perfil privado</Text>
+                <Text style={styles.privacyDescription}>
+                  Solo tus seguidores podrán ver tus publicaciones
+                </Text>
+              </View>
+              <Switch
+                value={perfilPrivado}
+                onValueChange={setPerfilPrivado}
+                trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                thumbColor={colors.headerText}
               />
-            )}
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Biografía</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Cuéntanos sobre ti..."
-              placeholderTextColor={colors.textSecondary}
-              value={bio}
-              onChangeText={setBio}
-              multiline
-              numberOfLines={4}
-              maxLength={150}
-            />
-            <Text style={styles.helperText}>{bio.length}/150 caracteres</Text>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Sitio web</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="https://tusitio.com"
-              placeholderTextColor={colors.textSecondary}
-              value={sitioWeb}
-              onChangeText={setSitioWeb}
-              keyboardType="url"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.privacyContainer}>
-            <View style={styles.privacyInfo}>
-              <Text style={styles.privacyTitle}>Perfil privado</Text>
-              <Text style={styles.privacyDescription}>
-                Solo tus seguidores podrán ver tus publicaciones
-              </Text>
             </View>
-            <Switch
-              value={perfilPrivado}
-              onValueChange={setPerfilPrivado}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.headerText}
-            />
-          </View>
 
-          <View style={styles.privacyContainer}>
-            <View style={styles.privacyInfo}>
-              <Text style={styles.privacyTitle}>Permitir etiquetas</Text>
-              <Text style={styles.privacyDescription}>
-                Otros usuarios pueden etiquetarte en publicaciones
-              </Text>
+            <View style={styles.privacyContainer}>
+              <View style={styles.privacyInfo}>
+                <Text style={styles.privacyTitle}>Permitir etiquetas</Text>
+                <Text style={styles.privacyDescription}>
+                  Otros usuarios pueden etiquetarte en publicaciones
+                </Text>
+              </View>
+              <Switch
+                value={permitirEtiquetas}
+                onValueChange={setPermitirEtiquetas}
+                trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                thumbColor={colors.headerText}
+              />
             </View>
-            <Switch
-              value={permitirEtiquetas}
-              onValueChange={setPermitirEtiquetas}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.headerText}
-            />
           </View>
-        </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -400,7 +520,7 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     alignSelf: 'center',
-    marginBottom: 30,
+    marginBottom: 10,
     position: 'relative',
   },
   avatar: {
@@ -427,6 +547,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: colors.background,
+  },
+  uploadingText: {
+    fontSize: 13,
+    color: colors.primary,
+    textAlign: 'center',
+    marginBottom: 20,
+    fontWeight: '600',
   },
   inputContainer: {
     marginBottom: 20,

@@ -25,15 +25,16 @@ interface MomentoAuthor {
 }
 
 /**
- * ✅ MOMENTO CAROUSEL v47.1 - INSTAGRAM STORIES SIZE
+ * ✅ MOMENTO CAROUSEL v48.0 - INSTAGRAM STORIES SIZE + NO WHITE BORDER
  * 
- * Changes v47.1:
+ * Changes v48.0:
  * - ✅ Increased avatar size to 88px (Instagram stories style)
  * - ✅ Uses UnifiedMomentoAvatar for consistent design
  * - ✅ Same avatar and + button as profile pages
  * - ✅ Green border disappears after viewing
  * - ✅ Real-time synchronization
  * - ✅ Always visible section
+ * - ✅ NO WHITE BORDER - image fills entire circular area
  */
 
 export default function MomentoCarousel() {
@@ -51,7 +52,7 @@ export default function MomentoCarousel() {
     }
 
     try {
-      console.log('[MomentoCarousel v47.1] Loading momento authors for user:', user.id);
+      console.log('[MomentoCarousel v48.0] Loading momento authors for user:', user.id);
 
       // Get followed users
       const { data: followedUsers } = await supabase
@@ -145,10 +146,12 @@ export default function MomentoCarousel() {
       usersData?.forEach(u => {
         const stats = userAuthorsMap.get(u.id);
         if (stats) {
+          // Filter out file:// URLs
+          const safeAvatar = u.avatar && !u.avatar.startsWith('file://') ? u.avatar : null;
           authorsArray.push({
             id: u.id,
             nombre: u.nombre,
-            avatar: u.avatar,
+            avatar: safeAvatar,
             tipo: 'usuario',
             has_unviewed: stats.hasUnviewed,
             momento_count: stats.count,
@@ -159,10 +162,12 @@ export default function MomentoCarousel() {
       localsData?.forEach(l => {
         const stats = localAuthorsMap.get(l.id);
         if (stats) {
+          // Filter out file:// URLs
+          const safeAvatar = l.imagen_url && !l.imagen_url.startsWith('file://') ? l.imagen_url : null;
           authorsArray.push({
             id: l.id,
             nombre: l.nombre,
-            avatar: l.imagen_url,
+            avatar: safeAvatar,
             tipo: 'local',
             has_unviewed: stats.hasUnviewed,
             momento_count: stats.count,
@@ -178,9 +183,9 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel v47.1] ✅ Loaded', authorsArray.length, 'authors with momentos');
+      console.log('[MomentoCarousel v48.0] ✅ Loaded', authorsArray.length, 'authors with momentos');
     } catch (error) {
-      console.error('[MomentoCarousel v47.1] Error loading momento authors:', error);
+      console.error('[MomentoCarousel v48.0] Error loading momento authors:', error);
     } finally {
       setLoading(false);
     }
@@ -191,7 +196,7 @@ export default function MomentoCarousel() {
 
     if (user) {
       const channel = supabase
-        .channel('momento-carousel-updates-v47')
+        .channel('momento-carousel-updates-v48')
         .on(
           'postgres_changes',
           {
@@ -200,7 +205,7 @@ export default function MomentoCarousel() {
             table: 'momentos',
           },
           () => {
-            console.log('[MomentoCarousel v47.1] 🔔 Momentos updated');
+            console.log('[MomentoCarousel v48.0] 🔔 Momentos updated');
             loadMomentoAuthors();
           }
         )
@@ -213,7 +218,7 @@ export default function MomentoCarousel() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[MomentoCarousel v47.1] 🔔 Momento view added - refreshing borders');
+            console.log('[MomentoCarousel v48.0] 🔔 Momento view added - refreshing borders');
             loadMomentoAuthors();
           }
         )
@@ -226,18 +231,18 @@ export default function MomentoCarousel() {
   }, [user, loadMomentoAuthors]);
 
   const handleAuthorPress = (author: MomentoAuthor) => {
-    console.log('[MomentoCarousel v47.1] Opening momento viewer for:', author.nombre);
+    console.log('[MomentoCarousel v48.0] Opening momento viewer for:', author.nombre);
     setSelectedAuthor({ id: author.id, tipo: author.tipo });
     setShowViewer(true);
   };
 
   const handleCreateMomento = () => {
-    console.log('[MomentoCarousel v47.1] Opening momento upload');
+    console.log('[MomentoCarousel v48.0] Opening momento upload');
     setShowUpload(true);
   };
 
   const handleCloseViewer = () => {
-    console.log('[MomentoCarousel v47.1] ✅ Closing viewer and reloading authors to update borders');
+    console.log('[MomentoCarousel v48.0] ✅ Closing viewer and reloading authors to update borders');
     setShowViewer(false);
     setSelectedAuthor(null);
     // ✅ CRITICAL: Reload to update viewed status and remove green border
@@ -264,7 +269,7 @@ export default function MomentoCarousel() {
           contentContainerStyle={styles.scrollContent}
           style={styles.scrollView}
         >
-          {/* ✅ CRITICAL FIX v47.1: Increased size to 88px for Instagram stories feel */}
+          {/* ✅ CRITICAL FIX v48.0: Increased size to 88px for Instagram stories feel + NO WHITE BORDER */}
           <View style={styles.authorItem}>
             <UnifiedMomentoAvatar
               userId={user.id}
@@ -295,7 +300,7 @@ export default function MomentoCarousel() {
                 <UnifiedMomentoAvatar
                   userId={author.tipo === 'usuario' ? author.id : undefined}
                   localId={author.tipo === 'local' ? author.id : undefined}
-                  imageUrl={author.avatar}
+                  imageUrl={author.avatar || undefined}
                   size={88}
                   onPress={() => handleAuthorPress(author)}
                 />

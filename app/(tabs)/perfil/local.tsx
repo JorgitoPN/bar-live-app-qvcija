@@ -34,8 +34,9 @@ import { useLocalEvent } from '@/hooks/useLocalEvent';
 import MomentoViewer from '@/components/momento/MomentoViewer';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
+import PermissionGuard from '@/components/social/PermissionGuard';
 
-const SCREEN_VERSION = '47.0.0';
+const SCREEN_VERSION = '48.0.0';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -93,16 +94,17 @@ interface Seguidor {
 }
 
 /**
- * ✅ LOCAL PROFILE v47.0 - UNIFIED AVATAR + ACCESS CONTROL
+ * ✅ LOCAL PROFILE v48.0 - UNIFIED AVATAR + ACCESS CONTROL + NO WHITE BORDER
  * 
  * Changes:
- * - ✅ Uses UnifiedMomentoAvatar for consistent design
+ * - ✅ Uses UnifiedMomentoAvatar for consistent design (NO WHITE BORDER)
  * - ✅ Blocks access for locals without active payment plans
  * - ✅ Shows persuasive upgrade message
  * - ✅ Green border disappears after viewing momento
  * - ✅ Removed "Estoy en este local" action
  * - ✅ Removed "Entrar en la sala virtual" action
  * - ✅ Fixed social metrics visibility (only with active plan)
+ * - ✅ Image fills entire circular area without gaps
  */
 
 export default function LocalPerfilScreen() {
@@ -186,7 +188,7 @@ export default function LocalPerfilScreen() {
     if (!localId) return;
 
     try {
-      console.log('[LocalPerfil v47.0] 🔍 Checking subscription and permissions for local:', localId);
+      console.log('[LocalPerfil v48.0] 🔍 Checking subscription and permissions for local:', localId);
 
       const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('suscripciones_locales')
@@ -205,7 +207,7 @@ export default function LocalPerfilScreen() {
         .maybeSingle();
 
       if (subscriptionError) {
-        console.error('[LocalPerfil v47.0] ❌ Error checking subscription:', subscriptionError);
+        console.error('[LocalPerfil v48.0] ❌ Error checking subscription:', subscriptionError);
         setHasAnalyticsPermission(false);
         setHasSocialProfile(false);
         setHasActiveSubscription(false);
@@ -217,7 +219,7 @@ export default function LocalPerfilScreen() {
       const hasAnalytics = subscriptionData?.planes_suscripcion?.panel_analisis || false;
       const hasSocial = subscriptionData?.planes_suscripcion?.perfil_social || false;
 
-      console.log('[LocalPerfil v47.0] 📊 Permissions:', {
+      console.log('[LocalPerfil v48.0] 📊 Permissions:', {
         hasActiveSubscription: hasActiveSub,
         planName,
         hasAnalytics,
@@ -228,7 +230,7 @@ export default function LocalPerfilScreen() {
       setHasAnalyticsPermission(hasAnalytics);
       setHasSocialProfile(hasSocial);
     } catch (error) {
-      console.error('[LocalPerfil v47.0] ❌ Error checking permissions:', error);
+      console.error('[LocalPerfil v48.0] ❌ Error checking permissions:', error);
       setHasAnalyticsPermission(false);
       setHasSocialProfile(false);
       setHasActiveSubscription(false);
@@ -240,7 +242,7 @@ export default function LocalPerfilScreen() {
     
     setLoadingSeguidores(true);
     try {
-      console.log('[LocalPerfil v47.0] 📊 Loading followers for local:', localId);
+      console.log('[LocalPerfil v48.0] 📊 Loading followers for local:', localId);
 
       const { data, error } = await supabase
         .from('seguidores')
@@ -257,7 +259,7 @@ export default function LocalPerfilScreen() {
         .eq('seguido_id', local?.propietario_id);
 
       if (error) {
-        console.error('[LocalPerfil v47.0] Error loading followers:', error);
+        console.error('[LocalPerfil v48.0] Error loading followers:', error);
         return;
       }
 
@@ -274,10 +276,10 @@ export default function LocalPerfilScreen() {
 
         setSeguidores(formattedSeguidores);
         setSeguidoresCount(formattedSeguidores.length);
-        console.log('[LocalPerfil v47.0] ✅ Loaded followers:', formattedSeguidores.length);
+        console.log('[LocalPerfil v48.0] ✅ Loaded followers:', formattedSeguidores.length);
       }
     } catch (error) {
-      console.error('[LocalPerfil v47.0] Error loading followers:', error);
+      console.error('[LocalPerfil v48.0] Error loading followers:', error);
     } finally {
       setLoadingSeguidores(false);
     }
@@ -288,7 +290,7 @@ export default function LocalPerfilScreen() {
     
     setLoadingSeguidos(true);
     try {
-      console.log('[LocalPerfil v47.0] 📊 Loading following for local:', localId);
+      console.log('[LocalPerfil v48.0] 📊 Loading following for local:', localId);
 
       const { data, error } = await supabase
         .from('seguidores')
@@ -305,7 +307,7 @@ export default function LocalPerfilScreen() {
         .eq('seguidor_id', local.propietario_id);
 
       if (error) {
-        console.error('[LocalPerfil v47.0] Error loading following:', error);
+        console.error('[LocalPerfil v48.0] Error loading following:', error);
         return;
       }
 
@@ -322,10 +324,10 @@ export default function LocalPerfilScreen() {
 
         setSeguidos(formattedSeguidos);
         setSeguidosCount(formattedSeguidos.length);
-        console.log('[LocalPerfil v47.0] ✅ Loaded following:', formattedSeguidos.length);
+        console.log('[LocalPerfil v48.0] ✅ Loaded following:', formattedSeguidos.length);
       }
     } catch (error) {
-      console.error('[LocalPerfil v47.0] Error loading following:', error);
+      console.error('[LocalPerfil v48.0] Error loading following:', error);
     } finally {
       setLoadingSeguidos(false);
     }
@@ -333,7 +335,7 @@ export default function LocalPerfilScreen() {
 
   const loadLocalData = useCallback(async () => {
     if (!localId) {
-      console.error('[LocalPerfil v47.0] ❌ No localId provided');
+      console.error('[LocalPerfil v48.0] ❌ No localId provided');
       Alert.alert('Error', 'No se pudo cargar el perfil del local', [
         { text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }
       ]);
@@ -341,7 +343,7 @@ export default function LocalPerfilScreen() {
     }
 
     try {
-      console.log('[LocalPerfil v47.0] ✅ Loading local data for:', localId);
+      console.log('[LocalPerfil v48.0] ✅ Loading local data for:', localId);
 
       const { data: localData, error: localError } = await supabase
         .from('locales')
@@ -350,72 +352,10 @@ export default function LocalPerfilScreen() {
         .single();
 
       if (localError || !localData) {
-        console.error('[LocalPerfil v47.0] Error loading local:', localError);
+        console.error('[LocalPerfil v48.0] Error loading local:', localError);
         Alert.alert('Error', 'No se pudo cargar el perfil del local', [
           { text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }
         ]);
-        return;
-      }
-
-      // ✅ CRITICAL FIX v47.0: Check if local has active subscription
-      const { data: subscriptionData } = await supabase
-        .from('suscripciones_locales')
-        .select(`
-          id, 
-          estado, 
-          plan_id, 
-          planes_suscripcion!suscripciones_locales_plan_id_fkey(
-            nombre,
-            perfil_social,
-            panel_analisis
-          )
-        `)
-        .eq('local_id', localId)
-        .eq('estado', 'activa')
-        .maybeSingle();
-
-      const hasActiveSub = !!subscriptionData;
-      const planName = subscriptionData?.planes_suscripcion?.nombre?.toLowerCase() || 'free';
-      const hasSocial = subscriptionData?.planes_suscripcion?.perfil_social || false;
-      const hasAnalytics = subscriptionData?.planes_suscripcion?.panel_analisis || false;
-
-      setHasActiveSubscription(hasActiveSub);
-      setHasSocialProfile(hasSocial);
-      setHasAnalyticsPermission(hasAnalytics);
-
-      // ✅ CRITICAL FIX v47.0: If no social profile and not owner, show persuasive message
-      const userIsOwner = user && localData.propietario_id === user.id;
-      
-      if (!hasSocial && !userIsOwner) {
-        console.log('[LocalPerfil v47.0] ⚠️ No social profile and not owner - showing persuasive message');
-        Alert.alert(
-          '🔒 Perfil Social No Disponible',
-          `Este local no tiene un perfil social activo.\n\n` +
-          `💡 ¿Eres el propietario?\n\n` +
-          `Activa un plan de suscripción para:\n\n` +
-          `✓ Hacer visible tu perfil social\n` +
-          `✓ Publicar eventos y promociones\n` +
-          `✓ Destacar tu local en búsquedas\n` +
-          `✓ Acceder a estadísticas avanzadas\n` +
-          `✓ Atraer más clientes cada día\n\n` +
-          `No estás comprando un plan, estás invirtiendo en más clientes.`,
-          [
-            { 
-              text: 'Volver', 
-              style: 'cancel', 
-              onPress: () => router.replace('/(tabs)/explorar') 
-            },
-            {
-              text: 'Ver Planes',
-              onPress: () => {
-                router.replace('/(tabs)/explorar');
-                setTimeout(() => {
-                  router.push(`/gestion/planes-suscripcion?localId=${localId}`);
-                }, 100);
-              },
-            },
-          ]
-        );
         return;
       }
 
@@ -423,21 +363,21 @@ export default function LocalPerfilScreen() {
 
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
-        console.log('[LocalPerfil v47.0] ✅ User IS OWNER of this local');
+        console.log('[LocalPerfil v48.0] ✅ User IS OWNER of this local');
       } else {
         setIsOwner(false);
-        console.log('[LocalPerfil v47.0] ✅ User is NOT owner of this local');
+        console.log('[LocalPerfil v48.0] ✅ User is NOT owner of this local');
       }
 
-      // ✅ CRITICAL FIX v47.0: Only load social metrics if social profile is active
-      if (hasSocial) {
+      // ✅ CRITICAL FIX v48.0: Only load social metrics if social profile is active
+      if (hasSocialProfile) {
         const { count: followersCount } = await supabase
           .from('seguidores')
           .select('*', { count: 'exact', head: true })
           .eq('seguido_id', localData.propietario_id);
 
         setSeguidoresCount(followersCount || 0);
-        console.log('[LocalPerfil v47.0] ✅ Followers count:', followersCount || 0);
+        console.log('[LocalPerfil v48.0] ✅ Followers count:', followersCount || 0);
 
         if (localData.propietario_id) {
           const { count: followingCount } = await supabase
@@ -446,10 +386,10 @@ export default function LocalPerfilScreen() {
             .eq('seguidor_id', localData.propietario_id);
 
           setSeguidosCount(followingCount || 0);
-          console.log('[LocalPerfil v47.0] ✅ Following count:', followingCount || 0);
+          console.log('[LocalPerfil v48.0] ✅ Following count:', followingCount || 0);
         }
       } else {
-        console.log('[LocalPerfil v47.0] ⚠️ Social profile not active, hiding metrics');
+        console.log('[LocalPerfil v48.0] ⚠️ Social profile not active, hiding metrics');
         setSeguidoresCount(0);
         setSeguidosCount(0);
       }
@@ -480,7 +420,7 @@ export default function LocalPerfilScreen() {
       ]);
 
       if (!postsResult.error) {
-        console.log('[LocalPerfil v47.0] ✅ Loaded', postsResult.data?.length || 0, 'posts for local');
+        console.log('[LocalPerfil v48.0] ✅ Loaded', postsResult.data?.length || 0, 'posts for local');
         setPosts(postsResult.data || []);
         setContentLoaded(prev => ({ ...prev, posts: true }));
       }
@@ -491,23 +431,23 @@ export default function LocalPerfilScreen() {
       }
 
       setIsFollowing(!!followResult.data);
-      console.log('[LocalPerfil v47.0] ✅ Is following:', !!followResult.data);
+      console.log('[LocalPerfil v48.0] ✅ Is following:', !!followResult.data);
       setContentLoaded(prev => ({ ...prev, info: true }));
 
-      console.log('[LocalPerfil v47.0] ✅ Local data loaded successfully');
+      console.log('[LocalPerfil v48.0] ✅ Local data loaded successfully');
     } catch (error) {
-      console.error('[LocalPerfil v47.0] Error loading data:', error);
+      console.error('[LocalPerfil v48.0] Error loading data:', error);
     } finally {
       setLoading(false);
     }
-  }, [localId, user, router]);
+  }, [localId, user, router, hasSocialProfile]);
 
   const loadEmpleoData = useCallback(async () => {
     if (!localId) return;
     
     setLoadingEmpleo(true);
     try {
-      console.log('[LocalPerfil v47.0] Loading job offers for local:', localId);
+      console.log('[LocalPerfil v48.0] Loading job offers for local:', localId);
 
       const { data: ofertasData, error: ofertasError } = await supabase
         .from('ofertas_trabajo')
@@ -523,13 +463,13 @@ export default function LocalPerfilScreen() {
         .order('created_at', { ascending: false});
 
       if (!ofertasError && ofertasData) {
-        console.log('[LocalPerfil v47.0] ✅ Loaded', ofertasData.length, 'job offers for this local');
+        console.log('[LocalPerfil v48.0] ✅ Loaded', ofertasData.length, 'job offers for this local');
         setOfertasTrabajo(ofertasData);
       }
 
       setContentLoaded(prev => ({ ...prev, empleo: true }));
     } catch (error) {
-      console.error('[LocalPerfil v47.0] Error loading employment data:', error);
+      console.error('[LocalPerfil v48.0] Error loading employment data:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -573,7 +513,7 @@ export default function LocalPerfilScreen() {
     }
 
     if (isTogglingFollow.current) {
-      console.log('[LocalPerfil v47.0] Already toggling follow, skipping...');
+      console.log('[LocalPerfil v48.0] Already toggling follow, skipping...');
       return;
     }
 
@@ -583,13 +523,13 @@ export default function LocalPerfilScreen() {
     const previousSeguidores = seguidoresCount;
 
     try {
-      console.log('[LocalPerfil v47.0] 🔄 Toggling FOLLOW status (social network)');
+      console.log('[LocalPerfil v48.0] 🔄 Toggling FOLLOW status (social network)');
 
       setIsFollowing(!wasFollowing);
       setSeguidoresCount(wasFollowing ? Math.max(0, previousSeguidores - 1) : previousSeguidores + 1);
 
       if (wasFollowing) {
-        console.log('[LocalPerfil v47.0] ➖ Unfollowing local in social network...');
+        console.log('[LocalPerfil v48.0] ➖ Unfollowing local in social network...');
         
         const { error: deleteError } = await supabase
           .from('seguidores')
@@ -599,9 +539,9 @@ export default function LocalPerfilScreen() {
 
         if (deleteError) throw deleteError;
 
-        console.log('[LocalPerfil v47.0] ✅ Unfollow successful');
+        console.log('[LocalPerfil v48.0] ✅ Unfollow successful');
       } else {
-        console.log('[LocalPerfil v47.0] ➕ Following local in social network...');
+        console.log('[LocalPerfil v48.0] ➕ Following local in social network...');
 
         const { data: existingFollow } = await supabase
           .from('seguidores')
@@ -611,7 +551,7 @@ export default function LocalPerfilScreen() {
           .single();
 
         if (existingFollow) {
-          console.log('[LocalPerfil v47.0] Already following, skipping insert');
+          console.log('[LocalPerfil v48.0] Already following, skipping insert');
           isTogglingFollow.current = false;
           return;
         }
@@ -635,7 +575,7 @@ export default function LocalPerfilScreen() {
             usuario_origen_id: user.id,
           });
 
-        console.log('[LocalPerfil v47.0] ✅ Follow successful');
+        console.log('[LocalPerfil v48.0] ✅ Follow successful');
       }
 
       const { count: updatedFollowersCount } = await supabase
@@ -645,7 +585,7 @@ export default function LocalPerfilScreen() {
 
       setSeguidoresCount(updatedFollowersCount || 0);
     } catch (error) {
-      console.error('[LocalPerfil v47.0] Error toggling follow:', error);
+      console.error('[LocalPerfil v48.0] Error toggling follow:', error);
       
       setIsFollowing(wasFollowing);
       setSeguidoresCount(previousSeguidores);
@@ -701,7 +641,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v47.0] Setting interaction state for creating post');
+    console.log('[LocalPerfil v48.0] Setting interaction state for creating post');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -718,7 +658,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v47.0] Setting interaction state for creating event');
+    console.log('[LocalPerfil v48.0] Setting interaction state for creating event');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -735,7 +675,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v47.0] Setting interaction state for creating job offer');
+    console.log('[LocalPerfil v48.0] Setting interaction state for creating job offer');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -752,7 +692,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v47.0] Setting interaction state for editing local');
+    console.log('[LocalPerfil v48.0] Setting interaction state for editing local');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -784,7 +724,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v47.0] Navigating to analytics panel');
+    console.log('[LocalPerfil v48.0] Navigating to analytics panel');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -803,11 +743,11 @@ export default function LocalPerfilScreen() {
     }
 
     try {
-      console.log('[LocalPerfil v47.0] Opening chat with LOCAL PROFILE (isolated messaging)');
+      console.log('[LocalPerfil v48.0] Opening chat with LOCAL PROFILE (isolated messaging)');
       
       router.push(`/chat/conversacion?localId=${localId}&userId=${user.id}`);
     } catch (error) {
-      console.error('[LocalPerfil v47.0] Error opening local chat:', error);
+      console.error('[LocalPerfil v48.0] Error opening local chat:', error);
       Alert.alert('Error', 'No se pudo abrir el chat');
     }
   };
@@ -815,14 +755,14 @@ export default function LocalPerfilScreen() {
   const handleGoBack = () => {
     try {
       if (router.canGoBack()) {
-        console.log('[LocalPerfil v47.0] ✅ Going back to previous screen');
+        console.log('[LocalPerfil v48.0] ✅ Going back to previous screen');
         router.back();
       } else {
-        console.log('[LocalPerfil v47.0] ⚠️ No previous screen, navigating to explorar');
+        console.log('[LocalPerfil v48.0] ⚠️ No previous screen, navigating to explorar');
         router.replace('/(tabs)/explorar');
       }
     } catch (error) {
-      console.error('[LocalPerfil v47.0] ❌ Error navigating back:', error);
+      console.error('[LocalPerfil v48.0] ❌ Error navigating back:', error);
       router.replace('/(tabs)/explorar');
     }
   };
@@ -999,667 +939,670 @@ export default function LocalPerfilScreen() {
 
   const tabs = getTabsForRole();
 
-  console.log('🎯🎯🎯 [LocalPerfil v47.0] Rendering with tabs:', tabs.map(t => `${t.name}(${t.icon})`).join(', '));
+  console.log('🎯🎯🎯 [LocalPerfil v48.0] Rendering with tabs:', tabs.map(t => `${t.name}(${t.icon})`).join(', '));
 
+  // ✅ CRITICAL FIX v48.0: Wrap content in PermissionGuard
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.fixedHeader}
-      >
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{local.nombre}</Text>
-          <View style={styles.headerActions}>
-            {isOwner && (user?.rol_app === 'propietario' || ownedLocals.length > 0) && (
-              <TouchableOpacity 
-                style={styles.switchProfileButton}
-                onPress={() => setShowProfileSwitcher(true)}
-                activeOpacity={0.8}
-              >
-                <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="sync" size={24} color={colors.headerText} />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </LinearGradient>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-        overScrollMode="never"
-        scrollEventThrottle={400}
-      >
+    <PermissionGuard requireSocialProfile={true} localId={localId}>
+      <View style={styles.container}>
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.profileHeaderGradient}
+          style={styles.fixedHeader}
         >
-          {local.imagen_portada && (
-            <View style={styles.coverPhotoContainer}>
-              <Image 
-                source={{ uri: local.imagen_portada }} 
-                style={styles.coverPhoto}
-                resizeMode="cover"
-              />
-              <LinearGradient
-                colors={['transparent', 'rgba(0,0,0,0.3)']}
-                style={styles.coverGradient}
-              />
+          <View style={styles.headerContent}>
+            <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{local.nombre}</Text>
+            <View style={styles.headerActions}>
+              {isOwner && (user?.rol_app === 'propietario' || ownedLocals.length > 0) && (
+                <TouchableOpacity 
+                  style={styles.switchProfileButton}
+                  onPress={() => setShowProfileSwitcher(true)}
+                  activeOpacity={0.8}
+                >
+                  <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="sync" size={24} color={colors.headerText} />
+                </TouchableOpacity>
+              )}
             </View>
-          )}
+          </View>
+        </LinearGradient>
 
-          <Animated.View 
-            style={[
-              styles.profileSection,
-              {
-                opacity: fadeAnim,
-                transform: [{ scale: scaleAnim }],
-              }
-            ]}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          overScrollMode="never"
+          scrollEventThrottle={400}
+        >
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.profileHeaderGradient}
           >
-            {/* ✅ UNIFIED MOMENTO AVATAR */}
-            <View style={styles.momentosSection}>
-              <UnifiedMomentoAvatar
-                localId={localId}
-                imageUrl={local.imagen_url}
-                size={96}
-                showAddButton={isOwner}
-                isOwner={isOwner}
-                onPress={() => setShowMomentoViewer(true)}
-                onAddPress={() => setShowMomentoUpload(true)}
-              />
+            {local.imagen_portada && (
+              <View style={styles.coverPhotoContainer}>
+                <Image 
+                  source={{ uri: local.imagen_portada }} 
+                  style={styles.coverPhoto}
+                  resizeMode="cover"
+                />
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.3)']}
+                  style={styles.coverGradient}
+                />
+              </View>
+            )}
 
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{local.nombre}</Text>
-                {local.username && (
-                  <Text style={styles.profileUsername}>@{local.username}</Text>
+            <Animated.View 
+              style={[
+                styles.profileSection,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ scale: scaleAnim }],
+                }
+              ]}
+            >
+              {/* ✅ UNIFIED MOMENTO AVATAR - NO WHITE BORDER */}
+              <View style={styles.momentosSection}>
+                <UnifiedMomentoAvatar
+                  localId={localId}
+                  imageUrl={local.imagen_url}
+                  size={96}
+                  showAddButton={isOwner}
+                  isOwner={isOwner}
+                  onPress={() => setShowMomentoViewer(true)}
+                  onAddPress={() => setShowMomentoUpload(true)}
+                />
+
+                <View style={styles.profileInfo}>
+                  <Text style={styles.profileName}>{local.nombre}</Text>
+                  {local.username && (
+                    <Text style={styles.profileUsername}>@{local.username}</Text>
+                  )}
+                  {categoriasLocal.length > 0 && (
+                    <View style={styles.categoriesContainer}>
+                      {categoriasLocal.slice(0, 2).map((categoria: string, index: number) => (
+                        <View key={index} style={styles.categoryBadge}>
+                          <Text style={styles.categoryIcon}>{getCategoryIcon(categoria)}</Text>
+                          <Text style={styles.categoryText}>{categoria}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {local.direccion && (
+                <View style={styles.addressContainer}>
+                  <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={16} color={colors.headerText} />
+                  <Text style={styles.addressText}>{local.direccion}</Text>
+                </View>
+              )}
+
+              <View style={styles.statusBadge}>
+                <View style={[styles.statusDot, { backgroundColor: estado.estaAbierto ? '#22C55E' : '#EF4444' }]} />
+                <Text style={styles.statusText}>{estado.badge}</Text>
+              </View>
+
+              {activeEvent && (
+                <View style={{ marginBottom: 16 }}>
+                  <EventBanner evento={activeEvent} compact={true} />
+                </View>
+              )}
+
+              {/* ✅ CRITICAL FIX v48.0: Only show social metrics if social profile is active */}
+              <View style={styles.statsContainer}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{posts.length}</Text>
+                  <Text style={styles.statLabel}>Publicaciones</Text>
+                </View>
+                {hasSocialProfile ? (
+                  <React.Fragment>
+                    <View style={styles.statDivider} />
+                    <TouchableOpacity style={styles.statItem} onPress={handleSeguidores}>
+                      <Text style={styles.statNumber}>{seguidoresCount}</Text>
+                      <Text style={styles.statLabel}>Seguidores</Text>
+                    </TouchableOpacity>
+                    <View style={styles.statDivider} />
+                    <TouchableOpacity style={styles.statItem} onPress={handleSeguidos}>
+                      <Text style={styles.statNumber}>{seguidosCount}</Text>
+                      <Text style={styles.statLabel}>Siguiendo</Text>
+                    </TouchableOpacity>
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment>
+                    <View style={styles.statDivider} />
+                    <View style={styles.statItem}>
+                      <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={20} color="rgba(255, 255, 255, 0.6)" />
+                      <Text style={styles.statLabelLocked}>Perfil Social</Text>
+                      <Text style={styles.statLabelLockedSub}>No Activo</Text>
+                    </View>
+                  </React.Fragment>
                 )}
-                {categoriasLocal.length > 0 && (
-                  <View style={styles.categoriesContainer}>
-                    {categoriasLocal.slice(0, 2).map((categoria: string, index: number) => (
-                      <View key={index} style={styles.categoryBadge}>
-                        <Text style={styles.categoryIcon}>{getCategoryIcon(categoria)}</Text>
-                        <Text style={styles.categoryText}>{categoria}</Text>
+              </View>
+
+              <View style={styles.actionsContainer}>
+                {isOwner ? (
+                  <View style={styles.ownerButtonsRow}>
+                    <TouchableOpacity 
+                      style={styles.ownerRowButton} 
+                      onPress={handleEditarLocal}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.ownerButtonIconContainer}>
+                        <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.primary} />
+                      </View>
+                      <Text style={styles.ownerRowButtonText}>Editar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={styles.ownerRowButton} 
+                      onPress={handleCrearEvento}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.ownerButtonIconContainer}>
+                        <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={20} color={colors.primary} />
+                      </View>
+                      <Text style={styles.ownerRowButtonText}>Evento</Text>
+                    </TouchableOpacity>
+
+                    {hasAnalyticsPermission && (
+                      <TouchableOpacity 
+                        style={styles.ownerRowButton} 
+                        onPress={handleVerAnalisis}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.ownerButtonIconContainer}>
+                          <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={20} color={colors.primary} />
+                        </View>
+                        <Text style={styles.ownerRowButtonText}>Análisis</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.visitorButtonsRow}>
+                    <TouchableOpacity 
+                      style={[styles.visitorRowButton, isFollowing && styles.visitorRowButtonFollowing]} 
+                      onPress={handleFollow}
+                      activeOpacity={0.7}
+                      disabled={isTogglingFollow.current}
+                    >
+                      <IconSymbol 
+                        ios_icon_name={isFollowing ? 'person.fill.checkmark' : 'person.badge.plus'} 
+                        android_material_icon_name={isFollowing ? 'person_add_disabled' : 'person_add'}
+                        size={18} 
+                        color={isFollowing ? colors.headerText : colors.primary} 
+                      />
+                      <Text style={[styles.visitorRowButtonText, isFollowing && styles.visitorRowButtonTextFollowing]}>
+                        {isFollowing ? 'Siguiendo' : 'Seguir'}
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    {local.telefono && (
+                      <TouchableOpacity 
+                        style={styles.visitorRowButton} 
+                        onPress={handleLlamar}
+                        activeOpacity={0.7}
+                      >
+                        <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={18} color={colors.primary} />
+                        <Text style={styles.visitorRowButtonText}>Llamar</Text>
+                      </TouchableOpacity>
+                    )}
+                    
+                    <TouchableOpacity 
+                      style={styles.visitorRowButton} 
+                      onPress={handleEnviarMensaje}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={18} color={colors.primary} />
+                      <Text style={styles.visitorRowButtonText}>Mensaje</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </Animated.View>
+          </LinearGradient>
+
+          <View style={styles.tabsContainer}>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
+              onPress={() => setActiveTab('posts')}
+            >
+              <IconSymbol 
+                ios_icon_name="square.grid.3x3" 
+                android_material_icon_name="grid_on"
+                size={24} 
+                color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'eventos' && styles.tabActive]}
+              onPress={() => setActiveTab('eventos')}
+            >
+              <IconSymbol 
+                ios_icon_name="calendar" 
+                android_material_icon_name="event"
+                size={24} 
+                color={activeTab === 'eventos' ? colors.primary : colors.textSecondary} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
+              onPress={() => setActiveTab('empleo')}
+            >
+              <IconSymbol 
+                ios_icon_name="briefcase.fill" 
+                android_material_icon_name="work"
+                size={24} 
+                color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'info' && styles.tabActive]}
+              onPress={() => setActiveTab('info')}
+            >
+              <IconSymbol 
+                ios_icon_name="info.circle" 
+                android_material_icon_name="info"
+                size={24} 
+                color={activeTab === 'info' ? colors.primary : colors.textSecondary} 
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.content}>
+            {activeTab === 'posts' && (
+              <View style={styles.postsGrid}>
+                {posts.length > 0 ? (
+                  posts.map((post) => (
+                    <TouchableOpacity
+                      key={post.id}
+                      style={styles.gridItem}
+                      onPress={() => handleVerPost(post.id)}
+                      activeOpacity={0.8}
+                    >
+                      {post.imagen ? (
+                        <Image source={{ uri: post.imagen }} style={styles.gridImage} />
+                      ) : (
+                        <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
+                          <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <View style={styles.emptyState}>
+                    <IconSymbol ios_icon_name="photo.on.rectangle" android_material_icon_name="photo_library" size={48} color={colors.textSecondary} />
+                    <Text style={styles.emptyText}>
+                      {isOwner ? 'Crea tu primera publicación' : 'No hay publicaciones'}
+                    </Text>
+                    {isOwner && (
+                      <TouchableOpacity style={styles.emptyButton} onPress={handleCrearPost}>
+                        <Text style={styles.emptyButtonText}>Crear Publicación</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {activeTab === 'eventos' && (
+              <View style={styles.eventsContainer}>
+                {events.length > 0 ? (
+                  events.map((event) => (
+                    <TouchableOpacity
+                      key={event.id}
+                      style={styles.eventCard}
+                      onPress={() => handleVerEvento(event.id)}
+                      activeOpacity={0.8}
+                    >
+                      {event.imagen_url && (
+                        <Image source={{ uri: event.imagen_url }} style={styles.eventImage} />
+                      )}
+                      <View style={styles.eventContent}>
+                        <Text style={styles.eventTitle}>{event.titulo}</Text>
+                        <View style={styles.eventMeta}>
+                          <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={14} color={colors.textSecondary} />
+                          <Text style={styles.eventMetaText}>
+                            {new Date(event.fecha).toLocaleDateString('es-ES', { 
+                              day: 'numeric', 
+                              month: 'short' 
+                            })}
+                          </Text>
+                          <IconSymbol ios_icon_name="clock" android_material_icon_name="schedule" size={14} color={colors.textSecondary} />
+                          <Text style={styles.eventMetaText}>{event.hora}</Text>
+                        </View>
+                        {event.precio !== null && event.precio !== undefined && (
+                          <Text style={styles.eventPrice}>
+                            {event.precio === 0 ? 'Gratis' : `${event.precio}€`}
+                          </Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <View style={styles.emptyState}>
+                    <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={48} color={colors.textSecondary} />
+                    <Text style={styles.emptyText}>
+                      {isOwner ? 'Crea tu primer evento' : 'No hay eventos próximos'}
+                    </Text>
+                    {isOwner && (
+                      <TouchableOpacity style={styles.emptyButton} onPress={handleCrearEvento}>
+                        <Text style={styles.emptyButtonText}>Crear Evento</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {activeTab === 'empleo' && (
+              <View style={styles.empleoContainer}>
+                <View style={styles.empleoHeader}>
+                  <Text style={styles.empleoHeaderTitle}>
+                    {isOwner ? 'Mis Ofertas de Empleo' : 'Ofertas de Empleo'}
+                  </Text>
+                  <Text style={styles.empleoHeaderSubtitle}>
+                    {isOwner 
+                      ? 'Gestiona las ofertas de trabajo de tu local' 
+                      : 'Ofertas de trabajo publicadas por este local'}
+                  </Text>
+                </View>
+
+                {loadingEmpleo ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={styles.loadingText}>Cargando...</Text>
+                  </View>
+                ) : (
+                  <View style={styles.empleoList}>
+                    {ofertasTrabajo.length > 0 ? (
+                      ofertasTrabajo.map((oferta) => (
+                        <OfertaTrabajoCard
+                          key={oferta.id}
+                          empleo={{
+                            id: oferta.id,
+                            localId: oferta.local_id || '',
+                            titulo: oferta.titulo,
+                            descripcion: oferta.descripcion,
+                            tipo: oferta.tipo,
+                            salario: oferta.salario,
+                            localNombre: oferta.locales?.nombre || local.nombre,
+                            fechaPublicacion: oferta.created_at,
+                            provincia: oferta.provincia || local.provincia || '',
+                          }}
+                          onPress={() => handleVerOferta(oferta.id)}
+                        />
+                      ))
+                    ) : (
+                      <View style={styles.emptyState}>
+                        <IconSymbol ios_icon_name="briefcase" android_material_icon_name="work" size={48} color={colors.textSecondary} />
+                        <Text style={styles.emptyText}>
+                          {isOwner ? 'Publica tu primera oferta de empleo' : 'No hay ofertas disponibles'}
+                        </Text>
+                        {isOwner && (
+                          <TouchableOpacity style={styles.emptyButton} onPress={handleCrearOferta}>
+                            <Text style={styles.emptyButtonText}>Crear Oferta</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {activeTab === 'info' && (
+              <View style={styles.infoContainer}>
+                {local.descripcion_google && (
+                  <View style={styles.infoSection}>
+                    <Text style={styles.infoSectionTitle}>Descripción</Text>
+                    <Text style={styles.infoText}>{local.descripcion_google}</Text>
+                  </View>
+                )}
+
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoSectionTitle}>Contacto</Text>
+                  {local.telefono && (
+                    <TouchableOpacity style={styles.infoRow} onPress={handleLlamar}>
+                      <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color={colors.primary} />
+                      <Text style={styles.infoRowText}>{local.telefono}</Text>
+                    </TouchableOpacity>
+                  )}
+                  {local.email && (
+                    <View style={styles.infoRow}>
+                      <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={20} color={colors.primary} />
+                      <Text style={styles.infoRowText}>{local.email}</Text>
+                    </View>
+                  )}
+                  {local.website && (
+                    <TouchableOpacity style={styles.infoRow} onPress={handleWeb}>
+                      <IconSymbol ios_icon_name="globe" android_material_icon_name="language" size={20} color={colors.primary} />
+                      <Text style={styles.infoRowText}>{local.website}</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
+                  <View style={styles.infoSection}>
+                    <Text style={styles.infoSectionTitle}>Horarios</Text>
+                    {Object.entries(local.horarios_completos).map(([dia, horas]: [string, any]) => (
+                      <View key={dia} style={styles.horarioRow}>
+                        <Text style={styles.horarioDia}>{dia.charAt(0).toUpperCase() + dia.slice(1)}</Text>
+                        <Text style={styles.horarioHoras}>
+                          {Array.isArray(horas) ? horas.join(', ') : horas}
+                        </Text>
                       </View>
                     ))}
                   </View>
                 )}
-              </View>
-            </View>
 
-            {local.direccion && (
-              <View style={styles.addressContainer}>
-                <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={16} color={colors.headerText} />
-                <Text style={styles.addressText}>{local.direccion}</Text>
-              </View>
-            )}
-
-            <View style={styles.statusBadge}>
-              <View style={[styles.statusDot, { backgroundColor: estado.estaAbierto ? '#22C55E' : '#EF4444' }]} />
-              <Text style={styles.statusText}>{estado.badge}</Text>
-            </View>
-
-            {activeEvent && (
-              <View style={{ marginBottom: 16 }}>
-                <EventBanner evento={activeEvent} compact={true} />
-              </View>
-            )}
-
-            {/* ✅ CRITICAL FIX v47.0: Only show social metrics if social profile is active */}
-            <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{posts.length}</Text>
-                <Text style={styles.statLabel}>Publicaciones</Text>
-              </View>
-              {hasSocialProfile ? (
-                <React.Fragment>
-                  <View style={styles.statDivider} />
-                  <TouchableOpacity style={styles.statItem} onPress={handleSeguidores}>
-                    <Text style={styles.statNumber}>{seguidoresCount}</Text>
-                    <Text style={styles.statLabel}>Seguidores</Text>
-                  </TouchableOpacity>
-                  <View style={styles.statDivider} />
-                  <TouchableOpacity style={styles.statItem} onPress={handleSeguidos}>
-                    <Text style={styles.statNumber}>{seguidosCount}</Text>
-                    <Text style={styles.statLabel}>Siguiendo</Text>
-                  </TouchableOpacity>
-                </React.Fragment>
-              ) : (
-                <React.Fragment>
-                  <View style={styles.statDivider} />
-                  <View style={styles.statItem}>
-                    <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={20} color="rgba(255, 255, 255, 0.6)" />
-                    <Text style={styles.statLabelLocked}>Perfil Social</Text>
-                    <Text style={styles.statLabelLockedSub}>No Activo</Text>
+                {local.servicios_disponibles && Object.keys(local.servicios_disponibles).length > 0 && (
+                  <View style={styles.infoSection}>
+                    <Text style={styles.infoSectionTitle}>Servicios</Text>
+                    <View style={styles.servicesGrid}>
+                      {Object.entries(local.servicios_disponibles)
+                        .filter(([_, value]) => value === true)
+                        .map(([key]) => (
+                          <View key={key} style={styles.serviceBadge}>
+                            <Text style={styles.serviceText}>
+                              {key.replace(/_/g, ' ').charAt(0).toUpperCase() + key.replace(/_/g, ' ').slice(1)}
+                            </Text>
+                          </View>
+                        ))}
+                    </View>
                   </View>
-                </React.Fragment>
-              )}
-            </View>
+                )}
 
-            <View style={styles.actionsContainer}>
-              {isOwner ? (
-                <View style={styles.ownerButtonsRow}>
-                  <TouchableOpacity 
-                    style={styles.ownerRowButton} 
-                    onPress={handleEditarLocal}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.ownerButtonIconContainer}>
-                      <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.primary} />
-                    </View>
-                    <Text style={styles.ownerRowButtonText}>Editar</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    style={styles.ownerRowButton} 
-                    onPress={handleCrearEvento}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.ownerButtonIconContainer}>
-                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={20} color={colors.primary} />
-                    </View>
-                    <Text style={styles.ownerRowButtonText}>Evento</Text>
-                  </TouchableOpacity>
-
-                  {hasAnalyticsPermission && (
-                    <TouchableOpacity 
-                      style={styles.ownerRowButton} 
-                      onPress={handleVerAnalisis}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.ownerButtonIconContainer}>
-                        <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={20} color={colors.primary} />
-                      </View>
-                      <Text style={styles.ownerRowButtonText}>Análisis</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              ) : (
-                <View style={styles.visitorButtonsRow}>
-                  <TouchableOpacity 
-                    style={[styles.visitorRowButton, isFollowing && styles.visitorRowButtonFollowing]} 
-                    onPress={handleFollow}
-                    activeOpacity={0.7}
-                    disabled={isTogglingFollow.current}
-                  >
-                    <IconSymbol 
-                      ios_icon_name={isFollowing ? 'person.fill.checkmark' : 'person.badge.plus'} 
-                      android_material_icon_name={isFollowing ? 'person_add_disabled' : 'person_add'}
-                      size={18} 
-                      color={isFollowing ? colors.headerText : colors.primary} 
-                    />
-                    <Text style={[styles.visitorRowButtonText, isFollowing && styles.visitorRowButtonTextFollowing]}>
-                      {isFollowing ? 'Siguiendo' : 'Seguir'}
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  {local.telefono && (
-                    <TouchableOpacity 
-                      style={styles.visitorRowButton} 
-                      onPress={handleLlamar}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={18} color={colors.primary} />
-                      <Text style={styles.visitorRowButtonText}>Llamar</Text>
-                    </TouchableOpacity>
-                  )}
-                  
-                  <TouchableOpacity 
-                    style={styles.visitorRowButton} 
-                    onPress={handleEnviarMensaje}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={18} color={colors.primary} />
-                    <Text style={styles.visitorRowButtonText}>Mensaje</Text>
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoSectionTitle}>Ubicación</Text>
+                  <TouchableOpacity style={styles.directionsButton} onPress={handleComoLlegar}>
+                    <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color={colors.white} />
+                    <Text style={styles.directionsButtonText}>Cómo llegar</Text>
                   </TouchableOpacity>
                 </View>
-              )}
-            </View>
-          </Animated.View>
-        </LinearGradient>
 
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
-            onPress={() => setActiveTab('posts')}
-          >
-            <IconSymbol 
-              ios_icon_name="square.grid.3x3" 
-              android_material_icon_name="grid_on"
-              size={24} 
-              color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'eventos' && styles.tabActive]}
-            onPress={() => setActiveTab('eventos')}
-          >
-            <IconSymbol 
-              ios_icon_name="calendar" 
-              android_material_icon_name="event"
-              size={24} 
-              color={activeTab === 'eventos' ? colors.primary : colors.textSecondary} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
-            onPress={() => setActiveTab('empleo')}
-          >
-            <IconSymbol 
-              ios_icon_name="briefcase.fill" 
-              android_material_icon_name="work"
-              size={24} 
-              color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'info' && styles.tabActive]}
-            onPress={() => setActiveTab('info')}
-          >
-            <IconSymbol 
-              ios_icon_name="info.circle" 
-              android_material_icon_name="info"
-              size={24} 
-              color={activeTab === 'info' ? colors.primary : colors.textSecondary} 
-            />
-          </TouchableOpacity>
-        </View>
+                <View style={styles.infoSection}>
+                  <TouchableOpacity 
+                    style={styles.moreInfoButton} 
+                    onPress={() => router.push(`/detalle/local?id=${localId}`)}
+                  >
+                    <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
+                    <Text style={styles.moreInfoButtonText}>Ver información completa</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        </ScrollView>
 
-        <View style={styles.content}>
-          {activeTab === 'posts' && (
-            <View style={styles.postsGrid}>
-              {posts.length > 0 ? (
-                posts.map((post) => (
+        <Modal
+          visible={showSeguidoresModal}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setShowSeguidoresModal(false)}
+        >
+          <View style={styles.container}>
+            <LinearGradient
+              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+              style={styles.followModalHeader}
+            >
+              <TouchableOpacity onPress={() => setShowSeguidoresModal(false)} activeOpacity={0.7}>
+                <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+              </TouchableOpacity>
+              <Text style={styles.followModalTitle}>Seguidores</Text>
+              <View style={{ width: 24 }} />
+            </LinearGradient>
+            
+            {loadingSeguidores ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : (
+              <FlatList
+                data={seguidores}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
                   <TouchableOpacity
-                    key={post.id}
-                    style={styles.gridItem}
-                    onPress={() => handleVerPost(post.id)}
-                    activeOpacity={0.8}
+                    style={styles.userItem}
+                    onPress={() => handleUserPressInModal(item.id)}
+                    activeOpacity={0.7}
                   >
-                    {post.imagen ? (
-                      <Image source={{ uri: post.imagen }} style={styles.gridImage} />
+                    {item.avatar ? (
+                      <Image source={{ uri: item.avatar }} style={styles.userAvatar} />
                     ) : (
-                      <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
-                        <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
+                      <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
+                        <Text style={styles.avatarText}>
+                          {item.nombre.charAt(0).toUpperCase()}
+                        </Text>
                       </View>
                     )}
+                    <View style={styles.userInfo}>
+                      <Text style={styles.userName}>{item.nombre}</Text>
+                      {item.username && (
+                        <Text style={styles.userUsername}>@{item.username}</Text>
+                      )}
+                      {item.bio && (
+                        <Text style={styles.userBio} numberOfLines={2}>
+                          {item.bio}
+                        </Text>
+                      )}
+                    </View>
                   </TouchableOpacity>
-                ))
-              ) : (
-                <View style={styles.emptyState}>
-                  <IconSymbol ios_icon_name="photo.on.rectangle" android_material_icon_name="photo_library" size={48} color={colors.textSecondary} />
-                  <Text style={styles.emptyText}>
-                    {isOwner ? 'Crea tu primera publicación' : 'No hay publicaciones'}
-                  </Text>
-                  {isOwner && (
-                    <TouchableOpacity style={styles.emptyButton} onPress={handleCrearPost}>
-                      <Text style={styles.emptyButtonText}>Crear Publicación</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
+                )}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={64} color={colors.textSecondary} />
+                    <Text style={styles.emptyText}>No hay seguidores aún</Text>
+                  </View>
+                }
+              />
+            )}
+          </View>
+        </Modal>
 
-          {activeTab === 'eventos' && (
-            <View style={styles.eventsContainer}>
-              {events.length > 0 ? (
-                events.map((event) => (
+        <Modal
+          visible={showSeguidosModal}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setShowSeguidosModal(false)}
+        >
+          <View style={styles.container}>
+            <LinearGradient
+              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+              style={styles.followModalHeader}
+            >
+              <TouchableOpacity onPress={() => setShowSeguidosModal(false)} activeOpacity={0.7}>
+                <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+              </TouchableOpacity>
+              <Text style={styles.followModalTitle}>Siguiendo</Text>
+              <View style={{ width: 24 }} />
+            </LinearGradient>
+            
+            {loadingSeguidos ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : (
+              <FlatList
+                data={seguidos}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
                   <TouchableOpacity
-                    key={event.id}
-                    style={styles.eventCard}
-                    onPress={() => handleVerEvento(event.id)}
-                    activeOpacity={0.8}
+                    style={styles.userItem}
+                    onPress={() => handleUserPressInModal(item.id)}
+                    activeOpacity={0.7}
                   >
-                    {event.imagen_url && (
-                      <Image source={{ uri: event.imagen_url }} style={styles.eventImage} />
-                    )}
-                    <View style={styles.eventContent}>
-                      <Text style={styles.eventTitle}>{event.titulo}</Text>
-                      <View style={styles.eventMeta}>
-                        <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={14} color={colors.textSecondary} />
-                        <Text style={styles.eventMetaText}>
-                          {new Date(event.fecha).toLocaleDateString('es-ES', { 
-                            day: 'numeric', 
-                            month: 'short' 
-                          })}
+                    {item.avatar ? (
+                      <Image source={{ uri: item.avatar }} style={styles.userAvatar} />
+                    ) : (
+                      <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
+                        <Text style={styles.avatarText}>
+                          {item.nombre.charAt(0).toUpperCase()}
                         </Text>
-                        <IconSymbol ios_icon_name="clock" android_material_icon_name="schedule" size={14} color={colors.textSecondary} />
-                        <Text style={styles.eventMetaText}>{event.hora}</Text>
                       </View>
-                      {event.precio !== null && event.precio !== undefined && (
-                        <Text style={styles.eventPrice}>
-                          {event.precio === 0 ? 'Gratis' : `${event.precio}€`}
+                    )}
+                    <View style={styles.userInfo}>
+                      <Text style={styles.userName}>{item.nombre}</Text>
+                      {item.username && (
+                        <Text style={styles.userUsername}>@{item.username}</Text>
+                      )}
+                      {item.bio && (
+                        <Text style={styles.userBio} numberOfLines={2}>
+                          {item.bio}
                         </Text>
                       )}
                     </View>
                   </TouchableOpacity>
-                ))
-              ) : (
-                <View style={styles.emptyState}>
-                  <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={48} color={colors.textSecondary} />
-                  <Text style={styles.emptyText}>
-                    {isOwner ? 'Crea tu primer evento' : 'No hay eventos próximos'}
-                  </Text>
-                  {isOwner && (
-                    <TouchableOpacity style={styles.emptyButton} onPress={handleCrearEvento}>
-                      <Text style={styles.emptyButtonText}>Crear Evento</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
-
-          {activeTab === 'empleo' && (
-            <View style={styles.empleoContainer}>
-              <View style={styles.empleoHeader}>
-                <Text style={styles.empleoHeaderTitle}>
-                  {isOwner ? 'Mis Ofertas de Empleo' : 'Ofertas de Empleo'}
-                </Text>
-                <Text style={styles.empleoHeaderSubtitle}>
-                  {isOwner 
-                    ? 'Gestiona las ofertas de trabajo de tu local' 
-                    : 'Ofertas de trabajo publicadas por este local'}
-                </Text>
-              </View>
-
-              {loadingEmpleo ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={colors.primary} />
-                  <Text style={styles.loadingText}>Cargando...</Text>
-                </View>
-              ) : (
-                <View style={styles.empleoList}>
-                  {ofertasTrabajo.length > 0 ? (
-                    ofertasTrabajo.map((oferta) => (
-                      <OfertaTrabajoCard
-                        key={oferta.id}
-                        empleo={{
-                          id: oferta.id,
-                          localId: oferta.local_id || '',
-                          titulo: oferta.titulo,
-                          descripcion: oferta.descripcion,
-                          tipo: oferta.tipo,
-                          salario: oferta.salario,
-                          localNombre: oferta.locales?.nombre || local.nombre,
-                          fechaPublicacion: oferta.created_at,
-                          provincia: oferta.provincia || local.provincia || '',
-                        }}
-                        onPress={() => handleVerOferta(oferta.id)}
-                      />
-                    ))
-                  ) : (
-                    <View style={styles.emptyState}>
-                      <IconSymbol ios_icon_name="briefcase" android_material_icon_name="work" size={48} color={colors.textSecondary} />
-                      <Text style={styles.emptyText}>
-                        {isOwner ? 'Publica tu primera oferta de empleo' : 'No hay ofertas disponibles'}
-                      </Text>
-                      {isOwner && (
-                        <TouchableOpacity style={styles.emptyButton} onPress={handleCrearOferta}>
-                          <Text style={styles.emptyButtonText}>Crear Oferta</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
-
-          {activeTab === 'info' && (
-            <View style={styles.infoContainer}>
-              {local.descripcion_google && (
-                <View style={styles.infoSection}>
-                  <Text style={styles.infoSectionTitle}>Descripción</Text>
-                  <Text style={styles.infoText}>{local.descripcion_google}</Text>
-                </View>
-              )}
-
-              <View style={styles.infoSection}>
-                <Text style={styles.infoSectionTitle}>Contacto</Text>
-                {local.telefono && (
-                  <TouchableOpacity style={styles.infoRow} onPress={handleLlamar}>
-                    <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color={colors.primary} />
-                    <Text style={styles.infoRowText}>{local.telefono}</Text>
-                  </TouchableOpacity>
                 )}
-                {local.email && (
-                  <View style={styles.infoRow}>
-                    <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={20} color={colors.primary} />
-                    <Text style={styles.infoRowText}>{local.email}</Text>
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={64} color={colors.textSecondary} />
+                    <Text style={styles.emptyText}>No sigue a nadie aún</Text>
                   </View>
-                )}
-                {local.website && (
-                  <TouchableOpacity style={styles.infoRow} onPress={handleWeb}>
-                    <IconSymbol ios_icon_name="globe" android_material_icon_name="language" size={20} color={colors.primary} />
-                    <Text style={styles.infoRowText}>{local.website}</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+                }
+              />
+            )}
+          </View>
+        </Modal>
 
-              {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
-                <View style={styles.infoSection}>
-                  <Text style={styles.infoSectionTitle}>Horarios</Text>
-                  {Object.entries(local.horarios_completos).map(([dia, horas]: [string, any]) => (
-                    <View key={dia} style={styles.horarioRow}>
-                      <Text style={styles.horarioDia}>{dia.charAt(0).toUpperCase() + dia.slice(1)}</Text>
-                      <Text style={styles.horarioHoras}>
-                        {Array.isArray(horas) ? horas.join(', ') : horas}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
+        {showMomentoViewer && (
+          <MomentoViewer
+            visible={showMomentoViewer}
+            onClose={() => setShowMomentoViewer(false)}
+            authorId={localId}
+            authorType="local"
+          />
+        )}
 
-              {local.servicios_disponibles && Object.keys(local.servicios_disponibles).length > 0 && (
-                <View style={styles.infoSection}>
-                  <Text style={styles.infoSectionTitle}>Servicios</Text>
-                  <View style={styles.servicesGrid}>
-                    {Object.entries(local.servicios_disponibles)
-                      .filter(([_, value]) => value === true)
-                      .map(([key]) => (
-                        <View key={key} style={styles.serviceBadge}>
-                          <Text style={styles.serviceText}>
-                            {key.replace(/_/g, ' ').charAt(0).toUpperCase() + key.replace(/_/g, ' ').slice(1)}
-                          </Text>
-                        </View>
-                      ))}
-                  </View>
-                </View>
-              )}
+        {showMomentoUpload && isOwner && (
+          <MomentoUpload
+            visible={showMomentoUpload}
+            onClose={() => setShowMomentoUpload(false)}
+            onSuccess={() => {
+              console.log('[LocalPerfil v48.0] Momento uploaded successfully');
+            }}
+          />
+        )}
 
-              <View style={styles.infoSection}>
-                <Text style={styles.infoSectionTitle}>Ubicación</Text>
-                <TouchableOpacity style={styles.directionsButton} onPress={handleComoLlegar}>
-                  <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color={colors.white} />
-                  <Text style={styles.directionsButtonText}>Cómo llegar</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.infoSection}>
-                <TouchableOpacity 
-                  style={styles.moreInfoButton} 
-                  onPress={() => router.push(`/detalle/local?id=${localId}`)}
-                >
-                  <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
-                  <Text style={styles.moreInfoButtonText}>Ver información completa</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-
-      <Modal
-        visible={showSeguidoresModal}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setShowSeguidoresModal(false)}
-      >
-        <View style={styles.container}>
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            style={styles.followModalHeader}
-          >
-            <TouchableOpacity onPress={() => setShowSeguidoresModal(false)} activeOpacity={0.7}>
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-            <Text style={styles.followModalTitle}>Seguidores</Text>
-            <View style={{ width: 24 }} />
-          </LinearGradient>
-          
-          {loadingSeguidores ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          ) : (
-            <FlatList
-              data={seguidores}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.userItem}
-                  onPress={() => handleUserPressInModal(item.id)}
-                  activeOpacity={0.7}
-                >
-                  {item.avatar ? (
-                    <Image source={{ uri: item.avatar }} style={styles.userAvatar} />
-                  ) : (
-                    <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
-                      <Text style={styles.avatarText}>
-                        {item.nombre.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.userInfo}>
-                    <Text style={styles.userName}>{item.nombre}</Text>
-                    {item.username && (
-                      <Text style={styles.userUsername}>@{item.username}</Text>
-                    )}
-                    {item.bio && (
-                      <Text style={styles.userBio} numberOfLines={2}>
-                        {item.bio}
-                      </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              )}
-              ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={64} color={colors.textSecondary} />
-                  <Text style={styles.emptyText}>No hay seguidores aún</Text>
-                </View>
-              }
-            />
-          )}
-        </View>
-      </Modal>
-
-      <Modal
-        visible={showSeguidosModal}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setShowSeguidosModal(false)}
-      >
-        <View style={styles.container}>
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            style={styles.followModalHeader}
-          >
-            <TouchableOpacity onPress={() => setShowSeguidosModal(false)} activeOpacity={0.7}>
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-            <Text style={styles.followModalTitle}>Siguiendo</Text>
-            <View style={{ width: 24 }} />
-          </LinearGradient>
-          
-          {loadingSeguidos ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          ) : (
-            <FlatList
-              data={seguidos}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.userItem}
-                  onPress={() => handleUserPressInModal(item.id)}
-                  activeOpacity={0.7}
-                >
-                  {item.avatar ? (
-                    <Image source={{ uri: item.avatar }} style={styles.userAvatar} />
-                  ) : (
-                    <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
-                      <Text style={styles.avatarText}>
-                        {item.nombre.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.userInfo}>
-                    <Text style={styles.userName}>{item.nombre}</Text>
-                    {item.username && (
-                      <Text style={styles.userUsername}>@{item.username}</Text>
-                    )}
-                    {item.bio && (
-                      <Text style={styles.userBio} numberOfLines={2}>
-                        {item.bio}
-                      </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              )}
-              ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={64} color={colors.textSecondary} />
-                  <Text style={styles.emptyText}>No sigue a nadie aún</Text>
-                </View>
-              }
-            />
-          )}
-        </View>
-      </Modal>
-
-      {showMomentoViewer && (
-        <MomentoViewer
-          visible={showMomentoViewer}
-          onClose={() => setShowMomentoViewer(false)}
-          authorId={localId}
-          authorType="local"
+        <ProfileSwitcher
+          visible={showProfileSwitcher}
+          onClose={() => setShowProfileSwitcher(false)}
         />
-      )}
 
-      {showMomentoUpload && isOwner && (
-        <MomentoUpload
-          visible={showMomentoUpload}
-          onClose={() => setShowMomentoUpload(false)}
-          onSuccess={() => {
-            console.log('[LocalPerfil v47.0] Momento uploaded successfully');
-          }}
+        <FloatingTabBar 
+          tabs={tabs} 
+          containerWidth={width}
+          key={`${user?.rol_app || 'cliente'}-${currentMode}-${isOwner}-${activeProfileType}-${activeProfileId}-${localId}-v${SCREEN_VERSION}`}
         />
-      )}
-
-      <ProfileSwitcher
-        visible={showProfileSwitcher}
-        onClose={() => setShowProfileSwitcher(false)}
-      />
-
-      <FloatingTabBar 
-        tabs={tabs} 
-        containerWidth={width}
-        key={`${user?.rol_app || 'cliente'}-${currentMode}-${isOwner}-${activeProfileType}-${activeProfileId}-${localId}-v${SCREEN_VERSION}`}
-      />
-    </View>
+      </View>
+    </PermissionGuard>
   );
 }
 

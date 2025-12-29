@@ -17,23 +17,25 @@ interface FoodPlateAvatarProps {
   placeholderIcon?: string;
   placeholderText?: string;
   style?: ViewStyle;
-  nombre?: string; // ✅ For fallback display
+  nombre?: string;
 }
 
 /**
- * ✅ FOOD PLATE AVATAR v38.1 - COMPLETE ANDROID-iOS PARITY
+ * ✅ FOOD PLATE AVATAR v48.0 - NO WHITE BORDER + COMPLETE ANDROID-iOS PARITY
  * 
- * CRITICAL FIX v38.1:
+ * CRITICAL FIX v48.0:
+ * - ✅ REMOVED white border completely
  * - ✅ Filter out file:// URLs that cause ENOENT errors on Android
  * - ✅ Removed overly strict URL validation
  * - ✅ Now accepts ANY non-empty string as a valid image URL (except file://)
  * - ✅ Relies on Image component's onError to handle invalid URLs
  * - ✅ Shows default avatar or letter fallback on error
  * - ✅ Works with Supabase storage URLs, AWS URLs, and any other image URLs
- * - ✅ ANDROID FIX: Added cache="force-cache" for better image loading
+ * - ✅ ANDROID FIX: Added cache="reload" for better image loading
  * - ✅ ANDROID FIX: Added proper error handling with retry mechanism
  * - ✅ ANDROID FIX: Consistent image rendering across platforms
  * - ✅ ANDROID FIX: Proper avatar sizing and positioning
+ * - ✅ Image fills entire circular area without gaps
  */
 export default function FoodPlateAvatar({
   imageUrl,
@@ -50,17 +52,16 @@ export default function FoodPlateAvatar({
   const [retryCount, setRetryCount] = useState(0);
   
   const plateSize = size;
-  const imageSize = size * 0.75; // Image is 75% of plate size
-  const rimWidth = size * 0.08; // Rim is 8% of plate size
-  const addButtonSize = size * 0.34; // Add button is 34% of plate size
+  const imageSize = size;
+  const addButtonSize = size * 0.34;
 
-  // ✅ CRITICAL FIX v38.1: Filter out file:// URLs that cause ENOENT errors on Android
+  // ✅ CRITICAL FIX v48.0: Filter out file:// URLs that cause ENOENT errors on Android
   const isValidImageUrl = imageUrl && !imageUrl.startsWith('file://');
   const shouldShowImage = !!(isValidImageUrl && !imageError);
   const shouldShowLetter = !shouldShowImage && (placeholderText || nombre);
   const shouldShowDefaultAvatar = !shouldShowImage && !placeholderText && !nombre;
 
-  console.log('[FoodPlateAvatar v38.1] 🖼️ Image decision:', {
+  console.log('[FoodPlateAvatar v48.0] 🖼️ Image decision:', {
     imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'none',
     isValidImageUrl,
     imageError,
@@ -72,11 +73,11 @@ export default function FoodPlateAvatar({
 
   // ✅ ANDROID FIX: Retry mechanism for failed images
   const handleImageError = (error: any) => {
-    console.log('[FoodPlateAvatar v38.1] ⚠️ Image failed to load:', imageUrl?.substring(0, 50), error.nativeEvent?.error);
+    console.log('[FoodPlateAvatar v48.0] ⚠️ Image failed to load:', imageUrl?.substring(0, 50), error.nativeEvent?.error);
     
     // Retry once on Android
     if (Platform.OS === 'android' && retryCount < 1) {
-      console.log('[FoodPlateAvatar v38.1] 🔄 Retrying image load...');
+      console.log('[FoodPlateAvatar v48.0] 🔄 Retrying image load...');
       setRetryCount(retryCount + 1);
       setImageError(false);
       return;
@@ -86,7 +87,7 @@ export default function FoodPlateAvatar({
   };
 
   const handleImageLoad = () => {
-    console.log('[FoodPlateAvatar v38.1] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
+    console.log('[FoodPlateAvatar v48.0] ✅ Image loaded successfully:', imageUrl?.substring(0, 50));
     setImageError(false);
     setRetryCount(0);
   };
@@ -112,95 +113,70 @@ export default function FoodPlateAvatar({
         />
       )}
 
-      {/* Plate Base (outer circle) */}
+      {/* ✅ CRITICAL FIX v48.0: Removed white border, image fills entire circle */}
       <View
         style={[
-          styles.plateBase,
+          styles.avatarCircle,
           {
             width: plateSize,
             height: plateSize,
             borderRadius: plateSize / 2,
-            borderWidth: rimWidth,
           },
         ]}
       >
-        {/* Plate Rim Shadow */}
-        <View
-          style={[
-            styles.plateRimShadow,
-            {
-              width: plateSize - rimWidth * 2,
-              height: plateSize - rimWidth * 2,
-              borderRadius: (plateSize - rimWidth * 2) / 2,
-            },
-          ]}
-        />
-
-        {/* Food/Image Container (inner circle) */}
-        <View
-          style={[
-            styles.foodContainer,
-            {
-              width: imageSize,
-              height: imageSize,
-              borderRadius: imageSize / 2,
-            },
-          ]}
-        >
-          {shouldShowImage ? (
-            <Image
-              key={`${imageUrl}-${retryCount}`}
-              source={{ uri: imageUrl }}
-              style={[
-                styles.foodImage,
-                {
-                  width: imageSize,
-                  height: imageSize,
-                  borderRadius: imageSize / 2,
-                },
-              ]}
-              resizeMode="cover"
-              onError={handleImageError}
-              onLoad={handleImageLoad}
-              // ✅ ANDROID FIX: Force cache for better loading
-              {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
-            />
-          ) : shouldShowLetter ? (
-            <View
-              style={[
-                styles.foodPlaceholder,
-                {
-                  width: imageSize,
-                  height: imageSize,
-                  borderRadius: imageSize / 2,
-                },
-              ]}
-            >
-              <View style={styles.placeholderTextContainer}>
-                <View style={styles.placeholderTextBackground}>
-                  <Text style={styles.placeholderTextInner}>
-                    {(placeholderText || nombre || 'U').charAt(0).toUpperCase()}
-                  </Text>
-                </View>
+        {shouldShowImage ? (
+          <Image
+            key={`${imageUrl}-${retryCount}`}
+            source={{ uri: imageUrl }}
+            style={[
+              styles.avatarImage,
+              {
+                width: plateSize,
+                height: plateSize,
+                borderRadius: plateSize / 2,
+              },
+            ]}
+            resizeMode="cover"
+            onError={handleImageError}
+            onLoad={handleImageLoad}
+            // ✅ ANDROID FIX: Use reload cache for better loading
+            {...(Platform.OS === 'android' && { cache: 'reload' as any })}
+          />
+        ) : shouldShowLetter ? (
+          <View
+            style={[
+              styles.avatarPlaceholder,
+              {
+                width: plateSize,
+                height: plateSize,
+                borderRadius: plateSize / 2,
+              },
+            ]}
+          >
+            <View style={styles.placeholderTextContainer}>
+              <View style={styles.placeholderTextBackground}>
+                <Text style={styles.placeholderTextInner}>
+                  {(placeholderText || nombre || 'U').charAt(0).toUpperCase()}
+                </Text>
               </View>
             </View>
-          ) : (
-            <Image
-              source={{ uri: DEFAULT_AVATAR_URL }}
-              style={[
-                styles.foodImage,
-                {
-                  width: imageSize,
-                  height: imageSize,
-                  borderRadius: imageSize / 2,
-                },
-              ]}
-              resizeMode="cover"
-              // ✅ ANDROID FIX: Force cache for better loading
-              {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
-            />
-          )}
-        </View>
+          </View>
+        ) : (
+          <Image
+            source={{ uri: DEFAULT_AVATAR_URL }}
+            style={[
+              styles.avatarImage,
+              {
+                width: plateSize,
+                height: plateSize,
+                borderRadius: plateSize / 2,
+              },
+            ]}
+            resizeMode="cover"
+            // ✅ ANDROID FIX: Use reload cache for better loading
+            {...(Platform.OS === 'android' && { cache: 'reload' as any })}
+          />
+        )}
       </View>
 
       {/* Add Button (if showAddButton) */}
@@ -248,40 +224,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     zIndex: 0,
   },
-  plateBase: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E8E8E8',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-    // Plate shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  plateRimShadow: {
-    position: 'absolute',
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.08)',
-  },
-  foodContainer: {
+  avatarCircle: {
     overflow: 'hidden',
-    backgroundColor: '#F5F5F5',
-    // Food shadow (inner)
+    backgroundColor: colors.cardBackground,
+    zIndex: 1,
+    // Avatar shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 4,
   },
-  foodImage: {
-    backgroundColor: '#F5F5F5',
+  avatarImage: {
+    backgroundColor: colors.cardBackground,
   },
-  foodPlaceholder: {
-    backgroundColor: '#F5F5F5',
+  avatarPlaceholder: {
+    backgroundColor: colors.cardBackground,
     justifyContent: 'center',
     alignItems: 'center',
   },

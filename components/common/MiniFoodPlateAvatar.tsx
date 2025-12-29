@@ -22,11 +22,11 @@ interface MiniFoodPlateAvatarProps {
 }
 
 /**
- * ✅ MINI FOOD PLATE AVATAR v47.1 - CACHE-BUSTING FOR IMMEDIATE UPDATES
+ * ✅ MINI FOOD PLATE AVATAR v48.0 - NO WHITE BORDER + SMART CACHE-BUSTING
  * 
- * CRITICAL FIX v47.1:
- * - ✅ Added cache-busting to force image reload on updates
- * - ✅ Changed cache strategy from 'force-cache' to 'reload'
+ * CRITICAL FIX v48.0:
+ * - ✅ REMOVED white border completely
+ * - ✅ Uses avatar_updated_at timestamp for smart cache-busting
  * - ✅ Filters out file:// URLs that cause ENOENT errors
  * - ✅ Accepts any valid HTTP/HTTPS URL
  * - ✅ Shows default icon on error
@@ -34,6 +34,7 @@ interface MiniFoodPlateAvatarProps {
  * - ✅ Works with Supabase storage URLs
  * - ✅ Real-time momento border updates
  * - ✅ Consistent across all profile types
+ * - ✅ Image fills entire circular area
  */
 export default function MiniFoodPlateAvatar({
   imageUrl,
@@ -49,6 +50,66 @@ export default function MiniFoodPlateAvatar({
   const { user } = useEffectiveUser();
   const [hasUnviewedMomento, setHasUnviewedMomento] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [avatarTimestamp, setAvatarTimestamp] = useState<string | null>(null);
+
+  // Load avatar timestamp for cache-busting
+  useEffect(() => {
+    const loadAvatarTimestamp = async () => {
+      if (userId) {
+        const { data } = await supabase
+          .from('usuarios')
+          .select('avatar_updated_at')
+          .eq('id', userId)
+          .single();
+        
+        if (data?.avatar_updated_at) {
+          setAvatarTimestamp(data.avatar_updated_at);
+        }
+      } else if (localId) {
+        const { data } = await supabase
+          .from('locales')
+          .select('avatar_updated_at')
+          .eq('id', localId)
+          .single();
+        
+        if (data?.avatar_updated_at) {
+          setAvatarTimestamp(data.avatar_updated_at);
+        }
+      }
+    };
+
+    loadAvatarTimestamp();
+
+    // Subscribe to avatar updates
+    if (userId || localId) {
+      const table = userId ? 'usuarios' : 'locales';
+      const id = userId || localId;
+      
+      const channel = supabase
+        .channel(`mini-avatar-updates-${table}-${id}-v48`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: table,
+            filter: `id=eq.${id}`,
+          },
+          (payload: any) => {
+            console.log('[MiniFoodPlateAvatar v48.0] 🔄 Avatar updated:', payload.new);
+            if (payload.new.avatar_updated_at) {
+              setAvatarTimestamp(payload.new.avatar_updated_at);
+              setImageError(false);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [userId, localId]);
 
   useEffect(() => {
     if (!showMomentoBorder || !user) return;
@@ -86,7 +147,7 @@ export default function MiniFoodPlateAvatar({
           .in('momento_id', momentoIds);
 
         if (viewsError) {
-          console.error('[MiniFoodPlateAvatar v47.1] Error checking views:', viewsError);
+          console.error('[MiniFoodPlateAvatar v48.0] Error checking views:', viewsError);
           setHasUnviewedMomento(false);
           return;
         }
@@ -96,7 +157,7 @@ export default function MiniFoodPlateAvatar({
         // ✅ CRITICAL: Show border only if there are UNVIEWED momentos
         const hasUnviewed = momentosData.some(m => !viewedMomentoIds.has(m.id));
         
-        console.log('[MiniFoodPlateAvatar v47.1] 🔍 Momento check:', {
+        console.log('[MiniFoodPlateAvatar v48.0] 🔍 Momento check:', {
           userId,
           localId,
           totalMomentos: momentosData.length,
@@ -106,7 +167,7 @@ export default function MiniFoodPlateAvatar({
 
         setHasUnviewedMomento(hasUnviewed);
       } catch (error) {
-        console.error('[MiniFoodPlateAvatar v47.1] Error checking momento:', error);
+        console.error('[MiniFoodPlateAvatar v48.0] Error checking momento:', error);
         setHasUnviewedMomento(false);
       }
     };
@@ -115,7 +176,7 @@ export default function MiniFoodPlateAvatar({
 
     // ✅ CRITICAL: Subscribe to real-time updates for momento views
     const channel = supabase
-      .channel(`momento-views-mini-${userId || localId}-v47`)
+      .channel(`momento-views-mini-${userId || localId}-v48`)
       .on(
         'postgres_changes',
         {
@@ -125,7 +186,7 @@ export default function MiniFoodPlateAvatar({
           filter: `usuario_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[MiniFoodPlateAvatar v47.1] 🔄 Real-time view update:', payload);
+          console.log('[MiniFoodPlateAvatar v48.0] 🔄 Real-time view update:', payload);
           checkUnviewedMomentos();
         }
       )
@@ -137,7 +198,7 @@ export default function MiniFoodPlateAvatar({
           table: 'momentos',
         },
         (payload) => {
-          console.log('[MiniFoodPlateAvatar v47.1] 🔄 Real-time momento update:', payload);
+          console.log('[MiniFoodPlateAvatar v48.0] 🔄 Real-time momento update:', payload);
           checkUnviewedMomentos();
         }
       )
@@ -149,23 +210,23 @@ export default function MiniFoodPlateAvatar({
   }, [userId, localId, showMomentoBorder, user]);
 
   const plateSize = size;
-  const imageSize = size * 0.85;
-  const rimWidth = size * 0.06;
+  const imageSize = size;
   const borderWidth = 3;
 
-  // ✅ CRITICAL FIX v47.1: Filter out file:// URLs and add cache-busting
+  // ✅ CRITICAL FIX v48.0: Filter out file:// URLs and add smart cache-busting
   const safeImageUrl = imageUrl && !imageUrl.startsWith('file://') ? imageUrl : null;
   
-  // ✅ CRITICAL FIX v47.1: Add cache-busting parameter to force image reload
-  const cacheBustedImageUrl = safeImageUrl 
-    ? `${safeImageUrl}${safeImageUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
-    : null;
+  // ✅ CRITICAL FIX v48.0: Use avatar_updated_at timestamp for smart cache-busting
+  const cacheBustedImageUrl = safeImageUrl && avatarTimestamp
+    ? `${safeImageUrl}${safeImageUrl.includes('?') ? '&' : '?'}t=${new Date(avatarTimestamp).getTime()}`
+    : safeImageUrl;
   
   const shouldShowImage = !!(cacheBustedImageUrl && !imageError);
 
-  console.log('[MiniFoodPlateAvatar v47.1] 🖼️ Image decision:', {
+  console.log('[MiniFoodPlateAvatar v48.0] 🖼️ Image decision:', {
     imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'none',
     safeImageUrl: safeImageUrl ? 'valid' : 'none',
+    avatarTimestamp,
     imageError,
     shouldShowImage,
   });
@@ -186,68 +247,56 @@ export default function MiniFoodPlateAvatar({
         >
           <View
             style={[
-              styles.plateBase,
+              styles.avatarCircle,
               {
                 width: plateSize,
                 height: plateSize,
                 borderRadius: plateSize / 2,
-                borderWidth: rimWidth,
               },
             ]}
           >
-            <View
-              style={[
-                styles.foodContainer,
-                {
-                  width: imageSize,
-                  height: imageSize,
-                  borderRadius: imageSize / 2,
-                },
-              ]}
-            >
-              {shouldShowImage ? (
-                <Image
-                  source={{ uri: cacheBustedImageUrl }}
-                  style={[
-                    styles.foodImage,
-                    {
-                      width: imageSize,
-                      height: imageSize,
-                      borderRadius: imageSize / 2,
-                    },
-                  ]}
-                  resizeMode="cover"
-                  onError={(error) => {
-                    console.log('[MiniFoodPlateAvatar v47.1] ⚠️ Image failed to load:', cacheBustedImageUrl, error.nativeEvent.error);
-                    setImageError(true);
-                  }}
-                  onLoad={() => {
-                    console.log('[MiniFoodPlateAvatar v47.1] ✅ Image loaded successfully:', cacheBustedImageUrl?.substring(0, 50));
-                    setImageError(false);
-                  }}
-                  // ✅ CRITICAL FIX v47.1: Change cache strategy to allow updates
-                  {...(Platform.OS === 'android' && { cache: 'reload' as any })}
+            {shouldShowImage ? (
+              <Image
+                source={{ uri: cacheBustedImageUrl }}
+                style={[
+                  styles.avatarImage,
+                  {
+                    width: plateSize,
+                    height: plateSize,
+                    borderRadius: plateSize / 2,
+                  },
+                ]}
+                resizeMode="cover"
+                onError={(error) => {
+                  console.log('[MiniFoodPlateAvatar v48.0] ⚠️ Image failed to load:', cacheBustedImageUrl, error.nativeEvent.error);
+                  setImageError(true);
+                }}
+                onLoad={() => {
+                  console.log('[MiniFoodPlateAvatar v48.0] ✅ Image loaded successfully:', cacheBustedImageUrl?.substring(0, 50));
+                  setImageError(false);
+                }}
+                // ✅ CRITICAL FIX v48.0: Change cache strategy to allow updates
+                {...(Platform.OS === 'android' && { cache: 'reload' as any })}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.avatarPlaceholder,
+                  {
+                    width: plateSize,
+                    height: plateSize,
+                    borderRadius: plateSize / 2,
+                  },
+                ]}
+              >
+                <IconSymbol
+                  ios_icon_name={DEFAULT_AVATAR_ICON}
+                  android_material_icon_name="account_circle"
+                  size={plateSize * 0.9}
+                  color={colors.primary}
                 />
-              ) : (
-                <View
-                  style={[
-                    styles.foodPlaceholder,
-                    {
-                      width: imageSize,
-                      height: imageSize,
-                      borderRadius: imageSize / 2,
-                    },
-                  ]}
-                >
-                  <IconSymbol
-                    ios_icon_name={DEFAULT_AVATAR_ICON}
-                    android_material_icon_name="account_circle"
-                    size={imageSize * 0.9}
-                    color={colors.primary}
-                  />
-                </View>
-              )}
-            </View>
+              </View>
+            )}
           </View>
         </LinearGradient>
       </View>
@@ -258,68 +307,56 @@ export default function MiniFoodPlateAvatar({
     <View style={[styles.container, { width: plateSize, height: plateSize }, style]}>
       <View
         style={[
-          styles.plateBase,
+          styles.avatarCircle,
           {
             width: plateSize,
             height: plateSize,
             borderRadius: plateSize / 2,
-            borderWidth: rimWidth,
           },
         ]}
       >
-        <View
-          style={[
-            styles.foodContainer,
-            {
-              width: imageSize,
-              height: imageSize,
-              borderRadius: imageSize / 2,
-            },
-          ]}
-        >
-          {shouldShowImage ? (
-            <Image
-              source={{ uri: cacheBustedImageUrl }}
-              style={[
-                styles.foodImage,
-                {
-                  width: imageSize,
-                  height: imageSize,
-                  borderRadius: imageSize / 2,
-                },
-              ]}
-              resizeMode="cover"
-              onError={(error) => {
-                console.log('[MiniFoodPlateAvatar v47.1] ⚠️ Image failed to load:', cacheBustedImageUrl, error.nativeEvent.error);
-                setImageError(true);
-              }}
-              onLoad={() => {
-                console.log('[MiniFoodPlateAvatar v47.1] ✅ Image loaded successfully:', cacheBustedImageUrl?.substring(0, 50));
-                setImageError(false);
-              }}
-              // ✅ CRITICAL FIX v47.1: Change cache strategy to allow updates
-              {...(Platform.OS === 'android' && { cache: 'reload' as any })}
+        {shouldShowImage ? (
+          <Image
+            source={{ uri: cacheBustedImageUrl }}
+            style={[
+              styles.avatarImage,
+              {
+                width: plateSize,
+                height: plateSize,
+                borderRadius: plateSize / 2,
+              },
+            ]}
+            resizeMode="cover"
+            onError={(error) => {
+              console.log('[MiniFoodPlateAvatar v48.0] ⚠️ Image failed to load:', cacheBustedImageUrl, error.nativeEvent.error);
+              setImageError(true);
+            }}
+            onLoad={() => {
+              console.log('[MiniFoodPlateAvatar v48.0] ✅ Image loaded successfully:', cacheBustedImageUrl?.substring(0, 50));
+              setImageError(false);
+            }}
+            // ✅ CRITICAL FIX v48.0: Change cache strategy to allow updates
+            {...(Platform.OS === 'android' && { cache: 'reload' as any })}
+          />
+        ) : (
+          <View
+            style={[
+              styles.avatarPlaceholder,
+              {
+                width: plateSize,
+                height: plateSize,
+                borderRadius: plateSize / 2,
+              },
+            ]}
+          >
+            <IconSymbol
+              ios_icon_name={DEFAULT_AVATAR_ICON}
+              android_material_icon_name="account_circle"
+              size={plateSize * 0.9}
+              color={colors.primary}
             />
-          ) : (
-            <View
-              style={[
-                styles.foodPlaceholder,
-                {
-                  width: imageSize,
-                  height: imageSize,
-                  borderRadius: imageSize / 2,
-                },
-              ]}
-            >
-              <IconSymbol
-                ios_icon_name={DEFAULT_AVATAR_ICON}
-                android_material_icon_name="account_circle"
-                size={imageSize * 0.9}
-                color={colors.primary}
-              />
-            </View>
-          )}
-        </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -336,31 +373,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 3,
   },
-  plateBase: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E8E8E8',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  foodContainer: {
+  avatarCircle: {
     overflow: 'hidden',
-    backgroundColor: '#F5F5F5',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  foodImage: {
     backgroundColor: colors.cardBackground,
   },
-  foodPlaceholder: {
+  avatarImage: {
+    backgroundColor: colors.cardBackground,
+  },
+  avatarPlaceholder: {
     backgroundColor: colors.cardBackground,
     justifyContent: 'center',
     alignItems: 'center',

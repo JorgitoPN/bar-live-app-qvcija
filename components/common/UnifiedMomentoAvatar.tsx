@@ -20,13 +20,14 @@ interface UnifiedMomentoAvatarProps {
 }
 
 /**
- * ✅ UNIFIED MOMENTO AVATAR v47.2 - INSTAGRAM STORIES SIZE + NO WHITE BORDER + SMART CACHE-BUSTING
+ * ✅ UNIFIED MOMENTO AVATAR v48.0 - NO WHITE BORDER + SMART CACHE-BUSTING
  * 
- * Changes v47.2:
+ * Changes v48.0:
+ * - ✅ REMOVED white border completely (only green neon border for unviewed momentos)
  * - ✅ Uses avatar_updated_at timestamp for smart cache-busting
- * - ✅ Removed white border (only green neon border for unviewed momentos)
  * - ✅ Larger default size for Instagram stories feel
  * - ✅ Real-time avatar updates across all components
+ * - ✅ Image fills entire circular area without gaps
  * 
  * This component ensures the same avatar design and functionality across:
  * - User profile page
@@ -62,7 +63,7 @@ export default function UnifiedMomentoAvatar({
 
   const BORDER_WIDTH = 4;
   const avatarSize = size;
-  const innerSize = size - BORDER_WIDTH * 2;
+  const innerSize = size;
   const addButtonSize = size * 0.32;
 
   // Load avatar timestamp for cache-busting
@@ -99,7 +100,7 @@ export default function UnifiedMomentoAvatar({
       const id = userId || localId;
       
       const channel = supabase
-        .channel(`avatar-updates-${table}-${id}`)
+        .channel(`avatar-updates-${table}-${id}-v48`)
         .on(
           'postgres_changes',
           {
@@ -109,7 +110,7 @@ export default function UnifiedMomentoAvatar({
             filter: `id=eq.${id}`,
           },
           (payload: any) => {
-            console.log('[UnifiedMomentoAvatar v47.2] 🔄 Avatar updated:', payload.new);
+            console.log('[UnifiedMomentoAvatar v48.0] 🔄 Avatar updated:', payload.new);
             if (payload.new.avatar_updated_at) {
               setAvatarTimestamp(payload.new.avatar_updated_at);
               setImageError(false); // Reset error state to retry loading
@@ -138,7 +139,7 @@ export default function UnifiedMomentoAvatar({
     }
 
     try {
-      console.log('[UnifiedMomentoAvatar v47.2] 🔍 Checking momentos for:', { userId, localId });
+      console.log('[UnifiedMomentoAvatar v48.0] 🔍 Checking momentos for:', { userId, localId });
 
       // Get momentos for this user/local
       let query = supabase
@@ -173,7 +174,7 @@ export default function UnifiedMomentoAvatar({
       const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
       const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
 
-      console.log('[UnifiedMomentoAvatar v47.2] 🎯 Result:', {
+      console.log('[UnifiedMomentoAvatar v48.0] 🎯 Result:', {
         total: momentosData.length,
         viewed: viewedIds.size,
         hasUnviewed,
@@ -181,7 +182,7 @@ export default function UnifiedMomentoAvatar({
 
       setHasUnviewedMomentos(hasUnviewed);
     } catch (error) {
-      console.error('[UnifiedMomentoAvatar v47.2] ❌ Error checking momentos:', error);
+      console.error('[UnifiedMomentoAvatar v48.0] ❌ Error checking momentos:', error);
       setHasUnviewedMomentos(false);
       setHasMomentos(false);
     }
@@ -196,7 +197,7 @@ export default function UnifiedMomentoAvatar({
 
     // Subscribe to real-time updates
     const channel = supabase
-      .channel(`unified-momento-${userId || localId}-v47`)
+      .channel(`unified-momento-${userId || localId}-v48`)
       .on(
         'postgres_changes',
         {
@@ -205,7 +206,7 @@ export default function UnifiedMomentoAvatar({
           table: 'momentos',
         },
         () => {
-          console.log('[UnifiedMomentoAvatar v47.2] 🔄 Momento update detected');
+          console.log('[UnifiedMomentoAvatar v48.0] 🔄 Momento update detected');
           checkUnviewedMomentos();
         }
       )
@@ -218,7 +219,7 @@ export default function UnifiedMomentoAvatar({
           filter: `usuario_id=eq.${user.id}`,
         },
         () => {
-          console.log('[UnifiedMomentoAvatar v47.2] 🔄 View update detected - updating border');
+          console.log('[UnifiedMomentoAvatar v48.0] 🔄 View update detected - updating border');
           checkUnviewedMomentos();
         }
       )
@@ -232,7 +233,7 @@ export default function UnifiedMomentoAvatar({
   // ✅ Filter out file:// URLs and add smart cache-busting with avatar_updated_at
   const safeImageUrl = imageUrl && !imageUrl.startsWith('file://') ? imageUrl : null;
   
-  // ✅ CRITICAL FIX v47.2: Use avatar_updated_at timestamp for smart cache-busting
+  // ✅ CRITICAL FIX v48.0: Use avatar_updated_at timestamp for smart cache-busting
   const cacheBustedImageUrl = safeImageUrl && avatarTimestamp
     ? `${safeImageUrl}${safeImageUrl.includes('?') ? '&' : '?'}t=${new Date(avatarTimestamp).getTime()}`
     : safeImageUrl;
@@ -263,14 +264,14 @@ export default function UnifiedMomentoAvatar({
           ]}
           resizeMode="cover"
           onError={(error) => {
-            console.error('[UnifiedMomentoAvatar v47.2] ❌ Image failed to load:', error.nativeEvent?.error);
+            console.error('[UnifiedMomentoAvatar v48.0] ❌ Image failed to load:', error.nativeEvent?.error);
             setImageError(true);
           }}
           onLoad={() => {
-            console.log('[UnifiedMomentoAvatar v47.2] ✅ Image loaded successfully');
+            console.log('[UnifiedMomentoAvatar v48.0] ✅ Image loaded successfully');
             setImageError(false);
           }}
-          // ✅ CRITICAL FIX v47.2: Remove force-cache to allow updates
+          // ✅ CRITICAL FIX v48.0: Use reload cache to allow updates
           {...(Platform.OS === 'android' && { cache: 'reload' as any })}
         />
       ) : (
@@ -306,7 +307,7 @@ export default function UnifiedMomentoAvatar({
         style,
       ]}
     >
-      {/* ✅ CRITICAL FIX v47.2: Only show border if has unviewed momentos, no white border */}
+      {/* ✅ CRITICAL FIX v48.0: Only show border if has unviewed momentos, NO WHITE BORDER */}
       {hasUnviewedMomentos ? (
         <LinearGradient
           colors={['#00FF88', '#00FF88', '#00FF88']}
@@ -325,7 +326,7 @@ export default function UnifiedMomentoAvatar({
           {renderAvatar()}
         </LinearGradient>
       ) : (
-        // ✅ CRITICAL FIX v47.2: No border when no unviewed momentos
+        // ✅ CRITICAL FIX v48.0: No border when no unviewed momentos
         renderAvatar()
       )}
 
@@ -392,10 +393,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarInner: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.cardBackground,
     overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: colors.white,
   },
   avatarImage: {
     backgroundColor: colors.cardBackground,
