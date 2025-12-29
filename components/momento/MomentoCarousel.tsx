@@ -25,10 +25,12 @@ interface MomentoAuthor {
 }
 
 /**
- * ✅ MOMENTO CAROUSEL v51.0 - UNIFIED AVATAR WITH NEON BORDER
+ * ✅ MOMENTO CAROUSEL v52.0 - INCREASED AVATAR SIZE
  * 
- * CRITICAL FIXES v51.0:
+ * CRITICAL FIXES v52.0:
+ * - ✅ Avatar size INCREASED from 72 to 88 (22% larger)
  * - ✅ Uses UnifiedMomentoAvatar for consistent neon border
+ * - ✅ Border thickness reduced to 2px (thinner)
  * - ✅ Border is always visible (not covered by image)
  * - ✅ Real-time synchronization of momento status
  * - ✅ Add button always visible for own avatar
@@ -44,15 +46,18 @@ export default function MomentoCarousel() {
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [selectedAuthor, setSelectedAuthor] = useState<MomentoAuthor | null>(null);
 
+  // ✅ CRITICAL FIX v52.0: Avatar size INCREASED from 72 to 88
+  const AVATAR_SIZE = 88; // Increased from 72 (22% larger)
+
   const loadMomentoAuthors = useCallback(async () => {
     if (!userId) {
-      console.log('[MomentoCarousel v51.0] No user ID, skipping load');
+      console.log('[MomentoCarousel v52.0] No user ID, skipping load');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('[MomentoCarousel v51.0] 🔄 Loading momento authors...');
+      console.log('[MomentoCarousel v52.0] 🔄 Loading momento authors...');
 
       // Get all active momentos
       const { data: momentosData, error: momentosError } = await supabase
@@ -68,19 +73,19 @@ export default function MomentoCarousel() {
         .order('created_at', { ascending: false });
 
       if (momentosError) {
-        console.error('[MomentoCarousel v51.0] ❌ Error loading momentos:', momentosError);
+        console.error('[MomentoCarousel v52.0] ❌ Error loading momentos:', momentosError);
         setLoading(false);
         return;
       }
 
       if (!momentosData || momentosData.length === 0) {
-        console.log('[MomentoCarousel v51.0] ℹ️ No active momentos found');
+        console.log('[MomentoCarousel v52.0] ℹ️ No active momentos found');
         setAuthors([]);
         setLoading(false);
         return;
       }
 
-      console.log('[MomentoCarousel v51.0] ✅ Found momentos:', momentosData.length);
+      console.log('[MomentoCarousel v52.0] ✅ Found momentos:', momentosData.length);
 
       // Get user's viewed momentos
       const momentoIds = momentosData.map(m => m.id);
@@ -159,9 +164,9 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel v51.0] ✅ Loaded authors:', authorsArray.length);
+      console.log('[MomentoCarousel v52.0] ✅ Loaded authors:', authorsArray.length);
     } catch (error) {
-      console.error('[MomentoCarousel v51.0] ❌ Error loading authors:', error);
+      console.error('[MomentoCarousel v52.0] ❌ Error loading authors:', error);
     } finally {
       setLoading(false);
     }
@@ -174,7 +179,7 @@ export default function MomentoCarousel() {
 
     // Subscribe to real-time updates
     const momentosChannel = supabase
-      .channel('momento-carousel-updates-v51')
+      .channel('momento-carousel-updates-v52')
       .on(
         'postgres_changes',
         {
@@ -183,7 +188,7 @@ export default function MomentoCarousel() {
           table: 'momentos',
         },
         (payload) => {
-          console.log('[MomentoCarousel v51.0] 🔄 Momento update detected:', payload);
+          console.log('[MomentoCarousel v52.0] 🔄 Momento update detected:', payload);
           loadMomentoAuthors();
         }
       )
@@ -196,7 +201,7 @@ export default function MomentoCarousel() {
           filter: `usuario_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('[MomentoCarousel v51.0] 🔄 View update detected:', payload);
+          console.log('[MomentoCarousel v52.0] 🔄 View update detected:', payload);
           loadMomentoAuthors();
         }
       )
@@ -232,7 +237,7 @@ export default function MomentoCarousel() {
           <UnifiedMomentoAvatar
             userId={userId}
             imageUrl={user?.avatar}
-            size={72}
+            size={AVATAR_SIZE}
             showAddButton={true}
             isOwner={true}
             onPress={() => {
@@ -262,7 +267,7 @@ export default function MomentoCarousel() {
                   userId={author.tipo === 'usuario' ? author.id : undefined}
                   localId={author.tipo === 'local' ? author.id : undefined}
                   imageUrl={author.avatar}
-                  size={72}
+                  size={AVATAR_SIZE}
                   showAddButton={false}
                   isOwner={false}
                   onPress={() => handleAuthorPress(author)}
@@ -310,7 +315,7 @@ const styles = StyleSheet.create({
   },
   avatarWrapper: {
     alignItems: 'center',
-    width: 80,
+    width: 96, // Increased from 80 to accommodate larger avatar
   },
   authorName: {
     fontSize: 12,
@@ -320,8 +325,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   loadingContainer: {
-    width: 80,
-    height: 72,
+    width: 96,
+    height: 88,
     justifyContent: 'center',
     alignItems: 'center',
   },

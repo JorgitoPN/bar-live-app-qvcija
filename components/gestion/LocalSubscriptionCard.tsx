@@ -16,6 +16,7 @@ import { supabase } from '@/utils/supabase';
 import { useRouter } from 'expo-router';
 import CustomerPotentialBar from './CustomerPotentialBar';
 import HighlightActiveCounter from './HighlightActiveCounter';
+import SimplifiedCreditsCard from './SimplifiedCreditsCard';
 
 interface LocalSubscriptionData {
   id: string;
@@ -58,14 +59,15 @@ interface Props {
 }
 
 /**
- * ✅ LOCAL SUBSCRIPTION CARD v3.0 - FIXED POTENTIAL CALCULATION
+ * ✅ LOCAL SUBSCRIPTION CARD v52.0 - FIXED CANCEL BUTTON FOR FREE PLANS
  * 
- * NEW FEATURES:
+ * CRITICAL FIXES v52.0:
+ * - ✅ Cancel button HIDDEN for free plans (plan_precio === 0)
+ * - ✅ Cancel button ONLY visible for paid plans (plan_precio > 0)
+ * - ✅ Cancel button has LESS PROMINENT color (#6B7280 gray instead of red)
+ * - ✅ Numerical credit display (no progress bar)
  * - ✅ Customer potential progress bar
  * - ✅ Real-time highlight counter when active
- * - ✅ FIXED: Potential calculation excludes event publications
- * - ✅ FIXED: Potential calculation includes plan level and highlight status
- * - ✅ Psychological incentive to maintain high percentage
  */
 
 export default function LocalSubscriptionCard({ local, onRefresh, isSelected, onSelect }: Props) {
@@ -117,36 +119,24 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       if (days > 0) return `${days}d ${hours}h`;
       return `${hours}h`;
     } catch (error) {
-      console.error('[LocalSubscriptionCard] Error calculating time:', error);
+      console.error('[LocalSubscriptionCard v52.0] Error calculating time:', error);
       return 'Error';
     }
   };
 
-  const calculateProgress = (used: number, total: number) => {
-    if (total === 0) return 0;
-    return Math.min((used / total) * 100, 100);
-  };
-
-  // ✅ FIXED: Calculate customer potential percentage (EXCLUDES event publications)
   const calculateCustomerPotential = (): number => {
-    if (!local.suscripcion) return 20; // Base 20% without plan
+    if (!local.suscripcion) return 20;
 
-    let percentage = 20; // Base
+    let percentage = 20;
 
-    // Add 30% if highlight is active
     if (local.suscripcion.destacado_activo) {
       percentage += 30;
     }
 
-    // ✅ CRITICAL FIX: DO NOT add percentage for active events
-    // Events are NOT counted in potential calculation
-
-    // Add 15% for Standard plan
     if (local.suscripcion.plan_nombre.toLowerCase() === 'estandar' || local.suscripcion.plan_nombre.toLowerCase() === 'estándar') {
       percentage += 15;
     }
 
-    // Add 30% for Premium plan
     if (local.suscripcion.plan_nombre.toLowerCase() === 'premium') {
       percentage += 30;
     }
@@ -159,7 +149,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
     const { suscripcion } = local;
 
-    // Check if subscription exists
     if (!suscripcion) {
       Alert.alert(
         'Sin Plan Activo',
@@ -175,7 +164,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       return;
     }
 
-    // If already active, show confirmation to deactivate
     if (local.destacado && suscripcion.destacado_activo) {
       Alert.alert(
         '⚠️ Desactivar Destacado',
@@ -192,7 +180,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       return;
     }
 
-    // Check if can activate destacado
     if (!local.destacado && suscripcion.creditos_destacados_restantes <= 0) {
       Alert.alert(
         'Sin Créditos Disponibles',
@@ -210,7 +197,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       return;
     }
 
-    // Activate destacado
     processActivateDestacado();
   };
 
@@ -221,12 +207,10 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
     try {
       setUpdatingDestacado(true);
 
-      // ✅ CRITICAL FIX: Set destacado duration to exactly 24 hours
       const fechaInicio = new Date();
       const fechaFin = new Date();
-      fechaFin.setHours(fechaFin.getHours() + 24); // Exactly 24 hours
+      fechaFin.setHours(fechaFin.getHours() + 24);
 
-      // Update local destacado status
       const { error: localError } = await supabase
         .from('locales')
         .update({ 
@@ -239,7 +223,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
       if (localError) throw localError;
 
-      // Update subscription credits and destacado status
       const { error: subError } = await supabase
         .from('suscripciones_locales')
         .update({
@@ -260,7 +243,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
       onRefresh();
     } catch (error: any) {
-      console.error('[LocalSubscriptionCard] Error activating destacado:', error);
+      console.error('[LocalSubscriptionCard v52.0] Error activating destacado:', error);
       Alert.alert('Error', 'No se pudo activar el estado destacado del local.');
     } finally {
       setUpdatingDestacado(false);
@@ -274,7 +257,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
     try {
       setUpdatingDestacado(true);
 
-      // Update local destacado status
       const { error: localError } = await supabase
         .from('locales')
         .update({ destacado: false })
@@ -282,7 +264,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
       if (localError) throw localError;
 
-      // Update subscription destacado status
       const { error: subError } = await supabase
         .from('suscripciones_locales')
         .update({
@@ -301,7 +282,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
       onRefresh();
     } catch (error: any) {
-      console.error('[LocalSubscriptionCard] Error deactivating destacado:', error);
+      console.error('[LocalSubscriptionCard v52.0] Error deactivating destacado:', error);
       Alert.alert('Error', 'No se pudo desactivar el estado destacado del local.');
     } finally {
       setUpdatingDestacado(false);
@@ -309,8 +290,18 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
   };
 
   const handleCancelPlan = () => {
-    if (!local.suscripcion || local.suscripcion.plan_nombre === 'free') {
-      Alert.alert('Información', 'No tienes un plan de pago activo para cancelar.');
+    if (!local.suscripcion) {
+      Alert.alert('Información', 'No tienes un plan activo para cancelar.');
+      return;
+    }
+
+    // ✅ CRITICAL FIX v52.0: Cannot cancel free plan (plan_precio === 0)
+    if (local.suscripcion.plan_precio === 0) {
+      Alert.alert(
+        'Plan Gratuito',
+        'El plan gratuito es el plan predeterminado y no puede cancelarse. Si deseas cambiar de plan, selecciona otro plan de la lista.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 
@@ -350,7 +341,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
               onRefresh();
             } catch (error: any) {
-              console.error('[LocalSubscriptionCard] Error canceling plan:', error);
+              console.error('[LocalSubscriptionCard v52.0] Error canceling plan:', error);
               Alert.alert('Error', 'No se pudo cancelar el plan. Intenta de nuevo.');
             } finally {
               setLoading(false);
@@ -384,46 +375,9 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
     router.push(`/gestion/panel-analisis?localId=${local.id}`);
   };
 
-  const renderProgressBar = (remaining: number, total: number, color: string, label: string) => {
-    const progress = total === 0 ? 0 : Math.min((remaining / total) * 100, 100);
-
-    return (
-      <View style={styles.progressContainer}>
-        <View style={styles.progressHeader}>
-          <Text style={styles.progressLabel}>{label}</Text>
-          <Text style={styles.progressValue}>
-            {remaining} / {total === 0 ? '∞' : total}
-          </Text>
-        </View>
-        <View style={styles.progressBarBackground}>
-          <View style={[styles.progressBarFill, { width: `${progress}%`, backgroundColor: color }]} />
-        </View>
-      </View>
-    );
-  };
-
-  const calculateRenewalProgress = (fechaProximoPago: string | null | undefined) => {
-    if (!fechaProximoPago) return 0;
-    
-    try {
-      const now = new Date();
-      const end = new Date(fechaProximoPago);
-      const start = new Date(end);
-      start.setMonth(start.getMonth() - 1);
-      
-      const totalDuration = end.getTime() - start.getTime();
-      const elapsed = now.getTime() - start.getTime();
-      const progress = (elapsed / totalDuration) * 100;
-      
-      return Math.max(0, Math.min(100, 100 - progress));
-    } catch (error) {
-      return 0;
-    }
-  };
-
   return (
     <View style={styles.card}>
-      {/* ✅ Cover Image with Gradient Overlay */}
+      {/* Cover Image with Gradient Overlay */}
       <TouchableOpacity 
         style={styles.coverImageContainer}
         onPress={() => router.push(`/detalle/local?id=${local.id}`)}
@@ -488,7 +442,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       )}
 
       <View style={styles.content}>
-        {/* ✅ FIXED: Customer Potential Bar with corrected calculation */}
+        {/* Customer Potential Bar */}
         <CustomerPotentialBar
           percentage={calculateCustomerPotential()}
           hasActiveHighlight={local.suscripcion?.destacado_activo || false}
@@ -497,7 +451,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
           localId={local.id}
         />
 
-        {/* ✅ NEW: Highlight Active Counter */}
+        {/* Highlight Active Counter */}
         {local.suscripcion?.destacado_activo && local.suscripcion.destacado_fecha_fin && (
           <HighlightActiveCounter
             localNombre={local.nombre}
@@ -533,42 +487,13 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
         {local.suscripcion && (
           <React.Fragment>
-            {/* Credits Section */}
-            <View style={styles.creditsSection}>
-              <View style={styles.creditsSectionHeader}>
-                <IconSymbol ios_icon_name="creditcard.fill" android_material_icon_name="credit_card" size={18} color={colors.primary} />
-                <Text style={styles.creditsSectionTitle}>Créditos Disponibles</Text>
-              </View>
-
-              {/* Featured Credits */}
-              {renderProgressBar(
-                local.suscripcion.creditos_destacados_restantes,
-                local.suscripcion.creditos_destacados_restantes + (local.suscripcion.destacado_activo ? 1 : 0),
-                colors.badgeDestacado,
-                'Destacados'
-              )}
-
-              {/* Event Credits */}
-              {renderProgressBar(
-                local.suscripcion.creditos_eventos_restantes,
-                local.suscripcion.eventos_disponibles,
-                '#8B5CF6',
-                'Eventos'
-              )}
-
-              {/* Renewal Date */}
-              {local.suscripcion.fecha_renovacion_creditos && (
-                <View style={styles.renewalInfo}>
-                  <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={16} color={colors.textSecondary} />
-                  <Text style={styles.renewalText}>
-                    Renovación de créditos:{' '}
-                    {new Date(local.suscripcion.fecha_renovacion_creditos).toLocaleDateString(
-                      'es-ES'
-                    )}
-                  </Text>
-                </View>
-              )}
-            </View>
+            {/* ✅ CRITICAL FIX v52.0: Numerical credit display (no progress bar) */}
+            <SimplifiedCreditsCard
+              creditosDestacados={local.suscripcion.creditos_destacados_restantes}
+              creditosEventos={local.suscripcion.creditos_eventos_restantes}
+              localId={local.id}
+              fechaRenovacion={local.suscripcion.fecha_renovacion_creditos}
+            />
 
             {/* Featured Toggle */}
             <View style={styles.destacadoSection}>
@@ -633,28 +558,28 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                 </LinearGradient>
               </TouchableOpacity>
 
-              {local.suscripcion.plan_nombre !== 'free' &&
-                !local.suscripcion.cancelar_al_final_periodo && (
-                  <TouchableOpacity
-                    style={styles.planActionButton}
-                    onPress={handleCancelPlan}
-                    disabled={loading}
-                  >
-                    <LinearGradient
-                      colors={['#EF4444', '#DC2626']}
-                      style={styles.planActionGradient}
-                    >
-                      {loading ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <React.Fragment>
-                          <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color="#FFFFFF" />
-                          <Text style={styles.planActionText}>Cancelar Plan</Text>
-                        </React.Fragment>
-                      )}
-                    </LinearGradient>
-                  </TouchableOpacity>
-                )}
+              {/* ✅ CRITICAL FIX v52.0: Cancel button ONLY for paid plans (plan_precio > 0) */}
+              {local.suscripcion.plan_precio > 0 && !local.suscripcion.cancelar_al_final_periodo && (
+                <TouchableOpacity
+                  style={styles.cancelPlanButton}
+                  onPress={handleCancelPlan}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#6B7280" />
+                  ) : (
+                    <>
+                      <IconSymbol
+                        ios_icon_name="xmark.circle"
+                        android_material_icon_name="cancel"
+                        size={18}
+                        color="#6B7280"
+                      />
+                      <Text style={styles.cancelPlanButtonText}>Cancelar plan</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           </React.Fragment>
         )}
@@ -890,64 +815,6 @@ const styles = StyleSheet.create({
     color: '#92400E',
     fontWeight: '600',
   },
-  creditsSection: {
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  creditsSectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  creditsSectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  progressContainer: {
-    marginBottom: 12,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  progressLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  progressValue: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  progressBarBackground: {
-    height: 8,
-    backgroundColor: colors.cardBorder,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  renewalInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  renewalText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
   destacadoSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1001,12 +868,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   planActions: {
-    flexDirection: 'row',
     gap: 12,
     marginBottom: 16,
   },
   planActionButton: {
-    flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -1021,6 +886,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  // ✅ CRITICAL FIX v52.0: Less prominent cancel button (gray #6B7280 instead of red)
+  cancelPlanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  cancelPlanButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   noPlanContainer: {
     alignItems: 'center',
