@@ -28,11 +28,10 @@ import MomentoViewer from '@/components/momento/MomentoViewer';
 import PostViewerModal from '@/components/social/PostViewerModal';
 import ShoppingCart from '@/components/payment/ShoppingCart';
 import { profileCache } from '@/utils/profileCache';
+import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
-const AVATAR_SIZE = 88;
-const BORDER_WIDTH = 4;
 
 interface Post {
   id: string;
@@ -71,14 +70,13 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v2.2 - WITH IMPERSONATION SUPPORT
+ * ✅ PROFILE SCREEN v47.0 - UNIFIED MOMENTO AVATAR
  * 
  * Features:
- * - ✅ Uses useEffectiveUser() for impersonation support
- * - ✅ Shows impersonated user's profile when admin is impersonating
- * - ✅ NO loading screens - instant display with cached data
- * - ✅ Background refresh for fresh data without blocking UI
- * - ✅ Persistent state - doesn't remount on navigation
+ * - ✅ Uses UnifiedMomentoAvatar for consistent design
+ * - ✅ Same avatar and + button across all pages
+ * - ✅ Green border disappears after viewing
+ * - ✅ Real-time synchronization
  */
 
 export default function PerfilScreen() {
@@ -95,7 +93,6 @@ export default function PerfilScreen() {
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
   const [showMomentoUpload, setShowMomentoUpload] = useState(false);
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
-  const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
   const [showCart, setShowCart] = useState(false);
   
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -124,8 +121,6 @@ export default function PerfilScreen() {
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
-
-  // ✅ DEFINE ALL CALLBACK FUNCTIONS BEFORE USING THEM
 
   const loadUnreadCounts = useCallback(async () => {
     if (!userId) return;
@@ -160,64 +155,9 @@ export default function PerfilScreen() {
         setUnreadMessages(totalUnread);
       }
     } catch (error) {
-      console.error('[Perfil] Error loading unread counts:', error);
+      console.error('[Perfil v47.0] Error loading unread counts:', error);
     }
   }, [userId]);
-
-  const checkUnviewedMomentos = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      const checkId = activeProfileType === 'local' ? activeProfileId : userId;
-      const checkType = activeProfileType === 'local' ? 'local' : 'usuario';
-
-      if (!checkId) return;
-
-      const query = supabase
-        .from('momentos')
-        .select('id')
-        .eq('tipo', checkType)
-        .gt('expires_at', new Date().toISOString());
-
-      if (checkType === 'usuario') {
-        query.eq('autor_id', checkId);
-      } else {
-        query.eq('local_id', checkId);
-      }
-
-      const { data: momentosData, error: momentosError } = await query;
-
-      if (momentosError) {
-        console.error('[Perfil] ❌ Error fetching momentos:', momentosError);
-        setHasUnviewedMomentos(false);
-        return;
-      }
-
-      if (!momentosData || momentosData.length === 0) {
-        setHasUnviewedMomentos(false);
-        return;
-      }
-
-      const momentoIds = momentosData.map(m => m.id);
-      const { data: viewsData, error: viewsError } = await supabase
-        .from('momento_views')
-        .select('momento_id')
-        .eq('usuario_id', userId)
-        .in('momento_id', momentoIds);
-
-      if (viewsError) {
-        console.error('[Perfil] ❌ Error fetching views:', viewsError);
-      }
-
-      const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
-      const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
-
-      setHasUnviewedMomentos(hasUnviewed);
-    } catch (error) {
-      console.error('[Perfil] ❌ Error checking unviewed momentos:', error);
-      setHasUnviewedMomentos(false);
-    }
-  }, [userId, activeProfileType, activeProfileId]);
 
   const loadCartItemsCount = useCallback(async () => {
     if (!userId || !isPropietario) return;
@@ -229,13 +169,13 @@ export default function PerfilScreen() {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[Perfil] ❌ Error loading cart count:', error);
+        console.error('[Perfil v47.0] ❌ Error loading cart count:', error);
         return;
       }
 
       setCartItemsCount(count || 0);
     } catch (error) {
-      console.error('[Perfil] ❌ Error loading cart count:', error);
+      console.error('[Perfil v47.0] ❌ Error loading cart count:', error);
     }
   }, [userId, isPropietario]);
 
@@ -255,7 +195,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil] Error loading current local:', error);
+        console.error('[Perfil v47.0] Error loading current local:', error);
         return;
       }
 
@@ -270,7 +210,7 @@ export default function PerfilScreen() {
         setCheckInInfo(null);
       }
     } catch (error) {
-      console.error('[Perfil] Error loading current local:', error);
+      console.error('[Perfil v47.0] Error loading current local:', error);
     }
   }, [userId]);
 
@@ -329,7 +269,7 @@ export default function PerfilScreen() {
         return [];
       }
     } catch (error) {
-      console.error('[Perfil] Error cargando posts:', error);
+      console.error('[Perfil v47.0] Error cargando posts:', error);
       return [];
     }
   }, [userId]);
@@ -392,7 +332,7 @@ export default function PerfilScreen() {
         setSavedPosts([]);
       }
     } catch (error) {
-      console.error('[Perfil] Error cargando favoritos:', error);
+      console.error('[Perfil v47.0] Error cargando favoritos:', error);
     }
   }, [userId]);
 
@@ -471,7 +411,7 @@ export default function PerfilScreen() {
 
       setTaggedPosts(postsWithStatus);
     } catch (error) {
-      console.error('[Perfil] Error cargando etiquetados:', error);
+      console.error('[Perfil v47.0] Error cargando etiquetados:', error);
       setTaggedPosts([]);
     }
   }, [userId]);
@@ -488,7 +428,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil] Error loading professional profile:', error);
+        console.error('[Perfil v47.0] Error loading professional profile:', error);
       }
 
       if (data) {
@@ -497,23 +437,21 @@ export default function PerfilScreen() {
         setPerfilProfesional(null);
       }
     } catch (error) {
-      console.error('[Perfil] Error loading professional profile:', error);
+      console.error('[Perfil v47.0] Error loading professional profile:', error);
     } finally {
       setLoadingEmpleo(false);
     }
   }, [userId]);
 
-  // ✅ DEFINE cargarDatosPerfil BEFORE using it in useEffect
   const cargarDatosPerfil = useCallback(async (isBackgroundRefresh: boolean = false) => {
     if (!userId) return;
 
     try {
       if (!isBackgroundRefresh) {
-        console.log('[Perfil] 🔄 Loading profile data...');
+        console.log('[Perfil v47.0] 🔄 Loading profile data...');
       }
 
       await loadUnreadCounts();
-      await checkUnviewedMomentos();
       await loadCartItemsCount();
       await loadCurrentLocal();
 
@@ -528,7 +466,7 @@ export default function PerfilScreen() {
       const seguidosCount = userFollowsCount || 0;
 
       if (seguidoresError) {
-        console.error('[Perfil] Error loading seguidores count:', seguidoresError);
+        console.error('[Perfil v47.0] Error loading seguidores count:', seguidoresError);
       }
 
       const seguidoresCount = seguidoresData || 0;
@@ -559,25 +497,25 @@ export default function PerfilScreen() {
       }
 
       if (!isBackgroundRefresh) {
-        console.log('[Perfil] ✅ Profile data loaded and cached');
+        console.log('[Perfil v47.0] ✅ Profile data loaded and cached');
       }
     } catch (error) {
-      console.error('[Perfil] Error cargando datos:', error);
+      console.error('[Perfil v47.0] Error cargando datos:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [userId, user, loadUnreadCounts, checkUnviewedMomentos, loadCartItemsCount, loadCurrentLocal, cargarPosts]);
+  }, [userId, user, loadUnreadCounts, loadCartItemsCount, loadCurrentLocal, cargarPosts]);
 
   // ✅ INSTANT LOAD: Load from cache first
   useEffect(() => {
     if (!userId) return;
 
     const loadCachedData = async () => {
-      console.log('[Perfil] ⚡ Loading from cache...');
+      console.log('[Perfil v47.0] ⚡ Loading from cache...');
       const cached = await profileCache.get(userId, 'user');
       
       if (cached) {
-        console.log('[Perfil] ⚡⚡⚡ INSTANT LOAD from cache');
+        console.log('[Perfil v47.0] ⚡⚡⚡ INSTANT LOAD from cache');
         setSeguidores(cached.stats.seguidores);
         setSeguidos(cached.stats.seguidos);
         setPublicaciones(cached.stats.posts);
@@ -585,11 +523,11 @@ export default function PerfilScreen() {
         
         // Background refresh
         setTimeout(() => {
-          console.log('[Perfil] 🔄 Background refresh...');
+          console.log('[Perfil v47.0] 🔄 Background refresh...');
           cargarDatosPerfil(true);
         }, 100);
       } else {
-        console.log('[Perfil] 📡 No cache, loading from database...');
+        console.log('[Perfil v47.0] 📡 No cache, loading from database...');
         cargarDatosPerfil(false);
       }
     };
@@ -617,29 +555,7 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const subscription = supabase
-      .channel('profile-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'momentos',
-        },
-        () => {
-          checkUnviewedMomentos();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'momento_views',
-        },
-        () => {
-          checkUnviewedMomentos();
-        }
-      )
+      .channel('profile-updates-v47')
       .on(
         'postgres_changes',
         {
@@ -680,13 +596,13 @@ export default function PerfilScreen() {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [userId, checkUnviewedMomentos, loadCurrentLocal, loadUnreadCounts]);
+  }, [userId, loadCurrentLocal, loadUnreadCounts]);
 
   useEffect(() => {
     if (!userId || !isPropietario) return;
 
     const subscription = supabase
-      .channel('cart-updates')
+      .channel('cart-updates-v47')
       .on(
         'postgres_changes',
         {
@@ -759,10 +675,6 @@ export default function PerfilScreen() {
 
   const handleOpenMomentoViewer = () => {
     if (!userId) return;
-    
-    const viewerId = activeProfileType === 'local' ? activeProfileId : userId;
-    const viewerType = activeProfileType === 'local' ? 'local' : 'usuario';
-    
     setShowMomentoViewer(true);
   };
 
@@ -812,7 +724,7 @@ export default function PerfilScreen() {
               setCheckInInfo(null);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[Perfil] Error exiting local:', error);
+              console.error('[Perfil v47.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -881,96 +793,16 @@ export default function PerfilScreen() {
         )}
         
         <View style={styles.profileHeader}>
-          <TouchableOpacity 
-            style={styles.avatarWrapper}
+          {/* ✅ UNIFIED MOMENTO AVATAR */}
+          <UnifiedMomentoAvatar
+            userId={userId}
+            imageUrl={displayAvatar}
+            size={88}
+            showAddButton={true}
+            isOwner={true}
             onPress={handleOpenMomentoViewer}
-            activeOpacity={0.8}
-          >
-            {hasUnviewedMomentos ? (
-              <LinearGradient
-                colors={['#00FF88', '#00FF88', '#00FF88']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[
-                  styles.avatarBorder,
-                  {
-                    width: AVATAR_SIZE + BORDER_WIDTH * 2,
-                    height: AVATAR_SIZE + BORDER_WIDTH * 2,
-                    borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
-                  },
-                ]}
-              >
-                <View style={styles.avatarInner}>
-                  {displayAvatar ? (
-                    <Image
-                      source={{ uri: displayAvatar }}
-                      style={styles.avatarImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={styles.avatarPlaceholder}>
-                      <IconSymbol
-                        ios_icon_name={activeProfileType === 'local' ? 'building.2.fill' : 'person.fill'}
-                        android_material_icon_name={activeProfileType === 'local' ? 'store' : 'person'}
-                        size={AVATAR_SIZE * 0.5}
-                        color={colors.primary}
-                      />
-                    </View>
-                  )}
-                </View>
-              </LinearGradient>
-            ) : (
-              <View
-                style={[
-                  styles.avatarBorder,
-                  styles.avatarBorderViewed,
-                  {
-                    width: AVATAR_SIZE + BORDER_WIDTH * 2,
-                    height: AVATAR_SIZE + BORDER_WIDTH * 2,
-                    borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
-                  },
-                ]}
-              >
-                <View style={styles.avatarInner}>
-                  {displayAvatar ? (
-                    <Image
-                      source={{ uri: displayAvatar }}
-                      style={styles.avatarImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={styles.avatarPlaceholder}>
-                      <IconSymbol
-                        ios_icon_name={activeProfileType === 'local' ? 'building.2.fill' : 'person.fill'}
-                        android_material_icon_name={activeProfileType === 'local' ? 'store' : 'person'}
-                        size={AVATAR_SIZE * 0.5}
-                        color={colors.primary}
-                      />
-                    </View>
-                  )}
-                </View>
-              </View>
-            )}
-            <TouchableOpacity 
-              style={styles.addMomentoButton}
-              onPress={() => setShowMomentoUpload(true)}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.addMomentoGradient}
-              >
-                <IconSymbol
-                  ios_icon_name="plus"
-                  android_material_icon_name="add"
-                  size={18}
-                  color="#fff"
-                />
-              </LinearGradient>
-            </TouchableOpacity>
-          </TouchableOpacity>
+            onAddPress={() => setShowMomentoUpload(true)}
+          />
           
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{displayName}</Text>
@@ -1133,7 +965,7 @@ export default function PerfilScreen() {
     );
   };
 
-  // ✅ NEW: Show login required screen (same as Social page)
+  // ✅ Show login required screen
   if (!user) {
     return (
       <View style={commonStyles.container}>
@@ -1463,8 +1295,8 @@ export default function PerfilScreen() {
 
       <MomentoViewer
         visible={showMomentoViewer}
-        authorId={activeProfileType === 'local' ? activeProfileId || '' : userId || ''}
-        authorType={activeProfileType === 'local' ? 'local' : 'usuario'}
+        authorId={userId || ''}
+        authorType="usuario"
         onClose={() => setShowMomentoViewer(false)}
       />
 
@@ -1651,64 +1483,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     position: 'relative',
   },
-  avatarWrapper: {
-    position: 'relative',
-    marginRight: 20,
-  },
-  avatarBorder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: BORDER_WIDTH,
-  },
-  avatarBorderViewed: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  avatarInner: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: '#fff',
-    overflow: 'hidden',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: AVATAR_SIZE / 2,
-  },
-  avatarPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.cardBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: AVATAR_SIZE / 2,
-  },
-  addMomentoButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    overflow: 'hidden',
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  addMomentoGradient: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   profileInfo: {
     flex: 1,
-    marginLeft: 0,
+    marginLeft: 20,
   },
   profileName: {
     fontSize: 22,
