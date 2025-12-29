@@ -1,6 +1,6 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v56.0
+ * TAB NAVIGATION BAR - VERSION v56.1
  * 
  * Clean tab navigation bar with Instagram-style filled/outlined icons.
  * Active icons are filled with white, inactive icons are outlined with white.
@@ -20,6 +20,7 @@
  * - ✅ FIXED v47.0: User @jorge avatar now displays correctly
  * - ✅ FIXED v56.0: Reduced tab bar height on Android to match iOS
  * - ✅ FIXED v56.0: Adjusted padding and spacing for Android
+ * - ✅ FIXED v56.1: Tab bar height matches iOS exactly (60px base)
  */
 
 import React from 'react';
@@ -62,14 +63,14 @@ export function TabNavigationBar({
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
     console.log(
-      `🔍 [TabNav v47.0] Checking tab "${tab.id}": ` +
+      `🔍 [TabNav v56.1] Checking tab "${tab.id}": ` +
       `route="${cleanRoute}", path="${cleanPath}"`
     );
 
     // Special case: gestion tab is active when viewing local profiles
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `✅ [TabNav v47.0] Tab "${tab.id}" is ACTIVE ` +
+        `✅ [TabNav v56.1] Tab "${tab.id}" is ACTIVE ` +
         `(special case: perfil/local)`
       );
       return true;
@@ -78,7 +79,7 @@ export function TabNavigationBar({
     // Special case: perfil tab is NOT active when viewing local profiles
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `❌ [TabNav v47.0] Tab "${tab.id}" is INACTIVE ` +
+        `❌ [TabNav v56.1] Tab "${tab.id}" is INACTIVE ` +
         `(special case: perfil/local)`
       );
       return false;
@@ -95,7 +96,7 @@ export function TabNavigationBar({
 
       if (mainRouteSegment === mainPathSegment) {
         console.log(
-          `✅ [TabNav v47.0] Tab "${tab.id}" is ACTIVE ` +
+          `✅ [TabNav v56.1] Tab "${tab.id}" is ACTIVE ` +
           `(segment match: "${mainRouteSegment}")`
         );
         return true;
@@ -104,22 +105,22 @@ export function TabNavigationBar({
 
     // Fallback: check if path starts with route
     if (cleanPath.startsWith(cleanRoute)) {
-      console.log(`✅ [TabNav v47.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
+      console.log(`✅ [TabNav v56.1] Tab "${tab.id}" is ACTIVE (prefix match)`);
       return true;
     }
 
     // Check exact match
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
-      console.log(`✅ [TabNav v47.0] Tab "${tab.id}" is ACTIVE (exact match)`);
+      console.log(`✅ [TabNav v56.1] Tab "${tab.id}" is ACTIVE (exact match)`);
       return true;
     }
 
-    console.log(`❌ [TabNav v47.0] Tab "${tab.id}" is INACTIVE`);
+    console.log(`❌ [TabNav v56.1] Tab "${tab.id}" is INACTIVE`);
     return false;
   };
 
   const handleTabPress = async (tab: TabDefinition) => {
-    console.log(`🔘 [TabNav v47.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
+    console.log(`🔘 [TabNav v56.1] Tab pressed: "${tab.id}" -> ${tab.route}`);
     
     // ✅ CRITICAL FIX v47.0: Provide native haptic feedback on Android
     await provideHapticFeedback('light');
@@ -141,7 +142,7 @@ export function TabNavigationBar({
       : null;
 
     console.log(
-      `🎨 [TabNav v47.0] Rendering tab "${tab.id}": ` +
+      `🎨 [TabNav v56.1] Rendering tab "${tab.id}": ` +
       `isActive=${isActive}, isCenter=${isCenter}, avatar=${safeAvatarUrl ? safeAvatarUrl.substring(0, 50) : 'none'}`
     );
 
@@ -203,10 +204,10 @@ export function TabNavigationBar({
                   // ✅ ANDROID FIX v47.0: Force cache for better loading
                   {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                   onError={(error) => {
-                    console.error('[TabNav v47.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
+                    console.error('[TabNav v56.1] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
                   }}
                   onLoad={() => {
-                    console.log('[TabNav v47.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
+                    console.log('[TabNav v56.1] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
                   }}
                 />
               ) : (
@@ -248,8 +249,8 @@ export function TabNavigationBar({
     );
   };
 
-  // ✅ ANDROID FIX v56.0: Reduced height to match iOS (was 80, now 70)
-  const baseHeight = Platform.OS === 'ios' ? 80 : 70;
+  // ✅ ANDROID FIX v56.1: Height matches iOS exactly (60px base)
+  const baseHeight = 60;
   const containerHeight = baseHeight + (Platform.OS === 'android' ? Math.max(insets.bottom, 8) : 0);
   const tabBarPaddingBottom = Platform.OS === 'ios' ? 20 : Math.max(insets.bottom, 8);
 
@@ -283,7 +284,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: Platform.OS === 'ios' ? 80 : 70,
+    height: 60,
     backgroundColor: 'transparent',
     // ✅ CRITICAL FIX v47.0: MAXIMUM z-index and elevation for guaranteed visibility
     zIndex: 999999,
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: Platform.OS === 'ios' ? 80 : 70,
+    height: 60,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.15,
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    paddingTop: Platform.OS === 'ios' ? 12 : 8,
+    paddingTop: 8,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'space-evenly',
@@ -321,15 +322,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Platform.OS === 'ios' ? 8 : 6,
+    paddingVertical: 6,
     overflow: 'hidden',
     borderRadius: 20,
   },
   centerButton: {
-    width: Platform.OS === 'ios' ? 60 : 56,
-    height: Platform.OS === 'ios' ? 60 : 56,
-    marginTop: Platform.OS === 'ios' ? -30 : -28,
-    borderRadius: Platform.OS === 'ios' ? 30 : 28,
+    width: 56,
+    height: 56,
+    marginTop: -28,
+    borderRadius: 28,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -340,21 +341,21 @@ const styles = StyleSheet.create({
   centerGradient: {
     width: '100%',
     height: '100%',
-    borderRadius: Platform.OS === 'ios' ? 30 : 28,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: Platform.OS === 'ios' ? 4 : 3,
+    borderWidth: 3,
     borderColor: '#FFFFFF',
   },
   avatarContainer: {
-    width: Platform.OS === 'ios' ? 28 : 26,
-    height: Platform.OS === 'ios' ? 28 : 26,
-    borderRadius: Platform.OS === 'ios' ? 14 : 13,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   avatarContainerActive: {
-    borderWidth: Platform.OS === 'ios' ? 2.5 : 2,
+    borderWidth: 2,
     borderColor: '#FFFFFF',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
