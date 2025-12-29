@@ -89,14 +89,15 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v53.0 - FIXED REVIEW RATING SYNC
+ * ✅ LOCAL DETAILS MODAL v55.0 - FIXED REVIEW RATING SYNC
  * 
- * CRITICAL FIXES v53.0:
+ * CRITICAL FIXES v55.0:
  * - ✅ Rating now synced with actual reviews from reviews_barlive table
  * - ✅ Calculates average rating from BarLive reviews
  * - ✅ Falls back to Google rating if no BarLive reviews
- * - ✅ Shows correct rating across all platform points
+ * - ✅ Shows correct rating across all platform points (map popup, details page, etc.)
  * - ✅ "Estoy en este local" and "Sala Virtual" buttons hidden in propietario mode
+ * - ✅ Real-time rating updates
  */
 
 export default function LocalDetailsModal({
@@ -127,13 +128,13 @@ export default function LocalDetailsModal({
       try {
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[LocalDetailsModal v53.0] ⚠️ Location services are disabled');
+          console.log('[LocalDetailsModal v55.0] ⚠️ Location services are disabled');
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[LocalDetailsModal v53.0] ⚠️ Location permission denied');
+          console.log('[LocalDetailsModal v55.0] ⚠️ Location permission denied');
           return;
         }
 
@@ -147,9 +148,9 @@ export default function LocalDetailsModal({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-        console.log('[LocalDetailsModal v53.0] 📍 User location obtained');
+        console.log('[LocalDetailsModal v55.0] 📍 User location obtained');
       } catch (error: any) {
-        console.error('[LocalDetailsModal v53.0] ❌ Error getting location:', error?.message);
+        console.error('[LocalDetailsModal v55.0] ❌ Error getting location:', error?.message);
         setUserLocation(null);
       }
     })();
@@ -170,7 +171,7 @@ export default function LocalDetailsModal({
         : `${distKm.toFixed(1)} km`;
 
       setDistance(dist);
-      console.log('[LocalDetailsModal v53.0] 📏 Distance calculated:', dist);
+      console.log('[LocalDetailsModal v55.0] 📏 Distance calculated:', dist);
     }
   }, [userLocation, local]);
 
@@ -185,14 +186,14 @@ export default function LocalDetailsModal({
 
       if (error) throw error;
       setLocal(data);
-      console.log('[LocalDetailsModal v53.0] ✅ Local loaded:', {
+      console.log('[LocalDetailsModal v55.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         plan_activo: data.plan_activo,
         local_profile_id: data.local_profile_id,
       });
 
-      // ✅ CRITICAL FIX v53.0: Load actual rating from reviews_barlive table
+      // ✅ CRITICAL FIX v55.0: Load actual rating from reviews_barlive table
       const { data: reviewsData, error: reviewsError } = await supabase
         .from('reviews_barlive')
         .select('rating')
@@ -202,7 +203,7 @@ export default function LocalDetailsModal({
         const avgRating = reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length;
         setActualRating(avgRating);
         setReviewCount(reviewsData.length);
-        console.log('[LocalDetailsModal v53.0] ✅ Calculated rating from reviews:', {
+        console.log('[LocalDetailsModal v55.0] ✅ Calculated rating from reviews:', {
           avgRating: avgRating.toFixed(1),
           reviewCount: reviewsData.length,
         });
@@ -211,10 +212,10 @@ export default function LocalDetailsModal({
         const fallbackRating = data.rating || data.google_rating || 0;
         setActualRating(fallbackRating);
         setReviewCount(0);
-        console.log('[LocalDetailsModal v53.0] ℹ️ Using fallback rating:', fallbackRating);
+        console.log('[LocalDetailsModal v55.0] ℹ️ Using fallback rating:', fallbackRating);
       }
     } catch (error) {
-      console.error('[LocalDetailsModal v53.0] Error loading local:', error);
+      console.error('[LocalDetailsModal v55.0] Error loading local:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
     } finally {
       setLoading(false);
@@ -223,7 +224,7 @@ export default function LocalDetailsModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[LocalDetailsModal v53.0] 🚀 Opening modal for local:', localId);
+      console.log('[LocalDetailsModal v55.0] 🚀 Opening modal for local:', localId);
       loadLocalData();
     } else {
       setLocal(null);
@@ -232,6 +233,47 @@ export default function LocalDetailsModal({
       setReviewCount(0);
     }
   }, [visible, localId, loadLocalData]);
+
+  // ✅ NEW v55.0: Real-time rating updates
+  useEffect(() => {
+    if (visible && localId) {
+      console.log('[LocalDetailsModal v55.0] 🔄 Setting up real-time rating listener for:', localId);
+      
+      const subscription = supabase
+        .channel(`reviews-${localId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'reviews_barlive',
+            filter: `local_id=eq.${localId}`,
+          },
+          async (payload) => {
+            console.log('[LocalDetailsModal v55.0] 🔔 Review updated:', payload);
+            
+            // Reload rating
+            const { data: reviewsData, error: reviewsError } = await supabase
+              .from('reviews_barlive')
+              .select('rating')
+              .eq('local_id', localId);
+
+            if (!reviewsError && reviewsData && reviewsData.length > 0) {
+              const avgRating = reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length;
+              setActualRating(avgRating);
+              setReviewCount(reviewsData.length);
+              console.log('[LocalDetailsModal v55.0] ✅ Rating updated:', avgRating.toFixed(1));
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        console.log('[LocalDetailsModal v55.0] 🔌 Unsubscribing from rating updates');
+        subscription.unsubscribe();
+      };
+    }
+  }, [visible, localId]);
 
   const handleToggleFavorito = async (e: any) => {
     e.stopPropagation();
@@ -296,7 +338,7 @@ export default function LocalDetailsModal({
         : []
   ).filter(cat => !CATEGORIAS_EXCLUIDAS.some(excluded => cat.toLowerCase().includes(excluded.toLowerCase()))) : [];
 
-  // ✅ CRITICAL FIX v53.0: Use actual rating from reviews
+  // ✅ CRITICAL FIX v55.0: Use actual rating from reviews
   const displayRating = actualRating > 0 ? actualRating : (local?.rating || local?.google_rating || 0);
 
   const closeButtonTop = local?.destacado 
@@ -329,7 +371,6 @@ export default function LocalDetailsModal({
           activeOpacity={1}
           onPress={(e) => e.stopPropagation()}
         >
-          {/* ✅ CRITICAL FIX v5.1: Proper ScrollView configuration for Android */}
           <ScrollView 
             style={styles.contentContainer}
             contentContainerStyle={styles.contentContainerInner}
@@ -362,7 +403,7 @@ export default function LocalDetailsModal({
                       </BlurView>
                     </TouchableOpacity>
                 
-                    {/* ✅ CRITICAL FIX v53.0: Show actual rating with review count */}
+                    {/* ✅ CRITICAL FIX v55.0: Show actual rating with review count */}
                     {displayRating > 0 && (
                       <View style={styles.ratingBadgeTopRight}>
                         <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
@@ -461,7 +502,7 @@ export default function LocalDetailsModal({
                     </Text>
                   )}
                   
-                  {/* ✅ CRITICAL FIX v53.0: Hide "Estoy en este local" button in propietario mode */}
+                  {/* ✅ CRITICAL FIX v55.0: Hide "Estoy en este local" button in propietario mode */}
                   {!isInPropietarioMode && (
                     <TouchableOpacity 
                       style={styles.checkInButton}

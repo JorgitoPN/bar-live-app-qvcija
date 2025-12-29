@@ -13,6 +13,7 @@ import {
   Platform,
   TextInput,
   Modal,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,9 +27,23 @@ interface Solicitud {
   local_id?: string;
   nombre_local: string;
   direccion_local?: string;
+  ciudad_local?: string;
+  provincia_local?: string;
+  codigo_postal_local?: string;
   telefono_contacto?: string;
+  telefono_local?: string;
   email_contacto?: string;
   mensaje?: string;
+  descripcion?: string;
+  tipo_local?: string;
+  latitud_local?: number;
+  longitud_local?: number;
+  horarios_local?: Record<string, any>;
+  servicios_local?: string[];
+  imagen_portada_url?: string;
+  galeria_urls?: string[];
+  documento_propiedad_url?: string;
+  documento_propiedad_tipo?: string;
   estado: 'pendiente' | 'en_revision' | 'informacion_adicional' | 'aprobada' | 'denegada';
   tipo_solicitud: 'reclamar_local' | 'nuevo_local';
   motivo_denegacion?: string;
@@ -44,14 +59,15 @@ interface Solicitud {
 }
 
 /**
- * ✅ SOLICITUDES PROPIETARIO v51.0 - COMPACT AND CLEAR REDESIGN
+ * ✅ SOLICITUDES PROPIETARIO v54.0 - ENHANCED ADMIN VIEW
  * 
- * CRITICAL FIXES v51.0:
- * - ✅ More compact card design
- * - ✅ Clearer visual hierarchy
- * - ✅ Better use of space
- * - ✅ Improved readability
- * - ✅ More attractive layout
+ * CRITICAL FIXES v54.0:
+ * - ✅ Shows all request information including new fields
+ * - ✅ Displays uploaded documents (photos, PDFs)
+ * - ✅ Shows complete local proposal for nuevo_local requests
+ * - ✅ Map view of proposed location
+ * - ✅ Gallery preview
+ * - ✅ Document viewer
  */
 
 export default function AdminSolicitudesPropietarioScreen() {
@@ -62,6 +78,7 @@ export default function AdminSolicitudesPropietarioScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showActionModal, setShowActionModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedSolicitud, setSelectedSolicitud] = useState<Solicitud | null>(null);
   const [actionType, setActionType] = useState<'aprobar' | 'denegar' | 'cambiar_estado' | null>(null);
   const [motivoDenegacion, setMotivoDenegacion] = useState('');
@@ -70,7 +87,7 @@ export default function AdminSolicitudesPropietarioScreen() {
 
   const loadSolicitudes = useCallback(async () => {
     try {
-      console.log('[Solicitudes v51.0] Loading owner requests...');
+      console.log('[Solicitudes v54.0] Loading owner requests...');
       
       let query = supabase
         .from('solicitudes_propietario')
@@ -97,14 +114,14 @@ export default function AdminSolicitudesPropietarioScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Solicitudes v51.0] Error loading requests:', error);
+        console.error('[Solicitudes v54.0] Error loading requests:', error);
         throw error;
       }
 
-      console.log('[Solicitudes v51.0] Loaded requests:', data?.length || 0);
+      console.log('[Solicitudes v54.0] Loaded requests:', data?.length || 0);
       setSolicitudes(data || []);
     } catch (error) {
-      console.error('[Solicitudes v51.0] Error:', error);
+      console.error('[Solicitudes v54.0] Error:', error);
       Alert.alert('Error', 'No se pudieron cargar las solicitudes');
     } finally {
       setLoading(false);
@@ -119,6 +136,11 @@ export default function AdminSolicitudesPropietarioScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     loadSolicitudes();
+  };
+
+  const handleViewDetails = (solicitud: Solicitud) => {
+    setSelectedSolicitud(solicitud);
+    setShowDetailsModal(true);
   };
 
   const handleAprobar = async (solicitud: Solicitud) => {
@@ -146,7 +168,6 @@ export default function AdminSolicitudesPropietarioScreen() {
 
     try {
       if (actionType === 'aprobar') {
-        // Update request status
         const { error: updateError } = await supabase
           .from('solicitudes_propietario')
           .update({ estado: 'aprobada' })
@@ -154,7 +175,6 @@ export default function AdminSolicitudesPropietarioScreen() {
 
         if (updateError) throw updateError;
 
-        // Update user role to propietario
         const { error: roleError } = await supabase
           .from('usuarios')
           .update({ rol_app: 'propietario' })
@@ -162,9 +182,7 @@ export default function AdminSolicitudesPropietarioScreen() {
 
         if (roleError) throw roleError;
 
-        // If claiming existing local, assign ownership
         if (selectedSolicitud.tipo_solicitud === 'reclamar_local' && selectedSolicitud.local_id) {
-          // Check if local has previous owner
           const { data: localData } = await supabase
             .from('locales')
             .select('propietario_id')
@@ -173,9 +191,8 @@ export default function AdminSolicitudesPropietarioScreen() {
 
           const previousOwnerId = localData?.propietario_id;
 
-          // If there was a previous owner, reset the profile
           if (previousOwnerId && previousOwnerId !== selectedSolicitud.usuario_id) {
-            console.log('[Solicitudes v51.0] Resetting local profile due to ownership change...');
+            console.log('[Solicitudes v54.0] Resetting local profile due to ownership change...');
             
             const { data: resetResult, error: resetError } = await supabase
               .rpc('reset_local_profile', {
@@ -185,13 +202,12 @@ export default function AdminSolicitudesPropietarioScreen() {
               });
 
             if (resetError) {
-              console.error('[Solicitudes v51.0] Error resetting profile:', resetError);
+              console.error('[Solicitudes v54.0] Error resetting profile:', resetError);
             } else {
-              console.log('[Solicitudes v51.0] ✅ Profile reset:', resetResult);
+              console.log('[Solicitudes v54.0] ✅ Profile reset:', resetResult);
             }
           }
 
-          // Update local owner
           const { error: localError } = await supabase
             .from('locales')
             .update({ propietario_id: selectedSolicitud.usuario_id })
@@ -199,7 +215,6 @@ export default function AdminSolicitudesPropietarioScreen() {
 
           if (localError) throw localError;
 
-          // Create propietarios_locales entry
           const { error: propError } = await supabase
             .from('propietarios_locales')
             .insert({
@@ -211,9 +226,52 @@ export default function AdminSolicitudesPropietarioScreen() {
           if (propError && propError.code !== '23505') {
             throw propError;
           }
+        } else if (selectedSolicitud.tipo_solicitud === 'nuevo_local') {
+          // Create new local from solicitud data
+          const { data: newLocal, error: createError } = await supabase
+            .from('locales')
+            .insert({
+              nombre: selectedSolicitud.nombre_local,
+              tipo: selectedSolicitud.tipo_local,
+              descripcion: selectedSolicitud.descripcion,
+              direccion: selectedSolicitud.direccion_local,
+              ciudad: selectedSolicitud.ciudad_local,
+              provincia: selectedSolicitud.provincia_local,
+              codigo_postal: selectedSolicitud.codigo_postal_local,
+              telefono: selectedSolicitud.telefono_local,
+              email: selectedSolicitud.email_contacto,
+              latitud: selectedSolicitud.latitud_local,
+              longitud: selectedSolicitud.longitud_local,
+              horarios_completos: selectedSolicitud.horarios_local,
+              servicios: selectedSolicitud.servicios_local,
+              imagen_url: selectedSolicitud.imagen_portada_url,
+              galeria_urls: selectedSolicitud.galeria_urls,
+              propietario_id: selectedSolicitud.usuario_id,
+              source_type: 'manual',
+              estado_solicitud: 'aprobado',
+              activo: true,
+            })
+            .select()
+            .single();
+
+          if (createError) throw createError;
+
+          // Create propietarios_locales entry
+          const { error: propError } = await supabase
+            .from('propietarios_locales')
+            .insert({
+              propietario_id: selectedSolicitud.usuario_id,
+              local_id: newLocal.id,
+              rol: 'propietario',
+            });
+
+          if (propError && propError.code !== '23505') {
+            throw propError;
+          }
+
+          console.log('[Solicitudes v54.0] ✅ New local created:', newLocal.id);
         }
 
-        // Create approval notification
         await supabase.from('notificaciones').insert({
           usuario_id: selectedSolicitud.usuario_id,
           tipo: 'sistema',
@@ -228,7 +286,6 @@ export default function AdminSolicitudesPropietarioScreen() {
           return;
         }
 
-        // Update request status
         const { error: updateError } = await supabase
           .from('solicitudes_propietario')
           .update({ 
@@ -239,7 +296,6 @@ export default function AdminSolicitudesPropietarioScreen() {
 
         if (updateError) throw updateError;
 
-        // Create denial notification
         await supabase.from('notificaciones').insert({
           usuario_id: selectedSolicitud.usuario_id,
           tipo: 'sistema',
@@ -249,7 +305,6 @@ export default function AdminSolicitudesPropietarioScreen() {
 
         Alert.alert('✅ Éxito', 'Solicitud denegada. El usuario ha recibido una notificación.');
       } else if (actionType === 'cambiar_estado') {
-        // Update request status
         const { error: updateError } = await supabase
           .from('solicitudes_propietario')
           .update({ 
@@ -260,7 +315,6 @@ export default function AdminSolicitudesPropietarioScreen() {
 
         if (updateError) throw updateError;
 
-        // Create notification
         const estadoTexto = nuevoEstado === 'en_revision' ? 'en revisión' : 'requiere información adicional';
         await supabase.from('notificaciones').insert({
           usuario_id: selectedSolicitud.usuario_id,
@@ -279,7 +333,7 @@ export default function AdminSolicitudesPropietarioScreen() {
       setNotasAdmin('');
       loadSolicitudes();
     } catch (error) {
-      console.error('[Solicitudes v51.0] Error executing action:', error);
+      console.error('[Solicitudes v54.0] Error executing action:', error);
       Alert.alert('Error', 'No se pudo completar la acción');
     }
   };
@@ -301,23 +355,6 @@ export default function AdminSolicitudesPropietarioScreen() {
     }
   };
 
-  const getEstadoIcon = (estado: string) => {
-    switch (estado) {
-      case 'pendiente':
-        return 'clock.fill';
-      case 'en_revision':
-        return 'eye.fill';
-      case 'informacion_adicional':
-        return 'doc.text.fill';
-      case 'aprobada':
-        return 'checkmark.circle.fill';
-      case 'denegada':
-        return 'xmark.circle.fill';
-      default:
-        return 'questionmark.circle.fill';
-    }
-  };
-
   const getEstadoLabel = (estado: string) => {
     switch (estado) {
       case 'pendiente':
@@ -335,9 +372,285 @@ export default function AdminSolicitudesPropietarioScreen() {
     }
   };
 
+  const getTipoDocumentoLabel = (tipo?: string) => {
+    switch (tipo) {
+      case 'factura_luz':
+        return 'Factura de Luz';
+      case 'factura_agua':
+        return 'Factura de Agua';
+      case 'contrato_alquiler':
+        return 'Contrato de Alquiler';
+      case 'escritura':
+        return 'Escritura de Propiedad';
+      case 'licencia_actividad':
+        return 'Licencia de Actividad';
+      case 'otro':
+        return 'Otro Documento';
+      default:
+        return 'Documento';
+    }
+  };
+
   const solicitudesFiltradas = filtro === 'todas' 
     ? solicitudes 
     : solicitudes.filter((s) => s.estado === filtro);
+
+  const renderDetailsModal = () => {
+    if (!selectedSolicitud) return null;
+
+    return (
+      <Modal
+        visible={showDetailsModal}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowDetailsModal(false)}
+      >
+        <View style={styles.detailsModalContainer}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.detailsHeader}
+          >
+            <TouchableOpacity style={styles.backButton} onPress={() => setShowDetailsModal(false)}>
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Detalles de Solicitud</Text>
+            <View style={{ width: 40 }} />
+          </LinearGradient>
+
+          <ScrollView style={styles.detailsContent} contentContainerStyle={styles.detailsContentContainer}>
+            {/* User Info */}
+            <View style={styles.detailsSection}>
+              <Text style={styles.detailsSectionTitle}>Solicitante</Text>
+              <View style={styles.userInfoCard}>
+                {selectedSolicitud.usuario?.avatar ? (
+                  <Image source={{ uri: selectedSolicitud.usuario.avatar }} style={styles.detailsAvatar} />
+                ) : (
+                  <View style={[styles.detailsAvatar, styles.avatarPlaceholder]}>
+                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.white} />
+                  </View>
+                )}
+                <View style={styles.userInfoDetails}>
+                  <Text style={styles.detailsUserName}>{selectedSolicitud.usuario?.nombre || 'Usuario'}</Text>
+                  {selectedSolicitud.usuario?.username && (
+                    <Text style={styles.detailsUsername}>@{selectedSolicitud.usuario.username}</Text>
+                  )}
+                  <Text style={styles.detailsUserEmail}>{selectedSolicitud.usuario?.email}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Local Info */}
+            <View style={styles.detailsSection}>
+              <Text style={styles.detailsSectionTitle}>
+                {selectedSolicitud.tipo_solicitud === 'nuevo_local' ? 'Nuevo Local Propuesto' : 'Local a Reclamar'}
+              </Text>
+              <View style={styles.localInfoCard}>
+                <View style={styles.detailsRow}>
+                  <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={18} color={colors.primary} />
+                  <Text style={styles.detailsLocalName}>{selectedSolicitud.nombre_local}</Text>
+                </View>
+                
+                {selectedSolicitud.tipo_local && (
+                  <View style={styles.detailsRow}>
+                    <IconSymbol ios_icon_name="tag.fill" android_material_icon_name="label" size={16} color={colors.textSecondary} />
+                    <Text style={styles.detailsText}>Tipo: {selectedSolicitud.tipo_local}</Text>
+                  </View>
+                )}
+
+                {selectedSolicitud.direccion_local && (
+                  <View style={styles.detailsRow}>
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={16} color={colors.textSecondary} />
+                    <Text style={styles.detailsText}>{selectedSolicitud.direccion_local}</Text>
+                  </View>
+                )}
+
+                {selectedSolicitud.ciudad_local && (
+                  <View style={styles.detailsRow}>
+                    <IconSymbol ios_icon_name="building.2" android_material_icon_name="location_city" size={16} color={colors.textSecondary} />
+                    <Text style={styles.detailsText}>
+                      {selectedSolicitud.codigo_postal_local && `${selectedSolicitud.codigo_postal_local} `}
+                      {selectedSolicitud.ciudad_local}, {selectedSolicitud.provincia_local}
+                    </Text>
+                  </View>
+                )}
+
+                {selectedSolicitud.telefono_contacto && (
+                  <TouchableOpacity 
+                    style={styles.detailsRow}
+                    onPress={() => Linking.openURL(`tel:${selectedSolicitud.telefono_contacto}`)}
+                  >
+                    <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={16} color={colors.primary} />
+                    <Text style={[styles.detailsText, { color: colors.primary }]}>{selectedSolicitud.telefono_contacto}</Text>
+                  </TouchableOpacity>
+                )}
+
+                {selectedSolicitud.email_contacto && (
+                  <TouchableOpacity 
+                    style={styles.detailsRow}
+                    onPress={() => Linking.openURL(`mailto:${selectedSolicitud.email_contacto}`)}
+                  >
+                    <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={16} color={colors.primary} />
+                    <Text style={[styles.detailsText, { color: colors.primary }]}>{selectedSolicitud.email_contacto}</Text>
+                  </TouchableOpacity>
+                )}
+
+                {selectedSolicitud.descripcion && (
+                  <View style={styles.descriptionBox}>
+                    <Text style={styles.descriptionText}>{selectedSolicitud.descripcion}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Document */}
+            {selectedSolicitud.documento_propiedad_url && (
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsSectionTitle}>Documento de Propiedad</Text>
+                <View style={styles.documentCard}>
+                  <View style={styles.documentCardHeader}>
+                    <IconSymbol ios_icon_name="doc.fill" android_material_icon_name="description" size={24} color={colors.primary} />
+                    <View style={styles.documentCardInfo}>
+                      <Text style={styles.documentCardTitle}>
+                        {getTipoDocumentoLabel(selectedSolicitud.documento_propiedad_tipo)}
+                      </Text>
+                      <Text style={styles.documentCardSubtitle}>Documento acreditativo de propiedad</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.viewDocumentButton}
+                    onPress={() => Linking.openURL(selectedSolicitud.documento_propiedad_url!)}
+                  >
+                    <Text style={styles.viewDocumentButtonText}>Ver Documento</Text>
+                    <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={16} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Images */}
+            {(selectedSolicitud.imagen_portada_url || (selectedSolicitud.galeria_urls && selectedSolicitud.galeria_urls.length > 0)) && (
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsSectionTitle}>Imágenes del Local</Text>
+                
+                {selectedSolicitud.imagen_portada_url && (
+                  <View style={styles.imagePreviewContainer}>
+                    <Text style={styles.imagePreviewLabel}>Portada:</Text>
+                    <Image source={{ uri: selectedSolicitud.imagen_portada_url }} style={styles.coverImagePreview} />
+                  </View>
+                )}
+
+                {selectedSolicitud.galeria_urls && selectedSolicitud.galeria_urls.length > 0 && (
+                  <View style={styles.imagePreviewContainer}>
+                    <Text style={styles.imagePreviewLabel}>Galería ({selectedSolicitud.galeria_urls.length}):</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryPreviewScroll}>
+                      {selectedSolicitud.galeria_urls.map((uri, index) => (
+                        <Image key={index} source={{ uri }} style={styles.galleryImagePreview} />
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Location Map */}
+            {selectedSolicitud.latitud_local && selectedSolicitud.longitud_local && (
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsSectionTitle}>Ubicación en el Mapa</Text>
+                <View style={styles.mapPreviewContainer}>
+                  <Text style={styles.coordinatesPreviewText}>
+                    📍 {selectedSolicitud.latitud_local.toFixed(6)}, {selectedSolicitud.longitud_local.toFixed(6)}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.openMapButton}
+                    onPress={() => {
+                      const url = Platform.select({
+                        ios: `maps:0,0?q=${selectedSolicitud.latitud_local},${selectedSolicitud.longitud_local}`,
+                        android: `google.navigation:q=${selectedSolicitud.latitud_local},${selectedSolicitud.longitud_local}`,
+                        default: `https://www.google.com/maps/search/?api=1&query=${selectedSolicitud.latitud_local},${selectedSolicitud.longitud_local}`
+                      });
+                      Linking.openURL(url);
+                    }}
+                  >
+                    <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={18} color={colors.primary} />
+                    <Text style={styles.openMapButtonText}>Abrir en Mapas</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Services */}
+            {selectedSolicitud.servicios_local && selectedSolicitud.servicios_local.length > 0 && (
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsSectionTitle}>Servicios</Text>
+                <View style={styles.tagsGrid}>
+                  {selectedSolicitud.servicios_local.map((servicio, index) => (
+                    <View key={index} style={styles.tag}>
+                      <Text style={styles.tagText}>{servicio}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Horarios */}
+            {selectedSolicitud.horarios_local && Object.keys(selectedSolicitud.horarios_local).length > 0 && (
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsSectionTitle}>Horarios</Text>
+                <View style={styles.horariosCard}>
+                  {Object.entries(selectedSolicitud.horarios_local).map(([dia, horario]: [string, any]) => (
+                    <View key={dia} style={styles.horarioRow}>
+                      <Text style={styles.horarioDiaText}>{dia}</Text>
+                      <Text style={styles.horarioHorasText}>
+                        {horario.abierto ? `${horario.apertura} - ${horario.cierre}` : 'Cerrado'}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <View style={{ height: 100 }} />
+          </ScrollView>
+
+          {/* Action Buttons */}
+          {(selectedSolicitud.estado === 'pendiente' || selectedSolicitud.estado === 'en_revision' || selectedSolicitud.estado === 'informacion_adicional') && (
+            <View style={styles.detailsFooter}>
+              <TouchableOpacity
+                style={[styles.detailsActionButton, { backgroundColor: '#10B981' }]}
+                onPress={() => {
+                  setShowDetailsModal(false);
+                  setTimeout(() => handleAprobar(selectedSolicitud), 300);
+                }}
+              >
+                <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color="#fff" />
+                <Text style={styles.detailsActionButtonText}>Aprobar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.detailsActionButton, { backgroundColor: '#3B82F6' }]}
+                onPress={() => {
+                  setShowDetailsModal(false);
+                  setTimeout(() => handleCambiarEstado(selectedSolicitud), 300);
+                }}
+              >
+                <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="sync" size={20} color="#fff" />
+                <Text style={styles.detailsActionButtonText}>Cambiar Estado</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.detailsActionButton, { backgroundColor: '#EF4444' }]}
+                onPress={() => {
+                  setShowDetailsModal(false);
+                  setTimeout(() => handleDenegar(selectedSolicitud), 300);
+                }}
+              >
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
+                <Text style={styles.detailsActionButtonText}>Denegar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </Modal>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -420,8 +733,12 @@ export default function AdminSolicitudesPropietarioScreen() {
         >
           {solicitudesFiltradas.length > 0 ? (
             solicitudesFiltradas.map((solicitud) => (
-              <View key={solicitud.id} style={styles.solicitudCard}>
-                {/* ✅ COMPACT HEADER */}
+              <TouchableOpacity 
+                key={solicitud.id} 
+                style={styles.solicitudCard}
+                onPress={() => handleViewDetails(solicitud)}
+                activeOpacity={0.7}
+              >
                 <View style={styles.compactHeader}>
                   <View style={styles.userSection}>
                     {solicitud.usuario?.avatar ? (
@@ -444,7 +761,6 @@ export default function AdminSolicitudesPropietarioScreen() {
                   </View>
                 </View>
 
-                {/* ✅ COMPACT LOCAL INFO */}
                 <View style={styles.localSection}>
                   <View style={styles.localHeader}>
                     <IconSymbol 
@@ -469,6 +785,16 @@ export default function AdminSolicitudesPropietarioScreen() {
                       <Text style={styles.infoText}>{solicitud.telefono_contacto}</Text>
                     </View>
                   )}
+
+                  {/* ✅ NEW: Show if has document */}
+                  {solicitud.documento_propiedad_url && (
+                    <View style={styles.infoRow}>
+                      <IconSymbol ios_icon_name="doc.fill" android_material_icon_name="description" size={12} color="#10B981" />
+                      <Text style={[styles.infoText, { color: '#10B981', fontWeight: '600' }]}>
+                        {getTipoDocumentoLabel(solicitud.documento_propiedad_tipo)}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 {solicitud.mensaje && (
@@ -477,7 +803,6 @@ export default function AdminSolicitudesPropietarioScreen() {
                   </View>
                 )}
 
-                {/* ✅ COMPACT METADATA */}
                 <View style={styles.metadataRow}>
                   <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={12} color={colors.textSecondary} />
                   <Text style={styles.metadataText}>
@@ -488,9 +813,12 @@ export default function AdminSolicitudesPropietarioScreen() {
                       minute: '2-digit'
                     })}
                   </Text>
+                  <View style={styles.metadataSeparator} />
+                  <TouchableOpacity onPress={() => handleViewDetails(solicitud)}>
+                    <Text style={styles.viewDetailsLink}>Ver detalles completos →</Text>
+                  </TouchableOpacity>
                 </View>
 
-                {/* ✅ COMPACT ACTIONS */}
                 {(solicitud.estado === 'pendiente' || solicitud.estado === 'en_revision' || solicitud.estado === 'informacion_adicional') && (
                   <View style={styles.actionsContainer}>
                     <TouchableOpacity
@@ -513,7 +841,7 @@ export default function AdminSolicitudesPropietarioScreen() {
                     </TouchableOpacity>
                   </View>
                 )}
-              </View>
+              </TouchableOpacity>
             ))
           ) : (
             <View style={styles.emptyContainer}>
@@ -641,6 +969,8 @@ export default function AdminSolicitudesPropietarioScreen() {
           </View>
         </View>
       </Modal>
+
+      {renderDetailsModal()}
     </View>
   );
 }
@@ -743,7 +1073,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 16,
   },
-  // ✅ COMPACT CARD DESIGN
   solicitudCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
@@ -851,6 +1180,17 @@ const styles = StyleSheet.create({
   metadataText: {
     fontSize: 11,
     color: colors.textSecondary,
+  },
+  metadataSeparator: {
+    width: 1,
+    height: 12,
+    backgroundColor: colors.cardBorder,
+    marginHorizontal: 8,
+  },
+  viewDetailsLink: {
+    fontSize: 11,
+    color: colors.primary,
+    fontWeight: '600',
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -988,6 +1328,266 @@ const styles = StyleSheet.create({
   modalConfirmButtonText: {
     fontSize: 15,
     fontWeight: '600',
+    color: '#fff',
+  },
+  // Details Modal Styles
+  detailsModalContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  detailsHeader: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  detailsContent: {
+    flex: 1,
+  },
+  detailsContentContainer: {
+    padding: 16,
+    paddingBottom: 120,
+  },
+  detailsSection: {
+    marginBottom: 24,
+  },
+  detailsSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  userInfoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  detailsAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  userInfoDetails: {
+    flex: 1,
+  },
+  detailsUserName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  detailsUsername: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  detailsUserEmail: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  localInfoCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    gap: 12,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  detailsLocalName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    flex: 1,
+  },
+  detailsText: {
+    fontSize: 14,
+    color: colors.text,
+    flex: 1,
+  },
+  descriptionBox: {
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 4,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  documentCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  documentCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  documentCardInfo: {
+    flex: 1,
+  },
+  documentCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  documentCardSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  viewDocumentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primary + '15',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+  },
+  viewDocumentButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  imagePreviewContainer: {
+    marginBottom: 16,
+  },
+  imagePreviewLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  coverImagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: colors.cardBorder,
+  },
+  galleryPreviewScroll: {
+    marginTop: 8,
+  },
+  galleryImagePreview: {
+    width: 120,
+    height: 120,
+    borderRadius: 12,
+    marginRight: 12,
+    backgroundColor: colors.cardBorder,
+  },
+  mapPreviewContainer: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    gap: 12,
+  },
+  coordinatesPreviewText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  openMapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary + '15',
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  openMapButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  tagsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  tagText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  horariosCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    gap: 8,
+  },
+  horarioRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  horarioDiaText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    width: 80,
+  },
+  horarioHorasText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  detailsFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+    backgroundColor: colors.cardBackground,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  detailsActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  detailsActionButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
     color: '#fff',
   },
 });

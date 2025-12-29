@@ -22,6 +22,7 @@ interface LocalSubscriptionData {
   id: string;
   nombre: string;
   provincia: string;
+  direccion?: string;
   imagen_url?: string;
   destacado: boolean;
   suscripcion?: {
@@ -59,15 +60,14 @@ interface Props {
 }
 
 /**
- * ✅ LOCAL SUBSCRIPTION CARD v52.0 - FIXED CANCEL BUTTON FOR FREE PLANS
+ * ✅ LOCAL SUBSCRIPTION CARD v55.0 - UPDATED PLAN POTENTIALS & ADDRESS DISPLAY
  * 
- * CRITICAL FIXES v52.0:
- * - ✅ Cancel button HIDDEN for free plans (plan_precio === 0)
- * - ✅ Cancel button ONLY visible for paid plans (plan_precio > 0)
- * - ✅ Cancel button has LESS PROMINENT color (#6B7280 gray instead of red)
- * - ✅ Numerical credit display (no progress bar)
- * - ✅ Customer potential progress bar
- * - ✅ Real-time highlight counter when active
+ * CRITICAL FIXES v55.0:
+ * - ✅ Plan Gratuito: 30% de potencial (was 20%)
+ * - ✅ Plan Estándar: 65% de potencial (was 35%)
+ * - ✅ Plan Premium: 100% de potencial (was 50%)
+ * - ✅ Destacado adds +35% to any plan
+ * - ✅ Shows local address in card
  */
 
 export default function LocalSubscriptionCard({ local, onRefresh, isSelected, onSelect }: Props) {
@@ -119,29 +119,40 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       if (days > 0) return `${days}d ${hours}h`;
       return `${hours}h`;
     } catch (error) {
-      console.error('[LocalSubscriptionCard v52.0] Error calculating time:', error);
+      console.error('[LocalSubscriptionCard v55.0] Error calculating time:', error);
       return 'Error';
     }
   };
 
+  /**
+   * ✅ UPDATED v55.0: New plan potential calculation
+   * - Plan Gratuito: 30% base
+   * - Plan Estándar: 65% base
+   * - Plan Premium: 100% base
+   * - Destacado: +35% (can exceed 100%)
+   */
   const calculateCustomerPotential = (): number => {
-    if (!local.suscripcion) return 20;
+    if (!local.suscripcion) return 30; // ✅ Free plan base: 30%
 
-    let percentage = 20;
+    let percentage = 30; // Default to free plan
 
+    const planName = local.suscripcion.plan_nombre.toLowerCase();
+
+    // ✅ CRITICAL FIX v55.0: Updated plan potentials
+    if (planName === 'estandar' || planName === 'estándar') {
+      percentage = 65; // ✅ Standard plan: 65%
+    } else if (planName === 'premium') {
+      percentage = 100; // ✅ Premium plan: 100%
+    } else if (planName === 'gratuito' || planName === 'free' || planName === 'basico' || planName === 'básico') {
+      percentage = 30; // ✅ Free plan: 30%
+    }
+
+    // ✅ Destacado adds +35% (can exceed 100%)
     if (local.suscripcion.destacado_activo) {
-      percentage += 30;
+      percentage += 35;
     }
 
-    if (local.suscripcion.plan_nombre.toLowerCase() === 'estandar' || local.suscripcion.plan_nombre.toLowerCase() === 'estándar') {
-      percentage += 15;
-    }
-
-    if (local.suscripcion.plan_nombre.toLowerCase() === 'premium') {
-      percentage += 30;
-    }
-
-    return Math.min(percentage, 100);
+    return percentage; // Can exceed 100% with destacado
   };
 
   const handleToggleDestacado = async () => {
@@ -243,7 +254,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
       onRefresh();
     } catch (error: any) {
-      console.error('[LocalSubscriptionCard v52.0] Error activating destacado:', error);
+      console.error('[LocalSubscriptionCard v55.0] Error activating destacado:', error);
       Alert.alert('Error', 'No se pudo activar el estado destacado del local.');
     } finally {
       setUpdatingDestacado(false);
@@ -282,7 +293,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
       onRefresh();
     } catch (error: any) {
-      console.error('[LocalSubscriptionCard v52.0] Error deactivating destacado:', error);
+      console.error('[LocalSubscriptionCard v55.0] Error deactivating destacado:', error);
       Alert.alert('Error', 'No se pudo desactivar el estado destacado del local.');
     } finally {
       setUpdatingDestacado(false);
@@ -295,7 +306,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       return;
     }
 
-    // ✅ CRITICAL FIX v52.0: Cannot cancel free plan (plan_precio === 0)
     if (local.suscripcion.plan_precio === 0) {
       Alert.alert(
         'Plan Gratuito',
@@ -341,7 +351,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
               onRefresh();
             } catch (error: any) {
-              console.error('[LocalSubscriptionCard v52.0] Error canceling plan:', error);
+              console.error('[LocalSubscriptionCard v55.0] Error canceling plan:', error);
               Alert.alert('Error', 'No se pudo cancelar el plan. Intenta de nuevo.');
             } finally {
               setLoading(false);
@@ -405,6 +415,13 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
             <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={12} color="rgba(255, 255, 255, 0.9)" />
             <Text style={styles.coverImageProvincia}>{local.provincia}</Text>
           </View>
+          {/* ✅ NEW v55.0: Show address in card */}
+          {local.direccion && (
+            <View style={styles.coverImageAddress}>
+              <IconSymbol ios_icon_name="mappin.circle" android_material_icon_name="place" size={12} color="rgba(255, 255, 255, 0.8)" />
+              <Text style={styles.coverImageAddressText} numberOfLines={1}>{local.direccion}</Text>
+            </View>
+          )}
         </View>
 
         {/* Plan Badge on Image */}
@@ -447,7 +464,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
           percentage={calculateCustomerPotential()}
           hasActiveHighlight={local.suscripcion?.destacado_activo || false}
           hasActiveEvent={!!local.evento_activo}
-          planName={local.suscripcion?.plan_nombre || 'free'}
+          planName={local.suscripcion?.plan_nombre || 'gratuito'}
           localId={local.id}
         />
 
@@ -487,7 +504,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
         {local.suscripcion && (
           <React.Fragment>
-            {/* ✅ CRITICAL FIX v52.0: Numerical credit display (no progress bar) */}
             <SimplifiedCreditsCard
               creditosDestacados={local.suscripcion.creditos_destacados_restantes}
               creditosEventos={local.suscripcion.creditos_eventos_restantes}
@@ -558,7 +574,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                 </LinearGradient>
               </TouchableOpacity>
 
-              {/* ✅ CRITICAL FIX v52.0: Cancel button ONLY for paid plans (plan_precio > 0) */}
+              {/* ✅ CRITICAL FIX v55.0: Cancel button ONLY for paid plans */}
               {local.suscripcion.plan_precio > 0 && !local.suscripcion.cancelar_al_final_periodo && (
                 <TouchableOpacity
                   style={styles.cancelPlanButton}
@@ -744,6 +760,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    marginBottom: 4,
   },
   coverImageProvincia: {
     fontSize: 13,
@@ -752,6 +769,20 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
+  },
+  coverImageAddress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  coverImageAddressText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '500',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+    flex: 1,
   },
   planBadgeOnImage: {
     position: 'absolute',
@@ -887,7 +918,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  // ✅ CRITICAL FIX v52.0: Less prominent cancel button (gray #6B7280 instead of red)
   cancelPlanButton: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -15,15 +15,14 @@ interface Props {
 }
 
 /**
- * ✅ CUSTOMER POTENTIAL BAR v2.0 - FIXED CALCULATION
+ * ✅ CUSTOMER POTENTIAL BAR v55.0 - UPDATED PLAN POTENTIALS
  * 
- * FEATURES:
- * - ✅ Shows "Potential customers reached" percentage
- * - ✅ Increases when credits are used (highlight)
- * - ✅ Increases based on plan level (higher plan = higher potential)
- * - ✅ DOES NOT include event publications in calculation
- * - ✅ Creates psychological need to maintain high percentage
- * - ✅ Encourages plan upgrades with explanatory message
+ * CRITICAL FIXES v55.0:
+ * - ✅ Plan Gratuito: 30% de potencial (updated from 20%)
+ * - ✅ Plan Estándar: 65% de potencial (updated from 35%)
+ * - ✅ Plan Premium: 100% de potencial (updated from 50%)
+ * - ✅ Destacado adds +35% to any plan
+ * - ✅ Updated calculation explanation
  */
 
 export default function CustomerPotentialBar({ 
@@ -57,20 +56,20 @@ export default function CustomerPotentialBar({
   const getImprovementMessage = (): string => {
     const plan = planName.toLowerCase();
     
-    if (plan === 'free' || plan === 'basico' || plan === 'básico') {
-      return '💡 Mejora tu alcance: Contrata un plan superior para destacar tu local y atraer más clientes. Los locales con Plan Estándar alcanzan un 50% más de clientes potenciales.';
+    if (plan === 'free' || plan === 'basico' || plan === 'básico' || plan === 'gratuito') {
+      return '💡 Mejora tu alcance: Contrata un plan superior para destacar tu local y atraer más clientes. Los locales con Plan Estándar alcanzan un 65% de clientes potenciales.';
     }
     
     if (plan === 'estandar' || plan === 'estándar') {
       if (!hasActiveHighlight) {
-        return '⭐ Activa un crédito de Destacado para alcanzar el máximo potencial. Los locales destacados reciben un 40% más de visitas.';
+        return '⭐ Activa un crédito de Destacado para alcanzar el máximo potencial (100%). Los locales destacados reciben un 35% más de visitas.';
       }
-      return '🚀 ¿Quieres más? El Plan Premium te da visibilidad máxima garantizada y estadísticas avanzadas para conocer mejor a tus clientes.';
+      return '🚀 ¿Quieres más? El Plan Premium te da 100% de potencial base y visibilidad máxima garantizada con estadísticas avanzadas.';
     }
     
     if (plan === 'premium') {
       if (!hasActiveHighlight) {
-        return '⭐ Activa un crédito de Destacado para maximizar tu alcance y dominar tu zona.';
+        return '⭐ Ya tienes el 100% de potencial base. ¡Mantén tu local destacado para dominar tu zona!';
       }
       return '🎉 ¡Estás en el nivel máximo! Mantén tu local destacado para seguir dominando tu zona.';
     }
@@ -113,7 +112,7 @@ export default function CustomerPotentialBar({
             colors={barColors}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={[styles.progressBarFill, { width: `${percentage}%` }]}
+            style={[styles.progressBarFill, { width: `${Math.min(percentage, 100)}%` }]}
           />
         </View>
         <Text style={styles.percentageText}>{percentage}%</Text>
@@ -129,7 +128,7 @@ export default function CustomerPotentialBar({
               size={14} 
               color="#F59E0B" 
             />
-            <Text style={styles.featureChipText}>Destacado Activo (+30%)</Text>
+            <Text style={styles.featureChipText}>Destacado Activo (+35%)</Text>
           </View>
         )}
         {planName.toLowerCase() === 'estandar' || planName.toLowerCase() === 'estándar' ? (
@@ -140,7 +139,7 @@ export default function CustomerPotentialBar({
               size={14} 
               color="#3B82F6" 
             />
-            <Text style={styles.featureChipText}>Plan Estándar (+15%)</Text>
+            <Text style={styles.featureChipText}>Plan Estándar (65% base)</Text>
           </View>
         ) : planName.toLowerCase() === 'premium' ? (
           <View style={styles.featureChip}>
@@ -150,10 +149,20 @@ export default function CustomerPotentialBar({
               size={14} 
               color="#F59E0B" 
             />
-            <Text style={styles.featureChipText}>Plan Premium (+30%)</Text>
+            <Text style={styles.featureChipText}>Plan Premium (100% base)</Text>
           </View>
-        ) : null}
-        {!hasActiveHighlight && (planName.toLowerCase() === 'free' || planName.toLowerCase() === 'basico' || planName.toLowerCase() === 'básico') && (
+        ) : (
+          <View style={styles.featureChip}>
+            <IconSymbol 
+              ios_icon_name="checkmark.circle" 
+              android_material_icon_name="check_circle"
+              size={14} 
+              color="#10B981" 
+            />
+            <Text style={styles.featureChipText}>Plan Gratuito (30% base)</Text>
+          </View>
+        )}
+        {!hasActiveHighlight && (planName.toLowerCase() === 'free' || planName.toLowerCase() === 'basico' || planName.toLowerCase() === 'básico' || planName.toLowerCase() === 'gratuito') && (
           <View style={[styles.featureChip, styles.featureChipInactive]}>
             <IconSymbol 
               ios_icon_name="exclamationmark.triangle" 
@@ -168,8 +177,8 @@ export default function CustomerPotentialBar({
         )}
       </View>
 
-      {/* ✅ NEW: Improvement Tip with CTA */}
-      {percentage < 80 && (
+      {/* ✅ Improvement Tip with CTA */}
+      {percentage < 100 && (
         <TouchableOpacity 
           style={styles.tipBox}
           onPress={() => {
@@ -197,25 +206,25 @@ export default function CustomerPotentialBar({
         </TouchableOpacity>
       )}
 
-      {/* ✅ NEW: Calculation explanation */}
+      {/* ✅ UPDATED v55.0: New calculation explanation */}
       <View style={styles.explanationBox}>
         <Text style={styles.explanationTitle}>¿Cómo se calcula?</Text>
         <View style={styles.explanationItems}>
           <View style={styles.explanationItem}>
             <Text style={styles.explanationBullet}>•</Text>
-            <Text style={styles.explanationText}>Base: 20%</Text>
+            <Text style={styles.explanationText}>Plan Gratuito: 30% base</Text>
           </View>
           <View style={styles.explanationItem}>
             <Text style={styles.explanationBullet}>•</Text>
-            <Text style={styles.explanationText}>Destacar local: +30%</Text>
+            <Text style={styles.explanationText}>Plan Estándar: 65% base</Text>
           </View>
           <View style={styles.explanationItem}>
             <Text style={styles.explanationBullet}>•</Text>
-            <Text style={styles.explanationText}>Plan Estándar: +15%</Text>
+            <Text style={styles.explanationText}>Plan Premium: 100% base</Text>
           </View>
           <View style={styles.explanationItem}>
             <Text style={styles.explanationBullet}>•</Text>
-            <Text style={styles.explanationText}>Plan Premium: +30%</Text>
+            <Text style={styles.explanationText}>Destacar local: +35%</Text>
           </View>
         </View>
       </View>

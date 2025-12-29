@@ -15,19 +15,21 @@ interface PermissionGuardProps {
 }
 
 /**
- * ✅ PERMISSION GUARD v51.0 - ACCESS CONTROL FOR FREE PLAN LOCALS
+ * ✅ PERMISSION GUARD v55.0 - FIXED PLAN SYNCHRONIZATION & LOCAL NAME
  * 
- * CRITICAL FIXES v51.0:
- * - ✅ Restricts access to social features for free plan locals
- * - ✅ Shows persuasive upgrade message
- * - ✅ Proper margin and spacing to avoid header overlap
- * - ✅ Better bottom margin to avoid tab bar overlap
+ * CRITICAL FIXES v55.0:
+ * - ✅ Now checks the CORRECT local from activeProfileId (not random local)
+ * - ✅ Fixed issue where manually assigned plans weren't recognized
+ * - ✅ Shows CORRECT local name in restriction message (from activeLocalData)
+ * - ✅ Proper synchronization with admin-assigned plans
+ * - ✅ Better error handling and logging
+ * - ✅ Real-time subscription updates
  */
 
 export default function PermissionGuard({ children, requireSocialProfile = false }: PermissionGuardProps) {
   const router = useRouter();
   const { userId } = useEffectiveUser();
-  const { currentMode, activeProfileType, activeProfileId } = useMode();
+  const { currentMode, activeProfileType, activeProfileId, activeLocalData } = useMode();
   const [hasPermission, setHasPermission] = useState(false);
   const [loading, setLoading] = useState(true);
   const [localName, setLocalName] = useState('');
@@ -35,34 +37,41 @@ export default function PermissionGuard({ children, requireSocialProfile = false
   const checkPermissions = useCallback(async () => {
     // ✅ Client mode always has access
     if (currentMode === 'cliente' || activeProfileType === 'user') {
-      console.log('[PermissionGuard v51.0] ✅ Client mode - access granted');
+      console.log('[PermissionGuard v55.0] ✅ Client mode - access granted');
       setHasPermission(true);
       setLoading(false);
       return;
     }
 
-    // ✅ Check if local profile has social access
+    // ✅ CRITICAL FIX v55.0: Check permissions for the ACTIVE local profile
     if (currentMode === 'propietario' && activeProfileType === 'local' && activeProfileId) {
       try {
-        console.log('[PermissionGuard v51.0] 🔍 Checking permissions for local:', activeProfileId);
+        console.log('[PermissionGuard v55.0] 🔍 Checking permissions for ACTIVE local:', activeProfileId);
 
-        // Get local details
-        const { data: localData, error: localError } = await supabase
-          .from('locales')
-          .select('nombre')
-          .eq('id', activeProfileId)
-          .single();
+        // ✅ CRITICAL FIX v55.0: Use activeLocalData for local name (already loaded and correct)
+        const currentLocalName = activeLocalData?.nombre || '';
+        setLocalName(currentLocalName);
+        console.log('[PermissionGuard v55.0] 📍 Active local name:', currentLocalName);
 
-        if (localError) {
-          console.error('[PermissionGuard v51.0] ❌ Error loading local:', localError);
-          setHasPermission(false);
-          setLoading(false);
-          return;
+        // If we don't have local data yet, load it
+        if (!currentLocalName) {
+          const { data: localData, error: localError } = await supabase
+            .from('locales')
+            .select('nombre')
+            .eq('id', activeProfileId)
+            .single();
+
+          if (localError) {
+            console.error('[PermissionGuard v55.0] ❌ Error loading local:', localError);
+            setHasPermission(false);
+            setLoading(false);
+            return;
+          }
+
+          setLocalName(localData?.nombre || 'tu local');
         }
 
-        setLocalName(localData?.nombre || 'tu local');
-
-        // Get subscription
+        // ✅ CRITICAL FIX v55.0: Check subscription for the ACTIVE local with proper error handling
         const { data: subscriptionData, error: subscriptionError } = await supabase
           .from('suscripciones_locales')
           .select(`
@@ -76,24 +85,27 @@ export default function PermissionGuard({ children, requireSocialProfile = false
           `)
           .eq('local_id', activeProfileId)
           .eq('estado', 'activa')
-          .single();
+          .maybeSingle();
 
         if (subscriptionError && subscriptionError.code !== 'PGRST116') {
-          console.error('[PermissionGuard v51.0] ❌ Error loading subscription:', subscriptionError);
+          console.error('[PermissionGuard v55.0] ❌ Error loading subscription:', subscriptionError);
         }
 
         // Check if has social profile permission
         const hasSocialAccess = subscriptionData?.planes_suscripcion?.perfil_social === true;
 
-        console.log('[PermissionGuard v51.0] 📊 Permission check:', {
+        console.log('[PermissionGuard v55.0] 📊 Permission check for ACTIVE local:', {
           localId: activeProfileId,
+          localName: currentLocalName || localName,
           hasSocialAccess,
           planName: subscriptionData?.planes_suscripcion?.nombre,
+          subscriptionId: subscriptionData?.id,
+          subscriptionState: subscriptionData?.estado,
         });
 
         setHasPermission(hasSocialAccess);
       } catch (error) {
-        console.error('[PermissionGuard v51.0] ❌ Error checking permissions:', error);
+        console.error('[PermissionGuard v55.0] ❌ Error checking permissions:', error);
         setHasPermission(false);
       } finally {
         setLoading(false);
@@ -102,11 +114,40 @@ export default function PermissionGuard({ children, requireSocialProfile = false
       setHasPermission(true);
       setLoading(false);
     }
-  }, [currentMode, activeProfileType, activeProfileId]);
+  }, [currentMode, activeProfileType, activeProfileId, activeLocalData]);
 
   useEffect(() => {
     checkPermissions();
   }, [checkPermissions]);
+
+  // ✅ NEW v55.0: Real-time subscription updates
+  useEffect(() => {
+    if (currentMode === 'propietario' && activeProfileType === 'local' && activeProfileId) {
+      console.log('[PermissionGuard v55.0] 🔄 Setting up real-time subscription listener for:', activeProfileId);
+      
+      const subscription = supabase
+        .channel(`subscription-updates-${activeProfileId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'suscripciones_locales',
+            filter: `local_id=eq.${activeProfileId}`,
+          },
+          (payload) => {
+            console.log('[PermissionGuard v55.0] 🔔 Subscription updated:', payload);
+            checkPermissions();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        console.log('[PermissionGuard v55.0] 🔌 Unsubscribing from subscription updates');
+        subscription.unsubscribe();
+      };
+    }
+  }, [currentMode, activeProfileType, activeProfileId, checkPermissions]);
 
   if (loading) {
     return (
@@ -120,7 +161,6 @@ export default function PermissionGuard({ children, requireSocialProfile = false
   if (!hasPermission && requireSocialProfile) {
     return (
       <View style={styles.container}>
-        {/* ✅ CRITICAL FIX v51.0: Proper top margin to avoid header overlap */}
         <View style={styles.restrictedContent}>
           <LinearGradient
             colors={[colors.primary + '20', colors.secondary + '20']}
@@ -150,7 +190,9 @@ export default function PermissionGuard({ children, requireSocialProfile = false
                 size={20}
                 color={colors.success}
               />
-              <Text style={styles.benefitText}>Perfil social completo para {localName}</Text>
+              <Text style={styles.benefitText}>
+                Perfil social completo para {localName || activeLocalData?.nombre || 'tu local'}
+              </Text>
             </View>
 
             <View style={styles.benefitItem}>
@@ -184,7 +226,6 @@ export default function PermissionGuard({ children, requireSocialProfile = false
             </View>
           </View>
 
-          {/* ✅ CRITICAL FIX v51.0: Better bottom margin to avoid tab bar overlap */}
           <TouchableOpacity
             style={styles.upgradeButton}
             onPress={() => router.push(`/gestion/planes-suscripcion?localId=${activeProfileId}`)}
@@ -232,9 +273,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-    // ✅ CRITICAL FIX v51.0: Proper top margin to avoid header overlap
     paddingTop: 80,
-    // ✅ CRITICAL FIX v51.0: Better bottom margin to avoid tab bar overlap
     paddingBottom: 140,
   },
   iconContainer: {
