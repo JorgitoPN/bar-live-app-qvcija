@@ -61,20 +61,121 @@ export default function RootLayout() {
                           gestureDirection: 'horizontal',
                         }}
                       >
-                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                        <Stack.Screen name="auth" options={{ headerShown: false }} />
-                        <Stack.Screen name="crear" options={{ headerShown: false }} />
-                        <Stack.Screen name="detalle" options={{ headerShown: false }} />
-                        <Stack.Screen name="editar" options={{ headerShown: false }} />
-                        <Stack.Screen name="perfil" options={{ headerShown: false }} />
-                        <Stack.Screen name="social" options={{ headerShown: false }} />
-                        <Stack.Screen name="chat" options={{ headerShown: false }} />
-                        <Stack.Screen name="admin" options={{ headerShown: false }} />
-                        <Stack.Screen name="gestion" options={{ headerShown: false }} />
-                        <Stack.Screen name="empleo" options={{ headerShown: false }} />
-                        <Stack.Screen name="legal" options={{ headerShown: false }} />
-                        <Stack.Screen name="soporte" options={{ headerShown: false }} />
-                        <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
+                        {/* Main app screens */}
+                        <Stack.Screen 
+                          name="index" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="(tabs)" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="auth" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="crear" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="detalle" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="editar" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="perfil" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="social" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="chat" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="admin" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="gestion" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="empleo" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="legal" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="soporte" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="solicitudes" 
+                          options={{ 
+                            headerShown: false,
+                          }} 
+                        />
+                        
+                        {/* Modal screens - properly configured */}
+                        <Stack.Screen 
+                          name="modal" 
+                          options={{ 
+                            presentation: 'modal',
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="transparent-modal" 
+                          options={{ 
+                            presentation: 'transparentModal',
+                            headerShown: false,
+                            animation: 'fade',
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="formsheet" 
+                          options={{ 
+                            presentation: 'formSheet',
+                            headerShown: false,
+                          }} 
+                        />
                       </Stack>
                     </PostsProvider>
                   </FilterProvider>
