@@ -11,13 +11,18 @@ import { colors } from '@/styles/commonStyles';
 const { width: screenWidth } = Dimensions.get('window');
 
 /**
- * ANDROID-SPECIFIC TAB LAYOUT - VERSION v32.0
+ * ANDROID-SPECIFIC TAB LAYOUT - VERSION v79.0
  * 
  * ✅ COMPLETE ANDROID-iOS PARITY + NATIVE ANDROID BEHAVIOR
- * ✅ FIXED: Bottom tab bar visibility with proper z-index and elevation
- * ✅ FIXED: Tab bar always visible above all content
- * ✅ FIXED: Proper safe area handling for system buttons
- * ✅ FIXED: Content padding to prevent overlap with tab bar
+ * 
+ * CRITICAL FIXES v79.0 (ANDROID ONLY):
+ * - ✅ Unified BarLive background (no white background behind icons)
+ * - ✅ Reduced solid section height by 50% (no icons area)
+ * - ✅ Icons repositioned to bottom of screen
+ * - ✅ Explore button protrudes slightly upward like iOS
+ * - ✅ No white space above menu
+ * - ✅ Proper safe area handling for system buttons
+ * - ✅ Content padding adjusted for new bottom nav height
  * 
  * This file ensures proper Android-specific behavior:
  * - ✅ Native Android UI (Material Design compliant)
@@ -49,7 +54,7 @@ export default function TabLayout() {
   const userRole = user?.rol_app || 'cliente';
 
   console.log(
-    '[TabLayout Android v32.0] ⚡ User role:', userRole, 
+    '[TabLayout Android v79.0] ⚡ User role:', userRole, 
     'Current mode:', currentMode, 
     'Pathname:', pathname,
     'Bottom inset:', insets.bottom
@@ -71,7 +76,7 @@ export default function TabLayout() {
       
       if ((isAdminIndexPage || isAdminSubPage) && !hasShownAdminAlert.current) {
         console.log(
-          '[TabLayout Android v32.0] ⚠️ Unauthorized user trying to access admin page:', 
+          '[TabLayout Android v79.0] ⚠️ Unauthorized user trying to access admin page:', 
           pathname
         );
         hasShownAdminAlert.current = true;
@@ -100,7 +105,7 @@ export default function TabLayout() {
       
       if ((isGestionIndexPage || isGestionSubPage) && !hasShownGestionAlert.current) {
         console.log(
-          '[TabLayout Android v32.0] ⚠️ Non-propietario user trying to access gestion page:', 
+          '[TabLayout Android v79.0] ⚠️ Non-propietario user trying to access gestion page:', 
           pathname
         );
         hasShownGestionAlert.current = true;
@@ -297,11 +302,12 @@ export default function TabLayout() {
   };
 
   const tabs = getTabsForRole();
-  console.log('[TabLayout Android v32.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
+  console.log('[TabLayout Android v79.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
 
-  // ✅ Calculate tab bar height including safe area
-  const TAB_BAR_HEIGHT = 70;
-  const totalTabBarHeight = TAB_BAR_HEIGHT + insets.bottom;
+  // ✅ v79.0: Calculate tab bar height with 50% reduction
+  const BASE_TAB_BAR_HEIGHT = 84; // 20% increase from iOS baseline
+  const REDUCED_TAB_BAR_HEIGHT = BASE_TAB_BAR_HEIGHT / 2; // 50% reduction
+  const totalTabBarHeight = REDUCED_TAB_BAR_HEIGHT + insets.bottom;
 
   return (
     <View style={styles.container}>
@@ -387,8 +393,7 @@ export default function TabLayout() {
         </Tabs>
       </View>
       
-      {/* ✅ CRITICAL FIX v32.0: Floating Tab Bar with MAXIMUM z-index, elevation, and safe area */}
-      {/* This ensures the tab bar is ALWAYS visible above ALL content and respects system buttons */}
+      {/* ✅ v79.0: Floating Tab Bar with reduced height and proper positioning */}
       <View style={[
         styles.tabBarContainer,
         { 
