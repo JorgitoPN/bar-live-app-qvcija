@@ -1,23 +1,19 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v47.0
+ * TAB NAVIGATION BAR - VERSION v75.0
  * 
- * Clean tab navigation bar with Instagram-style filled/outlined icons.
- * Active icons are filled with white, inactive icons are outlined with white.
+ * ✅ COMPLETE ANDROID-iOS PARITY WITH PROPER SCALING
  * 
- * COMPLETE ANDROID-iOS PARITY + NATIVE ANDROID BEHAVIOR:
- * - Consistent behavior on both platforms
- * - Proper route matching logic
- * - Better error handling
- * - Android-specific optimizations (native touch feedback)
- * - Native ripple effect on Android
- * - Smooth animations
- * - ✅ FIXED v47.0: CRITICAL - Always display user avatar correctly
- * - ✅ FIXED v47.0: Filter out file:// URLs that cause ENOENT errors
- * - ✅ FIXED v47.0: Safe Area handling for Android system buttons
- * - ✅ FIXED v47.0: Tab bar ALWAYS visible above all content
- * - ✅ FIXED v47.0: Profile avatar properly visible on Android
- * - ✅ FIXED v47.0: User @jorge avatar now displays correctly
+ * CRITICAL FIXES v75.0:
+ * - ✅ Platform-specific sizing using centralized scaling utility
+ * - ✅ Proper icon sizing for Android
+ * - ✅ Correct bottom navigation height
+ * - ✅ Center button properly sized and positioned
+ * - ✅ Background overlap fixed (75% of center button height)
+ * - ✅ Icons properly centered and aligned
+ * - ✅ Safe area handling for Android system buttons
+ * 
+ * IMPORTANT: iOS design remains unchanged - all fixes are Android-specific
  */
 
 import React from 'react';
@@ -38,6 +34,14 @@ import { colors } from '@/styles/commonStyles';
 import { TabIcon } from './TabIcon';
 import { TabDefinition } from './TabConfig';
 import { provideHapticFeedback } from '@/utils/androidNativeBehavior';
+import {
+  getBottomNavHeight,
+  getBottomNavIconSize,
+  getCenterButtonSize,
+  getCenterButtonIconSize,
+  getBottomNavPaddingBottom,
+  logScalingInfo,
+} from '@/utils/androidScaling';
 
 interface TabNavigationBarProps {
   tabs: TabDefinition[];
@@ -54,20 +58,26 @@ export function TabNavigationBar({
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
 
+  // Log scaling info on Android
+  React.useEffect(() => {
+    if (Platform.OS === 'android') {
+      logScalingInfo();
+    }
+  }, []);
+
   const isTabActive = (tab: TabDefinition, currentPath: string): boolean => {
-    // Clean up paths for comparison
     const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
     console.log(
-      `🔍 [TabNav v47.0] Checking tab "${tab.id}": ` +
+      `🔍 [TabNav v75.0] Checking tab "${tab.id}": ` +
       `route="${cleanRoute}", path="${cleanPath}"`
     );
 
     // Special case: gestion tab is active when viewing local profiles
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `✅ [TabNav v47.0] Tab "${tab.id}" is ACTIVE ` +
+        `✅ [TabNav v75.0] Tab "${tab.id}" is ACTIVE ` +
         `(special case: perfil/local)`
       );
       return true;
@@ -76,13 +86,13 @@ export function TabNavigationBar({
     // Special case: perfil tab is NOT active when viewing local profiles
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `❌ [TabNav v47.0] Tab "${tab.id}" is INACTIVE ` +
+        `❌ [TabNav v75.0] Tab "${tab.id}" is INACTIVE ` +
         `(special case: perfil/local)`
       );
       return false;
     }
 
-    // Extract the main route segment (e.g., "(tabs)/favoritos" -> "favoritos")
+    // Extract the main route segment
     const routeSegments = cleanRoute.split('/').filter(s => !s.startsWith('(') && !s.endsWith(')'));
     const pathSegments = cleanPath.split('/').filter(s => !s.startsWith('(') && !s.endsWith(')'));
 
@@ -93,7 +103,7 @@ export function TabNavigationBar({
 
       if (mainRouteSegment === mainPathSegment) {
         console.log(
-          `✅ [TabNav v47.0] Tab "${tab.id}" is ACTIVE ` +
+          `✅ [TabNav v75.0] Tab "${tab.id}" is ACTIVE ` +
           `(segment match: "${mainRouteSegment}")`
         );
         return true;
@@ -102,24 +112,23 @@ export function TabNavigationBar({
 
     // Fallback: check if path starts with route
     if (cleanPath.startsWith(cleanRoute)) {
-      console.log(`✅ [TabNav v47.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
+      console.log(`✅ [TabNav v75.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
       return true;
     }
 
     // Check exact match
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
-      console.log(`✅ [TabNav v47.0] Tab "${tab.id}" is ACTIVE (exact match)`);
+      console.log(`✅ [TabNav v75.0] Tab "${tab.id}" is ACTIVE (exact match)`);
       return true;
     }
 
-    console.log(`❌ [TabNav v47.0] Tab "${tab.id}" is INACTIVE`);
+    console.log(`❌ [TabNav v75.0] Tab "${tab.id}" is INACTIVE`);
     return false;
   };
 
   const handleTabPress = async (tab: TabDefinition) => {
-    console.log(`🔘 [TabNav v47.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
+    console.log(`🔘 [TabNav v75.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
     
-    // ✅ CRITICAL FIX v47.0: Provide native haptic feedback on Android
     await provideHapticFeedback('light');
     
     if (tab.id === 'perfil' && onProfilePress) {
@@ -133,17 +142,17 @@ export function TabNavigationBar({
     const isActive = isTabActive(tab, pathname);
     const isCenter = tab.id === 'explorar';
 
-    // ✅ CRITICAL FIX v47.0: Filter out file:// URLs that cause ENOENT errors
+    // Filter out file:// URLs that cause ENOENT errors
     const safeAvatarUrl = activeProfileAvatar && !activeProfileAvatar.startsWith('file://') 
       ? activeProfileAvatar 
       : null;
 
     console.log(
-      `🎨 [TabNav v47.0] Rendering tab "${tab.id}": ` +
+      `🎨 [TabNav v75.0] Rendering tab "${tab.id}": ` +
       `isActive=${isActive}, isCenter=${isCenter}, avatar=${safeAvatarUrl ? safeAvatarUrl.substring(0, 50) : 'none'}`
     );
 
-    // ✅ CRITICAL FIX v47.0: Use TouchableNativeFeedback on Android for native ripple effect
+    // Use TouchableNativeFeedback on Android for native ripple effect
     const TouchableComponent = Platform.OS === 'android' ? TouchableNativeFeedback : TouchableOpacity;
     const touchableProps = Platform.OS === 'android' 
       ? {
@@ -154,6 +163,11 @@ export function TabNavigationBar({
           activeOpacity: 0.7,
         };
 
+    // ✅ Get platform-specific sizes
+    const centerButtonSize = getCenterButtonSize();
+    const centerButtonIconSize = getCenterButtonIconSize();
+    const tabIconSize = getBottomNavIconSize();
+
     // Center button (Explorar)
     if (isCenter) {
       return (
@@ -162,12 +176,19 @@ export function TabNavigationBar({
           onPress={() => handleTabPress(tab)}
           {...touchableProps}
         >
-          <View style={styles.centerButton}>
+          <View style={[styles.centerButton, { 
+            width: centerButtonSize, 
+            height: centerButtonSize,
+            borderRadius: centerButtonSize / 2,
+            marginTop: -centerButtonSize / 2,
+          }]}>
             <LinearGradient
               colors={['#2DD4BF', '#06B6D4']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.centerGradient}
+              style={[styles.centerGradient, {
+                borderRadius: centerButtonSize / 2,
+              }]}
             >
               <TabIcon
                 iosIconFilled={tab.iosIconFilled}
@@ -175,7 +196,7 @@ export function TabNavigationBar({
                 androidIconFilled={tab.androidIconFilled}
                 androidIconOutlined={tab.androidIconOutlined}
                 isActive={true}
-                size={30}
+                size={centerButtonIconSize}
               />
             </LinearGradient>
           </View>
@@ -185,6 +206,8 @@ export function TabNavigationBar({
 
     // Profile tab with avatar
     if (tab.id === 'perfil') {
+      const avatarSize = Platform.OS === 'android' ? 26 : 28;
+      
       return (
         <TouchableComponent
           key={tab.id}
@@ -192,19 +215,22 @@ export function TabNavigationBar({
           {...touchableProps}
         >
           <View style={styles.tab}>
-            <View style={[styles.avatarContainer, isActive && styles.avatarContainerActive]}>
+            <View style={[
+              styles.avatarContainer, 
+              { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 },
+              isActive && styles.avatarContainerActive
+            ]}>
               {safeAvatarUrl ? (
                 <Image
                   source={{ uri: safeAvatarUrl }}
                   style={styles.avatar}
                   resizeMode="cover"
-                  // ✅ ANDROID FIX v47.0: Force cache for better loading
                   {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                   onError={(error) => {
-                    console.error('[TabNav v47.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
+                    console.error('[TabNav v75.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
                   }}
                   onLoad={() => {
-                    console.log('[TabNav v47.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
+                    console.log('[TabNav v75.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
                   }}
                 />
               ) : (
@@ -215,7 +241,7 @@ export function TabNavigationBar({
                     androidIconFilled="person"
                     androidIconOutlined="person-outline"
                     isActive={isActive}
-                    size={20}
+                    size={Platform.OS === 'android' ? 18 : 20}
                   />
                 </View>
               )}
@@ -239,16 +265,17 @@ export function TabNavigationBar({
             androidIconFilled={tab.androidIconFilled}
             androidIconOutlined={tab.androidIconOutlined}
             isActive={isActive}
-            size={28}
+            size={tabIconSize}
           />
         </View>
       </TouchableComponent>
     );
   };
 
-  // ✅ ANDROID FIX v47.0: Add safe area padding for system buttons
-  const containerHeight = 80 + (Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 0);
-  const tabBarPaddingBottom = Platform.OS === 'ios' ? 20 : Math.max(insets.bottom, 12);
+  // ✅ Get platform-specific dimensions
+  const bottomNavHeight = getBottomNavHeight();
+  const containerHeight = bottomNavHeight + (Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 0);
+  const tabBarPaddingBottom = getBottomNavPaddingBottom(insets.bottom);
 
   return (
     <View style={[styles.container, { height: containerHeight }]} pointerEvents="box-none">
@@ -280,9 +307,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
     backgroundColor: 'transparent',
-    // ✅ CRITICAL FIX v47.0: MAXIMUM z-index and elevation for guaranteed visibility
     zIndex: 999999,
     elevation: 999,
   },
@@ -291,7 +316,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.15,
@@ -323,10 +347,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   centerButton: {
-    width: 60,
-    height: 60,
-    marginTop: -30,
-    borderRadius: 30,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -337,16 +357,12 @@ const styles = StyleSheet.create({
   centerGradient: {
     width: '100%',
     height: '100%',
-    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: '#FFFFFF',
   },
   avatarContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },

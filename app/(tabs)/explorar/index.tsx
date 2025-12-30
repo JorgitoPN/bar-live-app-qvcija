@@ -32,6 +32,18 @@ import { shouldHavePubCategory } from '@/utils/categorizeLocal';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import { useFilters } from '@/contexts/FilterContext';
 import { isAdminUser } from '@/utils/adminAccess';
+import {
+  getHeaderHeight,
+  getSearchBoxHeight,
+  getCategoryIconSize,
+  getCategoryIconInnerSize,
+  getCategorySpacing,
+  getCategoryTopPadding,
+  getContentPadding,
+  scaleFontSize,
+  getStatusBarHeight,
+  logScalingInfo,
+} from '@/utils/androidScaling';
 
 type ModoUsuario = 'cliente' | 'propietario' | 'admin';
 
@@ -46,9 +58,14 @@ const CATEGORIAS_LOCALES = [
 ];
 
 const LOCALES_POR_PAGINA = 20;
-const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
-const CATEGORIAS_HEIGHT = 110;
-const CATEGORIAS_TOP_POSITION = 170;
+
+// ✅ Use platform-specific dimensions
+const HEADER_HEIGHT = getHeaderHeight();
+const SEARCH_BOX_HEIGHT = getSearchBoxHeight();
+const CATEGORY_ICON_SIZE = getCategoryIconSize();
+const CATEGORY_TOP_PADDING = getCategoryTopPadding();
+const CATEGORIAS_HEIGHT = CATEGORY_ICON_SIZE + CATEGORY_TOP_PADDING * 2 + 20; // icon + padding + label
+const CATEGORIAS_TOP_POSITION = HEADER_HEIGHT + getStatusBarHeight() + 10;
 const SPACING_BETWEEN_FILTERS_AND_LIST = 24;
 
 const MAX_FEATURED_DISTANCE_KM = 100;
@@ -66,17 +83,18 @@ function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /**
- * ✅ EXPLORAR SCREEN v35.0 - FIXED LOCAL VISIBILITY
+ * ✅ EXPLORAR SCREEN v75.0 - COMPLETE ANDROID-iOS PARITY
  * 
- * CRITICAL FIX:
- * - Locals with active subscriptions are now visible regardless of owner activity status
- * - The visibility is based on:
- *   1. local.activo = true
- *   2. local.perfil_visible = true
- *   3. Active subscription exists
- * - Owner activity status (usuarios.activo) does NOT affect local visibility
+ * CRITICAL FIXES v75.0:
+ * - ✅ Platform-specific sizing using centralized scaling utility
+ * - ✅ Proper header height for Android
+ * - ✅ Correct search box height
+ * - ✅ Category icons properly sized and spaced
+ * - ✅ No collision between header and categories
+ * - ✅ Consistent spacing across all elements
+ * 
+ * IMPORTANT: iOS design remains unchanged - all fixes are Android-specific
  */
-
 export default function ExplorarScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -107,10 +125,16 @@ export default function ExplorarScreen() {
   const categoriasTranslateY = useRef(new Animated.Value(0)).current;
   const isHeaderVisible = useRef(true);
 
-  // ✅ CRITICAL FIX: Check if user is authorized admin for mode selector
+  // Log scaling info on Android
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      logScalingInfo();
+    }
+  }, []);
+
   const userIsAdmin = useMemo(() => {
     const isAdmin = isAdminUser(user);
-    console.log('[ExplorarScreen v35.0] Admin check for mode selector:', {
+    console.log('[ExplorarScreen v75.0] Admin check for mode selector:', {
       email: user?.email,
       role: user?.rol_app,
       isAdmin,
@@ -121,7 +145,6 @@ export default function ExplorarScreen() {
 
   const userRole = user?.rol_app || 'cliente';
   
-  // ✅ CRITICAL FIX: Only include 'admin' mode if user is authorized admin
   const availableModes: ModoUsuario[] = useMemo(() => {
     if (userIsAdmin) {
       return ['cliente', 'propietario', 'admin'];
@@ -134,12 +157,12 @@ export default function ExplorarScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('[ExplorarScreen v35.0] ⚡ Screen focused');
+      console.log('[ExplorarScreen v75.0] ⚡ Screen focused');
       setMostrarFiltros(false);
       setMostrarSelectorModo(false);
       
       return () => {
-        console.log('[ExplorarScreen v35.0] Screen unfocused');
+        console.log('[ExplorarScreen v75.0] Screen unfocused');
       };
     }, [])
   );
@@ -157,18 +180,16 @@ export default function ExplorarScreen() {
   }, [scrollIndicatorOpacity]);
 
   const localesFiltradosCompletos = useMemo(() => {
-    console.log('[ExplorarScreen v35.0] ⚡ Applying filters...');
-    console.log('[ExplorarScreen v35.0] 📊 Total locales:', todosLosLocales.length);
-    console.log('[ExplorarScreen v35.0] 🔍 Selected category:', categoriaSeleccionada);
-    console.log('[ExplorarScreen v35.0] 🔍 Global filters:', globalFiltros);
+    console.log('[ExplorarScreen v75.0] ⚡ Applying filters...');
+    console.log('[ExplorarScreen v75.0] 📊 Total locales:', todosLosLocales.length);
+    console.log('[ExplorarScreen v75.0] 🔍 Selected category:', categoriaSeleccionada);
+    console.log('[ExplorarScreen v75.0] 🔍 Global filters:', globalFiltros);
 
-    // ✅ FIX v35.0: CRITICAL FIX - Only filter by local.activo, NOT by owner activity
-    // The local visibility should be independent of the owner's activity status
     let localesFiltrados = todosLosLocales.filter(local => local.activo === true);
-    console.log('[ExplorarScreen v35.0] ✅ After activo filter:', localesFiltrados.length);
+    console.log('[ExplorarScreen v75.0] ✅ After activo filter:', localesFiltrados.length);
 
     if (categoriaSeleccionada !== 'todos') {
-      console.log('[ExplorarScreen v35.0] 🔍 Filtering by category:', categoriaSeleccionada);
+      console.log('[ExplorarScreen v75.0] 🔍 Filtering by category:', categoriaSeleccionada);
       
       localesFiltrados = localesFiltrados.filter(local => {
         const barliveTypes = local.barlive_types || [];
@@ -189,7 +210,7 @@ export default function ExplorarScreen() {
         return hasCategory;
       });
 
-      console.log(`[ExplorarScreen v35.0] ✅ After category filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v75.0] ✅ After category filter: ${localesFiltrados.length} locales`);
     }
 
     if (busqueda) {
@@ -199,18 +220,18 @@ export default function ExplorarScreen() {
         local.direccion?.toLowerCase().includes(searchLower) ||
         local.provincia?.toLowerCase().includes(searchLower)
       );
-      console.log(`[ExplorarScreen v35.0] 🔍 After search filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v75.0] 🔍 After search filter: ${localesFiltrados.length} locales`);
     }
 
-    // ✅ Apply global filters from FilterContext
+    // Apply global filters from FilterContext
     if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
       localesFiltrados = localesFiltrados.filter(local => local.comunidad === globalFiltros.comunidad);
-      console.log(`[ExplorarScreen v35.0] 🔍 After community filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v75.0] 🔍 After community filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.provincia) {
       localesFiltrados = localesFiltrados.filter(local => local.provincia === globalFiltros.provincia);
-      console.log(`[ExplorarScreen v35.0] 🔍 After province filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v75.0] 🔍 After province filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
@@ -220,7 +241,7 @@ export default function ExplorarScreen() {
           barliveTypes.some((cat: string) => cat.toLowerCase() === tipo.toLowerCase())
         );
       });
-      console.log(`[ExplorarScreen v35.0] 🔍 After type filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v75.0] 🔍 After type filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
@@ -228,7 +249,7 @@ export default function ExplorarScreen() {
         const localServices = local.servicios_disponibles || {};
         return globalFiltros.servicios!.every(servicio => localServices[servicio] === true);
       });
-      console.log(`[ExplorarScreen v35.0] 🔍 After services filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v75.0] 🔍 After services filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0 && !globalFiltros.ambiente.includes('cualquiera')) {
@@ -236,19 +257,18 @@ export default function ExplorarScreen() {
         const localAmbiente = local.ambiente_completo || local.ambiente_google || {};
         return globalFiltros.ambiente!.some(amb => localAmbiente[amb] === true);
       });
-      console.log(`[ExplorarScreen v35.0] 🔍 After ambiente filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v75.0] 🔍 After ambiente filter: ${localesFiltrados.length} locales`);
     }
 
-    // ✅ NEW: Clientela filter - check if local has ANY of the selected clientela
     if (globalFiltros.clientela && globalFiltros.clientela.length > 0 && !globalFiltros.clientela.includes('cualquiera')) {
       localesFiltrados = localesFiltrados.filter(local => {
         const localClientela = local.clientela || {};
         return globalFiltros.clientela!.some(cli => localClientela[cli] === true);
       });
-      console.log(`[ExplorarScreen v35.0] 🔍 After clientela filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v75.0] 🔍 After clientela filter: ${localesFiltrados.length} locales`);
     }
 
-    // ✅ Calculate open/closed status for each local
+    // Calculate open/closed status for each local
     localesFiltrados = localesFiltrados.map(local => {
       const estadoLocal = getEstadoLocal(local);
       return {
@@ -258,7 +278,7 @@ export default function ExplorarScreen() {
     });
 
     if (userLocation) {
-      console.log('[ExplorarScreen v35.0] 📍 User location:', userLocation);
+      console.log('[ExplorarScreen v75.0] 📍 User location:', userLocation);
       
       localesFiltrados = localesFiltrados.map(local => {
         if (local.latitud && local.longitud) {
@@ -273,29 +293,20 @@ export default function ExplorarScreen() {
         return { ...local, distancia: 999999 };
       });
 
-      // ✅ Apply distance filter if set
+      // Apply distance filter if set
       if (globalFiltros.distancia) {
         localesFiltrados = localesFiltrados.filter(local => 
           local.distancia !== undefined && local.distancia <= globalFiltros.distancia!
         );
-        console.log(`[ExplorarScreen v35.0] 🔍 After distance filter (${globalFiltros.distancia}km): ${localesFiltrados.length} locales`);
+        console.log(`[ExplorarScreen v75.0] 🔍 After distance filter (${globalFiltros.distancia}km): ${localesFiltrados.length} locales`);
       }
 
-      console.log('[ExplorarScreen v35.0] 🧠 Applying FIXED sorting algorithm...');
-      console.log('[ExplorarScreen v35.0] 📋 CORRECT ORDER (OPEN FIRST):');
-      console.log('[ExplorarScreen v35.0]    1. OPEN locals (≤100km) - FEATURED sorted by distance');
-      console.log('[ExplorarScreen v35.0]    2. OPEN locals (≤100km) - NON-FEATURED sorted by distance');
-      console.log('[ExplorarScreen v35.0]    3. OPEN locals (>100km) - NON-FEATURED sorted by distance');
-      console.log('[ExplorarScreen v35.0]    4. OPEN locals (>100km) - FEATURED sorted by distance');
-      console.log('[ExplorarScreen v35.0]    5. CLOSED locals (≤100km) - FEATURED sorted by distance');
-      console.log('[ExplorarScreen v35.0]    6. CLOSED locals (≤100km) - NON-FEATURED sorted by distance');
-      console.log('[ExplorarScreen v35.0]    7. CLOSED locals (>100km) - NON-FEATURED sorted by distance');
-      console.log('[ExplorarScreen v35.0]    8. CLOSED locals (>100km) - FEATURED sorted by distance');
+      console.log('[ExplorarScreen v75.0] 🧠 Applying FIXED sorting algorithm...');
 
       const openLocals = localesFiltrados.filter(l => l.estaAbierto === true);
       const closedLocals = localesFiltrados.filter(l => l.estaAbierto !== true);
 
-      console.log('[ExplorarScreen v35.0] 📊 Open/Closed split:');
+      console.log('[ExplorarScreen v75.0] 📊 Open/Closed split:');
       console.log('  - Open locals:', openLocals.length);
       console.log('  - Closed locals:', closedLocals.length);
 
@@ -358,9 +369,9 @@ export default function ExplorarScreen() {
         ...closedGroupB_destacados,
       ];
 
-      console.log('[ExplorarScreen v35.0] ✅ FIXED SORTING APPLIED (OPEN FIRST) - Total locals:', localesFiltrados.length);
+      console.log('[ExplorarScreen v75.0] ✅ FIXED SORTING APPLIED (OPEN FIRST) - Total locals:', localesFiltrados.length);
     } else {
-      console.log('[ExplorarScreen v35.0] ⚠️ No user location available, sorting by open status, destacado and rating');
+      console.log('[ExplorarScreen v75.0] ⚠️ No user location available, sorting by open status, destacado and rating');
       
       localesFiltrados.sort((a, b) => {
         if (a.estaAbierto !== b.estaAbierto) {
@@ -380,7 +391,7 @@ export default function ExplorarScreen() {
       });
     }
 
-    console.log(`[ExplorarScreen v35.0] ⚡ Final filtered and sorted locals: ${localesFiltrados.length}`);
+    console.log(`[ExplorarScreen v75.0] ⚡ Final filtered and sorted locals: ${localesFiltrados.length}`);
     return localesFiltrados;
   }, [todosLosLocales, busqueda, categoriaSeleccionada, userLocation, activePromotions, globalFiltros]);
 
@@ -406,22 +417,21 @@ export default function ExplorarScreen() {
 
   const obtenerUbicacionUsuario = async () => {
     try {
-      console.log('[ExplorarScreen v35.0] 🔍 Requesting location permissions...');
+      console.log('[ExplorarScreen v75.0] 🔍 Requesting location permissions...');
       
-      // Check if location services are available
       const isAvailable = await Location.hasServicesEnabledAsync();
       if (!isAvailable) {
-        console.log('[ExplorarScreen v35.0] ⚠️ Location services are disabled');
+        console.log('[ExplorarScreen v75.0] ⚠️ Location services are disabled');
         return;
       }
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        console.log('[ExplorarScreen v35.0] ⚠️ Location permission denied');
+        console.log('[ExplorarScreen v75.0] ⚠️ Location permission denied');
         return;
       }
 
-      console.log('[ExplorarScreen v35.0] ✅ Location permission granted, getting position...');
+      console.log('[ExplorarScreen v75.0] ✅ Location permission granted, getting position...');
       
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
@@ -433,23 +443,22 @@ export default function ExplorarScreen() {
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       });
-      console.log('[ExplorarScreen v35.0] 📍 User location obtained:', {
+      console.log('[ExplorarScreen v75.0] 📍 User location obtained:', {
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       });
     } catch (error: any) {
-      console.error('[ExplorarScreen v35.0] ❌ Error getting location:', {
+      console.error('[ExplorarScreen v75.0] ❌ Error getting location:', {
         message: error?.message || 'Unknown error',
         code: error?.code,
       });
-      // Don't show alert, just log the error and continue without location
       setUserLocation(null);
     }
   };
 
   const cargarPromocionesActivas = async () => {
     try {
-      console.log('[ExplorarScreen v35.0] 🔄 Loading active promotions...');
+      console.log('[ExplorarScreen v75.0] 🔄 Loading active promotions...');
       
       const { data: suscripciones, error: subsError } = await supabase
         .from('suscripciones_locales')
@@ -457,12 +466,12 @@ export default function ExplorarScreen() {
         .eq('estado', 'activa');
 
       if (subsError) {
-        console.error('[ExplorarScreen v35.0] Error loading subscriptions:', subsError);
+        console.error('[ExplorarScreen v75.0] Error loading subscriptions:', subsError);
         return;
       }
 
       if (!suscripciones || suscripciones.length === 0) {
-        console.log('[ExplorarScreen v35.0] No active subscriptions found');
+        console.log('[ExplorarScreen v75.0] No active subscriptions found');
         setActivePromotions(new Set());
         return;
       }
@@ -476,12 +485,12 @@ export default function ExplorarScreen() {
         .gt('promos_destacadas', 0);
 
       if (planesError) {
-        console.error('[ExplorarScreen v35.0] Error loading plans:', planesError);
+        console.error('[ExplorarScreen v75.0] Error loading plans:', planesError);
         return;
       }
 
       if (!planes || planes.length === 0) {
-        console.log('[ExplorarScreen v35.0] No plans with promotions found');
+        console.log('[ExplorarScreen v75.0] No plans with promotions found');
         setActivePromotions(new Set());
         return;
       }
@@ -495,9 +504,9 @@ export default function ExplorarScreen() {
       );
 
       setActivePromotions(promotedLocalIds);
-      console.log('[ExplorarScreen v35.0] 💰 Active promotions loaded:', promotedLocalIds.size);
+      console.log('[ExplorarScreen v75.0] 💰 Active promotions loaded:', promotedLocalIds.size);
     } catch (error) {
-      console.error('[ExplorarScreen v35.0] Error in cargarPromocionesActivas:', error);
+      console.error('[ExplorarScreen v75.0] Error in cargarPromocionesActivas:', error);
       setActivePromotions(new Set());
     }
   };
@@ -510,7 +519,7 @@ export default function ExplorarScreen() {
   }, [refreshData]);
 
   const handleModoChange = (modo: ModoUsuario) => {
-    console.log('[ExplorarScreen v35.0] Mode change:', modo);
+    console.log('[ExplorarScreen v75.0] Mode change:', modo);
     setCurrentMode(modo);
     setMostrarSelectorModo(false);
   };
@@ -624,6 +633,13 @@ export default function ExplorarScreen() {
     return <InitialLoadingScreen />;
   }
 
+  // ✅ Get platform-specific dimensions
+  const contentPadding = getContentPadding();
+  const categoryIconSize = getCategoryIconSize();
+  const categoryIconInnerSize = getCategoryIconInnerSize();
+  const categorySpacing = getCategorySpacing();
+  const categoryTopPadding = getCategoryTopPadding();
+
   return (
     <View style={commonStyles.container}>
       <Animated.View
@@ -640,10 +656,13 @@ export default function ExplorarScreen() {
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.header}
+          style={[styles.header, { 
+            paddingTop: getStatusBarHeight(),
+            height: HEADER_HEIGHT + getStatusBarHeight(),
+          }]}
         >
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Explorar</Text>
+            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Explorar</Text>
             <View style={styles.headerActions}>
               {availableModes.length > 1 && (
                 <TouchableOpacity
@@ -651,7 +670,7 @@ export default function ExplorarScreen() {
                   onPress={() => setMostrarSelectorModo(true)}
                 >
                   <IconSymbol ios_icon_name={getModoIcon(currentMode)} android_material_icon_name={getModoIcon(currentMode)} size={20} color={colors.headerText} />
-                  <Text style={styles.modoButtonText}>{getModoLabel(currentMode)}</Text>
+                  <Text style={[styles.modoButtonText, { fontSize: scaleFontSize(14) }]}>{getModoLabel(currentMode)}</Text>
                   <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={16} color={colors.headerText} />
                 </TouchableOpacity>
               )}
@@ -665,10 +684,10 @@ export default function ExplorarScreen() {
             </View>
           </View>
 
-          <View style={styles.searchContainer}>
+          <View style={[styles.searchContainer, { height: SEARCH_BOX_HEIGHT }]}>
             <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
               placeholder="Buscar locales..."
               placeholderTextColor={colors.textSecondary}
               value={busqueda}
@@ -697,11 +716,16 @@ export default function ExplorarScreen() {
           transform: [{ translateY: categoriasTranslateY }],
         }}
       >
-        <View style={styles.categoriasContainer}>
+        <View style={[styles.categoriasContainer, { 
+          paddingVertical: categoryTopPadding,
+        }]}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriasScroll}
+            contentContainerStyle={[styles.categoriasScroll, {
+              gap: categorySpacing,
+              paddingHorizontal: contentPadding,
+            }]}
           >
             {CATEGORIAS_LOCALES.map((categoria) => (
               <TouchableOpacity
@@ -712,14 +736,20 @@ export default function ExplorarScreen() {
                 <View
                   style={[
                     styles.categoriaIconContainer,
+                    {
+                      width: categoryIconSize,
+                      height: categoryIconSize,
+                      borderRadius: categoryIconSize / 4,
+                    },
                     categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive,
                   ]}
                 >
-                  <IconSymbol ios_icon_name={categoria.icon as any} android_material_icon_name={categoria.icon as any} size={28} color={colors.primary} />
+                  <IconSymbol ios_icon_name={categoria.icon as any} android_material_icon_name={categoria.icon as any} size={categoryIconInnerSize} color={colors.primary} />
                 </View>
                 <Text
                   style={[
                     styles.categoriaLabel,
+                    { fontSize: scaleFontSize(12) },
                     categoriaSeleccionada === categoria.id && styles.categoriaLabelActive,
                   ]}
                 >
@@ -752,7 +782,11 @@ export default function ExplorarScreen() {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent, 
-          { paddingTop: CATEGORIAS_TOP_POSITION + CATEGORIAS_HEIGHT + SPACING_BETWEEN_FILTERS_AND_LIST }
+          { 
+            paddingTop: CATEGORIAS_TOP_POSITION + CATEGORIAS_HEIGHT + SPACING_BETWEEN_FILTERS_AND_LIST,
+            padding: contentPadding,
+            paddingBottom: 100,
+          }
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -787,10 +821,10 @@ export default function ExplorarScreen() {
                 />
               </View>
               <View style={styles.claimLocalTextContainer}>
-                <Text style={styles.claimLocalTitle} numberOfLines={1} ellipsizeMode="tail">
+                <Text style={[styles.claimLocalTitle, { fontSize: scaleFontSize(14) }]} numberOfLines={1} ellipsizeMode="tail">
                   Reclama tu local o crea uno nuevo
                 </Text>
-                <Text style={styles.claimLocalSubtitle} numberOfLines={1} ellipsizeMode="tail">
+                <Text style={[styles.claimLocalSubtitle, { fontSize: scaleFontSize(11.5) }]} numberOfLines={1} ellipsizeMode="tail">
                   ¿Eres propietario? Gestiona tu local en BarLive
                 </Text>
               </View>
@@ -809,8 +843,8 @@ export default function ExplorarScreen() {
         {localesVisibles.length === 0 ? (
           <View style={styles.emptyContainer}>
             <IconSymbol ios_icon_name="mappin.slash" android_material_icon_name="location_off" size={64} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>No se encontraron locales</Text>
-            <Text style={styles.emptySubtext}>Intenta ajustar los filtros de búsqueda</Text>
+            <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No se encontraron locales</Text>
+            <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>Intenta ajustar los filtros de búsqueda</Text>
           </View>
         ) : (
           <>
@@ -825,14 +859,14 @@ export default function ExplorarScreen() {
             {hayMasLocalesParaMostrar && (
               <View style={styles.loadingMoreContainer}>
                 <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={styles.loadingMoreText}>
+                <Text style={[styles.loadingMoreText, { fontSize: scaleFontSize(14) }]}>
                   Mostrando {localesVisibles.length} de {localesFiltradosCompletos.length}
                 </Text>
               </View>
             )}
             {!hayMasLocalesParaMostrar && localesVisibles.length > 0 && (
               <View style={styles.endContainer}>
-                <Text style={styles.endText}>
+                <Text style={[styles.endText, { fontSize: scaleFontSize(14) }]}>
                   ✅ Mostrando todos los locales ({localesVisibles.length})
                 </Text>
               </View>
@@ -841,7 +875,6 @@ export default function ExplorarScreen() {
         )}
       </ScrollView>
 
-      {/* ✅ CRITICAL FIX: Mode selector modal with admin restriction */}
       <Modal
         visible={mostrarSelectorModo}
         transparent
@@ -854,8 +887,8 @@ export default function ExplorarScreen() {
           onPress={() => setMostrarSelectorModo(false)}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Cambiar modo de usuario</Text>
-            <Text style={styles.modalSubtitle}>Selecciona cómo quieres usar BarLive</Text>
+            <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Cambiar modo de usuario</Text>
+            <Text style={[styles.modalSubtitle, { fontSize: scaleFontSize(14) }]}>Selecciona cómo quieres usar BarLive</Text>
             
             {availableModes.map((modo) => (
               <TouchableOpacity
@@ -881,11 +914,12 @@ export default function ExplorarScreen() {
                   <View>
                     <Text style={[
                       styles.modoOptionLabel,
+                      { fontSize: scaleFontSize(16) },
                       currentMode === modo && styles.modoOptionLabelActive,
                     ]}>
                       {getModoLabel(modo)}
                     </Text>
-                    <Text style={styles.modoOptionDescription}>
+                    <Text style={[styles.modoOptionDescription, { fontSize: scaleFontSize(12) }]}>
                       {modo === 'cliente' && 'Explora locales y eventos'}
                       {modo === 'propietario' && 'Gestiona tus locales'}
                       {modo === 'admin' && 'Administra la plataforma'}
@@ -911,7 +945,6 @@ export default function ExplorarScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
     paddingHorizontal: 20,
     paddingBottom: 16,
   },
@@ -922,7 +955,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 32,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -941,7 +973,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   modoButtonText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -954,12 +985,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.headerText,
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
     gap: 12,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
     color: colors.text,
   },
   filterButtonContainer: {
@@ -985,15 +1014,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444',
   },
   categoriasContainer: {
-    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
     position: 'relative',
   },
   categoriasScroll: {
     flexDirection: 'row',
-    gap: 16,
-    paddingHorizontal: 20,
     paddingVertical: 4,
   },
   categoriaButton: {
@@ -1002,12 +1028,9 @@ const styles = StyleSheet.create({
     minWidth: 70,
   },
   categoriaIconContainer: {
-    width: 56,
-    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
     borderWidth: 2,
     borderColor: colors.cardBorder,
   },
@@ -1016,7 +1039,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary + '15',
   },
   categoriaLabel: {
-    fontSize: 12,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
@@ -1043,7 +1065,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
     paddingBottom: 100,
   },
   claimLocalBanner: {
@@ -1083,14 +1104,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   claimLocalTitle: {
-    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 2,
     letterSpacing: -0.2,
   },
   claimLocalSubtitle: {
-    fontSize: 11.5,
     color: colors.textSecondary,
     fontWeight: '500',
   },
@@ -1110,13 +1129,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    fontSize: 18,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -1128,7 +1145,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingMoreText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1138,7 +1154,6 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   endText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -1157,13 +1172,11 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   modalTitle: {
-    fontSize: 20,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 8,
   },
   modalSubtitle: {
-    fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 24,
   },
@@ -1200,7 +1213,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   modoOptionLabel: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 2,
@@ -1209,7 +1221,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   modoOptionDescription: {
-    fontSize: 12,
     color: colors.textSecondary,
   },
 });
