@@ -1,6 +1,8 @@
 
 # 🔧 iOS Expo Go Modal Menu Fix - v70.0
 
+> ⚠️ **ACTUALIZACIÓN**: Esta solución fue parcial. Ver **IOS_EXPO_GO_FIX_V71_COMPLETE.md** para la solución definitiva.
+
 ## 📋 Problema Identificado
 
 La app en iOS mostraba una pantalla de prueba de modales ("Standard Modal", "Form Sheet", "Transparent Modal") en lugar de cargar el contenido principal después de escanear el QR en Expo Go.
