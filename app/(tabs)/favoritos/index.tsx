@@ -15,10 +15,11 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
-import { colors, commonStyles } from '@/styles/commonStyles';
+import { colors, commonStyles, HEADER_DIMENSIONS } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,7 +43,6 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
-// ✅ CRITICAL FIX v49.0: Same categories as Eventos page
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', emoji: '🎉' },
   { id: 'cafe', nombre: 'Cafés', emoji: '☕' },
@@ -54,16 +54,14 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v49.0 - FILTER MODAL + PROVINCE SEARCH
+ * ✅ FAVORITOS SCREEN v63.0 - ANDROID-iOS PARITY
  * 
- * CRITICAL FIXES v49.0:
- * - ✅ Added filter button in search bar (matching Eventos page)
- * - ✅ Added filter modal with province selector
- * - ✅ Same category design and icons as Eventos page
- * - ✅ Scrollable province list in modal
- * - ✅ Combined filtering system (search + category + province)
- * - ✅ Clear filters button
- * - ✅ Filter count badge
+ * CRITICAL FIXES v63.0:
+ * - ✅ Android: Header dimensions reduced using HEADER_DIMENSIONS
+ * - ✅ Android: Search box height REDUCED by 50% (paddingVertical: 5px vs iOS 10px)
+ * - ✅ Android: All text sizes reduced 40% to match iOS
+ * - ✅ Android: All icon sizes reduced 35% to match iOS
+ * - ✅ iOS: No changes to maintain current design
  */
 
 export default function FavoritosScreen() {
@@ -83,7 +81,6 @@ export default function FavoritosScreen() {
   const [checkingSocialProfiles, setCheckingSocialProfiles] = useState<Set<string>>(new Set());
   const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
   
-  // ✅ NEW v49.0: Filter modal and province filter
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
@@ -98,10 +95,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v49.0] User location obtained:', location.coords);
+          console.log('[Favoritos v63.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v49.0] Error getting location:', error);
+        console.error('[Favoritos v63.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -127,7 +124,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v49.0] Error checking social profiles:', error);
+      console.error('[Favoritos v63.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -138,7 +135,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v49.0] Cargando locales guardados...');
+      console.log('[Favoritos v63.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -204,12 +201,12 @@ export default function FavoritosScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Favoritos v49.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v63.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v49.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v63.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -230,7 +227,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v49.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v63.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -244,7 +241,7 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v49.0] Recalculating distances with new user location');
+      console.log('[Favoritos v63.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -263,14 +260,11 @@ export default function FavoritosScreen() {
       const firstPage = updatedLocales.slice(0, currentPage * ITEMS_PER_PAGE);
       setDisplayedLocales(firstPage);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, currentPage]);
 
-  // ✅ NEW v49.0: Apply all filters (search + category + province)
   useEffect(() => {
     let filtered = [...allSavedLocales];
 
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(local => {
@@ -286,7 +280,6 @@ export default function FavoritosScreen() {
       });
     }
 
-    // ✅ NEW v49.0: Apply category filter
     if (selectedCategory !== 'todas') {
       filtered = filtered.filter(local => {
         const barliveTypes = local.barlive_types || [];
@@ -299,7 +292,6 @@ export default function FavoritosScreen() {
       });
     }
 
-    // ✅ NEW v49.0: Apply province filter
     if (provinciaSeleccionada !== 'Todas') {
       filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
     }
@@ -310,7 +302,7 @@ export default function FavoritosScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Favoritos v49.0] Filters applied. Results:', filtered.length);
+    console.log('[Favoritos v63.0] Filters applied. Results:', filtered.length);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
   const loadMoreLocales = useCallback(() => {
@@ -328,7 +320,7 @@ export default function FavoritosScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Favoritos v49.0] Cargando más locales, página:', nextPage);
+        console.log('[Favoritos v63.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -338,7 +330,7 @@ export default function FavoritosScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v49.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v63.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -347,15 +339,13 @@ export default function FavoritosScreen() {
     setRefreshing(false);
   };
 
-  // ✅ NEW v49.0: Clear all filters
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v49.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v63.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
   }, []);
 
-  // ✅ NEW v49.0: Count active filters
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (searchQuery.trim()) count++;
@@ -370,18 +360,18 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v49.0] User not authenticated');
+      console.log('[Favoritos v63.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v49.0] No local ID');
+      console.log('[Favoritos v63.0] No local ID');
       return;
     }
 
     try {
-      console.log('[Favoritos v49.0] Removing from favorites. User:', user.id, 'Local:', localId);
+      console.log('[Favoritos v63.0] Removing from favorites. User:', user.id, 'Local:', localId);
       
       const { error } = await supabase
         .from('locales_guardados')
@@ -390,16 +380,16 @@ export default function FavoritosScreen() {
         .eq('local_id', localId);
 
       if (error) {
-        console.error('[Favoritos v49.0] Error removing favorite:', error);
+        console.error('[Favoritos v63.0] Error removing favorite:', error);
         Alert.alert('Error', 'No se pudo quitar de favoritos');
         return;
       }
       
-      console.log('[Favoritos v49.0] ✅ Removed from favorites');
+      console.log('[Favoritos v63.0] ✅ Removed from favorites');
       
       await loadSavedLocales();
     } catch (error) {
-      console.error('[Favoritos v49.0] Error removing favorito:', error);
+      console.error('[Favoritos v63.0] Error removing favorito:', error);
       Alert.alert('Error', 'No se pudo eliminar de favoritos');
     }
   };
@@ -506,7 +496,7 @@ export default function FavoritosScreen() {
             />
           ) : (
             <View style={[styles.image, styles.placeholderImage]}>
-              <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={48} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={Platform.OS === 'ios' ? 48 : 32} color={colors.textSecondary} />
             </View>
           )}
 
@@ -518,7 +508,7 @@ export default function FavoritosScreen() {
 
           {isDestacado && (
             <View style={styles.badgeDestacadoHeader}>
-              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#92400E" />
+              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={Platform.OS === 'ios' ? 14 : 10} color="#92400E" />
               <Text style={styles.badgeDestacadoHeaderText}>Destacado</Text>
             </View>
           )}
@@ -533,7 +523,7 @@ export default function FavoritosScreen() {
 
           {displayRating > 0 && (
             <View style={styles.ratingBadge}>
-              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color="#FACC15" />
+              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={Platform.OS === 'ios' ? 12 : 9} color="#FACC15" />
               <Text style={styles.ratingBadgeText}>{displayRating.toFixed(1)}</Text>
             </View>
           )}
@@ -556,7 +546,7 @@ export default function FavoritosScreen() {
             <IconSymbol
               ios_icon_name="heart.fill"
               android_material_icon_name="favorite"
-              size={20}
+              size={Platform.OS === 'ios' ? 20 : 15}
               color="#EF4444"
             />
           </TouchableOpacity>
@@ -570,7 +560,7 @@ export default function FavoritosScreen() {
           </View>
 
           <View style={styles.infoRow}>
-            <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={Platform.OS === 'ios' ? 14 : 10} color={colors.textSecondary} />
             <Text style={styles.infoText} numberOfLines={1}>
               {item.direccion}
             </Text>
@@ -593,7 +583,7 @@ export default function FavoritosScreen() {
                 style={styles.perfilSocialButton} 
                 onPress={(e) => handlePerfilSocial(item.id, e)}
               >
-                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={16} color={colors.headerText} />
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={Platform.OS === 'ios' ? 16 : 11} color={colors.headerText} />
                 <Text style={styles.perfilSocialText} numberOfLines={1}>Perfil Social</Text>
               </TouchableOpacity>
             )}
@@ -607,13 +597,13 @@ export default function FavoritosScreen() {
             >
               <View style={styles.comoLlegarContent}>
                 <View style={styles.comoLlegarLeft}>
-                  <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={16} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={Platform.OS === 'ios' ? 16 : 11} color={colors.headerText} />
                   <Text style={styles.comoLlegarText} numberOfLines={1}>Cómo llegar</Text>
                 </View>
                 
                 {item.distancia !== null && item.distancia !== undefined && (
                   <View style={styles.distanciaInButton}>
-                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={14} color={colors.headerText} />
+                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={Platform.OS === 'ios' ? 14 : 10} color={colors.headerText} />
                     <Text style={styles.distanciaInButtonText} numberOfLines={1}>
                       {item.distancia.toFixed(1)} km
                     </Text>
@@ -647,7 +637,7 @@ export default function FavoritosScreen() {
           <IconSymbol
             ios_icon_name="magnifyingglass"
             android_material_icon_name="search"
-            size={64}
+            size={Platform.OS === 'ios' ? 64 : 42}
             color={colors.textSecondary}
           />
           <Text style={styles.emptyText}>No se encontraron resultados</Text>
@@ -670,7 +660,7 @@ export default function FavoritosScreen() {
         <IconSymbol
           ios_icon_name="heart"
           android_material_icon_name="favorite_border"
-          size={64}
+          size={Platform.OS === 'ios' ? 64 : 42}
           color={colors.textSecondary}
         />
         <Text style={styles.emptyText}>No tienes locales favoritos</Text>
@@ -733,18 +723,18 @@ export default function FavoritosScreen() {
               onPress={clearFilters}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.headerText} />
+              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={Platform.OS === 'ios' ? 20 : 14} color={colors.headerText} />
               <Text style={styles.clearFiltersHeaderText}>Limpiar</Text>
             </TouchableOpacity>
           )}
         </View>
         
-        {/* ✅ CRITICAL FIX v49.0: Added filter button in search bar */}
+        {/* ✅ CRITICAL FIX v63.0: Search box height REDUCED by 50% on Android */}
         <View style={styles.searchContainer}>
           <IconSymbol 
             ios_icon_name="magnifyingglass" 
             android_material_icon_name="search"
-            size={20} 
+            size={Platform.OS === 'ios' ? 20 : 12} 
             color={colors.textSecondary}
           />
           <TextInput
@@ -765,23 +755,21 @@ export default function FavoritosScreen() {
               <IconSymbol 
                 ios_icon_name="xmark.circle.fill" 
                 android_material_icon_name="cancel"
-                size={20} 
+                size={Platform.OS === 'ios' ? 20 : 13} 
                 color={colors.textSecondary}
               />
             </TouchableOpacity>
           )}
-          {/* ✅ CRITICAL FIX v49.0: Filter button */}
           <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
             <IconSymbol 
               ios_icon_name="slider.horizontal.3" 
               android_material_icon_name="tune" 
-              size={20} 
+              size={Platform.OS === 'ios' ? 20 : 13} 
               color={colors.primary} 
             />
           </TouchableOpacity>
         </View>
 
-        {/* ✅ CRITICAL FIX v49.0: Same category chips as Eventos page */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -849,7 +837,6 @@ export default function FavoritosScreen() {
         windowSize={5}
       />
 
-      {/* ✅ CRITICAL FIX v49.0: Filter modal with province selector */}
       <Modal
         visible={mostrarFiltros}
         animationType="slide"
@@ -864,11 +851,10 @@ export default function FavoritosScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
               <TouchableOpacity onPress={() => setMostrarFiltros(false)}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={Platform.OS === 'ios' ? 24 : 17} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            {/* ✅ Scrollable content */}
             <ScrollView 
               style={styles.modalScrollView}
               showsVerticalScrollIndicator={true}
@@ -900,7 +886,6 @@ export default function FavoritosScreen() {
                 </View>
               </View>
 
-              {/* ✅ CRITICAL FIX v49.0: Province selector */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Provincia</Text>
                 <View style={styles.provinciasListContainer}>
@@ -926,7 +911,6 @@ export default function FavoritosScreen() {
                 </View>
               </View>
 
-              {/* ✅ Extra padding at bottom for scrolling */}
               <View style={{ height: 40 }} />
             </ScrollView>
 
@@ -969,10 +953,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  // ✅ CRITICAL v63.0: Uses HEADER_DIMENSIONS for consistency
   headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
+    paddingTop: HEADER_DIMENSIONS.paddingTop,
+    paddingBottom: HEADER_DIMENSIONS.paddingBottom,
+    paddingHorizontal: HEADER_DIMENSIONS.paddingHorizontal,
   },
   headerTop: {
     flexDirection: 'row',
@@ -980,8 +965,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  // ✅ ANDROID FIX v63.0: Reduced font size on Android (40% smaller)
   headerTitle: {
-    fontSize: 32,
+    fontSize: Platform.OS === 'ios' ? 32 : 19,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -995,23 +981,24 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   clearFiltersHeaderText: {
-    fontSize: 13,
+    fontSize: Platform.OS === 'ios' ? 13 : 9,
     fontWeight: '600',
     color: colors.headerText,
   },
+  // ✅ CRITICAL FIX v63.0: Search box height REDUCED by 50% on Android
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 5,
     marginBottom: 12,
     gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 10,
     color: colors.text,
     padding: 0,
     marginLeft: 8,
@@ -1044,10 +1031,10 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   categoryEmoji: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 13,
   },
   categoryText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 9,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
   },
@@ -1060,7 +1047,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   resultsCount: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 9,
     color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '600',
   },
@@ -1074,7 +1061,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   filterCountText: {
-    fontSize: 11,
+    fontSize: Platform.OS === 'ios' ? 11 : 8,
     fontWeight: '800',
     color: colors.headerText,
   },
@@ -1090,7 +1077,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 10,
     color: colors.textSecondary,
   },
   footerLoader: {
@@ -1099,7 +1086,7 @@ const styles = StyleSheet.create({
   },
   footerLoaderText: {
     marginTop: 8,
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 9,
     color: colors.textSecondary,
   },
   emptyState: {
@@ -1110,7 +1097,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'ios' ? 18 : 12,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
@@ -1118,10 +1105,10 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 9,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: Platform.OS === 'ios' ? 20 : 14,
   },
   clearFiltersButton: {
     marginTop: 20,
@@ -1131,7 +1118,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   clearFiltersButtonText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 9,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -1159,7 +1146,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: '100%',
-    height: 200,
+    height: Platform.OS === 'ios' ? 200 : 170,
     position: 'relative',
   },
   image: {
@@ -1195,8 +1182,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FACC15',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: Platform.OS === 'ios' ? 12 : 9,
+    paddingVertical: Platform.OS === 'ios' ? 6 : 4,
     borderRadius: 20,
     gap: 4,
     borderWidth: 2,
@@ -1209,7 +1196,7 @@ const styles = StyleSheet.create({
     zIndex: 11,
   },
   badgeDestacadoHeaderText: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'ios' ? 12 : 8,
     fontWeight: '700',
     color: '#92400E',
   },
@@ -1219,8 +1206,8 @@ const styles = StyleSheet.create({
     left: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: Platform.OS === 'ios' ? 12 : 9,
+    paddingVertical: Platform.OS === 'ios' ? 6 : 4,
     borderRadius: 20,
     borderWidth: 2,
     borderColor: '#FFFFFF',
@@ -1233,10 +1220,10 @@ const styles = StyleSheet.create({
     maxWidth: '70%',
   },
   badgeEstadoSuperiorConDestacado: {
-    top: 52,
+    top: Platform.OS === 'ios' ? 52 : 44,
   },
   badgeEstadoSuperiorText: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'ios' ? 12 : 8,
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -1247,8 +1234,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: Platform.OS === 'ios' ? 12 : 9,
+    paddingVertical: Platform.OS === 'ios' ? 6 : 4,
     borderRadius: 20,
     gap: 4,
     borderWidth: 2,
@@ -1261,25 +1248,25 @@ const styles = StyleSheet.create({
     zIndex: 12,
   },
   ratingBadgeText: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'ios' ? 12 : 8,
     fontWeight: '700',
     color: colors.headerText,
     letterSpacing: 0.3,
   },
   badgeNuevoContainer: {
     position: 'absolute',
-    top: 56,
+    top: Platform.OS === 'ios' ? 56 : 48,
     right: 12,
     zIndex: 9,
   },
   badgeNuevo: {
     backgroundColor: '#EF4444',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: Platform.OS === 'ios' ? 10 : 8,
+    paddingVertical: Platform.OS === 'ios' ? 6 : 4,
     borderRadius: 8,
   },
   badgeNuevoText: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'ios' ? 12 : 8,
     fontWeight: '700',
     color: colors.headerText,
   },
@@ -1287,16 +1274,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 12,
     right: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: Platform.OS === 'ios' ? 40 : 34,
+    height: Platform.OS === 'ios' ? 40 : 34,
+    borderRadius: Platform.OS === 'ios' ? 20 : 17,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
   },
   content: {
-    padding: 16,
+    padding: Platform.OS === 'ios' ? 16 : 12,
   },
   header: {
     flexDirection: 'row',
@@ -1305,7 +1292,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   nombre: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'ios' ? 18 : 12,
     fontWeight: '700',
     color: colors.text,
     flex: 1,
@@ -1317,7 +1304,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   infoText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 9,
     color: colors.textSecondary,
     flex: 1,
   },
@@ -1331,17 +1318,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.primary + '15',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: Platform.OS === 'ios' ? 10 : 8,
+    paddingVertical: Platform.OS === 'ios' ? 4 : 3,
     borderRadius: 6,
     gap: 4,
     maxWidth: '48%',
   },
   categoriaIcon: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'ios' ? 12 : 9,
   },
   categoriaText: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'ios' ? 12 : 8,
     fontWeight: '600',
     color: colors.primary,
     textTransform: 'capitalize',
@@ -1357,14 +1344,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.secondary + '99',
-    paddingHorizontal: 10,
-    paddingVertical: 12,
+    paddingHorizontal: Platform.OS === 'ios' ? 10 : 8,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 9,
     borderRadius: 8,
     gap: 6,
     minWidth: 0,
   },
   perfilSocialText: {
-    fontSize: 13,
+    fontSize: Platform.OS === 'ios' ? 13 : 8,
     fontWeight: '600',
     color: colors.headerText,
     flexShrink: 1,
@@ -1372,8 +1359,8 @@ const styles = StyleSheet.create({
   comoLlegarButton: {
     flex: 1,
     backgroundColor: colors.primary + '99',
-    paddingHorizontal: 10,
-    paddingVertical: 12,
+    paddingHorizontal: Platform.OS === 'ios' ? 10 : 8,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 9,
     borderRadius: 8,
     minWidth: 0,
   },
@@ -1394,7 +1381,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   comoLlegarText: {
-    fontSize: 13,
+    fontSize: Platform.OS === 'ios' ? 13 : 8,
     fontWeight: '600',
     color: colors.headerText,
     flexShrink: 1,
@@ -1406,7 +1393,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   distanciaInButtonText: {
-    fontSize: 13,
+    fontSize: Platform.OS === 'ios' ? 13 : 8,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -1431,7 +1418,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: Platform.OS === 'ios' ? 20 : 14,
     fontWeight: 'bold',
     color: colors.text,
   },
@@ -1444,7 +1431,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   filterTitle: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 11,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 12,
@@ -1458,8 +1445,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: Platform.OS === 'ios' ? 16 : 12,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 9,
     borderRadius: 12,
     backgroundColor: colors.background,
     borderWidth: 1,
@@ -1471,10 +1458,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   categoryFilterEmoji: {
-    fontSize: 20,
+    fontSize: Platform.OS === 'ios' ? 20 : 16,
   },
   categoryFilterText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 9,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1485,8 +1472,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   provinciaItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 9,
+    paddingHorizontal: Platform.OS === 'ios' ? 16 : 12,
     borderRadius: 8,
     backgroundColor: colors.background,
   },
@@ -1494,7 +1481,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   provinciaText: {
-    fontSize: 15,
+    fontSize: Platform.OS === 'ios' ? 15 : 10,
     color: colors.text,
   },
   provinciaTextActive: {
@@ -1512,7 +1499,7 @@ const styles = StyleSheet.create({
   },
   limpiarButton: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 11,
     borderRadius: 12,
     backgroundColor: colors.background,
     alignItems: 'center',
@@ -1520,7 +1507,7 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   limpiarButtonText: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 10,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1530,11 +1517,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   aplicarButtonGradient: {
-    paddingVertical: 14,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 11,
     alignItems: 'center',
   },
   aplicarButtonText: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 10,
     fontWeight: '600',
     color: colors.white,
   },
