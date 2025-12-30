@@ -22,7 +22,7 @@ export const arePushNotificationsAvailable = (): boolean => {
   // Try to load Device module
   if (!Device) {
     try {
-      Device = require('expo-device');
+      Device = await import('expo-device');
     } catch (error) {
       console.log('[Notifications] ⚠️ expo-device no disponible');
       return false;
@@ -47,7 +47,7 @@ const initializeNotifications = async (): Promise<boolean> => {
   }
   
   try {
-    Notifications = require('expo-notifications');
+    Notifications = await import('expo-notifications');
     
     // Configure notification behavior
     Notifications.setNotificationHandler({

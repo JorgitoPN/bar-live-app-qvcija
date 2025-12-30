@@ -831,46 +831,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-const styles = StyleSheet.create({
-  // ✅ CRITICAL FIX v67.0: Search box height REDUCED by 65% on Android
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    paddingHorizontal: Platform.OS === 'ios' ? 16 : 8,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 4,
-    marginTop: 16,
-    gap: Platform.OS === 'ios' ? 12 : 6,
-  },
-  searchInput: {
-    flex: 1,
-    color: colors.text,
-    fontSize: Platform.OS === 'ios' ? 16 : 8,
-  },
-  tabs: {
-    flexDirection: 'row',
-    marginTop: 16,
-    gap: 8,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
-    alignItems: 'center',
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  tabActive: {
-    backgroundColor: colors.white,
-  },
-  tabText: {
-    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  tabTextActive: {
-    color: colors.primary,
-  },
   // ✅ ANDROID FIX v67.0: Modal text sizes reduced on Android (50% smaller)
   modalTitle: {
     fontSize: Platform.OS === 'ios' ? 20 : 10,
@@ -1049,8 +1009,31 @@ const styles = StyleSheet.create({
     paddingRight: 16,
     gap: 8,
   },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  categoryChipActive: {
+    backgroundColor: colors.white,
+    borderColor: colors.white,
+  },
   categoryEmoji: {
     fontSize: Platform.OS === 'ios' ? 16 : 8,
+  },
+  categoryText: {
+    fontSize: Platform.OS === 'ios' ? 14 : 7,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  categoryTextActive: {
+    color: colors.primary,
   },
   categoriesGrid: {
     flexDirection: 'row',

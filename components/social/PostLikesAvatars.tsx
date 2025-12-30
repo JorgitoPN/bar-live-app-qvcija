@@ -68,7 +68,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
   const handleOpenModal = useCallback(() => {
     loadAllLikes();
     setShowModal(true);
-  }, []);
+  }, [loadAllLikes]);
 
   const loadAllLikes = useCallback(async () => {
     try {
@@ -266,7 +266,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         channelRef.current = null;
       }
     };
-  }, [postId, user?.id]); // ✅ FIXED: Only essential dependencies
+  }, [postId, user?.id, user]); // ✅ FIXED: Added user dependency
 
   useEffect(() => {
     if (localLikes.length === 0) {

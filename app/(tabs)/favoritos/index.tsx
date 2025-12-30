@@ -240,6 +240,7 @@ export default function FavoritosScreen() {
     }
   }, [user, loadSavedLocales]);
 
+  // ✅ FIX: Add allSavedLocales to dependency array
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
       console.log('[Favoritos v63.0] Recalculating distances with new user location');
@@ -1178,42 +1179,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.15)',
-  },
-  // ✅ ANDROID FIX v65.0: Category text sizes reduced on Android (45% smaller)
-  categoryEmoji: {
-    fontSize: Platform.OS === 'ios' ? 16 : 10,
-  },
-  categoryText: {
-    fontSize: Platform.OS === 'ios' ? 14 : 7.7,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  categoryTextActive: {
-    color: colors.primary,
-  },
-  resultsCountContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  resultsCount: {
-    fontSize: Platform.OS === 'ios' ? 14 : 7,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '600',
-  },
-  filterCountBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 10,
-    minWidth: Platform.OS === 'ios' ? 20 : 10,
-    height: Platform.OS === 'ios' ? 20 : 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Platform.OS === 'ios' ? 6 : 3,
-  },
-  filterCountText: {
-    fontSize: Platform.OS === 'ios' ? 11 : 5.5,
-    fontWeight: '800',
-    color: colors.headerText,
   },
   // ✅ ANDROID FIX v67.0: Badge sizes reduced on Android (50% smaller)
   badgeDestacadoHeader: {
