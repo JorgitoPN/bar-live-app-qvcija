@@ -31,13 +31,14 @@ interface SearchResult {
 }
 
 /**
- * ✅ HEADER SOCIAL v63.0 - STANDARDIZED DIMENSIONS
+ * ✅ HEADER SOCIAL v68.0 - STANDARDIZED DIMENSIONS
  * 
- * CRITICAL FIXES v63.0:
+ * CRITICAL FIXES v68.0:
  * - ✅ Uses HEADER_DIMENSIONS from commonStyles for consistency
- * - ✅ All text and icon sizes reduced on Android (40% smaller)
+ * - ✅ All text and icon sizes reduced on Android (50% smaller)
  * - ✅ Exact same header height as all other pages
  * - ✅ Android: Search box height REDUCED by 50% (paddingVertical: 6px vs iOS 12px)
+ * - ✅ Android: All badges and buttons reduced by 50%
  */
 
 export default function HeaderSocial({
@@ -63,14 +64,14 @@ export default function HeaderSocial({
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) {
-      console.log('[HeaderSocial v63.0] ℹ️ No user, resetting counts to 0');
+      console.log('[HeaderSocial v68.0] ℹ️ No user, resetting counts to 0');
       setUnreadNotifications(0);
       setUnreadMessages(0);
       return;
     }
 
     try {
-      console.log('[HeaderSocial v63.0] 🔄 Loading unread counts from database...');
+      console.log('[HeaderSocial v68.0] 🔄 Loading unread counts from database...');
       
       const { count: notifCount, error: notifError } = await supabase
         .from('notificaciones')
@@ -79,10 +80,10 @@ export default function HeaderSocial({
         .eq('leida', false);
 
       if (notifError) {
-        console.error('[HeaderSocial v63.0] ❌ Error loading notifications count:', notifError);
+        console.error('[HeaderSocial v68.0] ❌ Error loading notifications count:', notifError);
       } else {
         setUnreadNotifications(notifCount || 0);
-        console.log('[HeaderSocial v63.0] ✅ Unread notifications:', notifCount || 0);
+        console.log('[HeaderSocial v68.0] ✅ Unread notifications:', notifCount || 0);
       }
 
       const { data: chatsData, error: chatsError } = await supabase
@@ -91,7 +92,7 @@ export default function HeaderSocial({
         .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
 
       if (chatsError) {
-        console.error('[HeaderSocial v63.0] ❌ Error loading chats:', chatsError);
+        console.error('[HeaderSocial v68.0] ❌ Error loading chats:', chatsError);
       } else if (chatsData) {
         let totalUnread = 0;
         for (const chat of chatsData) {
@@ -108,10 +109,10 @@ export default function HeaderSocial({
           }
         }
         setUnreadMessages(totalUnread);
-        console.log('[HeaderSocial v63.0] ✅ Unread messages:', totalUnread);
+        console.log('[HeaderSocial v68.0] ✅ Unread messages:', totalUnread);
       }
     } catch (error) {
-      console.error('[HeaderSocial v63.0] ❌ Error loading unread counts:', error);
+      console.error('[HeaderSocial v68.0] ❌ Error loading unread counts:', error);
     }
   }, [user]);
 
@@ -134,7 +135,7 @@ export default function HeaderSocial({
   useEffect(() => {
     if (!user) return;
 
-    console.log('[HeaderSocial v63.0] 🔄 Setting up real-time subscriptions for user:', user.id);
+    console.log('[HeaderSocial v68.0] 🔄 Setting up real-time subscriptions for user:', user.id);
 
     const subscription = supabase
       .channel('header-social-updates')
@@ -147,7 +148,7 @@ export default function HeaderSocial({
           filter: `usuario_id=eq.${user.id}`,
         },
         () => {
-          console.log('[HeaderSocial v63.0] 🔔 Notification update detected, reloading count...');
+          console.log('[HeaderSocial v68.0] 🔔 Notification update detected, reloading count...');
           loadUnreadCounts();
         }
       )
@@ -159,9 +160,9 @@ export default function HeaderSocial({
           table: 'mensajes',
         },
         (payload) => {
-          console.log('[HeaderSocial v63.0] 💬 Message UPDATE detected:', payload.new);
+          console.log('[HeaderSocial v68.0] 💬 Message UPDATE detected:', payload.new);
           if (payload.new && (payload.new as any).leido === true) {
-            console.log('[HeaderSocial v63.0] ✅ Message marked as read, reloading counts...');
+            console.log('[HeaderSocial v68.0] ✅ Message marked as read, reloading counts...');
             loadUnreadCounts();
           }
         }
@@ -174,16 +175,16 @@ export default function HeaderSocial({
           table: 'mensajes',
         },
         () => {
-          console.log('[HeaderSocial v63.0] 💬 New message INSERT detected, reloading count...');
+          console.log('[HeaderSocial v68.0] 💬 New message INSERT detected, reloading count...');
           loadUnreadCounts();
         }
       )
       .subscribe((status) => {
-        console.log('[HeaderSocial v63.0] 📡 Subscription status:', status);
+        console.log('[HeaderSocial v68.0] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[HeaderSocial v63.0] 🔄 Cleaning up subscriptions');
+      console.log('[HeaderSocial v68.0] 🔄 Cleaning up subscriptions');
       supabase.removeChannel(subscription);
     };
   }, [user, loadUnreadCounts]);
@@ -201,7 +202,7 @@ export default function HeaderSocial({
 
     setSearchLoading(true);
     try {
-      console.log('[HeaderSocial v63.0] 🔍 Searching for:', query);
+      console.log('[HeaderSocial v68.0] 🔍 Searching for:', query);
 
       const cleanQuery = query.replace('@', '').trim().toLowerCase();
       
@@ -212,10 +213,10 @@ export default function HeaderSocial({
         .limit(10);
 
       if (usersError) {
-        console.error('[HeaderSocial v63.0] ❌ Error searching users:', usersError);
+        console.error('[HeaderSocial v68.0] ❌ Error searching users:', usersError);
       }
 
-      console.log('[HeaderSocial v63.0] 🔍 Searching locals with query:', cleanQuery);
+      console.log('[HeaderSocial v68.0] 🔍 Searching locals with query:', cleanQuery);
       
       const { data: localsData, error: localsError } = await supabase
         .from('locales')
@@ -240,10 +241,10 @@ export default function HeaderSocial({
         .limit(10);
 
       if (localsError) {
-        console.error('[HeaderSocial v63.0] ❌ Error searching locals:', localsError);
+        console.error('[HeaderSocial v68.0] ❌ Error searching locals:', localsError);
       }
 
-      console.log('[HeaderSocial v63.0] ✅ Found locals:', localsData?.length || 0);
+      console.log('[HeaderSocial v68.0] ✅ Found locals:', localsData?.length || 0);
 
       const results: SearchResult[] = [
         ...(usersData || []).map(u => ({
@@ -265,10 +266,10 @@ export default function HeaderSocial({
         })),
       ];
 
-      console.log('[HeaderSocial v63.0] 📊 Search results:', results.length);
+      console.log('[HeaderSocial v68.0] 📊 Search results:', results.length);
       setSearchResults(results);
     } catch (error) {
-      console.error('[HeaderSocial v63.0] ❌ Error searching:', error);
+      console.error('[HeaderSocial v68.0] ❌ Error searching:', error);
     } finally {
       setSearchLoading(false);
     }
@@ -284,7 +285,7 @@ export default function HeaderSocial({
 
   const handleSearchResultPress = (result: SearchResult) => {
     try {
-      console.log('[HeaderSocial v63.0] 🔗 Navigating to:', result.type, result.id);
+      console.log('[HeaderSocial v68.0] 🔗 Navigating to:', result.type, result.id);
       
       setShowSearch(false);
       setSearchQuery('');
@@ -297,11 +298,11 @@ export default function HeaderSocial({
           router.push(`/perfil/usuario?userId=${result.id}`);
         }
       } else {
-        console.log('[HeaderSocial v63.0] 🏢 Navigating to local profile:', result.id);
+        console.log('[HeaderSocial v68.0] 🏢 Navigating to local profile:', result.id);
         router.push(`/perfil/local?localId=${result.id}`);
       }
     } catch (error) {
-      console.error('[HeaderSocial v63.0] ❌ Error navigating to profile:', error);
+      console.error('[HeaderSocial v68.0] ❌ Error navigating to profile:', error);
       Alert.alert('Error', 'No se pudo abrir el perfil');
     }
   };
@@ -322,7 +323,7 @@ export default function HeaderSocial({
           <IconSymbol
             ios_icon_name={item.type === 'user' ? 'person.fill' : 'building.2.fill'}
             android_material_icon_name={item.type === 'user' ? 'person' : 'business'}
-            size={Platform.OS === 'ios' ? 24 : 16}
+            size={Platform.OS === 'ios' ? 24 : 13.2}
             color={colors.textSecondary}
           />
         </View>
@@ -364,7 +365,7 @@ export default function HeaderSocial({
               onPress={() => router.push('/(tabs)/perfil/chats')}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={Platform.OS === 'ios' ? 22 : 15} color={colors.headerText} />
+              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={Platform.OS === 'ios' ? 22 : 12.1} color={colors.headerText} />
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -379,7 +380,7 @@ export default function HeaderSocial({
               onPress={() => router.push('/(tabs)/perfil/notificaciones')}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={Platform.OS === 'ios' ? 22 : 15} color={colors.headerText} />
+              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={Platform.OS === 'ios' ? 22 : 12.1} color={colors.headerText} />
               {unreadNotifications > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -394,7 +395,7 @@ export default function HeaderSocial({
               onPress={() => setShowSearch(true)}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 22 : 15} color={colors.headerText} />
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 22 : 12.1} color={colors.headerText} />
             </TouchableOpacity>
 
             {(onCreatePress || onCreatePost) && (
@@ -403,7 +404,7 @@ export default function HeaderSocial({
                 onPress={onCreatePress || onCreatePost}
                 activeOpacity={0.7}
               >
-                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={Platform.OS === 'ios' ? 22 : 15} color={colors.headerText} />
+                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={Platform.OS === 'ios' ? 22 : 12.1} color={colors.headerText} />
               </TouchableOpacity>
             )}
           </View>
@@ -430,11 +431,11 @@ export default function HeaderSocial({
               }}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={Platform.OS === 'ios' ? 24 : 17} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={Platform.OS === 'ios' ? 24 : 13.2} color={colors.headerText} />
             </TouchableOpacity>
             
             <View style={styles.searchInputContainer}>
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 20 : 13} color={colors.headerText} />
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 20 : 11} color={colors.headerText} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Buscar usuarios o locales..."
@@ -453,7 +454,7 @@ export default function HeaderSocial({
                   }}
                   activeOpacity={0.7}
                 >
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={Platform.OS === 'ios' ? 20 : 13} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={Platform.OS === 'ios' ? 20 : 11} color={colors.headerText} />
                 </TouchableOpacity>
               )}
             </View>
@@ -474,7 +475,7 @@ export default function HeaderSocial({
               />
             ) : searchQuery.trim().length > 0 ? (
               <View style={styles.searchEmptyState}>
-                <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 64 : 45} color={colors.textSecondary} />
+                <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 64 : 35.2} color={colors.textSecondary} />
                 <Text style={styles.searchEmptyText}>No se encontraron resultados</Text>
                 <Text style={styles.searchEmptySubtext}>
                   Intenta buscar por nombre de usuario o nombre de local
@@ -482,7 +483,7 @@ export default function HeaderSocial({
               </View>
             ) : (
               <View style={styles.searchEmptyState}>
-                <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 64 : 45} color={colors.textSecondary} />
+                <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 64 : 35.2} color={colors.textSecondary} />
                 <Text style={styles.searchEmptyText}>Buscar en BarLive</Text>
                 <Text style={styles.searchEmptySubtext}>
                   Busca usuarios por nombre de usuario (sin @) o locales con plan activo
@@ -497,7 +498,7 @@ export default function HeaderSocial({
 }
 
 const styles = StyleSheet.create({
-  // ✅ CRITICAL v63.0: Uses HEADER_DIMENSIONS for consistency
+  // ✅ CRITICAL v68.0: Uses HEADER_DIMENSIONS for consistency
   header: {
     paddingTop: HEADER_DIMENSIONS.paddingTop,
     paddingBottom: HEADER_DIMENSIONS.paddingBottom,
@@ -514,9 +515,9 @@ const styles = StyleSheet.create({
     gap: 12,
     flex: 1,
   },
-  // ✅ ANDROID FIX v63.0: Significantly reduced font size on Android (40% smaller)
+  // ✅ ANDROID FIX v68.0: Significantly reduced font size on Android (50% smaller)
   headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 19,
+    fontSize: Platform.OS === 'ios' ? 32 : 16,
     fontWeight: 'bold',
     color: colors.headerText,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
@@ -529,27 +530,28 @@ const styles = StyleSheet.create({
     padding: 4,
     position: 'relative',
   },
+  // ✅ ANDROID FIX v68.0: Badge sizes reduced by 50% on Android
   badge: {
     position: 'absolute',
     top: -2,
     right: -4,
     backgroundColor: '#EF4444',
     borderRadius: 12,
-    minWidth: Platform.OS === 'ios' ? 22 : 18,
-    height: Platform.OS === 'ios' ? 22 : 18,
+    minWidth: Platform.OS === 'ios' ? 22 : 11,
+    height: Platform.OS === 'ios' ? 22 : 11,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: Platform.OS === 'ios' ? 6 : 3,
     paddingVertical: 2,
     borderWidth: 2,
     borderColor: colors.headerGradientStart,
   },
   badgeText: {
     color: '#FFFFFF',
-    fontSize: Platform.OS === 'ios' ? 10 : 8,
+    fontSize: Platform.OS === 'ios' ? 10 : 5,
     fontWeight: '700',
     textAlign: 'center',
-    lineHeight: Platform.OS === 'android' ? 10 : 10,
+    lineHeight: Platform.OS === 'android' ? 7 : 10,
     includeFontPadding: false,
     textAlignVertical: 'center',
   },
@@ -557,7 +559,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  // ✅ CRITICAL v63.0: Uses HEADER_DIMENSIONS for consistency
+  // ✅ CRITICAL v68.0: Uses HEADER_DIMENSIONS for consistency
   searchHeader: {
     paddingTop: HEADER_DIMENSIONS.paddingTop,
     paddingBottom: HEADER_DIMENSIONS.paddingBottom,
@@ -576,12 +578,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 5,
     gap: 10,
   },
   searchInput: {
     flex: 1,
-    fontSize: Platform.OS === 'ios' ? 16 : 10,
+    fontSize: Platform.OS === 'ios' ? 16 : 8,
     color: colors.headerText,
     fontWeight: '500',
   },
@@ -596,7 +598,7 @@ const styles = StyleSheet.create({
   },
   searchLoadingText: {
     marginTop: 16,
-    fontSize: Platform.OS === 'ios' ? 16 : 10,
+    fontSize: Platform.OS === 'ios' ? 16 : 8,
     color: colors.textSecondary,
   },
   searchResultsList: {
@@ -605,56 +607,58 @@ const styles = StyleSheet.create({
   searchResultItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: Platform.OS === 'ios' ? 16 : 10,
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
+  // ✅ ANDROID FIX v68.0: Avatar sizes reduced by 50% on Android
   searchResultAvatar: {
-    width: Platform.OS === 'ios' ? 56 : 42,
-    height: Platform.OS === 'ios' ? 56 : 42,
-    borderRadius: Platform.OS === 'ios' ? 28 : 21,
-    marginRight: 16,
+    width: Platform.OS === 'ios' ? 56 : 28,
+    height: Platform.OS === 'ios' ? 56 : 28,
+    borderRadius: Platform.OS === 'ios' ? 28 : 14,
+    marginRight: Platform.OS === 'ios' ? 16 : 10,
   },
   searchResultAvatarPlaceholder: {
-    width: Platform.OS === 'ios' ? 56 : 42,
-    height: Platform.OS === 'ios' ? 56 : 42,
-    borderRadius: Platform.OS === 'ios' ? 28 : 21,
+    width: Platform.OS === 'ios' ? 56 : 28,
+    height: Platform.OS === 'ios' ? 56 : 28,
+    borderRadius: Platform.OS === 'ios' ? 28 : 14,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: Platform.OS === 'ios' ? 16 : 10,
   },
   searchResultInfo: {
     flex: 1,
   },
+  // ✅ ANDROID FIX v68.0: Search result text sizes reduced by 50% on Android
   searchResultName: {
-    fontSize: Platform.OS === 'ios' ? 16 : 10,
+    fontSize: Platform.OS === 'ios' ? 16 : 8,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
   searchResultUsername: {
-    fontSize: Platform.OS === 'ios' ? 14 : 9,
+    fontSize: Platform.OS === 'ios' ? 14 : 7,
     color: colors.textSecondary,
     marginBottom: 2,
   },
   searchResultType: {
-    fontSize: Platform.OS === 'ios' ? 13 : 8,
+    fontSize: Platform.OS === 'ios' ? 13 : 6.5,
     color: colors.primary,
     fontWeight: '600',
     textTransform: 'capitalize',
   },
   searchResultLocation: {
-    fontSize: Platform.OS === 'ios' ? 12 : 8,
+    fontSize: Platform.OS === 'ios' ? 12 : 6,
     color: colors.textSecondary,
     marginTop: 2,
   },
   searchResultBadge: {
-    paddingHorizontal: Platform.OS === 'ios' ? 12 : 8,
-    paddingVertical: Platform.OS === 'ios' ? 6 : 4,
+    paddingHorizontal: Platform.OS === 'ios' ? 12 : 6,
+    paddingVertical: Platform.OS === 'ios' ? 6 : 3,
     borderRadius: 12,
     backgroundColor: colors.primary + '20',
   },
@@ -662,7 +666,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981' + '20',
   },
   searchResultBadgeText: {
-    fontSize: Platform.OS === 'ios' ? 12 : 8,
+    fontSize: Platform.OS === 'ios' ? 12 : 6,
     fontWeight: '700',
     color: colors.primary,
   },
@@ -677,7 +681,7 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   searchEmptyText: {
-    fontSize: Platform.OS === 'ios' ? 20 : 13,
+    fontSize: Platform.OS === 'ios' ? 20 : 10,
     fontWeight: '700',
     color: colors.text,
     marginTop: 16,
@@ -685,9 +689,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   searchEmptySubtext: {
-    fontSize: Platform.OS === 'ios' ? 15 : 9,
+    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: Platform.OS === 'ios' ? 22 : 14,
+    lineHeight: Platform.OS === 'ios' ? 22 : 11,
   },
 });

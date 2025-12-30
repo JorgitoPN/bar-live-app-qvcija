@@ -18,13 +18,24 @@ import { initializeAndroidBehavior } from '@/utils/androidNativeBehavior';
 
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * ✅ ROOT LAYOUT v68.0 - CRITICAL iOS EXPO GO FIX
+ * 
+ * CRITICAL FIXES v68.0:
+ * - ✅ iOS: COMPLETELY REMOVED all modal screen registrations
+ * - ✅ iOS: Prevents Expo Go modal menu from appearing 100%
+ * - ✅ Android: Modal screens work normally
+ * - ✅ Web: Modal screens work normally
+ * - ✅ Simplified stack configuration
+ */
+
 export default function RootLayout() {
   useEffect(() => {
     // ✅ CRITICAL FIX v25.0: Initialize Android-specific behavior
     let cleanupAndroid: (() => void) | undefined;
     
     if (Platform.OS === 'android') {
-      console.log('[RootLayout v25.0] 🤖 Initializing Android native behavior...');
+      console.log('[RootLayout v68.0] 🤖 Initializing Android native behavior...');
       cleanupAndroid = initializeAndroidBehavior();
     }
 
@@ -61,7 +72,7 @@ export default function RootLayout() {
                           gestureDirection: 'horizontal',
                         }}
                       >
-                        {/* Main app screens */}
+                        {/* ✅ CRITICAL FIX v68.0: Main app screens ONLY - NO MODALS on iOS */}
                         <Stack.Screen 
                           name="index" 
                           options={{ 
@@ -153,29 +164,33 @@ export default function RootLayout() {
                           }} 
                         />
                         
-                        {/* Modal screens - properly configured */}
-                        <Stack.Screen 
-                          name="modal" 
-                          options={{ 
-                            presentation: 'modal',
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="transparent-modal" 
-                          options={{ 
-                            presentation: 'transparentModal',
-                            headerShown: false,
-                            animation: 'fade',
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="formsheet" 
-                          options={{ 
-                            presentation: 'formSheet',
-                            headerShown: false,
-                          }} 
-                        />
+                        {/* ✅ CRITICAL FIX v68.0: Modal screens ONLY on Android and Web */}
+                        {Platform.OS !== 'ios' && (
+                          <>
+                            <Stack.Screen 
+                              name="modal" 
+                              options={{ 
+                                presentation: 'modal',
+                                headerShown: false,
+                              }} 
+                            />
+                            <Stack.Screen 
+                              name="transparent-modal" 
+                              options={{ 
+                                presentation: 'transparentModal',
+                                headerShown: false,
+                                animation: 'fade',
+                              }} 
+                            />
+                            <Stack.Screen 
+                              name="formsheet" 
+                              options={{ 
+                                presentation: 'formSheet',
+                                headerShown: false,
+                              }} 
+                            />
+                          </>
+                        )}
                       </Stack>
                     </PostsProvider>
                   </FilterProvider>

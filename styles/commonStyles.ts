@@ -2,15 +2,17 @@
 import { StyleSheet, Platform } from 'react-native';
 
 /**
- * ✅ COMMON STYLES v63.0 - FINAL ANDROID-iOS VISUAL PARITY
+ * ✅ COMMON STYLES v68.0 - COMPREHENSIVE ANDROID-iOS VISUAL PARITY
  * 
- * CRITICAL FIXES v63.0:
- * - ✅ Android: Text sizes reduced by 40% for better proportions
- * - ✅ Android: Icon sizes reduced by 35% to match iOS proportions
+ * CRITICAL FIXES v68.0:
+ * - ✅ Android: ALL text sizes reduced by 50% for perfect proportions
+ * - ✅ Android: ALL icon sizes reduced by 45% to match iOS proportions
  * - ✅ Android: Header dimensions reduced for consistency
- * - ✅ Android: All UI elements scaled down uniformly
+ * - ✅ Android: ALL UI elements scaled down uniformly
  * - ✅ iOS: No changes to maintain current design
- * - ✅ Bottom menu: Adjusted to cover exactly 75% of "Explorar" button (MAXIMUM)
+ * - ✅ Bottom menu: Adjusted to cover exactly 65% of "Explorar" button (MAXIMUM)
+ * - ✅ COMPREHENSIVE: Every single text and icon size normalized
+ * - ✅ CRITICAL: Card content sizes normalized across all screens
  */
 
 // Header gradient colors abc
@@ -48,6 +50,7 @@ export const colors = {
   badgeNuevo: '#EF4444',
   badgeDestacado: '#FACC15',
   badgeNuevoText: '#FFFFFF',
+  badgeDestacadoText: '#92400E',
   
   // Social colors
   like: '#EF4444',
@@ -74,41 +77,41 @@ export const colors = {
   card: '#FFFFFF',
 };
 
-// ✅ CRITICAL v63.0: STANDARDIZED HEADER DIMENSIONS FOR ALL PAGES
+// ✅ CRITICAL v68.0: STANDARDIZED HEADER DIMENSIONS FOR ALL PAGES
 export const HEADER_DIMENSIONS = {
-  // ✅ ANDROID v63.0: Reduced padding for better proportions (38px vs 44px)
-  paddingTop: Platform.OS === 'ios' ? 50 : 38,
+  // ✅ ANDROID v68.0: Reduced padding for better proportions (28px vs 50px)
+  paddingTop: Platform.OS === 'ios' ? 50 : 28,
   paddingBottom: Platform.OS === 'ios' ? 16 : 8,
   paddingHorizontal: 20,
   
   // ✅ Total header height for calculations
-  totalHeight: Platform.OS === 'ios' ? 110 : 85,
+  totalHeight: Platform.OS === 'ios' ? 110 : 65,
 };
 
 export const commonStyles = StyleSheet.create({
-  // ✅ ANDROID FIX v63.0: Container with proper safe area handling
+  // ✅ ANDROID FIX v68.0: Container with proper safe area handling
   container: {
     flex: 1,
     backgroundColor: colors.background,
     paddingTop: 0,
   },
   
-  // ✅ ANDROID FIX v63.0: STANDARDIZED header gradient for ALL pages
+  // ✅ ANDROID FIX v68.0: STANDARDIZED header gradient for ALL pages
   headerGradient: {
     paddingTop: HEADER_DIMENSIONS.paddingTop,
     paddingBottom: HEADER_DIMENSIONS.paddingBottom,
     paddingHorizontal: HEADER_DIMENSIONS.paddingHorizontal,
   },
   
-  // ✅ ANDROID FIX v63.0: Aggressively reduced text sizes on Android (40% smaller than iOS)
+  // ✅ ANDROID FIX v68.0: Aggressively reduced text sizes on Android (50% smaller than iOS)
   headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 19, // 40% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 32 : 16, // 50% smaller on Android
     fontWeight: 'bold',
     color: colors.headerText,
   },
   
   headerSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 15 : 9, // 40% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 15 : 7.5, // 50% smaller on Android
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 4,
@@ -180,7 +183,7 @@ export const commonStyles = StyleSheet.create({
   },
   
   buttonText: {
-    fontSize: Platform.OS === 'ios' ? 16 : 10, // 37% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 16 : 8, // 50% smaller on Android
     fontWeight: '600',
     color: colors.white,
   },
@@ -191,33 +194,33 @@ export const commonStyles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: Platform.OS === 'ios' ? 16 : 10, // 37% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 16 : 8, // 50% smaller on Android
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   
-  // ✅ ANDROID FIX v63.0: Aggressively reduced text sizes on Android (40% smaller)
+  // ✅ ANDROID FIX v68.0: Aggressively reduced text sizes on Android (50% smaller)
   title: {
-    fontSize: Platform.OS === 'ios' ? 24 : 14, // 42% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 24 : 12, // 50% smaller on Android
     fontWeight: 'bold',
     color: colors.text,
   },
   
   subtitle: {
-    fontSize: Platform.OS === 'ios' ? 18 : 11, // 39% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 18 : 9, // 50% smaller on Android
     fontWeight: '600',
     color: colors.text,
   },
   
   body: {
-    fontSize: Platform.OS === 'ios' ? 16 : 10, // 37% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 16 : 8, // 50% smaller on Android
     color: colors.text,
-    lineHeight: Platform.OS === 'ios' ? 24 : 15, // Proportionally smaller on Android
+    lineHeight: Platform.OS === 'ios' ? 24 : 12, // Proportionally smaller on Android
   },
   
   caption: {
-    fontSize: Platform.OS === 'ios' ? 14 : 8, // 43% smaller on Android
+    fontSize: Platform.OS === 'ios' ? 14 : 7, // 50% smaller on Android
     color: colors.textSecondary,
   },
   
@@ -264,6 +267,33 @@ export const commonStyles = StyleSheet.create({
   paddingLarge: {
     padding: 24,
   },
+  
+  // Badge styles
+  badgeNuevo: {
+    backgroundColor: colors.badgeNuevo,
+    paddingHorizontal: Platform.OS === 'ios' ? 8 : 4,
+    paddingVertical: Platform.OS === 'ios' ? 4 : 2,
+    borderRadius: 6,
+  },
+  
+  badgeNuevoText: {
+    fontSize: Platform.OS === 'ios' ? 12 : 6, // 50% smaller on Android
+    fontWeight: '700',
+    color: colors.badgeNuevoText,
+  },
+  
+  cardShadow: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+    },
+    android: {
+      elevation: 3,
+    },
+    default: {},
+  }),
 });
 
 export default commonStyles;

@@ -14,6 +14,7 @@ import {
   Alert,
   Image,
   Pressable,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -104,12 +105,14 @@ interface PerfilProfesional {
 }
 
 /**
- * ✅ EMPLEO SCREEN v48.0 - WHITE SEARCH BAR + ACCESS CONTROL
+ * ✅ EMPLEO SCREEN v65.0 - COMPREHENSIVE ANDROID-iOS PARITY
  * 
- * CRITICAL FIXES:
- * - ✅ Search bar icon is now white (matching eventos and favoritos)
+ * CRITICAL FIXES v65.0:
+ * - ✅ Android: All text sizes reduced 45% to match iOS
+ * - ✅ Android: All icon sizes reduced 40% to match iOS
+ * - ✅ Android: Search box height reduced by 60%
+ * - ✅ iOS: No changes to maintain current design
  * - ✅ Access control for free plan users
- * - ✅ Restricted access message for free plan locals
  */
 
 function EmpleoContent() {
@@ -621,7 +624,7 @@ function EmpleoContent() {
               <IconSymbol 
                 ios_icon_name="person.circle.fill" 
                 android_material_icon_name="account_circle" 
-                size={40} 
+                size={Platform.OS === 'ios' ? 40 : 24} 
                 color={colors.textSecondary} 
               />
             </View>
@@ -722,12 +725,12 @@ function EmpleoContent() {
       >
         <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Bolsa de Trabajo</Text>
 
-        {/* ✅ CRITICAL FIX v48.0: White search bar icon */}
+        {/* ✅ CRITICAL FIX v65.0: Search box with reduced height on Android */}
         <View style={styles.searchContainer}>
           <IconSymbol 
             ios_icon_name="magnifyingglass" 
             android_material_icon_name="search" 
-            size={20} 
+            size={Platform.OS === 'ios' ? 20 : 12} 
             color={colors.white} 
           />
           <TextInput
@@ -741,7 +744,7 @@ function EmpleoContent() {
             <IconSymbol 
               ios_icon_name="slider.horizontal.3" 
               android_material_icon_name="tune" 
-              size={20} 
+              size={Platform.OS === 'ios' ? 20 : 12} 
               color={colors.white} 
             />
           </TouchableOpacity>
@@ -859,7 +862,7 @@ function EmpleoContent() {
             <IconSymbol 
               ios_icon_name="plus" 
               android_material_icon_name="add" 
-              size={28} 
+              size={Platform.OS === 'ios' ? 28 : 16.8} 
               color={colors.white} 
             />
           </LinearGradient>
@@ -884,7 +887,7 @@ function EmpleoContent() {
                 <IconSymbol 
                   ios_icon_name="xmark" 
                   android_material_icon_name="close" 
-                  size={24} 
+                  size={Platform.OS === 'ios' ? 24 : 14.4} 
                   color={colors.text} 
                 />
               </TouchableOpacity>
@@ -1232,20 +1235,21 @@ export default function EmpleoScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ✅ CRITICAL FIX v67.0: Search box height REDUCED by 65% on Android
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: Platform.OS === 'ios' ? 16 : 8,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 4,
     marginTop: 16,
-    gap: 12,
+    gap: Platform.OS === 'ios' ? 12 : 6,
   },
   searchInput: {
     flex: 1,
     color: colors.white,
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 8,
   },
   tabs: {
     flexDirection: 'row',
@@ -1254,7 +1258,7 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
     alignItems: 'center',
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -1263,7 +1267,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   tabText: {
-    fontSize: 15,
+    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.8)',
   },
@@ -1277,7 +1281,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 8,
     color: colors.textSecondary,
   },
   content: {
@@ -1309,62 +1313,63 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 8,
   },
+  // ✅ ANDROID FIX v67.0: Card text sizes reduced on Android (50% smaller)
   ofertaTitulo: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'ios' ? 18 : 9,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
   ofertaLocal: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 7,
     color: colors.textSecondary,
     fontWeight: '500',
   },
   badgeNuevo: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: Platform.OS === 'ios' ? 8 : 6,
+    paddingVertical: Platform.OS === 'ios' ? 4 : 3,
     borderRadius: 6,
   },
   ofertaDescripcion: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 7,
     color: colors.text,
-    lineHeight: 20,
-    marginBottom: 12,
+    lineHeight: Platform.OS === 'ios' ? 20 : 10,
+    marginBottom: Platform.OS === 'ios' ? 12 : 6,
   },
   ofertaDetalles: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
+    gap: Platform.OS === 'ios' ? 8 : 6,
+    marginBottom: Platform.OS === 'ios' ? 12 : 8,
   },
   detalleChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: colors.background,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: Platform.OS === 'ios' ? 10 : 7,
+    paddingVertical: Platform.OS === 'ios' ? 6 : 4,
     borderRadius: 6,
   },
   detalleTexto: {
-    fontSize: 13,
+    fontSize: Platform.OS === 'ios' ? 13 : 6.5,
     color: colors.text,
     fontWeight: '500',
   },
   requisitosContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
+    gap: Platform.OS === 'ios' ? 8 : 6,
+    marginBottom: Platform.OS === 'ios' ? 12 : 8,
   },
   requisitoChip: {
     backgroundColor: colors.primary + '20',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: Platform.OS === 'ios' ? 10 : 7,
+    paddingVertical: Platform.OS === 'ios' ? 6 : 4,
     borderRadius: 6,
   },
   requisitoTexto: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'ios' ? 12 : 6,
     color: colors.primary,
     fontWeight: '600',
   },
@@ -1372,23 +1377,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 12,
+    marginTop: Platform.OS === 'ios' ? 8 : 6,
+    paddingTop: Platform.OS === 'ios' ? 12 : 8,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
   },
   fechaTexto: {
-    fontSize: 13,
+    fontSize: Platform.OS === 'ios' ? 13 : 6.5,
     color: colors.textSecondary,
   },
   aplicarButton: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingHorizontal: Platform.OS === 'ios' ? 20 : 10,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 4,
     borderRadius: 8,
   },
   aplicarTexto: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 7,
     fontWeight: '600',
     color: colors.white,
   },
@@ -1404,16 +1409,17 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 12,
   },
+  // ✅ ANDROID FIX v67.0: Profile photo sizes reduced on Android (50% smaller)
   perfilFoto: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: Platform.OS === 'ios' ? 60 : 30,
+    height: Platform.OS === 'ios' ? 60 : 30,
+    borderRadius: Platform.OS === 'ios' ? 30 : 15,
     backgroundColor: colors.cardBorder,
   },
   perfilFotoPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: Platform.OS === 'ios' ? 60 : 30,
+    height: Platform.OS === 'ios' ? 60 : 30,
+    borderRadius: Platform.OS === 'ios' ? 30 : 15,
     backgroundColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1424,8 +1430,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 80,
   },
+  // ✅ ANDROID FIX v67.0: Empty state and FAB sizes reduced on Android (50% smaller)
   emptyStateText: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 8,
     color: colors.textSecondary,
     marginTop: 16,
     textAlign: 'center',
@@ -1434,9 +1441,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 100,
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: Platform.OS === 'ios' ? 56 : 40,
+    height: Platform.OS === 'ios' ? 56 : 40,
+    borderRadius: Platform.OS === 'ios' ? 28 : 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1446,7 +1453,7 @@ const styles = StyleSheet.create({
   fabGradient: {
     width: '100%',
     height: '100%',
-    borderRadius: 28,
+    borderRadius: Platform.OS === 'ios' ? 28 : 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1471,16 +1478,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  // ✅ ANDROID FIX v67.0: Modal text sizes reduced on Android (50% smaller)
   modalTitle: {
-    fontSize: 20,
+    fontSize: Platform.OS === 'ios' ? 20 : 10,
     fontWeight: 'bold',
     color: colors.text,
   },
   filterSection: {
-    marginBottom: 24,
+    marginBottom: Platform.OS === 'ios' ? 24 : 16,
   },
   filterTitle: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 8,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 12,
@@ -1491,8 +1499,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: Platform.OS === 'ios' ? 16 : 10,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 5,
     borderRadius: 20,
     backgroundColor: colors.background,
     borderWidth: 1,
@@ -1503,7 +1511,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   filterChipText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 7,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1519,7 +1527,7 @@ const styles = StyleSheet.create({
   },
   limpiarButton: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 9,
     borderRadius: 12,
     backgroundColor: colors.background,
     alignItems: 'center',
@@ -1527,7 +1535,7 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   limpiarButtonText: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 8,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1537,11 +1545,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   aplicarButtonGradient: {
-    paddingVertical: 14,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 9,
     alignItems: 'center',
   },
   aplicarButtonText: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 8,
     fontWeight: '600',
     color: colors.white,
   },
@@ -1553,8 +1561,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  // ✅ ANDROID FIX v67.0: Detail modal text sizes reduced on Android (50% smaller)
   detailHeaderTitle: {
-    fontSize: 20,
+    fontSize: Platform.OS === 'ios' ? 20 : 10,
     fontWeight: 'bold',
     color: colors.white,
   },
@@ -1563,52 +1572,52 @@ const styles = StyleSheet.create({
   },
   detailProfileHeader: {
     alignItems: 'center',
-    padding: 24,
+    padding: Platform.OS === 'ios' ? 24 : 16,
     backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
   detailProfilePhoto: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: Platform.OS === 'ios' ? 120 : 60,
+    height: Platform.OS === 'ios' ? 120 : 60,
+    borderRadius: Platform.OS === 'ios' ? 60 : 30,
     marginBottom: 16,
   },
   detailProfileName: {
-    fontSize: 24,
+    fontSize: Platform.OS === 'ios' ? 24 : 12,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 8,
   },
   detailProfileJob: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'ios' ? 18 : 9,
     color: colors.textSecondary,
   },
   detailSection: {
-    padding: 20,
+    padding: Platform.OS === 'ios' ? 20 : 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
   detailSectionTitle: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 8,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
   },
   detailSectionText: {
-    fontSize: 15,
+    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
     color: colors.text,
-    lineHeight: 22,
+    lineHeight: Platform.OS === 'ios' ? 22 : 11,
   },
   detailListItem: {
-    fontSize: 15,
+    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
     color: colors.text,
-    lineHeight: 24,
+    lineHeight: Platform.OS === 'ios' ? 24 : 12,
     marginLeft: 8,
   },
   detailActions: {
-    padding: 16,
-    paddingBottom: 34,
+    padding: Platform.OS === 'ios' ? 16 : 10,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
     backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
@@ -1624,33 +1633,33 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   detailActionButtonGradient: {
-    paddingVertical: 16,
+    paddingVertical: Platform.OS === 'ios' ? 16 : 10,
     alignItems: 'center',
   },
   detailActionButtonText: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 8,
     fontWeight: '600',
     color: colors.white,
   },
   detailOfferImage: {
     width: '100%',
-    height: 200,
+    height: Platform.OS === 'ios' ? 200 : 110,
     backgroundColor: colors.cardBorder,
   },
   detailOfferHeader: {
-    padding: 20,
+    padding: Platform.OS === 'ios' ? 20 : 10,
     backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
   detailOfferTitle: {
-    fontSize: 24,
+    fontSize: Platform.OS === 'ios' ? 24 : 12,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 8,
   },
   detailOfferLocal: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'ios' ? 16 : 8,
     color: colors.textSecondary,
   },
   loadingMoreContainer: {
@@ -1659,7 +1668,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loadingMoreText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 7,
     color: colors.textSecondary,
   },
   endOfListContainer: {
@@ -1667,7 +1676,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   endOfListText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'ios' ? 14 : 7,
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
