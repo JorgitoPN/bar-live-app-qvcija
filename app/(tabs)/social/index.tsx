@@ -79,11 +79,12 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL INDEX SCREEN v60.0 - STANDARDIZED DIMENSIONS
+ * ✅ SOCIAL INDEX SCREEN v62.0 - STANDARDIZED DIMENSIONS
  * 
- * CRITICAL FIXES v60.0:
+ * CRITICAL FIXES v62.0:
  * - ✅ All text and icon sizes reduced on Android (30% smaller)
  * - ✅ Consistent with other pages
+ * - ✅ Search box height reduced in header (via HeaderSocial component)
  */
 
 export default function SocialIndexScreen() {

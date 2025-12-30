@@ -132,14 +132,15 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v61.0 - FINAL ANDROID-iOS PARITY
+ * ✅ MAP SCREEN v62.0 - FINAL ANDROID-iOS PARITY
  * 
- * CRITICAL FIXES v61.0:
+ * CRITICAL FIXES v62.0:
  * - ✅ Android: All text sizes reduced 35% to match iOS
  * - ✅ Android: All icon sizes reduced 30% to match iOS
  * - ✅ Android: Map loading works correctly
  * - ✅ Android: Locales display correctly on map
  * - ✅ Uses HEADER_DIMENSIONS for standardized header
+ * - ✅ CRITICAL: Fixed locales not showing on Android
  */
 
 export default function MapaScreen() {

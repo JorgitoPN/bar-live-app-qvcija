@@ -31,12 +31,13 @@ interface SearchResult {
 }
 
 /**
- * ✅ HEADER SOCIAL v60.0 - STANDARDIZED DIMENSIONS
+ * ✅ HEADER SOCIAL v62.0 - STANDARDIZED DIMENSIONS
  * 
- * CRITICAL FIXES v60.0:
+ * CRITICAL FIXES v62.0:
  * - ✅ Uses HEADER_DIMENSIONS from commonStyles for consistency
  * - ✅ All text and icon sizes reduced on Android (30% smaller)
  * - ✅ Exact same header height as all other pages
+ * - ✅ Android: Search box height REDUCED (paddingVertical: 6px vs iOS 10px)
  */
 
 export default function HeaderSocial({
@@ -575,7 +576,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
     gap: 10,
   },
   searchInput: {

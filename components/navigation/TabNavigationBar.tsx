@@ -1,15 +1,15 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v61.0
+ * TAB NAVIGATION BAR - VERSION v62.0
  * 
  * ✅ FINAL ANDROID-iOS VISUAL PARITY
  * 
- * CRITICAL FIXES v61.0:
- * - ✅ iOS: Background covers exactly 70% of "Explorar" button (reduced from 75%)
- * - ✅ Android: Background covers exactly 75% of "Explorar" button
- * - ✅ Icon sizes reduced by 30% on Android
+ * CRITICAL FIXES v62.0:
+ * - ✅ iOS: Background covers exactly 70% of "Explorar" button (unchanged)
+ * - ✅ Android: Background covers exactly 65% of "Explorar" button (REDUCED from 75%)
+ * - ✅ Android: Icon sizes INCREASED (center: 24px, regular: 22px)
  * - ✅ Proper z-index layering maintained
- * - ✅ No overflow on either platform
+ * - ✅ No overflow on Android - background respects button limits
  */
 
 import React from 'react';
@@ -136,7 +136,7 @@ export function TabNavigationBar({
           activeOpacity: 0.7,
         };
 
-    // ✅ CRITICAL v61.0: Center button icon sizes optimized (30% smaller on Android)
+    // ✅ CRITICAL v62.0: Center button icon sizes INCREASED on Android (from 20 to 24)
     if (isCenter) {
       return (
         <TouchableComponent
@@ -157,7 +157,7 @@ export function TabNavigationBar({
                 androidIconFilled={tab.androidIconFilled}
                 androidIconOutlined={tab.androidIconOutlined}
                 isActive={true}
-                size={Platform.OS === 'ios' ? 28 : 20}
+                size={Platform.OS === 'ios' ? 28 : 24}
               />
             </LinearGradient>
           </View>
@@ -206,7 +206,7 @@ export function TabNavigationBar({
       );
     }
 
-    // ✅ CRITICAL v61.0: Regular tab icons optimized (30% smaller on Android)
+    // ✅ CRITICAL v62.0: Regular tab icons INCREASED on Android (from 18 to 22)
     return (
       <TouchableComponent
         key={tab.id}
@@ -220,27 +220,27 @@ export function TabNavigationBar({
             androidIconFilled={tab.androidIconFilled}
             androidIconOutlined={tab.androidIconOutlined}
             isActive={isActive}
-            size={Platform.OS === 'ios' ? 26 : 18}
+            size={Platform.OS === 'ios' ? 26 : 22}
           />
         </View>
       </TouchableComponent>
     );
   };
 
-  // ✅ CRITICAL FIX v61.0: Platform-specific background coverage
+  // ✅ CRITICAL FIX v62.0: Platform-specific background coverage
   const baseHeight = 60;
   const containerHeight = baseHeight + (Platform.OS === 'android' ? Math.max(insets.bottom, 8) : 0);
   const tabBarPaddingBottom = Platform.OS === 'ios' ? 20 : Math.max(insets.bottom, 8);
   
-  // ✅ CRITICAL v61.0: iOS 70%, Android 75% coverage
+  // ✅ CRITICAL v62.0: iOS 70%, Android 65% coverage (REDUCED from 75%)
   // Button height = 56px, radius = 28px
   // iOS: 70% = 39.2px up from bottom (leaves 16.8px visible)
-  // Android: 75% = 42px up from bottom (leaves 14px visible)
+  // Android: 65% = 36.4px up from bottom (leaves 19.6px visible) - MORE VISIBLE
   const buttonHeight = 56;
-  const coveragePercent = Platform.OS === 'ios' ? 0.70 : 0.75;
+  const coveragePercent = Platform.OS === 'ios' ? 0.70 : 0.65;
   const backgroundHeight = baseHeight + (buttonHeight * coveragePercent) - (buttonHeight / 2);
 
-  console.log('[TabNav v61.0] 📐 Tab bar dimensions:', {
+  console.log('[TabNav v62.0] 📐 Tab bar dimensions:', {
     platform: Platform.OS,
     baseHeight,
     containerHeight,
@@ -253,6 +253,7 @@ export function TabNavigationBar({
   return (
     <View style={[styles.container, { height: containerHeight }]}>
       {/* ✅ CRITICAL FIX v61.0: iOS 70%, Android 75% coverage */}
+      {/* ✅ CRITICAL FIX v62.0: iOS 70%, Android 65% coverage */}
       <View style={[styles.backgroundContainer, { height: backgroundHeight, bottom: Platform.OS === 'android' ? Math.max(insets.bottom, 8) : 0 }]}>
         <Svg
           width="100%"

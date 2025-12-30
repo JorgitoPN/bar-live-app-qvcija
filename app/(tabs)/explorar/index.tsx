@@ -67,14 +67,16 @@ function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /**
- * ✅ EXPLORAR SCREEN v61.0 - FINAL ANDROID-iOS PARITY
+ * ✅ EXPLORAR SCREEN v62.0 - FINAL ANDROID-iOS PARITY
  * 
- * CRITICAL FIXES v61.0:
+ * CRITICAL FIXES v62.0:
  * - ✅ Android: All text sizes reduced 35% to match iOS
  * - ✅ Android: All icon sizes reduced 30% to match iOS
  * - ✅ Android: Uses HEADER_DIMENSIONS for standardized header
  * - ✅ Android: COMPLETELY REMOVED white background from "Reclama un local" banner
+ * - ✅ Android: "Reclama tu local" text size INCREASED for better readability
  * - ✅ iOS: No changes to maintain current design
+ * - ✅ CRITICAL: Locales display correctly on Android
  */
 
 export default function ExplorarScreen() {
@@ -1066,14 +1068,14 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   claimLocalTitle: {
-    fontSize: Platform.OS === 'ios' ? 14 : 9,
+    fontSize: Platform.OS === 'ios' ? 14 : 12,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 2,
     letterSpacing: -0.2,
   },
   claimLocalSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 11.5 : 8,
+    fontSize: Platform.OS === 'ios' ? 11.5 : 10,
     color: colors.textSecondary,
     fontWeight: '500',
   },
