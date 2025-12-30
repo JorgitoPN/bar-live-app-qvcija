@@ -7,11 +7,9 @@
  * consistent visual appearance across Android and iOS devices.
  * 
  * CRITICAL FIXES v79.0 - COMPREHENSIVE ANDROID OVERHAUL:
- * - ✅ Bottom navigation bar height reduced by 50% on Android (solid section)
+ * - ✅ Bottom navigation bar height increased by 20% on Android
  * - ✅ Bottom navigation icons properly visible with correct z-index
  * - ✅ Single BarLive color background for bottom nav (no white background)
- * - ✅ Explore button protrudes slightly upward like iOS
- * - ✅ No white space above bottom menu
  * - ✅ Header extends properly to cover area after search box
  * - ✅ Minimal spacing between header and category icons
  * - ✅ "Reclama tu local" banner color matches iOS (no white box)
@@ -170,14 +168,13 @@ export const getCategoryTopPadding = (): number => {
 
 /**
  * Get platform-specific bottom navigation bar height
- * ✅ FIXED v79.0: Reduced by 50% on Android (solid section only)
+ * ✅ FIXED v79.0: Increased by 20% on Android as requested
  */
 export const getBottomNavHeight = (): number => {
   if (Platform.OS === 'ios') return 70;
   
-  // Android: 50% reduction from the 20% increased baseline
-  // Original iOS: 70, 20% increase: 84, 50% reduction: 42
-  return 42; // 50% of 84 (which was 20% increase from 70)
+  // Android: 20% increase from iOS baseline (70 * 1.2 = 84)
+  return 84; // Increased by 20% as requested
 };
 
 /**
@@ -384,7 +381,7 @@ export const logScalingInfo = () => {
   console.log('  ✅ Category Icon Inner Size:', getCategoryIconInnerSize(), '(matches iOS: 28)');
   console.log('  ✅ Category Spacing:', getCategorySpacing(), '(matches iOS: 16)');
   console.log('  ✅ Category Top Padding:', getCategoryTopPadding(), '(Android: 4 - MINIMAL)');
-  console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(iOS: 70, Android: 42 - 50% reduction)');
+  console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(iOS: 70, Android: 84 - 20% increase)');
   console.log('  ✅ Bottom Nav Icon Size:', getBottomNavIconSize(), '(matches iOS: 28)');
   console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(matches iOS: 60)');
   console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(matches iOS: 30)');
