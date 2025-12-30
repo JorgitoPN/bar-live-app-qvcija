@@ -59,7 +59,7 @@ const CATEGORIAS_LOCALES = [
 
 const LOCALES_POR_PAGINA = 20;
 
-// ✅ ANDROID FIX v79.0: Use platform-specific dimensions with further reduced spacing
+// ✅ ANDROID FIX v78.0: Use platform-specific dimensions with reduced spacing
 const HEADER_HEIGHT = getHeaderHeight();
 const SEARCH_BOX_HEIGHT = getSearchBoxHeight();
 const CATEGORY_ICON_SIZE = getCategoryIconSize();
@@ -83,14 +83,14 @@ function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /**
- * ✅ EXPLORAR SCREEN v79.0 - COMPLETE ANDROID-iOS PARITY
+ * ✅ EXPLORAR SCREEN v78.0 - COMPLETE ANDROID-iOS PARITY
  * 
- * CRITICAL FIXES v79.0 (ANDROID ONLY):
- * - ✅ Further reduced top margins between header and category icons (8 instead of 12)
- * - ✅ "Reclama tu local" banner matches iOS color exactly
+ * CRITICAL FIXES v78.0 (ANDROID ONLY):
+ * - ✅ Reduced top margins between header and category icons
+ * - ✅ "Reclama tu local" banner uses BarLive color background
  * - ✅ All dimensions optimized for Android-iOS parity
  * - ✅ Consistent spacing across all elements
- * - ✅ Bottom navigation uses BarLive color with 20% height increase
+ * - ✅ Bottom navigation uses BarLive color
  * 
  * IMPORTANT: iOS design remains unchanged - all fixes are Android-specific
  */
@@ -127,14 +127,14 @@ export default function ExplorarScreen() {
   // Log scaling info on Android
   useEffect(() => {
     if (Platform.OS === 'android') {
-      console.log('[ExplorarScreen v79.0] 📊 Android UI Parity - Optimized dimensions');
+      console.log('[ExplorarScreen v78.0] 📊 Android UI Parity - Optimized dimensions');
       logScalingInfo();
     }
   }, []);
 
   const userIsAdmin = useMemo(() => {
     const isAdmin = isAdminUser(user);
-    console.log('[ExplorarScreen v79.0] Admin check for mode selector:', {
+    console.log('[ExplorarScreen v78.0] Admin check for mode selector:', {
       email: user?.email,
       role: user?.rol_app,
       isAdmin,
@@ -157,12 +157,12 @@ export default function ExplorarScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('[ExplorarScreen v79.0] ⚡ Screen focused');
+      console.log('[ExplorarScreen v78.0] ⚡ Screen focused');
       setMostrarFiltros(false);
       setMostrarSelectorModo(false);
       
       return () => {
-        console.log('[ExplorarScreen v79.0] Screen unfocused');
+        console.log('[ExplorarScreen v78.0] Screen unfocused');
       };
     }, [])
   );
@@ -180,16 +180,16 @@ export default function ExplorarScreen() {
   }, [scrollIndicatorOpacity]);
 
   const localesFiltradosCompletos = useMemo(() => {
-    console.log('[ExplorarScreen v79.0] ⚡ Applying filters...');
-    console.log('[ExplorarScreen v79.0] 📊 Total locales:', todosLosLocales.length);
-    console.log('[ExplorarScreen v79.0] 🔍 Selected category:', categoriaSeleccionada);
-    console.log('[ExplorarScreen v79.0] 🔍 Global filters:', globalFiltros);
+    console.log('[ExplorarScreen v78.0] ⚡ Applying filters...');
+    console.log('[ExplorarScreen v78.0] 📊 Total locales:', todosLosLocales.length);
+    console.log('[ExplorarScreen v78.0] 🔍 Selected category:', categoriaSeleccionada);
+    console.log('[ExplorarScreen v78.0] 🔍 Global filters:', globalFiltros);
 
     let localesFiltrados = todosLosLocales.filter(local => local.activo === true);
-    console.log('[ExplorarScreen v79.0] ✅ After activo filter:', localesFiltrados.length);
+    console.log('[ExplorarScreen v78.0] ✅ After activo filter:', localesFiltrados.length);
 
     if (categoriaSeleccionada !== 'todos') {
-      console.log('[ExplorarScreen v79.0] 🔍 Filtering by category:', categoriaSeleccionada);
+      console.log('[ExplorarScreen v78.0] 🔍 Filtering by category:', categoriaSeleccionada);
       
       localesFiltrados = localesFiltrados.filter(local => {
         const barliveTypes = local.barlive_types || [];
@@ -210,7 +210,7 @@ export default function ExplorarScreen() {
         return hasCategory;
       });
 
-      console.log(`[ExplorarScreen v79.0] ✅ After category filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v78.0] ✅ After category filter: ${localesFiltrados.length} locales`);
     }
 
     if (busqueda) {
@@ -220,18 +220,18 @@ export default function ExplorarScreen() {
         local.direccion?.toLowerCase().includes(searchLower) ||
         local.provincia?.toLowerCase().includes(searchLower)
       );
-      console.log(`[ExplorarScreen v79.0] 🔍 After search filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v78.0] 🔍 After search filter: ${localesFiltrados.length} locales`);
     }
 
     // Apply global filters from FilterContext
     if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
       localesFiltrados = localesFiltrados.filter(local => local.comunidad === globalFiltros.comunidad);
-      console.log(`[ExplorarScreen v79.0] 🔍 After community filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v78.0] 🔍 After community filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.provincia) {
       localesFiltrados = localesFiltrados.filter(local => local.provincia === globalFiltros.provincia);
-      console.log(`[ExplorarScreen v79.0] 🔍 After province filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v78.0] 🔍 After province filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
@@ -241,7 +241,7 @@ export default function ExplorarScreen() {
           barliveTypes.some((cat: string) => cat.toLowerCase() === tipo.toLowerCase())
         );
       });
-      console.log(`[ExplorarScreen v79.0] 🔍 After type filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v78.0] 🔍 After type filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
@@ -249,7 +249,7 @@ export default function ExplorarScreen() {
         const localServices = local.servicios_disponibles || {};
         return globalFiltros.servicios!.every(servicio => localServices[servicio] === true);
       });
-      console.log(`[ExplorarScreen v79.0] 🔍 After services filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v78.0] 🔍 After services filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0 && !globalFiltros.ambiente.includes('cualquiera')) {
@@ -257,7 +257,7 @@ export default function ExplorarScreen() {
         const localAmbiente = local.ambiente_completo || local.ambiente_google || {};
         return globalFiltros.ambiente!.some(amb => localAmbiente[amb] === true);
       });
-      console.log(`[ExplorarScreen v79.0] 🔍 After ambiente filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v78.0] 🔍 After ambiente filter: ${localesFiltrados.length} locales`);
     }
 
     if (globalFiltros.clientela && globalFiltros.clientela.length > 0 && !globalFiltros.clientela.includes('cualquiera')) {
@@ -265,7 +265,7 @@ export default function ExplorarScreen() {
         const localClientela = local.clientela || {};
         return globalFiltros.clientela!.some(cli => localClientela[cli] === true);
       });
-      console.log(`[ExplorarScreen v79.0] 🔍 After clientela filter: ${localesFiltrados.length} locales`);
+      console.log(`[ExplorarScreen v78.0] 🔍 After clientela filter: ${localesFiltrados.length} locales`);
     }
 
     // Calculate open/closed status for each local
@@ -278,7 +278,7 @@ export default function ExplorarScreen() {
     });
 
     if (userLocation) {
-      console.log('[ExplorarScreen v79.0] 📍 User location:', userLocation);
+      console.log('[ExplorarScreen v78.0] 📍 User location:', userLocation);
       
       localesFiltrados = localesFiltrados.map(local => {
         if (local.latitud && local.longitud) {
@@ -298,15 +298,15 @@ export default function ExplorarScreen() {
         localesFiltrados = localesFiltrados.filter(local => 
           local.distancia !== undefined && local.distancia <= globalFiltros.distancia!
         );
-        console.log(`[ExplorarScreen v79.0] 🔍 After distance filter (${globalFiltros.distancia}km): ${localesFiltrados.length} locales`);
+        console.log(`[ExplorarScreen v78.0] 🔍 After distance filter (${globalFiltros.distancia}km): ${localesFiltrados.length} locales`);
       }
 
-      console.log('[ExplorarScreen v79.0] 🧠 Applying FIXED sorting algorithm...');
+      console.log('[ExplorarScreen v78.0] 🧠 Applying FIXED sorting algorithm...');
 
       const openLocals = localesFiltrados.filter(l => l.estaAbierto === true);
       const closedLocals = localesFiltrados.filter(l => l.estaAbierto !== true);
 
-      console.log('[ExplorarScreen v79.0] 📊 Open/Closed split:');
+      console.log('[ExplorarScreen v78.0] 📊 Open/Closed split:');
       console.log('  - Open locals:', openLocals.length);
       console.log('  - Closed locals:', closedLocals.length);
 
@@ -369,9 +369,9 @@ export default function ExplorarScreen() {
         ...closedGroupB_destacados,
       ];
 
-      console.log('[ExplorarScreen v79.0] ✅ FIXED SORTING APPLIED (OPEN FIRST) - Total locals:', localesFiltrados.length);
+      console.log('[ExplorarScreen v78.0] ✅ FIXED SORTING APPLIED (OPEN FIRST) - Total locals:', localesFiltrados.length);
     } else {
-      console.log('[ExplorarScreen v79.0] ⚠️ No user location available, sorting by open status, destacado and rating');
+      console.log('[ExplorarScreen v78.0] ⚠️ No user location available, sorting by open status, destacado and rating');
       
       localesFiltrados.sort((a, b) => {
         if (a.estaAbierto !== b.estaAbierto) {
@@ -391,7 +391,7 @@ export default function ExplorarScreen() {
       });
     }
 
-    console.log(`[ExplorarScreen v79.0] ⚡ Final filtered and sorted locals: ${localesFiltrados.length}`);
+    console.log(`[ExplorarScreen v78.0] ⚡ Final filtered and sorted locals: ${localesFiltrados.length}`);
     return localesFiltrados;
   }, [todosLosLocales, busqueda, categoriaSeleccionada, userLocation, activePromotions, globalFiltros]);
 
@@ -417,21 +417,21 @@ export default function ExplorarScreen() {
 
   const obtenerUbicacionUsuario = async () => {
     try {
-      console.log('[ExplorarScreen v79.0] 🔍 Requesting location permissions...');
+      console.log('[ExplorarScreen v78.0] 🔍 Requesting location permissions...');
       
       const isAvailable = await Location.hasServicesEnabledAsync();
       if (!isAvailable) {
-        console.log('[ExplorarScreen v79.0] ⚠️ Location services are disabled');
+        console.log('[ExplorarScreen v78.0] ⚠️ Location services are disabled');
         return;
       }
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        console.log('[ExplorarScreen v79.0] ⚠️ Location permission denied');
+        console.log('[ExplorarScreen v78.0] ⚠️ Location permission denied');
         return;
       }
 
-      console.log('[ExplorarScreen v79.0] ✅ Location permission granted, getting position...');
+      console.log('[ExplorarScreen v78.0] ✅ Location permission granted, getting position...');
       
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
@@ -443,12 +443,12 @@ export default function ExplorarScreen() {
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       });
-      console.log('[ExplorarScreen v79.0] 📍 User location obtained:', {
+      console.log('[ExplorarScreen v78.0] 📍 User location obtained:', {
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       });
     } catch (error: any) {
-      console.error('[ExplorarScreen v79.0] ❌ Error getting location:', {
+      console.error('[ExplorarScreen v78.0] ❌ Error getting location:', {
         message: error?.message || 'Unknown error',
         code: error?.code,
       });
@@ -458,7 +458,7 @@ export default function ExplorarScreen() {
 
   const cargarPromocionesActivas = async () => {
     try {
-      console.log('[ExplorarScreen v79.0] 🔄 Loading active promotions...');
+      console.log('[ExplorarScreen v78.0] 🔄 Loading active promotions...');
       
       const { data: suscripciones, error: subsError } = await supabase
         .from('suscripciones_locales')
@@ -466,12 +466,12 @@ export default function ExplorarScreen() {
         .eq('estado', 'activa');
 
       if (subsError) {
-        console.error('[ExplorarScreen v79.0] Error loading subscriptions:', subsError);
+        console.error('[ExplorarScreen v78.0] Error loading subscriptions:', subsError);
         return;
       }
 
       if (!suscripciones || suscripciones.length === 0) {
-        console.log('[ExplorarScreen v79.0] No active subscriptions found');
+        console.log('[ExplorarScreen v78.0] No active subscriptions found');
         setActivePromotions(new Set());
         return;
       }
@@ -485,12 +485,12 @@ export default function ExplorarScreen() {
         .gt('promos_destacadas', 0);
 
       if (planesError) {
-        console.error('[ExplorarScreen v79.0] Error loading plans:', planesError);
+        console.error('[ExplorarScreen v78.0] Error loading plans:', planesError);
         return;
       }
 
       if (!planes || planes.length === 0) {
-        console.log('[ExplorarScreen v79.0] No plans with promotions found');
+        console.log('[ExplorarScreen v78.0] No plans with promotions found');
         setActivePromotions(new Set());
         return;
       }
@@ -504,9 +504,9 @@ export default function ExplorarScreen() {
       );
 
       setActivePromotions(promotedLocalIds);
-      console.log('[ExplorarScreen v79.0] 💰 Active promotions loaded:', promotedLocalIds.size);
+      console.log('[ExplorarScreen v78.0] 💰 Active promotions loaded:', promotedLocalIds.size);
     } catch (error) {
-      console.error('[ExplorarScreen v79.0] Error in cargarPromocionesActivas:', error);
+      console.error('[ExplorarScreen v78.0] Error in cargarPromocionesActivas:', error);
       setActivePromotions(new Set());
     }
   };
@@ -519,7 +519,7 @@ export default function ExplorarScreen() {
   }, [refreshData]);
 
   const handleModoChange = (modo: ModoUsuario) => {
-    console.log('[ExplorarScreen v79.0] Mode change:', modo);
+    console.log('[ExplorarScreen v78.0] Mode change:', modo);
     setCurrentMode(modo);
     setMostrarSelectorModo(false);
   };
@@ -633,7 +633,7 @@ export default function ExplorarScreen() {
     return <InitialLoadingScreen />;
   }
 
-  // ✅ ANDROID FIX v79.0: Get platform-specific dimensions with further reduced spacing
+  // ✅ ANDROID FIX v78.0: Get platform-specific dimensions with reduced spacing
   const contentPadding = 20; // Matches iOS
   const categoryIconSize = getCategoryIconSize();
   const categoryIconInnerSize = getCategoryIconInnerSize();
@@ -785,7 +785,7 @@ export default function ExplorarScreen() {
           { 
             paddingTop: CATEGORIAS_TOP_POSITION + CATEGORIAS_HEIGHT + SPACING_BETWEEN_FILTERS_AND_LIST,
             padding: contentPadding,
-            paddingBottom: 120, // ✅ Increased to accommodate taller bottom nav
+            paddingBottom: 100,
           }
         ]}
         showsVerticalScrollIndicator={false}
@@ -800,18 +800,13 @@ export default function ExplorarScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* ✅ ANDROID FIX v79.0: "Reclama tu local" banner matches iOS color exactly */}
+        {/* ✅ ANDROID FIX v78.0: "Reclama tu local" banner with BarLive color background */}
         <TouchableOpacity 
           style={styles.claimLocalBanner}
           onPress={handleClaimOrCreateLocal}
           activeOpacity={0.7}
         >
-          <LinearGradient
-            colors={[colors.primary, colors.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.claimLocalGradient}
-          >
+          <View style={styles.claimLocalGradient}>
             <View style={styles.claimLocalContent}>
               <View style={styles.claimLocalIconContainer}>
                 <IconSymbol 
@@ -838,7 +833,7 @@ export default function ExplorarScreen() {
                 />
               </View>
             </View>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
 
         {localesVisibles.length === 0 ? (
@@ -1066,9 +1061,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 120, // ✅ Increased to accommodate taller bottom nav
+    paddingBottom: 100,
   },
-  // ✅ ANDROID FIX v79.0: "Reclama tu local" banner matches iOS gradient exactly
+  // ✅ ANDROID FIX v78.0: "Reclama tu local" banner with BarLive color background
   claimLocalBanner: {
     marginBottom: 20,
     borderRadius: 12,
@@ -1080,6 +1075,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   claimLocalGradient: {
+    backgroundColor: colors.primary, // ✅ ANDROID FIX: Unified BarLive color background
     borderRadius: 12,
   },
   claimLocalContent: {
@@ -1093,7 +1089,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // ✅ ANDROID FIX: Subtle white overlay
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
@@ -1105,19 +1101,19 @@ const styles = StyleSheet.create({
   },
   claimLocalTitle: {
     fontWeight: '700',
-    color: colors.headerText,
+    color: colors.headerText, // ✅ ANDROID FIX: White text on BarLive background
     marginBottom: 2,
     letterSpacing: -0.2,
   },
   claimLocalSubtitle: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'rgba(255, 255, 255, 0.9)', // ✅ ANDROID FIX: Slightly transparent white
     fontWeight: '500',
   },
   claimLocalArrow: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // ✅ ANDROID FIX: Subtle white overlay
     alignItems: 'center',
     justifyContent: 'center',
   },
