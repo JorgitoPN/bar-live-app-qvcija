@@ -1,11 +1,11 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v70.0
+ * TAB NAVIGATION BAR - VERSION v72.0
  * 
- * ✅ CRITICAL FIXES v70.0 - ANDROID UI IMPROVEMENTS
+ * ✅ CRITICAL FIXES v72.0 - ANDROID UI IMPROVEMENTS
  * 
- * CRITICAL FIXES v70.0:
- * - ✅ Android: Bottom menu background no longer overflows "Explorar" button
+ * CRITICAL FIXES v72.0:
+ * - ✅ Android: Bottom menu background stops at 75% of "Explorar" button height (no overflow)
  * - ✅ Android: Icons properly centered in bottom menu
  * - ✅ iOS: Maintained existing functionality (unchanged)
  */
@@ -49,13 +49,13 @@ export function TabNavigationBar({
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
     console.log(
-      `🔍 [TabNav v70.0] Checking tab "${tab.id}": ` +
+      `🔍 [TabNav v72.0] Checking tab "${tab.id}": ` +
       `route="${cleanRoute}", path="${cleanPath}"`
     );
 
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `✅ [TabNav v70.0] Tab "${tab.id}" is ACTIVE ` +
+        `✅ [TabNav v72.0] Tab "${tab.id}" is ACTIVE ` +
         `(special case: perfil/local)`
       );
       return true;
@@ -63,7 +63,7 @@ export function TabNavigationBar({
 
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `❌ [TabNav v70.0] Tab "${tab.id}" is INACTIVE ` +
+        `❌ [TabNav v72.0] Tab "${tab.id}" is INACTIVE ` +
         `(special case: perfil/local)`
       );
       return false;
@@ -78,7 +78,7 @@ export function TabNavigationBar({
 
       if (mainRouteSegment === mainPathSegment) {
         console.log(
-          `✅ [TabNav v70.0] Tab "${tab.id}" is ACTIVE ` +
+          `✅ [TabNav v72.0] Tab "${tab.id}" is ACTIVE ` +
           `(segment match: "${mainRouteSegment}")`
         );
         return true;
@@ -86,21 +86,21 @@ export function TabNavigationBar({
     }
 
     if (cleanPath.startsWith(cleanRoute)) {
-      console.log(`✅ [TabNav v70.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
+      console.log(`✅ [TabNav v72.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
       return true;
     }
 
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
-      console.log(`✅ [TabNav v70.0] Tab "${tab.id}" is ACTIVE (exact match)`);
+      console.log(`✅ [TabNav v72.0] Tab "${tab.id}" is ACTIVE (exact match)`);
       return true;
     }
 
-    console.log(`❌ [TabNav v70.0] Tab "${tab.id}" is INACTIVE`);
+    console.log(`❌ [TabNav v72.0] Tab "${tab.id}" is INACTIVE`);
     return false;
   };
 
   const handleTabPress = async (tab: TabDefinition) => {
-    console.log(`🔘 [TabNav v70.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
+    console.log(`🔘 [TabNav v72.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
     
     await provideHapticFeedback('light');
     
@@ -120,7 +120,7 @@ export function TabNavigationBar({
       : null;
 
     console.log(
-      `🎨 [TabNav v70.0] Rendering tab "${tab.id}": ` +
+      `🎨 [TabNav v72.0] Rendering tab "${tab.id}": ` +
       `isActive=${isActive}, isCenter=${isCenter}`
     );
 
@@ -134,7 +134,7 @@ export function TabNavigationBar({
           activeOpacity: 0.7,
         };
 
-    // ✅ CRITICAL v70.0: Center button icon sizes normalized on Android (85% of iOS)
+    // ✅ CRITICAL v72.0: Center button icon sizes normalized on Android (85% of iOS)
     if (isCenter) {
       return (
         <TouchableComponent
@@ -180,10 +180,10 @@ export function TabNavigationBar({
                   resizeMode="cover"
                   {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                   onError={(error) => {
-                    console.error('[TabNav v70.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
+                    console.error('[TabNav v72.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
                   }}
                   onLoad={() => {
-                    console.log('[TabNav v70.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
+                    console.log('[TabNav v72.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
                   }}
                 />
               ) : (
@@ -204,7 +204,7 @@ export function TabNavigationBar({
       );
     }
 
-    // ✅ CRITICAL v70.0: Regular tab icons normalized to 85% on Android
+    // ✅ CRITICAL v72.0: Regular tab icons normalized to 85% on Android
     return (
       <TouchableComponent
         key={tab.id}
@@ -225,17 +225,17 @@ export function TabNavigationBar({
     );
   };
 
-  // ✅ CRITICAL FIX v70.0: Android bottom menu background no longer overflows
+  // ✅ CRITICAL FIX v72.0: Android bottom menu background stops at 75% of button height (no overflow)
   const baseHeight = 60;
   const containerHeight = baseHeight + (Platform.OS === 'android' ? Math.max(insets.bottom, 8) : 0);
   const tabBarPaddingBottom = Platform.OS === 'ios' ? 20 : Math.max(insets.bottom, 8);
   
-  // ✅ CRITICAL v70.0: iOS 70%, Android 60% coverage (reduced from 65% to prevent overflow)
+  // ✅ CRITICAL v72.0: iOS 70%, Android 75% coverage (stops before button as requested)
   const buttonHeight = 56;
-  const coveragePercent = Platform.OS === 'ios' ? 0.70 : 0.60;
+  const coveragePercent = Platform.OS === 'ios' ? 0.70 : 0.75;
   const backgroundHeight = baseHeight + (buttonHeight * coveragePercent) - (buttonHeight / 2);
 
-  console.log('[TabNav v70.0] 📐 Tab bar dimensions:', {
+  console.log('[TabNav v72.0] 📐 Tab bar dimensions:', {
     platform: Platform.OS,
     baseHeight,
     containerHeight,
@@ -247,7 +247,7 @@ export function TabNavigationBar({
 
   return (
     <View style={[styles.container, { height: containerHeight }]}>
-      {/* ✅ CRITICAL FIX v70.0: iOS 70%, Android 60% coverage (no overflow) */}
+      {/* ✅ CRITICAL FIX v72.0: iOS 70%, Android 75% coverage (stops at 75% of button height) */}
       <View style={[styles.backgroundContainer, { height: backgroundHeight, bottom: Platform.OS === 'android' ? Math.max(insets.bottom, 8) : 0 }]}>
         <Svg
           width="100%"
@@ -263,7 +263,7 @@ export function TabNavigationBar({
         </Svg>
       </View>
 
-      {/* ✅ CRITICAL FIX v70.0: Icons properly centered in bottom menu */}
+      {/* ✅ CRITICAL FIX v72.0: Icons properly centered in bottom menu */}
       <View style={[styles.tabBar, { paddingBottom: tabBarPaddingBottom }]}>
         {tabs.map(tab => renderTab(tab))}
       </View>
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     zIndex: 999,
     elevation: 999,
   },
-  // ✅ CRITICAL FIX v70.0: Icons properly centered in tab
+  // ✅ CRITICAL FIX v72.0: Icons properly centered in tab
   tab: {
     flex: 1,
     alignItems: 'center',
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 20,
   },
-  // ✅ v70.0: Central button protrudes upwards (28px = half of 56px button)
+  // ✅ v72.0: Central button protrudes upwards (28px = half of 56px button)
   centerButton: {
     width: 56,
     height: 56,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#FFFFFF',
   },
-  // ✅ CRITICAL v70.0: Avatar sizes normalized (85% on Android)
+  // ✅ CRITICAL v72.0: Avatar sizes normalized (85% on Android)
   avatarContainer: {
     width: Platform.OS === 'ios' ? 24 : 20,
     height: Platform.OS === 'ios' ? 24 : 20,
