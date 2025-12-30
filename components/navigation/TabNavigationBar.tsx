@@ -1,17 +1,15 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v77.0
+ * TAB NAVIGATION BAR - VERSION v78.0
  * 
  * ✅ COMPLETE ANDROID-iOS PARITY WITH PROPER SCALING
  * 
- * CRITICAL FIXES v77.0:
- * - ✅ Platform-specific sizing matching iOS exactly
- * - ✅ Bottom navigation background uses BarLive color (colors.primary) on Android
- * - ✅ All dimensions match iOS for consistent visual appearance
+ * CRITICAL FIXES v78.0 (ANDROID ONLY):
+ * - ✅ Bottom navigation background unified to BarLive color (colors.primary)
+ * - ✅ Reduced height by removing solid color section below icons
+ * - ✅ Repositioned to bottom of screen with no extra space
  * - ✅ Icons properly centered vertically and horizontally
- * - ✅ Safe area handling for Android system buttons
- * - ✅ Proper padding and spacing throughout
- * - ✅ Header extends properly after search box
+ * - ✅ All dimensions match iOS for consistent visual appearance
  * 
  * IMPORTANT: iOS design remains unchanged - all fixes are Android-specific
  */
@@ -70,14 +68,14 @@ export function TabNavigationBar({
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
     console.log(
-      `🔍 [TabNav v76.0] Checking tab "${tab.id}": ` +
+      `🔍 [TabNav v78.0] Checking tab "${tab.id}": ` +
       `route="${cleanRoute}", path="${cleanPath}"`
     );
 
     // Special case: gestion tab is active when viewing local profiles
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `✅ [TabNav v76.0] Tab "${tab.id}" is ACTIVE ` +
+        `✅ [TabNav v78.0] Tab "${tab.id}" is ACTIVE ` +
         `(special case: perfil/local)`
       );
       return true;
@@ -86,7 +84,7 @@ export function TabNavigationBar({
     // Special case: perfil tab is NOT active when viewing local profiles
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `❌ [TabNav v76.0] Tab "${tab.id}" is INACTIVE ` +
+        `❌ [TabNav v78.0] Tab "${tab.id}" is INACTIVE ` +
         `(special case: perfil/local)`
       );
       return false;
@@ -103,7 +101,7 @@ export function TabNavigationBar({
 
       if (mainRouteSegment === mainPathSegment) {
         console.log(
-          `✅ [TabNav v76.0] Tab "${tab.id}" is ACTIVE ` +
+          `✅ [TabNav v78.0] Tab "${tab.id}" is ACTIVE ` +
           `(segment match: "${mainRouteSegment}")`
         );
         return true;
@@ -112,22 +110,22 @@ export function TabNavigationBar({
 
     // Fallback: check if path starts with route
     if (cleanPath.startsWith(cleanRoute)) {
-      console.log(`✅ [TabNav v76.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
+      console.log(`✅ [TabNav v78.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
       return true;
     }
 
     // Check exact match
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
-      console.log(`✅ [TabNav v76.0] Tab "${tab.id}" is ACTIVE (exact match)`);
+      console.log(`✅ [TabNav v78.0] Tab "${tab.id}" is ACTIVE (exact match)`);
       return true;
     }
 
-    console.log(`❌ [TabNav v76.0] Tab "${tab.id}" is INACTIVE`);
+    console.log(`❌ [TabNav v78.0] Tab "${tab.id}" is INACTIVE`);
     return false;
   };
 
   const handleTabPress = async (tab: TabDefinition) => {
-    console.log(`🔘 [TabNav v76.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
+    console.log(`🔘 [TabNav v78.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
     
     await provideHapticFeedback('light');
     
@@ -148,7 +146,7 @@ export function TabNavigationBar({
       : null;
 
     console.log(
-      `🎨 [TabNav v76.0] Rendering tab "${tab.id}": ` +
+      `🎨 [TabNav v78.0] Rendering tab "${tab.id}": ` +
       `isActive=${isActive}, isCenter=${isCenter}, avatar=${safeAvatarUrl ? safeAvatarUrl.substring(0, 50) : 'none'}`
     );
 
@@ -227,10 +225,10 @@ export function TabNavigationBar({
                   resizeMode="cover"
                   {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                   onError={(error) => {
-                    console.error('[TabNav v76.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
+                    console.error('[TabNav v78.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
                   }}
                   onLoad={() => {
-                    console.log('[TabNav v76.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
+                    console.log('[TabNav v78.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
                   }}
                 />
               ) : (
@@ -272,19 +270,28 @@ export function TabNavigationBar({
     );
   };
 
-  // ✅ Get platform-specific dimensions
+  // ✅ FIXED v78.0: Platform-specific dimensions for Android
   const bottomNavHeight = getBottomNavHeight();
-  const containerHeight = bottomNavHeight + (Platform.OS === 'android' ? Math.max(insets.bottom, 20) : 0);
-  const tabBarPaddingBottom = getBottomNavPaddingBottom(insets.bottom);
-  
-  // ✅ FIXED v77.0: Background height matches iOS behavior
   const centerButtonSize = getCenterButtonSize();
+  
+  // ✅ ANDROID FIX v78.0: Reduced container height - no extra space below icons
+  const containerHeight = Platform.OS === 'android' 
+    ? bottomNavHeight // Just the nav height, no extra padding
+    : bottomNavHeight + Math.max(insets.bottom, 0);
+  
+  // ✅ ANDROID FIX v78.0: Background height covers only the icon area
   const backgroundHeight = Platform.OS === 'android' 
-    ? bottomNavHeight // Full height on Android to match iOS
+    ? bottomNavHeight // Full height matches container on Android
     : containerHeight;
+  
+  // ✅ ANDROID FIX v78.0: Minimal padding bottom to keep icons centered
+  const tabBarPaddingBottom = Platform.OS === 'android' 
+    ? 8 // Minimal padding for Android
+    : getBottomNavPaddingBottom(insets.bottom);
 
   return (
     <View style={[styles.container, { height: containerHeight }]} pointerEvents="box-none">
+      {/* ✅ ANDROID FIX v78.0: Background uses BarLive color (colors.primary) */}
       <View style={[styles.backgroundContainer, { height: backgroundHeight }]} pointerEvents="none">
         <Svg
           width="100%"

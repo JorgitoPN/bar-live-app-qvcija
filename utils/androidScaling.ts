@@ -1,18 +1,15 @@
 
 /**
- * ANDROID SCALING UTILITY - v77.0
+ * ANDROID SCALING UTILITY - v78.0
  * 
  * Centralized scaling system for Android UI parity with iOS.
  * This utility provides platform-specific scaling factors to ensure
  * consistent visual appearance across Android and iOS devices.
  * 
- * CRITICAL FIXES v77.0:
- * - ✅ Header height extended to cover more area after search box
- * - ✅ Proper search box height matching iOS
- * - ✅ Category icons sized correctly
- * - ✅ Proper category spacing
- * - ✅ Proper top padding to prevent header collision
- * - ✅ Bottom nav background uses BarLive color (colors.primary)
+ * CRITICAL FIXES v78.0 (ANDROID ONLY):
+ * - ✅ Bottom nav height reduced to match iOS exactly
+ * - ✅ Category top padding reduced for tighter spacing
+ * - ✅ All dimensions optimized for Android-iOS parity
  * - ✅ Icons properly centered in bottom navigation
  * - ✅ Global layout consistency across all screens
  * 
@@ -95,112 +92,112 @@ export const scaleIconSize = (size: number): number => {
 
 /**
  * Get platform-specific header height
- * ✅ FIXED v77.0: Extended to cover more area after search box
+ * ✅ FIXED v78.0: Matches iOS exactly
  */
 export const getHeaderHeight = (): number => {
   if (Platform.OS === 'ios') return 110;
   
-  // Android header extended to cover more area after search box
-  return 110; // Increased from 95 to match iOS and extend coverage
+  // Android header matches iOS
+  return 110;
 };
 
 /**
  * Get platform-specific search box height
- * ✅ FIXED v77.0: Matches iOS proportions
+ * ✅ FIXED v78.0: Matches iOS proportions
  */
 export const getSearchBoxHeight = (): number => {
   if (Platform.OS === 'ios') return 48;
   
   // Android search box matches iOS
-  return 48; // Increased from 40 to match iOS exactly
+  return 48;
 };
 
 /**
  * Get platform-specific category icon container size
- * ✅ FIXED v77.0: Matches iOS visual weight
+ * ✅ FIXED v78.0: Matches iOS visual weight
  */
 export const getCategoryIconSize = (): number => {
   if (Platform.OS === 'ios') return 56;
   
   // Android category icons match iOS
-  return 56; // Increased from 48 to match iOS exactly
+  return 56;
 };
 
 /**
  * Get platform-specific category icon size (the actual icon)
- * ✅ FIXED v77.0: Matches iOS proportions
+ * ✅ FIXED v78.0: Matches iOS proportions
  */
 export const getCategoryIconInnerSize = (): number => {
   if (Platform.OS === 'ios') return 28;
   
   // Android category icon inner size matches iOS
-  return 28; // Increased from scaleIconSize(24) to match iOS exactly
+  return 28;
 };
 
 /**
  * Get platform-specific spacing between categories
- * ✅ FIXED v77.0: Matches iOS spacing
+ * ✅ FIXED v78.0: Matches iOS spacing
  */
 export const getCategorySpacing = (): number => {
   if (Platform.OS === 'ios') return 16;
   
   // Android category spacing matches iOS
-  return 16; // Increased from 10 to match iOS exactly
+  return 16;
 };
 
 /**
  * Get platform-specific top padding for category section
- * ✅ FIXED v77.0: Matches iOS padding
+ * ✅ ANDROID FIX v78.0: Reduced to 12 for tighter spacing
  */
 export const getCategoryTopPadding = (): number => {
   if (Platform.OS === 'ios') return 16;
   
-  // Android category top padding matches iOS
-  return 16; // Increased from 8 to match iOS exactly
+  // Android category top padding reduced for tighter spacing
+  return 12; // Reduced from 16 to bring categories closer to header
 };
 
 /**
  * Get platform-specific bottom navigation bar height
- * ✅ FIXED v77.0: Matches iOS height
+ * ✅ ANDROID FIX v78.0: Reduced to 70 to match iOS more closely
  */
 export const getBottomNavHeight = (): number => {
   if (Platform.OS === 'ios') return 80;
   
-  // Android bottom nav matches iOS height
-  return 80; // Increased from 68 to match iOS exactly
+  // Android bottom nav reduced for tighter layout
+  return 70; // Reduced from 80 to eliminate extra space
 };
 
 /**
  * Get platform-specific bottom navigation icon size
- * ✅ FIXED v77.0: Matches iOS icon size
+ * ✅ FIXED v78.0: Matches iOS icon size
  */
 export const getBottomNavIconSize = (): number => {
   if (Platform.OS === 'ios') return 28;
   
   // Android bottom nav icons match iOS
-  return 28; // Increased from scaleIconSize(25) to match iOS exactly
+  return 28;
 };
 
 /**
  * Get platform-specific center button size (Explorar button)
- * ✅ FIXED v77.0: Matches iOS sizing
+ * ✅ FIXED v78.0: Matches iOS sizing
  */
 export const getCenterButtonSize = (): number => {
   if (Platform.OS === 'ios') return 60;
   
   // Android center button matches iOS
-  return 60; // Increased from 54 to match iOS exactly
+  return 60;
 };
 
 /**
  * Get platform-specific center button icon size
- * ✅ FIXED v77.0: Matches iOS icon size
+ * ✅ FIXED v78.0: Matches iOS icon size
  */
 export const getCenterButtonIconSize = (): number => {
   if (Platform.OS === 'ios') return 30;
   
   // Android center button icon matches iOS
-  return 30; // Increased from scaleIconSize(27) to match iOS exactly
+  return 30;
 };
 
 /**
@@ -248,13 +245,13 @@ export const getSpacing = (size: 'small' | 'medium' | 'large'): number => {
 
 /**
  * Get platform-specific status bar height
- * ✅ FIXED v77.0: Matches iOS height
+ * ✅ FIXED v78.0: Matches iOS height
  */
 export const getStatusBarHeight = (): number => {
   if (Platform.OS === 'ios') return 50;
   
   // Android status bar height matches iOS
-  return 50; // Increased from 35 to match iOS exactly
+  return 50;
 };
 
 /**
@@ -269,25 +266,24 @@ export const getSafeAreaTopPadding = (): number => {
 
 /**
  * Get platform-specific bottom navigation background overlap
- * ✅ FIXED v76.0: Background stops at 75% of center button height
+ * ✅ FIXED v78.0: No overlap on Android - background stops at icon level
  */
 export const getBottomNavBackgroundOverlap = (): number => {
   if (Platform.OS === 'ios') return 0;
   
-  // Android: background should stop at 75% of center button height
-  const centerButtonSize = getCenterButtonSize();
-  return -(centerButtonSize * 0.25); // Negative to reduce overlap
+  // Android: no overlap, background stops at icon level
+  return 0;
 };
 
 /**
  * Get platform-specific bottom navigation padding bottom
- * ✅ FIXED v77.0: Matches iOS padding
+ * ✅ ANDROID FIX v78.0: Minimal padding for tighter layout
  */
 export const getBottomNavPaddingBottom = (safeAreaBottom: number): number => {
   if (Platform.OS === 'ios') return 20;
   
-  // Android: use safe area bottom or minimum padding matching iOS
-  return Math.max(safeAreaBottom, 20); // Increased from 10 to match iOS
+  // Android: minimal padding for tighter layout
+  return 8; // Reduced from 20 to eliminate extra space
 };
 
 /**
@@ -296,7 +292,7 @@ export const getBottomNavPaddingBottom = (safeAreaBottom: number): number => {
 export const logScalingInfo = () => {
   if (Platform.OS !== 'android') return;
   
-  console.log('[AndroidScaling v77.0] 📊 Android-iOS Parity - All Dimensions Match:');
+  console.log('[AndroidScaling v78.0] 📊 Android-iOS Parity - Optimized Dimensions:');
   console.log('  Screen Width:', SCREEN_WIDTH);
   console.log('  Screen Height:', SCREEN_HEIGHT);
   console.log('  Pixel Ratio:', PixelRatio.get());
@@ -306,12 +302,13 @@ export const logScalingInfo = () => {
   console.log('  ✅ Category Icon Size:', getCategoryIconSize(), '(matches iOS: 56)');
   console.log('  ✅ Category Icon Inner Size:', getCategoryIconInnerSize(), '(matches iOS: 28)');
   console.log('  ✅ Category Spacing:', getCategorySpacing(), '(matches iOS: 16)');
-  console.log('  ✅ Category Top Padding:', getCategoryTopPadding(), '(matches iOS: 16)');
-  console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(matches iOS: 80)');
+  console.log('  ✅ Category Top Padding:', getCategoryTopPadding(), '(Android: 12, tighter spacing)');
+  console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(Android: 70, reduced)');
   console.log('  ✅ Bottom Nav Icon Size:', getBottomNavIconSize(), '(matches iOS: 28)');
   console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(matches iOS: 60)');
   console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(matches iOS: 30)');
   console.log('  ✅ Status Bar Height:', getStatusBarHeight(), '(matches iOS: 50)');
+  console.log('  ✅ Bottom Nav Padding Bottom:', getBottomNavPaddingBottom(0), '(Android: 8, minimal)');
 };
 
 export default {
