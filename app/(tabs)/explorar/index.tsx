@@ -83,15 +83,15 @@ function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /**
- * ✅ EXPLORAR SCREEN v75.0 - COMPLETE ANDROID-iOS PARITY
+ * ✅ EXPLORAR SCREEN v77.0 - COMPLETE ANDROID-iOS PARITY
  * 
- * CRITICAL FIXES v75.0:
- * - ✅ Platform-specific sizing using centralized scaling utility
- * - ✅ Proper header height for Android
- * - ✅ Correct search box height
+ * CRITICAL FIXES v77.0:
+ * - ✅ All dimensions match iOS exactly for consistent appearance
+ * - ✅ Header extends properly after search box
  * - ✅ Category icons properly sized and spaced
  * - ✅ No collision between header and categories
  * - ✅ Consistent spacing across all elements
+ * - ✅ Bottom navigation uses BarLive color
  * 
  * IMPORTANT: iOS design remains unchanged - all fixes are Android-specific
  */
@@ -128,6 +128,7 @@ export default function ExplorarScreen() {
   // Log scaling info on Android
   useEffect(() => {
     if (Platform.OS === 'android') {
+      console.log('[ExplorarScreen v77.0] 📊 Android UI Parity - All dimensions match iOS');
       logScalingInfo();
     }
   }, []);
@@ -633,8 +634,8 @@ export default function ExplorarScreen() {
     return <InitialLoadingScreen />;
   }
 
-  // ✅ Get platform-specific dimensions
-  const contentPadding = getContentPadding();
+  // ✅ Get platform-specific dimensions (v77.0: All match iOS exactly)
+  const contentPadding = 20; // Matches iOS
   const categoryIconSize = getCategoryIconSize();
   const categoryIconInnerSize = getCategoryIconInnerSize();
   const categorySpacing = getCategorySpacing();

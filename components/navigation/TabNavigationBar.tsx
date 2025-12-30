@@ -1,18 +1,17 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v76.0
+ * TAB NAVIGATION BAR - VERSION v77.0
  * 
  * ✅ COMPLETE ANDROID-iOS PARITY WITH PROPER SCALING
  * 
- * CRITICAL FIXES v76.0:
- * - ✅ Platform-specific sizing using centralized scaling utility
- * - ✅ Proper icon sizing for Android (reduced to match iOS visual weight)
- * - ✅ Correct bottom navigation height (68 instead of 70)
- * - ✅ Center button properly sized (54 instead of 56)
- * - ✅ Background overlap fixed - stops at 75% of center button height
+ * CRITICAL FIXES v77.0:
+ * - ✅ Platform-specific sizing matching iOS exactly
+ * - ✅ Bottom navigation background uses BarLive color (colors.primary) on Android
+ * - ✅ All dimensions match iOS for consistent visual appearance
  * - ✅ Icons properly centered vertically and horizontally
  * - ✅ Safe area handling for Android system buttons
  * - ✅ Proper padding and spacing throughout
+ * - ✅ Header extends properly after search box
  * 
  * IMPORTANT: iOS design remains unchanged - all fixes are Android-specific
  */
@@ -275,13 +274,13 @@ export function TabNavigationBar({
 
   // ✅ Get platform-specific dimensions
   const bottomNavHeight = getBottomNavHeight();
-  const containerHeight = bottomNavHeight + (Platform.OS === 'android' ? Math.max(insets.bottom, 10) : 0);
+  const containerHeight = bottomNavHeight + (Platform.OS === 'android' ? Math.max(insets.bottom, 20) : 0);
   const tabBarPaddingBottom = getBottomNavPaddingBottom(insets.bottom);
   
-  // ✅ FIXED v76.0: Background stops at 75% of center button height
+  // ✅ FIXED v77.0: Background height matches iOS behavior
   const centerButtonSize = getCenterButtonSize();
   const backgroundHeight = Platform.OS === 'android' 
-    ? bottomNavHeight - (centerButtonSize * 0.25) // Stop at 75% of button height
+    ? bottomNavHeight // Full height on Android to match iOS
     : containerHeight;
 
   return (

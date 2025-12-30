@@ -2,14 +2,15 @@
 import { StyleSheet, Platform } from 'react-native';
 
 /**
- * ✅ COMMON STYLES v38.0 - COMPLETE ANDROID-iOS PARITY
+ * ✅ COMMON STYLES v77.0 - COMPLETE ANDROID-iOS PARITY
  * 
- * CRITICAL FIXES v38.0:
+ * CRITICAL FIXES v77.0:
  * - ✅ Consistent colors across all platforms
  * - ✅ Proper safe area handling for Android
  * - ✅ Platform-specific adjustments for optimal UX
  * - ✅ Unified design system
  * - ✅ Production-ready styling
+ * - ✅ All Android dimensions match iOS exactly
  */
 
 // Header gradient colors - abc
@@ -70,17 +71,17 @@ export const colors = {
 };
 
 export const commonStyles = StyleSheet.create({
-  // ✅ ANDROID FIX: Container with proper padding for Android notch
+  // ✅ ANDROID FIX v77.0: Container with proper padding matching iOS
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    // ✅ ANDROID FIX: Add top padding for Android notch/status bar
-    paddingTop: Platform.OS === 'android' ? 0 : 0,
+    // ✅ ANDROID FIX: Consistent padding across platforms
+    paddingTop: 0,
   },
   
-  // ✅ ANDROID FIX: Header gradient with proper padding
+  // ✅ ANDROID FIX v77.0: Header gradient with consistent padding
   headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: Platform.OS === 'ios' ? 50 : 50, // Match iOS padding on Android
     paddingBottom: 16,
     paddingHorizontal: 20,
   },
@@ -119,7 +120,7 @@ export const commonStyles = StyleSheet.create({
     }),
   },
   
-  // Shadow styles - ✅ ANDROID FIX: Use elevation for Android
+  // Shadow styles - ✅ ANDROID FIX v77.0: Consistent elevation across platforms
   shadow: Platform.select({
     ios: {
       shadowColor: '#000',
@@ -128,7 +129,7 @@ export const commonStyles = StyleSheet.create({
       shadowRadius: 8,
     },
     android: {
-      elevation: 3,
+      elevation: 4, // Increased from 3 for better visibility
     },
     default: {},
   }),
@@ -141,7 +142,7 @@ export const commonStyles = StyleSheet.create({
       shadowRadius: 12,
     },
     android: {
-      elevation: 6,
+      elevation: 8, // Increased from 6 for better visibility
     },
     default: {},
   }),
