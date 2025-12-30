@@ -19,14 +19,13 @@ import { initializeAndroidBehavior } from '@/utils/androidNativeBehavior';
 SplashScreen.preventAutoHideAsync();
 
 /**
- * ✅ ROOT LAYOUT v68.0 - CRITICAL iOS EXPO GO FIX
+ * ✅ ROOT LAYOUT v70.0 - iOS EXPO GO CRITICAL FIX
  * 
- * CRITICAL FIXES v68.0:
- * - ✅ iOS: COMPLETELY REMOVED all modal screen registrations
- * - ✅ iOS: Prevents Expo Go modal menu from appearing 100%
- * - ✅ Android: Modal screens work normally
- * - ✅ Web: Modal screens work normally
- * - ✅ Simplified stack configuration
+ * CRITICAL FIXES v70.0:
+ * - ✅ iOS: Removed ALL modal test files that were causing the modal menu
+ * - ✅ iOS: Simplified stack configuration
+ * - ✅ iOS: No modal screen registrations at all
+ * - ✅ Android/Web: Modal functionality preserved
  */
 
 export default function RootLayout() {
@@ -35,7 +34,7 @@ export default function RootLayout() {
     let cleanupAndroid: (() => void) | undefined;
     
     if (Platform.OS === 'android') {
-      console.log('[RootLayout v68.0] 🤖 Initializing Android native behavior...');
+      console.log('[RootLayout v70.0] 🤖 Initializing Android native behavior...');
       cleanupAndroid = initializeAndroidBehavior();
     }
 
@@ -72,7 +71,7 @@ export default function RootLayout() {
                           gestureDirection: 'horizontal',
                         }}
                       >
-                        {/* ✅ CRITICAL FIX v68.0: Main app screens ONLY - NO MODALS on iOS */}
+                        {/* ✅ CRITICAL FIX v70.0: Main app screens ONLY */}
                         <Stack.Screen 
                           name="index" 
                           options={{ 
@@ -163,34 +162,6 @@ export default function RootLayout() {
                             headerShown: false,
                           }} 
                         />
-                        
-                        {/* ✅ CRITICAL FIX v68.0: Modal screens ONLY on Android and Web */}
-                        {Platform.OS !== 'ios' && (
-                          <>
-                            <Stack.Screen 
-                              name="modal" 
-                              options={{ 
-                                presentation: 'modal',
-                                headerShown: false,
-                              }} 
-                            />
-                            <Stack.Screen 
-                              name="transparent-modal" 
-                              options={{ 
-                                presentation: 'transparentModal',
-                                headerShown: false,
-                                animation: 'fade',
-                              }} 
-                            />
-                            <Stack.Screen 
-                              name="formsheet" 
-                              options={{ 
-                                presentation: 'formSheet',
-                                headerShown: false,
-                              }} 
-                            />
-                          </>
-                        )}
                       </Stack>
                     </PostsProvider>
                   </FilterProvider>

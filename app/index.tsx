@@ -1,46 +1,31 @@
 
-import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Text, Platform } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 
 /**
- * ✅ INDEX SCREEN v69.0 - iOS EXPO GO FIX
+ * ✅ INDEX SCREEN v70.0 - iOS EXPO GO CRITICAL FIX
  * 
- * CRITICAL FIXES v69.0:
- * - ✅ iOS: Prevents modal menu by ensuring proper initialization
- * - ✅ Waits for auth to be ready before redirecting
+ * CRITICAL FIXES v70.0:
+ * - ✅ iOS: Simplified initialization to prevent modal menu
+ * - ✅ Immediate redirect to explorar after minimal auth check
+ * - ✅ Removed complex state management that was causing issues
  * - ✅ Password recovery handling maintained for web
- * - ✅ Prevents navigation loops
  */
 
 export default function Index() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [hasRedirected, setHasRedirected] = useState(false);
-  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    console.log('[Index v69.0] 🏠 Estado:', { 
+    console.log('[Index v70.0] 🏠 Estado:', { 
       hasUser: !!user, 
       userEmail: user?.email,
       loading,
-      hasRedirected,
-      isReady,
       platform: Platform.OS
     });
-
-    // Wait for auth to be ready
-    if (!loading && !isReady) {
-      setIsReady(true);
-    }
-
-    // Prevent redirect loops
-    if (hasRedirected) {
-      console.log('[Index v69.0] ⚠️ Already redirected, skipping');
-      return;
-    }
 
     // Only check for password recovery on web
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -51,35 +36,25 @@ export default function Index() {
         const accessToken = hashParams.get('access_token');
         
         if (type === 'recovery' && accessToken) {
-          console.log('[Index v69.0] 🔐 Password recovery detected, redirecting...');
-          setHasRedirected(true);
-          setTimeout(() => {
-            router.replace('/auth/restablecer-password');
-          }, 100);
+          console.log('[Index v70.0] 🔐 Password recovery detected, redirecting...');
+          router.replace('/auth/restablecer-password');
           return;
         }
       }
     }
-  }, [user, loading, router, hasRedirected, isReady]);
+  }, [user, loading, router]);
 
-  // Show loading while auth is initializing
-  if (loading || !isReady) {
-    console.log('[Index v69.0] ⏳ Cargando...');
+  // ✅ CRITICAL FIX v70.0: Show minimal loading only during initial auth check
+  if (loading) {
+    console.log('[Index v70.0] ⏳ Cargando autenticación...');
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 16, color: colors.text, fontSize: 16 }}>Cargando...</Text>
       </View>
     );
   }
 
-  // ✅ CRITICAL FIX v69.0: Redirect to (tabs)/explorar after auth is ready
-  console.log('[Index v69.0] 🚀 Redirigiendo a (tabs)/explorar');
-  
-  // Mark as redirected to prevent loops
-  if (!hasRedirected) {
-    setHasRedirected(true);
-  }
-  
+  // ✅ CRITICAL FIX v70.0: Redirect immediately after auth is ready
+  console.log('[Index v70.0] 🚀 Redirigiendo a explorar');
   return <Redirect href="/(tabs)/explorar" />;
 }
