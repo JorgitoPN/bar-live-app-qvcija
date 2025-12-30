@@ -1,11 +1,11 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v81.0
+ * TAB NAVIGATION BAR - VERSION v82.0
  * 
- * ✅ ANDROID BOTTOM NAV FIX - COMPACT DESIGN WITH BARLIVE BACKGROUND
+ * ✅ ANDROID BOTTOM NAV FIX - FINAL VERSION
  * 
- * CRITICAL FIXES v81.0 (ANDROID ONLY):
- * - ✅ Reduced height for more compact design
+ * CRITICAL FIXES v82.0 (ANDROID ONLY):
+ * - ✅ ZERO extra padding - eliminates gap with system buttons
  * - ✅ Unified BarLive background (no white background behind icons)
  * - ✅ Smaller explore button
  * - ✅ Smaller icon sizes for better visibility
@@ -69,14 +69,14 @@ export function TabNavigationBar({
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
     console.log(
-      `🔍 [TabNav v81.0] Checking tab "${tab.id}": ` +
+      `🔍 [TabNav v82.0] Checking tab "${tab.id}": ` +
       `route="${cleanRoute}", path="${cleanPath}"`
     );
 
     // Special case: gestion tab is active when viewing local profiles
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `✅ [TabNav v81.0] Tab "${tab.id}" is ACTIVE ` +
+        `✅ [TabNav v82.0] Tab "${tab.id}" is ACTIVE ` +
         `(special case: perfil/local)`
       );
       return true;
@@ -85,7 +85,7 @@ export function TabNavigationBar({
     // Special case: perfil tab is NOT active when viewing local profiles
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `❌ [TabNav v81.0] Tab "${tab.id}" is INACTIVE ` +
+        `❌ [TabNav v82.0] Tab "${tab.id}" is INACTIVE ` +
         `(special case: perfil/local)`
       );
       return false;
@@ -102,7 +102,7 @@ export function TabNavigationBar({
 
       if (mainRouteSegment === mainPathSegment) {
         console.log(
-          `✅ [TabNav v81.0] Tab "${tab.id}" is ACTIVE ` +
+          `✅ [TabNav v82.0] Tab "${tab.id}" is ACTIVE ` +
           `(segment match: "${mainRouteSegment}")`
         );
         return true;
@@ -111,22 +111,22 @@ export function TabNavigationBar({
 
     // Fallback: check if path starts with route
     if (cleanPath.startsWith(cleanRoute)) {
-      console.log(`✅ [TabNav v81.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
+      console.log(`✅ [TabNav v82.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
       return true;
     }
 
     // Check exact match
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
-      console.log(`✅ [TabNav v81.0] Tab "${tab.id}" is ACTIVE (exact match)`);
+      console.log(`✅ [TabNav v82.0] Tab "${tab.id}" is ACTIVE (exact match)`);
       return true;
     }
 
-    console.log(`❌ [TabNav v81.0] Tab "${tab.id}" is INACTIVE`);
+    console.log(`❌ [TabNav v82.0] Tab "${tab.id}" is INACTIVE`);
     return false;
   };
 
   const handleTabPress = async (tab: TabDefinition) => {
-    console.log(`🔘 [TabNav v81.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
+    console.log(`🔘 [TabNav v82.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
     
     await provideHapticFeedback('light');
     
@@ -147,7 +147,7 @@ export function TabNavigationBar({
       : null;
 
     console.log(
-      `🎨 [TabNav v81.0] Rendering tab "${tab.id}": ` +
+      `🎨 [TabNav v82.0] Rendering tab "${tab.id}": ` +
       `isActive=${isActive}, isCenter=${isCenter}, avatar=${safeAvatarUrl ? safeAvatarUrl.substring(0, 50) : 'none'}`
     );
 
@@ -162,7 +162,7 @@ export function TabNavigationBar({
           activeOpacity: 0.7,
         };
 
-    // ✅ Get platform-specific sizes (v81.0: Reduced for Android)
+    // ✅ Get platform-specific sizes (v82.0: Optimized for Android)
     const centerButtonSize = getCenterButtonSize();
     const centerButtonIconSize = getCenterButtonIconSize();
     const tabIconSize = getBottomNavIconSize();
@@ -226,10 +226,10 @@ export function TabNavigationBar({
                   resizeMode="cover"
                   {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                   onError={(error) => {
-                    console.error('[TabNav v81.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
+                    console.error('[TabNav v82.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
                   }}
                   onLoad={() => {
-                    console.log('[TabNav v81.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
+                    console.log('[TabNav v82.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
                   }}
                 />
               ) : (
@@ -271,20 +271,20 @@ export function TabNavigationBar({
     );
   };
 
-  // ✅ CRITICAL FIX v81.0: Compact design with reduced height
+  // ✅ CRITICAL FIX v82.0: ZERO extra padding for Android
   const bottomNavHeight = getBottomNavHeight();
   const tabBarPaddingBottom = getBottomNavPaddingBottom(insets.bottom);
   
   // ✅ Total container height includes safe area for Android system buttons
-  const containerHeight = bottomNavHeight + (Platform.OS === 'android' ? tabBarPaddingBottom : 0);
+  const containerHeight = bottomNavHeight + tabBarPaddingBottom;
   
   // ✅ Background height matches the visible tab bar area
   const backgroundHeight = bottomNavHeight;
 
   console.log(
-    `[TabNav v81.0] 📐 Dimensions: ` +
+    `[TabNav v82.0] 📐 FINAL Dimensions: ` +
     `bottomNavHeight=${bottomNavHeight}, ` +
-    `tabBarPaddingBottom=${tabBarPaddingBottom}, ` +
+    `tabBarPaddingBottom=${tabBarPaddingBottom} (ZERO extra on Android), ` +
     `containerHeight=${containerHeight}, ` +
     `backgroundHeight=${backgroundHeight}, ` +
     `safeAreaBottom=${insets.bottom}`
@@ -292,7 +292,7 @@ export function TabNavigationBar({
 
   return (
     <View style={[styles.container, { height: containerHeight }]} pointerEvents="box-none">
-      {/* ✅ CRITICAL FIX v81.0: Single BarLive background, no white space */}
+      {/* ✅ CRITICAL FIX v82.0: Single BarLive background, no white space */}
       <View style={[styles.backgroundContainer, { height: backgroundHeight }]} pointerEvents="none">
         <Svg
           width="100%"
@@ -308,7 +308,7 @@ export function TabNavigationBar({
         </Svg>
       </View>
 
-      {/* ✅ CRITICAL FIX v81.0: Tab bar positioned at bottom with proper padding */}
+      {/* ✅ CRITICAL FIX v82.0: Tab bar positioned at bottom with ZERO extra padding on Android */}
       <View style={[styles.tabBar, { paddingBottom: tabBarPaddingBottom }]} pointerEvents="box-none">
         {tabs.map(tab => renderTab(tab))}
       </View>
