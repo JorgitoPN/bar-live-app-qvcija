@@ -6,34 +6,39 @@ import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 
 /**
- * ✅ INDEX SCREEN v68.0 - CRITICAL iOS EXPO GO FIX
+ * ✅ INDEX SCREEN v69.0 - iOS EXPO GO FIX
  * 
- * CRITICAL FIXES v68.0:
- * - ✅ iOS Expo Go: COMPLETELY PREVENTS modal menu from showing
- * - ✅ Direct redirect to (tabs)/explorar without any conditions
+ * CRITICAL FIXES v69.0:
+ * - ✅ iOS: Prevents modal menu by ensuring proper initialization
+ * - ✅ Waits for auth to be ready before redirecting
  * - ✅ Password recovery handling maintained for web
  * - ✅ Prevents navigation loops
- * - ✅ Simplified logic to prevent any modal interference
- * - ✅ GUARANTEED: No modal screens will appear on iOS
  */
 
 export default function Index() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [hasRedirected, setHasRedirected] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    console.log('[Index v68.0] 🏠 Estado:', { 
+    console.log('[Index v69.0] 🏠 Estado:', { 
       hasUser: !!user, 
       userEmail: user?.email,
       loading,
       hasRedirected,
+      isReady,
       platform: Platform.OS
     });
 
+    // Wait for auth to be ready
+    if (!loading && !isReady) {
+      setIsReady(true);
+    }
+
     // Prevent redirect loops
     if (hasRedirected) {
-      console.log('[Index v68.0] ⚠️ Already redirected, skipping');
+      console.log('[Index v69.0] ⚠️ Already redirected, skipping');
       return;
     }
 
@@ -46,7 +51,7 @@ export default function Index() {
         const accessToken = hashParams.get('access_token');
         
         if (type === 'recovery' && accessToken) {
-          console.log('[Index v68.0] 🔐 Password recovery detected, redirecting...');
+          console.log('[Index v69.0] 🔐 Password recovery detected, redirecting...');
           setHasRedirected(true);
           setTimeout(() => {
             router.replace('/auth/restablecer-password');
@@ -55,22 +60,21 @@ export default function Index() {
         }
       }
     }
-  }, [user, loading, router, hasRedirected]);
+  }, [user, loading, router, hasRedirected, isReady]);
 
-  // Show loading only while auth is initializing
-  if (loading) {
-    console.log('[Index v68.0] ⏳ Cargando...');
+  // Show loading while auth is initializing
+  if (loading || !isReady) {
+    console.log('[Index v69.0] ⏳ Cargando...');
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 16, color: colors.text, fontSize: Platform.OS === 'ios' ? 16 : 8 }}>Cargando...</Text>
+        <Text style={{ marginTop: 16, color: colors.text, fontSize: 16 }}>Cargando...</Text>
       </View>
     );
   }
 
-  // ✅ CRITICAL FIX v68.0: ALWAYS redirect to (tabs)/explorar - NO CONDITIONS
-  // This is the ONLY way to prevent the modal menu from showing on iOS Expo Go
-  console.log('[Index v68.0] 🚀 Redirigiendo directamente a (tabs)/explorar (sin condiciones)');
+  // ✅ CRITICAL FIX v69.0: Redirect to (tabs)/explorar after auth is ready
+  console.log('[Index v69.0] 🚀 Redirigiendo a (tabs)/explorar');
   
   // Mark as redirected to prevent loops
   if (!hasRedirected) {

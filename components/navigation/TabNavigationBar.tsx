@@ -1,16 +1,15 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v68.0
+ * TAB NAVIGATION BAR - VERSION v69.0
  * 
- * ✅ FINAL ANDROID-iOS VISUAL PARITY
+ * ✅ NORMALIZED ANDROID-iOS VISUAL PARITY
  * 
- * CRITICAL FIXES v68.0:
+ * CRITICAL FIXES v69.0:
  * - ✅ iOS: Background covers exactly 70% of "Explorar" button (unchanged)
- * - ✅ Android: Background covers exactly 65% of "Explorar" button (MAXIMUM - NO OVERFLOW)
- * - ✅ Android: Icon sizes INCREASED to 26px (regular) and 28px (center) for better visibility
+ * - ✅ Android: Background covers exactly 65% of "Explorar" button (unchanged)
+ * - ✅ Android: Icon sizes normalized to 85% of iOS (was 100%, now more balanced)
  * - ✅ Proper z-index layering maintained
- * - ✅ No overflow on Android - background respects button limits STRICTLY
- * - ✅ GUARANTEED: Background will NEVER exceed 65% coverage on Android
+ * - ✅ STANDARD: Follows mobile app design guidelines
  */
 
 import React from 'react';
@@ -52,13 +51,13 @@ export function TabNavigationBar({
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
     console.log(
-      `🔍 [TabNav v68.0] Checking tab "${tab.id}": ` +
+      `🔍 [TabNav v69.0] Checking tab "${tab.id}": ` +
       `route="${cleanRoute}", path="${cleanPath}"`
     );
 
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `✅ [TabNav v68.0] Tab "${tab.id}" is ACTIVE ` +
+        `✅ [TabNav v69.0] Tab "${tab.id}" is ACTIVE ` +
         `(special case: perfil/local)`
       );
       return true;
@@ -66,7 +65,7 @@ export function TabNavigationBar({
 
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `❌ [TabNav v68.0] Tab "${tab.id}" is INACTIVE ` +
+        `❌ [TabNav v69.0] Tab "${tab.id}" is INACTIVE ` +
         `(special case: perfil/local)`
       );
       return false;
@@ -81,7 +80,7 @@ export function TabNavigationBar({
 
       if (mainRouteSegment === mainPathSegment) {
         console.log(
-          `✅ [TabNav v68.0] Tab "${tab.id}" is ACTIVE ` +
+          `✅ [TabNav v69.0] Tab "${tab.id}" is ACTIVE ` +
           `(segment match: "${mainRouteSegment}")`
         );
         return true;
@@ -89,21 +88,21 @@ export function TabNavigationBar({
     }
 
     if (cleanPath.startsWith(cleanRoute)) {
-      console.log(`✅ [TabNav v68.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
+      console.log(`✅ [TabNav v69.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
       return true;
     }
 
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
-      console.log(`✅ [TabNav v68.0] Tab "${tab.id}" is ACTIVE (exact match)`);
+      console.log(`✅ [TabNav v69.0] Tab "${tab.id}" is ACTIVE (exact match)`);
       return true;
     }
 
-    console.log(`❌ [TabNav v68.0] Tab "${tab.id}" is INACTIVE`);
+    console.log(`❌ [TabNav v69.0] Tab "${tab.id}" is INACTIVE`);
     return false;
   };
 
   const handleTabPress = async (tab: TabDefinition) => {
-    console.log(`🔘 [TabNav v68.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
+    console.log(`🔘 [TabNav v69.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
     
     await provideHapticFeedback('light');
     
@@ -123,7 +122,7 @@ export function TabNavigationBar({
       : null;
 
     console.log(
-      `🎨 [TabNav v68.0] Rendering tab "${tab.id}": ` +
+      `🎨 [TabNav v69.0] Rendering tab "${tab.id}": ` +
       `isActive=${isActive}, isCenter=${isCenter}`
     );
 
@@ -137,7 +136,7 @@ export function TabNavigationBar({
           activeOpacity: 0.7,
         };
 
-    // ✅ CRITICAL v68.0: Center button icon sizes INCREASED on Android (28px vs 24px)
+    // ✅ CRITICAL v69.0: Center button icon sizes normalized on Android (85% of iOS)
     if (isCenter) {
       return (
         <TouchableComponent
@@ -158,7 +157,7 @@ export function TabNavigationBar({
                 androidIconFilled={tab.androidIconFilled}
                 androidIconOutlined={tab.androidIconOutlined}
                 isActive={true}
-                size={Platform.OS === 'ios' ? 28 : 28}
+                size={Platform.OS === 'ios' ? 28 : 24}
               />
             </LinearGradient>
           </View>
@@ -183,10 +182,10 @@ export function TabNavigationBar({
                   resizeMode="cover"
                   {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                   onError={(error) => {
-                    console.error('[TabNav v68.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
+                    console.error('[TabNav v69.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
                   }}
                   onLoad={() => {
-                    console.log('[TabNav v68.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
+                    console.log('[TabNav v69.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
                   }}
                 />
               ) : (
@@ -197,7 +196,7 @@ export function TabNavigationBar({
                     androidIconFilled="person"
                     androidIconOutlined="person-outline"
                     isActive={isActive}
-                    size={Platform.OS === 'ios' ? 18 : 16}
+                    size={Platform.OS === 'ios' ? 18 : 15}
                   />
                 </View>
               )}
@@ -207,7 +206,7 @@ export function TabNavigationBar({
       );
     }
 
-    // ✅ CRITICAL v68.0: Regular tab icons INCREASED to 26px on Android (from 22px)
+    // ✅ CRITICAL v69.0: Regular tab icons normalized to 85% on Android
     return (
       <TouchableComponent
         key={tab.id}
@@ -221,27 +220,24 @@ export function TabNavigationBar({
             androidIconFilled={tab.androidIconFilled}
             androidIconOutlined={tab.androidIconOutlined}
             isActive={isActive}
-            size={Platform.OS === 'ios' ? 26 : 26}
+            size={Platform.OS === 'ios' ? 26 : 22}
           />
         </View>
       </TouchableComponent>
     );
   };
 
-  // ✅ CRITICAL FIX v68.0: Platform-specific background coverage
+  // ✅ CRITICAL FIX v69.0: Platform-specific background coverage (unchanged)
   const baseHeight = 60;
   const containerHeight = baseHeight + (Platform.OS === 'android' ? Math.max(insets.bottom, 8) : 0);
   const tabBarPaddingBottom = Platform.OS === 'ios' ? 20 : Math.max(insets.bottom, 8);
   
-  // ✅ CRITICAL v68.0: iOS 70%, Android 65% coverage (MAXIMUM - NO MORE OVERFLOW)
-  // Button height = 56px, radius = 28px
-  // iOS: 70% = 39.2px up from bottom (leaves 16.8px visible)
-  // Android: 65% = 36.4px up from bottom (leaves 19.6px visible) - MAXIMUM ALLOWED
+  // ✅ CRITICAL v69.0: iOS 70%, Android 65% coverage (unchanged)
   const buttonHeight = 56;
   const coveragePercent = Platform.OS === 'ios' ? 0.70 : 0.65;
   const backgroundHeight = baseHeight + (buttonHeight * coveragePercent) - (buttonHeight / 2);
 
-  console.log('[TabNav v68.0] 📐 Tab bar dimensions:', {
+  console.log('[TabNav v69.0] 📐 Tab bar dimensions:', {
     platform: Platform.OS,
     baseHeight,
     containerHeight,
@@ -253,7 +249,7 @@ export function TabNavigationBar({
 
   return (
     <View style={[styles.container, { height: containerHeight }]}>
-      {/* ✅ CRITICAL FIX v68.0: iOS 70%, Android 65% coverage (MAXIMUM - NO OVERFLOW) */}
+      {/* ✅ CRITICAL FIX v69.0: iOS 70%, Android 65% coverage (unchanged) */}
       <View style={[styles.backgroundContainer, { height: backgroundHeight, bottom: Platform.OS === 'android' ? Math.max(insets.bottom, 8) : 0 }]}>
         <Svg
           width="100%"
@@ -328,7 +324,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 20,
   },
-  // ✅ v68.0: Central button protrudes upwards (28px = half of 56px button)
+  // ✅ v69.0: Central button protrudes upwards (28px = half of 56px button)
   centerButton: {
     width: 56,
     height: 56,
@@ -350,11 +346,11 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#FFFFFF',
   },
-  // ✅ CRITICAL v68.0: Avatar sizes optimized (slightly larger on Android)
+  // ✅ CRITICAL v69.0: Avatar sizes normalized (85% on Android)
   avatarContainer: {
-    width: Platform.OS === 'ios' ? 24 : 22,
-    height: Platform.OS === 'ios' ? 24 : 22,
-    borderRadius: Platform.OS === 'ios' ? 12 : 11,
+    width: Platform.OS === 'ios' ? 24 : 20,
+    height: Platform.OS === 'ios' ? 24 : 20,
+    borderRadius: Platform.OS === 'ios' ? 12 : 10,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
