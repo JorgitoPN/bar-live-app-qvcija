@@ -11,15 +11,9 @@ import { colors } from '@/styles/commonStyles';
 const { width: screenWidth } = Dimensions.get('window');
 
 /**
- * ANDROID-SPECIFIC TAB LAYOUT - VERSION v56.2
+ * ANDROID-SPECIFIC TAB LAYOUT - VERSION v32.0
  * 
- * ✅ COMPLETE ANDROID-iOS PARITY - DESIGN MATCHING
- * ✅ FIXED v56.2: Header text clipping issue resolved
- * ✅ FIXED v56.2: Bottom tab bar icons now visible above background
- * ✅ FIXED v56.2: Proper z-index layering for tab bar
- * ✅ FIXED: Reduced header height to match iOS (was 35% of screen)
- * ✅ FIXED: Reduced tab bar height to match iOS (was 25% of screen)
- * ✅ FIXED: Text sizes adjusted to match iOS hierarchy
+ * ✅ COMPLETE ANDROID-iOS PARITY + NATIVE ANDROID BEHAVIOR
  * ✅ FIXED: Bottom tab bar visibility with proper z-index and elevation
  * ✅ FIXED: Tab bar always visible above all content
  * ✅ FIXED: Proper safe area handling for system buttons
@@ -28,7 +22,7 @@ const { width: screenWidth } = Dimensions.get('window');
  * This file ensures proper Android-specific behavior:
  * - ✅ Native Android UI (Material Design compliant)
  * - ✅ Proper status bar handling with correct colors
- * - ✅ Minimal padding for notch/status bar (matching iOS)
+ * - ✅ Correct padding for notch/status bar
  * - ✅ Android-specific navigation behavior
  * - ✅ Native touch feedback and gestures (ripple effects)
  * - ✅ Consistent with iOS functionality
@@ -39,7 +33,6 @@ const { width: screenWidth } = Dimensions.get('window');
  * - ✅ Native Android transitions
  * - ✅ Bottom tab bar ALWAYS visible with maximum z-index
  * - ✅ Safe area insets for system navigation buttons
- * - ✅ CRITICAL: Visual parity with iOS - same screen space usage
  */
 export default function TabLayout() {
   const { user } = useAuth();
@@ -56,11 +49,10 @@ export default function TabLayout() {
   const userRole = user?.rol_app || 'cliente';
 
   console.log(
-    '[TabLayout Android v56.2] ⚡ User role:', userRole, 
+    '[TabLayout Android v32.0] ⚡ User role:', userRole, 
     'Current mode:', currentMode, 
     'Pathname:', pathname,
-    'Bottom inset:', insets.bottom,
-    'VERSION: v56.2 - Header and tab bar fixes'
+    'Bottom inset:', insets.bottom
   );
 
   // Prevent access to admin pages for non-admin users (silently redirect)
@@ -79,7 +71,7 @@ export default function TabLayout() {
       
       if ((isAdminIndexPage || isAdminSubPage) && !hasShownAdminAlert.current) {
         console.log(
-          '[TabLayout Android v56.2] ⚠️ Unauthorized user trying to access admin page:', 
+          '[TabLayout Android v32.0] ⚠️ Unauthorized user trying to access admin page:', 
           pathname
         );
         hasShownAdminAlert.current = true;
@@ -108,7 +100,7 @@ export default function TabLayout() {
       
       if ((isGestionIndexPage || isGestionSubPage) && !hasShownGestionAlert.current) {
         console.log(
-          '[TabLayout Android v56.2] ⚠️ Non-propietario user trying to access gestion page:', 
+          '[TabLayout Android v32.0] ⚠️ Non-propietario user trying to access gestion page:', 
           pathname
         );
         hasShownGestionAlert.current = true;
@@ -305,10 +297,10 @@ export default function TabLayout() {
   };
 
   const tabs = getTabsForRole();
-  console.log('[TabLayout Android v56.2] ⚡ Rendering tabs:', tabs.map(t => t.name));
+  console.log('[TabLayout Android v32.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
 
-  // ✅ CRITICAL FIX v56.2: Tab bar height matches iOS (60px base)
-  const TAB_BAR_HEIGHT = 60;
+  // ✅ Calculate tab bar height including safe area
+  const TAB_BAR_HEIGHT = 70;
   const totalTabBarHeight = TAB_BAR_HEIGHT + insets.bottom;
 
   return (
@@ -395,7 +387,7 @@ export default function TabLayout() {
         </Tabs>
       </View>
       
-      {/* ✅ CRITICAL FIX v56.0: Floating Tab Bar with reduced height to match iOS */}
+      {/* ✅ CRITICAL FIX v32.0: Floating Tab Bar with MAXIMUM z-index, elevation, and safe area */}
       {/* This ensures the tab bar is ALWAYS visible above ALL content and respects system buttons */}
       <View style={[
         styles.tabBarContainer,
@@ -407,7 +399,7 @@ export default function TabLayout() {
         <FloatingTabBar 
           tabs={tabs} 
           containerWidth={screenWidth} 
-          key={`${userRole}-${currentMode}-v56.2`} 
+          key={`${userRole}-${currentMode}`} 
         />
       </View>
     </View>

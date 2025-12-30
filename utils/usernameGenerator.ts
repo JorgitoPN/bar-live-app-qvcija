@@ -272,8 +272,8 @@ export async function assignUsernameToLocal(localId: string): Promise<string | n
  * Returns both users and locals that match the search query
  */
 export async function searchByUsername(query: string, limit: number = 10): Promise<{
-  users: { id: string; username: string; nombre: string; avatar: string | null }[];
-  locals: { id: string; username: string; nombre: string; imagen_url: string | null }[];
+  users: Array<{ id: string; username: string; nombre: string; avatar: string | null }>;
+  locals: Array<{ id: string; username: string; nombre: string; imagen_url: string | null }>;
 }> {
   try {
     const searchQuery = query.toLowerCase().trim();
@@ -418,14 +418,14 @@ export async function trackUsernameChange(
 export async function getUsernameHistory(
   entityType: 'user' | 'local',
   entityId: string
-): Promise<{
+): Promise<Array<{
   id: string;
   old_username: string | null;
   new_username: string;
   changed_by: string | null;
   change_reason: string | null;
   created_at: string;
-}[]> {
+}>> {
   try {
     console.log('[usernameGenerator] 📜 Fetching username history:', entityType, entityId);
 

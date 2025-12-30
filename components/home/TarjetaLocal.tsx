@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Linking, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Linking, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Local } from '@/types';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -33,18 +33,13 @@ interface CheckedInUser {
 }
 
 /**
- * ✅ TARJETA LOCAL v69.0 - NORMALIZED ANDROID-iOS PARITY
+ * ✅ TARJETA LOCAL v28.0 - PRODUCTION READY
  * 
- * CRITICAL FIXES v69.0:
- * - ✅ Android: ALL text sizes normalized to 80% of iOS
- * - ✅ Android: ALL icon sizes normalized to 85% of iOS
- * - ✅ Android: Card content sizes normalized
- * - ✅ Android: Image heights normalized to 85% of iOS (170px vs 200px)
- * - ✅ Android: All padding and spacing normalized proportionally
- * - ✅ Android: Badge sizes normalized to 80% of iOS
- * - ✅ Android: Button sizes normalized to 85% of iOS
- * - ✅ iOS: No changes to maintain current design
- * - ✅ STANDARD: Follows mobile app design guidelines
+ * CRITICAL FIXES:
+ * - ✅ All icons properly mapped for Android
+ * - ✅ Check-in indicators with correct colors
+ * - ✅ Consistent behavior on iOS and Android
+ * - ✅ Optimized performance
  */
 export default function TarjetaLocal({ local, destacado, userLocation, onVisible }: TarjetaLocalProps) {
   const router = useRouter();
@@ -98,7 +93,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           setHasSocialProfile(false);
         }
       } catch (error) {
-        console.error('[TarjetaLocal v69.0] Error checking social profile:', error);
+        console.error('[TarjetaLocal] Error checking social profile:', error);
         setHasSocialProfile(false);
       } finally {
         setCheckingSocialProfile(false);
@@ -168,7 +163,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
         setFollowedUsersHere(visibleUsers);
       } catch (error) {
-        console.error('[TarjetaLocal v69.0] Error loading check-in info:', error);
+        console.error('[TarjetaLocal] Error loading check-in info:', error);
       }
     };
 
@@ -186,7 +181,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           filter: `local_id=eq.${local.id}`,
         },
         () => {
-          console.log('[TarjetaLocal v69.0] Check-ins changed, reloading...');
+          console.log('[TarjetaLocal] Check-ins changed, reloading...');
           loadCheckInInfo();
         }
       )
@@ -211,10 +206,10 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
       if (error) throw error;
 
-      console.log('[TarjetaLocal v69.0] ✅ Check-out successful');
+      console.log('[TarjetaLocal] ✅ Check-out successful');
       setIsUserHere(false);
     } catch (error) {
-      console.error('[TarjetaLocal v69.0] Error checking out:', error);
+      console.error('[TarjetaLocal] Error checking out:', error);
     } finally {
       setCheckingOut(false);
     }
@@ -351,12 +346,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           />
         ) : (
           <View style={[styles.image, styles.placeholderImage]}>
-            <IconSymbol 
-              ios_icon_name="photo" 
-              android_material_icon_name="photo" 
-              size={Platform.OS === 'ios' ? 48 : 41} 
-              color={colors.textSecondary} 
-            />
+            <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={48} color={colors.textSecondary} />
           </View>
         )}
 
@@ -368,12 +358,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         {/* ✅ IMPROVED: Lock icon for closed locals */}
         {overlayIcon && (
           <View style={styles.overlayIconContainer}>
-            <IconSymbol 
-              ios_icon_name={overlayIcon} 
-              android_material_icon_name="lock" 
-              size={Platform.OS === 'ios' ? 64 : 54} 
-              color={getOverlayIconColor()} 
-            />
+            <IconSymbol ios_icon_name={overlayIcon} android_material_icon_name="lock" size={64} color={getOverlayIconColor()} />
           </View>
         )}
 
@@ -381,12 +366,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
         {isDestacado && (
           <View style={styles.badgeDestacadoHeader}>
-            <IconSymbol 
-              ios_icon_name="star.fill" 
-              android_material_icon_name="star" 
-              size={Platform.OS === 'ios' ? 14 : 12} 
-              color="#92400E" 
-            />
+            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#92400E" />
             <Text style={styles.badgeDestacadoHeaderText}>Destacado</Text>
           </View>
         )}
@@ -401,12 +381,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
         {displayRating > 0 && (
           <View style={styles.ratingBadge}>
-            <IconSymbol 
-              ios_icon_name="star.fill" 
-              android_material_icon_name="star" 
-              size={Platform.OS === 'ios' ? 12 : 10} 
-              color="#FACC15" 
-            />
+            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color="#FACC15" />
             <Text style={styles.ratingBadgeText}>{displayRating.toFixed(1)}</Text>
           </View>
         )}
@@ -430,7 +405,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
             <IconSymbol
               ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
               android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
-              size={Platform.OS === 'ios' ? 20 : 17}
+              size={20}
               color={localIsFavorite ? "#EF4444" : colors.headerText}
             />
           )}
@@ -454,12 +429,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
             {isUserHere && (
               <View style={styles.userHereBadge}>
                 <View style={styles.userHereBadgeContent}>
-                  <IconSymbol 
-                    ios_icon_name="mappin.circle.fill" 
-                    android_material_icon_name="location_on" 
-                    size={Platform.OS === 'ios' ? 16 : 14} 
-                    color={colors.primary} 
-                  />
+                  <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
                   <Text style={styles.userHereText}>Estás en este local</Text>
                 </View>
                 <TouchableOpacity 
@@ -471,12 +441,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
                     <ActivityIndicator size="small" color={colors.textSecondary} />
                   ) : (
                     <React.Fragment>
-                      <IconSymbol 
-                        ios_icon_name="xmark.circle.fill" 
-                        android_material_icon_name="cancel" 
-                        size={Platform.OS === 'ios' ? 14 : 12} 
-                        color={colors.textSecondary} 
-                      />
+                      <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={14} color={colors.textSecondary} />
                       <Text style={styles.checkOutButtonText}>Salir</Text>
                     </React.Fragment>
                   )}
@@ -485,12 +450,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
             )}
             {followedUsersHere.length > 0 && (
               <View style={styles.friendsHereBadge}>
-                <IconSymbol 
-                  ios_icon_name="person.2.fill" 
-                  android_material_icon_name="people" 
-                  size={Platform.OS === 'ios' ? 14 : 12} 
-                  color={colors.secondary} 
-                />
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={14} color={colors.secondary} />
                 <Text style={styles.friendsHereText}>
                   {followedUsersHere.length} {followedUsersHere.length === 1 ? 'amigo está' : 'amigos están'} aquí
                 </Text>
@@ -500,12 +460,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         )}
 
         <View style={styles.infoRow}>
-          <IconSymbol 
-            ios_icon_name="mappin" 
-            android_material_icon_name="location_on" 
-            size={Platform.OS === 'ios' ? 14 : 12} 
-            color={colors.textSecondary} 
-          />
+          <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
           <Text style={styles.infoText} numberOfLines={1}>
             {local.direccion}
           </Text>
@@ -525,12 +480,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         <View style={styles.actionButtonsContainer}>
           {!checkingSocialProfile && hasSocialProfile && (
             <TouchableOpacity style={styles.perfilSocialButton} onPress={handlePerfilSocial}>
-              <IconSymbol 
-                ios_icon_name="person.2.fill" 
-                android_material_icon_name="people" 
-                size={Platform.OS === 'ios' ? 16 : 14} 
-                color={colors.headerText} 
-              />
+              <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={16} color={colors.headerText} />
               <Text style={styles.perfilSocialText} numberOfLines={1}>Perfil Social</Text>
             </TouchableOpacity>
           )}
@@ -544,23 +494,13 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           >
             <View style={styles.comoLlegarContent}>
               <View style={styles.comoLlegarLeft}>
-                <IconSymbol 
-                  ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" 
-                  android_material_icon_name="directions" 
-                  size={Platform.OS === 'ios' ? 16 : 14} 
-                  color={colors.headerText} 
-                />
+                <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={16} color={colors.headerText} />
                 <Text style={styles.comoLlegarText} numberOfLines={1}>Cómo llegar</Text>
               </View>
               
               {local.distancia !== null && local.distancia !== undefined && (
                 <View style={styles.distanciaInButton}>
-                  <IconSymbol 
-                    ios_icon_name="location.fill" 
-                    android_material_icon_name="my_location" 
-                    size={Platform.OS === 'ios' ? 14 : 12} 
-                    color={colors.headerText} 
-                  />
+                  <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={14} color={colors.headerText} />
                   <Text style={styles.distanciaInButtonText} numberOfLines={1}>
                     {local.distancia.toFixed(1)} km
                   </Text>
@@ -597,10 +537,9 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  // ✅ CRITICAL v69.0: Image height normalized to 85% on Android (170px vs 200px)
   imageContainer: {
     width: '100%',
-    height: Platform.OS === 'ios' ? 200 : 170,
+    height: 200,
     position: 'relative',
   },
   image: {
@@ -625,8 +564,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginLeft: Platform.OS === 'ios' ? -32 : -27,
-    marginTop: Platform.OS === 'ios' ? -32 : -27,
+    marginLeft: -32,
+    marginTop: -32,
     zIndex: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -641,16 +580,15 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.15)',
   },
-  // ✅ ANDROID FIX v69.0: Badge sizes normalized to 80% on Android
   badgeDestacadoHeader: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 12 : 10,
-    left: Platform.OS === 'ios' ? 12 : 10,
+    top: 12,
+    left: 12,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FACC15',
-    paddingHorizontal: Platform.OS === 'ios' ? 12 : 10,
-    paddingVertical: Platform.OS === 'ios' ? 6 : 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
     gap: 4,
     borderWidth: 2,
@@ -663,18 +601,18 @@ const styles = StyleSheet.create({
     zIndex: 11,
   },
   badgeDestacadoHeaderText: {
-    fontSize: Platform.OS === 'ios' ? 12 : 10, // 80% of iOS
+    fontSize: 12,
     fontWeight: '700',
     color: '#92400E',
   },
   badgeEstadoSuperior: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 12 : 10,
-    left: Platform.OS === 'ios' ? 12 : 10,
+    top: 12,
+    left: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Platform.OS === 'ios' ? 12 : 10,
-    paddingVertical: Platform.OS === 'ios' ? 6 : 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 2,
     borderColor: '#FFFFFF',
@@ -687,22 +625,22 @@ const styles = StyleSheet.create({
     maxWidth: '70%',
   },
   badgeEstadoSuperiorConDestacado: {
-    top: Platform.OS === 'ios' ? 52 : 44,
+    top: 52,
   },
   badgeEstadoSuperiorText: {
-    fontSize: Platform.OS === 'ios' ? 12 : 10, // 80% of iOS
+    fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   ratingBadge: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 12 : 10,
-    right: Platform.OS === 'ios' ? 12 : 10,
+    top: 12,
+    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    paddingHorizontal: Platform.OS === 'ios' ? 12 : 10,
-    paddingVertical: Platform.OS === 'ios' ? 6 : 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
     gap: 4,
     borderWidth: 2,
@@ -715,53 +653,51 @@ const styles = StyleSheet.create({
     zIndex: 12,
   },
   ratingBadgeText: {
-    fontSize: Platform.OS === 'ios' ? 12 : 10, // 80% of iOS
+    fontSize: 12,
     fontWeight: '700',
     color: colors.headerText,
     letterSpacing: 0.3,
   },
   badgeNuevoContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 56 : 48,
-    right: Platform.OS === 'ios' ? 12 : 10,
+    top: 56,
+    right: 12,
     zIndex: 9,
   },
   badgeNuevo: {
     backgroundColor: '#EF4444',
-    paddingHorizontal: Platform.OS === 'ios' ? 10 : 8,
-    paddingVertical: Platform.OS === 'ios' ? 6 : 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 8,
   },
   badgeNuevoText: {
-    fontSize: Platform.OS === 'ios' ? 12 : 10, // 80% of iOS
+    fontSize: 12,
     fontWeight: '700',
     color: colors.headerText,
   },
   favoritoButton: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 12 : 10,
-    right: Platform.OS === 'ios' ? 12 : 10,
-    width: Platform.OS === 'ios' ? 40 : 34,
-    height: Platform.OS === 'ios' ? 40 : 34,
-    borderRadius: Platform.OS === 'ios' ? 20 : 17,
+    bottom: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
   },
-  // ✅ ANDROID FIX v69.0: Content padding normalized to 80% on Android
   content: {
-    padding: Platform.OS === 'ios' ? 16 : 13,
+    padding: 16,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'ios' ? 8 : 7,
+    marginBottom: 8,
   },
-  // ✅ ANDROID FIX v69.0: Text sizes normalized to 80% on Android
   nombre: {
-    fontSize: Platform.OS === 'ios' ? 18 : 14, // 80% of iOS
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
     flex: 1,
@@ -769,35 +705,35 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Platform.OS === 'ios' ? 6 : 5,
-    marginBottom: Platform.OS === 'ios' ? 12 : 10,
+    gap: 6,
+    marginBottom: 12,
   },
   infoText: {
-    fontSize: Platform.OS === 'ios' ? 14 : 11, // 80% of iOS
+    fontSize: 14,
     color: colors.textSecondary,
     flex: 1,
   },
   categoriasContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Platform.OS === 'ios' ? 8 : 7,
-    marginBottom: Platform.OS === 'ios' ? 12 : 10,
+    gap: 8,
+    marginBottom: 12,
   },
   categoriaBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.primary + '15',
-    paddingHorizontal: Platform.OS === 'ios' ? 10 : 8,
-    paddingVertical: Platform.OS === 'ios' ? 4 : 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 6,
     gap: 4,
     maxWidth: '48%',
   },
   categoriaIcon: {
-    fontSize: Platform.OS === 'ios' ? 12 : 10, // 80% of iOS
+    fontSize: 12,
   },
   categoriaText: {
-    fontSize: Platform.OS === 'ios' ? 12 : 10, // 80% of iOS
+    fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
     textTransform: 'capitalize',
@@ -805,7 +741,7 @@ const styles = StyleSheet.create({
   },
   actionButtonsContainer: {
     flexDirection: 'row',
-    gap: Platform.OS === 'ios' ? 8 : 7,
+    gap: 8,
   },
   perfilSocialButton: {
     flex: 1,
@@ -813,14 +749,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.secondary + '99',
-    paddingHorizontal: Platform.OS === 'ios' ? 10 : 8,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
     borderRadius: 8,
-    gap: Platform.OS === 'ios' ? 6 : 5,
+    gap: 6,
     minWidth: 0,
   },
   perfilSocialText: {
-    fontSize: Platform.OS === 'ios' ? 13 : 10, // 80% of iOS
+    fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
     flexShrink: 1,
@@ -828,8 +764,8 @@ const styles = StyleSheet.create({
   comoLlegarButton: {
     flex: 1,
     backgroundColor: colors.primary + '99',
-    paddingHorizontal: Platform.OS === 'ios' ? 10 : 8,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
     borderRadius: 8,
     minWidth: 0,
   },
@@ -840,17 +776,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: Platform.OS === 'ios' ? 6 : 5,
+    gap: 6,
   },
   comoLlegarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Platform.OS === 'ios' ? 6 : 5,
+    gap: 6,
     flexShrink: 1,
     minWidth: 0,
   },
   comoLlegarText: {
-    fontSize: Platform.OS === 'ios' ? 13 : 10, // 80% of iOS
+    fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
     flexShrink: 1,
@@ -862,34 +798,34 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   distanciaInButtonText: {
-    fontSize: Platform.OS === 'ios' ? 13 : 10, // 80% of iOS
+    fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
   },
   // ✅ UPDATED: Check-in indicators with BarLive colors
   checkInIndicators: {
-    marginBottom: Platform.OS === 'ios' ? 12 : 10,
+    marginBottom: 12,
   },
   userHereBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.primary + '10',
-    paddingHorizontal: Platform.OS === 'ios' ? 12 : 10,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: colors.primary + '30',
-    marginBottom: Platform.OS === 'ios' ? 8 : 7,
+    marginBottom: 8,
   },
   userHereBadgeContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Platform.OS === 'ios' ? 8 : 7,
+    gap: 8,
     flex: 1,
   },
   userHereText: {
-    fontSize: Platform.OS === 'ios' ? 14 : 11, // 80% of iOS
+    fontSize: 14,
     fontWeight: '700',
     color: colors.primary,
     flex: 1,
@@ -900,30 +836,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: colors.background,
-    paddingHorizontal: Platform.OS === 'ios' ? 10 : 8,
-    paddingVertical: Platform.OS === 'ios' ? 6 : 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   checkOutButtonText: {
-    fontSize: Platform.OS === 'ios' ? 12 : 10, // 80% of iOS
+    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
   },
   friendsHereBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Platform.OS === 'ios' ? 6 : 5,
+    gap: 6,
     backgroundColor: colors.secondary + '10',
-    paddingHorizontal: Platform.OS === 'ios' ? 12 : 10,
-    paddingVertical: Platform.OS === 'ios' ? 8 : 7,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: colors.secondary + '30',
   },
   friendsHereText: {
-    fontSize: Platform.OS === 'ios' ? 13 : 10, // 80% of iOS
+    fontSize: 13,
     fontWeight: '700',
     color: colors.secondary,
   },

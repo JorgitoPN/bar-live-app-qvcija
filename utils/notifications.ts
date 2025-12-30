@@ -13,7 +13,7 @@ const isExpoGo = (): boolean => {
 };
 
 // Check if push notifications are available
-export const arePushNotificationsAvailable = async (): Promise<boolean> => {
+export const arePushNotificationsAvailable = (): boolean => {
   // Push notifications don't work in Expo Go on Android with SDK 53+
   if (Platform.OS === 'android' && isExpoGo()) {
     return false;
@@ -22,7 +22,7 @@ export const arePushNotificationsAvailable = async (): Promise<boolean> => {
   // Try to load Device module
   if (!Device) {
     try {
-      Device = await import('expo-device');
+      Device = require('expo-device');
     } catch (error) {
       console.log('[Notifications] ⚠️ expo-device no disponible');
       return false;
@@ -47,7 +47,7 @@ const initializeNotifications = async (): Promise<boolean> => {
   }
   
   try {
-    Notifications = await import('expo-notifications');
+    Notifications = require('expo-notifications');
     
     // Configure notification behavior
     Notifications.setNotificationHandler({
@@ -98,8 +98,7 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
     console.log('[Notifications] 🔔 Iniciando registro de notificaciones...');
     
     // Check if push notifications are available
-    const available = await arePushNotificationsAvailable();
-    if (!available) {
+    if (!arePushNotificationsAvailable()) {
       if (Platform.OS === 'android' && isExpoGo()) {
         console.log('[Notifications] ⚠️ Expo Go detectado en Android');
         console.log('[Notifications] ℹ️ Las notificaciones push no están disponibles en Expo Go (SDK 53+)');

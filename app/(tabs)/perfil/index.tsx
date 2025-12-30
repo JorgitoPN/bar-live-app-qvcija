@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
-import { colors, commonStyles, HEADER_DIMENSIONS } from '@/styles/commonStyles';
+import { colors, commonStyles } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
 import { useEffectiveUser } from '@/hooks/useEffectiveUser';
 import { useMode } from '@/contexts/ModeContext';
@@ -70,14 +70,12 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v65.0 - COMPREHENSIVE ANDROID-iOS PARITY
+ * ✅ PROFILE SCREEN v47.0 - UNIFIED MOMENTO AVATAR
  * 
- * CRITICAL FIXES v65.0:
- * - ✅ Android: All text sizes reduced 45% to match iOS
- * - ✅ Android: All icon sizes reduced 40% to match iOS
- * - ✅ Android: Header dimensions standardized
- * - ✅ iOS: No changes to maintain current design
+ * Features:
  * - ✅ Uses UnifiedMomentoAvatar for consistent design
+ * - ✅ Same avatar and + button across all pages
+ * - ✅ Green border disappears after viewing
  * - ✅ Real-time synchronization
  */
 
@@ -952,14 +950,14 @@ export default function PerfilScreen() {
 
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
-            <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={Platform.OS === 'ios' ? 18 : 10.8} color={colors.headerText} />
+            <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.headerText} />
             <Text style={styles.actionButtonText}>Editar Perfil</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.actionButton, styles.createButton]} 
             onPress={handleCrearPublicacion}
           >
-            <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={Platform.OS === 'ios' ? 18 : 10.8} color={colors.white} />
+            <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={18} color={colors.white} />
             <Text style={[styles.actionButtonText, { color: colors.white }]}>Crear</Text>
           </TouchableOpacity>
         </View>
@@ -985,7 +983,7 @@ export default function PerfilScreen() {
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             style={styles.loginRequiredIconContainer}
           >
-            <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={Platform.OS === 'ios' ? 64 : 35.2} color={colors.white} />
+            <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={64} color={colors.white} />
           </LinearGradient>
           
           <Text style={styles.loginRequiredTitle}>Inicia sesión para ver tu perfil</Text>
@@ -1032,7 +1030,7 @@ export default function PerfilScreen() {
           <Text style={styles.headerTitle}>Mi Perfil</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
-              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={Platform.OS === 'ios' ? 24 : 13.2} color={colors.headerText} />
+              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -1042,7 +1040,7 @@ export default function PerfilScreen() {
               )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
-              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={Platform.OS === 'ios' ? 24 : 13.2} color={colors.headerText} />
+              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={24} color={colors.headerText} />
               {unreadNotifications > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -1058,7 +1056,7 @@ export default function PerfilScreen() {
                 onPress={() => setShowCart(true)}
                 activeOpacity={0.7}
               >
-                <IconSymbol ios_icon_name="cart.fill" android_material_icon_name="shopping_cart" size={Platform.OS === 'ios' ? 24 : 13.2} color={colors.headerText} />
+                <IconSymbol ios_icon_name="cart.fill" android_material_icon_name="shopping_cart" size={24} color={colors.headerText} />
                 {cartItemsCount > 0 && (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>
@@ -1070,7 +1068,7 @@ export default function PerfilScreen() {
             )}
             
             <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
-              <IconSymbol ios_icon_name="gearshape.fill" android_material_icon_name="settings" size={Platform.OS === 'ios' ? 24 : 13.2} color={colors.headerText} />
+              <IconSymbol ios_icon_name="gearshape.fill" android_material_icon_name="settings" size={24} color={colors.headerText} />
             </TouchableOpacity>
           </View>
         </View>
@@ -1103,7 +1101,7 @@ export default function PerfilScreen() {
             <IconSymbol 
               ios_icon_name="square.grid.3x3" 
               android_material_icon_name="grid_on"
-              size={Platform.OS === 'ios' ? 24 : 14.4} 
+              size={24} 
               color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
             />
           </TouchableOpacity>
@@ -1114,7 +1112,7 @@ export default function PerfilScreen() {
             <IconSymbol 
               ios_icon_name="bookmark" 
               android_material_icon_name="bookmark_border"
-              size={Platform.OS === 'ios' ? 24 : 14.4} 
+              size={24} 
               color={activeTab === 'favoritos' ? colors.primary : colors.textSecondary} 
             />
           </TouchableOpacity>
@@ -1125,7 +1123,7 @@ export default function PerfilScreen() {
             <IconSymbol 
               ios_icon_name="person.crop.square" 
               android_material_icon_name="person_outline"
-              size={Platform.OS === 'ios' ? 24 : 14.4} 
+              size={24} 
               color={activeTab === 'etiquetados' ? colors.primary : colors.textSecondary} 
             />
           </TouchableOpacity>
@@ -1136,7 +1134,7 @@ export default function PerfilScreen() {
             <IconSymbol 
               ios_icon_name="briefcase.fill" 
               android_material_icon_name="work"
-              size={Platform.OS === 'ios' ? 24 : 14.4} 
+              size={24} 
               color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
             />
           </TouchableOpacity>
@@ -1229,7 +1227,7 @@ export default function PerfilScreen() {
                 </View>
               ) : (
                 <View style={styles.emptyState}>
-                  <IconSymbol ios_icon_name="briefcase" android_material_icon_name="work_outline" size={Platform.OS === 'ios' ? 64 : 38} color={colors.textSecondary} />
+                  <IconSymbol ios_icon_name="briefcase" android_material_icon_name="work_outline" size={64} color={colors.textSecondary} />
                   <Text style={styles.emptyStateTitle}>Crea tu perfil profesional</Text>
                   <Text style={styles.emptyStateText}>
                     Crea tu demanda de empleo para que los propietarios de locales puedan encontrarte
@@ -1239,7 +1237,7 @@ export default function PerfilScreen() {
                     onPress={handleCrearPerfilProfesional}
                     activeOpacity={0.7}
                   >
-                    <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={Platform.OS === 'ios' ? 20 : 12} color={colors.white} />
+                    <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.white} />
                     <Text style={styles.emptyStateButtonText}>Crear Perfil Profesional</Text>
                   </TouchableOpacity>
                 </View>
@@ -1266,7 +1264,7 @@ export default function PerfilScreen() {
                       activeTab === 'favoritos' ? 'bookmark_border' : 
                       'person_outline'
                     }
-                    size={Platform.OS === 'ios' ? 48 : 28} 
+                    size={48} 
                     color={colors.textSecondary} 
                   />
                   <Text style={styles.emptyStateText}>
@@ -1352,15 +1350,14 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     paddingBottom: 100,
   },
-  // ✅ CRITICAL v65.0: Uses HEADER_DIMENSIONS for consistency
   fixedHeader: {
-    paddingTop: HEADER_DIMENSIONS.paddingTop,
-    paddingBottom: HEADER_DIMENSIONS.paddingBottom,
-    paddingHorizontal: HEADER_DIMENSIONS.paddingHorizontal,
+    paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
   },
   profileHeaderGradient: {
-    paddingTop: Platform.OS === 'ios' ? 24 : 16,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
+    paddingTop: 24,
+    paddingBottom: 24,
     paddingHorizontal: 20,
   },
   headerContent: {
@@ -1368,18 +1365,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  // ✅ ANDROID FIX v67.0: Text sizes reduced on Android (50% smaller)
   headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 28 : 14,
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.headerText,
   },
   headerActions: {
     flexDirection: 'row',
-    gap: Platform.OS === 'ios' ? 16 : 10,
+    gap: 16,
   },
   headerButton: {
-    padding: Platform.OS === 'ios' ? 8 : 6,
+    padding: 8,
     position: 'relative',
   },
   badge: {
@@ -1388,17 +1384,17 @@ const styles = StyleSheet.create({
     right: 4,
     backgroundColor: '#EF4444',
     borderRadius: 12,
-    minWidth: Platform.OS === 'ios' ? 24 : 12,
-    height: Platform.OS === 'ios' ? 24 : 12,
+    minWidth: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Platform.OS === 'ios' ? 6 : 3,
+    paddingHorizontal: 6,
     borderWidth: 2,
     borderColor: colors.headerGradientStart,
   },
   badgeText: {
     color: '#fff',
-    fontSize: Platform.OS === 'ios' ? 10 : 5,
+    fontSize: 10,
     fontWeight: 'bold',
     textAlign: 'center',
   },
@@ -1419,20 +1415,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  // ✅ ANDROID FIX v67.0: Login screen text sizes reduced on Android (50% smaller)
   loginRequiredTitle: {
-    fontSize: Platform.OS === 'ios' ? 24 : 12,
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 12,
     textAlign: 'center',
   },
   loginRequiredMessage: {
-    fontSize: Platform.OS === 'ios' ? 16 : 8,
+    fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 32,
-    lineHeight: Platform.OS === 'ios' ? 24 : 12,
+    lineHeight: 24,
   },
   loginButton: {
     width: '100%',
@@ -1441,19 +1436,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   loginButtonGradient: {
-    paddingVertical: Platform.OS === 'ios' ? 16 : 10,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   loginButtonText: {
-    fontSize: Platform.OS === 'ios' ? 16 : 8,
+    fontSize: 16,
     fontWeight: 'bold',
     color: colors.white,
   },
   registerButton: {
-    paddingVertical: Platform.OS === 'ios' ? 12 : 6,
+    paddingVertical: 12,
   },
   registerButtonText: {
-    fontSize: Platform.OS === 'ios' ? 14 : 7,
+    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -1492,36 +1487,35 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 20,
   },
-  // ✅ ANDROID FIX v67.0: Profile text sizes reduced on Android (50% smaller)
   profileName: {
-    fontSize: Platform.OS === 'ios' ? 22 : 11,
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 4,
   },
   profileUsername: {
-    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
+    fontSize: 15,
     color: 'rgba(255, 255, 255, 0.9)',
   },
   switchProfileButton: {
-    padding: Platform.OS === 'ios' ? 10 : 7,
+    padding: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 24,
   },
   profileBio: {
-    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
+    fontSize: 15,
     color: colors.headerText,
-    lineHeight: Platform.OS === 'ios' ? 22 : 11,
+    lineHeight: 22,
     marginBottom: 16,
   },
   websiteContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Platform.OS === 'ios' ? 8 : 4,
+    gap: 8,
     marginBottom: 20,
   },
   websiteText: {
-    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
+    fontSize: 15,
     color: colors.headerText,
     fontWeight: '500',
   },
@@ -1570,9 +1564,8 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
-  // ✅ ANDROID FIX v67.0: Current local text sizes reduced on Android (50% smaller)
   currentLocalCompactTitle: {
-    fontSize: Platform.OS === 'ios' ? 13 : 6.5,
+    fontSize: 13,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.3,
@@ -1582,20 +1575,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: Platform.OS === 'ios' ? 8 : 6,
-    paddingVertical: Platform.OS === 'ios' ? 4 : 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.4)',
   },
   liveDot: {
-    width: Platform.OS === 'ios' ? 6 : 3,
-    height: Platform.OS === 'ios' ? 6 : 3,
-    borderRadius: Platform.OS === 'ios' ? 3 : 1.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#FFFFFF',
   },
   liveBadgeText: {
-    fontSize: Platform.OS === 'ios' ? 9 : 4.5,
+    fontSize: 9,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
@@ -1627,9 +1620,8 @@ const styles = StyleSheet.create({
   currentLocalCompactInfo: {
     flex: 1,
   },
-  // ✅ ANDROID FIX v67.0: Current local info text sizes reduced on Android (50% smaller)
   currentLocalCompactName: {
-    fontSize: Platform.OS === 'ios' ? 14 : 7,
+    fontSize: 14,
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 3,
@@ -1641,12 +1633,12 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   currentLocalCompactAddress: {
-    fontSize: Platform.OS === 'ios' ? 11 : 5.5,
+    fontSize: 11,
     color: 'rgba(255, 255, 255, 0.8)',
     flex: 1,
   },
   currentLocalCompactVisibility: {
-    fontSize: Platform.OS === 'ios' ? 10 : 5,
+    fontSize: 10,
     color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '600',
   },
@@ -1665,19 +1657,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(107, 114, 128, 0.3)',
   },
-  // ✅ ANDROID FIX v67.0: Exit button text size reduced on Android (50% smaller)
   exitLocalButtonCompactText: {
-    fontSize: Platform.OS === 'ios' ? 12 : 6,
+    fontSize: 12,
     fontWeight: '700',
     color: '#6B7280',
     letterSpacing: 0.3,
   },
-  // ✅ ANDROID FIX v67.0: Stats and action button sizes reduced on Android (50% smaller)
   statsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    marginBottom: Platform.OS === 'ios' ? 24 : 12,
+    marginBottom: 24,
     paddingVertical: 4,
   },
   statItem: {
@@ -1685,23 +1675,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statNumber: {
-    fontSize: Platform.OS === 'ios' ? 22 : 11,
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: Platform.OS === 'ios' ? 14 : 7,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
   },
   statDivider: {
     width: 1,
-    height: Platform.OS === 'ios' ? 44 : 32,
+    height: 44,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: Platform.OS === 'ios' ? 12 : 8,
+    gap: 12,
   },
   actionButton: {
     flex: 1,
@@ -1710,14 +1700,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 16,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 9,
-    gap: Platform.OS === 'ios' ? 8 : 6,
+    paddingVertical: 14,
+    gap: 8,
   },
   createButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   actionButtonText: {
-    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -1780,9 +1770,8 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 20,
   },
-  // ✅ ANDROID FIX v67.0: Empty state text sizes reduced on Android (50% smaller)
   emptyStateTitle: {
-    fontSize: Platform.OS === 'ios' ? 20 : 10,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 16,
@@ -1790,7 +1779,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyStateText: {
-    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
+    fontSize: 15,
     color: colors.textSecondary,
     marginTop: 16,
     marginBottom: 20,
@@ -1800,14 +1789,14 @@ const styles = StyleSheet.create({
   emptyStateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Platform.OS === 'ios' ? 8 : 4,
+    gap: 8,
     backgroundColor: colors.primary,
-    paddingHorizontal: Platform.OS === 'ios' ? 28 : 14,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 7,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
     borderRadius: 16,
   },
   emptyStateButtonText: {
-    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.white,
   },
@@ -1830,15 +1819,14 @@ const styles = StyleSheet.create({
   perfilProfesionalInfo: {
     flex: 1,
   },
-  // ✅ ANDROID FIX v67.0: Professional profile text sizes reduced on Android (50% smaller)
   perfilProfesionalNombre: {
-    fontSize: Platform.OS === 'ios' ? 20 : 10,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 6,
   },
   perfilProfesionalPuesto: {
-    fontSize: Platform.OS === 'ios' ? 16 : 8,
+    fontSize: 16,
     color: colors.primary,
     fontWeight: '600',
     marginBottom: 8,
@@ -1849,12 +1837,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   perfilProfesionalLocationText: {
-    fontSize: Platform.OS === 'ios' ? 14 : 7,
+    fontSize: 14,
     color: colors.textSecondary,
   },
   perfilProfesionalStatus: {
-    paddingHorizontal: Platform.OS === 'ios' ? 12 : 6,
-    paddingVertical: Platform.OS === 'ios' ? 6 : 3,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   perfilProfesionalStatusActive: {
@@ -1864,7 +1852,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF444415',
   },
   perfilProfesionalStatusText: {
-    fontSize: Platform.OS === 'ios' ? 13 : 6.5,
+    fontSize: 13,
     fontWeight: '600',
   },
   perfilProfesionalStatusTextActive: {
@@ -1874,34 +1862,34 @@ const styles = StyleSheet.create({
     color: '#EF4444',
   },
   perfilProfesionalDetails: {
-    gap: Platform.OS === 'ios' ? 16 : 10,
-    marginBottom: Platform.OS === 'ios' ? 20 : 14,
+    gap: 16,
+    marginBottom: 20,
   },
   perfilProfesionalDetailItem: {
     gap: 4,
   },
   perfilProfesionalDetailLabel: {
-    fontSize: Platform.OS === 'ios' ? 14 : 7,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.textSecondary,
   },
   perfilProfesionalDetailValue: {
-    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
+    fontSize: 15,
     color: colors.text,
-    lineHeight: Platform.OS === 'ios' ? 22 : 11,
+    lineHeight: 22,
   },
   perfilProfesionalActions: {
     flexDirection: 'row',
-    gap: Platform.OS === 'ios' ? 12 : 8,
+    gap: 12,
   },
   perfilProfesionalButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Platform.OS === 'ios' ? 8 : 6,
+    gap: 8,
     backgroundColor: colors.primary,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 9,
+    paddingVertical: 14,
     borderRadius: 12,
   },
   perfilProfesionalButtonSecondary: {
@@ -1910,7 +1898,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   perfilProfesionalButtonText: {
-    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.white,
   },

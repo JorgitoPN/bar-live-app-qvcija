@@ -182,7 +182,7 @@ export function usePostInteractions({
         channelRef.current = null;
       }
     };
-  }, [postId, user?.id, user, isLiked, localLikes, updatePostLikes]);
+  }, [postId, user?.id, isLiked, localLikes, updatePostLikes]);
 
   const handleLike = useCallback(async () => {
     if (!user) {

@@ -18,23 +18,13 @@ import { initializeAndroidBehavior } from '@/utils/androidNativeBehavior';
 
 SplashScreen.preventAutoHideAsync();
 
-/**
- * ✅ ROOT LAYOUT v70.0 - iOS EXPO GO CRITICAL FIX
- * 
- * CRITICAL FIXES v70.0:
- * - ✅ iOS: Removed ALL modal test files that were causing the modal menu
- * - ✅ iOS: Simplified stack configuration
- * - ✅ iOS: No modal screen registrations at all
- * - ✅ Android/Web: Modal functionality preserved
- */
-
 export default function RootLayout() {
   useEffect(() => {
     // ✅ CRITICAL FIX v25.0: Initialize Android-specific behavior
     let cleanupAndroid: (() => void) | undefined;
     
     if (Platform.OS === 'android') {
-      console.log('[RootLayout v70.0] 🤖 Initializing Android native behavior...');
+      console.log('[RootLayout v25.0] 🤖 Initializing Android native behavior...');
       cleanupAndroid = initializeAndroidBehavior();
     }
 
@@ -71,97 +61,20 @@ export default function RootLayout() {
                           gestureDirection: 'horizontal',
                         }}
                       >
-                        {/* ✅ CRITICAL FIX v70.0: Main app screens ONLY */}
-                        <Stack.Screen 
-                          name="index" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="(tabs)" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="auth" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="crear" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="detalle" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="editar" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="perfil" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="social" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="chat" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="admin" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="gestion" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="empleo" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="legal" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="soporte" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="solicitudes" 
-                          options={{ 
-                            headerShown: false,
-                          }} 
-                        />
+                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                        <Stack.Screen name="auth" options={{ headerShown: false }} />
+                        <Stack.Screen name="crear" options={{ headerShown: false }} />
+                        <Stack.Screen name="detalle" options={{ headerShown: false }} />
+                        <Stack.Screen name="editar" options={{ headerShown: false }} />
+                        <Stack.Screen name="perfil" options={{ headerShown: false }} />
+                        <Stack.Screen name="social" options={{ headerShown: false }} />
+                        <Stack.Screen name="chat" options={{ headerShown: false }} />
+                        <Stack.Screen name="admin" options={{ headerShown: false }} />
+                        <Stack.Screen name="gestion" options={{ headerShown: false }} />
+                        <Stack.Screen name="empleo" options={{ headerShown: false }} />
+                        <Stack.Screen name="legal" options={{ headerShown: false }} />
+                        <Stack.Screen name="soporte" options={{ headerShown: false }} />
+                        <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
                       </Stack>
                     </PostsProvider>
                   </FilterProvider>

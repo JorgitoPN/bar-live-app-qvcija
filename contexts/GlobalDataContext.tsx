@@ -209,7 +209,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     try {
       console.log('[GlobalData] 🌐 Loading from Supabase...');
 
-      // ✅ FIX: Load data in smaller chunks to avoid "Row too big" error
       const [
         localesResult,
         postsResult,
@@ -218,7 +217,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       ] = await Promise.all([
         supabase
           .from('locales')
-          .select('id, nombre, direccion, provincia, comunidad, latitud, longitud, imagen_url, galeria_urls, barlive_type, barlive_types, rating, google_rating, destacado, activo, perfil_visible, horarios_completos, servicios_disponibles, ambiente_completo, ambiente_google, clientela, username')
+          .select('*')
           .eq('activo', true)
           .order('destacado', { ascending: false })
           .order('rating', { ascending: false }),
@@ -226,7 +225,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         supabase
           .from('posts')
           .select(`
-            id, contenido, imagen, imagenes, tipo, created_at, autor_id, local_id, likes_count, comentarios_count,
+            *,
             autor:usuarios!posts_autor_id_fkey(nombre, avatar, username),
             local:locales!posts_local_id_fkey(nombre, imagen_url)
           `)
@@ -235,7 +234,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         
         supabase
           .from('eventos')
-          .select('id, nombre, descripcion, fecha, local_id, imagen_url, created_at')
+          .select('*')
           .gte('fecha', new Date().toISOString())
           .order('fecha', { ascending: true })
           .limit(50),
@@ -243,7 +242,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         supabase
           .from('ofertas_trabajo')
           .select(`
-            id, titulo, descripcion, local_id, propietario_id, created_at,
+            *,
             local:locales(nombre),
             propietario:usuarios(nombre)
           `)

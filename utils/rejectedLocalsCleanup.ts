@@ -10,11 +10,11 @@ import { supabase } from './supabase';
 
 export interface CleanupResult {
   localesEliminados: number;
-  detalles: {
+  detalles: Array<{
     id: string;
     nombre: string;
     motivo: string;
-  }[];
+  }>;
 }
 
 /**

@@ -15,7 +15,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { colors, HEADER_DIMENSIONS } from '@/styles/commonStyles';
+import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useEffectiveUser } from '@/hooks/useEffectiveUser';
 import { useImpersonation } from '@/contexts/ImpersonationContext';
@@ -79,13 +79,13 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL INDEX SCREEN v65.0 - COMPREHENSIVE ANDROID-iOS PARITY
+ * ✅ SOCIAL INDEX SCREEN v48.0 - ACCESS CONTROL FOR FREE PLAN LOCALS
  * 
- * CRITICAL FIXES v65.0:
- * - ✅ All text and icon sizes reduced on Android (45% smaller)
- * - ✅ Consistent with other pages
- * - ✅ Search box height reduced in header (via HeaderSocial component)
- * - ✅ All UI elements properly scaled
+ * Changes:
+ * - ✅ Momentos section always visible (restored)
+ * - ✅ Avatar upload functionality restored
+ * - ✅ Cleaner social feed with momentos at top
+ * - ✅ Access control for free plan locals
  */
 
 export default function SocialIndexScreen() {
@@ -141,18 +141,18 @@ export default function SocialIndexScreen() {
         }
         setUnreadMessages(totalUnread);
         
-        console.log('[Social v60.0] ✅ Loaded unread counts:', {
+        console.log('[Social v48.0] ✅ Loaded unread counts:', {
           notifications: notifCount || 0,
           messages: totalUnread,
         });
       } else {
-        console.log('[Social v60.0] ✅ Loaded unread counts:', {
+        console.log('[Social v48.0] ✅ Loaded unread counts:', {
           notifications: notifCount || 0,
           messages: 0,
         });
       }
     } catch (error) {
-      console.error('[Social v60.0] Error loading unread counts:', error);
+      console.error('[Social v48.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -173,12 +173,12 @@ export default function SocialIndexScreen() {
         .single();
 
       if (myCheckInError && myCheckInError.code !== 'PGRST116') {
-        console.error('[Social v60.0] Error loading my check-in:', myCheckInError);
+        console.error('[Social v48.0] Error loading my check-in:', myCheckInError);
       }
 
       if (myCheckInData && myCheckInData.locales) {
         setMyCheckIn(myCheckInData);
-        console.log('[Social v60.0] ✅ I am checked in to:', myCheckInData.locales.nombre);
+        console.log('[Social v48.0] ✅ I am checked in to:', myCheckInData.locales.nombre);
       } else {
         setMyCheckIn(null);
       }
@@ -237,9 +237,9 @@ export default function SocialIndexScreen() {
 
       const locations = Array.from(locationsByLocal.values());
       setFriendsLocations(locations);
-      console.log('[Social v60.0] ✅ Loaded friends locations:', locations.length);
+      console.log('[Social v48.0] ✅ Loaded friends locations:', locations.length);
     } catch (error) {
-      console.error('[Social v60.0] Error loading friends locations:', error);
+      console.error('[Social v48.0] Error loading friends locations:', error);
     } finally {
       setLoadingFriendsLocations(false);
     }
@@ -251,7 +251,7 @@ export default function SocialIndexScreen() {
     loadUnreadCounts();
 
     const subscription = supabase
-      .channel('social-feed-updates-v60')
+      .channel('social-feed-updates-v48')
       .on(
         'postgres_changes',
         {
@@ -261,7 +261,7 @@ export default function SocialIndexScreen() {
           filter: `usuario_id=eq.${userId}`,
         },
         () => {
-          console.log('[Social v60.0] 🔔 Notification update detected');
+          console.log('[Social v48.0] 🔔 Notification update detected');
           loadUnreadCounts();
         }
       )
@@ -273,7 +273,7 @@ export default function SocialIndexScreen() {
           table: 'mensajes',
         },
         () => {
-          console.log('[Social v60.0] 💬 Message update detected');
+          console.log('[Social v48.0] 💬 Message update detected');
           loadUnreadCounts();
         }
       )
@@ -286,7 +286,7 @@ export default function SocialIndexScreen() {
 
   const cargarPosts = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
     if (!userId) {
-      console.log('[Social v60.0] No user ID, skipping load');
+      console.log('[Social v48.0] No user ID, skipping load');
       setLoading(false);
       return;
     }
@@ -303,7 +303,7 @@ export default function SocialIndexScreen() {
       const from = (pageNum - 1) * POSTS_PER_PAGE;
       const to = from + POSTS_PER_PAGE - 1;
 
-      console.log(`[Social v60.0] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
+      console.log(`[Social v48.0] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
 
       const { data: followingData, error: followingError } = await supabase
         .from('seguidores')
@@ -388,7 +388,7 @@ export default function SocialIndexScreen() {
         setHasMore(false);
       }
     } catch (error) {
-      console.error('[Social v60.0] Error cargando posts:', error);
+      console.error('[Social v48.0] Error cargando posts:', error);
       Alert.alert('Error', 'No se pudieron cargar las publicaciones');
     } finally {
       setLoading(false);
@@ -428,7 +428,7 @@ export default function SocialIndexScreen() {
 
     if (userId) {
       const checkInsChannel = supabase
-        .channel('social-check-ins-updates-v60')
+        .channel('social-check-ins-updates-v48')
         .on(
           'postgres_changes',
           {
@@ -437,7 +437,7 @@ export default function SocialIndexScreen() {
             table: 'check_ins',
           },
           () => {
-            console.log('[Social v60.0] 🔔 Check-ins updated');
+            console.log('[Social v48.0] 🔔 Check-ins updated');
             loadFriendsLocations();
           }
         )
@@ -457,7 +457,7 @@ export default function SocialIndexScreen() {
             colors={['#8B5CF6', '#7C3AED']}
             style={styles.impersonationBannerGradient}
           >
-            <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={Platform.OS === 'ios' ? 24 : 13.2} color={colors.white} />
+            <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={24} color={colors.white} />
             <View style={styles.impersonationBannerText}>
               <Text style={styles.impersonationBannerTitle}>
                 Viendo como {impersonationSession.impersonated_user_name}
@@ -470,12 +470,13 @@ export default function SocialIndexScreen() {
         </View>
       )}
 
+      {/* ✅ CRITICAL FIX: Momentos section always visible */}
       <MomentoCarousel />
 
       {(myCheckIn || friendsLocations.length > 0) && (
         <View style={styles.friendsLocationsSection}>
           <View style={styles.friendsLocationsSectionHeader}>
-            <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={Platform.OS === 'ios' ? 20 : 11} color={colors.primary} />
+            <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color={colors.primary} />
             <Text style={styles.friendsLocationsSectionTitle}>
               ¿Quieres saber dónde están tus amigos?
             </Text>
@@ -502,7 +503,7 @@ export default function SocialIndexScreen() {
                     />
                   ) : (
                     <View style={[styles.friendLocationImage, styles.friendLocationImagePlaceholder]}>
-                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={Platform.OS === 'ios' ? 24 : 13.2} color="rgba(255, 255, 255, 0.6)" />
+                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="rgba(255, 255, 255, 0.6)" />
                     </View>
                   )}
                   <LinearGradient
@@ -511,7 +512,7 @@ export default function SocialIndexScreen() {
                   />
                   
                   <View style={[styles.friendLocationBadge, { backgroundColor: '#10B981' }]}>
-                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={Platform.OS === 'ios' ? 11 : 6.6} color={colors.white} />
+                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={11} color={colors.white} />
                     <Text style={styles.friendLocationBadgeText}>Tú estás aquí</Text>
                   </View>
                 </View>
@@ -521,7 +522,7 @@ export default function SocialIndexScreen() {
                     {myCheckIn.locales.nombre}
                   </Text>
                   <View style={styles.friendLocationMeta}>
-                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={Platform.OS === 'ios' ? 9 : 5} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={9} color={colors.textSecondary} />
                     <Text style={styles.friendLocationAddress} numberOfLines={1}>
                       {myCheckIn.locales.direccion}
                     </Text>
@@ -546,7 +547,7 @@ export default function SocialIndexScreen() {
                     />
                   ) : (
                     <View style={[styles.friendLocationImage, styles.friendLocationImagePlaceholder]}>
-                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={Platform.OS === 'ios' ? 24 : 13.2} color="rgba(255, 255, 255, 0.6)" />
+                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="rgba(255, 255, 255, 0.6)" />
                     </View>
                   )}
                   <LinearGradient
@@ -570,7 +571,7 @@ export default function SocialIndexScreen() {
                           />
                         ) : (
                           <View style={styles.friendLocationAvatarPlaceholder}>
-                            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={Platform.OS === 'ios' ? 10 : 5.5} color={colors.white} />
+                            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={10} color={colors.white} />
                           </View>
                         )}
                       </View>
@@ -583,7 +584,7 @@ export default function SocialIndexScreen() {
                   </View>
 
                   <View style={styles.friendLocationBadge}>
-                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={Platform.OS === 'ios' ? 11 : 6} color={colors.white} />
+                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={11} color={colors.white} />
                     <Text style={styles.friendLocationBadgeText}>
                       {location.users.length} {location.users.length === 1 ? 'amigo' : 'amigos'}
                     </Text>
@@ -595,7 +596,7 @@ export default function SocialIndexScreen() {
                     {location.local.nombre}
                   </Text>
                   <View style={styles.friendLocationMeta}>
-                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={Platform.OS === 'ios' ? 9 : 5} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={9} color={colors.textSecondary} />
                     <Text style={styles.friendLocationAddress} numberOfLines={1}>
                       {location.local.direccion}
                     </Text>
@@ -627,7 +628,7 @@ export default function SocialIndexScreen() {
     if (loading) return null;
     return (
       <View style={styles.emptyState}>
-        <IconSymbol ios_icon_name="photo.stack" android_material_icon_name="collections" size={Platform.OS === 'ios' ? 64 : 35.2} color={colors.textSecondary} />
+        <IconSymbol ios_icon_name="photo.stack" android_material_icon_name="collections" size={64} color={colors.textSecondary} />
         <Text style={styles.emptyText}>No hay publicaciones</Text>
         <Text style={styles.emptySubtext}>
           {isImpersonating 
@@ -660,12 +661,13 @@ export default function SocialIndexScreen() {
   if (!userId) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <IconSymbol ios_icon_name="person.crop.circle.badge.xmark" android_material_icon_name="person_off" size={Platform.OS === 'ios' ? 64 : 35.2} color={colors.textSecondary} />
+        <IconSymbol ios_icon_name="person.crop.circle.badge.xmark" android_material_icon_name="person_off" size={64} color={colors.textSecondary} />
         <Text style={styles.emptyText}>No hay usuario activo</Text>
       </View>
     );
   }
 
+  // ✅ CRITICAL FIX v48.0: Wrap content in PermissionGuard for local profiles
   const content = (
     <View style={styles.container}>
       <HeaderSocial
@@ -702,6 +704,7 @@ export default function SocialIndexScreen() {
     </View>
   );
 
+  // ✅ CRITICAL FIX v48.0: Only apply permission guard if in local profile mode
   if (currentMode === 'propietario' && activeProfileType === 'local') {
     return (
       <PermissionGuard requireSocialProfile={true}>
@@ -741,15 +744,14 @@ const styles = StyleSheet.create({
   impersonationBannerText: {
     flex: 1,
   },
-  // ✅ ANDROID FIX v67.0: Text sizes reduced on Android (50% smaller)
   impersonationBannerTitle: {
-    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
+    fontSize: 15,
     fontWeight: 'bold',
     color: colors.white,
     marginBottom: 2,
   },
   impersonationBannerSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 13 : 6.5,
+    fontSize: 13,
     color: colors.white,
     opacity: 0.9,
   },
@@ -761,7 +763,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   footerLoaderText: {
-    fontSize: Platform.OS === 'ios' ? 14 : 7,
+    fontSize: 14,
     color: colors.textSecondary,
   },
   emptyState: {
@@ -771,18 +773,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyText: {
-    fontSize: Platform.OS === 'ios' ? 20 : 10,
+    fontSize: 20,
     fontWeight: '600',
     color: colors.text,
     marginTop: 16,
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: Platform.OS === 'ios' ? 15 : 7.5,
+    fontSize: 15,
     color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
-    lineHeight: Platform.OS === 'ios' ? 22 : 11,
+    lineHeight: 22,
   },
   friendsLocationsSection: {
     marginTop: 8,
@@ -800,9 +802,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 10,
   },
-  // ✅ ANDROID FIX v67.0: Text sizes reduced on Android (50% smaller)
   friendsLocationsSectionTitle: {
-    fontSize: Platform.OS === 'ios' ? 14 : 7,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
   },
@@ -813,9 +814,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 10,
   },
-  // ✅ ANDROID FIX v67.0: Card sizes reduced on Android (50% smaller)
   friendLocationCard: {
-    width: Platform.OS === 'ios' ? 120 : 60,
+    width: 120,
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     overflow: 'hidden',
@@ -824,7 +824,7 @@ const styles = StyleSheet.create({
   },
   friendLocationImageContainer: {
     width: '100%',
-    height: Platform.OS === 'ios' ? 80 : 40,
+    height: 80,
     position: 'relative',
   },
   friendLocationImage: {
@@ -850,11 +850,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  // ✅ ANDROID FIX v67.0: Avatar sizes reduced on Android (50% smaller)
   friendLocationAvatar: {
-    width: Platform.OS === 'ios' ? 22 : 11,
-    height: Platform.OS === 'ios' ? 22 : 11,
-    borderRadius: Platform.OS === 'ios' ? 11 : 5.5,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
     borderColor: colors.white,
     overflow: 'hidden',
@@ -877,7 +876,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   friendLocationAvatarMoreText: {
-    fontSize: Platform.OS === 'ios' ? 9 : 4.5,
+    fontSize: 9,
     fontWeight: '700',
     color: colors.white,
   },
@@ -889,20 +888,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 3,
     backgroundColor: colors.primary,
-    paddingHorizontal: Platform.OS === 'ios' ? 5 : 2.5,
-    paddingVertical: Platform.OS === 'ios' ? 2 : 1,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
     borderRadius: 8,
   },
   friendLocationBadgeText: {
-    fontSize: Platform.OS === 'ios' ? 9 : 4.5,
+    fontSize: 9,
     fontWeight: '700',
     color: colors.white,
   },
   friendLocationInfo: {
-    padding: Platform.OS === 'ios' ? 8 : 6,
+    padding: 8,
   },
   friendLocationName: {
-    fontSize: Platform.OS === 'ios' ? 12 : 6,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 3,
@@ -913,7 +912,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   friendLocationAddress: {
-    fontSize: Platform.OS === 'ios' ? 10 : 5,
+    fontSize: 10,
     color: colors.textSecondary,
     flex: 1,
   },
