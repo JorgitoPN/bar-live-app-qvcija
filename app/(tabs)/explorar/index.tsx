@@ -48,9 +48,9 @@ const CATEGORIAS_LOCALES = [
 const LOCALES_POR_PAGINA = 20;
 // ✅ ANDROID FIX v73.0: Standardized header height using HEADER_DIMENSIONS
 const HEADER_HEIGHT = HEADER_DIMENSIONS.totalHeight;
-// ✅ ANDROID FIX v73.0: Reduced category section height and adjusted positioning
-const CATEGORIAS_HEIGHT = Platform.OS === 'ios' ? 110 : 85;
-const CATEGORIAS_TOP_POSITION = Platform.OS === 'ios' ? 170 : 140;
+// ✅ ANDROID FIX v73.0: Reduced category section height and proper spacing from header
+const CATEGORIAS_HEIGHT = Platform.OS === 'ios' ? 110 : 90;
+const CATEGORIAS_TOP_POSITION = Platform.OS === 'ios' ? 170 : 145;
 const SPACING_BETWEEN_FILTERS_AND_LIST = 24;
 
 const MAX_FEATURED_DISTANCE_KM = 100;
@@ -73,8 +73,8 @@ function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: numbe
  * CRITICAL FIXES v73.0:
  * - ✅ iOS: Enhanced location loading with better error handling and fallback
  * - ✅ iOS: Improved data fetching from GlobalDataContext with proper error handling
- * - ✅ Android: Search box height reduced (4px padding vs 12px on iOS)
- * - ✅ Android: Category icons properly spaced (10px gap vs 16px on iOS) and not cut off
+ * - ✅ Android: Search box height reduced (8px padding vs 12px on iOS)
+ * - ✅ Android: Category icons properly spaced (8px gap vs 16px on iOS) and not cut off
  * - ✅ Android: Bottom menu background fixed (75% coverage, no overflow)
  * - ✅ Android: Bottom menu icons properly centered
  * - ✅ Android: All sizes reference "Explorar" page as standard
@@ -696,7 +696,7 @@ export default function ExplorarScreen() {
             </View>
           </View>
 
-          {/* ✅ CRITICAL FIX v73.0: Search box height reduced on Android (4px vs 12px padding) */}
+          {/* ✅ CRITICAL FIX v73.0: Search box height reduced on Android (8px vs 12px padding) */}
           <View style={styles.searchContainer}>
             <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={Platform.OS === 'ios' ? 20 : 17} color={colors.textSecondary} />
             <TextInput
@@ -718,7 +718,7 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ CRITICAL FIX v73.0: Category section properly spaced (10px gap on Android vs 16px on iOS) and not cut off */}
+      {/* ✅ CRITICAL FIX v73.0: Category section properly spaced (8px gap on Android vs 16px on iOS) and not cut off */}
       <Animated.View
         style={{
           position: 'absolute',
@@ -982,14 +982,14 @@ const styles = StyleSheet.create({
   headerIconButton: {
     padding: Platform.OS === 'ios' ? 8 : 7,
   },
-  // ✅ CRITICAL FIX v73.0: Search box height reduced on Android (4px vs 12px padding)
+  // ✅ CRITICAL FIX v73.0: Search box height reduced on Android (8px vs 12px padding)
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.headerText,
     borderRadius: 12,
     paddingHorizontal: Platform.OS === 'ios' ? 16 : 13,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 4,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 8,
     gap: Platform.OS === 'ios' ? 12 : 10,
   },
   searchInput: {
@@ -1019,17 +1019,17 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: '#EF4444',
   },
-  // ✅ CRITICAL FIX v73.0: Category section properly spaced (10px gap on Android vs 16px on iOS) and not cut off
+  // ✅ CRITICAL FIX v73.0: Category section properly spaced (8px gap on Android vs 16px on iOS) and not cut off
   categoriasContainer: {
-    paddingVertical: Platform.OS === 'ios' ? 16 : 10,
-    paddingTop: Platform.OS === 'ios' ? 16 : 10,
+    paddingVertical: Platform.OS === 'ios' ? 16 : 12,
+    paddingTop: Platform.OS === 'ios' ? 16 : 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
     position: 'relative',
   },
   categoriasScroll: {
     flexDirection: 'row',
-    gap: Platform.OS === 'ios' ? 16 : 10,
+    gap: Platform.OS === 'ios' ? 16 : 8,
     paddingHorizontal: 20,
     paddingVertical: 4,
   },
