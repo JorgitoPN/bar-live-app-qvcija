@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Platform,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -26,6 +27,11 @@ import { getEstadoLocal } from '@/utils/timeUtils';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const MAX_FEATURED_DISTANCE_KM = 100;
+
+// ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 220;
+const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
+const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 interface Local {
   id: string;
@@ -72,7 +78,18 @@ export default function HomeScreen() {
     destacado: false,
   });
 
-  const filtrosArray: Filtro[] = useMemo(() => [
+  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const scrollDirection = useRef<'up' | 'down'>('down');
+
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [0, -HEADER_SCROLL_DISTANCE],
+    extrapolate: 'clamp',
+  });
+
+  const filtrosArray: Filtro[] = React.useMemo(() => [
     {
       id: 'todos',
       label: 'Todos',
@@ -186,7 +203,6 @@ export default function HomeScreen() {
 
       let localesConDistancia = data || [];
 
-      // ✅ NEW: Calculate open/closed status for each local
       localesConDistancia = localesConDistancia.map(local => {
         const estadoLocal = getEstadoLocal(local);
         return {
@@ -211,22 +227,9 @@ export default function HomeScreen() {
           return { ...local, distancia: 999999 };
         });
 
-        console.log('[Home] 🧠 Applying USER REQUESTED sorting algorithm with CLOSED LOCALS AT END...');
-        console.log('[Home] 📋 CORRECT ORDER (USER REQUESTED):');
-        console.log('[Home]    1. Group A (≤100km) - FEATURED - OPEN sorted by distance');
-        console.log('[Home]    2. Group A (≤100km) - NON-FEATURED - OPEN sorted by distance');
-        console.log('[Home]    3. Group B (>100km) - NON-FEATURED - OPEN sorted by distance');
-        console.log('[Home]    4. Group B (>100km) - FEATURED - OPEN sorted by distance');
-        console.log('[Home]    5. CLOSED LOCALS - All closed locals at the end');
-
-        // ✅ NEW: Separate open and closed locals
         const localesAbiertos = localesConDistancia.filter(l => l.estaAbierto === true);
         const localesCerrados = localesConDistancia.filter(l => l.estaAbierto !== true);
 
-        console.log('[Home] 📊 Open locals:', localesAbiertos.length);
-        console.log('[Home] 📊 Closed locals:', localesCerrados.length);
-
-        // Sort open locals using the existing algorithm
         const groupA = localesAbiertos.filter(l => 
           l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
         );
@@ -234,10 +237,6 @@ export default function HomeScreen() {
         const groupB = localesAbiertos.filter(l => 
           l.distancia !== undefined && l.distancia > MAX_FEATURED_DISTANCE_KM
         );
-
-        console.log('[Home] 📊 Groups created (OPEN ONLY):');
-        console.log('  - Group A (≤100km):', groupA.length, 'locals');
-        console.log('  - Group B (>100km):', groupB.length, 'locals');
 
         const groupA_destacados = groupA
           .filter(l => l.destacado === true)
@@ -255,44 +254,21 @@ export default function HomeScreen() {
           .filter(l => l.destacado === true)
           .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
 
-        // Sort closed locals by distance
         const localesCerradosOrdenados = localesCerrados.sort((a, b) => 
           (a.distancia || 999999) - (b.distancia || 999999)
         );
 
-        console.log('[Home] 📊 Sub-groups created (USER REQUESTED ORDER):');
-        console.log('  1. Group A Featured (≤100km, destacado=true, OPEN):', groupA_destacados.length);
-        console.log('  2. Group A Non-Featured (≤100km, destacado=false, OPEN):', groupA_no_destacados.length);
-        console.log('  3. Group B Non-Featured (>100km, destacado=false, OPEN):', groupB_no_destacados.length);
-        console.log('  4. Group B Featured (>100km, destacado=true, OPEN):', groupB_destacados.length);
-        console.log('  5. CLOSED LOCALS (all):', localesCerradosOrdenados.length);
-
-        // ✅ NEW: Closed locals at the end
         localesConDistancia = [
           ...groupA_destacados,
           ...groupA_no_destacados,
           ...groupB_no_destacados,
           ...groupB_destacados,
-          ...localesCerradosOrdenados, // ✅ CLOSED LOCALS AT THE END
+          ...localesCerradosOrdenados,
         ];
-
-        console.log('[Home] ✅ USER REQUESTED SORTING APPLIED WITH CLOSED LOCALS AT END - Total locals:', localesConDistancia.length);
-        console.log('[Home] 🔝 First 20 locals in final list:');
-        localesConDistancia.slice(0, 20).forEach((l, i) => {
-          const group = l.estaAbierto !== true ? 'CLOSED' : (l.distancia! <= MAX_FEATURED_DISTANCE_KM ? 'A' : 'B');
-          const featured = l.destacado ? '⭐ DESTACADO' : '   NORMAL   ';
-          const status = l.estaAbierto === true ? '🟢 ABIERTO' : '🔴 CERRADO';
-          console.log(`  ${String(i + 1).padStart(2, '0')}. [Group ${group}] ${featured} ${status} | ${l.nombre}`);
-          console.log(`      📍 Distancia: ${l.distancia?.toFixed(1)}km | 📌 Dirección: ${l.direccion}`);
-        });
       } else {
-        console.log('[Home] ⚠️ No user location available, sorting by destacado and rating only');
-        
-        // ✅ NEW: Separate open and closed locals
         const localesAbiertos = localesConDistancia.filter(l => l.estaAbierto === true);
         const localesCerrados = localesConDistancia.filter(l => l.estaAbierto !== true);
 
-        // Sort open locals
         localesAbiertos.sort((a, b) => {
           if (a.destacado !== b.destacado) {
             return a.destacado ? -1 : 1;
@@ -302,7 +278,6 @@ export default function HomeScreen() {
           return ratingB - ratingA;
         });
 
-        // Sort closed locals
         localesCerrados.sort((a, b) => {
           if (a.destacado !== b.destacado) {
             return a.destacado ? -1 : 1;
@@ -312,7 +287,6 @@ export default function HomeScreen() {
           return ratingB - ratingA;
         });
 
-        // ✅ NEW: Closed locals at the end
         localesConDistancia = [...localesAbiertos, ...localesCerrados];
       }
 
@@ -363,6 +337,28 @@ export default function HomeScreen() {
     router.push('/auth/local-ownership-request' as any);
   }, [router]);
 
+  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: true,
+      listener: (event: any) => {
+        if (Platform.OS !== 'android') return;
+        
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const diff = currentScrollY - lastScrollY.current;
+        
+        if (diff > 5) {
+          scrollDirection.current = 'down';
+        } else if (diff < -5) {
+          scrollDirection.current = 'up';
+        }
+        
+        lastScrollY.current = currentScrollY;
+      },
+    }
+  );
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -374,66 +370,140 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
-      >
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>BarLive</Text>
-          <Text style={styles.headerSubtitle}>
-            {isImpersonating 
-              ? `Viendo como ${impersonationSession?.impersonated_user_name}` 
-              : 'Descubre los mejores locales'}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.mapButton}
-          onPress={() => router.push('/(tabs)/explorar/mapa' as any)}
+      {/* ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0: Animated header */}
+      {Platform.OS === 'android' ? (
+        <Animated.View
+          style={[
+            styles.headerContainer,
+            {
+              transform: [{ translateY: headerTranslateY }],
+            },
+          ]}
         >
-          <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={24} color={colors.headerText} />
-        </TouchableOpacity>
-      </LinearGradient>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.header}
+          >
+            <View style={styles.headerContent}>
+              <Text style={styles.headerTitle}>BarLive</Text>
+              <Text style={styles.headerSubtitle}>
+                {isImpersonating 
+                  ? `Viendo como ${impersonationSession?.impersonated_user_name}` 
+                  : 'Descubre los mejores locales'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.mapButton}
+              onPress={() => router.push('/(tabs)/explorar/mapa' as any)}
+            >
+              <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+          </LinearGradient>
 
-      {isImpersonating && (
-        <View style={styles.impersonationIndicator}>
-          <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={18} color={colors.white} />
-          <Text style={styles.impersonationIndicatorText}>
-            Vista de usuario impersonado
-          </Text>
-        </View>
+          {isImpersonating && (
+            <View style={styles.impersonationIndicator}>
+              <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={18} color={colors.white} />
+              <Text style={styles.impersonationIndicatorText}>
+                Vista de usuario impersonado
+              </Text>
+            </View>
+          )}
+
+          <BarraFiltrosInteractiva 
+            filtros={filtrosArray}
+            onFiltroPress={handleFiltroPress}
+            onMasFiltrosPress={handleMasFiltrosPress}
+          />
+
+          <TouchableOpacity 
+            style={styles.claimLocalBanner}
+            onPress={handleClaimOrCreateLocal}
+            activeOpacity={0.8}
+          >
+            <View style={styles.claimLocalContent}>
+              <IconSymbol 
+                ios_icon_name="building.2" 
+                android_material_icon_name="business" 
+                size={16} 
+                color={colors.primary} 
+              />
+              <Text style={styles.claimLocalText} numberOfLines={1}>
+                Reclama tu local o crea uno nuevo
+              </Text>
+              <IconSymbol 
+                ios_icon_name="chevron.right" 
+                android_material_icon_name="chevron_right" 
+                size={14} 
+                color={colors.textSecondary} 
+              />
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      ) : (
+        // iOS: Static header (no animation)
+        <React.Fragment>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.header}
+          >
+            <View style={styles.headerContent}>
+              <Text style={styles.headerTitle}>BarLive</Text>
+              <Text style={styles.headerSubtitle}>
+                {isImpersonating 
+                  ? `Viendo como ${impersonationSession?.impersonated_user_name}` 
+                  : 'Descubre los mejores locales'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.mapButton}
+              onPress={() => router.push('/(tabs)/explorar/mapa' as any)}
+            >
+              <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+          </LinearGradient>
+
+          {isImpersonating && (
+            <View style={styles.impersonationIndicator}>
+              <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={18} color={colors.white} />
+              <Text style={styles.impersonationIndicatorText}>
+                Vista de usuario impersonado
+              </Text>
+            </View>
+          )}
+
+          <BarraFiltrosInteractiva 
+            filtros={filtrosArray}
+            onFiltroPress={handleFiltroPress}
+            onMasFiltrosPress={handleMasFiltrosPress}
+          />
+
+          <TouchableOpacity 
+            style={styles.claimLocalBanner}
+            onPress={handleClaimOrCreateLocal}
+            activeOpacity={0.8}
+          >
+            <View style={styles.claimLocalContent}>
+              <IconSymbol 
+                ios_icon_name="building.2" 
+                android_material_icon_name="business" 
+                size={16} 
+                color={colors.primary} 
+              />
+              <Text style={styles.claimLocalText} numberOfLines={1}>
+                Reclama tu local o crea uno nuevo
+              </Text>
+              <IconSymbol 
+                ios_icon_name="chevron.right" 
+                android_material_icon_name="chevron_right" 
+                size={14} 
+                color={colors.textSecondary} 
+              />
+            </View>
+          </TouchableOpacity>
+        </React.Fragment>
       )}
 
-      <BarraFiltrosInteractiva 
-        filtros={filtrosArray}
-        onFiltroPress={handleFiltroPress}
-        onMasFiltrosPress={handleMasFiltrosPress}
-      />
-
-      <TouchableOpacity 
-        style={styles.claimLocalBanner}
-        onPress={handleClaimOrCreateLocal}
-        activeOpacity={0.8}
-      >
-        <View style={styles.claimLocalContent}>
-          <IconSymbol 
-            ios_icon_name="building.2" 
-            android_material_icon_name="business" 
-            size={16} 
-            color={colors.primary} 
-          />
-          <Text style={styles.claimLocalText} numberOfLines={1}>
-            Reclama tu local o crea uno nuevo
-          </Text>
-          <IconSymbol 
-            ios_icon_name="chevron.right" 
-            android_material_icon_name="chevron_right" 
-            size={14} 
-            color={colors.textSecondary} 
-          />
-        </View>
-      </TouchableOpacity>
-
-      <ScrollView
+      <Animated.ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         refreshControl={
@@ -445,6 +515,8 @@ export default function HomeScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
+        onScroll={Platform.OS === 'android' ? handleScroll : undefined}
+        scrollEventThrottle={16}
       >
         {locales.length === 0 ? (
           <View style={styles.emptyState}>
@@ -461,7 +533,7 @@ export default function HomeScreen() {
             ))}
           </React.Fragment>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -479,6 +551,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     marginTop: 16,
+  },
+  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    backgroundColor: colors.background,
   },
   header: {
     paddingTop: 50,
@@ -543,6 +624,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT : 0,
   },
   contentContainer: {
     padding: 16,
