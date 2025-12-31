@@ -16,7 +16,10 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform } from 'react-native';
 import { initializeAndroidBehavior } from '@/utils/androidNativeBehavior';
 
-SplashScreen.preventAutoHideAsync();
+// Prevent auto-hiding splash screen
+SplashScreen.preventAutoHideAsync().catch(() => {
+  console.log('[RootLayout] Splash screen already hidden');
+});
 
 export default function RootLayout() {
   useEffect(() => {
@@ -25,18 +28,29 @@ export default function RootLayout() {
     
     if (Platform.OS === 'android') {
       console.log('[RootLayout v25.0] 🤖 Initializing Android native behavior...');
-      cleanupAndroid = initializeAndroidBehavior();
+      try {
+        cleanupAndroid = initializeAndroidBehavior();
+      } catch (error) {
+        console.error('[RootLayout] Error initializing Android behavior:', error);
+      }
     }
 
     // Hide splash screen
-    setTimeout(() => {
-      SplashScreen.hideAsync();
+    const timer = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {
+        console.log('[RootLayout] Error hiding splash screen');
+      });
     }, 100);
 
     // Cleanup function
     return () => {
+      clearTimeout(timer);
       if (cleanupAndroid) {
-        cleanupAndroid();
+        try {
+          cleanupAndroid();
+        } catch (error) {
+          console.error('[RootLayout] Error cleaning up Android behavior:', error);
+        }
       }
     };
   }, []);
