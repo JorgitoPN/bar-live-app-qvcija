@@ -2,14 +2,15 @@
 /**
  * TAB NAVIGATION BAR - VERSION v82.0
  * 
- * ✅ ANDROID BOTTOM NAV FIX v82.0 - FINAL ADJUSTMENTS
+ * ✅ ANDROID BOTTOM NAV FIX - FINAL VERSION
  * 
  * CRITICAL FIXES v82.0 (ANDROID ONLY):
- * - ✅ Eliminated gap between bottom nav and system buttons
+ * - ✅ ZERO extra padding - eliminates gap with system buttons
  * - ✅ Unified BarLive background (no white background behind icons)
- * - ✅ Proper safe area handling for Android system navigation
- * - ✅ Compact design matching iOS exactly
- * - ✅ Explore button protrudes upward like iOS
+ * - ✅ Smaller explore button
+ * - ✅ Smaller icon sizes for better visibility
+ * - ✅ Icons positioned at bottom of screen
+ * - ✅ Respects Android system navigation buttons
  * 
  * IMPORTANT: iOS design remains unchanged - all fixes are Android-specific
  */
@@ -161,7 +162,7 @@ export function TabNavigationBar({
           activeOpacity: 0.7,
         };
 
-    // ✅ Get platform-specific sizes (v82.0: Reduced for Android)
+    // ✅ Get platform-specific sizes (v82.0: Optimized for Android)
     const centerButtonSize = getCenterButtonSize();
     const centerButtonIconSize = getCenterButtonIconSize();
     const tabIconSize = getBottomNavIconSize();
@@ -270,51 +271,45 @@ export function TabNavigationBar({
     );
   };
 
-  // ✅ CRITICAL FIX v82.0: Eliminate gap with system buttons
+  // ✅ CRITICAL FIX v82.0: ZERO extra padding for Android
   const bottomNavHeight = getBottomNavHeight();
   const tabBarPaddingBottom = getBottomNavPaddingBottom(insets.bottom);
   
   // ✅ Total container height includes safe area for Android system buttons
-  // On Android, we extend all the way to the bottom edge (no gap)
-  const containerHeight = Platform.OS === 'android' 
-    ? bottomNavHeight + insets.bottom // Extend to system buttons
-    : bottomNavHeight + tabBarPaddingBottom;
+  const containerHeight = bottomNavHeight + tabBarPaddingBottom;
   
   // ✅ Background height matches the visible tab bar area
   const backgroundHeight = bottomNavHeight;
 
   console.log(
-    `[TabNav v82.0] 📐 Dimensions: ` +
+    `[TabNav v82.0] 📐 FINAL Dimensions: ` +
     `bottomNavHeight=${bottomNavHeight}, ` +
-    `tabBarPaddingBottom=${tabBarPaddingBottom}, ` +
+    `tabBarPaddingBottom=${tabBarPaddingBottom} (ZERO extra on Android), ` +
     `containerHeight=${containerHeight}, ` +
     `backgroundHeight=${backgroundHeight}, ` +
-    `safeAreaBottom=${insets.bottom}, ` +
-    `platform=${Platform.OS}`
+    `safeAreaBottom=${insets.bottom}`
   );
 
   return (
     <View style={[styles.container, { height: containerHeight }]} pointerEvents="box-none">
-      {/* ✅ CRITICAL FIX v82.0: Single BarLive background extending to system buttons */}
-      <View style={[styles.backgroundContainer, { height: containerHeight }]} pointerEvents="none">
+      {/* ✅ CRITICAL FIX v82.0: Single BarLive background, no white space */}
+      <View style={[styles.backgroundContainer, { height: backgroundHeight }]} pointerEvents="none">
         <Svg
           width="100%"
-          height={containerHeight}
-          viewBox={`0 0 375 ${containerHeight}`}
+          height={backgroundHeight}
+          viewBox={`0 0 375 ${backgroundHeight}`}
           preserveAspectRatio="none"
           style={styles.svg}
         >
           <Path
-            d={`M0,0 H375 V${containerHeight} H0 Z`}
+            d={`M0,0 H375 V${backgroundHeight} H0 Z`}
             fill={colors.primary}
           />
         </Svg>
       </View>
 
-      {/* ✅ CRITICAL FIX v82.0: Tab bar positioned at bottom with proper padding */}
-      <View style={[styles.tabBar, { 
-        paddingBottom: Platform.OS === 'android' ? insets.bottom : tabBarPaddingBottom 
-      }]} pointerEvents="box-none">
+      {/* ✅ CRITICAL FIX v82.0: Tab bar positioned at bottom with ZERO extra padding on Android */}
+      <View style={[styles.tabBar, { paddingBottom: tabBarPaddingBottom }]} pointerEvents="box-none">
         {tabs.map(tab => renderTab(tab))}
       </View>
     </View>
