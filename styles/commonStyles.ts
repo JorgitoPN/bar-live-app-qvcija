@@ -2,9 +2,15 @@
 import { StyleSheet, Platform } from 'react-native';
 
 /**
- * ✅ COMMON STYLES v77.0 - COMPLETE ANDROID-iOS PARITY
+ * ✅ COMMON STYLES v92.0 - ANDROID HEADER SCALING FIX
  * 
- * CRITICAL FIXES v77.0:
+ * CRITICAL FIXES v92.0:
+ * - ✅ Fixed Android header scaling - reduced font sizes to match iOS appearance
+ * - ✅ Reduced header padding on Android to save screen space
+ * - ✅ Adjusted all text sizes for better Android responsiveness
+ * - ✅ Maintains all previous fixes from v77.0
+ * 
+ * Previous fixes maintained:
  * - ✅ Consistent colors across all platforms
  * - ✅ Proper safe area handling for Android
  * - ✅ Platform-specific adjustments for optimal UX
@@ -71,29 +77,30 @@ export const colors = {
 };
 
 export const commonStyles = StyleSheet.create({
-  // ✅ ANDROID FIX v77.0: Container with proper padding matching iOS
+  // ✅ ANDROID FIX v92.0: Container with proper padding matching iOS
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    // ✅ ANDROID FIX: Consistent padding across platforms
     paddingTop: 0,
   },
   
-  // ✅ ANDROID FIX v77.0: Header gradient with consistent padding
+  // ✅ ANDROID FIX v92.0: Header gradient with reduced padding on Android
   headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 50, // Match iOS padding on Android
-    paddingBottom: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 40, // Reduced from 50 to 40 on Android
+    paddingBottom: Platform.OS === 'ios' ? 16 : 12, // Reduced from 16 to 12 on Android
     paddingHorizontal: 20,
   },
   
+  // ✅ ANDROID FIX v92.0: Reduced header title size on Android
   headerTitle: {
-    fontSize: 32,
+    fontSize: Platform.OS === 'ios' ? 32 : 28, // Reduced from 32 to 28 on Android
     fontWeight: 'bold',
     color: colors.headerText,
   },
   
+  // ✅ ANDROID FIX v92.0: Reduced header subtitle size on Android
   headerSubtitle: {
-    fontSize: 15,
+    fontSize: Platform.OS === 'ios' ? 15 : 14, // Reduced from 15 to 14 on Android
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 4,
@@ -182,15 +189,15 @@ export const commonStyles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   
-  // Text styles
+  // ✅ ANDROID FIX v92.0: Adjusted text sizes for better Android responsiveness
   title: {
-    fontSize: 24,
+    fontSize: Platform.OS === 'ios' ? 24 : 22, // Reduced from 24 to 22 on Android
     fontWeight: 'bold',
     color: colors.text,
   },
   
   subtitle: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'ios' ? 18 : 17, // Reduced from 18 to 17 on Android
     fontWeight: '600',
     color: colors.text,
   },
