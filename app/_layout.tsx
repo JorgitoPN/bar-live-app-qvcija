@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ModeProvider } from '@/contexts/ModeContext';
-import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
+import { SelectedLocalProvider } from '@/contexts/SelectedLocalProvider';
 import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
@@ -61,6 +61,8 @@ export default function RootLayout() {
                           gestureDirection: 'horizontal',
                         }}
                       >
+                        {/* Main app routes */}
+                        <Stack.Screen name="index" options={{ headerShown: false }} />
                         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                         <Stack.Screen name="auth" options={{ headerShown: false }} />
                         <Stack.Screen name="crear" options={{ headerShown: false }} />
@@ -75,28 +77,6 @@ export default function RootLayout() {
                         <Stack.Screen name="legal" options={{ headerShown: false }} />
                         <Stack.Screen name="soporte" options={{ headerShown: false }} />
                         <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
-                        <Stack.Screen 
-                          name="modal" 
-                          options={{ 
-                            presentation: 'modal',
-                            headerShown: false 
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="formsheet" 
-                          options={{ 
-                            presentation: 'formSheet',
-                            headerShown: false 
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="transparent-modal" 
-                          options={{ 
-                            presentation: 'transparentModal',
-                            headerShown: false,
-                            animation: 'fade'
-                          }} 
-                        />
                       </Stack>
                     </PostsProvider>
                   </FilterProvider>
