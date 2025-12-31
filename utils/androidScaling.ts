@@ -1,17 +1,18 @@
 
 /**
- * ANDROID SCALING UTILITY - v93.0 - ANDROID RESPONSIVE SCALING FIX
+ * ANDROID SCALING UTILITY - v82.0 - ANDROID BOTTOM NAV & BANNER FIX COMPLETE
  * 
  * Centralized scaling system for Android UI parity with iOS.
  * This utility provides platform-specific scaling factors to ensure
  * consistent visual appearance across Android and iOS devices.
  * 
- * CRITICAL FIXES v93.0 - RESPONSIVE SCALING FOR ANDROID:
- * - ✅ Significantly reduced font sizes on Android (20-25% reduction)
- * - ✅ Reduced header heights and padding to save screen space
- * - ✅ Adjusted all dimensions for better Android responsiveness
- * - ✅ Content no longer appears oversized on Android
- * - ✅ Bottom navigation white stripe eliminated
+ * CRITICAL FIXES v82.0 - BOTTOM NAVIGATION BAR & BANNER FINAL ADJUSTMENTS:
+ * - ✅ Bottom navigation gap with system buttons eliminated
+ * - ✅ Background unified to BarLive color (no white behind icons)
+ * - ✅ Proper safe area handling for Android system navigation
+ * - ✅ Explore button size reduced
+ * - ✅ Icon sizes reduced for better visibility
+ * - ✅ Banner white background box completely removed
  * 
  * IMPORTANT: iOS design is the reference - DO NOT modify iOS values
  */
@@ -68,7 +69,6 @@ export const scaleHeight = (size: number): number => {
 
 /**
  * Scale font size with proper density adjustment
- * ✅ CRITICAL FIX v93.0: Significantly reduced font scaling on Android
  */
 export const scaleFontSize = (size: number): number => {
   if (Platform.OS !== 'android') return size;
@@ -76,9 +76,8 @@ export const scaleFontSize = (size: number): number => {
   const scale = SCREEN_WIDTH / BASE_WIDTH;
   const densityScale = getPixelDensityScale();
   
-  // ✅ v93.0: More aggressive font scaling reduction (was 0.95, now 0.80)
-  // This prevents oversized text on Android
-  return Math.round(size * scale * densityScale * 0.80);
+  // Font scaling should be more conservative
+  return Math.round(size * scale * densityScale * 0.95);
 };
 
 /**
@@ -95,13 +94,12 @@ export const scaleIconSize = (size: number): number => {
 
 /**
  * Get platform-specific header height
- * ✅ CRITICAL FIX v93.0: Reduced header height on Android
  */
 export const getHeaderHeight = (): number => {
   if (Platform.OS === 'ios') return 110;
   
-  // ✅ v93.0: Reduced from 120 to 100 (about 17% reduction)
-  return 100;
+  // Android header extended to cover more area after search box
+  return 120;
 };
 
 /**
@@ -261,13 +259,12 @@ export const getSpacing = (size: 'small' | 'medium' | 'large'): number => {
 
 /**
  * Get platform-specific status bar height
- * ✅ CRITICAL FIX v93.0: Reduced status bar height on Android
  */
 export const getStatusBarHeight = (): number => {
   if (Platform.OS === 'ios') return 50;
   
-  // ✅ v93.0: Reduced from 50 to 44 (about 12% reduction)
-  return 44;
+  // Android status bar height matches iOS
+  return 50;
 };
 
 /**
@@ -292,24 +289,22 @@ export const getBottomNavPaddingBottom = (safeAreaBottom: number): number => {
 
 /**
  * Get platform-specific header padding top
- * ✅ CRITICAL FIX v93.0: Reduced header padding on Android
  */
 export const getHeaderPaddingTop = (): number => {
   if (Platform.OS === 'ios') return 50;
   
-  // ✅ v93.0: Reduced from 50 to 44 (about 12% reduction)
-  return 44;
+  // Android matches iOS
+  return 50;
 };
 
 /**
  * Get platform-specific header padding bottom
- * ✅ CRITICAL FIX v93.0: Reduced header padding on Android
  */
 export const getHeaderPaddingBottom = (): number => {
   if (Platform.OS === 'ios') return 16;
   
-  // ✅ v93.0: Reduced from 16 to 12 (about 25% reduction)
-  return 12;
+  // Android matches iOS
+  return 16;
 };
 
 /**
@@ -344,27 +339,22 @@ export const getCardMarginBottom = (): number => {
 
 /**
  * Debug function to log current scaling factors
- * ✅ UPDATED v93.0: Complete logging of all dimensions
+ * ✅ UPDATED v82.0: Complete logging of all dimensions
  */
 export const logScalingInfo = () => {
   if (Platform.OS !== 'android') return;
   
-  console.log('[AndroidScaling v93.0] 📊 ANDROID RESPONSIVE SCALING FIX COMPLETE:');
+  console.log('[AndroidScaling v82.0] 📊 ANDROID BOTTOM NAV & BANNER FIX COMPLETE:');
   console.log('  Screen Width:', SCREEN_WIDTH);
   console.log('  Screen Height:', SCREEN_HEIGHT);
   console.log('  Pixel Ratio:', PixelRatio.get());
   console.log('  Density Scale:', getPixelDensityScale());
-  console.log('  ✅ Font Scaling:', '0.80 (20% reduction for better responsiveness)');
-  console.log('  ✅ Header Height:', getHeaderHeight(), '(reduced from 120 to 100)');
-  console.log('  ✅ Status Bar Height:', getStatusBarHeight(), '(reduced from 50 to 44)');
-  console.log('  ✅ Header Padding Top:', getHeaderPaddingTop(), '(reduced from 50 to 44)');
-  console.log('  ✅ Header Padding Bottom:', getHeaderPaddingBottom(), '(reduced from 16 to 12)');
-  console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(62 - compact design)');
-  console.log('  ✅ Bottom Nav Icon Size:', getBottomNavIconSize(), '(24)');
-  console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(54)');
-  console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(26)');
+  console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(reduced from 70 to 62 - MORE COMPACT)');
+  console.log('  ✅ Bottom Nav Icon Size:', getBottomNavIconSize(), '(reduced from 28 to 24)');
+  console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(reduced from 60 to 54)');
+  console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(reduced from 30 to 26)');
   console.log('  ✅ Bottom Nav Padding:', 'Uses safe area bottom directly (no gap with system buttons)');
-  console.log('  ✅ White Stripe:', 'ELIMINATED - background extends 30px higher');
+  console.log('  ✅ Banner Background:', 'White box removed - transparent text on gradient');
 };
 
 export default {
