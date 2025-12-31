@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Platform,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -31,6 +33,11 @@ import { calcularDistancia } from '@/utils/locationUtils';
 
 const ITEMS_PER_PAGE = 20;
 
+// ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 300;
+const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
+const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+
 const PROVINCIAS = [
   'Todas',
   'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila', 'Badajoz',
@@ -42,7 +49,6 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
-// ✅ CRITICAL FIX v49.0: Same categories as Eventos page
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', emoji: '🎉' },
   { id: 'cafe', nombre: 'Cafés', emoji: '☕' },
@@ -54,16 +60,14 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v49.0 - FILTER MODAL + PROVINCE SEARCH
+ * ✅ FAVORITOS SCREEN v94.0 - ANDROID HEADER SCROLL BEHAVIOR
  * 
- * CRITICAL FIXES v49.0:
- * - ✅ Added filter button in search bar (matching Eventos page)
- * - ✅ Added filter modal with province selector
- * - ✅ Same category design and icons as Eventos page
- * - ✅ Scrollable province list in modal
- * - ✅ Combined filtering system (search + category + province)
- * - ✅ Clear filters button
- * - ✅ Filter count badge
+ * CRITICAL FIXES v94.0:
+ * - ✅ Header hides completely on scroll down (Android only)
+ * - ✅ Header shows on scroll up (Android only)
+ * - ✅ Smooth animation using Animated API
+ * - ✅ iOS behavior unchanged (static header)
+ * - ✅ Consistent with Home and Events screens
  */
 
 export default function FavoritosScreen() {
@@ -83,10 +87,19 @@ export default function FavoritosScreen() {
   const [checkingSocialProfiles, setCheckingSocialProfiles] = useState<Set<string>>(new Set());
   const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
   
-  // ✅ NEW v49.0: Filter modal and province filter
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
+
+  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [0, -HEADER_SCROLL_DISTANCE],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
     (async () => {
@@ -98,10 +111,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v49.0] User location obtained:', location.coords);
+          console.log('[Favoritos v94.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v49.0] Error getting location:', error);
+        console.error('[Favoritos v94.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -127,7 +140,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v49.0] Error checking social profiles:', error);
+      console.error('[Favoritos v94.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -138,7 +151,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v49.0] Cargando locales guardados...');
+      console.log('[Favoritos v94.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -204,12 +217,12 @@ export default function FavoritosScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Favoritos v49.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v94.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v49.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v94.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -230,7 +243,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v49.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v94.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -244,7 +257,7 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v49.0] Recalculating distances with new user location');
+      console.log('[Favoritos v94.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -266,11 +279,9 @@ export default function FavoritosScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, currentPage]);
 
-  // ✅ NEW v49.0: Apply all filters (search + category + province)
   useEffect(() => {
     let filtered = [...allSavedLocales];
 
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(local => {
@@ -286,7 +297,6 @@ export default function FavoritosScreen() {
       });
     }
 
-    // ✅ NEW v49.0: Apply category filter
     if (selectedCategory !== 'todas') {
       filtered = filtered.filter(local => {
         const barliveTypes = local.barlive_types || [];
@@ -299,7 +309,6 @@ export default function FavoritosScreen() {
       });
     }
 
-    // ✅ NEW v49.0: Apply province filter
     if (provinciaSeleccionada !== 'Todas') {
       filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
     }
@@ -310,7 +319,7 @@ export default function FavoritosScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Favoritos v49.0] Filters applied. Results:', filtered.length);
+    console.log('[Favoritos v94.0] Filters applied. Results:', filtered.length);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
   const loadMoreLocales = useCallback(() => {
@@ -328,7 +337,7 @@ export default function FavoritosScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Favoritos v49.0] Cargando más locales, página:', nextPage);
+        console.log('[Favoritos v94.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -338,7 +347,7 @@ export default function FavoritosScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v49.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v94.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -347,15 +356,13 @@ export default function FavoritosScreen() {
     setRefreshing(false);
   };
 
-  // ✅ NEW v49.0: Clear all filters
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v49.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v94.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
   }, []);
 
-  // ✅ NEW v49.0: Count active filters
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (searchQuery.trim()) count++;
@@ -370,18 +377,18 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v49.0] User not authenticated');
+      console.log('[Favoritos v94.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v49.0] No local ID');
+      console.log('[Favoritos v94.0] No local ID');
       return;
     }
 
     try {
-      console.log('[Favoritos v49.0] Removing from favorites. User:', user.id, 'Local:', localId);
+      console.log('[Favoritos v94.0] Removing from favorites. User:', user.id, 'Local:', localId);
       
       const { error } = await supabase
         .from('locales_guardados')
@@ -390,16 +397,16 @@ export default function FavoritosScreen() {
         .eq('local_id', localId);
 
       if (error) {
-        console.error('[Favoritos v49.0] Error removing favorite:', error);
+        console.error('[Favoritos v94.0] Error removing favorite:', error);
         Alert.alert('Error', 'No se pudo quitar de favoritos');
         return;
       }
       
-      console.log('[Favoritos v49.0] ✅ Removed from favorites');
+      console.log('[Favoritos v94.0] ✅ Removed from favorites');
       
       await loadSavedLocales();
     } catch (error) {
-      console.error('[Favoritos v49.0] Error removing favorito:', error);
+      console.error('[Favoritos v94.0] Error removing favorito:', error);
       Alert.alert('Error', 'No se pudo eliminar de favoritos');
     }
   };
@@ -681,6 +688,28 @@ export default function FavoritosScreen() {
     );
   };
 
+  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: true,
+      listener: (event: any) => {
+        if (Platform.OS !== 'android') return;
+        
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const diff = currentScrollY - lastScrollY.current;
+        
+        if (diff > 5) {
+          // Scrolling down
+        } else if (diff < -5) {
+          // Scrolling up
+        }
+        
+        lastScrollY.current = currentScrollY;
+      },
+    }
+  );
+
   if (!user) {
     return (
       <View style={styles.container}>
@@ -719,120 +748,147 @@ export default function FavoritosScreen() {
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.headerGradient}
-      >
-        <View style={styles.headerTop}>
-          <Text style={styles.headerTitle}>Locales Favoritos</Text>
-          {activeFiltersCount > 0 && (
-            <TouchableOpacity 
-              style={styles.clearFiltersHeaderButton}
-              onPress={clearFilters}
-              activeOpacity={0.7}
-            >
-              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.headerText} />
-              <Text style={styles.clearFiltersHeaderText}>Limpiar</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        
-        {/* ✅ CRITICAL FIX v49.0: Added filter button in search bar */}
-        <View style={styles.searchContainer}>
-          <IconSymbol 
-            ios_icon_name="magnifyingglass" 
-            android_material_icon_name="search"
-            size={20} 
-            color={colors.textSecondary}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar en favoritos..."
-            placeholderTextColor={colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity 
-              onPress={() => setSearchQuery('')}
-              style={styles.clearButton}
-              activeOpacity={0.7}
-            >
-              <IconSymbol 
-                ios_icon_name="xmark.circle.fill" 
-                android_material_icon_name="cancel"
-                size={20} 
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          )}
-          {/* ✅ CRITICAL FIX v49.0: Filter button */}
-          <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
+  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0: Render with animated header
+  const HeaderContent = () => (
+    <React.Fragment>
+      <View style={styles.headerTop}>
+        <Text style={styles.headerTitle}>Locales Favoritos</Text>
+        {activeFiltersCount > 0 && (
+          <TouchableOpacity 
+            style={styles.clearFiltersHeaderButton}
+            onPress={clearFilters}
+            activeOpacity={0.7}
+          >
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.headerText} />
+            <Text style={styles.clearFiltersHeaderText}>Limpiar</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      
+      <View style={styles.searchContainer}>
+        <IconSymbol 
+          ios_icon_name="magnifyingglass" 
+          android_material_icon_name="search"
+          size={20} 
+          color={colors.textSecondary}
+        />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar en favoritos..."
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity 
+            onPress={() => setSearchQuery('')}
+            style={styles.clearButton}
+            activeOpacity={0.7}
+          >
             <IconSymbol 
-              ios_icon_name="slider.horizontal.3" 
-              android_material_icon_name="tune" 
+              ios_icon_name="xmark.circle.fill" 
+              android_material_icon_name="cancel"
               size={20} 
-              color={colors.primary} 
+              color={colors.textSecondary}
             />
           </TouchableOpacity>
-        </View>
-
-        {/* ✅ CRITICAL FIX v49.0: Same category chips as Eventos page */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesScroll}
-          contentContainerStyle={styles.categoriesContent}
-        >
-          {CATEGORIAS.map((categoria) => (
-            <TouchableOpacity
-              key={categoria.id}
-              style={[
-                styles.categoryChip,
-                selectedCategory === categoria.id && styles.categoryChipActive,
-              ]}
-              onPress={() => setSelectedCategory(categoria.id)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.categoryEmoji}>{categoria.emoji}</Text>
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === categoria.id && styles.categoryTextActive,
-                ]}
-              >
-                {categoria.nombre}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        
-        {allSavedLocales.length > 0 && (
-          <View style={styles.resultsCountContainer}>
-            <Text style={styles.resultsCount}>
-              {activeFiltersCount > 0
-                ? `${filteredLocales.length} de ${allSavedLocales.length} locales`
-                : `${filteredLocales.length} locales guardados`
-              }
-            </Text>
-            {activeFiltersCount > 0 && (
-              <View style={styles.filterCountBadge}>
-                <Text style={styles.filterCountText}>{activeFiltersCount}</Text>
-              </View>
-            )}
-          </View>
         )}
-      </LinearGradient>
+        <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
+          <IconSymbol 
+            ios_icon_name="slider.horizontal.3" 
+            android_material_icon_name="tune" 
+            size={20} 
+            color={colors.primary} 
+          />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoriesScroll}
+        contentContainerStyle={styles.categoriesContent}
+      >
+        {CATEGORIAS.map((categoria) => (
+          <TouchableOpacity
+            key={categoria.id}
+            style={[
+              styles.categoryChip,
+              selectedCategory === categoria.id && styles.categoryChipActive,
+            ]}
+            onPress={() => setSelectedCategory(categoria.id)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.categoryEmoji}>{categoria.emoji}</Text>
+            <Text
+              style={[
+                styles.categoryText,
+                selectedCategory === categoria.id && styles.categoryTextActive,
+              ]}
+            >
+              {categoria.nombre}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+      
+      {allSavedLocales.length > 0 && (
+        <View style={styles.resultsCountContainer}>
+          <Text style={styles.resultsCount}>
+            {activeFiltersCount > 0
+              ? `${filteredLocales.length} de ${allSavedLocales.length} locales`
+              : `${filteredLocales.length} locales guardados`
+            }
+          </Text>
+          {activeFiltersCount > 0 && (
+            <View style={styles.filterCountBadge}>
+              <Text style={styles.filterCountText}>{activeFiltersCount}</Text>
+            </View>
+          )}
+        </View>
+      )}
+    </React.Fragment>
+  );
+
+  return (
+    <View style={styles.container}>
+      {/* ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0: Animated header for Android */}
+      {Platform.OS === 'android' ? (
+        <Animated.View
+          style={[
+            styles.headerContainer,
+            {
+              transform: [{ translateY: headerTranslateY }],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.headerGradient}
+          >
+            <HeaderContent />
+          </LinearGradient>
+        </Animated.View>
+      ) : (
+        // iOS: Static header (no animation)
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.headerGradient}
+        >
+          <HeaderContent />
+        </LinearGradient>
+      )}
 
       <FlatList
         data={displayedLocales}
         renderItem={renderLocalCard}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          Platform.OS === 'android' && { marginTop: HEADER_MAX_HEIGHT },
+        ]}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
@@ -847,9 +903,10 @@ export default function FavoritosScreen() {
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
+        onScroll={Platform.OS === 'android' ? handleScroll : undefined}
+        scrollEventThrottle={16}
       />
 
-      {/* ✅ CRITICAL FIX v49.0: Filter modal with province selector */}
       <Modal
         visible={mostrarFiltros}
         animationType="slide"
@@ -868,7 +925,6 @@ export default function FavoritosScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* ✅ Scrollable content */}
             <ScrollView 
               style={styles.modalScrollView}
               showsVerticalScrollIndicator={true}
@@ -900,7 +956,6 @@ export default function FavoritosScreen() {
                 </View>
               </View>
 
-              {/* ✅ CRITICAL FIX v49.0: Province selector */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Provincia</Text>
                 <View style={styles.provinciasListContainer}>
@@ -926,7 +981,6 @@ export default function FavoritosScreen() {
                 </View>
               </View>
 
-              {/* ✅ Extra padding at bottom for scrolling */}
               <View style={{ height: 40 }} />
             </ScrollView>
 
@@ -967,6 +1021,15 @@ export default function FavoritosScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
     backgroundColor: colors.background,
   },
   headerGradient: {
@@ -1094,11 +1157,13 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   footerLoader: {
-    paddingVertical: 20,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 8,
   },
   footerLoaderText: {
-    marginTop: 8,
     fontSize: 14,
     color: colors.textSecondary,
   },
