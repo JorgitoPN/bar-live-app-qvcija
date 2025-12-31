@@ -1,12 +1,12 @@
 
 /**
- * ANDROID SCALING UTILITY - v83.0 - ANDROID BOTTOM NAV HEIGHT REDUCTION COMPLETE
+ * ANDROID SCALING UTILITY - v84.0 - FINAL ANDROID BOTTOM NAV FIX COMPLETE
  * 
  * Centralized scaling system for Android UI parity with iOS.
  * This utility provides platform-specific scaling factors to ensure
  * consistent visual appearance across Android and iOS devices.
  * 
- * CRITICAL FIXES v83.0 - BOTTOM NAVIGATION BAR HEIGHT REDUCTION:
+ * CRITICAL FIXES v84.0 - FINAL BOTTOM NAVIGATION BAR FIX:
  * - ✅ Bottom navigation height reduced by 20% (from 62 to 50)
  * - ✅ Bottom navigation gap with system buttons eliminated
  * - ✅ Background unified to BarLive color (no white behind icons)
@@ -14,6 +14,7 @@
  * - ✅ Explore button size reduced proportionally
  * - ✅ Icon sizes reduced for better visibility
  * - ✅ Banner white background box completely removed
+ * - ✅ Fixed background height to prevent covering icons
  * 
  * IMPORTANT: iOS design is the reference - DO NOT modify iOS values
  */
@@ -155,12 +156,12 @@ export const getCategoryTopPadding = (): number => {
 
 /**
  * Get platform-specific bottom navigation bar height
- * ✅ CRITICAL FIX v83.0: Reduced height by 20% for more compact design
+ * ✅ CRITICAL FIX v84.0: Reduced height by 20% for more compact design
  */
 export const getBottomNavHeight = (): number => {
   if (Platform.OS === 'ios') return 70;
   
-  // ✅ Android v83.0: Reduced height by 20% (was 62, now 50 - exactly 20% less)
+  // ✅ Android v84.0: Reduced height by 20% (was 62, now 50 - exactly 20% less)
   return 50;
 };
 
@@ -171,30 +172,30 @@ export const getBottomNavHeight = (): number => {
 export const getBottomNavIconSize = (): number => {
   if (Platform.OS === 'ios') return 28;
   
-  // ✅ Android: Reduced icon size (was 28, now 24)
-  return 24;
+  // ✅ Android: Reduced icon size (was 28, now 22 for better visibility)
+  return 22;
 };
 
 /**
  * Get platform-specific center button size (Explorar button)
- * ✅ CRITICAL FIX v83.0: Reduced button size proportionally
+ * ✅ CRITICAL FIX v84.0: Reduced button size proportionally
  */
 export const getCenterButtonSize = (): number => {
   if (Platform.OS === 'ios') return 60;
   
-  // ✅ Android v83.0: Reduced center button size proportionally (was 54, now 50)
-  return 50;
+  // ✅ Android v84.0: Reduced center button size proportionally (was 54, now 48)
+  return 48;
 };
 
 /**
  * Get platform-specific center button icon size
- * ✅ CRITICAL FIX v83.0: Reduced icon size proportionally
+ * ✅ CRITICAL FIX v84.0: Reduced icon size proportionally
  */
 export const getCenterButtonIconSize = (): number => {
   if (Platform.OS === 'ios') return 30;
   
-  // ✅ Android v83.0: Reduced center button icon size proportionally (was 26, now 24)
-  return 24;
+  // ✅ Android v84.0: Reduced center button icon size proportionally (was 26, now 22)
+  return 22;
 };
 
 /**
@@ -278,12 +279,12 @@ export const getSafeAreaTopPadding = (): number => {
 
 /**
  * Get platform-specific bottom navigation padding bottom
- * ✅ CRITICAL FIX v83.0: Proper safe area handling for Android system buttons
+ * ✅ CRITICAL FIX v84.0: Proper safe area handling for Android system buttons
  */
 export const getBottomNavPaddingBottom = (safeAreaBottom: number): number => {
   if (Platform.OS === 'ios') return 20;
   
-  // ✅ Android v83.0: Use safe area bottom directly (no gap with system buttons)
+  // ✅ Android v84.0: Use safe area bottom directly (no gap with system buttons)
   // This allows the background to extend all the way to system buttons
   return safeAreaBottom;
 };
@@ -340,20 +341,20 @@ export const getCardMarginBottom = (): number => {
 
 /**
  * Debug function to log current scaling factors
- * ✅ UPDATED v83.0: Complete logging of all dimensions
+ * ✅ UPDATED v84.0: Complete logging of all dimensions
  */
 export const logScalingInfo = () => {
   if (Platform.OS !== 'android') return;
   
-  console.log('[AndroidScaling v83.0] 📊 ANDROID BOTTOM NAV HEIGHT REDUCTION COMPLETE:');
+  console.log('[AndroidScaling v84.0] 📊 FINAL ANDROID BOTTOM NAV FIX COMPLETE:');
   console.log('  Screen Width:', SCREEN_WIDTH);
   console.log('  Screen Height:', SCREEN_HEIGHT);
   console.log('  Pixel Ratio:', PixelRatio.get());
   console.log('  Density Scale:', getPixelDensityScale());
   console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(reduced by 20% from 62 to 50 - MORE COMPACT)');
-  console.log('  ✅ Bottom Nav Icon Size:', getBottomNavIconSize(), '(reduced from 28 to 24)');
-  console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(reduced proportionally from 54 to 50)');
-  console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(reduced proportionally from 26 to 24)');
+  console.log('  ✅ Bottom Nav Icon Size:', getBottomNavIconSize(), '(reduced from 28 to 22 for better visibility)');
+  console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(reduced proportionally from 54 to 48)');
+  console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(reduced proportionally from 26 to 22)');
   console.log('  ✅ Bottom Nav Padding:', 'Uses safe area bottom directly (no gap with system buttons)');
   console.log('  ✅ Banner Background:', 'White box removed - transparent text on gradient');
 };
