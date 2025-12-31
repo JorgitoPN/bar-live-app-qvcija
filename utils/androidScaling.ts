@@ -1,16 +1,16 @@
 
 /**
- * ANDROID SCALING UTILITY - v82.0 - FINAL BOTTOM NAV & BANNER FIX
+ * ANDROID SCALING UTILITY - v81.0 - ANDROID BOTTOM NAV & BANNER FIX
  * 
  * Centralized scaling system for Android UI parity with iOS.
  * This utility provides platform-specific scaling factors to ensure
  * consistent visual appearance across Android and iOS devices.
  * 
- * CRITICAL FIXES v82.0 - FINAL ADJUSTMENTS:
- * - ✅ Bottom navigation padding reduced to ZERO extra space
- * - ✅ Background unified to BarLive color (confirmed)
- * - ✅ Explore button size optimized
- * - ✅ Icon sizes optimized for visibility
+ * CRITICAL FIXES v81.0 - BOTTOM NAVIGATION BAR & BANNER ADJUSTMENTS:
+ * - ✅ Bottom navigation height reduced slightly (more compact)
+ * - ✅ Background unified to BarLive color (no white behind icons)
+ * - ✅ Explore button size reduced
+ * - ✅ Icon sizes reduced for better visibility
  * - ✅ Banner background box removed (transparent text)
  * 
  * IMPORTANT: iOS design is the reference - DO NOT modify iOS values
@@ -276,14 +276,14 @@ export const getSafeAreaTopPadding = (): number => {
 
 /**
  * Get platform-specific bottom navigation padding bottom
- * ✅ CRITICAL FIX v82.0: ZERO extra padding - let safe area handle it naturally
+ * ✅ CRITICAL FIX v81.0: Proper safe area handling for Android system buttons
  */
 export const getBottomNavPaddingBottom = (safeAreaBottom: number): number => {
   if (Platform.OS === 'ios') return 20;
   
-  // ✅ Android v82.0: ZERO extra padding - use ONLY the safe area inset
-  // This eliminates the gap between bottom nav and system buttons
-  return safeAreaBottom;
+  // ✅ Android: Respect system navigation buttons with minimum padding
+  // Use the larger of safe area bottom or 10px for compact design
+  return Math.max(safeAreaBottom, 10);
 };
 
 /**
@@ -338,12 +338,12 @@ export const getCardMarginBottom = (): number => {
 
 /**
  * Debug function to log current scaling factors
- * ✅ UPDATED v82.0: Complete logging of all dimensions
+ * ✅ UPDATED v81.0: Complete logging of all dimensions
  */
 export const logScalingInfo = () => {
   if (Platform.OS !== 'android') return;
   
-  console.log('[AndroidScaling v82.0] 📊 FINAL ANDROID BOTTOM NAV & BANNER FIX:');
+  console.log('[AndroidScaling v81.0] 📊 ANDROID BOTTOM NAV & BANNER FIX:');
   console.log('  Screen Width:', SCREEN_WIDTH);
   console.log('  Screen Height:', SCREEN_HEIGHT);
   console.log('  Pixel Ratio:', PixelRatio.get());
@@ -352,7 +352,7 @@ export const logScalingInfo = () => {
   console.log('  ✅ Bottom Nav Icon Size:', getBottomNavIconSize(), '(reduced from 28 to 24)');
   console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(reduced from 60 to 54)');
   console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(reduced from 26 to 26)');
-  console.log('  ✅ Bottom Nav Padding v82.0:', 'ZERO extra padding - uses ONLY safe area inset');
+  console.log('  ✅ Bottom Nav Padding:', 'Dynamic based on safe area (min: 10px)');
 };
 
 export default {
