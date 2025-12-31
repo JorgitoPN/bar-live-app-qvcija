@@ -480,10 +480,9 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: 16,
   },
-  // ✅ ANDROID FIX v92.0: Use commonStyles for header with reduced padding
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40, // Reduced from 50 to 40 on Android
-    paddingBottom: Platform.OS === 'ios' ? 20 : 16, // Reduced from 20 to 16 on Android
+    paddingTop: 50,
+    paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -492,15 +491,13 @@ const styles = StyleSheet.create({
   headerContent: {
     flex: 1,
   },
-  // ✅ ANDROID FIX v92.0: Reduced header title size on Android
   headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 28, // Reduced from 32 to 28 on Android
+    fontSize: 32,
     fontWeight: 'bold',
     color: colors.headerText,
   },
-  // ✅ ANDROID FIX v92.0: Reduced header subtitle size on Android
   headerSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 15 : 14, // Reduced from 15 to 14 on Android
+    fontSize: 15,
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 4,
