@@ -33,8 +33,8 @@ export function UsernameSearch({
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<{
-    users: Array<{ id: string; username: string; nombre: string; avatar: string | null }>;
-    locals: Array<{ id: string; username: string; nombre: string; imagen_url: string | null }>;
+    users: { id: string; username: string; nombre: string; avatar: string | null }[];
+    locals: { id: string; username: string; nombre: string; imagen_url: string | null }[];
   }>({ users: [], locals: [] });
 
   useEffect(() => {

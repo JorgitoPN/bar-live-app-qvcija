@@ -182,7 +182,7 @@ export function usePostInteractions({
         channelRef.current = null;
       }
     };
-  }, [postId, user?.id, isLiked, localLikes, updatePostLikes]);
+  }, [postId, user, isLiked, localLikes, updatePostLikes]); // ✅ FIXED: Added user dependency
 
   const handleLike = useCallback(async () => {
     if (!user) {

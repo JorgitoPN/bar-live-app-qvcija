@@ -65,11 +65,6 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
   }, [user, router]);
 
-  const handleOpenModal = useCallback(() => {
-    loadAllLikes();
-    setShowModal(true);
-  }, []);
-
   const loadAllLikes = useCallback(async () => {
     try {
       setLoadingModal(true);
@@ -100,6 +95,11 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       setLoadingModal(false);
     }
   }, [postId]);
+
+  const handleOpenModal = useCallback(() => {
+    loadAllLikes();
+    setShowModal(true);
+  }, [loadAllLikes]);
 
   // ✅ FIXED: Update state immediately when localLikes changes
   useEffect(() => {
@@ -194,7 +194,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     };
 
     updateProfilesOptimistically();
-  }, [postId, localLikes, user?.id]); // ✅ FIXED: Removed tempProfiles from dependencies
+  }, [postId, localLikes, user?.id, tempProfiles, user]); // ✅ FIXED: Added all dependencies
 
   // ✅ FIXED: Real-time subscription for OTHER users' changes
   useEffect(() => {
@@ -266,7 +266,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         channelRef.current = null;
       }
     };
-  }, [postId, user?.id]); // ✅ FIXED: Only essential dependencies
+  }, [postId, user]); // ✅ FIXED: Added user dependency
 
   useEffect(() => {
     if (localLikes.length === 0) {

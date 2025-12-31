@@ -2,10 +2,8 @@
 import { Platform, Alert } from 'react-native';
 import { supabase, isSupabaseConfigured } from './supabase';
 import Constants from 'expo-constants';
-
-// Lazy import notifications to avoid errors in Expo Go
-let Notifications: any = null;
-let Device: any = null;
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 
 // Check if running in Expo Go
 const isExpoGo = (): boolean => {
@@ -19,52 +17,18 @@ export const arePushNotificationsAvailable = (): boolean => {
     return false;
   }
   
-  // Try to load Device module
-  if (!Device) {
-    try {
-      Device = require('expo-device');
-    } catch (error) {
-      console.log('[Notifications] ⚠️ expo-device no disponible');
-      return false;
-    }
-  }
-  
   return Device?.isDevice ?? false;
 };
 
-// Initialize notifications module (lazy loading)
-const initializeNotifications = async (): Promise<boolean> => {
-  if (Notifications) {
-    return true;
-  }
-  
-  // Don't even try to load in Expo Go on Android
-  if (Platform.OS === 'android' && isExpoGo()) {
-    console.log('[Notifications] ℹ️ Expo Go detectado en Android - notificaciones push no disponibles');
-    console.log('[Notifications] ℹ️ La app funcionará normalmente sin notificaciones push');
-    console.log('[Notifications] 📱 Para habilitar notificaciones, crea un development build');
-    return false;
-  }
-  
-  try {
-    Notifications = require('expo-notifications');
-    
-    // Configure notification behavior
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-        priority: Notifications.AndroidNotificationPriority?.HIGH ?? 4,
-      }),
-    });
-    
-    return true;
-  } catch (error: any) {
-    console.log('[Notifications] ⚠️ No se pudo cargar expo-notifications:', error.message);
-    return false;
-  }
-};
+// Configure notification behavior
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    priority: Notifications.AndroidNotificationPriority?.HIGH ?? 4,
+  }),
+});
 
 export interface NotificationData {
   type: 'like' | 'comment' | 'follow' | 'mention' | 'event' | 'message' | 'cheers';
@@ -108,13 +72,6 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
       } else {
         console.log('[Notifications] ⚠️ Las notificaciones push solo funcionan en dispositivos físicos');
       }
-      return null;
-    }
-    
-    // Initialize notifications module
-    const initialized = await initializeNotifications();
-    if (!initialized) {
-      console.log('[Notifications] ⚠️ No se pudo inicializar el módulo de notificaciones');
       return null;
     }
 
@@ -234,8 +191,7 @@ export const savePushToken = async (userId: string, token: string): Promise<void
 // Send local notification
 export const sendLocalNotification = async (data: NotificationData): Promise<void> => {
   try {
-    const initialized = await initializeNotifications();
-    if (!initialized) {
+    if (!arePushNotificationsAvailable()) {
       console.log('[Notifications] ⚠️ Notificaciones no disponibles');
       return;
     }
@@ -297,11 +253,6 @@ export const sendPushNotification = async (
 export const addNotificationReceivedListener = (
   callback: (notification: any) => void
 ) => {
-  if (!Notifications) {
-    console.log('[Notifications] ⚠️ Notificaciones no disponibles para listeners');
-    return { remove: () => {} };
-  }
-  
   console.log('[Notifications] 👂 Registrando listener de notificaciones recibidas');
   return Notifications.addNotificationReceivedListener(callback);
 };
@@ -310,11 +261,6 @@ export const addNotificationReceivedListener = (
 export const addNotificationResponseReceivedListener = (
   callback: (response: any) => void
 ) => {
-  if (!Notifications) {
-    console.log('[Notifications] ⚠️ Notificaciones no disponibles para listeners');
-    return { remove: () => {} };
-  }
-  
   console.log('[Notifications] 👂 Registrando listener de respuestas');
   return Notifications.addNotificationResponseReceivedListener(callback);
 };
@@ -322,8 +268,7 @@ export const addNotificationResponseReceivedListener = (
 // Get badge count
 export const getBadgeCount = async (): Promise<number> => {
   try {
-    const initialized = await initializeNotifications();
-    if (!initialized) {
+    if (!arePushNotificationsAvailable()) {
       return 0;
     }
     
@@ -337,8 +282,7 @@ export const getBadgeCount = async (): Promise<number> => {
 // Set badge count
 export const setBadgeCount = async (count: number): Promise<void> => {
   try {
-    const initialized = await initializeNotifications();
-    if (!initialized) {
+    if (!arePushNotificationsAvailable()) {
       return;
     }
     
@@ -351,8 +295,7 @@ export const setBadgeCount = async (count: number): Promise<void> => {
 // Clear all notifications
 export const clearAllNotifications = async (): Promise<void> => {
   try {
-    const initialized = await initializeNotifications();
-    if (!initialized) {
+    if (!arePushNotificationsAvailable()) {
       console.log('[Notifications] ⚠️ Notificaciones no disponibles');
       return;
     }
@@ -368,8 +311,7 @@ export const clearAllNotifications = async (): Promise<void> => {
 // Schedule a test notification
 export const scheduleTestNotification = async (): Promise<void> => {
   try {
-    const initialized = await initializeNotifications();
-    if (!initialized) {
+    if (!arePushNotificationsAvailable()) {
       Alert.alert(
         'Notificaciones No Disponibles',
         'Las notificaciones push no están disponibles en Expo Go para Android.\n\n' +

@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ModeProvider } from '@/contexts/ModeContext';
-import { SelectedLocalProvider } from '@/contexts/SelectedLocalProvider';
+import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
