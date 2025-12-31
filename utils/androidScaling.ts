@@ -1,16 +1,17 @@
 
 /**
- * ANDROID SCALING UTILITY - v82.0 - ANDROID BOTTOM NAV & BANNER FIX COMPLETE
+ * ANDROID SCALING UTILITY - v83.0 - ANDROID BOTTOM NAV HEIGHT REDUCTION COMPLETE
  * 
  * Centralized scaling system for Android UI parity with iOS.
  * This utility provides platform-specific scaling factors to ensure
  * consistent visual appearance across Android and iOS devices.
  * 
- * CRITICAL FIXES v82.0 - BOTTOM NAVIGATION BAR & BANNER FINAL ADJUSTMENTS:
+ * CRITICAL FIXES v83.0 - BOTTOM NAVIGATION BAR HEIGHT REDUCTION:
+ * - ✅ Bottom navigation height reduced by 20% (from 62 to 50)
  * - ✅ Bottom navigation gap with system buttons eliminated
  * - ✅ Background unified to BarLive color (no white behind icons)
  * - ✅ Proper safe area handling for Android system navigation
- * - ✅ Explore button size reduced
+ * - ✅ Explore button size reduced proportionally
  * - ✅ Icon sizes reduced for better visibility
  * - ✅ Banner white background box completely removed
  * 
@@ -154,13 +155,13 @@ export const getCategoryTopPadding = (): number => {
 
 /**
  * Get platform-specific bottom navigation bar height
- * ✅ CRITICAL FIX v81.0: Reduced height for more compact design
+ * ✅ CRITICAL FIX v83.0: Reduced height by 20% for more compact design
  */
 export const getBottomNavHeight = (): number => {
   if (Platform.OS === 'ios') return 70;
   
-  // ✅ Android: Reduced height (was 70, now 62 - about 11% reduction)
-  return 62;
+  // ✅ Android v83.0: Reduced height by 20% (was 62, now 50 - exactly 20% less)
+  return 50;
 };
 
 /**
@@ -176,24 +177,24 @@ export const getBottomNavIconSize = (): number => {
 
 /**
  * Get platform-specific center button size (Explorar button)
- * ✅ CRITICAL FIX v81.0: Reduced button size
+ * ✅ CRITICAL FIX v83.0: Reduced button size proportionally
  */
 export const getCenterButtonSize = (): number => {
   if (Platform.OS === 'ios') return 60;
   
-  // ✅ Android: Reduced center button size (was 60, now 54)
-  return 54;
+  // ✅ Android v83.0: Reduced center button size proportionally (was 54, now 50)
+  return 50;
 };
 
 /**
  * Get platform-specific center button icon size
- * ✅ CRITICAL FIX v81.0: Reduced icon size
+ * ✅ CRITICAL FIX v83.0: Reduced icon size proportionally
  */
 export const getCenterButtonIconSize = (): number => {
   if (Platform.OS === 'ios') return 30;
   
-  // ✅ Android: Reduced center button icon size (was 30, now 26)
-  return 26;
+  // ✅ Android v83.0: Reduced center button icon size proportionally (was 26, now 24)
+  return 24;
 };
 
 /**
@@ -277,12 +278,12 @@ export const getSafeAreaTopPadding = (): number => {
 
 /**
  * Get platform-specific bottom navigation padding bottom
- * ✅ CRITICAL FIX v82.0: Proper safe area handling for Android system buttons
+ * ✅ CRITICAL FIX v83.0: Proper safe area handling for Android system buttons
  */
 export const getBottomNavPaddingBottom = (safeAreaBottom: number): number => {
   if (Platform.OS === 'ios') return 20;
   
-  // ✅ Android v82.0: Use safe area bottom directly (no minimum)
+  // ✅ Android v83.0: Use safe area bottom directly (no gap with system buttons)
   // This allows the background to extend all the way to system buttons
   return safeAreaBottom;
 };
@@ -339,20 +340,20 @@ export const getCardMarginBottom = (): number => {
 
 /**
  * Debug function to log current scaling factors
- * ✅ UPDATED v82.0: Complete logging of all dimensions
+ * ✅ UPDATED v83.0: Complete logging of all dimensions
  */
 export const logScalingInfo = () => {
   if (Platform.OS !== 'android') return;
   
-  console.log('[AndroidScaling v82.0] 📊 ANDROID BOTTOM NAV & BANNER FIX COMPLETE:');
+  console.log('[AndroidScaling v83.0] 📊 ANDROID BOTTOM NAV HEIGHT REDUCTION COMPLETE:');
   console.log('  Screen Width:', SCREEN_WIDTH);
   console.log('  Screen Height:', SCREEN_HEIGHT);
   console.log('  Pixel Ratio:', PixelRatio.get());
   console.log('  Density Scale:', getPixelDensityScale());
-  console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(reduced from 70 to 62 - MORE COMPACT)');
+  console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(reduced by 20% from 62 to 50 - MORE COMPACT)');
   console.log('  ✅ Bottom Nav Icon Size:', getBottomNavIconSize(), '(reduced from 28 to 24)');
-  console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(reduced from 60 to 54)');
-  console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(reduced from 30 to 26)');
+  console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(reduced proportionally from 54 to 50)');
+  console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(reduced proportionally from 26 to 24)');
   console.log('  ✅ Bottom Nav Padding:', 'Uses safe area bottom directly (no gap with system buttons)');
   console.log('  ✅ Banner Background:', 'White box removed - transparent text on gradient');
 };
