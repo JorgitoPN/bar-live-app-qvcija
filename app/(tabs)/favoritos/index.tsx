@@ -33,10 +33,13 @@ import { calcularDistancia } from '@/utils/locationUtils';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+// ✅ ANDROID HEADER SCROLL BEHAVIOR v95.0
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 300;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+
+// ✅ FIX v95.0: Create Animated FlatList component for Android
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
 const PROVINCIAS = [
   'Todas',
@@ -60,12 +63,13 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v94.0 - ANDROID HEADER SCROLL BEHAVIOR
+ * ✅ FAVORITOS SCREEN v95.0 - ANDROID FIXES
  * 
- * CRITICAL FIXES v94.0:
+ * CRITICAL FIXES v95.0:
+ * - ✅ Fixed VirtualizedList error by using Animated.createAnimatedComponent
  * - ✅ Header hides completely on scroll down (Android only)
  * - ✅ Header shows on scroll up (Android only)
- * - ✅ Smooth animation using Animated API
+ * - ✅ Smooth animation using Animated API with useNativeDriver
  * - ✅ iOS behavior unchanged (static header)
  * - ✅ Consistent with Home and Events screens
  */
@@ -91,7 +95,7 @@ export default function FavoritosScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
 
-  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+  // ✅ ANDROID HEADER SCROLL BEHAVIOR v95.0
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
 
@@ -111,10 +115,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v94.0] User location obtained:', location.coords);
+          console.log('[Favoritos v95.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v94.0] Error getting location:', error);
+        console.error('[Favoritos v95.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -140,7 +144,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v94.0] Error checking social profiles:', error);
+      console.error('[Favoritos v95.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -151,7 +155,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v94.0] Cargando locales guardados...');
+      console.log('[Favoritos v95.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -217,12 +221,12 @@ export default function FavoritosScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Favoritos v94.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v95.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v94.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v95.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -243,7 +247,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v94.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v95.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -257,7 +261,7 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v94.0] Recalculating distances with new user location');
+      console.log('[Favoritos v95.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -319,7 +323,7 @@ export default function FavoritosScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Favoritos v94.0] Filters applied. Results:', filtered.length);
+    console.log('[Favoritos v95.0] Filters applied. Results:', filtered.length);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
   const loadMoreLocales = useCallback(() => {
@@ -337,7 +341,7 @@ export default function FavoritosScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Favoritos v94.0] Cargando más locales, página:', nextPage);
+        console.log('[Favoritos v95.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -347,7 +351,7 @@ export default function FavoritosScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v94.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v95.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -357,7 +361,7 @@ export default function FavoritosScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v94.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v95.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -377,18 +381,18 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v94.0] User not authenticated');
+      console.log('[Favoritos v95.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v94.0] No local ID');
+      console.log('[Favoritos v95.0] No local ID');
       return;
     }
 
     try {
-      console.log('[Favoritos v94.0] Removing from favorites. User:', user.id, 'Local:', localId);
+      console.log('[Favoritos v95.0] Removing from favorites. User:', user.id, 'Local:', localId);
       
       const { error } = await supabase
         .from('locales_guardados')
@@ -397,16 +401,16 @@ export default function FavoritosScreen() {
         .eq('local_id', localId);
 
       if (error) {
-        console.error('[Favoritos v94.0] Error removing favorite:', error);
+        console.error('[Favoritos v95.0] Error removing favorite:', error);
         Alert.alert('Error', 'No se pudo quitar de favoritos');
         return;
       }
       
-      console.log('[Favoritos v94.0] ✅ Removed from favorites');
+      console.log('[Favoritos v95.0] ✅ Removed from favorites');
       
       await loadSavedLocales();
     } catch (error) {
-      console.error('[Favoritos v94.0] Error removing favorito:', error);
+      console.error('[Favoritos v95.0] Error removing favorito:', error);
       Alert.alert('Error', 'No se pudo eliminar de favoritos');
     }
   };
@@ -688,7 +692,7 @@ export default function FavoritosScreen() {
     );
   };
 
-  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+  // ✅ ANDROID HEADER SCROLL BEHAVIOR v95.0: Fixed with Animated.createAnimatedComponent
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     {
@@ -748,7 +752,7 @@ export default function FavoritosScreen() {
     );
   }
 
-  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0: Render with animated header
+  // ✅ ANDROID HEADER SCROLL BEHAVIOR v95.0: Render with animated header
   const HeaderContent = () => (
     <React.Fragment>
       <View style={styles.headerTop}>
@@ -852,9 +856,12 @@ export default function FavoritosScreen() {
     </React.Fragment>
   );
 
+  // ✅ FIX v95.0: Use AnimatedFlatList for Android to support useNativeDriver
+  const ListComponent = Platform.OS === 'android' ? AnimatedFlatList : FlatList;
+
   return (
     <View style={styles.container}>
-      {/* ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0: Animated header for Android */}
+      {/* ✅ ANDROID HEADER SCROLL BEHAVIOR v95.0: Animated header for Android */}
       {Platform.OS === 'android' ? (
         <Animated.View
           style={[
@@ -881,10 +888,10 @@ export default function FavoritosScreen() {
         </LinearGradient>
       )}
 
-      <FlatList
+      <ListComponent
         data={displayedLocales}
         renderItem={renderLocalCard}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item: any) => item.id}
         contentContainerStyle={[
           styles.listContent,
           Platform.OS === 'android' && { marginTop: HEADER_MAX_HEIGHT },
@@ -1023,7 +1030,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+  // ✅ ANDROID HEADER SCROLL BEHAVIOR v95.0
   headerContainer: {
     position: 'absolute',
     top: 0,
