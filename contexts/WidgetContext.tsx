@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { createContext, useCallback, useContext } from "react";
 import { ExtensionStorage } from "@bacons/apple-targets";
@@ -15,18 +14,18 @@ type WidgetContextType = {
 const WidgetContext = createContext<WidgetContextType | null>(null);
 
 export function WidgetProvider({ children }: { children: React.ReactNode }) {
-  const refreshWidget = useCallback(() => {
-    ExtensionStorage.reloadWidget();
-  }, []);
-
   // Update widget state whenever what we want to show changes
   React.useEffect(() => {
     // set widget_state to null if we want to reset the widget
     // storage.set("widget_state", null);
 
     // Refresh widget
-    refreshWidget();
-  }, [refreshWidget]);
+    ExtensionStorage.reloadWidget();
+  }, []);
+
+  const refreshWidget = useCallback(() => {
+    ExtensionStorage.reloadWidget();
+  }, []);
 
   return (
     <WidgetContext.Provider value={{ refreshWidget }}>

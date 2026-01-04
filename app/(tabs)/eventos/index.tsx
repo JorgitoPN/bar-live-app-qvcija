@@ -25,12 +25,6 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import EventoCard from '@/components/eventos/EventoCard';
-import {
-  getSearchBoxHeight,
-  getCategoryIconSize,
-  getCategoryIconInnerSize,
-  scaleFontSize,
-} from '@/utils/androidScaling';
 
 const { width } = Dimensions.get('window');
 
@@ -79,16 +73,13 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v95.0 - ANDROID DESIGN FIXES
+ * ✅ EVENTOS SCREEN v48.0 - WHITE SEARCH BAR + SCROLLABLE FILTERS
  * 
- * CRITICAL FIXES v95.0 (ANDROID ONLY - iOS unchanged):
- * - ✅ Search box size matches Explorar page (44px height on Android)
- * - ✅ Search box typography matches Explorar (15px font on Android)
- * - ✅ Category filter sizes reduced for visual consistency
- * - ✅ Category icons and text properly scaled for Android
- * - ✅ All dimensions properly scaled for Android devices
- * 
- * IMPORTANT: iOS design remains unchanged - all fixes are Android-specific
+ * CRITICAL FIXES:
+ * - ✅ Search bar is now white (matching favoritos page)
+ * - ✅ Filter modal is now scrollable to access province selector
+ * - ✅ Proper maxHeight on modal content to enable scrolling
+ * - ✅ Category filters work correctly
  */
 
 export default function EventosScreen() {
@@ -128,7 +119,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v95.0] Cargando eventos...');
+      console.log('[Eventos v48.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -160,11 +151,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v95.0] Error cargando eventos:', error);
+        console.error('[Eventos v48.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v95.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v48.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -199,7 +190,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v95.0] Error:', error);
+      console.error('[Eventos v48.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -333,7 +324,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v95.0] Deleting event:', eventoId);
+              console.log('[Eventos v48.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -341,14 +332,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v95.0] Error deleting event:', error);
+                console.error('[Eventos v48.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v95.0] Error deleting event:', error);
+              console.error('[Eventos v48.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -356,11 +347,6 @@ export default function EventosScreen() {
       ]
     );
   }, [user, canDeleteEvent, cargarEventos]);
-
-  // ✅ Get platform-specific dimensions
-  const searchBoxHeight = getSearchBoxHeight();
-  const categoryIconSize = Platform.OS === 'android' ? getCategoryIconSize() * 0.8 : 20; // Reduced for Android
-  const categoryFontSize = Platform.OS === 'android' ? scaleFontSize(12) : 14; // Reduced for Android
 
   return (
     <View style={commonStyles.container}>
@@ -370,14 +356,10 @@ export default function EventosScreen() {
         end={{ x: 1, y: 0 }}
         style={commonStyles.headerGradient}
       >
-        {/* ✅ Android Fix v95.0: Standardized title size (20px on Android) */}
-        <Text style={[commonStyles.headerTitle, { 
-          color: colors.white,
-          fontSize: Platform.OS === 'android' ? 20 : 32,
-        }]}>Eventos</Text>
+        <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Eventos</Text>
 
-        {/* ✅ Android Fix v95.0: Unified search box size and typography */}
-        <View style={[styles.searchContainer, { height: searchBoxHeight }]}>
+        {/* ✅ CRITICAL FIX v48.0: White search bar matching favoritos page */}
+        <View style={styles.searchContainer}>
           <IconSymbol 
             ios_icon_name="magnifyingglass" 
             android_material_icon_name="search" 
@@ -385,7 +367,7 @@ export default function EventosScreen() {
             color={colors.textSecondary} 
           />
           <TextInput
-            style={[styles.searchInput, { fontSize: Platform.OS === 'android' ? 15 : 16 }]}
+            style={styles.searchInput}
             placeholder="Buscar eventos..."
             placeholderTextColor={colors.textSecondary}
             value={busqueda}
@@ -430,7 +412,6 @@ export default function EventosScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ✅ Android Fix v95.0: Reduced category filter sizes */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -447,11 +428,10 @@ export default function EventosScreen() {
               onPress={() => setCategoriaSeleccionada(categoria.id)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.categoryEmoji, { fontSize: categoryIconSize }]}>{categoria.emoji}</Text>
+              <Text style={styles.categoryEmoji}>{categoria.emoji}</Text>
               <Text
                 style={[
                   styles.categoryText,
-                  { fontSize: categoryFontSize },
                   categoriaSeleccionada === categoria.id && styles.categoryTextActive,
                 ]}
               >
@@ -511,6 +491,7 @@ export default function EventosScreen() {
         </TouchableOpacity>
       )}
 
+      {/* ✅ CRITICAL FIX v48.0: Scrollable filter modal with proper maxHeight */}
       <Modal
         visible={mostrarFiltros}
         animationType="slide"
@@ -529,12 +510,12 @@ export default function EventosScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* ✅ CRITICAL FIX v48.0: Scrollable content with proper maxHeight */}
             <ScrollView 
               style={styles.modalScrollView}
               showsVerticalScrollIndicator={true}
               bounces={false}
             >
-              {/* ✅ Android Fix v95.0: Reduced category filter sizes in modal */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Categoría de Local</Text>
                 <View style={styles.categoriesGrid}>
@@ -547,13 +528,10 @@ export default function EventosScreen() {
                       ]}
                       onPress={() => setCategoriaSeleccionada(categoria.id)}
                     >
-                      <Text style={[styles.categoryFilterEmoji, { 
-                        fontSize: Platform.OS === 'android' ? 16 : 20 
-                      }]}>{categoria.emoji}</Text>
+                      <Text style={styles.categoryFilterEmoji}>{categoria.emoji}</Text>
                       <Text
                         style={[
                           styles.categoryFilterText,
-                          { fontSize: Platform.OS === 'android' ? 12 : 14 },
                           categoriaSeleccionada === categoria.id && styles.categoryFilterTextActive,
                         ]}
                       >
@@ -689,6 +667,7 @@ export default function EventosScreen() {
                 )}
               </View>
 
+              {/* ✅ CRITICAL FIX v48.0: Scrollable province list */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Provincia</Text>
                 <View style={styles.provinciasListContainer}>
@@ -714,6 +693,7 @@ export default function EventosScreen() {
                 </View>
               </View>
 
+              {/* ✅ Extra padding at bottom for scrolling */}
               <View style={{ height: 40 }} />
             </ScrollView>
 
@@ -750,12 +730,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     paddingHorizontal: 16,
+    paddingVertical: 12,
     marginTop: 16,
     gap: 12,
   },
   searchInput: {
     flex: 1,
     color: colors.text,
+    fontSize: 16,
   },
   tabs: {
     flexDirection: 'row',
@@ -1031,8 +1013,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: Platform.OS === 'android' ? 10 : 14,
-    paddingVertical: Platform.OS === 'android' ? 6 : 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 1,
@@ -1043,9 +1025,10 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   categoryEmoji: {
-    // fontSize set inline based on platform
+    fontSize: 16,
   },
   categoryText: {
+    fontSize: 14,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
   },
@@ -1061,8 +1044,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: Platform.OS === 'android' ? 12 : 16,
-    paddingVertical: Platform.OS === 'android' ? 10 : 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: 12,
     backgroundColor: colors.background,
     borderWidth: 1,
@@ -1074,9 +1057,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   categoryFilterEmoji: {
-    // fontSize set inline based on platform
+    fontSize: 20,
   },
   categoryFilterText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
