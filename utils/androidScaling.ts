@@ -63,6 +63,30 @@ export const getLineHeight = (fontSize: number): number => {
   return Math.round(fontSize * 1.4);
 };
 
+// ✅ NEW: Bottom navigation bar functions
+export const getBottomNavHeight = (): number => {
+  return Platform.OS === 'ios' ? 60 : 56;
+};
+
+export const getBottomNavIconSize = (): number => {
+  return Platform.OS === 'ios' ? 24 : 22;
+};
+
+export const getCenterButtonSize = (): number => {
+  return Platform.OS === 'ios' ? 56 : 52;
+};
+
+export const getCenterButtonIconSize = (): number => {
+  return Platform.OS === 'ios' ? 28 : 26;
+};
+
+export const getBottomNavPaddingBottom = (safeAreaBottom: number): number => {
+  if (Platform.OS === 'ios') {
+    return Math.max(safeAreaBottom, 8);
+  }
+  return 0; // Android handles safe area differently
+};
+
 // Font sizes with scaling
 export const fontSizes = {
   xs: scaleFontSize(12),
@@ -123,5 +147,9 @@ export const logScalingInfo = (): void => {
     console.log('  - Category Top Padding:', getCategoryTopPadding());
     console.log('  - Content Padding:', getContentPadding());
     console.log('  - Status Bar Height:', getStatusBarHeight());
+    console.log('  - Bottom Nav Height:', getBottomNavHeight());
+    console.log('  - Bottom Nav Icon Size:', getBottomNavIconSize());
+    console.log('  - Center Button Size:', getCenterButtonSize());
+    console.log('  - Center Button Icon Size:', getCenterButtonIconSize());
   }
 };
