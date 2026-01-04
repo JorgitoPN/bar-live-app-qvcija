@@ -1,91 +1,120 @@
 
-import { Platform, PixelRatio } from 'react-native';
-
-// Global UI scale factor (1.0 = 100%)
-let uiScaleFactor = 1.0;
+import { Platform, Dimensions, StatusBar } from 'react-native';
 
 /**
- * Set the global UI scale factor
- * Only affects Android devices
+ * Android UI Scaling Utilities
+ * Provides platform-specific dimension functions for consistent UI scaling
  */
-export const setUiScaleFactor = (scale: number) => {
-  // Clamp between 0.3 (30%) and 1.4 (140%) for usability
-  uiScaleFactor = Math.max(0.3, Math.min(1.4, scale));
-};
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Base dimensions (can be adjusted based on design requirements)
+const BASE_HEADER_HEIGHT = 60;
+const BASE_SEARCH_BOX_HEIGHT = 50;
+const BASE_CATEGORY_ICON_SIZE = 64;
+const BASE_CATEGORY_ICON_INNER_SIZE = 28;
+const BASE_CATEGORY_SPACING = 12;
+const BASE_CATEGORY_TOP_PADDING = 16;
+const BASE_BOTTOM_NAV_HEIGHT = 60;
+const BASE_BOTTOM_NAV_PADDING = 8;
+const BASE_CONTENT_PADDING = 20;
+const BASE_FONT_SIZE = 16;
 
 /**
- * Get current UI scale factor
+ * Get header height for current platform
  */
-export const getUiScaleFactor = (): number => {
-  return uiScaleFactor;
-};
-
-/**
- * Scale a numeric value based on platform
- * Only applies scaling on Android
- */
-export const scale = (size: number): number => {
-  return Platform.OS === 'android' ? size * uiScaleFactor : size;
-};
-
-/**
- * Scale font sizes
- * Respects system font scaling to avoid double-scaling
- */
-export const scaleFont = (size: number): number => {
-  if (Platform.OS !== 'android') return size;
-  
-  const pixelRatio = PixelRatio.getFontScale();
-  // If user has system font scaling > 1, reduce our scaling to avoid excessive size
-  const adjustedFactor = pixelRatio > 1 ? uiScaleFactor / pixelRatio : uiScaleFactor;
-  return size * adjustedFactor;
+export const getHeaderHeight = (): number => {
+  return Platform.OS === 'android' ? BASE_HEADER_HEIGHT : BASE_HEADER_HEIGHT;
 };
 
 /**
- * Elements that should NOT be scaled
+ * Get search box height
  */
-export const noScale = (size: number): number => size;
-
-// Predefined scaled sizes
-export const spacing = {
-  xs: () => scale(4),
-  sm: () => scale(8),
-  md: () => scale(16),
-  lg: () => scale(24),
-  xl: () => scale(32),
+export const getSearchBoxHeight = (): number => {
+  return Platform.OS === 'android' ? BASE_SEARCH_BOX_HEIGHT : BASE_SEARCH_BOX_HEIGHT;
 };
 
-export const fontSizes = {
-  xs: () => scaleFont(10),
-  sm: () => scaleFont(12),
-  md: () => scaleFont(14),
-  base: () => scaleFont(16),
-  lg: () => scaleFont(18),
-  xl: () => scaleFont(20),
-  xxl: () => scaleFont(24),
-  xxxl: () => scaleFont(32),
+/**
+ * Get category icon size (outer container)
+ */
+export const getCategoryIconSize = (): number => {
+  return Platform.OS === 'android' ? BASE_CATEGORY_ICON_SIZE : BASE_CATEGORY_ICON_SIZE;
 };
 
-export const borderRadius = {
-  sm: () => scale(4),
-  md: () => scale(8),
-  lg: () => scale(12),
-  xl: () => scale(16),
-  full: () => scale(9999),
+/**
+ * Get category icon inner size (actual icon)
+ */
+export const getCategoryIconInnerSize = (): number => {
+  return Platform.OS === 'android' ? BASE_CATEGORY_ICON_INNER_SIZE : BASE_CATEGORY_ICON_INNER_SIZE;
 };
 
-export const iconSizes = {
-  xs: () => scale(12),
-  sm: () => scale(16),
-  md: () => scale(20),
-  lg: () => scale(24),
-  xl: () => scale(32),
-  xxl: () => scale(48),
+/**
+ * Get spacing between category items
+ */
+export const getCategorySpacing = (): number => {
+  return Platform.OS === 'android' ? BASE_CATEGORY_SPACING : BASE_CATEGORY_SPACING;
 };
 
-// Elements that should never scale
-export const fixedSizes = {
-  borderWidth: 1, // Keep borders thin
-  shadowRadius: 4, // Don't scale shadows
-  elevation: 2, // Don't scale elevation
+/**
+ * Get category top padding
+ */
+export const getCategoryTopPadding = (): number => {
+  return Platform.OS === 'android' ? BASE_CATEGORY_TOP_PADDING : BASE_CATEGORY_TOP_PADDING;
+};
+
+/**
+ * Get bottom navigation bar height
+ */
+export const getBottomNavHeight = (): number => {
+  return Platform.OS === 'android' ? BASE_BOTTOM_NAV_HEIGHT : BASE_BOTTOM_NAV_HEIGHT;
+};
+
+/**
+ * Get bottom navigation padding
+ */
+export const getBottomNavPaddingBottom = (insetsBottom: number): number => {
+  return Platform.OS === 'android' ? BASE_BOTTOM_NAV_PADDING : insetsBottom + BASE_BOTTOM_NAV_PADDING;
+};
+
+/**
+ * Get content padding
+ */
+export const getContentPadding = (): number => {
+  return Platform.OS === 'android' ? BASE_CONTENT_PADDING : BASE_CONTENT_PADDING;
+};
+
+/**
+ * Scale font size based on platform
+ */
+export const scaleFontSize = (size: number): number => {
+  return Platform.OS === 'android' ? size : size;
+};
+
+/**
+ * Get status bar height
+ */
+export const getStatusBarHeight = (): number => {
+  if (Platform.OS === 'android') {
+    return StatusBar.currentHeight || 24;
+  }
+  return 0; // iOS handles this automatically with safe area
+};
+
+/**
+ * Log scaling information for debugging
+ */
+export const logScalingInfo = (): void => {
+  console.log('[AndroidScaling] 📊 UI Scaling Information:');
+  console.log('  - Platform:', Platform.OS);
+  console.log('  - Screen Width:', SCREEN_WIDTH);
+  console.log('  - Screen Height:', SCREEN_HEIGHT);
+  console.log('  - Header Height:', getHeaderHeight());
+  console.log('  - Search Box Height:', getSearchBoxHeight());
+  console.log('  - Category Icon Size:', getCategoryIconSize());
+  console.log('  - Category Icon Inner Size:', getCategoryIconInnerSize());
+  console.log('  - Category Spacing:', getCategorySpacing());
+  console.log('  - Category Top Padding:', getCategoryTopPadding());
+  console.log('  - Bottom Nav Height:', getBottomNavHeight());
+  console.log('  - Content Padding:', getContentPadding());
+  console.log('  - Status Bar Height:', getStatusBarHeight());
 };
