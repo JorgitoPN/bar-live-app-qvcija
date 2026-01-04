@@ -10,14 +10,33 @@ export const colors = {
   text: '#e3e3e3',       // Keeping light text
   grey: '#90CAF9',       // Light Blue Grey
   card: '#193cb8',       // Keeping dark card background
+  
+  // Additional colors used in the app
+  headerGradientStart: '#162456',
+  headerGradientEnd: '#193cb8',
+  headerText: '#e3e3e3',
+  white: '#FFFFFF',
+  cardBackground: '#162133',
+  textSecondary: '#90CAF9',
+};
+
+// Header gradient colors abc
+export const fontSizes = {
+  xs: 12,
+  sm: 14,
+  md: 16,
+  lg: 18,
+  xl: 20,
+  xxl: 24,
 };
 
 export const spacing = {
   xs: 4,
   sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
 };
 
 export const borderRadius = {
@@ -32,17 +51,11 @@ export const buttonStyles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignSelf: 'center',
     width: '100%',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.md,
   },
   backButton: {
     backgroundColor: colors.backgroundAlt,
     alignSelf: 'center',
     width: '100%',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.md,
   },
 });
 

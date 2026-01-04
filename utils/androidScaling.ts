@@ -63,6 +63,52 @@ export const getLineHeight = (fontSize: number): number => {
   return Math.round(fontSize * 1.4);
 };
 
+// Font sizes with scaling
+export const fontSizes = {
+  xs: scaleFontSize(12),
+  sm: scaleFontSize(14),
+  base: scaleFontSize(16),
+  md: scaleFontSize(16),
+  lg: scaleFontSize(18),
+  xl: scaleFontSize(20),
+  '2xl': scaleFontSize(24),
+  '3xl': scaleFontSize(30),
+};
+
+// Spacing with scaling
+export const spacing = {
+  xs: scaleSpacing(4),
+  sm: scaleSpacing(8),
+  md: scaleSpacing(12),
+  lg: scaleSpacing(16),
+  xl: scaleSpacing(20),
+  '2xl': scaleSpacing(24),
+  '3xl': scaleSpacing(32),
+  '4xl': scaleSpacing(40),
+  '5xl': scaleSpacing(48),
+};
+
+// Border radius with scaling
+export const borderRadius = {
+  sm: scaleSize(4),
+  md: scaleSize(8),
+  lg: scaleSize(12),
+  xl: scaleSize(16),
+  '2xl': scaleSize(20),
+  full: 9999,
+};
+
+// Icon sizes with scaling
+export const iconSizes = {
+  xs: scaleSize(12),
+  sm: scaleSize(16),
+  md: scaleSize(20),
+  lg: scaleSize(24),
+  xl: scaleSize(28),
+  '2xl': scaleSize(32),
+  '3xl': scaleSize(48),
+};
+
 export const logScalingInfo = (): void => {
   if (Platform.OS === 'android') {
     console.log('[AndroidScaling] 📊 Scaling Information:');
