@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "expo-router";
 import { Pressable, StyleSheet, View, Text } from "react-native";
@@ -6,7 +5,6 @@ import { IconSymbol } from "@/components/IconSymbol";
 import { useTheme } from "@react-navigation/native";
 import { ModalDemo } from "./homeData";
 import { GlassView } from "expo-glass-effect";
-import { fontSizes, spacing, getLineHeight, iconSizes, borderRadius } from "@/utils/androidScaling";
 
 interface DemoCardProps {
   item: ModalDemo;
@@ -24,12 +22,7 @@ export function DemoCard({ item }: DemoCardProps) {
       glassEffectStyle="regular"
     >
       <View style={[styles.demoIcon, { backgroundColor: item.color }]}>
-        <IconSymbol 
-          ios_icon_name="square.grid.3x3" 
-          android_material_icon_name="apps" 
-          color={theme.dark ? '#111111' : '#FFFFFF'} 
-          size={iconSizes.lg} 
-        />
+        <IconSymbol ios_icon_name="square.grid.3x3" android_material_icon_name="apps" color={theme.dark ? '#111111' : '#FFFFFF'} size={24} />
       </View>
       <View style={styles.demoContent}>
         <Text style={[styles.demoTitle, { color: theme.colors.text }]}>
@@ -59,41 +52,39 @@ export function DemoCard({ item }: DemoCardProps) {
 
 const styles = StyleSheet.create({
   demoCard: {
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },
   demoIcon: {
-    width: iconSizes['2xl'],
-    height: iconSizes['2xl'],
-    borderRadius: iconSizes.xl,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.lg,
+    marginRight: 16,
   },
   demoContent: {
     flex: 1,
   },
   demoTitle: {
-    fontSize: fontSizes.lg,
+    fontSize: 18,
     fontWeight: '600',
-    marginBottom: spacing.xs,
-    lineHeight: getLineHeight(fontSizes.lg),
+    marginBottom: 4,
   },
   demoDescription: {
-    fontSize: fontSizes.sm,
-    lineHeight: getLineHeight(fontSizes.sm),
+    fontSize: 14,
+    lineHeight: 18,
   },
   tryButton: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
   },
   tryButtonText: {
-    fontSize: fontSizes.sm,
+    fontSize: 14,
     fontWeight: '600',
-    lineHeight: getLineHeight(fontSizes.sm),
   },
 });
