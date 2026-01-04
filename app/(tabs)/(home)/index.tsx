@@ -23,12 +23,13 @@ import TarjetaLocal from '@/components/home/TarjetaLocal';
 import BarraFiltrosInteractiva from '@/components/home/BarraFiltrosInteractiva';
 import * as Location from 'expo-location';
 import { getEstadoLocal } from '@/utils/timeUtils';
+import { fontSizes, spacing, getLineHeight, iconSizes, borderRadius } from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const MAX_FEATURED_DISTANCE_KM = 100;
 
-// ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+// ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0 + SCALING FIX
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 220;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
@@ -396,13 +397,13 @@ export default function HomeScreen() {
               style={styles.mapButton}
               onPress={() => router.push('/(tabs)/explorar/mapa' as any)}
             >
-              <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={iconSizes.lg} color={colors.headerText} />
             </TouchableOpacity>
           </LinearGradient>
 
           {isImpersonating && (
             <View style={styles.impersonationIndicator}>
-              <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={18} color={colors.white} />
+              <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={iconSizes.md} color={colors.white} />
               <Text style={styles.impersonationIndicatorText}>
                 Vista de usuario impersonado
               </Text>
@@ -424,7 +425,7 @@ export default function HomeScreen() {
               <IconSymbol 
                 ios_icon_name="building.2" 
                 android_material_icon_name="business" 
-                size={16} 
+                size={iconSizes.md} 
                 color={colors.primary} 
               />
               <Text style={styles.claimLocalText} numberOfLines={1}>
@@ -433,7 +434,7 @@ export default function HomeScreen() {
               <IconSymbol 
                 ios_icon_name="chevron.right" 
                 android_material_icon_name="chevron_right" 
-                size={14} 
+                size={iconSizes.sm} 
                 color={colors.textSecondary} 
               />
             </View>
@@ -458,13 +459,13 @@ export default function HomeScreen() {
               style={styles.mapButton}
               onPress={() => router.push('/(tabs)/explorar/mapa' as any)}
             >
-              <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={iconSizes.lg} color={colors.headerText} />
             </TouchableOpacity>
           </LinearGradient>
 
           {isImpersonating && (
             <View style={styles.impersonationIndicator}>
-              <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={18} color={colors.white} />
+              <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={iconSizes.md} color={colors.white} />
               <Text style={styles.impersonationIndicatorText}>
                 Vista de usuario impersonado
               </Text>
@@ -486,7 +487,7 @@ export default function HomeScreen() {
               <IconSymbol 
                 ios_icon_name="building.2" 
                 android_material_icon_name="business" 
-                size={16} 
+                size={iconSizes.md} 
                 color={colors.primary} 
               />
               <Text style={styles.claimLocalText} numberOfLines={1}>
@@ -495,7 +496,7 @@ export default function HomeScreen() {
               <IconSymbol 
                 ios_icon_name="chevron.right" 
                 android_material_icon_name="chevron_right" 
-                size={14} 
+                size={iconSizes.sm} 
                 color={colors.textSecondary} 
               />
             </View>
@@ -520,7 +521,7 @@ export default function HomeScreen() {
       >
         {locales.length === 0 ? (
           <View style={styles.emptyState}>
-            <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={64} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={iconSizes['3xl']} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No se encontraron locales</Text>
             <Text style={styles.emptySubtext}>
               Intenta ajustar los filtros de búsqueda
@@ -548,11 +549,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: fontSizes.md,
     color: colors.text,
-    marginTop: 16,
+    marginTop: spacing.lg,
+    lineHeight: getLineHeight(fontSizes.md),
   },
-  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
+  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0 + SCALING FIX
   headerContainer: {
     position: 'absolute',
     top: 0,
@@ -562,9 +564,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? 48 : 50,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -573,92 +575,98 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: fontSizes['3xl'],
     fontWeight: 'bold',
     color: colors.headerText,
+    lineHeight: getLineHeight(fontSizes['3xl']),
   },
   headerSubtitle: {
-    fontSize: 15,
+    fontSize: fontSizes.base,
     color: colors.headerText,
     opacity: 0.9,
-    marginTop: 4,
+    marginTop: spacing.xs,
+    lineHeight: getLineHeight(fontSizes.base),
   },
   mapButton: {
-    padding: 8,
+    padding: spacing.sm,
   },
   impersonationIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: spacing.sm,
     backgroundColor: '#8B5CF6',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
   impersonationIndicatorText: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
     fontWeight: '600',
     color: colors.white,
+    lineHeight: getLineHeight(fontSizes.sm),
   },
   claimLocalBanner: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
     backgroundColor: colors.cardBackground,
-    borderRadius: 8,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.primary + '20',
   },
   claimLocalContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
   },
   claimLocalText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: fontSizes.sm,
     fontWeight: '600',
     color: colors.text,
+    lineHeight: getLineHeight(fontSizes.sm),
   },
   content: {
     flex: 1,
     marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT : 0,
   },
   contentContainer: {
-    padding: 16,
+    padding: spacing.lg,
     paddingBottom: 100,
   },
   footerLoader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 8,
+    paddingVertical: spacing.lg,
+    gap: spacing.sm,
   },
   footerLoaderText: {
-    fontSize: 14,
+    fontSize: fontSizes.sm,
     color: colors.textSecondary,
+    lineHeight: getLineHeight(fontSizes.sm),
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 40,
+    paddingVertical: spacing['5xl'],
+    paddingHorizontal: spacing['2xl'],
   },
   emptyText: {
-    fontSize: 20,
+    fontSize: fontSizes.xl,
     fontWeight: '600',
     color: colors.text,
-    marginTop: 16,
+    marginTop: spacing.lg,
     textAlign: 'center',
+    lineHeight: getLineHeight(fontSizes.xl),
   },
   emptySubtext: {
-    fontSize: 15,
+    fontSize: fontSizes.base,
     color: colors.textSecondary,
-    marginTop: 8,
+    marginTop: spacing.sm,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: getLineHeight(fontSizes.base),
   },
 });

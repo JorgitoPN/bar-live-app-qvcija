@@ -1,260 +1,216 @@
 
 import { StyleSheet, Platform } from 'react-native';
+import { fontSizes, spacing, getLineHeight, scaleSize, borderRadius } from '../utils/androidScaling';
 
-/**
- * ✅ COMMON STYLES v93.0 - ANDROID RESPONSIVE SCALING FIX
- * 
- * CRITICAL FIXES v93.0 (ANDROID ONLY):
- * - ✅ Significantly reduced font sizes on Android for better responsiveness
- * - ✅ Reduced header padding to save screen space
- * - ✅ Adjusted all text sizes to prevent oversized appearance
- * - ✅ Content now scales properly on Android devices
- * - ✅ iOS design remains unchanged (reference design)
- * 
- * Previous fixes maintained:
- * - ✅ Consistent colors across all platforms
- * - ✅ Proper safe area handling
- * - ✅ Platform-specific adjustments for optimal UX
- * - ✅ Unified design system
- */
-
-// Header gradient colors - abc
+// Header gradient colors
 export const colors = {
-  // Primary brand colors
-  primary: '#14B8A6',
-  secondary: '#06B6D4',
-  
-  // Header gradient
-  headerGradientStart: '#14B8A6',
-  headerGradientEnd: '#06B6D4',
+  primary: '#162456',
+  secondary: '#193cb8',
+  accent: '#64B5F6',
+  background: '#101824',
+  backgroundAlt: '#162133',
+  text: '#e3e3e3',
+  textSecondary: '#90CAF9',
+  grey: '#90CAF9',
+  card: '#193cb8',
+  cardBackground: '#162133',
+  white: '#FFFFFF',
   headerText: '#FFFFFF',
-  
-  // Background colors
-  background: '#F9FAFB',
-  cardBackground: '#FFFFFF',
-  cardBorder: '#E5E7EB',
-  
-  // Text colors
-  text: '#111827',
-  textSecondary: '#6B7280',
-  textTertiary: '#9CA3AF',
-  
-  // Status colors
-  success: '#10B981',
+  headerGradientStart: '#162456',
+  headerGradientEnd: '#193cb8',
   error: '#EF4444',
+  success: '#10B981',
   warning: '#F59E0B',
   info: '#3B82F6',
-  
-  // Badge colors
-  badgeAbierto: '#22C55E',
-  badgeCerrado: '#EF4444',
-  badgeCierraPronto: '#F97316',
-  badgeAbrePronto: '#EAB308',
-  badgeNuevo: '#EF4444',
-  badgeDestacado: '#FACC15',
-  
-  // Social colors
-  like: '#EF4444',
-  comment: '#3B82F6',
-  share: '#10B981',
-  save: '#F59E0B',
-  
-  // Utility colors
-  white: '#FFFFFF',
-  black: '#000000',
-  transparent: 'transparent',
-  
-  // Overlay colors
-  overlay: 'rgba(0, 0, 0, 0.5)',
-  overlayLight: 'rgba(0, 0, 0, 0.3)',
-  overlayDark: 'rgba(0, 0, 0, 0.7)',
-  
-  // Border colors
-  border: '#E5E7EB',
-  borderLight: '#F3F4F6',
-  borderDark: '#D1D5DB',
 };
 
+export const buttonStyles = StyleSheet.create({
+  instructionsButton: {
+    backgroundColor: colors.primary,
+    alignSelf: 'center',
+    width: '100%',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+  },
+  backButton: {
+    backgroundColor: colors.backgroundAlt,
+    alignSelf: 'center',
+    width: '100%',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+  },
+  buttonText: {
+    fontSize: fontSizes.md,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+    lineHeight: getLineHeight(fontSizes.md),
+  },
+});
+
 export const commonStyles = StyleSheet.create({
-  // ✅ ANDROID FIX v93.0: Container with proper padding matching iOS
+  wrapper: {
+    backgroundColor: colors.background,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop: 0,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  
-  // ✅ ANDROID FIX v93.0: Header gradient with significantly reduced padding on Android
-  headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 36, // Reduced from 40 to 36 on Android
-    paddingBottom: Platform.OS === 'ios' ? 16 : 10, // Reduced from 12 to 10 on Android
-    paddingHorizontal: 20,
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: 800,
+    width: '100%',
+    paddingHorizontal: spacing.lg,
   },
-  
-  // ✅ ANDROID FIX v93.0: Significantly reduced header title size on Android
-  headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 24, // Reduced from 28 to 24 on Android (25% reduction)
-    fontWeight: 'bold',
-    color: colors.headerText,
+  title: {
+    fontSize: fontSizes['2xl'],
+    fontWeight: '800',
+    textAlign: 'center',
+    color: colors.text,
+    marginBottom: spacing.md,
+    lineHeight: getLineHeight(fontSizes['2xl']),
   },
-  
-  // ✅ ANDROID FIX v93.0: Reduced header subtitle size on Android
-  headerSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 15 : 13, // Reduced from 14 to 13 on Android
-    color: colors.headerText,
-    opacity: 0.9,
-    marginTop: 4,
+  subtitle: {
+    fontSize: fontSizes.lg,
+    fontWeight: '600',
+    textAlign: 'center',
+    color: colors.text,
+    marginBottom: spacing.sm,
+    lineHeight: getLineHeight(fontSizes.lg),
   },
-  
-  // Card styles
+  text: {
+    fontSize: fontSizes.md,
+    fontWeight: '500',
+    color: colors.text,
+    marginBottom: spacing.sm,
+    lineHeight: getLineHeight(fontSizes.md),
+    textAlign: 'center',
+  },
+  textSmall: {
+    fontSize: fontSizes.sm,
+    fontWeight: '400',
+    color: colors.textSecondary,
+    lineHeight: getLineHeight(fontSizes.sm),
+  },
+  section: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  buttonContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
   card: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.backgroundAlt,
+    borderColor: colors.grey,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginVertical: spacing.sm,
+    width: '100%',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 8,
+        shadowRadius: 3,
       },
       android: {
-        elevation: 3,
+        elevation: 2,
       },
     }),
   },
-  
-  // Shadow styles
-  shadow: Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-    },
-    android: {
-      elevation: 4,
-    },
-    default: {},
-  }),
-  
-  shadowLarge: Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
-    },
-    android: {
-      elevation: 8,
-    },
-    default: {},
-  }),
-  
-  // Button styles
+  icon: {
+    width: scaleSize(60),
+    height: scaleSize(60),
+    tintColor: colors.white,
+  },
+  iconSmall: {
+    width: scaleSize(24),
+    height: scaleSize(24),
+    tintColor: colors.text,
+  },
+  iconMedium: {
+    width: scaleSize(32),
+    height: scaleSize(32),
+    tintColor: colors.text,
+  },
+  iconLarge: {
+    width: scaleSize(48),
+    height: scaleSize(48),
+    tintColor: colors.text,
+  },
+  input: {
+    backgroundColor: colors.backgroundAlt,
+    borderColor: colors.grey,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: fontSizes.md,
+    color: colors.text,
+    width: '100%',
+    lineHeight: getLineHeight(fontSizes.md),
+  },
   button: {
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
   },
-  
-  buttonPrimary: {
-    backgroundColor: colors.primary,
-  },
-  
   buttonSecondary: {
     backgroundColor: colors.secondary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
-  
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  
-  // Input styles
-  input: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
+  buttonOutline: {
+    backgroundColor: 'transparent',
+    borderColor: colors.primary,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
-  
-  // ✅ ANDROID FIX v93.0: Significantly reduced text sizes for better Android responsiveness
-  title: {
-    fontSize: Platform.OS === 'ios' ? 24 : 20, // Reduced from 22 to 20 on Android
-    fontWeight: 'bold',
-    color: colors.text,
+  divider: {
+    height: 1,
+    backgroundColor: colors.grey + '30',
+    width: '100%',
+    marginVertical: spacing.lg,
   },
-  
-  subtitle: {
-    fontSize: Platform.OS === 'ios' ? 18 : 16, // Reduced from 17 to 16 on Android
-    fontWeight: '600',
-    color: colors.text,
-  },
-  
-  body: {
-    fontSize: Platform.OS === 'ios' ? 16 : 15, // Reduced from 16 to 15 on Android
-    color: colors.text,
-    lineHeight: 24,
-  },
-  
-  caption: {
-    fontSize: Platform.OS === 'ios' ? 14 : 13, // Reduced from 14 to 13 on Android
-    color: colors.textSecondary,
-  },
-  
-  // Layout styles
   row: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.md,
   },
-  
-  column: {
-    flexDirection: 'column',
+  spaceBetween: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  
-  center: {
+  centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
-  spaceBetween: {
-    justifyContent: 'space-between',
-  },
-  
-  // Spacing
-  marginSmall: {
-    margin: 8,
-  },
-  
-  marginMedium: {
-    margin: 16,
-  },
-  
-  marginLarge: {
-    margin: 24,
-  },
-  
-  paddingSmall: {
-    padding: 8,
-  },
-  
-  paddingMedium: {
-    padding: 16,
-  },
-  
-  paddingLarge: {
-    padding: 24,
-  },
 });
-
-export default commonStyles;
