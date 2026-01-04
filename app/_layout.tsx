@@ -9,8 +9,6 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
 import { PostsProvider } from '@/contexts/PostsContext';
 import { FilterProvider } from '@/contexts/FilterContext';
-import { WidgetProvider } from '@/contexts/WidgetContext';
-import { UIScalingProvider } from '@/contexts/UIScalingContext';
 import { colors } from '@/styles/commonStyles';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -62,47 +60,43 @@ export default function RootLayout() {
       <AuthProvider>
         <ImpersonationProvider>
           <ModeProvider>
-            <UIScalingProvider>
-              <WidgetProvider>
-                <SelectedLocalProvider>
-                  <GlobalDataProvider>
-                    <FavoritesProvider>
-                      <FilterProvider>
-                        <PostsProvider>
-                          <StatusBar style="light" />
-                          <Stack
-                            screenOptions={{
-                              headerShown: false,
-                              contentStyle: { backgroundColor: colors.background },
-                              animation: Platform.OS === 'android' ? 'slide_from_right' : 'default',
-                              gestureEnabled: true,
-                              gestureDirection: 'horizontal',
-                            }}
-                          >
-                            {/* Main app routes */}
-                            <Stack.Screen name="index" options={{ headerShown: false }} />
-                            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                            <Stack.Screen name="auth" options={{ headerShown: false }} />
-                            <Stack.Screen name="crear" options={{ headerShown: false }} />
-                            <Stack.Screen name="detalle" options={{ headerShown: false }} />
-                            <Stack.Screen name="editar" options={{ headerShown: false }} />
-                            <Stack.Screen name="perfil" options={{ headerShown: false }} />
-                            <Stack.Screen name="social" options={{ headerShown: false }} />
-                            <Stack.Screen name="chat" options={{ headerShown: false }} />
-                            <Stack.Screen name="admin" options={{ headerShown: false }} />
-                            <Stack.Screen name="gestion" options={{ headerShown: false }} />
-                            <Stack.Screen name="empleo" options={{ headerShown: false }} />
-                            <Stack.Screen name="legal" options={{ headerShown: false }} />
-                            <Stack.Screen name="soporte" options={{ headerShown: false }} />
-                            <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
-                          </Stack>
-                        </PostsProvider>
-                      </FilterProvider>
-                    </FavoritesProvider>
-                  </GlobalDataProvider>
-                </SelectedLocalProvider>
-              </WidgetProvider>
-            </UIScalingProvider>
+            <SelectedLocalProvider>
+              <GlobalDataProvider>
+                <FavoritesProvider>
+                  <FilterProvider>
+                    <PostsProvider>
+                      <StatusBar style="light" />
+                      <Stack
+                        screenOptions={{
+                          headerShown: false,
+                          contentStyle: { backgroundColor: colors.background },
+                          animation: Platform.OS === 'android' ? 'slide_from_right' : 'default',
+                          gestureEnabled: true,
+                          gestureDirection: 'horizontal',
+                        }}
+                      >
+                        {/* Main app routes */}
+                        <Stack.Screen name="index" options={{ headerShown: false }} />
+                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                        <Stack.Screen name="auth" options={{ headerShown: false }} />
+                        <Stack.Screen name="crear" options={{ headerShown: false }} />
+                        <Stack.Screen name="detalle" options={{ headerShown: false }} />
+                        <Stack.Screen name="editar" options={{ headerShown: false }} />
+                        <Stack.Screen name="perfil" options={{ headerShown: false }} />
+                        <Stack.Screen name="social" options={{ headerShown: false }} />
+                        <Stack.Screen name="chat" options={{ headerShown: false }} />
+                        <Stack.Screen name="admin" options={{ headerShown: false }} />
+                        <Stack.Screen name="gestion" options={{ headerShown: false }} />
+                        <Stack.Screen name="empleo" options={{ headerShown: false }} />
+                        <Stack.Screen name="legal" options={{ headerShown: false }} />
+                        <Stack.Screen name="soporte" options={{ headerShown: false }} />
+                        <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
+                      </Stack>
+                    </PostsProvider>
+                  </FilterProvider>
+                </FavoritesProvider>
+              </GlobalDataProvider>
+            </SelectedLocalProvider>
           </ModeProvider>
         </ImpersonationProvider>
       </AuthProvider>

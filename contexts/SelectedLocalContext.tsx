@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from './AuthContext';
@@ -28,10 +28,6 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
   const [selectedLocalId, setSelectedLocalIdState] = useState<string | null>(null);
   const [userLocales, setUserLocales] = useState<any[]>([]);
   const [loadingLocales, setLoadingLocales] = useState(true);
-  
-  // ✅ FIX: Use ref to prevent infinite loops
-  const isLoadingRef = useRef(false);
-  const hasLoadedInitialRef = useRef(false);
 
   // Load selected local from storage
   useEffect(() => {
@@ -47,25 +43,17 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     };
 
     loadSelectedLocal();
-  }, []); // ✅ FIX: Only run once on mount
+  }, []);
 
   // Load user's locales
   const loadUserLocales = useCallback(async () => {
-    // ✅ FIX: Prevent concurrent loads
-    if (isLoadingRef.current) {
-      console.log('[SelectedLocalContext] Already loading, skipping...');
-      return;
-    }
-
     if (!user || user.rol_app !== 'propietario') {
       setUserLocales([]);
       setLoadingLocales(false);
-      hasLoadedInitialRef.current = true;
       return;
     }
 
     try {
-      isLoadingRef.current = true;
       setLoadingLocales(true);
 
       // Get user's locales
@@ -127,23 +115,17 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
           await AsyncStorage.setItem(STORAGE_KEY, firstLocalId);
         }
       }
-
-      hasLoadedInitialRef.current = true;
     } catch (error) {
       console.error('[SelectedLocalContext] Error loading user locales:', error);
       setUserLocales([]);
     } finally {
       setLoadingLocales(false);
-      isLoadingRef.current = false;
     }
-  }, [user?.id, user?.rol_app]); // ✅ FIX: Only depend on user.id and rol_app, not selectedLocalId
+  }, [user, selectedLocalId]);
 
-  // ✅ FIX: Only load once when user changes
   useEffect(() => {
-    if (!hasLoadedInitialRef.current) {
-      loadUserLocales();
-    }
-  }, [user?.id, user?.rol_app]); // ✅ FIX: Simplified dependencies
+    loadUserLocales();
+  }, [user, loadUserLocales]);
 
   const setSelectedLocalId = async (localId: string | null) => {
     try {
@@ -159,7 +141,6 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshLocales = async () => {
-    hasLoadedInitialRef.current = false;
     await loadUserLocales();
   };
 
