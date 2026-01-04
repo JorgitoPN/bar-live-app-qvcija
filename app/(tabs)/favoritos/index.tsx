@@ -30,6 +30,13 @@ import { getEstadoLocal } from '@/utils/timeUtils';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import * as Location from 'expo-location';
 import { calcularDistancia } from '@/utils/locationUtils';
+import {
+  getSearchBoxHeight,
+  getCategoryIconSize,
+  getCategoryIconInnerSize,
+  getCategorySpacing,
+  scaleFontSize,
+} from '@/utils/androidScaling';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -63,15 +70,18 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v95.0 - ANDROID FIXES
+ * ✅ FAVORITOS SCREEN v95.0 - ANDROID DESIGN FIXES
  * 
- * CRITICAL FIXES v95.0:
- * - ✅ Fixed VirtualizedList error by using Animated.createAnimatedComponent
- * - ✅ Header hides completely on scroll down (Android only)
- * - ✅ Header shows on scroll up (Android only)
- * - ✅ Smooth animation using Animated API with useNativeDriver
- * - ✅ iOS behavior unchanged (static header)
- * - ✅ Consistent with Home and Events screens
+ * CRITICAL FIXES v95.0 (ANDROID ONLY - iOS unchanged):
+ * - ✅ Search box size matches Explorar page (44px height on Android)
+ * - ✅ Search box typography matches Explorar (15px font on Android)
+ * - ✅ Category filter sizes reduced for visual consistency
+ * - ✅ Category icons and text properly scaled for Android
+ * - ✅ Header title size standardized (20px on Android)
+ * - ✅ Fixed VirtualizedList error with Animated.createAnimatedComponent
+ * - ✅ All dimensions properly scaled for Android devices
+ * 
+ * IMPORTANT: iOS design remains unchanged - all fixes are Android-specific
  */
 
 export default function FavoritosScreen() {
@@ -752,11 +762,19 @@ export default function FavoritosScreen() {
     );
   }
 
+  // ✅ Get platform-specific dimensions
+  const searchBoxHeight = getSearchBoxHeight();
+  const categoryIconSize = Platform.OS === 'android' ? getCategoryIconSize() * 0.8 : 16; // Reduced for Android
+  const categoryFontSize = Platform.OS === 'android' ? scaleFontSize(12) : 14; // Reduced for Android
+
   // ✅ ANDROID HEADER SCROLL BEHAVIOR v95.0: Render with animated header
   const HeaderContent = () => (
     <React.Fragment>
       <View style={styles.headerTop}>
-        <Text style={styles.headerTitle}>Locales Favoritos</Text>
+        {/* ✅ Android Fix v95.0: Standardized title size (20px on Android) */}
+        <Text style={[styles.headerTitle, { 
+          fontSize: Platform.OS === 'android' ? 20 : 32 
+        }]}>Locales Favoritos</Text>
         {activeFiltersCount > 0 && (
           <TouchableOpacity 
             style={styles.clearFiltersHeaderButton}
@@ -769,7 +787,8 @@ export default function FavoritosScreen() {
         )}
       </View>
       
-      <View style={styles.searchContainer}>
+      {/* ✅ Android Fix v95.0: Unified search box size and typography */}
+      <View style={[styles.searchContainer, { height: searchBoxHeight }]}>
         <IconSymbol 
           ios_icon_name="magnifyingglass" 
           android_material_icon_name="search"
@@ -777,7 +796,7 @@ export default function FavoritosScreen() {
           color={colors.textSecondary}
         />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { fontSize: Platform.OS === 'android' ? 15 : 16 }]}
           placeholder="Buscar en favoritos..."
           placeholderTextColor={colors.textSecondary}
           value={searchQuery}
@@ -809,6 +828,7 @@ export default function FavoritosScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* ✅ Android Fix v95.0: Reduced category filter sizes */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -825,10 +845,11 @@ export default function FavoritosScreen() {
             onPress={() => setSelectedCategory(categoria.id)}
             activeOpacity={0.7}
           >
-            <Text style={styles.categoryEmoji}>{categoria.emoji}</Text>
+            <Text style={[styles.categoryEmoji, { fontSize: categoryIconSize }]}>{categoria.emoji}</Text>
             <Text
               style={[
                 styles.categoryText,
+                { fontSize: categoryFontSize },
                 selectedCategory === categoria.id && styles.categoryTextActive,
               ]}
             >
@@ -937,6 +958,7 @@ export default function FavoritosScreen() {
               showsVerticalScrollIndicator={true}
               bounces={false}
             >
+              {/* ✅ Android Fix v95.0: Reduced category filter sizes in modal */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Categoría de Local</Text>
                 <View style={styles.categoriesGrid}>
@@ -949,10 +971,13 @@ export default function FavoritosScreen() {
                       ]}
                       onPress={() => setSelectedCategory(categoria.id)}
                     >
-                      <Text style={styles.categoryFilterEmoji}>{categoria.emoji}</Text>
+                      <Text style={[styles.categoryFilterEmoji, { 
+                        fontSize: Platform.OS === 'android' ? 16 : 20 
+                      }]}>{categoria.emoji}</Text>
                       <Text
                         style={[
                           styles.categoryFilterText,
+                          { fontSize: Platform.OS === 'android' ? 12 : 14 },
                           selectedCategory === categoria.id && styles.categoryFilterTextActive,
                         ]}
                       >
@@ -1040,7 +1065,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerGradient: {
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'android' ? 36 : 50, // Reduced for Android
     paddingBottom: 20,
     paddingHorizontal: 16,
   },
@@ -1051,7 +1076,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 32,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -1075,13 +1099,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
     marginBottom: 12,
     gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
     color: colors.text,
     padding: 0,
     marginLeft: 8,
@@ -1102,8 +1124,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: Platform.OS === 'android' ? 10 : 14,
+    paddingVertical: Platform.OS === 'android' ? 6 : 8,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 1,
@@ -1114,10 +1136,9 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   categoryEmoji: {
-    fontSize: 16,
+    // fontSize set inline based on platform
   },
   categoryText: {
-    fontSize: 14,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
   },
@@ -1530,8 +1551,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: Platform.OS === 'android' ? 12 : 16,
+    paddingVertical: Platform.OS === 'android' ? 10 : 12,
     borderRadius: 12,
     backgroundColor: colors.background,
     borderWidth: 1,
@@ -1543,10 +1564,9 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   categoryFilterEmoji: {
-    fontSize: 20,
+    // fontSize set inline based on platform
   },
   categoryFilterText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },

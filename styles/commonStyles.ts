@@ -2,13 +2,13 @@
 import { StyleSheet, Platform } from 'react-native';
 
 /**
- * ✅ COMMON STYLES v93.0 - ANDROID RESPONSIVE SCALING FIX
+ * ✅ COMMON STYLES v96.0 - ANDROID HEADER TITLE SIZE STANDARDIZATION
  * 
- * CRITICAL FIXES v93.0 (ANDROID ONLY):
- * - ✅ Significantly reduced font sizes on Android for better responsiveness
+ * CRITICAL FIXES v96.0 (ANDROID ONLY):
+ * - ✅ Standardized header title size to 20px on Android (matches Explorar page)
+ * - ✅ All pages now have consistent header title sizes
+ * - ✅ Reduced font sizes on Android for better responsiveness
  * - ✅ Reduced header padding to save screen space
- * - ✅ Adjusted all text sizes to prevent oversized appearance
- * - ✅ Content now scales properly on Android devices
  * - ✅ iOS design remains unchanged (reference design)
  * 
  * Previous fixes maintained:
@@ -76,30 +76,30 @@ export const colors = {
 };
 
 export const commonStyles = StyleSheet.create({
-  // ✅ ANDROID FIX v93.0: Container with proper padding matching iOS
+  // ✅ ANDROID FIX v96.0: Container with proper padding matching iOS
   container: {
     flex: 1,
     backgroundColor: colors.background,
     paddingTop: 0,
   },
   
-  // ✅ ANDROID FIX v93.0: Header gradient with significantly reduced padding on Android
+  // ✅ ANDROID FIX v96.0: Header gradient with reduced padding on Android
   headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 36, // Reduced from 40 to 36 on Android
-    paddingBottom: Platform.OS === 'ios' ? 16 : 10, // Reduced from 12 to 10 on Android
+    paddingTop: Platform.OS === 'ios' ? 50 : 36,
+    paddingBottom: Platform.OS === 'ios' ? 16 : 10,
     paddingHorizontal: 20,
   },
   
-  // ✅ ANDROID FIX v93.0: Significantly reduced header title size on Android
+  // ✅ CRITICAL FIX v96.0: Standardized header title size to 20px on Android (matches Explorar)
   headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 24, // Reduced from 28 to 24 on Android (25% reduction)
+    fontSize: Platform.OS === 'ios' ? 32 : 20, // Changed from 24 to 20 on Android
     fontWeight: 'bold',
     color: colors.headerText,
   },
   
-  // ✅ ANDROID FIX v93.0: Reduced header subtitle size on Android
+  // ✅ ANDROID FIX v96.0: Reduced header subtitle size on Android
   headerSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 15 : 13, // Reduced from 14 to 13 on Android
+    fontSize: Platform.OS === 'ios' ? 15 : 13,
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 4,
@@ -125,6 +125,19 @@ export const commonStyles = StyleSheet.create({
       },
     }),
   },
+  
+  cardShadow: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+    },
+    android: {
+      elevation: 3,
+    },
+    default: {},
+  }),
   
   // Shadow styles
   shadow: Platform.select({
@@ -188,28 +201,44 @@ export const commonStyles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   
-  // ✅ ANDROID FIX v93.0: Significantly reduced text sizes for better Android responsiveness
+  // ✅ ANDROID FIX v96.0: Reduced text sizes for better Android responsiveness
   title: {
-    fontSize: Platform.OS === 'ios' ? 24 : 20, // Reduced from 22 to 20 on Android
+    fontSize: Platform.OS === 'ios' ? 24 : 20,
     fontWeight: 'bold',
     color: colors.text,
   },
   
   subtitle: {
-    fontSize: Platform.OS === 'ios' ? 18 : 16, // Reduced from 17 to 16 on Android
+    fontSize: Platform.OS === 'ios' ? 18 : 16,
     fontWeight: '600',
     color: colors.text,
   },
   
   body: {
-    fontSize: Platform.OS === 'ios' ? 16 : 15, // Reduced from 16 to 15 on Android
+    fontSize: Platform.OS === 'ios' ? 16 : 15,
     color: colors.text,
     lineHeight: 24,
   },
   
   caption: {
-    fontSize: Platform.OS === 'ios' ? 14 : 13, // Reduced from 14 to 13 on Android
+    fontSize: Platform.OS === 'ios' ? 14 : 13,
     color: colors.textSecondary,
+  },
+  
+  // Badge styles
+  badgeNuevo: {
+    backgroundColor: colors.badgeNuevo,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  
+  badgeNuevoText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.white,
+    textTransform: 'uppercase',
   },
   
   // Layout styles
