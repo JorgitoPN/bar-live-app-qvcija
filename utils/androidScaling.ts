@@ -1,401 +1,263 @@
 
-/**
- * ANDROID SCALING UTILITY - v93.0 - ANDROID RESPONSIVE SCALING FIX
- * 
- * Centralized scaling system for Android UI parity with iOS.
- * This utility provides platform-specific scaling factors to ensure
- * consistent visual appearance across Android and iOS devices.
- * 
- * CRITICAL FIXES v93.0 - RESPONSIVE SCALING FOR ANDROID:
- * - ✅ Significantly reduced font sizes on Android (20-25% reduction)
- * - ✅ Reduced header heights and padding to save screen space
- * - ✅ Adjusted all dimensions for better Android responsiveness
- * - ✅ Content no longer appears oversized on Android
- * - ✅ Bottom navigation white stripe eliminated
- * 
- * IMPORTANT: iOS design is the reference - DO NOT modify iOS values
- */
-
 import { Platform, Dimensions, PixelRatio } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Base dimensions (iOS reference)
-const BASE_WIDTH = 375; // iPhone standard width
-const BASE_HEIGHT = 812; // iPhone standard height
+const BASE_WIDTH = 375; // iPhone SE/8 width
+const BASE_HEIGHT = 667;
+
+// Calculate scale factor for Android
+const widthScale = SCREEN_WIDTH / BASE_WIDTH;
+const heightScale = SCREEN_HEIGHT / BASE_HEIGHT;
+const scale = Math.min(widthScale, heightScale);
+
+// Android-specific scale factor (reduce by 10% for better visual balance)
+const ANDROID_SCALE_FACTOR = Platform.OS === 'android' ? 0.90 : 1.0;
 
 /**
- * Get the pixel density scale factor for the current device
- * ✅ FIXED v80.0: Proper normalization
+ * Scale a value for Android devices
  */
-export const getPixelDensityScale = (): number => {
-  if (Platform.OS !== 'android') return 1;
-  
-  const pixelRatio = PixelRatio.get();
-  
-  // Normalize pixel density to prevent over-scaling on high-DPI Android devices
-  if (pixelRatio >= 3.5) return 0.85; // xxxhdpi devices - prevent stretching
-  if (pixelRatio >= 3.0) return 0.90; // xxhdpi devices
-  if (pixelRatio >= 2.0) return 0.95; // xhdpi devices
-  if (pixelRatio >= 1.5) return 0.98; // hdpi devices
-  
-  return 1; // mdpi devices
-};
-
-/**
- * Scale a value based on screen width (horizontal scaling)
- */
-export const scaleWidth = (size: number): number => {
+export function scaleSize(size: number): number {
   if (Platform.OS !== 'android') return size;
-  
-  const scale = SCREEN_WIDTH / BASE_WIDTH;
-  const densityScale = getPixelDensityScale();
-  
-  return Math.round(size * scale * densityScale);
-};
+  return Math.round(size * scale * ANDROID_SCALE_FACTOR);
+}
 
 /**
- * Scale a value based on screen height (vertical scaling)
+ * Scale font size for Android
  */
-export const scaleHeight = (size: number): number => {
+export function scaleFontSize(size: number): number {
   if (Platform.OS !== 'android') return size;
-  
-  const scale = SCREEN_HEIGHT / BASE_HEIGHT;
-  const densityScale = getPixelDensityScale();
-  
-  return Math.round(size * scale * densityScale);
-};
+  const newSize = size * scale * ANDROID_SCALE_FACTOR;
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+}
 
 /**
- * Scale font size with proper density adjustment
- * ✅ CRITICAL FIX v93.0: Significantly reduced font scaling on Android
+ * Scale spacing/padding for Android
  */
-export const scaleFontSize = (size: number): number => {
-  if (Platform.OS !== 'android') return size;
-  
-  const scale = SCREEN_WIDTH / BASE_WIDTH;
-  const densityScale = getPixelDensityScale();
-  
-  // ✅ v93.0: More aggressive font scaling reduction (was 0.95, now 0.80)
-  // This prevents oversized text on Android
-  return Math.round(size * scale * densityScale * 0.80);
-};
+export function scaleSpacing(spacing: number): number {
+  if (Platform.OS !== 'android') return spacing;
+  return Math.round(spacing * ANDROID_SCALE_FACTOR);
+}
 
-/**
- * Scale icon size with proper density adjustment
- */
-export const scaleIconSize = (size: number): number => {
-  if (Platform.OS !== 'android') return size;
-  
-  const densityScale = getPixelDensityScale();
-  
-  // Icons should scale less aggressively
-  return Math.round(size * densityScale * 0.92);
-};
+// Header dimensions
+export function getHeaderHeight(): number {
+  return Platform.OS === 'android' ? scaleSize(60) : 60;
+}
 
-/**
- * Get platform-specific header height
- * ✅ CRITICAL FIX v93.0: Reduced header height on Android
- */
-export const getHeaderHeight = (): number => {
-  if (Platform.OS === 'ios') return 110;
-  
-  // ✅ v93.0: Reduced from 120 to 100 (about 17% reduction)
-  return 100;
-};
+export function getStatusBarHeight(): number {
+  return Platform.OS === 'android' ? scaleSize(24) : 44;
+}
 
-/**
- * Get platform-specific search box height
- */
-export const getSearchBoxHeight = (): number => {
-  if (Platform.OS === 'ios') return 48;
-  
-  // Android search box matches iOS
-  return 48;
-};
+export function getHeaderTitleSize(): number {
+  return Platform.OS === 'android' ? scaleFontSize(20) : 20;
+}
 
-/**
- * Get platform-specific category icon container size
- */
-export const getCategoryIconSize = (): number => {
-  if (Platform.OS === 'ios') return 56;
-  
-  // Android category icons match iOS
-  return 56;
-};
+// Search box dimensions
+export function getSearchBoxHeight(): number {
+  return Platform.OS === 'android' ? scaleSize(44) : 44;
+}
 
-/**
- * Get platform-specific category icon size (the actual icon)
- */
-export const getCategoryIconInnerSize = (): number => {
-  if (Platform.OS === 'ios') return 28;
-  
-  // Android category icon inner size matches iOS
-  return 28;
-};
+export function getSearchBoxFontSize(): number {
+  return Platform.OS === 'android' ? scaleFontSize(15) : 15;
+}
 
-/**
- * Get platform-specific spacing between categories
- */
-export const getCategorySpacing = (): number => {
-  if (Platform.OS === 'ios') return 16;
-  
-  // Android category spacing matches iOS
-  return 16;
-};
+// Category filter dimensions
+export function getCategoryIconSize(): number {
+  return Platform.OS === 'android' ? scaleSize(56) : 64;
+}
 
-/**
- * Get platform-specific top padding for category section
- */
-export const getCategoryTopPadding = (): number => {
-  if (Platform.OS === 'ios') return 16;
-  
-  // Android: MINIMAL spacing
-  return 4;
-};
+export function getCategoryIconInnerSize(): number {
+  return Platform.OS === 'android' ? scaleSize(28) : 32;
+}
 
-/**
- * Get platform-specific bottom navigation bar height
- * ✅ CRITICAL FIX v81.0: Reduced height for more compact design
- */
-export const getBottomNavHeight = (): number => {
-  if (Platform.OS === 'ios') return 70;
-  
-  // ✅ Android: Reduced height (was 70, now 62 - about 11% reduction)
-  return 62;
-};
+export function getCategoryFontSize(): number {
+  return Platform.OS === 'android' ? scaleFontSize(11) : 12;
+}
 
-/**
- * Get platform-specific bottom navigation icon size
- * ✅ CRITICAL FIX v81.0: Reduced icon size for better visibility
- */
-export const getBottomNavIconSize = (): number => {
-  if (Platform.OS === 'ios') return 28;
-  
-  // ✅ Android: Reduced icon size (was 28, now 24)
-  return 24;
-};
+export function getCategorySpacing(): number {
+  return Platform.OS === 'android' ? scaleSpacing(12) : 16;
+}
 
-/**
- * Get platform-specific center button size (Explorar button)
- * ✅ CRITICAL FIX v81.0: Reduced button size
- */
-export const getCenterButtonSize = (): number => {
-  if (Platform.OS === 'ios') return 60;
-  
-  // ✅ Android: Reduced center button size (was 60, now 54)
-  return 54;
-};
+export function getCategoryTopPadding(): number {
+  return Platform.OS === 'android' ? scaleSpacing(8) : 12;
+}
 
-/**
- * Get platform-specific center button icon size
- * ✅ CRITICAL FIX v81.0: Reduced icon size
- */
-export const getCenterButtonIconSize = (): number => {
-  if (Platform.OS === 'ios') return 30;
-  
-  // ✅ Android: Reduced center button icon size (was 30, now 26)
-  return 26;
-};
+// Content padding
+export function getContentPadding(): number {
+  return Platform.OS === 'android' ? scaleSpacing(16) : 20;
+}
 
-/**
- * Get platform-specific padding for content
- */
-export const getContentPadding = (): number => {
-  if (Platform.OS === 'ios') return 20;
-  
-  // Android content padding matches iOS
-  return 20;
-};
+// Bottom navigation dimensions
+export function getBottomNavHeight(): number {
+  return Platform.OS === 'android' ? scaleSize(60) : 65;
+}
 
-/**
- * Get platform-specific card border radius
- */
-export const getCardBorderRadius = (): number => {
-  if (Platform.OS === 'ios') return 16;
-  
-  // Android card border radius matches iOS
-  return 16;
-};
+export function getBottomNavIconSize(): number {
+  return Platform.OS === 'android' ? scaleSize(24) : 28;
+}
 
-/**
- * Get platform-specific card aspect ratio
- */
-export const getCardAspectRatio = (): number => {
-  // Same aspect ratio on both platforms
-  return 1.5; // Width to height ratio for local cards
-};
+export function getCenterButtonSize(): number {
+  return Platform.OS === 'android' ? scaleSize(56) : 64;
+}
 
-/**
- * Get platform-specific card image height
- */
-export const getCardImageHeight = (): number => {
-  if (Platform.OS === 'ios') return 200;
-  
-  // Android card image height matches iOS
-  return 200;
-};
+export function getCenterButtonIconSize(): number {
+  return Platform.OS === 'android' ? scaleSize(28) : 32;
+}
 
-/**
- * Get platform-specific button border radius
- */
-export const getButtonBorderRadius = (): number => {
-  if (Platform.OS === 'ios') return 12;
-  
-  // Android button border radius matches iOS
-  return 12;
-};
+export function getBottomNavPaddingBottom(safeAreaBottom: number): number {
+  if (Platform.OS === 'android') {
+    // On Android, we handle safe area differently
+    return 0;
+  }
+  return Math.max(safeAreaBottom, 8);
+}
 
-/**
- * Get platform-specific spacing value
- */
-export const getSpacing = (size: 'small' | 'medium' | 'large'): number => {
-  const spacingMap = {
-    small: 8,
-    medium: 16,
-    large: 24,
+// Card dimensions
+export function getCardBorderRadius(): number {
+  return Platform.OS === 'android' ? scaleSize(12) : 16;
+}
+
+export function getCardPadding(): number {
+  return Platform.OS === 'android' ? scaleSpacing(12) : 16;
+}
+
+export function getCardImageHeight(): number {
+  return Platform.OS === 'android' ? scaleSize(180) : 200;
+}
+
+// List item dimensions
+export function getListItemHeight(): number {
+  return Platform.OS === 'android' ? scaleSize(72) : 80;
+}
+
+export function getListItemPadding(): number {
+  return Platform.OS === 'android' ? scaleSpacing(12) : 16;
+}
+
+// Avatar dimensions
+export function getAvatarSize(size: 'small' | 'medium' | 'large'): number {
+  const sizes = {
+    small: Platform.OS === 'android' ? scaleSize(32) : 40,
+    medium: Platform.OS === 'android' ? scaleSize(48) : 56,
+    large: Platform.OS === 'android' ? scaleSize(80) : 96,
   };
-  
-  return spacingMap[size];
-};
+  return sizes[size];
+}
 
-/**
- * Get platform-specific status bar height
- * ✅ CRITICAL FIX v93.0: Reduced status bar height on Android
- */
-export const getStatusBarHeight = (): number => {
-  if (Platform.OS === 'ios') return 50;
-  
-  // ✅ v93.0: Reduced from 50 to 44 (about 12% reduction)
-  return 44;
-};
+// Button dimensions
+export function getButtonHeight(): number {
+  return Platform.OS === 'android' ? scaleSize(44) : 48;
+}
 
-/**
- * Get platform-specific safe area top padding
- */
-export const getSafeAreaTopPadding = (): number => {
-  // No extra padding needed on either platform
-  return 0;
-};
+export function getButtonFontSize(): number {
+  return Platform.OS === 'android' ? scaleFontSize(15) : 16;
+}
 
-/**
- * Get platform-specific bottom navigation padding bottom
- * ✅ CRITICAL FIX v82.0: Proper safe area handling for Android system buttons
- */
-export const getBottomNavPaddingBottom = (safeAreaBottom: number): number => {
-  if (Platform.OS === 'ios') return 20;
-  
-  // ✅ Android v82.0: Use safe area bottom directly (no minimum)
-  // This allows the background to extend all the way to system buttons
-  return safeAreaBottom;
-};
+// Modal dimensions
+export function getModalBorderRadius(): number {
+  return Platform.OS === 'android' ? scaleSize(16) : 20;
+}
 
-/**
- * Get platform-specific header padding top
- * ✅ CRITICAL FIX v93.0: Reduced header padding on Android
- */
-export const getHeaderPaddingTop = (): number => {
-  if (Platform.OS === 'ios') return 50;
-  
-  // ✅ v93.0: Reduced from 50 to 44 (about 12% reduction)
-  return 44;
-};
+export function getModalPadding(): number {
+  return Platform.OS === 'android' ? scaleSpacing(16) : 20;
+}
 
-/**
- * Get platform-specific header padding bottom
- * ✅ CRITICAL FIX v93.0: Reduced header padding on Android
- */
-export const getHeaderPaddingBottom = (): number => {
-  if (Platform.OS === 'ios') return 16;
-  
-  // ✅ v93.0: Reduced from 16 to 12 (about 25% reduction)
-  return 12;
-};
+// Banner dimensions
+export function getBannerHeight(): number {
+  return Platform.OS === 'android' ? scaleSize(100) : 120;
+}
 
-/**
- * Get platform-specific header padding horizontal
- */
-export const getHeaderPaddingHorizontal = (): number => {
-  if (Platform.OS === 'ios') return 20;
-  
-  // Android matches iOS
-  return 20;
-};
+export function getBannerPadding(): number {
+  return Platform.OS === 'android' ? scaleSpacing(16) : 20;
+}
 
-/**
- * Get platform-specific card padding
- */
-export const getCardPadding = (): number => {
-  if (Platform.OS === 'ios') return 16;
-  
-  // Android matches iOS
-  return 16;
-};
+export function getBannerFontSize(): number {
+  return Platform.OS === 'android' ? scaleFontSize(14) : 16;
+}
 
-/**
- * Get platform-specific card margin bottom
- */
-export const getCardMarginBottom = (): number => {
-  if (Platform.OS === 'ios') return 16;
-  
-  // Android matches iOS
-  return 16;
-};
+// Feed/Post dimensions
+export function getPostImageHeight(): number {
+  return Platform.OS === 'android' ? scaleSize(320) : 375;
+}
 
-/**
- * Debug function to log current scaling factors
- * ✅ UPDATED v93.0: Complete logging of all dimensions
- */
-export const logScalingInfo = () => {
+export function getPostPadding(): number {
+  return Platform.OS === 'android' ? scaleSpacing(12) : 16;
+}
+
+export function getPostFontSize(): number {
+  return Platform.OS === 'android' ? scaleFontSize(14) : 15;
+}
+
+// Icon sizes
+export function getIconSize(size: 'small' | 'medium' | 'large'): number {
+  const sizes = {
+    small: Platform.OS === 'android' ? scaleSize(16) : 20,
+    medium: Platform.OS === 'android' ? scaleSize(20) : 24,
+    large: Platform.OS === 'android' ? scaleSize(28) : 32,
+  };
+  return sizes[size];
+}
+
+// Logging function for debugging
+export function logScalingInfo(): void {
   if (Platform.OS !== 'android') return;
   
-  console.log('[AndroidScaling v93.0] 📊 ANDROID RESPONSIVE SCALING FIX COMPLETE:');
-  console.log('  Screen Width:', SCREEN_WIDTH);
-  console.log('  Screen Height:', SCREEN_HEIGHT);
-  console.log('  Pixel Ratio:', PixelRatio.get());
-  console.log('  Density Scale:', getPixelDensityScale());
-  console.log('  ✅ Font Scaling:', '0.80 (20% reduction for better responsiveness)');
-  console.log('  ✅ Header Height:', getHeaderHeight(), '(reduced from 120 to 100)');
-  console.log('  ✅ Status Bar Height:', getStatusBarHeight(), '(reduced from 50 to 44)');
-  console.log('  ✅ Header Padding Top:', getHeaderPaddingTop(), '(reduced from 50 to 44)');
-  console.log('  ✅ Header Padding Bottom:', getHeaderPaddingBottom(), '(reduced from 16 to 12)');
-  console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(62 - compact design)');
-  console.log('  ✅ Bottom Nav Icon Size:', getBottomNavIconSize(), '(24)');
-  console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(54)');
-  console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(26)');
-  console.log('  ✅ Bottom Nav Padding:', 'Uses safe area bottom directly (no gap with system buttons)');
-  console.log('  ✅ White Stripe:', 'ELIMINATED - background extends 30px higher');
-};
+  console.log('📊 [Android Scaling] Screen dimensions:', {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+    widthScale: widthScale.toFixed(2),
+    heightScale: heightScale.toFixed(2),
+    finalScale: scale.toFixed(2),
+    scaleFactor: ANDROID_SCALE_FACTOR,
+  });
+  
+  console.log('📊 [Android Scaling] UI dimensions:', {
+    headerHeight: getHeaderHeight(),
+    searchBoxHeight: getSearchBoxHeight(),
+    categoryIconSize: getCategoryIconSize(),
+    bottomNavHeight: getBottomNavHeight(),
+    centerButtonSize: getCenterButtonSize(),
+  });
+}
 
+// Export all scaling functions
 export default {
-  scaleWidth,
-  scaleHeight,
+  scaleSize,
   scaleFontSize,
-  scaleIconSize,
+  scaleSpacing,
   getHeaderHeight,
+  getStatusBarHeight,
+  getHeaderTitleSize,
   getSearchBoxHeight,
+  getSearchBoxFontSize,
   getCategoryIconSize,
   getCategoryIconInnerSize,
+  getCategoryFontSize,
   getCategorySpacing,
   getCategoryTopPadding,
+  getContentPadding,
   getBottomNavHeight,
   getBottomNavIconSize,
   getCenterButtonSize,
   getCenterButtonIconSize,
-  getContentPadding,
-  getCardBorderRadius,
-  getCardAspectRatio,
-  getCardImageHeight,
-  getButtonBorderRadius,
-  getSpacing,
-  getStatusBarHeight,
-  getSafeAreaTopPadding,
   getBottomNavPaddingBottom,
-  getHeaderPaddingTop,
-  getHeaderPaddingBottom,
-  getHeaderPaddingHorizontal,
+  getCardBorderRadius,
   getCardPadding,
-  getCardMarginBottom,
-  getPixelDensityScale,
+  getCardImageHeight,
+  getListItemHeight,
+  getListItemPadding,
+  getAvatarSize,
+  getButtonHeight,
+  getButtonFontSize,
+  getModalBorderRadius,
+  getModalPadding,
+  getBannerHeight,
+  getBannerPadding,
+  getBannerFontSize,
+  getPostImageHeight,
+  getPostPadding,
+  getPostFontSize,
+  getIconSize,
   logScalingInfo,
 };
