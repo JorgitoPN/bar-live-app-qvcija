@@ -1,66 +1,47 @@
 
-import { Platform, StatusBar, Dimensions } from 'react-native';
+import { Platform } from 'react-native';
 
-// Base dimensions (100% scale)
-const BASE_HEADER_HEIGHT = 60;
-const BASE_SEARCH_BOX_HEIGHT = 50;
-const BASE_CATEGORY_ICON_SIZE = 50;
-const BASE_CATEGORY_TOP_PADDING = 16;
-const BASE_BOTTOM_NAV_HEIGHT = 70;
-const BASE_BOTTOM_NAV_PADDING_BOTTOM = 10;
-const BASE_CENTER_BUTTON_SIZE = 60;
-const BASE_CENTER_BUTTON_ICON_SIZE = 28;
-const BASE_BOTTOM_NAV_ICON_SIZE = 24;
-
-// Get status bar height
-export const getStatusBarHeight = (): number => {
-  if (Platform.OS === 'android') {
-    return StatusBar.currentHeight || 0;
-  }
-  return 0; // iOS handles this automatically
+// Base scaling function - returns 1 for iOS, scale factor for Android
+const getScaleFactor = (): number => {
+  // This will be enhanced to read from global context in actual implementation
+  return Platform.OS === 'android' ? 1.0 : 1.0;
 };
 
-// Header height
-export const getHeaderHeight = (): number => {
-  return BASE_HEADER_HEIGHT;
-};
+const scale = (size: number): number => size * getScaleFactor();
 
-// Search box height
-export const getSearchBoxHeight = (): number => {
-  return BASE_SEARCH_BOX_HEIGHT;
-};
+// Status bar and header dimensions
+export const getStatusBarHeight = (): number => Platform.OS === 'android' ? scale(24) : 0;
+export const getHeaderHeight = (): number => scale(60);
+export const getSearchBoxHeight = (): number => scale(48);
 
-// Category icon size
-export const getCategoryIconSize = (): number => {
-  return BASE_CATEGORY_ICON_SIZE;
-};
+// Category icon dimensions
+export const getCategoryIconSize = (): number => scale(32);
+export const getCategoryIconInnerSize = (): number => scale(20);
+export const getCategoryTopPadding = (): number => scale(16);
+export const getCategorySpacing = (): number => scale(8);
 
-// Category top padding
-export const getCategoryTopPadding = (): number => {
-  return BASE_CATEGORY_TOP_PADDING;
-};
+// Content padding
+export const getContentPadding = (): number => scale(20);
 
-// Bottom navigation height
-export const getBottomNavHeight = (): number => {
-  return BASE_BOTTOM_NAV_HEIGHT;
-};
+// Bottom navigation dimensions
+export const getBottomNavHeight = (): number => scale(60);
+export const getBottomNavPaddingBottom = (insetsBottom: number): number => 
+  Platform.OS === 'android' ? scale(10) + insetsBottom : 10 + insetsBottom;
+export const getCenterButtonSize = (): number => scale(56);
+export const getCenterButtonIconSize = (): number => scale(28);
+export const getBottomNavIconSize = (): number => scale(24);
 
-// Bottom navigation padding bottom
-export const getBottomNavPaddingBottom = (): number => {
-  return BASE_BOTTOM_NAV_PADDING_BOTTOM;
-};
+// Font scaling
+export const scaleFontSize = (size: number): number => size * getScaleFactor();
 
-// Center button size
-export const getCenterButtonSize = (): number => {
-  return BASE_CENTER_BUTTON_SIZE;
-};
-
-// Center button icon size
-export const getCenterButtonIconSize = (): number => {
-  return BASE_CENTER_BUTTON_ICON_SIZE;
-};
-
-// Bottom navigation icon size
-export const getBottomNavIconSize = (): number => {
-  return BASE_BOTTOM_NAV_ICON_SIZE;
+// Debug utility
+export const logScalingInfo = (): void => {
+  console.log('Android Scaling Info:', {
+    platform: Platform.OS,
+    scaleFactor: getScaleFactor(),
+    statusBarHeight: getStatusBarHeight(),
+    headerHeight: getHeaderHeight(),
+    categoryIconSize: getCategoryIconSize(),
+    categoryIconInnerSize: getCategoryIconInnerSize(),
+  });
 };
