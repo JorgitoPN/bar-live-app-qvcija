@@ -161,7 +161,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     if (!hasLoadedRef.current) {
       loadUserLocales();
     }
-  }, [user?.id]); // ✅ FIX v96.0: Only depend on user.id, not entire user object
+  }, [user?.id, loadUserLocales]); // ✅ FIX v96.0: Include loadUserLocales in dependencies
 
   // ✅ FIX v96.0: Memoize setSelectedLocalId to prevent recreation
   const setSelectedLocalId = useCallback(async (localId: string | null) => {
