@@ -1,27 +1,30 @@
 
-import { StyleSheet, Platform } from 'react-native';
-import { fontSizes, spacing, getLineHeight, scaleSize, borderRadius } from '../utils/androidScaling';
+import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
 
-// Header gradient colors
 export const colors = {
-  primary: '#162456',
-  secondary: '#193cb8',
-  accent: '#64B5F6',
-  background: '#101824',
-  backgroundAlt: '#162133',
-  text: '#e3e3e3',
-  textSecondary: '#90CAF9',
-  grey: '#90CAF9',
-  card: '#193cb8',
-  cardBackground: '#162133',
-  white: '#FFFFFF',
-  headerText: '#FFFFFF',
-  headerGradientStart: '#162456',
-  headerGradientEnd: '#193cb8',
-  error: '#EF4444',
-  success: '#10B981',
-  warning: '#F59E0B',
-  info: '#3B82F6',
+  primary: '#162456',    // Material Blue
+  secondary: '#193cb8',  // Darker Blue
+  accent: '#64B5F6',     // Light Blue
+  background: '#101824',  // Keeping dark background
+  backgroundAlt: '#162133',  // Keeping dark background
+  text: '#e3e3e3',       // Keeping light text
+  grey: '#90CAF9',       // Light Blue Grey
+  card: '#193cb8',       // Keeping dark card background
+};
+
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+};
+
+export const borderRadius = {
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 16,
 };
 
 export const buttonStyles = StyleSheet.create({
@@ -40,13 +43,6 @@ export const buttonStyles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.md,
-  },
-  buttonText: {
-    fontSize: fontSizes.md,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
-    lineHeight: getLineHeight(fontSizes.md),
   },
 });
 
@@ -70,147 +66,46 @@ export const commonStyles = StyleSheet.create({
     justifyContent: 'center',
     maxWidth: 800,
     width: '100%',
-    paddingHorizontal: spacing.lg,
   },
   title: {
-    fontSize: fontSizes['2xl'],
+    fontSize: 24,
     fontWeight: '800',
     textAlign: 'center',
     color: colors.text,
-    marginBottom: spacing.md,
-    lineHeight: getLineHeight(fontSizes['2xl']),
-  },
-  subtitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: colors.text,
-    marginBottom: spacing.sm,
-    lineHeight: getLineHeight(fontSizes.lg),
+    marginBottom: 10
   },
   text: {
-    fontSize: fontSizes.md,
+    fontSize: 16,
     fontWeight: '500',
     color: colors.text,
-    marginBottom: spacing.sm,
-    lineHeight: getLineHeight(fontSizes.md),
+    marginBottom: 8,
+    lineHeight: 24,
     textAlign: 'center',
-  },
-  textSmall: {
-    fontSize: fontSizes.sm,
-    fontWeight: '400',
-    color: colors.textSecondary,
-    lineHeight: getLineHeight(fontSizes.sm),
   },
   section: {
     width: '100%',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    paddingHorizontal: 20,
   },
   buttonContainer: {
     width: '100%',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 20,
   },
   card: {
     backgroundColor: colors.backgroundAlt,
     borderColor: colors.grey,
     borderWidth: 1,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginVertical: spacing.sm,
+    borderRadius: 10,
+    padding: 10,
+    marginVertical: 8,
     width: '100%',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
+    elevation: 2,
   },
   icon: {
-    width: scaleSize(60),
-    height: scaleSize(60),
-    tintColor: colors.white,
-  },
-  iconSmall: {
-    width: scaleSize(24),
-    height: scaleSize(24),
-    tintColor: colors.text,
-  },
-  iconMedium: {
-    width: scaleSize(32),
-    height: scaleSize(32),
-    tintColor: colors.text,
-  },
-  iconLarge: {
-    width: scaleSize(48),
-    height: scaleSize(48),
-    tintColor: colors.text,
-  },
-  input: {
-    backgroundColor: colors.backgroundAlt,
-    borderColor: colors.grey,
-    borderWidth: 1,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    fontSize: fontSizes.md,
-    color: colors.text,
-    width: '100%',
-    lineHeight: getLineHeight(fontSizes.md),
-  },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  buttonSecondary: {
-    backgroundColor: colors.secondary,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  buttonOutline: {
-    backgroundColor: 'transparent',
-    borderColor: colors.primary,
-    borderWidth: 1,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.grey + '30',
-    width: '100%',
-    marginVertical: spacing.lg,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  spaceBetween: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 60,
+    height: 60,
+    tintColor: "white",
   },
 });
