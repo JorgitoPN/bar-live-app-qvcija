@@ -230,6 +230,14 @@ export default function AdminIndexScreen() {
       description: 'Gestiona locales destacados manualmente',
     },
     {
+      title: 'Escala de Interfaz (Android)',
+      icon: 'textformat.size' as const,
+      androidIcon: 'format_size' as const,
+      color: '#06B6D4',
+      route: '/admin/escala-interfaz',
+      description: 'Ajusta el tamaño de la interfaz para dispositivos Android',
+    },
+    {
       title: 'Términos Legales',
       icon: 'doc.text.fill' as const,
       androidIcon: 'description' as const,

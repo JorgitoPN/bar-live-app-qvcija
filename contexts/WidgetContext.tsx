@@ -1,5 +1,6 @@
+
 import * as React from "react";
-import { createContext, useCallback, useContext } from "react";
+import { createContext, useCallback, useContext, useRef } from "react";
 import { ExtensionStorage } from "@bacons/apple-targets";
 
 // Initialize storage with your group ID
@@ -14,17 +15,32 @@ type WidgetContextType = {
 const WidgetContext = createContext<WidgetContextType | null>(null);
 
 export function WidgetProvider({ children }: { children: React.ReactNode }) {
+  // ✅ FIX: Use ref to prevent infinite loops
+  const hasInitialized = useRef(false);
+
   // Update widget state whenever what we want to show changes
   React.useEffect(() => {
+    // ✅ FIX: Only run once on mount
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     // set widget_state to null if we want to reset the widget
     // storage.set("widget_state", null);
 
     // Refresh widget
-    ExtensionStorage.reloadWidget();
-  }, []);
+    try {
+      ExtensionStorage.reloadWidget();
+    } catch (error) {
+      console.log('[WidgetContext] Widget reload skipped (iOS only feature)');
+    }
+  }, []); // ✅ FIX: Empty dependency array
 
   const refreshWidget = useCallback(() => {
-    ExtensionStorage.reloadWidget();
+    try {
+      ExtensionStorage.reloadWidget();
+    } catch (error) {
+      console.log('[WidgetContext] Widget reload skipped (iOS only feature)');
+    }
   }, []);
 
   return (
