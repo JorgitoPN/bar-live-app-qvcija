@@ -17,11 +17,12 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { WidgetProvider } from "@/contexts/WidgetContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ModeProvider } from "@/contexts/ModeContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
+import { ModeProvider } from "@/contexts/ModeContext";
 import { GlobalDataProvider } from "@/contexts/GlobalDataContext";
 import { FilterProvider } from "@/contexts/FilterContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
+import { SelectedLocalProvider } from "@/contexts/SelectedLocalContext";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -83,60 +84,63 @@ export default function RootLayout() {
       notification: "rgb(255, 69, 58)", // System Red (Dark Mode)
     },
   };
+
   return (
     <>
       <StatusBar style="auto" animated />
-        <ThemeProvider
-          value={colorScheme === "dark" ? CustomDarkTheme : CustomDefaultTheme}
-        >
-          <AuthProvider>
-            <ImpersonationProvider>
-              <ModeProvider>
-                <GlobalDataProvider>
-                  <FilterProvider>
-                    <FavoritesProvider>
+      <ThemeProvider
+        value={colorScheme === "dark" ? CustomDarkTheme : CustomDefaultTheme}
+      >
+        <AuthProvider>
+          <ImpersonationProvider>
+            <ModeProvider>
+              <GlobalDataProvider>
+                <FilterProvider>
+                  <FavoritesProvider>
+                    <SelectedLocalProvider>
                       <WidgetProvider>
                         <GestureHandlerRootView>
-                        <Stack>
-                          {/* Main app with tabs */}
-                          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                          <Stack>
+                            {/* Main app with tabs */}
+                            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-                          {/* Modal Demo Screens */}
-                          <Stack.Screen
-                            name="modal"
-                            options={{
-                              presentation: "modal",
-                              title: "Standard Modal",
-                            }}
-                          />
-                          <Stack.Screen
-                            name="formsheet"
-                            options={{
-                              presentation: "formSheet",
-                              title: "Form Sheet Modal",
-                              sheetGrabberVisible: true,
-                              sheetAllowedDetents: [0.5, 0.8, 1.0],
-                              sheetCornerRadius: 20,
-                            }}
-                          />
-                          <Stack.Screen
-                            name="transparent-modal"
-                            options={{
-                              presentation: "transparentModal",
-                              headerShown: false,
-                            }}
-                          />
-                        </Stack>
-                        <SystemBars style={"auto"} />
+                            {/* Modal Demo Screens */}
+                            <Stack.Screen
+                              name="modal"
+                              options={{
+                                presentation: "modal",
+                                title: "Standard Modal",
+                              }}
+                            />
+                            <Stack.Screen
+                              name="formsheet"
+                              options={{
+                                presentation: "formSheet",
+                                title: "Form Sheet Modal",
+                                sheetGrabberVisible: true,
+                                sheetAllowedDetents: [0.5, 0.8, 1.0],
+                                sheetCornerRadius: 20,
+                              }}
+                            />
+                            <Stack.Screen
+                              name="transparent-modal"
+                              options={{
+                                presentation: "transparentModal",
+                                headerShown: false,
+                              }}
+                            />
+                          </Stack>
+                          <SystemBars style={"auto"} />
                         </GestureHandlerRootView>
                       </WidgetProvider>
-                    </FavoritesProvider>
-                  </FilterProvider>
-                </GlobalDataProvider>
-              </ModeProvider>
-            </ImpersonationProvider>
-          </AuthProvider>
-        </ThemeProvider>
+                    </SelectedLocalProvider>
+                  </FavoritesProvider>
+                </FilterProvider>
+              </GlobalDataProvider>
+            </ModeProvider>
+          </ImpersonationProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </>
   );
 }
