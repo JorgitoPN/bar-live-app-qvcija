@@ -80,14 +80,13 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v11.0 - ANDROID THREE-DOTS ICON FIX
+ * ✅ POST VIEWER MODAL v10.0 - COMMENT COUNT & REPORT SYSTEM
  * 
  * Key changes:
- * - ✅ FIXED: Three-dots icon now shows correctly on Android (more_vert instead of ellipsis)
- * - ✅ Comment count display with proper text
- * - ✅ Report functionality for all posts
- * - ✅ PostLikesAvatars component for consistent likes display
- * - ✅ Optimistic UI and real-time updates
+ * - ✅ FIXED: Comment count display with proper text
+ * - ✅ NEW: Report functionality for all posts
+ * - ✅ INTEGRATED: PostLikesAvatars component for consistent likes display
+ * - ✅ UNIFIED: Same optimistic UI and real-time updates as Social Feed
  */
 
 export default function PostViewerModal({
@@ -135,11 +134,14 @@ export default function PostViewerModal({
 
   const [authorsWithMomentos, setAuthorsWithMomentos] = useState<Set<string>>(new Set());
   
+  // ✅ FIXED: Changed Array<T> to T[]
   type LikeArray = { id: string; usuario_id: string }[];
 
+  // ✅ NEW: Report modal state
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportingPostId, setReportingPostId] = useState<string | null>(null);
 
+  // ✅ Local state for instant like updates (optimistic UI)
   const [isLiked, setIsLiked] = useState<Map<string, boolean>>(new Map());
   const [likesCount, setLikesCount] = useState<Map<string, number>>(new Map());
   const [commentsCount, setCommentsCount] = useState<Map<string, number>>(new Map());
@@ -168,7 +170,7 @@ export default function PostViewerModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v11.0] Props received:', { 
+      console.log('[PostViewerModal v10.0] Props received:', { 
         visible, 
         initialPostId, 
         singlePost: !!singlePost,
@@ -178,6 +180,7 @@ export default function PostViewerModal({
     }
   }, [visible, allPostIds, initialPostId, singlePost, hideTagIcon]);
 
+  // ✅ Load initial likes for each post
   const loadInitialLikes = useCallback(async (postId: string) => {
     try {
       const { data, error } = await supabase
@@ -194,6 +197,7 @@ export default function PostViewerModal({
     }
   }, []);
 
+  // ✅ NEW: Load comment count for each post
   const loadCommentCount = async (postId: string) => {
     try {
       const { count, error } = await supabase
@@ -210,6 +214,7 @@ export default function PostViewerModal({
     }
   };
 
+  // ✅ Real-time subscription for likes updates
   useEffect(() => {
     if (!user || posts.length === 0) return;
 
@@ -251,6 +256,7 @@ export default function PostViewerModal({
           
           console.log('[PostViewerModal] 🔄 Change made by another user, updating local state...');
           
+          // ✅ Update local likes array
           if (payload.eventType === 'INSERT' && payload.new) {
             setLocalLikes(prev => {
               const current = prev.get(postId) || [];
@@ -274,6 +280,7 @@ export default function PostViewerModal({
             });
           }
           
+          // ✅ Fetch updated count from database
           const { count, error: countError } = await supabase
             .from('comentarios')
             .select('id', { count: 'exact', head: true })
@@ -301,6 +308,7 @@ export default function PostViewerModal({
 
           console.log('[PostViewerModal] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
           
+          // ✅ Reload comment count
           const { count, error: countError } = await supabase
             .from('comentarios')
             .select('id', { count: 'exact', head: true })
@@ -377,8 +385,9 @@ export default function PostViewerModal({
     try {
       setLoading(true);
       
+      // If single post is provided, use it directly
       if (singlePost) {
-        console.log('[PostViewerModal v11.0] Using single post mode');
+        console.log('[PostViewerModal v10.0] Using single post mode');
         
         let liked = false;
         if (interactionUserId) {
@@ -410,6 +419,7 @@ export default function PostViewerModal({
           saved = !!saveData;
         }
 
+        // ✅ FIXED: Load comment count
         const { count: commentCount } = await supabase
           .from('comentarios')
           .select('id', { count: 'exact', head: true })
@@ -445,6 +455,7 @@ export default function PostViewerModal({
         setCurrentIndex(0);
         setCurrentPostId(singlePost.id);
         
+        // ✅ Initialize local state for likes and comments
         setIsLiked(new Map([[singlePost.id, liked]]));
         setLikesCount(new Map([[singlePost.id, singlePost.likes]]));
         setCommentsCount(new Map([[singlePost.id, commentCount || 0]]));
@@ -455,7 +466,7 @@ export default function PostViewerModal({
       }
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v11.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v10.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -472,7 +483,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v11.0] Error loading posts:', error);
+        console.error('[PostViewerModal v10.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -480,14 +491,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v11.0] Invalid data received:', data);
+        console.error('[PostViewerModal v10.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v11.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v10.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -525,6 +536,7 @@ export default function PostViewerModal({
             saved = !!saveData;
           }
 
+          // ✅ FIXED: Load comment count for each post
           const { count: commentCount } = await supabase
             .from('comentarios')
             .select('id', { count: 'exact', head: true })
@@ -563,7 +575,7 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v11.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v10.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -571,6 +583,7 @@ export default function PostViewerModal({
 
       setPosts(sortedPosts);
       
+      // ✅ Initialize local state for all posts
       const likedMap = new Map<string, boolean>();
       const countMap = new Map<string, number>();
       const commentsMap = new Map<string, number>();
@@ -592,7 +605,7 @@ export default function PostViewerModal({
         setCurrentPostId(initialPostId || '');
       }
     } catch (error) {
-      console.error('[PostViewerModal v11.0] Error:', error);
+      console.error('[PostViewerModal v10.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
@@ -648,6 +661,7 @@ export default function PostViewerModal({
     ]).start();
   }, []);
 
+  // ✅ UNIFIED: Same like logic as InstagramPostCard
   const toggleLike = useCallback(async (post: Post) => {
     if (!interactionUserId) {
       Alert.alert('Inicia sesión', 'Para dar me gusta necesitas registrarte en BarLive');
@@ -669,9 +683,11 @@ export default function PostViewerModal({
       animateLikeIcon(post.id);
     }
 
+    // ✅ INSTANT UPDATE: Modify local state immediately (< 100ms)
     setIsLiked(prev => new Map(prev).set(post.id, newLikedState));
     setLikesCount(prev => new Map(prev).set(post.id, newLikedState ? previousCount + 1 : Math.max(0, previousCount - 1)));
     
+    // ✅ CRITICAL: Modify local likes array INSTANTLY
     if (newLikedState) {
       const tempId = `temp-${Date.now()}`;
       const newArray = [...previousLocalLikes, { id: tempId, usuario_id: interactionUserId }];
@@ -683,6 +699,7 @@ export default function PostViewerModal({
       console.log('[PostViewerModal] ✅ Optimistic REMOVE: Local likes array updated instantly, new count:', newArray.length);
     }
 
+    // Clear existing debounce timer for this post
     const existingTimer = likeDebounceTimer.current.get(post.id);
     if (existingTimer) {
       clearTimeout(existingTimer);
@@ -712,6 +729,7 @@ export default function PostViewerModal({
             throw error;
           }
           
+          // ✅ Replace temp ID with real ID from database
           setLocalLikes(prev => {
             const current = prev.get(post.id) || [];
             const updated = current.map(like => 
@@ -748,6 +766,7 @@ export default function PostViewerModal({
           console.log('[PostViewerModal] ✅ Like removed successfully from database');
         }
 
+        // ✅ Verify final count from database
         const { count, error: countError } = await supabase
           .from('likes')
           .select('id', { count: 'exact', head: true })
@@ -763,6 +782,7 @@ export default function PostViewerModal({
         }
       } catch (error) {
         console.error('[PostViewerModal] ❌ Error toggling like:', error);
+        // ✅ Rollback on error
         setIsLiked(prev => new Map(prev).set(post.id, previousLiked));
         setLikesCount(prev => new Map(prev).set(post.id, previousCount));
         setLocalLikes(prev => new Map(prev).set(post.id, previousLocalLikes));
@@ -1031,6 +1051,7 @@ export default function PostViewerModal({
     }
   }, [user, managingPostId, loadExistingTags, loadPosts, onUpdate]);
 
+  // ✅ NEW: Report post functionality
   const handleReportPost = useCallback((post: Post) => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
@@ -1048,6 +1069,7 @@ export default function PostViewerModal({
     );
 
     if (isOwner) {
+      // Owner options
       if (Platform.OS === 'ios') {
         ActionSheetIOS.showActionSheetWithOptions(
           {
@@ -1082,6 +1104,7 @@ export default function PostViewerModal({
         );
       }
     } else {
+      // Non-owner options - only report
       if (Platform.OS === 'ios') {
         ActionSheetIOS.showActionSheetWithOptions(
           {
@@ -1299,13 +1322,7 @@ export default function PostViewerModal({
               style={styles.optionsButton}
               onPress={() => handlePostOptions(post)}
             >
-              {/* ✅ CRITICAL FIX v11.0: Use more_vert for Android instead of ellipsis */}
-              <IconSymbol 
-                ios_icon_name="ellipsis" 
-                android_material_icon_name="more_vert" 
-                size={24} 
-                color={colors.text} 
-              />
+              <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={24} color={colors.text} />
             </TouchableOpacity>
           )}
         </View>
@@ -1440,6 +1457,7 @@ export default function PostViewerModal({
           </TouchableOpacity>
         </View>
 
+        {/* ✅ UNIFIED: Use PostLikesAvatars component for consistent display */}
         {postLikesCount > 0 && (
           <PostLikesAvatars 
             postId={post.id} 
@@ -1464,6 +1482,7 @@ export default function PostViewerModal({
           </View>
         )}
 
+        {/* ✅ FIXED: Comment count display with proper text */}
         <TouchableOpacity 
           style={styles.commentsContainer}
           onPress={() => {
@@ -1722,6 +1741,7 @@ export default function PostViewerModal({
           />
         )}
 
+        {/* ✅ NEW: Report modal */}
         {reportingPostId && (
           <ReportModal
             visible={showReportModal}
