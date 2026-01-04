@@ -1,47 +1,66 @@
 
-import { Platform } from 'react-native';
+import { Platform, StatusBar, Dimensions } from 'react-native';
 
-// Base scaling factor (can be adjusted globally)
-let globalScaleFactor = 1.0;
+// Base dimensions (100% scale)
+const BASE_HEADER_HEIGHT = 60;
+const BASE_SEARCH_BOX_HEIGHT = 50;
+const BASE_CATEGORY_ICON_SIZE = 50;
+const BASE_CATEGORY_TOP_PADDING = 16;
+const BASE_BOTTOM_NAV_HEIGHT = 70;
+const BASE_BOTTOM_NAV_PADDING_BOTTOM = 10;
+const BASE_CENTER_BUTTON_SIZE = 60;
+const BASE_CENTER_BUTTON_ICON_SIZE = 28;
+const BASE_BOTTOM_NAV_ICON_SIZE = 24;
 
-/**
- * Set the global UI scale factor (Android only)
- * @param scale - Scale factor (0.3 to 1.4)
- */
-export const setGlobalScaleFactor = (scale: number) => {
+// Get status bar height
+export const getStatusBarHeight = (): number => {
   if (Platform.OS === 'android') {
-    globalScaleFactor = Math.max(0.3, Math.min(1.4, scale));
+    return StatusBar.currentHeight || 0;
   }
+  return 0; // iOS handles this automatically
 };
 
-/**
- * Get the current global scale factor
- */
-export const getGlobalScaleFactor = (): number => {
-  return Platform.OS === 'android' ? globalScaleFactor : 1.0;
+// Header height
+export const getHeaderHeight = (): number => {
+  return BASE_HEADER_HEIGHT;
 };
 
-/**
- * Scale a value based on platform and global scale factor
- */
-const scale = (value: number): number => {
-  return Platform.OS === 'android' ? value * globalScaleFactor : value;
+// Search box height
+export const getSearchBoxHeight = (): number => {
+  return BASE_SEARCH_BOX_HEIGHT;
 };
 
-// Bottom Navigation
-export const getBottomNavHeight = (): number => scale(60);
-export const getBottomNavPaddingBottom = (insetBottom: number): number => 
-  Platform.OS === 'android' ? scale(8) : insetBottom;
-export const getBottomNavIconSize = (): number => scale(24);
-export const getCenterButtonSize = (): number => scale(56);
-export const getCenterButtonIconSize = (): number => scale(28);
+// Category icon size
+export const getCategoryIconSize = (): number => {
+  return BASE_CATEGORY_ICON_SIZE;
+};
 
-// Header
-export const getHeaderHeight = (): number => scale(60);
+// Category top padding
+export const getCategoryTopPadding = (): number => {
+  return BASE_CATEGORY_TOP_PADDING;
+};
 
-// Search
-export const getSearchBoxHeight = (): number => scale(48);
+// Bottom navigation height
+export const getBottomNavHeight = (): number => {
+  return BASE_BOTTOM_NAV_HEIGHT;
+};
 
-// Categories
-export const getCategoryIconSize = (): number => scale(32);
-export const getCategoryTopPadding = (): number => scale(16);
+// Bottom navigation padding bottom
+export const getBottomNavPaddingBottom = (): number => {
+  return BASE_BOTTOM_NAV_PADDING_BOTTOM;
+};
+
+// Center button size
+export const getCenterButtonSize = (): number => {
+  return BASE_CENTER_BUTTON_SIZE;
+};
+
+// Center button icon size
+export const getCenterButtonIconSize = (): number => {
+  return BASE_CENTER_BUTTON_ICON_SIZE;
+};
+
+// Bottom navigation icon size
+export const getBottomNavIconSize = (): number => {
+  return BASE_BOTTOM_NAV_ICON_SIZE;
+};
