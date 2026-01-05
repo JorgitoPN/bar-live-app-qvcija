@@ -138,7 +138,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     } finally {
       isLoadingLocalsRef.current = false;
     }
-  }, [user, isImpersonating]); // ✅ Fixed: Include user in dependencies
+  }, [user?.id, isImpersonating]);
 
   // Initialize all state from AsyncStorage on mount
   useEffect(() => {
@@ -290,7 +290,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       // No user, just mark as initialized
       setIsInitialized(true);
     }
-  }, [user, isInitialized]); // ✅ Fixed: Include user in dependencies
+  }, [user?.id, isInitialized]);
 
   // ✅ CRITICAL FIX v99.0: Simplified dependency - only load when user ID changes
   useEffect(() => {
@@ -299,9 +299,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         loadOwnedLocals();
       }
     }
-  }, [user, currentMode, loadOwnedLocals]); // ✅ Fixed: Include all dependencies
+  }, [user?.id]);
 
-  const setCurrentMode = useCallback(async (mode: UserMode) => {
+  const setCurrentMode = async (mode: UserMode) => {
     try {
       console.log('[ModeContext v99.0] 🔄 Setting mode to:', mode);
       
@@ -378,9 +378,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       console.error('[ModeContext v99.0] ❌ Error saving mode:', error);
       setCurrentModeState(mode);
     }
-  }, [user, ownedLocals, loadOwnedLocals]); // ✅ Fixed: Include all dependencies
+  };
 
-  const switchToClientProfile = useCallback(async () => {
+  const switchToClientProfile = async () => {
     if (!user) {
       console.warn('[ModeContext v99.0] ⚠️ Cannot switch to client profile: no user');
       return;
@@ -412,9 +412,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('[ModeContext v99.0] ❌ Error switching to client profile:', error);
     }
-  }, [user]); // ✅ Fixed: Include user in dependencies
+  };
 
-  const switchToLocalProfile = useCallback(async (localId: string) => {
+  const switchToLocalProfile = async (localId: string) => {
     if (!user) {
       console.warn('[ModeContext v99.0] ⚠️ Cannot switch to local profile: no user');
       return;
@@ -472,7 +472,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('[ModeContext v99.0] ❌ Error switching to local profile:', error);
     }
-  }, [user]); // ✅ Fixed: Include user in dependencies
+  };
 
   // Legacy support - compute these values from the new state
   const selectedLocalId = activeProfileType === 'local' ? activeProfileId : null;
@@ -498,19 +498,15 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     publicationMode,
   }), [
     currentMode,
-    setCurrentMode,
     activeProfileId,
     activeProfileType,
     activeLocalData,
     ownedLocals,
-    loadOwnedLocals,
-    switchToClientProfile,
-    switchToLocalProfile,
     selectedLocalId,
     isInteractingAsLocal,
     activeLocalProfileId,
     publicationMode,
-  ]); // ✅ Fixed: Include all values in dependencies
+  ]);
 
   return (
     <ModeContext.Provider value={contextValue}>

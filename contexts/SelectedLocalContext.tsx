@@ -157,7 +157,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
       setLoadingLocales(false);
       isLoadingRef.current = false;
     }
-  }, [user, selectedLocalId]); // ✅ Fixed: Include all dependencies
+  }, [selectedLocalId]); // ✅ CRITICAL FIX v99.0: Minimal dependencies
 
   // ✅ CRITICAL FIX v99.0: Simplified dependency array - only depend on user ID and role
   useEffect(() => {
@@ -168,9 +168,9 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
       setLoadingLocales(false);
       lastUserIdRef.current = null;
     }
-  }, [user, loadUserLocales]); // ✅ Fixed: Include loadUserLocales in dependencies
+  }, [user?.id, user?.rol_app]); // Only re-run when user ID or role changes
 
-  const setSelectedLocalId = useCallback(async (localId: string | null) => {
+  const setSelectedLocalId = async (localId: string | null) => {
     try {
       setSelectedLocalIdState(localId);
       if (localId) {
@@ -181,13 +181,13 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('[SelectedLocalContext v99.0] Error saving selected local:', error);
     }
-  }, []);
+  };
 
-  const refreshLocales = useCallback(async () => {
+  const refreshLocales = async () => {
     // Reset the last user ID to force a reload
     lastUserIdRef.current = null;
     await loadUserLocales();
-  }, [loadUserLocales]); // ✅ Fixed: Include loadUserLocales in dependencies
+  };
 
   // ✅ CRITICAL FIX v99.0: Memoize context value to prevent recreation
   const value = useMemo(() => ({
@@ -196,7 +196,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     userLocales,
     loadingLocales,
     refreshLocales,
-  }), [selectedLocalId, setSelectedLocalId, userLocales, loadingLocales, refreshLocales]); // ✅ Fixed: Include all values
+  }), [selectedLocalId, userLocales, loadingLocales]);
 
   return (
     <SelectedLocalContext.Provider value={value}>

@@ -6,7 +6,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode, useRef } from "react";
 import { Platform } from "react-native";
-import { supabase } from "@/utils/supabase";
+import { authClient, storeWebBearerToken } from "@/lib/auth";
 
 // User type - customize based on your backend
 interface User {
@@ -91,16 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       isFetchingRef.current = true;
       setLoading(true);
-      const { data: { user: authUser }, error } = await supabase.auth.getUser();
-      if (error) throw error;
-      
-      if (authUser) {
-        setUser({
-          id: authUser.id,
-          email: authUser.email || '',
-          name: authUser.user_metadata?.name,
-          image: authUser.user_metadata?.avatar_url,
-        });
+      const session = await authClient.getSession();
+      if (session?.user) {
+        setUser(session.user as User);
       } else {
         setUser(null);
       }
@@ -120,8 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      await authClient.signIn.email({ email, password });
       await fetchUser();
     } catch (error) {
       console.error("Email sign in failed:", error);
@@ -131,14 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithEmail = useCallback(async (email: string, password: string, name?: string) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      await authClient.signUp.email({
         email,
         password,
-        options: {
-          data: { name }
-        }
+        name,
+        callbackURL: "/profile",
       });
-      if (error) throw error;
       await fetchUser();
     } catch (error) {
       console.error("Email sign up failed:", error);
@@ -149,20 +139,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     try {
       if (Platform.OS === "web") {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: `${window.location.origin}/profile`
-          }
-        });
-        if (error) throw error;
+        const token = await openOAuthPopup("google");
+        storeWebBearerToken(token);
+        await fetchUser();
       } else {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google'
+        await authClient.signIn.social({
+          provider: "google",
+          callbackURL: "/profile",
         });
-        if (error) throw error;
+        await fetchUser();
       }
-      await fetchUser();
     } catch (error) {
       console.error("Google sign in failed:", error);
       throw error;
@@ -172,20 +158,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithApple = useCallback(async () => {
     try {
       if (Platform.OS === "web") {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'apple',
-          options: {
-            redirectTo: `${window.location.origin}/profile`
-          }
-        });
-        if (error) throw error;
+        const token = await openOAuthPopup("apple");
+        storeWebBearerToken(token);
+        await fetchUser();
       } else {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'apple'
+        await authClient.signIn.social({
+          provider: "apple",
+          callbackURL: "/profile",
         });
-        if (error) throw error;
+        await fetchUser();
       }
-      await fetchUser();
     } catch (error) {
       console.error("Apple sign in failed:", error);
       throw error;
@@ -195,20 +177,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGitHub = useCallback(async () => {
     try {
       if (Platform.OS === "web") {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'github',
-          options: {
-            redirectTo: `${window.location.origin}/profile`
-          }
-        });
-        if (error) throw error;
+        const token = await openOAuthPopup("github");
+        storeWebBearerToken(token);
+        await fetchUser();
       } else {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'github'
+        await authClient.signIn.social({
+          provider: "github",
+          callbackURL: "/profile",
         });
-        if (error) throw error;
+        await fetchUser();
       }
-      await fetchUser();
     } catch (error) {
       console.error("GitHub sign in failed:", error);
       throw error;
@@ -217,8 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await authClient.signOut();
       setUser(null);
     } catch (error) {
       console.error("Sign out failed:", error);
