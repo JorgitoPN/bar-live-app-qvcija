@@ -1,187 +1,116 @@
 
-import { Platform, Dimensions, StatusBar } from 'react-native';
+import { Platform, Dimensions } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Base scale factor for Android
-const ANDROID_SCALE_FACTOR = 1.0;
+// Base dimensions (iPhone 14 Pro as reference)
+const BASE_WIDTH = 393;
+const BASE_HEIGHT = 852;
 
 /**
- * Scale font size for Android devices
+ * Scale font size based on platform and screen size
  */
-export function scaleFontSize(size: number): number {
+export const scaleFontSize = (size: number): number => {
   if (Platform.OS === 'android') {
-    return size * ANDROID_SCALE_FACTOR;
+    const scale = SCREEN_WIDTH / BASE_WIDTH;
+    return Math.round(size * scale);
   }
   return size;
-}
+};
 
 /**
  * Get header height based on platform
  */
-export function getHeaderHeight(): number {
-  if (Platform.OS === 'android') {
-    return 60;
-  }
-  return 64;
-}
+export const getHeaderHeight = (): number => {
+  return Platform.OS === 'android' ? 60 : 56;
+};
 
 /**
  * Get search box height based on platform
  */
-export function getSearchBoxHeight(): number {
-  if (Platform.OS === 'android') {
-    return 48;
-  }
-  return 50;
-}
+export const getSearchBoxHeight = (): number => {
+  return Platform.OS === 'android' ? 48 : 44;
+};
 
 /**
  * Get category icon size based on platform
  */
-export function getCategoryIconSize(): number {
-  if (Platform.OS === 'android') {
-    return 64;
-  }
-  return 70;
-}
+export const getCategoryIconSize = (): number => {
+  return Platform.OS === 'android' ? 64 : 60;
+};
 
 /**
  * Get inner category icon size based on platform
  */
-export function getCategoryIconInnerSize(): number {
-  if (Platform.OS === 'android') {
-    return 32;
-  }
-  return 35;
-}
+export const getCategoryIconInnerSize = (): number => {
+  return Platform.OS === 'android' ? 32 : 30;
+};
 
 /**
- * Get category top padding based on platform
+ * Get top padding for categories based on platform
  */
-export function getCategoryTopPadding(): number {
-  if (Platform.OS === 'android') {
-    return 12;
-  }
-  return 16;
-}
+export const getCategoryTopPadding = (): number => {
+  return Platform.OS === 'android' ? 16 : 12;
+};
 
 /**
  * Get status bar height for Android
  */
-export function getStatusBarHeight(): number {
-  if (Platform.OS === 'android') {
-    return StatusBar.currentHeight || 24;
-  }
-  return 0;
-}
+export const getStatusBarHeight = (): number => {
+  return Platform.OS === 'android' ? 24 : 0;
+};
 
 /**
  * Get category spacing based on platform
  */
-export function getCategorySpacing(): number {
-  if (Platform.OS === 'android') {
-    return 12;
-  }
-  return 16;
-}
+export const getCategorySpacing = (): number => {
+  return Platform.OS === 'android' ? 12 : 10;
+};
 
 /**
  * Get bottom navigation height based on platform
  */
-export function getBottomNavHeight(): number {
-  if (Platform.OS === 'android') {
-    return 60;
-  }
-  return 65;
-}
+export const getBottomNavHeight = (): number => {
+  return Platform.OS === 'android' ? 65 : 60;
+};
 
 /**
- * Get bottom navigation padding bottom based on platform and insets
+ * Get bottom navigation padding based on platform and bottom inset
  */
-export function getBottomNavPaddingBottom(bottomInset: number): number {
-  if (Platform.OS === 'android') {
-    return 8;
-  }
-  return Math.max(bottomInset, 8);
-}
+export const getBottomNavPaddingBottom = (bottomInset: number): number => {
+  return Platform.OS === 'android' ? 8 : Math.max(bottomInset, 8);
+};
 
 /**
  * Get center button size based on platform
  */
-export function getCenterButtonSize(): number {
-  if (Platform.OS === 'android') {
-    return 56;
-  }
-  return 60;
-}
+export const getCenterButtonSize = (): number => {
+  return Platform.OS === 'android' ? 56 : 52;
+};
 
 /**
  * Get center button icon size based on platform
  */
-export function getCenterButtonIconSize(): number {
-  if (Platform.OS === 'android') {
-    return 28;
-  }
-  return 30;
-}
+export const getCenterButtonIconSize = (): number => {
+  return Platform.OS === 'android' ? 28 : 26;
+};
 
 /**
  * Get bottom navigation icon size based on platform
  */
-export function getBottomNavIconSize(): number {
-  if (Platform.OS === 'android') {
-    return 24;
-  }
-  return 26;
-}
+export const getBottomNavIconSize = (): number => {
+  return Platform.OS === 'android' ? 24 : 22;
+};
 
 /**
- * Get card border radius based on platform
+ * Log scaling information for debugging
  */
-export function getCardBorderRadius(): number {
+export const logScalingInfo = (): void => {
   if (Platform.OS === 'android') {
-    return 12;
+    console.log('[AndroidScaling] Screen dimensions:', {
+      width: SCREEN_WIDTH,
+      height: SCREEN_HEIGHT,
+      scale: SCREEN_WIDTH / BASE_WIDTH,
+    });
   }
-  return 16;
-}
-
-/**
- * Get button height based on platform
- */
-export function getButtonHeight(): number {
-  if (Platform.OS === 'android') {
-    return 48;
-  }
-  return 50;
-}
-
-/**
- * Get input height based on platform
- */
-export function getInputHeight(): number {
-  if (Platform.OS === 'android') {
-    return 48;
-  }
-  return 50;
-}
-
-/**
- * Get modal padding based on platform
- */
-export function getModalPadding(): number {
-  if (Platform.OS === 'android') {
-    return 16;
-  }
-  return 20;
-}
-
-/**
- * Get section spacing based on platform
- */
-export function getSectionSpacing(): number {
-  if (Platform.OS === 'android') {
-    return 16;
-  }
-  return 20;
-}
+};
