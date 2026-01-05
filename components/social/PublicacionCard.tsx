@@ -72,13 +72,20 @@ interface PublicacionCardProps {
 }
 
 /**
- * ✅ PUBLICACION CARD - ANDROID THREE-DOTS ICON FIX
+ * ✅ PUBLICACION CARD v9.0 - REPORT SYSTEM INTEGRATED
  * 
- * CRITICAL FIXES:
- * - ✅ Fixed three-dots icon on Android (changed from "ellipsis" to "more_vert")
- * - ✅ "ellipsis" is not a valid Material Icons name
- * - ✅ "more_vert" is the correct Material Icons name for vertical three dots
- * - ✅ Report functionality integrated
+ * NEW FEATURES:
+ * - ✅ Report functionality for posts
+ * - ✅ Integrated ReportModal component
+ * - ✅ Report option in post options menu
+ * - ✅ Non-owners can report posts
+ * 
+ * EXISTING FEATURES:
+ * - ✅ Optimistic UI for likes
+ * - ✅ Real-time synchronization
+ * - ✅ Comment count display
+ * - ✅ Tag management
+ * - ✅ Edit and delete functionality
  */
 
 const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
@@ -108,7 +115,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
   const [taggedUsers, setTaggedUsers] = useState<TaggableUser[]>([]);
 
-  // ✅ Report modal state
+  // ✅ NEW: Report modal state
   const [showReportModal, setShowReportModal] = useState(false);
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -742,7 +749,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
   }, [user, post.id, loadExistingTags, loadTaggedUsers, onUpdate]);
 
-  // ✅ Report post functionality
+  // ✅ NEW: Report post functionality
   const handleReportPost = useCallback(() => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
@@ -766,7 +773,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     const options: string[] = [];
     const actions: (() => void)[] = [];
 
-    // ✅ Report option for non-owners
+    // ✅ NEW: Report option for non-owners
     if (user && !isOwner) {
       options.push('Reportar');
       actions.push(handleReportPost);
@@ -911,13 +918,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </TouchableOpacity>
         {(canEdit || user) && (
           <TouchableOpacity style={styles.optionsButton} onPress={showOptions} activeOpacity={0.7}>
-            {/* ✅ CRITICAL FIX: Changed from "ellipsis" to "more_vert" for Android */}
-            <IconSymbol 
-              ios_icon_name="ellipsis" 
-              android_material_icon_name="more_vert" 
-              size={24} 
-              color={colors.text} 
-            />
+            <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={24} color={colors.text} />
           </TouchableOpacity>
         )}
       </View>
@@ -1084,7 +1085,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         onClose={() => setShareModalVisible(false)}
       />
 
-      {/* ✅ Report modal for posts */}
+      {/* ✅ NEW: Report modal for posts */}
       <ReportModal
         visible={showReportModal}
         contentType="post"
