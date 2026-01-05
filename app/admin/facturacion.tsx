@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { scaleFontSize } from '@/utils/androidScaling';
 
 interface Invoice {
   id: string;
@@ -102,6 +103,16 @@ interface CompanyFiscalData {
 
 const SPAIN_VAT_RATE = 21.0; // IVA estándar en España
 
+/**
+ * ✅ FACTURACION SCREEN v102.0 - ANDROID SCALING STANDARDIZATION
+ * 
+ * CRITICAL FIXES v102.0 (ANDROID ONLY):
+ * - ✅ All font sizes use scaleFontSize() for consistency
+ * - ✅ Header title size standardized (24px on Android)
+ * - ✅ All text elements properly scaled
+ * - ✅ iOS design remains unchanged
+ */
+
 export default function FacturacionScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -151,7 +162,7 @@ export default function FacturacionScreen() {
 
   const cargarFacturas = useCallback(async () => {
     try {
-      console.log('[Facturacion] ✅ Cargando facturas automáticas...');
+      console.log('[Facturacion v102.0] ✅ Cargando facturas automáticas...');
       const { data, error } = await supabase
         .from('invoices')
         .select('*')
@@ -159,21 +170,21 @@ export default function FacturacionScreen() {
         .limit(50);
 
       if (error) {
-        console.error('[Facturacion] ❌ Error cargando facturas:', error);
+        console.error('[Facturacion v102.0] ❌ Error cargando facturas:', error);
         throw error;
       }
 
-      console.log('[Facturacion] ✅ Facturas cargadas:', data?.length || 0);
+      console.log('[Facturacion v102.0] ✅ Facturas cargadas:', data?.length || 0);
       setInvoices(data || []);
     } catch (error) {
-      console.error('[Facturacion] Error cargando facturas:', error);
+      console.error('[Facturacion v102.0] Error cargando facturas:', error);
       Alert.alert('Error', 'No se pudieron cargar las facturas');
     }
   }, []);
 
   const cargarFacturasManuales = useCallback(async () => {
     try {
-      console.log('[Facturacion] ✅ Cargando facturas manuales...');
+      console.log('[Facturacion v102.0] ✅ Cargando facturas manuales...');
       const { data, error } = await supabase
         .from('manual_invoices')
         .select('*')
@@ -181,32 +192,32 @@ export default function FacturacionScreen() {
         .limit(50);
 
       if (error) {
-        console.error('[Facturacion] ❌ Error cargando facturas manuales:', error);
+        console.error('[Facturacion v102.0] ❌ Error cargando facturas manuales:', error);
         throw error;
       }
 
-      console.log('[Facturacion] ✅ Facturas manuales cargadas:', data?.length || 0);
+      console.log('[Facturacion v102.0] ✅ Facturas manuales cargadas:', data?.length || 0);
       setManualInvoices(data || []);
     } catch (error) {
-      console.error('[Facturacion] Error cargando facturas manuales:', error);
+      console.error('[Facturacion v102.0] Error cargando facturas manuales:', error);
     }
   }, []);
 
   const cargarDatosFiscales = useCallback(async () => {
     try {
-      console.log('[Facturacion] ✅ Cargando datos fiscales...');
+      console.log('[Facturacion v102.0] ✅ Cargando datos fiscales...');
       const { data, error } = await supabase
         .from('company_fiscal_data')
         .select('*')
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Facturacion] ❌ Error cargando datos fiscales:', error);
+        console.error('[Facturacion v102.0] ❌ Error cargando datos fiscales:', error);
         throw error;
       }
 
       if (data) {
-        console.log('[Facturacion] ✅ Datos fiscales cargados');
+        console.log('[Facturacion v102.0] ✅ Datos fiscales cargados');
         setFiscalData(data);
         setCompanyName(data.company_name || '');
         setTaxId(data.tax_id || '');
@@ -226,10 +237,10 @@ export default function FacturacionScreen() {
         setSendAutomatically(data.send_invoices_automatically ?? true);
         setAccountingEmail(data.accounting_email || '');
       } else {
-        console.log('[Facturacion] ℹ️ No hay datos fiscales configurados');
+        console.log('[Facturacion v102.0] ℹ️ No hay datos fiscales configurados');
       }
     } catch (error) {
-      console.error('[Facturacion] Error cargando datos fiscales:', error);
+      console.error('[Facturacion v102.0] Error cargando datos fiscales:', error);
     }
   }, []);
 
@@ -297,7 +308,7 @@ export default function FacturacionScreen() {
       setShowFiscalDataModal(false);
       await cargarDatosFiscales();
     } catch (error) {
-      console.error('[Facturacion] Error guardando datos fiscales:', error);
+      console.error('[Facturacion v102.0] Error guardando datos fiscales:', error);
       Alert.alert('Error', 'No se pudieron guardar los datos fiscales');
     } finally {
       setSavingFiscalData(false);
@@ -385,7 +396,7 @@ export default function FacturacionScreen() {
                   Alert.alert('✅ Email Enviado', 'La factura ha sido enviada al cliente');
                 }
               } catch (error) {
-                console.error('[Facturacion] Error enviando email:', error);
+                console.error('[Facturacion v102.0] Error enviando email:', error);
               }
             },
           },
@@ -396,7 +407,7 @@ export default function FacturacionScreen() {
       resetManualInvoiceForm();
       await Promise.all([cargarFacturasManuales(), cargarDatosFiscales()]);
     } catch (error) {
-      console.error('[Facturacion] Error creando factura manual:', error);
+      console.error('[Facturacion v102.0] Error creando factura manual:', error);
       Alert.alert('Error', 'No se pudo crear la factura');
     } finally {
       setSavingManualInvoice(false);
@@ -471,7 +482,7 @@ export default function FacturacionScreen() {
         issued_at: new Date().toISOString(),
       };
       
-      console.log('[Facturacion] 📧 Sending test email to:', testEmail);
+      console.log('[Facturacion v102.0] 📧 Sending test email to:', testEmail);
       
       const { data, error } = await supabase.functions.invoke('send-invoice-email', {
         body: {
@@ -494,7 +505,7 @@ export default function FacturacionScreen() {
       );
       setTestEmail('');
     } catch (error: any) {
-      console.error('[Facturacion] Error enviando email de prueba:', error);
+      console.error('[Facturacion v102.0] Error enviando email de prueba:', error);
       Alert.alert('Error', error.message || 'No se pudo enviar el email de prueba');
     } finally {
       setSendingTestEmail(false);
@@ -517,7 +528,7 @@ export default function FacturacionScreen() {
           onPress: async () => {
             setSendingInvoiceId(invoice.id);
             try {
-              console.log('[Facturacion] 📧 Sending invoice email:', invoice.invoice_number);
+              console.log('[Facturacion v102.0] 📧 Sending invoice email:', invoice.invoice_number);
               
               const { data, error } = await supabase.functions.invoke('send-invoice-email', {
                 body: {
@@ -542,7 +553,7 @@ export default function FacturacionScreen() {
               
               await cargarDatos();
             } catch (error: any) {
-              console.error('[Facturacion] Error enviando factura:', error);
+              console.error('[Facturacion v102.0] Error enviando factura:', error);
               Alert.alert('Error', error.message || 'No se pudo enviar la factura');
             } finally {
               setSendingInvoiceId(null);
@@ -565,7 +576,7 @@ export default function FacturacionScreen() {
 
     return (
       <View style={[styles.statusBadge, { backgroundColor: badge.color + '20' }]}>
-        <Text style={[styles.statusText, { color: badge.color }]}>{badge.text}</Text>
+        <Text style={[styles.statusText, { color: badge.color, fontSize: scaleFontSize(12) }]}>{badge.text}</Text>
       </View>
     );
   };
@@ -574,8 +585,8 @@ export default function FacturacionScreen() {
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={styles.sectionHeader}>
         <View>
-          <Text style={styles.sectionTitle}>Facturas Automáticas</Text>
-          <Text style={styles.sectionSubtitle}>Generadas tras compras de suscripciones</Text>
+          <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(20) }]}>Facturas Automáticas</Text>
+          <Text style={[styles.sectionSubtitle, { fontSize: scaleFontSize(14) }]}>Generadas tras compras de suscripciones</Text>
         </View>
       </View>
 
@@ -583,8 +594,8 @@ export default function FacturacionScreen() {
         <View style={styles.warningCard}>
           <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={24} color="#F59E0B" />
           <View style={styles.warningContent}>
-            <Text style={styles.warningTitle}>Datos Fiscales No Configurados</Text>
-            <Text style={styles.warningText}>
+            <Text style={[styles.warningTitle, { fontSize: scaleFontSize(16) }]}>Datos Fiscales No Configurados</Text>
+            <Text style={[styles.warningText, { fontSize: scaleFontSize(14) }]}>
               Configura los datos fiscales de tu empresa para poder emitir facturas correctamente.
             </Text>
             <TouchableOpacity
@@ -594,7 +605,7 @@ export default function FacturacionScreen() {
                 setShowFiscalDataModal(true);
               }}
             >
-              <Text style={styles.warningButtonText}>Configurar Ahora</Text>
+              <Text style={[styles.warningButtonText, { fontSize: scaleFontSize(14) }]}>Configurar Ahora</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -603,7 +614,7 @@ export default function FacturacionScreen() {
       {invoices.length === 0 ? (
         <View style={styles.emptyState}>
           <IconSymbol ios_icon_name="doc.text" android_material_icon_name="description" size={48} color={colors.textSecondary} />
-          <Text style={styles.emptyText}>No hay facturas automáticas emitidas</Text>
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>No hay facturas automáticas emitidas</Text>
         </View>
       ) : (
         <React.Fragment>
@@ -611,13 +622,13 @@ export default function FacturacionScreen() {
             <View key={invoice.id} style={styles.invoiceCard}>
               <View style={styles.invoiceHeader}>
                 <View style={styles.invoiceHeaderLeft}>
-                  <Text style={styles.invoiceNumber}>{invoice.invoice_number}</Text>
-                  <Text style={styles.invoiceCustomer}>{invoice.customer_name}</Text>
-                  <Text style={styles.invoiceEmail}>{invoice.customer_email}</Text>
+                  <Text style={[styles.invoiceNumber, { fontSize: scaleFontSize(16) }]}>{invoice.invoice_number}</Text>
+                  <Text style={[styles.invoiceCustomer, { fontSize: scaleFontSize(14) }]}>{invoice.customer_name}</Text>
+                  <Text style={[styles.invoiceEmail, { fontSize: scaleFontSize(12) }]}>{invoice.customer_email}</Text>
                 </View>
                 <View style={styles.invoiceHeaderRight}>
                   {getStatusBadge(invoice.status)}
-                  <Text style={styles.invoiceAmount}>
+                  <Text style={[styles.invoiceAmount, { fontSize: scaleFontSize(18) }]}>
                     {invoice.total.toFixed(2)} {invoice.currency}
                   </Text>
                 </View>
@@ -626,7 +637,7 @@ export default function FacturacionScreen() {
               <View style={styles.invoiceDates}>
                 <View style={styles.invoiceDateItem}>
                   <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={16} color={colors.textSecondary} />
-                  <Text style={styles.invoiceDate}>
+                  <Text style={[styles.invoiceDate, { fontSize: scaleFontSize(12) }]}>
                     Emitida: {new Date(invoice.issued_at).toLocaleDateString('es-ES', {
                       day: '2-digit',
                       month: 'short',
@@ -637,7 +648,7 @@ export default function FacturacionScreen() {
                 {invoice.paid_at && (
                   <View style={styles.invoiceDateItem}>
                     <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color="#10B981" />
-                    <Text style={styles.invoiceDate}>
+                    <Text style={[styles.invoiceDate, { fontSize: scaleFontSize(12) }]}>
                       Pagada: {new Date(invoice.paid_at).toLocaleDateString('es-ES', {
                         day: '2-digit',
                         month: 'short',
@@ -649,7 +660,7 @@ export default function FacturacionScreen() {
                 {invoice.metadata?.email_sent_at && (
                   <View style={styles.invoiceDateItem}>
                     <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={16} color={colors.primary} />
-                    <Text style={styles.invoiceDate}>
+                    <Text style={[styles.invoiceDate, { fontSize: scaleFontSize(12) }]}>
                       Enviada: {new Date(invoice.metadata.email_sent_at).toLocaleDateString('es-ES', {
                         day: '2-digit',
                         month: 'short',
@@ -666,7 +677,7 @@ export default function FacturacionScreen() {
                   onPress={() => handlePreviewInvoice(invoice)}
                 >
                   <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.primary} />
-                  <Text style={styles.previewButtonText}>Vista Previa</Text>
+                  <Text style={[styles.previewButtonText, { fontSize: scaleFontSize(14) }]}>Vista Previa</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -679,7 +690,7 @@ export default function FacturacionScreen() {
                   ) : (
                     <>
                       <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={18} color={colors.white} />
-                      <Text style={styles.sendEmailButtonText}>Enviar Email</Text>
+                      <Text style={[styles.sendEmailButtonText, { fontSize: scaleFontSize(14) }]}>Enviar Email</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -698,8 +709,8 @@ export default function FacturacionScreen() {
       <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionTitle}>Facturas Manuales</Text>
-            <Text style={styles.sectionSubtitle}>Crea facturas personalizadas</Text>
+            <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(20) }]}>Facturas Manuales</Text>
+            <Text style={[styles.sectionSubtitle, { fontSize: scaleFontSize(14) }]}>Crea facturas personalizadas</Text>
           </View>
           <TouchableOpacity
             style={styles.createButton}
@@ -713,15 +724,15 @@ export default function FacturacionScreen() {
             }}
           >
             <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.white} />
-            <Text style={styles.createButtonText}>Nueva Factura</Text>
+            <Text style={[styles.createButtonText, { fontSize: scaleFontSize(14) }]}>Nueva Factura</Text>
           </TouchableOpacity>
         </View>
 
         {manualInvoices.length === 0 ? (
           <View style={styles.emptyState}>
             <IconSymbol ios_icon_name="doc.text.fill" android_material_icon_name="description" size={48} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>No hay facturas manuales creadas</Text>
-            <Text style={styles.emptySubtext}>Crea facturas personalizadas cuando lo necesites</Text>
+            <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>No hay facturas manuales creadas</Text>
+            <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>Crea facturas personalizadas cuando lo necesites</Text>
           </View>
         ) : (
           <React.Fragment>
@@ -730,18 +741,18 @@ export default function FacturacionScreen() {
                 <View style={styles.invoiceHeader}>
                   <View style={styles.invoiceHeaderLeft}>
                     <View style={styles.manualBadgeRow}>
-                      <Text style={styles.invoiceNumber}>{invoice.invoice_number}</Text>
+                      <Text style={[styles.invoiceNumber, { fontSize: scaleFontSize(16) }]}>{invoice.invoice_number}</Text>
                       <View style={styles.manualBadge}>
                         <IconSymbol ios_icon_name="hand.raised.fill" android_material_icon_name="back_hand" size={10} color="#8B5CF6" />
-                        <Text style={styles.manualBadgeText}>Manual</Text>
+                        <Text style={[styles.manualBadgeText, { fontSize: scaleFontSize(10) }]}>Manual</Text>
                       </View>
                     </View>
-                    <Text style={styles.invoiceCustomer}>{invoice.customer_name}</Text>
-                    <Text style={styles.invoiceEmail}>{invoice.customer_email}</Text>
+                    <Text style={[styles.invoiceCustomer, { fontSize: scaleFontSize(14) }]}>{invoice.customer_name}</Text>
+                    <Text style={[styles.invoiceEmail, { fontSize: scaleFontSize(12) }]}>{invoice.customer_email}</Text>
                   </View>
                   <View style={styles.invoiceHeaderRight}>
                     {getStatusBadge(invoice.status)}
-                    <Text style={styles.invoiceAmount}>
+                    <Text style={[styles.invoiceAmount, { fontSize: scaleFontSize(18) }]}>
                       {invoice.total.toFixed(2)} {invoice.currency}
                     </Text>
                   </View>
@@ -750,8 +761,8 @@ export default function FacturacionScreen() {
                 <View style={styles.invoiceItemsList}>
                   {(invoice.items as InvoiceItem[]).map((item, index) => (
                     <View key={index} style={styles.invoiceItemRow}>
-                      <Text style={styles.invoiceItemConcept}>{item.concept}</Text>
-                      <Text style={styles.invoiceItemPrice}>{item.price.toFixed(2)} €</Text>
+                      <Text style={[styles.invoiceItemConcept, { fontSize: scaleFontSize(13) }]}>{item.concept}</Text>
+                      <Text style={[styles.invoiceItemPrice, { fontSize: scaleFontSize(13) }]}>{item.price.toFixed(2)} €</Text>
                     </View>
                   ))}
                 </View>
@@ -762,7 +773,7 @@ export default function FacturacionScreen() {
                     onPress={() => handlePreviewInvoice(invoice)}
                   >
                     <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.primary} />
-                    <Text style={styles.previewButtonText}>Vista Previa</Text>
+                    <Text style={[styles.previewButtonText, { fontSize: scaleFontSize(14) }]}>Vista Previa</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -775,7 +786,7 @@ export default function FacturacionScreen() {
                     ) : (
                       <>
                         <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={18} color={colors.white} />
-                        <Text style={styles.sendEmailButtonText}>Enviar Email</Text>
+                        <Text style={[styles.sendEmailButtonText, { fontSize: scaleFontSize(14) }]}>Enviar Email</Text>
                       </>
                     )}
                   </TouchableOpacity>
@@ -788,8 +799,8 @@ export default function FacturacionScreen() {
         <View style={styles.infoCard}>
           <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={24} color={colors.primary} />
           <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>Facturas Manuales</Text>
-            <Text style={styles.infoText}>
+            <Text style={[styles.infoTitle, { fontSize: scaleFontSize(16) }]}>Facturas Manuales</Text>
+            <Text style={[styles.infoText, { fontSize: scaleFontSize(14) }]}>
               - Crea facturas personalizadas cuando lo necesites{'\n'}
               - Los datos de la empresa se toman automáticamente{'\n'}
               - Solo editas el producto/concepto y el precio{'\n'}
@@ -807,26 +818,26 @@ export default function FacturacionScreen() {
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={styles.sectionHeader}>
         <View>
-          <Text style={styles.sectionTitle}>Configuración de Facturación</Text>
-          <Text style={styles.sectionSubtitle}>Datos fiscales y opciones</Text>
+          <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(20) }]}>Configuración de Facturación</Text>
+          <Text style={[styles.sectionSubtitle, { fontSize: scaleFontSize(14) }]}>Datos fiscales y opciones</Text>
         </View>
         <TouchableOpacity
           style={styles.editButton}
           onPress={() => setShowFiscalDataModal(true)}
         >
           <IconSymbol ios_icon_name="pencil.circle.fill" android_material_icon_name="edit" size={20} color={colors.white} />
-          <Text style={styles.editButtonText}>Editar</Text>
+          <Text style={[styles.editButtonText, { fontSize: scaleFontSize(14) }]}>Editar</Text>
         </TouchableOpacity>
       </View>
 
       {/* Test Email Section */}
       <View style={styles.testEmailSection}>
-        <Text style={styles.testEmailTitle}>Enviar Factura de Prueba</Text>
-        <Text style={styles.testEmailSubtitle}>Prueba el sistema de envío de facturas por email</Text>
+        <Text style={[styles.testEmailTitle, { fontSize: scaleFontSize(16) }]}>Enviar Factura de Prueba</Text>
+        <Text style={[styles.testEmailSubtitle, { fontSize: scaleFontSize(13) }]}>Prueba el sistema de envío de facturas por email</Text>
         
         <View style={styles.testEmailForm}>
           <TextInput
-            style={styles.testEmailInput}
+            style={[styles.testEmailInput, { fontSize: scaleFontSize(14) }]}
             value={testEmail}
             onChangeText={setTestEmail}
             placeholder="correo@ejemplo.com"
@@ -844,7 +855,7 @@ export default function FacturacionScreen() {
             ) : (
               <>
                 <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={18} color={colors.white} />
-                <Text style={styles.sendTestButtonText}>Enviar Prueba</Text>
+                <Text style={[styles.sendTestButtonText, { fontSize: scaleFontSize(14) }]}>Enviar Prueba</Text>
               </>
             )}
           </TouchableOpacity>
@@ -854,48 +865,48 @@ export default function FacturacionScreen() {
       {fiscalData ? (
         <View style={styles.configCard}>
           <View style={styles.configSection}>
-            <Text style={styles.configSectionTitle}>Datos de la Empresa</Text>
+            <Text style={[styles.configSectionTitle, { fontSize: scaleFontSize(16) }]}>Datos de la Empresa</Text>
             <View style={styles.configItem}>
-              <Text style={styles.configLabel}>Nombre:</Text>
-              <Text style={styles.configValue}>{fiscalData.company_name}</Text>
+              <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>Nombre:</Text>
+              <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.company_name}</Text>
             </View>
             <View style={styles.configItem}>
-              <Text style={styles.configLabel}>CIF/NIF:</Text>
-              <Text style={styles.configValue}>{fiscalData.tax_id}</Text>
+              <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>CIF/NIF:</Text>
+              <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.tax_id}</Text>
             </View>
             <View style={styles.configItem}>
-              <Text style={styles.configLabel}>Dirección:</Text>
-              <Text style={styles.configValue}>{fiscalData.address}</Text>
+              <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>Dirección:</Text>
+              <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.address}</Text>
             </View>
             <View style={styles.configItem}>
-              <Text style={styles.configLabel}>Ciudad:</Text>
-              <Text style={styles.configValue}>{fiscalData.city}, {fiscalData.postal_code}</Text>
+              <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>Ciudad:</Text>
+              <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.city}, {fiscalData.postal_code}</Text>
             </View>
             <View style={styles.configItem}>
-              <Text style={styles.configLabel}>País:</Text>
-              <Text style={styles.configValue}>{fiscalData.country}</Text>
+              <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>País:</Text>
+              <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.country}</Text>
             </View>
           </View>
 
           {(fiscalData.phone || fiscalData.email || fiscalData.website) && (
             <View style={styles.configSection}>
-              <Text style={styles.configSectionTitle}>Contacto</Text>
+              <Text style={[styles.configSectionTitle, { fontSize: scaleFontSize(16) }]}>Contacto</Text>
               {fiscalData.phone && (
                 <View style={styles.configItem}>
-                  <Text style={styles.configLabel}>Teléfono:</Text>
-                  <Text style={styles.configValue}>{fiscalData.phone}</Text>
+                  <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>Teléfono:</Text>
+                  <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.phone}</Text>
                 </View>
               )}
               {fiscalData.email && (
                 <View style={styles.configItem}>
-                  <Text style={styles.configLabel}>Email:</Text>
-                  <Text style={styles.configValue}>{fiscalData.email}</Text>
+                  <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>Email:</Text>
+                  <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.email}</Text>
                 </View>
               )}
               {fiscalData.website && (
                 <View style={styles.configItem}>
-                  <Text style={styles.configLabel}>Web:</Text>
-                  <Text style={styles.configValue}>{fiscalData.website}</Text>
+                  <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>Web:</Text>
+                  <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.website}</Text>
                 </View>
               )}
             </View>
@@ -903,46 +914,46 @@ export default function FacturacionScreen() {
 
           {(fiscalData.bank_name || fiscalData.iban) && (
             <View style={styles.configSection}>
-              <Text style={styles.configSectionTitle}>Datos Bancarios</Text>
+              <Text style={[styles.configSectionTitle, { fontSize: scaleFontSize(16) }]}>Datos Bancarios</Text>
               {fiscalData.bank_name && (
                 <View style={styles.configItem}>
-                  <Text style={styles.configLabel}>Banco:</Text>
-                  <Text style={styles.configValue}>{fiscalData.bank_name}</Text>
+                  <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>Banco:</Text>
+                  <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.bank_name}</Text>
                 </View>
               )}
               {fiscalData.iban && (
                 <View style={styles.configItem}>
-                  <Text style={styles.configLabel}>IBAN:</Text>
-                  <Text style={styles.configValue}>{fiscalData.iban}</Text>
+                  <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>IBAN:</Text>
+                  <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.iban}</Text>
                 </View>
               )}
               {fiscalData.swift_bic && (
                 <View style={styles.configItem}>
-                  <Text style={styles.configLabel}>SWIFT/BIC:</Text>
-                  <Text style={styles.configValue}>{fiscalData.swift_bic}</Text>
+                  <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>SWIFT/BIC:</Text>
+                  <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.swift_bic}</Text>
                 </View>
               )}
             </View>
           )}
 
           <View style={styles.configSection}>
-            <Text style={styles.configSectionTitle}>Configuración de Facturas</Text>
+            <Text style={[styles.configSectionTitle, { fontSize: scaleFontSize(16) }]}>Configuración de Facturas</Text>
             <View style={styles.configItem}>
-              <Text style={styles.configLabel}>Prefijo:</Text>
-              <Text style={styles.configValue}>{fiscalData.invoice_prefix}</Text>
+              <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>Prefijo:</Text>
+              <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.invoice_prefix}</Text>
             </View>
             <View style={styles.configItem}>
-              <Text style={styles.configLabel}>Próximo Número:</Text>
-              <Text style={styles.configValue}>{fiscalData.next_invoice_number}</Text>
+              <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>Próximo Número:</Text>
+              <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.next_invoice_number}</Text>
             </View>
             <View style={styles.configItem}>
-              <Text style={styles.configLabel}>Envío Automático:</Text>
-              <Text style={styles.configValue}>{fiscalData.send_invoices_automatically ? 'Sí' : 'No'}</Text>
+              <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>Envío Automático:</Text>
+              <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.send_invoices_automatically ? 'Sí' : 'No'}</Text>
             </View>
             {fiscalData.accounting_email && (
               <View style={styles.configItem}>
-                <Text style={styles.configLabel}>Email Gestoría:</Text>
-                <Text style={styles.configValue}>{fiscalData.accounting_email}</Text>
+                <Text style={[styles.configLabel, { fontSize: scaleFontSize(14) }]}>Email Gestoría:</Text>
+                <Text style={[styles.configValue, { fontSize: scaleFontSize(14) }]}>{fiscalData.accounting_email}</Text>
               </View>
             )}
           </View>
@@ -950,12 +961,12 @@ export default function FacturacionScreen() {
       ) : (
         <View style={styles.emptyState}>
           <IconSymbol ios_icon_name="doc.text.fill" android_material_icon_name="description" size={48} color={colors.textSecondary} />
-          <Text style={styles.emptyText}>No hay datos fiscales configurados</Text>
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>No hay datos fiscales configurados</Text>
           <TouchableOpacity
             style={styles.configureButton}
             onPress={() => setShowFiscalDataModal(true)}
           >
-            <Text style={styles.configureButtonText}>Configurar Ahora</Text>
+            <Text style={[styles.configureButtonText, { fontSize: scaleFontSize(16) }]}>Configurar Ahora</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -963,8 +974,8 @@ export default function FacturacionScreen() {
       <View style={styles.infoCard}>
         <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={24} color={colors.primary} />
         <View style={styles.infoContent}>
-          <Text style={styles.infoTitle}>Sistema de Facturación</Text>
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoTitle, { fontSize: scaleFontSize(16) }]}>Sistema de Facturación</Text>
+          <Text style={[styles.infoText, { fontSize: scaleFontSize(14) }]}>
             - Las facturas automáticas se emiten tras cada compra{'\n'}
             - Puedes crear facturas manuales cuando lo necesites{'\n'}
             - Todas incluyen IVA del 21% (España){'\n'}
@@ -984,14 +995,14 @@ export default function FacturacionScreen() {
             <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Facturación</Text>
+            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(24) }]}>Facturación</Text>
           </View>
           <View style={{ width: 24 }} />
         </LinearGradient>
 
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando datos...</Text>
+          <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando datos...</Text>
         </View>
       </View>
     );
@@ -1004,8 +1015,8 @@ export default function FacturacionScreen() {
           <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Facturación</Text>
-          <Text style={styles.headerSubtitle}>Sistema de facturación</Text>
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(24) }]}>Facturación</Text>
+          <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(14) }]}>Sistema de facturación</Text>
         </View>
         <TouchableOpacity onPress={cargarDatos}>
           <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={24} color={colors.headerText} />
@@ -1023,7 +1034,7 @@ export default function FacturacionScreen() {
             size={20}
             color={activeTab === 'invoices' ? colors.primary : colors.textSecondary}
           />
-          <Text style={[styles.tabText, activeTab === 'invoices' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, { fontSize: scaleFontSize(14) }, activeTab === 'invoices' && styles.tabTextActive]}>
             Automáticas
           </Text>
         </TouchableOpacity>
@@ -1038,7 +1049,7 @@ export default function FacturacionScreen() {
             size={20}
             color={activeTab === 'manual' ? colors.primary : colors.textSecondary}
           />
-          <Text style={[styles.tabText, activeTab === 'manual' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, { fontSize: scaleFontSize(14) }, activeTab === 'manual' && styles.tabTextActive]}>
             Manuales
           </Text>
         </TouchableOpacity>
@@ -1053,7 +1064,7 @@ export default function FacturacionScreen() {
             size={20}
             color={activeTab === 'config' ? colors.primary : colors.textSecondary}
           />
-          <Text style={[styles.tabText, activeTab === 'config' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, { fontSize: scaleFontSize(14) }, activeTab === 'config' && styles.tabTextActive]}>
             Configuración
           </Text>
         </TouchableOpacity>
@@ -1073,19 +1084,19 @@ export default function FacturacionScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowManualInvoiceModal(false)}>
           <Pressable style={styles.largeModalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nueva Factura Manual</Text>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Nueva Factura Manual</Text>
               <TouchableOpacity onPress={() => setShowManualInvoiceModal(false)}>
                 <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-              <Text style={styles.formSectionTitle}>Datos del Cliente</Text>
+              <Text style={[styles.formSectionTitle, { fontSize: scaleFontSize(16) }]}>Datos del Cliente</Text>
               
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Nombre del Cliente *</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Nombre del Cliente *</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={manualCustomerName}
                   onChangeText={setManualCustomerName}
                   placeholder="Nombre completo o empresa"
@@ -1094,9 +1105,9 @@ export default function FacturacionScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Email del Cliente *</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Email del Cliente *</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={manualCustomerEmail}
                   onChangeText={setManualCustomerEmail}
                   placeholder="cliente@ejemplo.com"
@@ -1107,9 +1118,9 @@ export default function FacturacionScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>CIF/NIF (opcional)</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>CIF/NIF (opcional)</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={manualCustomerTaxId}
                   onChangeText={setManualCustomerTaxId}
                   placeholder="B12345678"
@@ -1118,9 +1129,9 @@ export default function FacturacionScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Dirección (opcional)</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Dirección (opcional)</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={manualCustomerAddress}
                   onChangeText={setManualCustomerAddress}
                   placeholder="Calle Principal, 123"
@@ -1130,9 +1141,9 @@ export default function FacturacionScreen() {
 
               <View style={styles.formRow}>
                 <View style={[styles.formGroup, { flex: 2 }]}>
-                  <Text style={styles.formLabel}>Ciudad</Text>
+                  <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Ciudad</Text>
                   <TextInput
-                    style={styles.formInput}
+                    style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                     value={manualCustomerCity}
                     onChangeText={setManualCustomerCity}
                     placeholder="Madrid"
@@ -1140,9 +1151,9 @@ export default function FacturacionScreen() {
                   />
                 </View>
                 <View style={[styles.formGroup, { flex: 1 }]}>
-                  <Text style={styles.formLabel}>C.P.</Text>
+                  <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>C.P.</Text>
                   <TextInput
-                    style={styles.formInput}
+                    style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                     value={manualCustomerPostalCode}
                     onChangeText={setManualCustomerPostalCode}
                     placeholder="28001"
@@ -1152,12 +1163,12 @@ export default function FacturacionScreen() {
                 </View>
               </View>
 
-              <Text style={styles.formSectionTitle}>Productos/Servicios</Text>
+              <Text style={[styles.formSectionTitle, { fontSize: scaleFontSize(16) }]}>Productos/Servicios</Text>
               
               {manualItems.map((item, index) => (
                 <View key={index} style={styles.invoiceItemForm}>
                   <View style={styles.invoiceItemFormHeader}>
-                    <Text style={styles.invoiceItemFormTitle}>Ítem {index + 1}</Text>
+                    <Text style={[styles.invoiceItemFormTitle, { fontSize: scaleFontSize(14) }]}>Ítem {index + 1}</Text>
                     {manualItems.length > 1 && (
                       <TouchableOpacity onPress={() => removeManualInvoiceItem(index)}>
                         <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={20} color="#EF4444" />
@@ -1166,9 +1177,9 @@ export default function FacturacionScreen() {
                   </View>
                   
                   <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Concepto/Producto *</Text>
+                    <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Concepto/Producto *</Text>
                     <TextInput
-                      style={styles.formInput}
+                      style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                       value={item.concept}
                       onChangeText={(text) => updateManualInvoiceItem(index, 'concept', text)}
                       placeholder="Ej: Suscripción Premium - Enero 2025"
@@ -1177,17 +1188,17 @@ export default function FacturacionScreen() {
                   </View>
 
                   <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Precio (sin IVA) *</Text>
+                    <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Precio (sin IVA) *</Text>
                     <View style={styles.priceInputContainer}>
                       <TextInput
-                        style={styles.priceInput}
+                        style={[styles.priceInput, { fontSize: scaleFontSize(16) }]}
                         value={item.price > 0 ? item.price.toString() : ''}
                         onChangeText={(text) => updateManualInvoiceItem(index, 'price', text)}
                         placeholder="0.00"
                         placeholderTextColor={colors.textSecondary}
                         keyboardType="decimal-pad"
                       />
-                      <Text style={styles.currencyLabel}>€</Text>
+                      <Text style={[styles.currencyLabel, { fontSize: scaleFontSize(16) }]}>€</Text>
                     </View>
                   </View>
                 </View>
@@ -1195,28 +1206,28 @@ export default function FacturacionScreen() {
 
               <TouchableOpacity style={styles.addItemButton} onPress={addManualInvoiceItem}>
                 <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.primary} />
-                <Text style={styles.addItemButtonText}>Añadir Producto/Servicio</Text>
+                <Text style={[styles.addItemButtonText, { fontSize: scaleFontSize(14) }]}>Añadir Producto/Servicio</Text>
               </TouchableOpacity>
 
               <View style={styles.totalsPreview}>
                 <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Subtotal:</Text>
-                  <Text style={styles.totalValue}>{calculateManualInvoiceTotals().subtotal.toFixed(2)} €</Text>
+                  <Text style={[styles.totalLabel, { fontSize: scaleFontSize(14) }]}>Subtotal:</Text>
+                  <Text style={[styles.totalValue, { fontSize: scaleFontSize(14) }]}>{calculateManualInvoiceTotals().subtotal.toFixed(2)} €</Text>
                 </View>
                 <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>IVA (21%):</Text>
-                  <Text style={styles.totalValue}>{calculateManualInvoiceTotals().taxAmount.toFixed(2)} €</Text>
+                  <Text style={[styles.totalLabel, { fontSize: scaleFontSize(14) }]}>IVA (21%):</Text>
+                  <Text style={[styles.totalValue, { fontSize: scaleFontSize(14) }]}>{calculateManualInvoiceTotals().taxAmount.toFixed(2)} €</Text>
                 </View>
                 <View style={[styles.totalRow, styles.totalRowFinal]}>
-                  <Text style={styles.totalLabelFinal}>TOTAL:</Text>
-                  <Text style={styles.totalValueFinal}>{calculateManualInvoiceTotals().total.toFixed(2)} €</Text>
+                  <Text style={[styles.totalLabelFinal, { fontSize: scaleFontSize(16) }]}>TOTAL:</Text>
+                  <Text style={[styles.totalValueFinal, { fontSize: scaleFontSize(18) }]}>{calculateManualInvoiceTotals().total.toFixed(2)} €</Text>
                 </View>
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Notas (opcional)</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Notas (opcional)</Text>
                 <TextInput
-                  style={styles.textArea}
+                  style={[styles.textArea, { fontSize: scaleFontSize(14) }]}
                   value={manualNotes}
                   onChangeText={setManualNotes}
                   placeholder="Notas adicionales para la factura..."
@@ -1238,13 +1249,13 @@ export default function FacturacionScreen() {
               ) : (
                 <>
                   <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.white} />
-                  <Text style={styles.modalPrimaryButtonText}>Crear Factura</Text>
+                  <Text style={[styles.modalPrimaryButtonText, { fontSize: scaleFontSize(16) }]}>Crear Factura</Text>
                 </>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowManualInvoiceModal(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
+              <Text style={[styles.modalCancelText, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -1260,7 +1271,7 @@ export default function FacturacionScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowPreviewModal(false)}>
           <Pressable style={styles.previewModalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Vista Previa de Factura</Text>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Vista Previa de Factura</Text>
               <TouchableOpacity onPress={() => setShowPreviewModal(false)}>
                 <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -1272,22 +1283,22 @@ export default function FacturacionScreen() {
                   {/* Header with logo */}
                   <View style={styles.previewHeader}>
                     <View>
-                      <Text style={styles.previewCompanyName}>{fiscalData?.company_name || 'Barlive'}</Text>
-                      <Text style={styles.previewCompanyDetails}>
+                      <Text style={[styles.previewCompanyName, { fontSize: scaleFontSize(20) }]}>{fiscalData?.company_name || 'Barlive'}</Text>
+                      <Text style={[styles.previewCompanyDetails, { fontSize: scaleFontSize(12) }]}>
                         {fiscalData?.tax_id}{'\n'}
                         {fiscalData?.address}{'\n'}
                         {fiscalData?.postal_code} {fiscalData?.city}
                       </Text>
                     </View>
                     <View style={styles.previewInvoiceNumber}>
-                      <Text style={styles.previewInvoiceNumberLabel}>FACTURA</Text>
-                      <Text style={styles.previewInvoiceNumberValue}>{previewInvoice.invoice_number}</Text>
+                      <Text style={[styles.previewInvoiceNumberLabel, { fontSize: scaleFontSize(12) }]}>FACTURA</Text>
+                      <Text style={[styles.previewInvoiceNumberValue, { fontSize: scaleFontSize(18) }]}>{previewInvoice.invoice_number}</Text>
                     </View>
                   </View>
 
                   <View style={styles.previewSection}>
-                    <Text style={styles.previewSectionTitle}>Facturar a:</Text>
-                    <Text style={styles.previewCustomerInfo}>
+                    <Text style={[styles.previewSectionTitle, { fontSize: scaleFontSize(13) }]}>Facturar a:</Text>
+                    <Text style={[styles.previewCustomerInfo, { fontSize: scaleFontSize(13) }]}>
                       {previewInvoice.customer_name}{'\n'}
                       {previewInvoice.customer_email}{'\n'}
                       {previewInvoice.customer_tax_id && `${previewInvoice.customer_tax_id}\n`}
@@ -1298,8 +1309,8 @@ export default function FacturacionScreen() {
 
                   <View style={styles.previewSection}>
                     <View style={styles.previewRow}>
-                      <Text style={styles.previewLabel}>Fecha de emisión:</Text>
-                      <Text style={styles.previewValue}>
+                      <Text style={[styles.previewLabel, { fontSize: scaleFontSize(13) }]}>Fecha de emisión:</Text>
+                      <Text style={[styles.previewValue, { fontSize: scaleFontSize(13) }]}>
                         {new Date((previewInvoice as any).issued_at || previewInvoice.created_at).toLocaleDateString('es-ES')}
                       </Text>
                     </View>
@@ -1307,17 +1318,17 @@ export default function FacturacionScreen() {
 
                   <View style={styles.previewTable}>
                     <View style={styles.previewTableHeader}>
-                      <Text style={[styles.previewTableHeaderText, { flex: 2 }]}>Descripción</Text>
-                      <Text style={[styles.previewTableHeaderText, { flex: 1, textAlign: 'right' }]}>Importe</Text>
+                      <Text style={[styles.previewTableHeaderText, { flex: 2, fontSize: scaleFontSize(13) }]}>Descripción</Text>
+                      <Text style={[styles.previewTableHeaderText, { flex: 1, textAlign: 'right', fontSize: scaleFontSize(13) }]}>Importe</Text>
                     </View>
                     {'items' in previewInvoice && previewInvoice.items ? (
                       <React.Fragment>
                         {(previewInvoice.items as InvoiceItem[]).map((item, index) => (
                           <View key={index} style={styles.previewTableRow}>
-                            <Text style={[styles.previewTableCell, { flex: 2 }]}>
+                            <Text style={[styles.previewTableCell, { flex: 2, fontSize: scaleFontSize(13) }]}>
                               {item.concept}
                             </Text>
-                            <Text style={[styles.previewTableCell, { flex: 1, textAlign: 'right' }]}>
+                            <Text style={[styles.previewTableCell, { flex: 1, textAlign: 'right', fontSize: scaleFontSize(13) }]}>
                               {item.price.toFixed(2)} €
                             </Text>
                           </View>
@@ -1325,10 +1336,10 @@ export default function FacturacionScreen() {
                       </React.Fragment>
                     ) : (
                       <View style={styles.previewTableRow}>
-                        <Text style={[styles.previewTableCell, { flex: 2 }]}>
+                        <Text style={[styles.previewTableCell, { flex: 2, fontSize: scaleFontSize(13) }]}>
                           Suscripción - Plan {(previewInvoice as Invoice).plan_id || 'N/A'}
                         </Text>
-                        <Text style={[styles.previewTableCell, { flex: 1, textAlign: 'right' }]}>
+                        <Text style={[styles.previewTableCell, { flex: 1, textAlign: 'right', fontSize: scaleFontSize(13) }]}>
                           {previewInvoice.subtotal.toFixed(2)} {previewInvoice.currency}
                         </Text>
                       </View>
@@ -1337,20 +1348,20 @@ export default function FacturacionScreen() {
 
                   <View style={styles.previewTotals}>
                     <View style={styles.previewTotalRow}>
-                      <Text style={styles.previewTotalLabel}>Subtotal:</Text>
-                      <Text style={styles.previewTotalValue}>
+                      <Text style={[styles.previewTotalLabel, { fontSize: scaleFontSize(14) }]}>Subtotal:</Text>
+                      <Text style={[styles.previewTotalValue, { fontSize: scaleFontSize(14) }]}>
                         {previewInvoice.subtotal.toFixed(2)} {previewInvoice.currency}
                       </Text>
                     </View>
                     <View style={styles.previewTotalRow}>
-                      <Text style={styles.previewTotalLabel}>IVA ({previewInvoice.tax_rate}%):</Text>
-                      <Text style={styles.previewTotalValue}>
+                      <Text style={[styles.previewTotalLabel, { fontSize: scaleFontSize(14) }]}>IVA ({previewInvoice.tax_rate}%):</Text>
+                      <Text style={[styles.previewTotalValue, { fontSize: scaleFontSize(14) }]}>
                         {previewInvoice.tax_amount.toFixed(2)} {previewInvoice.currency}
                       </Text>
                     </View>
                     <View style={[styles.previewTotalRow, styles.previewTotalRowFinal]}>
-                      <Text style={styles.previewTotalLabelFinal}>TOTAL:</Text>
-                      <Text style={styles.previewTotalValueFinal}>
+                      <Text style={[styles.previewTotalLabelFinal, { fontSize: scaleFontSize(16) }]}>TOTAL:</Text>
+                      <Text style={[styles.previewTotalValueFinal, { fontSize: scaleFontSize(18) }]}>
                         {previewInvoice.total.toFixed(2)} {previewInvoice.currency}
                       </Text>
                     </View>
@@ -1358,7 +1369,7 @@ export default function FacturacionScreen() {
 
                   {fiscalData?.invoice_footer_text && (
                     <View style={styles.previewFooter}>
-                      <Text style={styles.previewFooterText}>{fiscalData.invoice_footer_text}</Text>
+                      <Text style={[styles.previewFooterText, { fontSize: scaleFontSize(11) }]}>{fiscalData.invoice_footer_text}</Text>
                     </View>
                   )}
                 </View>
@@ -1366,7 +1377,7 @@ export default function FacturacionScreen() {
             )}
 
             <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowPreviewModal(false)}>
-              <Text style={styles.modalCancelText}>Cerrar</Text>
+              <Text style={[styles.modalCancelText, { fontSize: scaleFontSize(16) }]}>Cerrar</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -1382,7 +1393,7 @@ export default function FacturacionScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowFiscalDataModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Datos Fiscales</Text>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Datos Fiscales</Text>
               <TouchableOpacity onPress={() => setShowFiscalDataModal(false)}>
                 <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -1390,9 +1401,9 @@ export default function FacturacionScreen() {
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Nombre de la Empresa *</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Nombre de la Empresa *</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={companyName}
                   onChangeText={setCompanyName}
                   placeholder="Barlive S.L."
@@ -1401,9 +1412,9 @@ export default function FacturacionScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>CIF/NIF *</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>CIF/NIF *</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={taxId}
                   onChangeText={setTaxId}
                   placeholder="B12345678"
@@ -1412,9 +1423,9 @@ export default function FacturacionScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Dirección *</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Dirección *</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={address}
                   onChangeText={setAddress}
                   placeholder="Calle Principal, 123"
@@ -1423,9 +1434,9 @@ export default function FacturacionScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Ciudad *</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Ciudad *</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={city}
                   onChangeText={setCity}
                   placeholder="Madrid"
@@ -1434,9 +1445,9 @@ export default function FacturacionScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Código Postal *</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Código Postal *</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={postalCode}
                   onChangeText={setPostalCode}
                   placeholder="28001"
@@ -1446,9 +1457,9 @@ export default function FacturacionScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Email de Gestoría</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Email de Gestoría</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={accountingEmail}
                   onChangeText={setAccountingEmail}
                   placeholder="gestoria@example.com"
@@ -1460,7 +1471,7 @@ export default function FacturacionScreen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Envío Automático de Facturas</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Envío Automático de Facturas</Text>
                   <Switch
                     value={sendAutomatically}
                     onValueChange={setSendAutomatically}
@@ -1468,7 +1479,7 @@ export default function FacturacionScreen() {
                     thumbColor={sendAutomatically ? colors.primary : colors.textSecondary}
                   />
                 </View>
-                <Text style={styles.switchHelp}>
+                <Text style={[styles.switchHelp, { fontSize: scaleFontSize(12) }]}>
                   Las facturas se enviarán automáticamente tras cada compra
                 </Text>
               </View>
@@ -1484,13 +1495,13 @@ export default function FacturacionScreen() {
               ) : (
                 <>
                   <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.white} />
-                  <Text style={styles.modalPrimaryButtonText}>Guardar Datos</Text>
+                  <Text style={[styles.modalPrimaryButtonText, { fontSize: scaleFontSize(16) }]}>Guardar Datos</Text>
                 </>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowFiscalDataModal(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
+              <Text style={[styles.modalCancelText, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -1517,12 +1528,10 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   headerTitle: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: colors.headerText,
   },
   headerSubtitle: {
-    fontSize: 14,
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 2,
@@ -1547,7 +1556,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primary,
   },
   tabText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -1568,7 +1576,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
     color: colors.textSecondary,
   },
   sectionHeader: {
@@ -1578,12 +1585,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
   },
   sectionSubtitle: {
-    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
   },
@@ -1597,7 +1602,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   createButtonText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.white,
   },
@@ -1611,7 +1615,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   editButtonText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.white,
   },
@@ -1630,13 +1633,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   warningTitle: {
-    fontSize: 16,
     fontWeight: '600',
     color: '#92400E',
     marginBottom: 6,
   },
   warningText: {
-    fontSize: 14,
     color: '#92400E',
     lineHeight: 20,
     marginBottom: 12,
@@ -1649,7 +1650,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   warningButtonText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.white,
   },
@@ -1691,23 +1691,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   manualBadgeText: {
-    fontSize: 10,
     fontWeight: '700',
     color: '#8B5CF6',
   },
   invoiceNumber: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
   },
   invoiceCustomer: {
-    fontSize: 14,
     color: colors.text,
     marginBottom: 2,
   },
   invoiceEmail: {
-    fontSize: 12,
     color: colors.textSecondary,
   },
   statusBadge: {
@@ -1716,11 +1712,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusText: {
-    fontSize: 12,
     fontWeight: '600',
   },
   invoiceAmount: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: colors.primary,
   },
@@ -1736,7 +1730,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   invoiceDate: {
-    fontSize: 12,
     color: colors.textSecondary,
   },
   invoiceItemsList: {
@@ -1752,12 +1745,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   invoiceItemConcept: {
-    fontSize: 13,
     color: colors.text,
     flex: 1,
   },
   invoiceItemPrice: {
-    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1778,7 +1769,6 @@ const styles = StyleSheet.create({
     borderColor: colors.primary + '30',
   },
   previewButtonText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -1797,7 +1787,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   sendEmailButtonText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.white,
   },
@@ -1814,7 +1803,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   configSectionTitle: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 12,
@@ -1827,14 +1815,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   configLabel: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.textSecondary,
     width: 120,
   },
   configValue: {
     flex: 1,
-    fontSize: 14,
     color: colors.text,
   },
   infoCard: {
@@ -1851,13 +1837,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoTitle: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
   },
   infoText: {
-    fontSize: 14,
     color: colors.textSecondary,
     lineHeight: 22,
   },
@@ -1867,12 +1851,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -1884,7 +1866,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   configureButtonText: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.white,
   },
@@ -1918,7 +1899,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     flex: 1,
@@ -1928,7 +1908,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   formSectionTitle: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 8,
@@ -1945,7 +1924,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   formLabel: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
@@ -1955,7 +1933,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -1965,7 +1942,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 14,
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -1986,7 +1962,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   invoiceItemFormTitle: {
-    fontSize: 14,
     fontWeight: 'bold',
     color: colors.text,
   },
@@ -2003,11 +1978,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
     color: colors.text,
   },
   currencyLabel: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -2024,7 +1997,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   addItemButtonText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -2048,21 +2020,17 @@ const styles = StyleSheet.create({
     borderTopColor: colors.primary,
   },
   totalLabel: {
-    fontSize: 14,
     color: colors.textSecondary,
   },
   totalValue: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
   totalLabelFinal: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
   },
   totalValueFinal: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: colors.primary,
   },
@@ -2073,12 +2041,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   switchLabel: {
-    fontSize: 16,
     color: colors.text,
     flex: 1,
   },
   switchHelp: {
-    fontSize: 12,
     color: colors.textSecondary,
     marginTop: 4,
   },
@@ -2097,7 +2063,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   modalPrimaryButtonText: {
-    fontSize: 16,
     fontWeight: '700',
     color: colors.white,
   },
@@ -2106,7 +2071,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalCancelText: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -2120,13 +2084,11 @@ const styles = StyleSheet.create({
     ...commonStyles.shadow,
   },
   testEmailTitle: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
   },
   testEmailSubtitle: {
-    fontSize: 13,
     color: colors.textSecondary,
     marginBottom: 16,
   },
@@ -2140,7 +2102,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 14,
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -2159,7 +2120,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   sendTestButtonText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.white,
   },
@@ -2191,13 +2151,11 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primary,
   },
   previewCompanyName: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 8,
   },
   previewCompanyDetails: {
-    fontSize: 12,
     color: colors.textSecondary,
     lineHeight: 18,
   },
@@ -2205,13 +2163,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   previewInvoiceNumberLabel: {
-    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
     marginBottom: 4,
   },
   previewInvoiceNumberValue: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: colors.primary,
   },
@@ -2219,13 +2175,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   previewSectionTitle: {
-    fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
     marginBottom: 8,
   },
   previewCustomerInfo: {
-    fontSize: 13,
     color: colors.text,
     lineHeight: 20,
   },
@@ -2235,11 +2189,9 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   previewLabel: {
-    fontSize: 13,
     color: colors.textSecondary,
   },
   previewValue: {
-    fontSize: 13,
     color: colors.text,
     fontWeight: '600',
   },
@@ -2258,7 +2210,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   previewTableHeaderText: {
-    fontSize: 13,
     fontWeight: '700',
     color: colors.text,
   },
@@ -2267,7 +2218,6 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   previewTableCell: {
-    fontSize: 13,
     color: colors.text,
   },
   previewTotals: {
@@ -2288,21 +2238,17 @@ const styles = StyleSheet.create({
     borderTopColor: colors.primary,
   },
   previewTotalLabel: {
-    fontSize: 14,
     color: colors.textSecondary,
   },
   previewTotalValue: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
   previewTotalLabelFinal: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
   },
   previewTotalValueFinal: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: colors.primary,
   },
@@ -2313,7 +2259,6 @@ const styles = StyleSheet.create({
     borderTopColor: colors.cardBorder,
   },
   previewFooterText: {
-    fontSize: 11,
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 16,
