@@ -1,9 +1,11 @@
+
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/IconSymbol";
 import { GlassView } from "expo-glass-effect";
 import { useTheme } from "@react-navigation/native";
+import { scaleFontSize } from "@/utils/androidScaling";
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -21,7 +23,12 @@ export default function ProfileScreen() {
           styles.profileHeader,
           Platform.OS !== 'ios' && { backgroundColor: theme.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
         ]} glassEffectStyle="regular">
-          <IconSymbol ios_icon_name="person.circle.fill" android_material_icon_name="person" size={80} color={theme.colors.primary} />
+          <IconSymbol 
+            ios_icon_name="person.circle.fill" 
+            android_material_icon_name="person" 
+            size={Platform.OS === 'android' ? 70 : 80} 
+            color={theme.colors.primary} 
+          />
           <Text style={[styles.name, { color: theme.colors.text }]}>John Doe</Text>
           <Text style={[styles.email, { color: theme.dark ? '#98989D' : '#666' }]}>john.doe@example.com</Text>
         </GlassView>
@@ -31,11 +38,21 @@ export default function ProfileScreen() {
           Platform.OS !== 'ios' && { backgroundColor: theme.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
         ]} glassEffectStyle="regular">
           <View style={styles.infoRow}>
-            <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color={theme.dark ? '#98989D' : '#666'} />
+            <IconSymbol 
+              ios_icon_name="phone.fill" 
+              android_material_icon_name="phone" 
+              size={20} 
+              color={theme.dark ? '#98989D' : '#666'} 
+            />
             <Text style={[styles.infoText, { color: theme.colors.text }]}>+1 (555) 123-4567</Text>
           </View>
           <View style={styles.infoRow}>
-            <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location-on" size={20} color={theme.dark ? '#98989D' : '#666'} />
+            <IconSymbol 
+              ios_icon_name="location.fill" 
+              android_material_icon_name="location-on" 
+              size={20} 
+              color={theme.dark ? '#98989D' : '#666'} 
+            />
             <Text style={[styles.infoText, { color: theme.colors.text }]}>San Francisco, CA</Text>
           </View>
         </GlassView>
@@ -47,7 +64,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    // backgroundColor handled dynamically
   },
   container: {
     flex: 1,
@@ -56,23 +72,21 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   contentContainerWithTabBar: {
-    paddingBottom: 100, // Extra padding for floating tab bar
+    paddingBottom: Platform.OS === 'android' ? 90 : 100,
   },
   profileHeader: {
     alignItems: 'center',
     borderRadius: 12,
-    padding: 32,
+    padding: Platform.OS === 'android' ? 28 : 32,
     marginBottom: 16,
     gap: 12,
   },
   name: {
-    fontSize: 24,
+    fontSize: scaleFontSize(24),
     fontWeight: 'bold',
-    // color handled dynamically
   },
   email: {
-    fontSize: 16,
-    // color handled dynamically
+    fontSize: scaleFontSize(16),
   },
   section: {
     borderRadius: 12,
@@ -85,7 +99,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   infoText: {
-    fontSize: 16,
-    // color handled dynamically
+    fontSize: scaleFontSize(16),
   },
 });
