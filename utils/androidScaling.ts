@@ -1,46 +1,40 @@
 
-import { Platform, Dimensions } from 'react-native';
+import { Platform, Dimensions, StatusBar } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export const scaleFontSize = (size: number) => {
+// Base scaling function for Android
+export function scaleFontSize(size: number): number {
   if (Platform.OS === 'android') {
-    return size * 0.9;
+    return size * 1.1;
   }
   return size;
-};
+}
 
-export const getHeaderHeight = () => {
-  if (Platform.OS === 'android') {
-    return 200;
-  }
-  return 220;
-};
+// Platform-specific dimension functions
+export function getHeaderHeight(): number {
+  return Platform.OS === 'android' ? 60 : 56;
+}
 
-export const getSearchBoxHeight = () => {
-  if (Platform.OS === 'android') {
-    return 45;
-  }
-  return 50;
-};
+export function getSearchBoxHeight(): number {
+  return Platform.OS === 'android' ? 50 : 46;
+}
 
-export const getCategoryIconSize = () => {
-  if (Platform.OS === 'android') {
-    return 60;
-  }
-  return 65;
-};
+export function getCategoryIconSize(): number {
+  return Platform.OS === 'android' ? 72 : 68;
+}
 
-export const getCategoryIconInnerSize = () => {
-  if (Platform.OS === 'android') {
-    return 28;
-  }
-  return 30;
-};
+export function getCategoryIconInnerSize(): number {
+  return Platform.OS === 'android' ? 32 : 28;
+}
 
-export const getCategoryTopPadding = () => {
+export function getCategoryTopPadding(): number {
+  return Platform.OS === 'android' ? 16 : 12;
+}
+
+export function getStatusBarHeight(): number {
   if (Platform.OS === 'android') {
-    return 8;
+    return StatusBar.currentHeight || 24;
   }
-  return 10;
-};
+  return 0; // iOS handles status bar automatically
+}
