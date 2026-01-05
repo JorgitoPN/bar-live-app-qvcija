@@ -1,111 +1,26 @@
 
-import { Platform, Dimensions, StatusBar } from 'react-native';
+import { Platform, StatusBar, Dimensions } from 'react-native';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+const guidelineBaseWidth = 375;
+const guidelineBaseHeight = 812;
 
-// Base dimensions (designed for standard Android device)
-const BASE_WIDTH = 360;
-const BASE_HEIGHT = 800;
+const horizontalScale = (size: number) => (width / guidelineBaseWidth) * size;
+const verticalScale = (size: number) => (height / guidelineBaseHeight) * size;
+const moderateScale = (size: number, factor: number = 0.5) => size + (horizontalScale(size) - size) * factor;
 
-// Calculate scale factors
-const widthScale = SCREEN_WIDTH / BASE_WIDTH;
-const heightScale = SCREEN_HEIGHT / BASE_HEIGHT;
-const scale = Math.min(widthScale, heightScale);
+export const scaleFontSize = (size: number) =>
+  Platform.OS === 'android' ? moderateScale(size) : size;
 
-/**
- * Scales font size for Android devices
- */
-export function scaleFontSize(size: number): number {
-  if (Platform.OS !== 'android') return size;
-  return Math.round(size * scale);
-}
-
-/**
- * Returns header height based on platform
- */
-export function getHeaderHeight(): number {
-  if (Platform.OS === 'android') {
-    return scaleFontSize(200);
-  }
-  return 200;
-}
-
-/**
- * Returns search box height based on platform
- */
-export function getSearchBoxHeight(): number {
-  if (Platform.OS === 'android') {
-    return scaleFontSize(50);
-  }
-  return 50;
-}
-
-/**
- * Returns category icon size based on platform
- */
-export function getCategoryIconSize(): number {
-  if (Platform.OS === 'android') {
-    return scaleFontSize(70);
-  }
-  return 70;
-}
-
-/**
- * Returns inner category icon size based on platform
- */
-export function getCategoryIconInnerSize(): number {
-  if (Platform.OS === 'android') {
-    return scaleFontSize(32);
-  }
-  return 32;
-}
-
-/**
- * Returns top padding for categories based on platform
- */
-export function getCategoryTopPadding(): number {
-  if (Platform.OS === 'android') {
-    return scaleFontSize(10);
-  }
-  return 10;
-}
-
-/**
- * Returns status bar height for Android
- */
-export function getStatusBarHeight(): number {
-  if (Platform.OS === 'android') {
-    return StatusBar.currentHeight || 24;
-  }
-  return 0;
-}
-
-/**
- * Returns category spacing based on platform
- */
-export function getCategorySpacing(): number {
-  if (Platform.OS === 'android') {
-    return scaleFontSize(12);
-  }
-  return 12;
-}
-
-/**
- * Returns bottom navigation height based on platform
- */
-export function getBottomNavHeight(): number {
-  if (Platform.OS === 'android') {
-    return scaleFontSize(60);
-  }
-  return 60;
-}
-
-/**
- * Returns bottom navigation padding bottom based on platform and insets
- */
-export function getBottomNavPaddingBottom(bottomInset: number = 0): number {
-  if (Platform.OS === 'android') {
-    return Math.max(scaleFontSize(8), bottomInset);
-  }
-  return Math.max(8, bottomInset);
-}
+export const getHeaderHeight = () => Platform.OS === 'android' ? verticalScale(200) : verticalScale(220);
+export const getSearchBoxHeight = () => Platform.OS === 'android' ? verticalScale(45) : verticalScale(50);
+export const getCategoryIconSize = () => Platform.OS === 'android' ? horizontalScale(60) : horizontalScale(65);
+export const getCategoryIconInnerSize = () => Platform.OS === 'android' ? horizontalScale(28) : horizontalScale(30);
+export const getCategoryTopPadding = () => Platform.OS === 'android' ? verticalScale(8) : verticalScale(10);
+export const getCategorySpacing = () => Platform.OS === 'android' ? horizontalScale(12) : horizontalScale(16);
+export const getStatusBarHeight = () => Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 0;
+export const getBottomNavHeight = () => verticalScale(60);
+export const getBottomNavPaddingBottom = (bottomInset: number) => Platform.OS === 'android' ? verticalScale(10) : bottomInset;
+export const getCenterButtonSize = () => horizontalScale(72);
+export const getCenterButtonIconSize = () => horizontalScale(32);
+export const getBottomNavIconSize = () => horizontalScale(24);
