@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import { useImpersonation } from './ImpersonationContext';
@@ -54,6 +54,7 @@ const ACTIVE_PROFILE_TYPE_STORAGE_KEY = '@barlive_active_profile_type';
  * - ✅ Used useMemo to prevent unnecessary context recreation
  * - ✅ Simplified dependency arrays to prevent infinite loops
  * - ✅ Proper initialization flow without circular triggers
+ * - ✅ FIXED: Added useRef to React imports
  */
 
 export function ModeProvider({ children }: { children: ReactNode }) {
