@@ -1,40 +1,64 @@
 
-import { Platform, Dimensions, StatusBar } from 'react-native';
+import { Platform, Dimensions, PixelRatio } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const scale = SCREEN_WIDTH / 375; // Base width for scaling
 
-// Base scaling function for Android
+/**
+ * Scales font size based on screen density for Android
+ */
 export function scaleFontSize(size: number): number {
   if (Platform.OS === 'android') {
-    return size * 1.1;
+    return Math.round(size * scale);
   }
   return size;
 }
 
-// Platform-specific dimension functions
+/**
+ * Returns header height based on platform
+ */
 export function getHeaderHeight(): number {
-  return Platform.OS === 'android' ? 60 : 56;
+  return Platform.OS === 'android' ? 200 : 220;
 }
 
+/**
+ * Returns search box height based on platform
+ */
 export function getSearchBoxHeight(): number {
-  return Platform.OS === 'android' ? 50 : 46;
+  return Platform.OS === 'android' ? 45 : 50;
 }
 
+/**
+ * Returns category icon size based on platform
+ */
 export function getCategoryIconSize(): number {
-  return Platform.OS === 'android' ? 72 : 68;
+  return Platform.OS === 'android' ? 60 : 70;
 }
 
+/**
+ * Returns category icon inner size based on platform
+ */
 export function getCategoryIconInnerSize(): number {
-  return Platform.OS === 'android' ? 32 : 28;
+  return Platform.OS === 'android' ? 28 : 32;
 }
 
+/**
+ * Returns category top padding based on platform
+ */
 export function getCategoryTopPadding(): number {
-  return Platform.OS === 'android' ? 16 : 12;
+  return Platform.OS === 'android' ? 8 : 12;
 }
 
+/**
+ * Returns status bar height based on platform
+ */
 export function getStatusBarHeight(): number {
-  if (Platform.OS === 'android') {
-    return StatusBar.currentHeight || 24;
-  }
-  return 0; // iOS handles status bar automatically
+  return Platform.OS === 'android' ? 24 : 44;
+}
+
+/**
+ * Returns category spacing based on platform
+ */
+export function getCategorySpacing(): number {
+  return Platform.OS === 'android' ? 12 : 16;
 }
