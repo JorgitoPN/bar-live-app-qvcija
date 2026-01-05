@@ -80,13 +80,13 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v99.0 - ANDROID THREE-DOTS ICON FIX
+ * ✅ POST VIEWER MODAL v10.0 - COMMENT COUNT & REPORT SYSTEM
  * 
- * CRITICAL FIXES v99.0 (ANDROID ONLY):
- * - ✅ Fixed three-dots icon showing "?" on Android
- * - ✅ Changed from "ellipsis" to "more_vert" for Android
- * - ✅ iOS continues using "ellipsis" (horizontal dots)
- * - ✅ All other functionality maintained
+ * Key changes:
+ * - ✅ FIXED: Comment count display with proper text
+ * - ✅ NEW: Report functionality for all posts
+ * - ✅ INTEGRATED: PostLikesAvatars component for consistent likes display
+ * - ✅ UNIFIED: Same optimistic UI and real-time updates as Social Feed
  */
 
 export default function PostViewerModal({
@@ -170,7 +170,7 @@ export default function PostViewerModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v99.0] Props received:', { 
+      console.log('[PostViewerModal v10.0] Props received:', { 
         visible, 
         initialPostId, 
         singlePost: !!singlePost,
@@ -387,7 +387,7 @@ export default function PostViewerModal({
       
       // If single post is provided, use it directly
       if (singlePost) {
-        console.log('[PostViewerModal v99.0] Using single post mode');
+        console.log('[PostViewerModal v10.0] Using single post mode');
         
         let liked = false;
         if (interactionUserId) {
@@ -466,7 +466,7 @@ export default function PostViewerModal({
       }
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v99.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v10.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -483,7 +483,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v99.0] Error loading posts:', error);
+        console.error('[PostViewerModal v10.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -491,14 +491,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v99.0] Invalid data received:', data);
+        console.error('[PostViewerModal v10.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v99.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v10.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -575,7 +575,7 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v99.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v10.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -605,7 +605,7 @@ export default function PostViewerModal({
         setCurrentPostId(initialPostId || '');
       }
     } catch (error) {
-      console.error('[PostViewerModal v99.0] Error:', error);
+      console.error('[PostViewerModal v10.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
@@ -1322,13 +1322,7 @@ export default function PostViewerModal({
               style={styles.optionsButton}
               onPress={() => handlePostOptions(post)}
             >
-              {/* ✅ CRITICAL FIX v99.0: Use "more_vert" on Android instead of "ellipsis" */}
-              <IconSymbol 
-                ios_icon_name="ellipsis" 
-                android_material_icon_name="more_vert" 
-                size={24} 
-                color={colors.text} 
-              />
+              <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={24} color={colors.text} />
             </TouchableOpacity>
           )}
         </View>

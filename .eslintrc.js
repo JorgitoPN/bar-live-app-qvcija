@@ -1,4 +1,3 @@
-
 // https://docs.expo.dev/guides/using-eslint/
 module.exports = {
   extends: [
@@ -22,27 +21,6 @@ module.exports = {
   env: {
     browser: true,
   },
-  settings: {
-    'import/resolver': {
-      typescript: {
-        alwaysTryTypes: true,
-        project: './tsconfig.json',
-      },
-      node: {
-        extensions: ['.js', '.jsx', '.ts', '.tsx'],
-      },
-      'babel-module': {
-        alias: {
-          '@': './',
-          '@components': './components',
-          '@style': './style',
-          '@hooks': './hooks',
-          '@types': './types',
-          '@contexts': './contexts',
-        },
-      },
-    },
-  },
   rules: {
     "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/no-explicit-any": "off",
@@ -52,7 +30,7 @@ module.exports = {
     "@typescript-eslint/no-empty-object-type": "off",
     "@typescript-eslint/no-wrapper-object-types": "off",
     "react/no-unescaped-entities": "off",
-    "import/no-unresolved": "off", // Disable this rule as it's causing issues with path aliases
+    "import/no-unresolved": "error",
     "prefer-const": "off",
     "react/prop-types": 1,
     "no-case-declarations": "off",
