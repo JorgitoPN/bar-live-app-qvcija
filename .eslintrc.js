@@ -1,3 +1,4 @@
+
 // https://docs.expo.dev/guides/using-eslint/
 module.exports = {
   extends: [
@@ -17,9 +18,20 @@ module.exports = {
       jsx: true
     }
   },
-  ignorePatterns: ['/dist/*', '/public/*', '/babel-plugins/*'],
+  ignorePatterns: ['/dist/*', '/public/*', '/babel-plugins/*', '/backend/*'],
   env: {
     browser: true,
+  },
+  settings: {
+    'import/resolver': {
+      typescript: {
+        alwaysTryTypes: true,
+        project: './tsconfig.json'
+      },
+      node: {
+        extensions: ['.js', '.jsx', '.ts', '.tsx']
+      }
+    }
   },
   rules: {
     "@typescript-eslint/no-unused-vars": "off",
@@ -29,13 +41,18 @@ module.exports = {
     "react/react-in-jsx-scope": "off",
     "@typescript-eslint/no-empty-object-type": "off",
     "@typescript-eslint/no-wrapper-object-types": "off",
+    "@typescript-eslint/ban-tslint-comment": "off",
     "react/no-unescaped-entities": "off",
     "import/no-unresolved": "error",
     "prefer-const": "off",
     "react/prop-types": 1,
     "no-case-declarations": "off",
     "no-empty": "off",
-    "react/display-name": "off"
+    "react/display-name": "off",
+    "no-constant-condition": "off",
+    "no-var": "off",
+    "no-useless-escape": "off",
+    "react-hooks/exhaustive-deps": "warn"
   },
   overrides: [
     {
