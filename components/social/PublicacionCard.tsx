@@ -73,9 +73,9 @@ interface PublicacionCardProps {
 }
 
 /**
- * ✅ PUBLICACION CARD v97.0 - ANDROID THREE-DOTS ICON FIX
+ * ✅ PUBLICACION CARD v99.0 - ANDROID THREE-DOTS ICON FIX
  * 
- * CRITICAL FIXES v97.0 (ANDROID ONLY):
+ * CRITICAL FIXES v99.0 (ANDROID ONLY):
  * - ✅ Fixed three-dots icon showing "?" on Android
  * - ✅ Changed from "ellipsis" to "more_vert" for Android
  * - ✅ iOS continues using "ellipsis" (horizontal dots)
@@ -160,7 +160,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       setTaggedUsers(tags);
     } catch (error) {
-      console.error('[PublicacionCard v97.0] Error loading tagged users:', error);
+      console.error('[PublicacionCard v99.0] Error loading tagged users:', error);
     }
   }, [post.id]);
 
@@ -171,7 +171,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   useEffect(() => {
     const loadInitialLikes = async () => {
       try {
-        console.log('[PublicacionCard v97.0] 🔄 Loading initial likes for post:', post.id);
+        console.log('[PublicacionCard v99.0] 🔄 Loading initial likes for post:', post.id);
         
         const { data, error } = await supabase
           .from('likes')
@@ -180,10 +180,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
         if (!error && data) {
           setLocalLikes(data);
-          console.log('[PublicacionCard v97.0] ✅ Loaded initial likes:', data.length);
+          console.log('[PublicacionCard v99.0] ✅ Loaded initial likes:', data.length);
         }
       } catch (error) {
-        console.error('[PublicacionCard v97.0] ❌ Error loading initial likes:', error);
+        console.error('[PublicacionCard v99.0] ❌ Error loading initial likes:', error);
       }
     };
 
@@ -193,10 +193,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   useEffect(() => {
     if (!user) return;
 
-    console.log('[PublicacionCard v97.0] 🔄 Setting up real-time subscription for post:', post.id);
+    console.log('[PublicacionCard v99.0] 🔄 Setting up real-time subscription for post:', post.id);
 
     if (channelRef.current?.state === 'subscribed') {
-      console.log('[PublicacionCard v97.0] ⚠️ Already subscribed, skipping');
+      console.log('[PublicacionCard v99.0] ⚠️ Already subscribed, skipping');
       return;
     }
 
@@ -213,16 +213,16 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
-          console.log('[PublicacionCard v97.0] 🔄 Real-time like change detected:', payload.eventType);
+          console.log('[PublicacionCard v99.0] 🔄 Real-time like change detected:', payload.eventType);
           
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[PublicacionCard v97.0] ⏭️ Change made by current user, skipping');
+            console.log('[PublicacionCard v99.0] ⏭️ Change made by current user, skipping');
             return;
           }
           
-          console.log('[PublicacionCard v97.0] 🔄 Change made by another user, updating...');
+          console.log('[PublicacionCard v99.0] 🔄 Change made by another user, updating...');
           
           if (payload.eventType === 'INSERT' && payload.new) {
             setLocalLikes(prev => {
@@ -230,13 +230,13 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                 return prev;
               }
               const newArray = [...prev, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
-              console.log('[PublicacionCard v97.0] ➕ Added like, new count:', newArray.length);
+              console.log('[PublicacionCard v99.0] ➕ Added like, new count:', newArray.length);
               return newArray;
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
             setLocalLikes(prev => {
               const newArray = prev.filter(like => like.id !== payload.old.id);
-              console.log('[PublicacionCard v97.0] ➖ Removed like, new count:', newArray.length);
+              console.log('[PublicacionCard v99.0] ➖ Removed like, new count:', newArray.length);
               return newArray;
             });
           }
@@ -247,7 +247,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             .eq('post_id', post.id);
           
           if (!countError && count !== null) {
-            console.log('[PublicacionCard v97.0] ✅ Updated likes count:', count);
+            console.log('[PublicacionCard v99.0] ✅ Updated likes count:', count);
             setLikesCount(count);
           }
         }
@@ -261,7 +261,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
-          console.log('[PublicacionCard v97.0] 🔄 Real-time comment change detected:', payload.eventType);
+          console.log('[PublicacionCard v99.0] 🔄 Real-time comment change detected:', payload.eventType);
           
           const { count, error: countError } = await supabase
             .from('comentarios')
@@ -269,17 +269,17 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             .eq('post_id', post.id);
           
           if (!countError && count !== null) {
-            console.log('[PublicacionCard v97.0] ✅ Updated comments count:', count);
+            console.log('[PublicacionCard v99.0] ✅ Updated comments count:', count);
             setCommentsCount(count);
           }
         }
       )
       .subscribe((status) => {
-        console.log('[PublicacionCard v97.0] 📡 Subscription status:', status);
+        console.log('[PublicacionCard v99.0] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[PublicacionCard v97.0] 🔄 Cleaning up subscription');
+      console.log('[PublicacionCard v99.0] 🔄 Cleaning up subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -298,7 +298,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     const previousCount = likesCount;
     const previousLocalLikes = [...localLikes];
     
-    console.log('[PublicacionCard v97.0] 🎯 handleLike START:', {
+    console.log('[PublicacionCard v99.0] 🎯 handleLike START:', {
       postId: post.id,
       currentLiked: liked,
       newLikedState,
@@ -308,27 +308,27 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     });
     
     setLiked(newLikedState);
-    console.log('[PublicacionCard v97.0] ✅ Step 1: Updated liked to:', newLikedState);
+    console.log('[PublicacionCard v99.0] ✅ Step 1: Updated liked to:', newLikedState);
     
     const newCount = newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1);
     setLikesCount(newCount);
-    console.log('[PublicacionCard v97.0] ✅ Step 2: Updated count from', likesCount, 'to', newCount);
+    console.log('[PublicacionCard v99.0] ✅ Step 2: Updated count from', likesCount, 'to', newCount);
     
     let newLocalLikes: { id: string; usuario_id: string }[];
     
     if (newLikedState) {
       const tempId = `temp-${Date.now()}`;
       newLocalLikes = [...localLikes, { id: tempId, usuario_id: user.id }];
-      console.log('[PublicacionCard v97.0] ➕ Step 3: LIKING - Adding avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
-      console.log('[PublicacionCard v97.0] ➕ Added user:', user.id, 'with temp ID:', tempId);
+      console.log('[PublicacionCard v99.0] ➕ Step 3: LIKING - Adding avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
+      console.log('[PublicacionCard v99.0] ➕ Added user:', user.id, 'with temp ID:', tempId);
     } else {
       newLocalLikes = localLikes.filter(like => like.usuario_id !== user.id);
-      console.log('[PublicacionCard v97.0] ➖ Step 3: UNLIKING - Removing avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
-      console.log('[PublicacionCard v97.0] ➖ Removed user:', user.id);
+      console.log('[PublicacionCard v99.0] ➖ Step 3: UNLIKING - Removing avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
+      console.log('[PublicacionCard v99.0] ➖ Removed user:', user.id);
     }
     
     setLocalLikes(newLocalLikes);
-    console.log('[PublicacionCard v97.0] ✅ Step 4: Local likes array updated. New array:', newLocalLikes.map(l => ({ id: l.id, userId: l.usuario_id })));
+    console.log('[PublicacionCard v99.0] ✅ Step 4: Local likes array updated. New array:', newLocalLikes.map(l => ({ id: l.id, userId: l.usuario_id })));
 
     if (likeDebounceTimer.current) {
       clearTimeout(likeDebounceTimer.current);
@@ -337,7 +337,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     likeDebounceTimer.current = setTimeout(async () => {
       try {
         if (newLikedState) {
-          console.log('[PublicacionCard v97.0] 💾 Database: Adding like to database');
+          console.log('[PublicacionCard v99.0] 💾 Database: Adding like to database');
           
           const { data, error } = await supabase.from('likes').insert({
             post_id: post.id,
@@ -352,9 +352,9 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
               : like
           ));
           
-          console.log('[PublicacionCard v97.0] ✅ Database: Like added, real ID:', data.id);
+          console.log('[PublicacionCard v99.0] ✅ Database: Like added, real ID:', data.id);
         } else {
-          console.log('[PublicacionCard v97.0] 💾 Database: Removing like from database');
+          console.log('[PublicacionCard v99.0] 💾 Database: Removing like from database');
           
           const { error } = await supabase
             .from('likes')
@@ -364,7 +364,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           
           if (error) throw error;
           
-          console.log('[PublicacionCard v97.0] ✅ Database: Like removed');
+          console.log('[PublicacionCard v99.0] ✅ Database: Like removed');
         }
 
         const { count, error: countError } = await supabase
@@ -373,12 +373,12 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           .eq('post_id', post.id);
         
         if (!countError && count !== null) {
-          console.log('[PublicacionCard v97.0] ✅ Database: Verified count:', count);
+          console.log('[PublicacionCard v99.0] ✅ Database: Verified count:', count);
           setLikesCount(count);
         }
       } catch (error) {
-        console.error('[PublicacionCard v97.0] ❌ Error toggling like:', error);
-        console.log('[PublicacionCard v97.0] 🔄 Rolling back to previous state');
+        console.error('[PublicacionCard v99.0] ❌ Error toggling like:', error);
+        console.log('[PublicacionCard v99.0] 🔄 Rolling back to previous state');
         setLiked(previousLiked);
         setLikesCount(previousCount);
         setLocalLikes(previousLocalLikes);
@@ -440,7 +440,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           .eq('usuario_id', user.id);
       }
     } catch (error) {
-      console.error('[PublicacionCard v97.0] Error toggling save:', error);
+      console.error('[PublicacionCard v99.0] Error toggling save:', error);
       setSaved(!newSavedState);
     }
   }, [user, saved, post.id]);
@@ -473,7 +473,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         title: 'Compartir publicación',
       });
     } catch (error) {
-      console.error('[PublicacionCard v97.0] Error sharing:', error);
+      console.error('[PublicacionCard v99.0] Error sharing:', error);
     }
   }, [post.contenido]);
 
@@ -528,7 +528,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                 onUpdate();
               }
             } catch (error) {
-              console.error('[PublicacionCard v97.0] Error deleting post:', error);
+              console.error('[PublicacionCard v99.0] Error deleting post:', error);
               Alert.alert('Error', 'No se pudo eliminar la publicación');
             }
           },
@@ -566,7 +566,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       }
       Alert.alert('Éxito', 'Descripción actualizada correctamente');
     } catch (error) {
-      console.error('[PublicacionCard v97.0] Error updating description:', error);
+      console.error('[PublicacionCard v99.0] Error updating description:', error);
       Alert.alert('Error', 'No se pudo actualizar la descripción');
     } finally {
       setSavingEdit(false);
@@ -576,7 +576,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const loadExistingTags = useCallback(async () => {
     setLoadingTags(true);
     try {
-      console.log('[PublicacionCard v97.0] 🔄 Loading ACCEPTED tags from database for post:', post.id);
+      console.log('[PublicacionCard v99.0] 🔄 Loading ACCEPTED tags from database for post:', post.id);
 
       const { data, error } = await supabase
         .from('post_tags')
@@ -589,11 +589,11 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         .eq('estado', 'aceptado');
 
       if (error) {
-        console.error('[PublicacionCard v97.0] ❌ Error loading tags:', error);
+        console.error('[PublicacionCard v99.0] ❌ Error loading tags:', error);
         throw error;
       }
 
-      console.log('[PublicacionCard v97.0] 📊 Raw ACCEPTED tags data from database:', data);
+      console.log('[PublicacionCard v99.0] 📊 Raw ACCEPTED tags data from database:', data);
 
       const tags: TaggableUser[] = [];
       
@@ -619,10 +619,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         });
       }
 
-      console.log('[PublicacionCard v97.0] ✅ Processed ACCEPTED tags:', tags.length);
+      console.log('[PublicacionCard v99.0] ✅ Processed ACCEPTED tags:', tags.length);
       setExistingTags(tags);
     } catch (error) {
-      console.error('[PublicacionCard v97.0] Error loading tags:', error);
+      console.error('[PublicacionCard v99.0] Error loading tags:', error);
       setExistingTags([]);
     } finally {
       setLoadingTags(false);
@@ -636,7 +636,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
   const handleRemoveTag = useCallback(async (taggedUser: TaggableUser) => {
     try {
-      console.log('[PublicacionCard v97.0] 🗑️ Removing tag permanently:', {
+      console.log('[PublicacionCard v99.0] 🗑️ Removing tag permanently:', {
         postId: post.id,
         userId: taggedUser.id,
         tipo: taggedUser.tipo,
@@ -654,7 +654,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         deleteData.local_id = taggedUser.id;
       }
 
-      console.log('[PublicacionCard v97.0] 🔍 Delete query data:', deleteData);
+      console.log('[PublicacionCard v99.0] 🔍 Delete query data:', deleteData);
 
       const { error } = await supabase
         .from('post_tags')
@@ -662,11 +662,11 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         .match(deleteData);
 
       if (error) {
-        console.error('[PublicacionCard v97.0] ❌ Error deleting tag:', error);
+        console.error('[PublicacionCard v99.0] ❌ Error deleting tag:', error);
         throw error;
       }
 
-      console.log('[PublicacionCard v97.0] ✅ Tag deleted successfully from database');
+      console.log('[PublicacionCard v99.0] ✅ Tag deleted successfully from database');
 
       await loadExistingTags();
       await loadTaggedUsers();
@@ -677,7 +677,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       Alert.alert('Éxito', 'Etiqueta eliminada correctamente');
     } catch (error) {
-      console.error('[PublicacionCard v97.0] ❌ Error removing tag:', error);
+      console.error('[PublicacionCard v99.0] ❌ Error removing tag:', error);
       Alert.alert('Error', 'No se pudo eliminar la etiqueta. Por favor, intenta de nuevo.');
     }
   }, [post.id, loadExistingTags, loadTaggedUsers, onUpdate]);
@@ -686,7 +686,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     if (!user) return;
 
     try {
-      console.log('[PublicacionCard v97.0] ➕ Adding new tag:', {
+      console.log('[PublicacionCard v99.0] ➕ Adding new tag:', {
         postId: post.id,
         userId: selectedUser.id,
         tipo: selectedUser.tipo,
@@ -714,7 +714,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       if (tagError) throw tagError;
 
-      console.log('[PublicacionCard v97.0] ✅ Tag request created');
+      console.log('[PublicacionCard v99.0] ✅ Tag request created');
       
       if (selectedUser.tipo === 'usuario') {
         await supabase.from('notificaciones').insert({
@@ -725,7 +725,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           usuario_origen_id: user.id,
           post_id: post.id,
         });
-        console.log('[PublicacionCard v97.0] ✅ Tag notification sent to user:', selectedUser.nombre);
+        console.log('[PublicacionCard v99.0] ✅ Tag notification sent to user:', selectedUser.nombre);
       }
 
       await loadExistingTags();
@@ -737,7 +737,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       Alert.alert('Éxito', 'Solicitud de etiqueta enviada. El usuario debe aprobarla.');
     } catch (error) {
-      console.error('[PublicacionCard v97.0] Error adding tag:', error);
+      console.error('[PublicacionCard v99.0] Error adding tag:', error);
       Alert.alert('Error', 'No se pudo añadir la etiqueta');
     }
   }, [user, post.id, loadExistingTags, loadTaggedUsers, onUpdate]);
@@ -909,7 +909,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </TouchableOpacity>
         {(canEdit || user) && (
           <TouchableOpacity style={styles.optionsButton} onPress={showOptions} activeOpacity={0.7}>
-            {/* ✅ CRITICAL FIX v97.0: Use "more_vert" on Android instead of "ellipsis" */}
+            {/* ✅ CRITICAL FIX v99.0: Use "more_vert" on Android instead of "ellipsis" */}
             <IconSymbol 
               ios_icon_name="ellipsis" 
               android_material_icon_name="more_vert" 
