@@ -82,8 +82,10 @@ interface Evento {
  * ✅ EVENTOS SCREEN v97.0 - ANDROID SEARCH BOX & CATEGORY FILTER FIX
  * 
  * CRITICAL FIXES v97.0 (ANDROID ONLY):
+ * - ✅ Search box text properly centered with textAlignVertical: 'center'
  * - ✅ Search box height matches Favoritos page (48px)
- * - ✅ Category filter icons reduced to match design (20px emoji, 13px text)
+ * - ✅ Category filter icons reduced to match Explorar (20px emoji, 13px text)
+ * - ✅ Header title size standardized to match Explorar (24px on Android)
  * - ✅ White search bar maintained (matching favoritos)
  * - ✅ Scrollable filter modal maintained
  */
@@ -356,8 +358,8 @@ export default function EventosScreen() {
 
   // ✅ Get platform-specific dimensions
   const searchBoxHeight = getSearchBoxHeight();
-  const categoryIconSize = Platform.OS === 'android' ? 20 : 24; // Reduced on Android
-  const categoryTextSize = Platform.OS === 'android' ? 13 : 14; // Reduced on Android
+  const categoryIconSize = Platform.OS === 'android' ? 20 : 24; // ✅ v97.0: Match Explorar size
+  const categoryTextSize = Platform.OS === 'android' ? 13 : 14; // ✅ v97.0: Match Explorar size
 
   return (
     <View style={commonStyles.container}>
@@ -367,12 +369,20 @@ export default function EventosScreen() {
         end={{ x: 1, y: 0 }}
         style={commonStyles.headerGradient}
       >
-        <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Eventos</Text>
+        {/* ✅ CRITICAL FIX v97.0: Header title size matches Explorar (24px on Android) */}
+        <Text style={[
+          commonStyles.headerTitle, 
+          { 
+            color: colors.white,
+            fontSize: Platform.OS === 'android' ? 24 : 32, // ✅ Match Explorar
+          }
+        ]}>
+          Eventos
+        </Text>
 
-        {/* ✅ CRITICAL FIX v97.0: Search box height matches Favoritos (48px) */}
+        {/* ✅ CRITICAL FIX v97.0: Search box with proper text centering on Android */}
         <View style={[styles.searchContainer, { 
           height: searchBoxHeight,
-          paddingVertical: Platform.OS === 'android' ? 10 : 12,
         }]}>
           <IconSymbol 
             ios_icon_name="magnifyingglass" 
@@ -381,7 +391,12 @@ export default function EventosScreen() {
             color={colors.textSecondary} 
           />
           <TextInput
-            style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
+            style={[styles.searchInput, { 
+              fontSize: scaleFontSize(16),
+              // ✅ CRITICAL FIX v97.0: Properly center text vertically on Android
+              textAlignVertical: Platform.OS === 'android' ? 'center' : 'auto',
+              paddingVertical: Platform.OS === 'android' ? 0 : 12,
+            }]}
             placeholder="Buscar eventos..."
             placeholderTextColor={colors.textSecondary}
             value={busqueda}
@@ -428,7 +443,7 @@ export default function EventosScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ✅ CRITICAL FIX v97.0: Reduced category filter sizes on Android */}
+        {/* ✅ CRITICAL FIX v97.0: Category filters match Explorar size (20px emoji, 13px text) */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -529,7 +544,7 @@ export default function EventosScreen() {
 
             <ScrollView 
               style={styles.modalScrollView}
-              showsVerticalScrollIndicator={true}
+              showsHorizontalScrollIndicator={false}
               bounces={false}
             >
               <View style={styles.filterSection}>

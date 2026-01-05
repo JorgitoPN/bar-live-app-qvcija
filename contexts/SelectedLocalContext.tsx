@@ -31,7 +31,8 @@ const STORAGE_KEY = '@selected_local_id';
  * - ✅ Removed circular dependency in useEffect
  * - ✅ Used useRef to prevent unnecessary re-renders
  * - ✅ Memoized context value to prevent recreation on every render
- * - ✅ Simplified dependency arrays
+ * - ✅ Simplified dependency arrays to prevent infinite loops
+ * - ✅ Added loading guard to prevent concurrent loads
  */
 
 export function SelectedLocalProvider({ children }: { children: ReactNode }) {
@@ -42,6 +43,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
   
   // ✅ CRITICAL FIX v97.0: Use ref to prevent circular dependency
   const isLoadingRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
 
   // Load selected local from storage
   useEffect(() => {
@@ -73,8 +75,15 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // ✅ Prevent loading if user hasn't changed
+    if (lastUserIdRef.current === user.id) {
+      console.log('[SelectedLocalContext v97.0] User unchanged, skipping load...');
+      return;
+    }
+
     try {
       isLoadingRef.current = true;
+      lastUserIdRef.current = user.id;
       setLoadingLocales(true);
 
       console.log('[SelectedLocalContext v97.0] Loading user locales for:', user.id);
@@ -147,15 +156,16 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
       setLoadingLocales(false);
       isLoadingRef.current = false;
     }
-  }, [user, selectedLocalId]);
+  }, [user?.id, user?.rol_app, selectedLocalId]);
 
-  // ✅ CRITICAL FIX v97.0: Simplified dependency array - only depend on user
+  // ✅ CRITICAL FIX v97.0: Simplified dependency array - only depend on user ID and role
   useEffect(() => {
-    if (user) {
+    if (user && user.rol_app === 'propietario') {
       loadUserLocales();
     } else {
       setUserLocales([]);
       setLoadingLocales(false);
+      lastUserIdRef.current = null;
     }
   }, [user?.id, user?.rol_app]); // Only re-run when user ID or role changes
 
@@ -173,6 +183,8 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshLocales = async () => {
+    // Reset the last user ID to force a reload
+    lastUserIdRef.current = null;
     await loadUserLocales();
   };
 
