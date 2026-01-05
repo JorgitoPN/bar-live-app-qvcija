@@ -29,6 +29,7 @@ import PostViewerModal from '@/components/social/PostViewerModal';
 import ShoppingCart from '@/components/payment/ShoppingCart';
 import { profileCache } from '@/utils/profileCache';
 import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
+import { scaleFontSize } from '@/utils/androidScaling';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -70,13 +71,13 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v47.0 - UNIFIED MOMENTO AVATAR
+ * ✅ PROFILE SCREEN v100.0 - ANDROID SCALING STANDARDIZATION
  * 
- * Features:
- * - ✅ Uses UnifiedMomentoAvatar for consistent design
- * - ✅ Same avatar and + button across all pages
- * - ✅ Green border disappears after viewing
- * - ✅ Real-time synchronization
+ * CRITICAL FIXES v100.0 (ANDROID ONLY):
+ * - ✅ All font sizes use scaleFontSize() for consistency with Favoritos
+ * - ✅ Header title size standardized (24px on Android)
+ * - ✅ All text elements properly scaled
+ * - ✅ iOS design remains unchanged
  */
 
 export default function PerfilScreen() {
@@ -155,7 +156,7 @@ export default function PerfilScreen() {
         setUnreadMessages(totalUnread);
       }
     } catch (error) {
-      console.error('[Perfil v47.0] Error loading unread counts:', error);
+      console.error('[Perfil v100.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -169,13 +170,13 @@ export default function PerfilScreen() {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[Perfil v47.0] ❌ Error loading cart count:', error);
+        console.error('[Perfil v100.0] ❌ Error loading cart count:', error);
         return;
       }
 
       setCartItemsCount(count || 0);
     } catch (error) {
-      console.error('[Perfil v47.0] ❌ Error loading cart count:', error);
+      console.error('[Perfil v100.0] ❌ Error loading cart count:', error);
     }
   }, [userId, isPropietario]);
 
@@ -195,7 +196,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v47.0] Error loading current local:', error);
+        console.error('[Perfil v100.0] Error loading current local:', error);
         return;
       }
 
@@ -210,7 +211,7 @@ export default function PerfilScreen() {
         setCheckInInfo(null);
       }
     } catch (error) {
-      console.error('[Perfil v47.0] Error loading current local:', error);
+      console.error('[Perfil v100.0] Error loading current local:', error);
     }
   }, [userId]);
 
@@ -269,7 +270,7 @@ export default function PerfilScreen() {
         return [];
       }
     } catch (error) {
-      console.error('[Perfil v47.0] Error cargando posts:', error);
+      console.error('[Perfil v100.0] Error cargando posts:', error);
       return [];
     }
   }, [userId]);
@@ -332,7 +333,7 @@ export default function PerfilScreen() {
         setSavedPosts([]);
       }
     } catch (error) {
-      console.error('[Perfil v47.0] Error cargando favoritos:', error);
+      console.error('[Perfil v100.0] Error cargando favoritos:', error);
     }
   }, [userId]);
 
@@ -411,7 +412,7 @@ export default function PerfilScreen() {
 
       setTaggedPosts(postsWithStatus);
     } catch (error) {
-      console.error('[Perfil v47.0] Error cargando etiquetados:', error);
+      console.error('[Perfil v100.0] Error cargando etiquetados:', error);
       setTaggedPosts([]);
     }
   }, [userId]);
@@ -428,7 +429,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v47.0] Error loading professional profile:', error);
+        console.error('[Perfil v100.0] Error loading professional profile:', error);
       }
 
       if (data) {
@@ -437,7 +438,7 @@ export default function PerfilScreen() {
         setPerfilProfesional(null);
       }
     } catch (error) {
-      console.error('[Perfil v47.0] Error loading professional profile:', error);
+      console.error('[Perfil v100.0] Error loading professional profile:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -448,7 +449,7 @@ export default function PerfilScreen() {
 
     try {
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v47.0] 🔄 Loading profile data...');
+        console.log('[Perfil v100.0] 🔄 Loading profile data...');
       }
 
       await loadUnreadCounts();
@@ -466,7 +467,7 @@ export default function PerfilScreen() {
       const seguidosCount = userFollowsCount || 0;
 
       if (seguidoresError) {
-        console.error('[Perfil v47.0] Error loading seguidores count:', seguidoresError);
+        console.error('[Perfil v100.0] Error loading seguidores count:', seguidoresError);
       }
 
       const seguidoresCount = seguidoresData || 0;
@@ -483,7 +484,6 @@ export default function PerfilScreen() {
 
       const loadedPosts = await cargarPosts();
 
-      // ✅ CACHE UPDATE: Save to cache for instant future loads
       if (user) {
         await profileCache.set(userId, 'user', {
           profile: user,
@@ -497,37 +497,35 @@ export default function PerfilScreen() {
       }
 
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v47.0] ✅ Profile data loaded and cached');
+        console.log('[Perfil v100.0] ✅ Profile data loaded and cached');
       }
     } catch (error) {
-      console.error('[Perfil v47.0] Error cargando datos:', error);
+      console.error('[Perfil v100.0] Error cargando datos:', error);
     } finally {
       setRefreshing(false);
     }
   }, [userId, user, loadUnreadCounts, loadCartItemsCount, loadCurrentLocal, cargarPosts]);
 
-  // ✅ INSTANT LOAD: Load from cache first
   useEffect(() => {
     if (!userId) return;
 
     const loadCachedData = async () => {
-      console.log('[Perfil v47.0] ⚡ Loading from cache...');
+      console.log('[Perfil v100.0] ⚡ Loading from cache...');
       const cached = await profileCache.get(userId, 'user');
       
       if (cached) {
-        console.log('[Perfil v47.0] ⚡⚡⚡ INSTANT LOAD from cache');
+        console.log('[Perfil v100.0] ⚡⚡⚡ INSTANT LOAD from cache');
         setSeguidores(cached.stats.seguidores);
         setSeguidos(cached.stats.seguidos);
         setPublicaciones(cached.stats.posts);
         setPosts(cached.posts);
         
-        // Background refresh
         setTimeout(() => {
-          console.log('[Perfil v47.0] 🔄 Background refresh...');
+          console.log('[Perfil v100.0] 🔄 Background refresh...');
           cargarDatosPerfil(true);
         }, 100);
       } else {
-        console.log('[Perfil v47.0] 📡 No cache, loading from database...');
+        console.log('[Perfil v100.0] 📡 No cache, loading from database...');
         cargarDatosPerfil(false);
       }
     };
@@ -550,12 +548,11 @@ export default function PerfilScreen() {
     }
   }, [activeTab, userId, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarPerfilProfesional]);
 
-  // ✅ Real-time subscriptions
   useEffect(() => {
     if (!userId) return;
 
     const subscription = supabase
-      .channel('profile-updates-v47')
+      .channel('profile-updates-v100')
       .on(
         'postgres_changes',
         {
@@ -602,7 +599,7 @@ export default function PerfilScreen() {
     if (!userId || !isPropietario) return;
 
     const subscription = supabase
-      .channel('cart-updates-v47')
+      .channel('cart-updates-v100')
       .on(
         'postgres_changes',
         {
@@ -724,7 +721,7 @@ export default function PerfilScreen() {
               setCheckInInfo(null);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[Perfil v47.0] Error exiting local:', error);
+              console.error('[Perfil v100.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -786,14 +783,13 @@ export default function PerfilScreen() {
         {isImpersonating && (
           <View style={styles.impersonationBanner}>
             <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={16} color="#fff" />
-            <Text style={styles.impersonationBannerText}>
+            <Text style={[styles.impersonationBannerText, { fontSize: scaleFontSize(14) }]}>
               Viendo perfil como: {displayName}
             </Text>
           </View>
         )}
         
         <View style={styles.profileHeader}>
-          {/* ✅ UNIFIED MOMENTO AVATAR */}
           <UnifiedMomentoAvatar
             userId={userId}
             imageUrl={displayAvatar}
@@ -805,9 +801,9 @@ export default function PerfilScreen() {
           />
           
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{displayName}</Text>
+            <Text style={[styles.profileName, { fontSize: scaleFontSize(22) }]}>{displayName}</Text>
             {user?.username && (
-              <Text style={styles.profileUsername}>@{user.username}</Text>
+              <Text style={[styles.profileUsername, { fontSize: scaleFontSize(15) }]}>@{user.username}</Text>
             )}
           </View>
           {(isPropietario || ownedLocals.length > 0) && (
@@ -822,13 +818,13 @@ export default function PerfilScreen() {
         </View>
 
         {user?.bio && (
-          <Text style={styles.profileBio}>{user.bio}</Text>
+          <Text style={[styles.profileBio, { fontSize: scaleFontSize(15) }]}>{user.bio}</Text>
         )}
 
         {user?.sitio_web && (
           <TouchableOpacity style={styles.websiteContainer} onPress={handleWebsite} activeOpacity={0.8}>
             <IconSymbol ios_icon_name="link" android_material_icon_name="link" size={16} color={colors.headerText} />
-            <Text style={styles.websiteText}>{user.sitio_web}</Text>
+            <Text style={[styles.websiteText, { fontSize: scaleFontSize(15) }]}>{user.sitio_web}</Text>
           </TouchableOpacity>
         )}
 
@@ -852,11 +848,11 @@ export default function PerfilScreen() {
                       color="#FFFFFF" 
                     />
                   </View>
-                  <Text style={styles.currentLocalCompactTitle}>Estado actual</Text>
+                  <Text style={[styles.currentLocalCompactTitle, { fontSize: scaleFontSize(13) }]}>Estado actual</Text>
                 </View>
                 <View style={styles.liveBadge}>
                   <View style={styles.liveDot} />
-                  <Text style={styles.liveBadgeText}>EN VIVO</Text>
+                  <Text style={[styles.liveBadgeText, { fontSize: scaleFontSize(9) }]}>EN VIVO</Text>
                 </View>
               </View>
 
@@ -885,7 +881,7 @@ export default function PerfilScreen() {
                 </View>
 
                 <View style={styles.currentLocalCompactInfo}>
-                  <Text style={styles.currentLocalCompactName} numberOfLines={1}>
+                  <Text style={[styles.currentLocalCompactName, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
                     {currentLocal.nombre}
                   </Text>
                   <View style={styles.currentLocalCompactMeta}>
@@ -895,11 +891,11 @@ export default function PerfilScreen() {
                       size={10} 
                       color="rgba(255, 255, 255, 0.8)" 
                     />
-                    <Text style={styles.currentLocalCompactAddress} numberOfLines={1}>
+                    <Text style={[styles.currentLocalCompactAddress, { fontSize: scaleFontSize(11) }]} numberOfLines={1}>
                       {currentLocal.direccion}
                     </Text>
                   </View>
-                  <Text style={styles.currentLocalCompactVisibility} numberOfLines={1}>
+                  <Text style={[styles.currentLocalCompactVisibility, { fontSize: scaleFontSize(10) }]} numberOfLines={1}>
                     {getVisibilityText()}
                   </Text>
                 </View>
@@ -925,7 +921,7 @@ export default function PerfilScreen() {
                   size={14} 
                   color="#6B7280" 
                 />
-                <Text style={styles.exitLocalButtonCompactText}>Salir del local</Text>
+                <Text style={[styles.exitLocalButtonCompactText, { fontSize: scaleFontSize(12) }]}>Salir del local</Text>
               </TouchableOpacity>
             </LinearGradient>
           </View>
@@ -933,39 +929,38 @@ export default function PerfilScreen() {
 
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{publicaciones}</Text>
-            <Text style={styles.statLabel}>Publicaciones</Text>
+            <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{publicaciones}</Text>
+            <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Publicaciones</Text>
           </View>
           <View style={styles.statDivider} />
           <TouchableOpacity style={styles.statItem} onPress={handleSeguidores}>
-            <Text style={styles.statNumber}>{seguidores}</Text>
-            <Text style={styles.statLabel}>Seguidores</Text>
+            <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{seguidores}</Text>
+            <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Seguidores</Text>
           </TouchableOpacity>
           <View style={styles.statDivider} />
           <TouchableOpacity style={styles.statItem} onPress={handleSeguidos}>
-            <Text style={styles.statNumber}>{seguidos}</Text>
-            <Text style={styles.statLabel}>Siguiendo</Text>
+            <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{seguidos}</Text>
+            <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Siguiendo</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
             <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.headerText} />
-            <Text style={styles.actionButtonText}>Editar Perfil</Text>
+            <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(15) }]}>Editar Perfil</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.actionButton, styles.createButton]} 
             onPress={handleCrearPublicacion}
           >
             <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={18} color={colors.white} />
-            <Text style={[styles.actionButtonText, { color: colors.white }]}>Crear</Text>
+            <Text style={[styles.actionButtonText, { color: colors.white, fontSize: scaleFontSize(15) }]}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   };
 
-  // ✅ Show login required screen
   if (!user) {
     return (
       <View style={commonStyles.container}>
@@ -986,8 +981,8 @@ export default function PerfilScreen() {
             <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={64} color={colors.white} />
           </LinearGradient>
           
-          <Text style={styles.loginRequiredTitle}>Inicia sesión para ver tu perfil</Text>
-          <Text style={styles.loginRequiredMessage}>
+          <Text style={[styles.loginRequiredTitle, { fontSize: scaleFontSize(24) }]}>Inicia sesión para ver tu perfil</Text>
+          <Text style={[styles.loginRequiredMessage, { fontSize: scaleFontSize(16) }]}>
             Para acceder a tu perfil y ver todas tus publicaciones, necesitas iniciar sesión en BarLive.
           </Text>
           
@@ -999,7 +994,7 @@ export default function PerfilScreen() {
               colors={[colors.headerGradientStart, colors.headerGradientEnd]}
               style={styles.loginButtonGradient}
             >
-              <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+              <Text style={[styles.loginButtonText, { fontSize: scaleFontSize(16) }]}>Iniciar Sesión</Text>
             </LinearGradient>
           </TouchableOpacity>
           
@@ -1007,7 +1002,7 @@ export default function PerfilScreen() {
             style={styles.registerButton}
             onPress={() => router.push('/auth/registro-v6')}
           >
-            <Text style={styles.registerButtonText}>
+            <Text style={[styles.registerButtonText, { fontSize: scaleFontSize(14) }]}>
               ¿No tienes cuenta? <Text style={styles.registerButtonTextBold}>Regístrate</Text>
             </Text>
           </TouchableOpacity>
@@ -1027,13 +1022,13 @@ export default function PerfilScreen() {
         style={styles.fixedHeader}
       >
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Mi Perfil</Text>
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(28) }]}>Mi Perfil</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
               <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
+                  <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
                     {unreadMessages > 99 ? '99+' : unreadMessages}
                   </Text>
                 </View>
@@ -1043,7 +1038,7 @@ export default function PerfilScreen() {
               <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={24} color={colors.headerText} />
               {unreadNotifications > 0 && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
+                  <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
                     {unreadNotifications > 99 ? '99+' : unreadNotifications}
                   </Text>
                 </View>
@@ -1059,7 +1054,7 @@ export default function PerfilScreen() {
                 <IconSymbol ios_icon_name="cart.fill" android_material_icon_name="shopping_cart" size={24} color={colors.headerText} />
                 {cartItemsCount > 0 && (
                   <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
+                    <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
                       {cartItemsCount > 99 ? '99+' : cartItemsCount}
                     </Text>
                   </View>
@@ -1151,16 +1146,16 @@ export default function PerfilScreen() {
                 <View style={styles.perfilProfesionalCard}>
                   <View style={styles.perfilProfesionalHeader}>
                     <View style={styles.perfilProfesionalInfo}>
-                      <Text style={styles.perfilProfesionalNombre}>
+                      <Text style={[styles.perfilProfesionalNombre, { fontSize: scaleFontSize(20) }]}>
                         {perfilProfesional.nombre_completo}
                       </Text>
-                      <Text style={styles.perfilProfesionalPuesto}>
+                      <Text style={[styles.perfilProfesionalPuesto, { fontSize: scaleFontSize(16) }]}>
                         {perfilProfesional.puesto_deseado}
                       </Text>
                       {perfilProfesional.provincia && (
                         <View style={styles.perfilProfesionalLocation}>
                           <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
-                          <Text style={styles.perfilProfesionalLocationText}>
+                          <Text style={[styles.perfilProfesionalLocationText, { fontSize: scaleFontSize(14) }]}>
                             {perfilProfesional.provincia}
                           </Text>
                         </View>
@@ -1172,6 +1167,7 @@ export default function PerfilScreen() {
                     ]}>
                       <Text style={[
                         styles.perfilProfesionalStatusText,
+                        { fontSize: scaleFontSize(13) },
                         perfilProfesional.activo ? styles.perfilProfesionalStatusTextActive : styles.perfilProfesionalStatusTextInactive
                       ]}>
                         {perfilProfesional.activo ? 'Activo' : 'Inactivo'}
@@ -1181,23 +1177,23 @@ export default function PerfilScreen() {
 
                   <View style={styles.perfilProfesionalDetails}>
                     <View style={styles.perfilProfesionalDetailItem}>
-                      <Text style={styles.perfilProfesionalDetailLabel}>Experiencia:</Text>
-                      <Text style={styles.perfilProfesionalDetailValue}>
+                      <Text style={[styles.perfilProfesionalDetailLabel, { fontSize: scaleFontSize(14) }]}>Experiencia:</Text>
+                      <Text style={[styles.perfilProfesionalDetailValue, { fontSize: scaleFontSize(15) }]}>
                         {perfilProfesional.experiencia}
                       </Text>
                     </View>
                     {perfilProfesional.disponibilidad && (
                       <View style={styles.perfilProfesionalDetailItem}>
-                        <Text style={styles.perfilProfesionalDetailLabel}>Disponibilidad:</Text>
-                        <Text style={styles.perfilProfesionalDetailValue}>
+                        <Text style={[styles.perfilProfesionalDetailLabel, { fontSize: scaleFontSize(14) }]}>Disponibilidad:</Text>
+                        <Text style={[styles.perfilProfesionalDetailValue, { fontSize: scaleFontSize(15) }]}>
                           {perfilProfesional.disponibilidad}
                         </Text>
                       </View>
                     )}
                     {perfilProfesional.habilidades && (
                       <View style={styles.perfilProfesionalDetailItem}>
-                        <Text style={styles.perfilProfesionalDetailLabel}>Habilidades:</Text>
-                        <Text style={styles.perfilProfesionalDetailValue}>
+                        <Text style={[styles.perfilProfesionalDetailLabel, { fontSize: scaleFontSize(14) }]}>Habilidades:</Text>
+                        <Text style={[styles.perfilProfesionalDetailValue, { fontSize: scaleFontSize(15) }]}>
                           {perfilProfesional.habilidades}
                         </Text>
                       </View>
@@ -1211,7 +1207,7 @@ export default function PerfilScreen() {
                       activeOpacity={0.7}
                     >
                       <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.white} />
-                      <Text style={styles.perfilProfesionalButtonText}>Editar</Text>
+                      <Text style={[styles.perfilProfesionalButtonText, { fontSize: scaleFontSize(15) }]}>Editar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.perfilProfesionalButton, styles.perfilProfesionalButtonSecondary]}
@@ -1219,7 +1215,7 @@ export default function PerfilScreen() {
                       activeOpacity={0.7}
                     >
                       <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.primary} />
-                      <Text style={[styles.perfilProfesionalButtonText, styles.perfilProfesionalButtonTextSecondary]}>
+                      <Text style={[styles.perfilProfesionalButtonText, styles.perfilProfesionalButtonTextSecondary, { fontSize: scaleFontSize(15) }]}>
                         Ver Perfil
                       </Text>
                     </TouchableOpacity>
@@ -1228,8 +1224,8 @@ export default function PerfilScreen() {
               ) : (
                 <View style={styles.emptyState}>
                   <IconSymbol ios_icon_name="briefcase" android_material_icon_name="work_outline" size={64} color={colors.textSecondary} />
-                  <Text style={styles.emptyStateTitle}>Crea tu perfil profesional</Text>
-                  <Text style={styles.emptyStateText}>
+                  <Text style={[styles.emptyStateTitle, { fontSize: scaleFontSize(20) }]}>Crea tu perfil profesional</Text>
+                  <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(15) }]}>
                     Crea tu demanda de empleo para que los propietarios de locales puedan encontrarte
                   </Text>
                   <TouchableOpacity
@@ -1238,7 +1234,7 @@ export default function PerfilScreen() {
                     activeOpacity={0.7}
                   >
                     <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.white} />
-                    <Text style={styles.emptyStateButtonText}>Crear Perfil Profesional</Text>
+                    <Text style={[styles.emptyStateButtonText, { fontSize: scaleFontSize(15) }]}>Crear Perfil Profesional</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -1267,7 +1263,7 @@ export default function PerfilScreen() {
                     size={48} 
                     color={colors.textSecondary} 
                   />
-                  <Text style={styles.emptyStateText}>
+                  <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(15) }]}>
                     {activeTab === 'posts' ? 'No hay publicaciones aún' :
                      activeTab === 'favoritos' ? 'No hay publicaciones guardadas' :
                      'No hay publicaciones etiquetadas'}
@@ -1277,7 +1273,7 @@ export default function PerfilScreen() {
                       style={styles.emptyStateButton} 
                       onPress={handleCrearPublicacion}
                     >
-                      <Text style={styles.emptyStateButtonText}>Crear Publicación</Text>
+                      <Text style={[styles.emptyStateButtonText, { fontSize: scaleFontSize(15) }]}>Crear Publicación</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -1366,7 +1362,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 28,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -1394,7 +1389,6 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: '#fff',
-    fontSize: 10,
     fontWeight: 'bold',
     textAlign: 'center',
   },
@@ -1416,14 +1410,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   loginRequiredTitle: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 12,
     textAlign: 'center',
   },
   loginRequiredMessage: {
-    fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 32,
@@ -1440,7 +1432,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loginButtonText: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.white,
   },
@@ -1448,7 +1439,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   registerButtonText: {
-    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -1473,7 +1463,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(251, 191, 36, 0.4)',
   },
   impersonationBannerText: {
-    fontSize: 14,
     fontWeight: '700',
     color: '#fff',
   },
@@ -1488,13 +1477,11 @@ const styles = StyleSheet.create({
     marginLeft: 20,
   },
   profileName: {
-    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 4,
   },
   profileUsername: {
-    fontSize: 15,
     color: 'rgba(255, 255, 255, 0.9)',
   },
   switchProfileButton: {
@@ -1503,7 +1490,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   profileBio: {
-    fontSize: 15,
     color: colors.headerText,
     lineHeight: 22,
     marginBottom: 16,
@@ -1515,7 +1501,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   websiteText: {
-    fontSize: 15,
     color: colors.headerText,
     fontWeight: '500',
   },
@@ -1565,7 +1550,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   currentLocalCompactTitle: {
-    fontSize: 13,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.3,
@@ -1588,7 +1572,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   liveBadgeText: {
-    fontSize: 9,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
@@ -1621,7 +1604,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   currentLocalCompactName: {
-    fontSize: 14,
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 3,
@@ -1633,12 +1615,10 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   currentLocalCompactAddress: {
-    fontSize: 11,
     color: 'rgba(255, 255, 255, 0.8)',
     flex: 1,
   },
   currentLocalCompactVisibility: {
-    fontSize: 10,
     color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '600',
   },
@@ -1658,7 +1638,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(107, 114, 128, 0.3)',
   },
   exitLocalButtonCompactText: {
-    fontSize: 12,
     fontWeight: '700',
     color: '#6B7280',
     letterSpacing: 0.3,
@@ -1675,13 +1654,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statNumber: {
-    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
   },
   statDivider: {
@@ -1707,7 +1684,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   actionButtonText: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -1771,7 +1747,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyStateTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 16,
@@ -1779,7 +1754,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyStateText: {
-    fontSize: 15,
     color: colors.textSecondary,
     marginTop: 16,
     marginBottom: 20,
@@ -1796,7 +1770,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   emptyStateButtonText: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.white,
   },
@@ -1820,13 +1793,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   perfilProfesionalNombre: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 6,
   },
   perfilProfesionalPuesto: {
-    fontSize: 16,
     color: colors.primary,
     fontWeight: '600',
     marginBottom: 8,
@@ -1837,7 +1808,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   perfilProfesionalLocationText: {
-    fontSize: 14,
     color: colors.textSecondary,
   },
   perfilProfesionalStatus: {
@@ -1852,7 +1822,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF444415',
   },
   perfilProfesionalStatusText: {
-    fontSize: 13,
     fontWeight: '600',
   },
   perfilProfesionalStatusTextActive: {
@@ -1869,12 +1838,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   perfilProfesionalDetailLabel: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.textSecondary,
   },
   perfilProfesionalDetailValue: {
-    fontSize: 15,
     color: colors.text,
     lineHeight: 22,
   },
@@ -1898,7 +1865,6 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   perfilProfesionalButtonText: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.white,
   },

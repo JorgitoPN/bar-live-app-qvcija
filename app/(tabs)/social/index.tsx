@@ -80,11 +80,12 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL INDEX SCREEN v97.0 - ANDROID HEADER TITLE SIZE FIX
+ * ✅ SOCIAL INDEX SCREEN v100.0 - ANDROID SCALING STANDARDIZATION
  * 
- * CRITICAL FIXES v97.0 (ANDROID ONLY):
- * - ✅ Header title size standardized to match Explorar (24px on Android)
- * - ✅ All other functionality maintained
+ * CRITICAL FIXES v100.0 (ANDROID ONLY):
+ * - ✅ All font sizes use scaleFontSize() for consistency with Favoritos
+ * - ✅ Header title size standardized (24px on Android)
+ * - ✅ All text elements properly scaled
  * - ✅ iOS design remains unchanged
  */
 
@@ -141,18 +142,18 @@ export default function SocialIndexScreen() {
         }
         setUnreadMessages(totalUnread);
         
-        console.log('[Social v97.0] ✅ Loaded unread counts:', {
+        console.log('[Social v100.0] ✅ Loaded unread counts:', {
           notifications: notifCount || 0,
           messages: totalUnread,
         });
       } else {
-        console.log('[Social v97.0] ✅ Loaded unread counts:', {
+        console.log('[Social v100.0] ✅ Loaded unread counts:', {
           notifications: notifCount || 0,
           messages: 0,
         });
       }
     } catch (error) {
-      console.error('[Social v97.0] Error loading unread counts:', error);
+      console.error('[Social v100.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -173,12 +174,12 @@ export default function SocialIndexScreen() {
         .single();
 
       if (myCheckInError && myCheckInError.code !== 'PGRST116') {
-        console.error('[Social v97.0] Error loading my check-in:', myCheckInError);
+        console.error('[Social v100.0] Error loading my check-in:', myCheckInError);
       }
 
       if (myCheckInData && myCheckInData.locales) {
         setMyCheckIn(myCheckInData);
-        console.log('[Social v97.0] ✅ I am checked in to:', myCheckInData.locales.nombre);
+        console.log('[Social v100.0] ✅ I am checked in to:', myCheckInData.locales.nombre);
       } else {
         setMyCheckIn(null);
       }
@@ -237,9 +238,9 @@ export default function SocialIndexScreen() {
 
       const locations = Array.from(locationsByLocal.values());
       setFriendsLocations(locations);
-      console.log('[Social v97.0] ✅ Loaded friends locations:', locations.length);
+      console.log('[Social v100.0] ✅ Loaded friends locations:', locations.length);
     } catch (error) {
-      console.error('[Social v97.0] Error loading friends locations:', error);
+      console.error('[Social v100.0] Error loading friends locations:', error);
     } finally {
       setLoadingFriendsLocations(false);
     }
@@ -251,7 +252,7 @@ export default function SocialIndexScreen() {
     loadUnreadCounts();
 
     const subscription = supabase
-      .channel('social-feed-updates-v97')
+      .channel('social-feed-updates-v100')
       .on(
         'postgres_changes',
         {
@@ -261,7 +262,7 @@ export default function SocialIndexScreen() {
           filter: `usuario_id=eq.${userId}`,
         },
         () => {
-          console.log('[Social v97.0] 🔔 Notification update detected');
+          console.log('[Social v100.0] 🔔 Notification update detected');
           loadUnreadCounts();
         }
       )
@@ -273,7 +274,7 @@ export default function SocialIndexScreen() {
           table: 'mensajes',
         },
         () => {
-          console.log('[Social v97.0] 💬 Message update detected');
+          console.log('[Social v100.0] 💬 Message update detected');
           loadUnreadCounts();
         }
       )
@@ -286,7 +287,7 @@ export default function SocialIndexScreen() {
 
   const cargarPosts = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
     if (!userId) {
-      console.log('[Social v97.0] No user ID, skipping load');
+      console.log('[Social v100.0] No user ID, skipping load');
       setLoading(false);
       return;
     }
@@ -303,7 +304,7 @@ export default function SocialIndexScreen() {
       const from = (pageNum - 1) * POSTS_PER_PAGE;
       const to = from + POSTS_PER_PAGE - 1;
 
-      console.log(`[Social v97.0] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
+      console.log(`[Social v100.0] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
 
       const { data: followingData, error: followingError } = await supabase
         .from('seguidores')
@@ -388,7 +389,7 @@ export default function SocialIndexScreen() {
         setHasMore(false);
       }
     } catch (error) {
-      console.error('[Social v97.0] Error cargando posts:', error);
+      console.error('[Social v100.0] Error cargando posts:', error);
       Alert.alert('Error', 'No se pudieron cargar las publicaciones');
     } finally {
       setLoading(false);
@@ -428,7 +429,7 @@ export default function SocialIndexScreen() {
 
     if (userId) {
       const checkInsChannel = supabase
-        .channel('social-check-ins-updates-v97')
+        .channel('social-check-ins-updates-v100')
         .on(
           'postgres_changes',
           {
@@ -437,7 +438,7 @@ export default function SocialIndexScreen() {
             table: 'check_ins',
           },
           () => {
-            console.log('[Social v97.0] 🔔 Check-ins updated');
+            console.log('[Social v100.0] 🔔 Check-ins updated');
             loadFriendsLocations();
           }
         )

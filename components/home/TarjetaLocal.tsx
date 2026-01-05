@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Linking, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Local } from '@/types';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -15,6 +15,7 @@ import { trackProfileView } from '@/utils/activityTracker';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
 import { addPubCategoryIfNeeded } from '@/utils/categorizeLocal';
+import { scaleFontSize } from '@/utils/androidScaling';
 
 const { width } = Dimensions.get('window');
 
@@ -33,13 +34,12 @@ interface CheckedInUser {
 }
 
 /**
- * ✅ TARJETA LOCAL v28.0 - PRODUCTION READY
+ * ✅ TARJETA LOCAL v100.0 - ANDROID SCALING STANDARDIZATION
  * 
- * CRITICAL FIXES:
- * - ✅ All icons properly mapped for Android
- * - ✅ Check-in indicators with correct colors
- * - ✅ Consistent behavior on iOS and Android
- * - ✅ Optimized performance
+ * CRITICAL FIXES v100.0 (ANDROID ONLY):
+ * - ✅ All font sizes use scaleFontSize() for consistency with Favoritos
+ * - ✅ All text elements properly scaled
+ * - ✅ iOS design remains unchanged
  */
 export default function TarjetaLocal({ local, destacado, userLocation, onVisible }: TarjetaLocalProps) {
   const router = useRouter();
@@ -93,7 +93,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           setHasSocialProfile(false);
         }
       } catch (error) {
-        console.error('[TarjetaLocal] Error checking social profile:', error);
+        console.error('[TarjetaLocal v100.0] Error checking social profile:', error);
         setHasSocialProfile(false);
       } finally {
         setCheckingSocialProfile(false);
@@ -103,13 +103,11 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     checkSocialProfile();
   }, [local.id]);
 
-  // Load check-in information
   useEffect(() => {
     const loadCheckInInfo = async () => {
       if (!local.id || !user) return;
 
       try {
-        // Check if current user is here
         const { data: userCheckIn } = await supabase
           .from('check_ins')
           .select('id')
@@ -119,7 +117,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
         setIsUserHere(!!userCheckIn);
 
-        // Get followed users who are here
         const { data: checkIns, error } = await supabase
           .from('check_ins')
           .select(`
@@ -139,11 +136,9 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           const checkInUser = checkIn.usuarios;
           if (!checkInUser) continue;
 
-          // Check visibility
           if (checkIn.visibility === 'all_users') {
             visibleUsers.push(checkInUser);
           } else if (checkIn.visibility === 'followers') {
-            // Check if current user follows this user
             const { data: followData } = await supabase
               .from('seguidores')
               .select('id')
@@ -163,13 +158,12 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
         setFollowedUsersHere(visibleUsers);
       } catch (error) {
-        console.error('[TarjetaLocal] Error loading check-in info:', error);
+        console.error('[TarjetaLocal v100.0] Error loading check-in info:', error);
       }
     };
 
     loadCheckInInfo();
 
-    // Subscribe to check-in changes
     const checkInsChannel = supabase
       .channel(`local-check-ins-${local.id}`)
       .on(
@@ -181,7 +175,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           filter: `local_id=eq.${local.id}`,
         },
         () => {
-          console.log('[TarjetaLocal] Check-ins changed, reloading...');
+          console.log('[TarjetaLocal v100.0] Check-ins changed, reloading...');
           loadCheckInInfo();
         }
       )
@@ -206,10 +200,10 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
       if (error) throw error;
 
-      console.log('[TarjetaLocal] ✅ Check-out successful');
+      console.log('[TarjetaLocal v100.0] ✅ Check-out successful');
       setIsUserHere(false);
     } catch (error) {
-      console.error('[TarjetaLocal] Error checking out:', error);
+      console.error('[TarjetaLocal v100.0] Error checking out:', error);
     } finally {
       setCheckingOut(false);
     }
@@ -291,7 +285,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     return '#FFFFFF';
   };
 
-  // ✅ IMPROVED: Dim image for closed locals
   const shouldDimImage = () => {
     return estado.estaAbierto === false || estado.estaAbierto === null;
   };
@@ -350,12 +343,10 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
-        {/* ✅ IMPROVED: Dimmed overlay for closed locals */}
         {shouldDimImage() && (
           <View style={styles.dimmedOverlay} />
         )}
 
-        {/* ✅ IMPROVED: Lock icon for closed locals */}
         {overlayIcon && (
           <View style={styles.overlayIconContainer}>
             <IconSymbol ios_icon_name={overlayIcon} android_material_icon_name="lock" size={64} color={getOverlayIconColor()} />
@@ -367,7 +358,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         {isDestacado && (
           <View style={styles.badgeDestacadoHeader}>
             <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#92400E" />
-            <Text style={styles.badgeDestacadoHeaderText}>Destacado</Text>
+            <Text style={[styles.badgeDestacadoHeaderText, { fontSize: scaleFontSize(12) }]}>Destacado</Text>
           </View>
         )}
 
@@ -376,20 +367,20 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           { backgroundColor: getBadgeColor() + 'E6' },
           isDestacado && styles.badgeEstadoSuperiorConDestacado
         ]}>
-          <Text style={styles.badgeEstadoSuperiorText} numberOfLines={1}>{getBadgeText()}</Text>
+          <Text style={[styles.badgeEstadoSuperiorText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{getBadgeText()}</Text>
         </View>
 
         {displayRating > 0 && (
           <View style={styles.ratingBadge}>
             <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color="#FACC15" />
-            <Text style={styles.ratingBadgeText}>{displayRating.toFixed(1)}</Text>
+            <Text style={[styles.ratingBadgeText, { fontSize: scaleFontSize(12) }]}>{displayRating.toFixed(1)}</Text>
           </View>
         )}
 
         {local.nuevo && (
           <View style={styles.badgeNuevoContainer}>
             <View style={styles.badgeNuevo}>
-              <Text style={styles.badgeNuevoText}>Nuevo</Text>
+              <Text style={[styles.badgeNuevoText, { fontSize: scaleFontSize(12) }]}>Nuevo</Text>
             </View>
           </View>
         )}
@@ -418,19 +409,18 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         )}
         
         <View style={styles.header}>
-          <Text style={styles.nombre} numberOfLines={1}>
+          <Text style={[styles.nombre, { fontSize: scaleFontSize(18) }]} numberOfLines={1}>
             {local.nombre}
           </Text>
         </View>
 
-        {/* ✅ UPDATED: Check-in indicators with BarLive colors */}
         {(isUserHere || followedUsersHere.length > 0) && (
           <View style={styles.checkInIndicators}>
             {isUserHere && (
               <View style={styles.userHereBadge}>
                 <View style={styles.userHereBadgeContent}>
                   <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
-                  <Text style={styles.userHereText}>Estás en este local</Text>
+                  <Text style={[styles.userHereText, { fontSize: scaleFontSize(14) }]}>Estás en este local</Text>
                 </View>
                 <TouchableOpacity 
                   style={styles.checkOutButton}
@@ -442,7 +432,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
                   ) : (
                     <React.Fragment>
                       <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={14} color={colors.textSecondary} />
-                      <Text style={styles.checkOutButtonText}>Salir</Text>
+                      <Text style={[styles.checkOutButtonText, { fontSize: scaleFontSize(12) }]}>Salir</Text>
                     </React.Fragment>
                   )}
                 </TouchableOpacity>
@@ -451,7 +441,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
             {followedUsersHere.length > 0 && (
               <View style={styles.friendsHereBadge}>
                 <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={14} color={colors.secondary} />
-                <Text style={styles.friendsHereText}>
+                <Text style={[styles.friendsHereText, { fontSize: scaleFontSize(13) }]}>
                   {followedUsersHere.length} {followedUsersHere.length === 1 ? 'amigo está' : 'amigos están'} aquí
                 </Text>
               </View>
@@ -461,7 +451,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
         <View style={styles.infoRow}>
           <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
-          <Text style={styles.infoText} numberOfLines={1}>
+          <Text style={[styles.infoText, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
             {local.direccion}
           </Text>
         </View>
@@ -470,8 +460,8 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           <View style={styles.categoriasContainer}>
             {categoriasAMostrar.map((categoria, index) => (
               <View key={index} style={styles.categoriaBadge}>
-                <Text style={styles.categoriaIcon}>{getCategoryIcon(categoria)}</Text>
-                <Text style={styles.categoriaText} numberOfLines={1}>{categoria}</Text>
+                <Text style={[styles.categoriaIcon, { fontSize: scaleFontSize(12) }]}>{getCategoryIcon(categoria)}</Text>
+                <Text style={[styles.categoriaText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{categoria}</Text>
               </View>
             ))}
           </View>
@@ -481,7 +471,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           {!checkingSocialProfile && hasSocialProfile && (
             <TouchableOpacity style={styles.perfilSocialButton} onPress={handlePerfilSocial}>
               <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={16} color={colors.headerText} />
-              <Text style={styles.perfilSocialText} numberOfLines={1}>Perfil Social</Text>
+              <Text style={[styles.perfilSocialText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Perfil Social</Text>
             </TouchableOpacity>
           )}
           
@@ -495,13 +485,13 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
             <View style={styles.comoLlegarContent}>
               <View style={styles.comoLlegarLeft}>
                 <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={16} color={colors.headerText} />
-                <Text style={styles.comoLlegarText} numberOfLines={1}>Cómo llegar</Text>
+                <Text style={[styles.comoLlegarText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Cómo llegar</Text>
               </View>
               
               {local.distancia !== null && local.distancia !== undefined && (
                 <View style={styles.distanciaInButton}>
                   <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={14} color={colors.headerText} />
-                  <Text style={styles.distanciaInButtonText} numberOfLines={1}>
+                  <Text style={[styles.distanciaInButtonText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
                     {local.distancia.toFixed(1)} km
                   </Text>
                 </View>
@@ -601,7 +591,6 @@ const styles = StyleSheet.create({
     zIndex: 11,
   },
   badgeDestacadoHeaderText: {
-    fontSize: 12,
     fontWeight: '700',
     color: '#92400E',
   },
@@ -628,7 +617,6 @@ const styles = StyleSheet.create({
     top: 52,
   },
   badgeEstadoSuperiorText: {
-    fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -653,7 +641,6 @@ const styles = StyleSheet.create({
     zIndex: 12,
   },
   ratingBadgeText: {
-    fontSize: 12,
     fontWeight: '700',
     color: colors.headerText,
     letterSpacing: 0.3,
@@ -671,7 +658,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   badgeNuevoText: {
-    fontSize: 12,
     fontWeight: '700',
     color: colors.headerText,
   },
@@ -697,7 +683,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   nombre: {
-    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
     flex: 1,
@@ -709,7 +694,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   infoText: {
-    fontSize: 14,
     color: colors.textSecondary,
     flex: 1,
   },
@@ -730,10 +714,9 @@ const styles = StyleSheet.create({
     maxWidth: '48%',
   },
   categoriaIcon: {
-    fontSize: 12,
+    // fontSize set dynamically
   },
   categoriaText: {
-    fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
     textTransform: 'capitalize',
@@ -756,7 +739,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   perfilSocialText: {
-    fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
     flexShrink: 1,
@@ -786,7 +768,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   comoLlegarText: {
-    fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
     flexShrink: 1,
@@ -798,11 +779,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   distanciaInButtonText: {
-    fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
   },
-  // ✅ UPDATED: Check-in indicators with BarLive colors
   checkInIndicators: {
     marginBottom: 12,
   },
@@ -825,12 +804,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userHereText: {
-    fontSize: 14,
     fontWeight: '700',
     color: colors.primary,
     flex: 1,
   },
-  // ✅ UPDATED: Subtle exit button with less aggressive color
   checkOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -843,7 +820,6 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   checkOutButtonText: {
-    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -859,7 +835,6 @@ const styles = StyleSheet.create({
     borderColor: colors.secondary + '30',
   },
   friendsHereText: {
-    fontSize: 13,
     fontWeight: '700',
     color: colors.secondary,
   },
