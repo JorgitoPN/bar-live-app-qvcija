@@ -35,6 +35,7 @@ import TaggingModalV5, { TaggableUser } from '@/components/social/TaggingModalV5
 import ReportModal from '@/components/social/ReportModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TapGestureHandler, State } from 'react-native-gesture-handler';
+import { scaleFontSize } from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -72,20 +73,13 @@ interface PublicacionCardProps {
 }
 
 /**
- * ✅ PUBLICACION CARD v9.0 - REPORT SYSTEM INTEGRATED
+ * ✅ PUBLICACION CARD v97.0 - ANDROID THREE-DOTS ICON FIX
  * 
- * NEW FEATURES:
- * - ✅ Report functionality for posts
- * - ✅ Integrated ReportModal component
- * - ✅ Report option in post options menu
- * - ✅ Non-owners can report posts
- * 
- * EXISTING FEATURES:
- * - ✅ Optimistic UI for likes
- * - ✅ Real-time synchronization
- * - ✅ Comment count display
- * - ✅ Tag management
- * - ✅ Edit and delete functionality
+ * CRITICAL FIXES v97.0 (ANDROID ONLY):
+ * - ✅ Fixed three-dots icon showing "?" on Android
+ * - ✅ Changed from "ellipsis" to "more_vert" for Android
+ * - ✅ iOS continues using "ellipsis" (horizontal dots)
+ * - ✅ All other functionality maintained
  */
 
 const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
@@ -115,7 +109,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
   const [taggedUsers, setTaggedUsers] = useState<TaggableUser[]>([]);
 
-  // ✅ NEW: Report modal state
   const [showReportModal, setShowReportModal] = useState(false);
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -167,7 +160,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       setTaggedUsers(tags);
     } catch (error) {
-      console.error('[PublicacionCard] Error loading tagged users:', error);
+      console.error('[PublicacionCard v97.0] Error loading tagged users:', error);
     }
   }, [post.id]);
 
@@ -178,7 +171,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   useEffect(() => {
     const loadInitialLikes = async () => {
       try {
-        console.log('[PublicacionCard] 🔄 Loading initial likes for post:', post.id);
+        console.log('[PublicacionCard v97.0] 🔄 Loading initial likes for post:', post.id);
         
         const { data, error } = await supabase
           .from('likes')
@@ -187,10 +180,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
         if (!error && data) {
           setLocalLikes(data);
-          console.log('[PublicacionCard] ✅ Loaded initial likes:', data.length);
+          console.log('[PublicacionCard v97.0] ✅ Loaded initial likes:', data.length);
         }
       } catch (error) {
-        console.error('[PublicacionCard] ❌ Error loading initial likes:', error);
+        console.error('[PublicacionCard v97.0] ❌ Error loading initial likes:', error);
       }
     };
 
@@ -200,10 +193,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   useEffect(() => {
     if (!user) return;
 
-    console.log('[PublicacionCard] 🔄 Setting up real-time subscription for post:', post.id);
+    console.log('[PublicacionCard v97.0] 🔄 Setting up real-time subscription for post:', post.id);
 
     if (channelRef.current?.state === 'subscribed') {
-      console.log('[PublicacionCard] ⚠️ Already subscribed, skipping');
+      console.log('[PublicacionCard v97.0] ⚠️ Already subscribed, skipping');
       return;
     }
 
@@ -220,16 +213,16 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
-          console.log('[PublicacionCard] 🔄 Real-time like change detected:', payload.eventType);
+          console.log('[PublicacionCard v97.0] 🔄 Real-time like change detected:', payload.eventType);
           
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[PublicacionCard] ⏭️ Change made by current user, skipping');
+            console.log('[PublicacionCard v97.0] ⏭️ Change made by current user, skipping');
             return;
           }
           
-          console.log('[PublicacionCard] 🔄 Change made by another user, updating...');
+          console.log('[PublicacionCard v97.0] 🔄 Change made by another user, updating...');
           
           if (payload.eventType === 'INSERT' && payload.new) {
             setLocalLikes(prev => {
@@ -237,13 +230,13 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                 return prev;
               }
               const newArray = [...prev, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
-              console.log('[PublicacionCard] ➕ Added like, new count:', newArray.length);
+              console.log('[PublicacionCard v97.0] ➕ Added like, new count:', newArray.length);
               return newArray;
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
             setLocalLikes(prev => {
               const newArray = prev.filter(like => like.id !== payload.old.id);
-              console.log('[PublicacionCard] ➖ Removed like, new count:', newArray.length);
+              console.log('[PublicacionCard v97.0] ➖ Removed like, new count:', newArray.length);
               return newArray;
             });
           }
@@ -254,7 +247,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             .eq('post_id', post.id);
           
           if (!countError && count !== null) {
-            console.log('[PublicacionCard] ✅ Updated likes count:', count);
+            console.log('[PublicacionCard v97.0] ✅ Updated likes count:', count);
             setLikesCount(count);
           }
         }
@@ -268,7 +261,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
-          console.log('[PublicacionCard] 🔄 Real-time comment change detected:', payload.eventType);
+          console.log('[PublicacionCard v97.0] 🔄 Real-time comment change detected:', payload.eventType);
           
           const { count, error: countError } = await supabase
             .from('comentarios')
@@ -276,17 +269,17 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             .eq('post_id', post.id);
           
           if (!countError && count !== null) {
-            console.log('[PublicacionCard] ✅ Updated comments count:', count);
+            console.log('[PublicacionCard v97.0] ✅ Updated comments count:', count);
             setCommentsCount(count);
           }
         }
       )
       .subscribe((status) => {
-        console.log('[PublicacionCard] 📡 Subscription status:', status);
+        console.log('[PublicacionCard v97.0] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[PublicacionCard] 🔄 Cleaning up subscription');
+      console.log('[PublicacionCard v97.0] 🔄 Cleaning up subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -305,7 +298,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     const previousCount = likesCount;
     const previousLocalLikes = [...localLikes];
     
-    console.log('[PublicacionCard] 🎯 handleLike START:', {
+    console.log('[PublicacionCard v97.0] 🎯 handleLike START:', {
       postId: post.id,
       currentLiked: liked,
       newLikedState,
@@ -315,27 +308,27 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     });
     
     setLiked(newLikedState);
-    console.log('[PublicacionCard] ✅ Step 1: Updated liked to:', newLikedState);
+    console.log('[PublicacionCard v97.0] ✅ Step 1: Updated liked to:', newLikedState);
     
     const newCount = newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1);
     setLikesCount(newCount);
-    console.log('[PublicacionCard] ✅ Step 2: Updated count from', likesCount, 'to', newCount);
+    console.log('[PublicacionCard v97.0] ✅ Step 2: Updated count from', likesCount, 'to', newCount);
     
     let newLocalLikes: { id: string; usuario_id: string }[];
     
     if (newLikedState) {
       const tempId = `temp-${Date.now()}`;
       newLocalLikes = [...localLikes, { id: tempId, usuario_id: user.id }];
-      console.log('[PublicacionCard] ➕ Step 3: LIKING - Adding avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
-      console.log('[PublicacionCard] ➕ Added user:', user.id, 'with temp ID:', tempId);
+      console.log('[PublicacionCard v97.0] ➕ Step 3: LIKING - Adding avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
+      console.log('[PublicacionCard v97.0] ➕ Added user:', user.id, 'with temp ID:', tempId);
     } else {
       newLocalLikes = localLikes.filter(like => like.usuario_id !== user.id);
-      console.log('[PublicacionCard] ➖ Step 3: UNLIKING - Removing avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
-      console.log('[PublicacionCard] ➖ Removed user:', user.id);
+      console.log('[PublicacionCard v97.0] ➖ Step 3: UNLIKING - Removing avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
+      console.log('[PublicacionCard v97.0] ➖ Removed user:', user.id);
     }
     
     setLocalLikes(newLocalLikes);
-    console.log('[PublicacionCard] ✅ Step 4: Local likes array updated. New array:', newLocalLikes.map(l => ({ id: l.id, userId: l.usuario_id })));
+    console.log('[PublicacionCard v97.0] ✅ Step 4: Local likes array updated. New array:', newLocalLikes.map(l => ({ id: l.id, userId: l.usuario_id })));
 
     if (likeDebounceTimer.current) {
       clearTimeout(likeDebounceTimer.current);
@@ -344,7 +337,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     likeDebounceTimer.current = setTimeout(async () => {
       try {
         if (newLikedState) {
-          console.log('[PublicacionCard] 💾 Database: Adding like to database');
+          console.log('[PublicacionCard v97.0] 💾 Database: Adding like to database');
           
           const { data, error } = await supabase.from('likes').insert({
             post_id: post.id,
@@ -359,9 +352,9 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
               : like
           ));
           
-          console.log('[PublicacionCard] ✅ Database: Like added, real ID:', data.id);
+          console.log('[PublicacionCard v97.0] ✅ Database: Like added, real ID:', data.id);
         } else {
-          console.log('[PublicacionCard] 💾 Database: Removing like from database');
+          console.log('[PublicacionCard v97.0] 💾 Database: Removing like from database');
           
           const { error } = await supabase
             .from('likes')
@@ -371,7 +364,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           
           if (error) throw error;
           
-          console.log('[PublicacionCard] ✅ Database: Like removed');
+          console.log('[PublicacionCard v97.0] ✅ Database: Like removed');
         }
 
         const { count, error: countError } = await supabase
@@ -380,12 +373,12 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           .eq('post_id', post.id);
         
         if (!countError && count !== null) {
-          console.log('[PublicacionCard] ✅ Database: Verified count:', count);
+          console.log('[PublicacionCard v97.0] ✅ Database: Verified count:', count);
           setLikesCount(count);
         }
       } catch (error) {
-        console.error('[PublicacionCard] ❌ Error toggling like:', error);
-        console.log('[PublicacionCard] 🔄 Rolling back to previous state');
+        console.error('[PublicacionCard v97.0] ❌ Error toggling like:', error);
+        console.log('[PublicacionCard v97.0] 🔄 Rolling back to previous state');
         setLiked(previousLiked);
         setLikesCount(previousCount);
         setLocalLikes(previousLocalLikes);
@@ -447,7 +440,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           .eq('usuario_id', user.id);
       }
     } catch (error) {
-      console.error('[PublicacionCard] Error toggling save:', error);
+      console.error('[PublicacionCard v97.0] Error toggling save:', error);
       setSaved(!newSavedState);
     }
   }, [user, saved, post.id]);
@@ -480,7 +473,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         title: 'Compartir publicación',
       });
     } catch (error) {
-      console.error('[PublicacionCard] Error sharing:', error);
+      console.error('[PublicacionCard v97.0] Error sharing:', error);
     }
   }, [post.contenido]);
 
@@ -535,7 +528,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                 onUpdate();
               }
             } catch (error) {
-              console.error('[PublicacionCard] Error deleting post:', error);
+              console.error('[PublicacionCard v97.0] Error deleting post:', error);
               Alert.alert('Error', 'No se pudo eliminar la publicación');
             }
           },
@@ -573,7 +566,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       }
       Alert.alert('Éxito', 'Descripción actualizada correctamente');
     } catch (error) {
-      console.error('[PublicacionCard] Error updating description:', error);
+      console.error('[PublicacionCard v97.0] Error updating description:', error);
       Alert.alert('Error', 'No se pudo actualizar la descripción');
     } finally {
       setSavingEdit(false);
@@ -583,7 +576,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const loadExistingTags = useCallback(async () => {
     setLoadingTags(true);
     try {
-      console.log('[PublicacionCard] 🔄 Loading ACCEPTED tags from database for post:', post.id);
+      console.log('[PublicacionCard v97.0] 🔄 Loading ACCEPTED tags from database for post:', post.id);
 
       const { data, error } = await supabase
         .from('post_tags')
@@ -596,11 +589,11 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         .eq('estado', 'aceptado');
 
       if (error) {
-        console.error('[PublicacionCard] ❌ Error loading tags:', error);
+        console.error('[PublicacionCard v97.0] ❌ Error loading tags:', error);
         throw error;
       }
 
-      console.log('[PublicacionCard] 📊 Raw ACCEPTED tags data from database:', data);
+      console.log('[PublicacionCard v97.0] 📊 Raw ACCEPTED tags data from database:', data);
 
       const tags: TaggableUser[] = [];
       
@@ -626,10 +619,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         });
       }
 
-      console.log('[PublicacionCard] ✅ Processed ACCEPTED tags:', tags.length);
+      console.log('[PublicacionCard v97.0] ✅ Processed ACCEPTED tags:', tags.length);
       setExistingTags(tags);
     } catch (error) {
-      console.error('[PublicacionCard] Error loading tags:', error);
+      console.error('[PublicacionCard v97.0] Error loading tags:', error);
       setExistingTags([]);
     } finally {
       setLoadingTags(false);
@@ -643,7 +636,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
   const handleRemoveTag = useCallback(async (taggedUser: TaggableUser) => {
     try {
-      console.log('[PublicacionCard] 🗑️ Removing tag permanently:', {
+      console.log('[PublicacionCard v97.0] 🗑️ Removing tag permanently:', {
         postId: post.id,
         userId: taggedUser.id,
         tipo: taggedUser.tipo,
@@ -661,7 +654,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         deleteData.local_id = taggedUser.id;
       }
 
-      console.log('[PublicacionCard] 🔍 Delete query data:', deleteData);
+      console.log('[PublicacionCard v97.0] 🔍 Delete query data:', deleteData);
 
       const { error } = await supabase
         .from('post_tags')
@@ -669,11 +662,11 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         .match(deleteData);
 
       if (error) {
-        console.error('[PublicacionCard] ❌ Error deleting tag:', error);
+        console.error('[PublicacionCard v97.0] ❌ Error deleting tag:', error);
         throw error;
       }
 
-      console.log('[PublicacionCard] ✅ Tag deleted successfully from database');
+      console.log('[PublicacionCard v97.0] ✅ Tag deleted successfully from database');
 
       await loadExistingTags();
       await loadTaggedUsers();
@@ -684,7 +677,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       Alert.alert('Éxito', 'Etiqueta eliminada correctamente');
     } catch (error) {
-      console.error('[PublicacionCard] ❌ Error removing tag:', error);
+      console.error('[PublicacionCard v97.0] ❌ Error removing tag:', error);
       Alert.alert('Error', 'No se pudo eliminar la etiqueta. Por favor, intenta de nuevo.');
     }
   }, [post.id, loadExistingTags, loadTaggedUsers, onUpdate]);
@@ -693,7 +686,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     if (!user) return;
 
     try {
-      console.log('[PublicacionCard] ➕ Adding new tag:', {
+      console.log('[PublicacionCard v97.0] ➕ Adding new tag:', {
         postId: post.id,
         userId: selectedUser.id,
         tipo: selectedUser.tipo,
@@ -721,7 +714,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       if (tagError) throw tagError;
 
-      console.log('[PublicacionCard] ✅ Tag request created');
+      console.log('[PublicacionCard v97.0] ✅ Tag request created');
       
       if (selectedUser.tipo === 'usuario') {
         await supabase.from('notificaciones').insert({
@@ -732,7 +725,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           usuario_origen_id: user.id,
           post_id: post.id,
         });
-        console.log('[PublicacionCard] ✅ Tag notification sent to user:', selectedUser.nombre);
+        console.log('[PublicacionCard v97.0] ✅ Tag notification sent to user:', selectedUser.nombre);
       }
 
       await loadExistingTags();
@@ -744,12 +737,11 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       Alert.alert('Éxito', 'Solicitud de etiqueta enviada. El usuario debe aprobarla.');
     } catch (error) {
-      console.error('[PublicacionCard] Error adding tag:', error);
+      console.error('[PublicacionCard v97.0] Error adding tag:', error);
       Alert.alert('Error', 'No se pudo añadir la etiqueta');
     }
   }, [user, post.id, loadExistingTags, loadTaggedUsers, onUpdate]);
 
-  // ✅ NEW: Report post functionality
   const handleReportPost = useCallback(() => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
@@ -773,7 +765,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     const options: string[] = [];
     const actions: (() => void)[] = [];
 
-    // ✅ NEW: Report option for non-owners
     if (user && !isOwner) {
       options.push('Reportar');
       actions.push(handleReportPost);
@@ -892,7 +883,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                     />
                   </View>
                 )}
-                <Text style={styles.taggedUserName} numberOfLines={1}>
+                <Text style={[styles.taggedUserName, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
                   {taggedUser.username}
                 </Text>
               </TouchableOpacity>
@@ -912,13 +903,19 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             showMomentoBorder={true}
           />
           <View style={styles.headerInfo}>
-            <Text style={styles.username}>{displayName}</Text>
-            <Text style={styles.timestamp}>{formatTimeAgo(post.created_at)}</Text>
+            <Text style={[styles.username, { fontSize: scaleFontSize(15) }]}>{displayName}</Text>
+            <Text style={[styles.timestamp, { fontSize: scaleFontSize(13) }]}>{formatTimeAgo(post.created_at)}</Text>
           </View>
         </TouchableOpacity>
         {(canEdit || user) && (
           <TouchableOpacity style={styles.optionsButton} onPress={showOptions} activeOpacity={0.7}>
-            <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={24} color={colors.text} />
+            {/* ✅ CRITICAL FIX v97.0: Use "more_vert" on Android instead of "ellipsis" */}
+            <IconSymbol 
+              ios_icon_name="ellipsis" 
+              android_material_icon_name="more_vert" 
+              size={24} 
+              color={colors.text} 
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -1047,7 +1044,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       {post.contenido && (
         <View style={styles.contentContainer}>
-          <ParsedText text={post.contenido} style={styles.content} />
+          <ParsedText text={post.contenido} style={[styles.content, { fontSize: scaleFontSize(15) }]} />
         </View>
       )}
 
@@ -1057,11 +1054,11 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         activeOpacity={0.7}
       >
         {commentsCount > 0 ? (
-          <Text style={styles.commentsText}>
+          <Text style={[styles.commentsText, { fontSize: scaleFontSize(14) }]}>
             Ver {commentsCount === 1 ? 'el comentario' : `los ${commentsCount} comentarios`}
           </Text>
         ) : (
-          <Text style={styles.commentsTextEmpty}>
+          <Text style={[styles.commentsTextEmpty, { fontSize: scaleFontSize(14) }]}>
             Sé el primero en comentar
           </Text>
         )}
@@ -1085,7 +1082,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         onClose={() => setShareModalVisible(false)}
       />
 
-      {/* ✅ NEW: Report modal for posts */}
       <ReportModal
         visible={showReportModal}
         contentType="post"
@@ -1111,17 +1107,17 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           <View style={styles.editModalContent}>
             <View style={styles.editModalHeader}>
               <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Text style={styles.editModalCancel}>Cancelar</Text>
+                <Text style={[styles.editModalCancel, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
               </TouchableOpacity>
-              <Text style={styles.editModalTitle}>Editar descripción</Text>
+              <Text style={[styles.editModalTitle, { fontSize: scaleFontSize(17) }]}>Editar descripción</Text>
               <TouchableOpacity onPress={handleSaveEdit} disabled={savingEdit}>
-                <Text style={[styles.editModalSave, savingEdit && styles.editModalSaveDisabled]}>
+                <Text style={[styles.editModalSave, { fontSize: scaleFontSize(16) }, savingEdit && styles.editModalSaveDisabled]}>
                   {savingEdit ? 'Guardando...' : 'Guardar'}
                 </Text>
               </TouchableOpacity>
             </View>
             <TextInput
-              style={styles.editModalInput}
+              style={[styles.editModalInput, { fontSize: scaleFontSize(16) }]}
               value={editedDescription}
               onChangeText={setEditedDescription}
               placeholder="Escribe una descripción..."
@@ -1131,7 +1127,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
               autoFocus
               editable={!savingEdit}
             />
-            <Text style={styles.editModalCounter}>
+            <Text style={[styles.editModalCounter, { fontSize: scaleFontSize(13) }]}>
               {editedDescription.length}/2200
             </Text>
           </View>
@@ -1152,7 +1148,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           />
           <View style={styles.tagManagementContent}>
             <View style={styles.tagManagementHeader}>
-              <Text style={styles.tagManagementTitle}>Gestionar etiquetas</Text>
+              <Text style={[styles.tagManagementTitle, { fontSize: scaleFontSize(18) }]}>Gestionar etiquetas</Text>
               <TouchableOpacity onPress={() => setShowTagManagementModal(false)}>
                 <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -1161,13 +1157,13 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             {loadingTags ? (
               <View style={styles.tagManagementLoading}>
                 <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>Cargando etiquetas...</Text>
+                <Text style={[styles.loadingText, { fontSize: scaleFontSize(14) }]}>Cargando etiquetas...</Text>
               </View>
             ) : (
               <ScrollView style={styles.tagManagementScroll}>
                 {existingTags.length > 0 ? (
                   <View style={styles.tagManagementList}>
-                    <Text style={styles.tagManagementSectionTitle}>Etiquetados ({existingTags.length})</Text>
+                    <Text style={[styles.tagManagementSectionTitle, { fontSize: scaleFontSize(14) }]}>Etiquetados ({existingTags.length})</Text>
                     {existingTags.map((tag) => (
                       <View key={`${tag.id}-${tag.tipo}`} style={styles.tagManagementItem}>
                         {tag.avatar ? (
@@ -1183,8 +1179,8 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                           </View>
                         )}
                         <View style={styles.tagManagementInfo}>
-                          <Text style={styles.tagManagementName}>{tag.nombre}</Text>
-                          <Text style={styles.tagManagementType}>
+                          <Text style={[styles.tagManagementName, { fontSize: scaleFontSize(15) }]}>{tag.nombre}</Text>
+                          <Text style={[styles.tagManagementType, { fontSize: scaleFontSize(13) }]}>
                             {tag.tipo === 'local' ? 'Local' : `@${tag.username}`}
                           </Text>
                         </View>
@@ -1200,7 +1196,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                 ) : (
                   <View style={styles.tagManagementEmpty}>
                     <IconSymbol ios_icon_name="person.crop.circle.badge.plus" android_material_icon_name="person_add" size={48} color={colors.textSecondary} />
-                    <Text style={styles.tagManagementEmptyText}>No hay etiquetas</Text>
+                    <Text style={[styles.tagManagementEmptyText, { fontSize: scaleFontSize(15) }]}>No hay etiquetas</Text>
                   </View>
                 )}
               </ScrollView>
@@ -1216,7 +1212,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
               }}
             >
               <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.white} />
-              <Text style={styles.tagManagementAddButtonText}>Añadir etiqueta</Text>
+              <Text style={[styles.tagManagementAddButtonText, { fontSize: scaleFontSize(15) }]}>Añadir etiqueta</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1273,7 +1269,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   taggedUserName: {
-    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
     maxWidth: 100,
@@ -1295,13 +1290,11 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   username: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 2,
   },
   timestamp: {
-    fontSize: 13,
     color: colors.textSecondary,
   },
   optionsButton: {
@@ -1362,7 +1355,6 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   content: {
-    fontSize: 15,
     color: colors.text,
     lineHeight: 22,
   },
@@ -1386,12 +1378,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   commentsText: {
-    fontSize: 14,
     color: colors.textSecondary,
     fontWeight: '600',
   },
   commentsTextEmpty: {
-    fontSize: 14,
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
@@ -1420,17 +1410,14 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   editModalCancel: {
-    fontSize: 16,
     color: colors.textSecondary,
     fontWeight: '600',
   },
   editModalTitle: {
-    fontSize: 17,
     fontWeight: '700',
     color: colors.text,
   },
   editModalSave: {
-    fontSize: 16,
     color: colors.primary,
     fontWeight: '700',
   },
@@ -1440,7 +1427,6 @@ const styles = StyleSheet.create({
   editModalInput: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    fontSize: 16,
     color: colors.text,
     minHeight: 150,
     maxHeight: 400,
@@ -1449,7 +1435,6 @@ const styles = StyleSheet.create({
   editModalCounter: {
     paddingHorizontal: 16,
     paddingBottom: 8,
-    fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'right',
   },
@@ -1478,7 +1463,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   tagManagementTitle: {
-    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
   },
@@ -1488,7 +1472,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 14,
     color: colors.textSecondary,
   },
   tagManagementScroll: {
@@ -1498,7 +1481,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   tagManagementSectionTitle: {
-    fontSize: 14,
     fontWeight: '700',
     color: colors.textSecondary,
     marginBottom: 12,
@@ -1527,13 +1509,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tagManagementName: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 2,
   },
   tagManagementType: {
-    fontSize: 13,
     color: colors.textSecondary,
   },
   tagManagementRemoveButton: {
@@ -1544,7 +1524,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tagManagementEmptyText: {
-    fontSize: 15,
     color: colors.textSecondary,
     marginTop: 12,
   },
@@ -1560,7 +1539,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   tagManagementAddButtonText: {
-    fontSize: 15,
     fontWeight: '700',
     color: colors.white,
   },

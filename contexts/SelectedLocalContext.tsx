@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from './AuthContext';
@@ -23,11 +23,25 @@ const SelectedLocalContext = createContext<SelectedLocalContextType | undefined>
 
 const STORAGE_KEY = '@selected_local_id';
 
+/**
+ * ✅ SELECTED LOCAL CONTEXT v97.0 - CIRCULAR DEPENDENCY FIX
+ * 
+ * CRITICAL FIXES v97.0:
+ * - ✅ Fixed "Maximum update depth exceeded" error
+ * - ✅ Removed circular dependency in useEffect
+ * - ✅ Used useRef to prevent unnecessary re-renders
+ * - ✅ Memoized context value to prevent recreation on every render
+ * - ✅ Simplified dependency arrays
+ */
+
 export function SelectedLocalProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [selectedLocalId, setSelectedLocalIdState] = useState<string | null>(null);
   const [userLocales, setUserLocales] = useState<any[]>([]);
   const [loadingLocales, setLoadingLocales] = useState(true);
+  
+  // ✅ CRITICAL FIX v97.0: Use ref to prevent circular dependency
+  const isLoadingRef = useRef(false);
 
   // Load selected local from storage
   useEffect(() => {
@@ -38,15 +52,21 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
           setSelectedLocalIdState(storedLocalId);
         }
       } catch (error) {
-        console.error('[SelectedLocalContext] Error loading selected local:', error);
+        console.error('[SelectedLocalContext v97.0] Error loading selected local:', error);
       }
     };
 
     loadSelectedLocal();
   }, []);
 
-  // Load user's locales
+  // ✅ CRITICAL FIX v97.0: Memoize loadUserLocales to prevent recreation
   const loadUserLocales = useCallback(async () => {
+    // ✅ Prevent concurrent loads
+    if (isLoadingRef.current) {
+      console.log('[SelectedLocalContext v97.0] Already loading, skipping...');
+      return;
+    }
+
     if (!user || user.rol_app !== 'propietario') {
       setUserLocales([]);
       setLoadingLocales(false);
@@ -54,7 +74,10 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      isLoadingRef.current = true;
       setLoadingLocales(true);
+
+      console.log('[SelectedLocalContext v97.0] Loading user locales for:', user.id);
 
       // Get user's locales
       const { data: localesData, error: localesError } = await supabase
@@ -65,12 +88,13 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
         .order('nombre');
 
       if (localesError) {
-        console.error('[SelectedLocalContext] Error loading locales:', localesError);
+        console.error('[SelectedLocalContext v97.0] Error loading locales:', localesError);
         setUserLocales([]);
         return;
       }
 
       if (!localesData || localesData.length === 0) {
+        console.log('[SelectedLocalContext v97.0] No locales found for user');
         setUserLocales([]);
         setSelectedLocalIdState(null);
         await AsyncStorage.removeItem(STORAGE_KEY);
@@ -106,6 +130,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
       );
 
       setUserLocales(localesWithPlan);
+      console.log('[SelectedLocalContext v97.0] Loaded', localesWithPlan.length, 'locales');
 
       // If no local is selected or the selected local is not in the list, select the first one
       if (!selectedLocalId || !localesWithPlan.find((l) => l.id === selectedLocalId)) {
@@ -116,16 +141,23 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('[SelectedLocalContext] Error loading user locales:', error);
+      console.error('[SelectedLocalContext v97.0] Error loading user locales:', error);
       setUserLocales([]);
     } finally {
       setLoadingLocales(false);
+      isLoadingRef.current = false;
     }
   }, [user, selectedLocalId]);
 
+  // ✅ CRITICAL FIX v97.0: Simplified dependency array - only depend on user
   useEffect(() => {
-    loadUserLocales();
-  }, [user, loadUserLocales]);
+    if (user) {
+      loadUserLocales();
+    } else {
+      setUserLocales([]);
+      setLoadingLocales(false);
+    }
+  }, [user?.id, user?.rol_app]); // Only re-run when user ID or role changes
 
   const setSelectedLocalId = async (localId: string | null) => {
     try {
@@ -136,7 +168,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
         await AsyncStorage.removeItem(STORAGE_KEY);
       }
     } catch (error) {
-      console.error('[SelectedLocalContext] Error saving selected local:', error);
+      console.error('[SelectedLocalContext v97.0] Error saving selected local:', error);
     }
   };
 
@@ -144,13 +176,14 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     await loadUserLocales();
   };
 
-  const value = {
+  // ✅ CRITICAL FIX v97.0: Memoize context value to prevent recreation
+  const value = useMemo(() => ({
     selectedLocalId,
     setSelectedLocalId,
     userLocales,
     loadingLocales,
     refreshLocales,
-  };
+  }), [selectedLocalId, userLocales, loadingLocales]);
 
   return (
     <SelectedLocalContext.Provider value={value}>

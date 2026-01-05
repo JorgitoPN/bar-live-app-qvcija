@@ -25,6 +25,12 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import EventoCard from '@/components/eventos/EventoCard';
+import {
+  getSearchBoxHeight,
+  getCategoryIconSize,
+  getCategoryIconInnerSize,
+  scaleFontSize,
+} from '@/utils/androidScaling';
 
 const { width } = Dimensions.get('window');
 
@@ -73,13 +79,13 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v48.0 - WHITE SEARCH BAR + SCROLLABLE FILTERS
+ * ✅ EVENTOS SCREEN v97.0 - ANDROID SEARCH BOX & CATEGORY FILTER FIX
  * 
- * CRITICAL FIXES:
- * - ✅ Search bar is now white (matching favoritos page)
- * - ✅ Filter modal is now scrollable to access province selector
- * - ✅ Proper maxHeight on modal content to enable scrolling
- * - ✅ Category filters work correctly
+ * CRITICAL FIXES v97.0 (ANDROID ONLY):
+ * - ✅ Search box height matches Favoritos page (48px)
+ * - ✅ Category filter icons reduced to match design (20px emoji, 13px text)
+ * - ✅ White search bar maintained (matching favoritos)
+ * - ✅ Scrollable filter modal maintained
  */
 
 export default function EventosScreen() {
@@ -119,7 +125,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v48.0] Cargando eventos...');
+      console.log('[Eventos v97.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -151,11 +157,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v48.0] Error cargando eventos:', error);
+        console.error('[Eventos v97.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v48.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v97.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -190,7 +196,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v48.0] Error:', error);
+      console.error('[Eventos v97.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -324,7 +330,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v48.0] Deleting event:', eventoId);
+              console.log('[Eventos v97.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -332,14 +338,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v48.0] Error deleting event:', error);
+                console.error('[Eventos v97.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v48.0] Error deleting event:', error);
+              console.error('[Eventos v97.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -347,6 +353,11 @@ export default function EventosScreen() {
       ]
     );
   }, [user, canDeleteEvent, cargarEventos]);
+
+  // ✅ Get platform-specific dimensions
+  const searchBoxHeight = getSearchBoxHeight();
+  const categoryIconSize = Platform.OS === 'android' ? 20 : 24; // Reduced on Android
+  const categoryTextSize = Platform.OS === 'android' ? 13 : 14; // Reduced on Android
 
   return (
     <View style={commonStyles.container}>
@@ -358,8 +369,11 @@ export default function EventosScreen() {
       >
         <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Eventos</Text>
 
-        {/* ✅ CRITICAL FIX v48.0: White search bar matching favoritos page */}
-        <View style={styles.searchContainer}>
+        {/* ✅ CRITICAL FIX v97.0: Search box height matches Favoritos (48px) */}
+        <View style={[styles.searchContainer, { 
+          height: searchBoxHeight,
+          paddingVertical: Platform.OS === 'android' ? 10 : 12,
+        }]}>
           <IconSymbol 
             ios_icon_name="magnifyingglass" 
             android_material_icon_name="search" 
@@ -367,7 +381,7 @@ export default function EventosScreen() {
             color={colors.textSecondary} 
           />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
             placeholder="Buscar eventos..."
             placeholderTextColor={colors.textSecondary}
             value={busqueda}
@@ -391,6 +405,7 @@ export default function EventosScreen() {
             <Text
               style={[
                 styles.tabText,
+                { fontSize: scaleFontSize(15) },
                 tabActual === 'hoy' && styles.tabTextActive,
               ]}
             >
@@ -404,6 +419,7 @@ export default function EventosScreen() {
             <Text
               style={[
                 styles.tabText,
+                { fontSize: scaleFontSize(15) },
                 tabActual === 'proximos' && styles.tabTextActive,
               ]}
             >
@@ -412,6 +428,7 @@ export default function EventosScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* ✅ CRITICAL FIX v97.0: Reduced category filter sizes on Android */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -428,10 +445,11 @@ export default function EventosScreen() {
               onPress={() => setCategoriaSeleccionada(categoria.id)}
               activeOpacity={0.7}
             >
-              <Text style={styles.categoryEmoji}>{categoria.emoji}</Text>
+              <Text style={[styles.categoryEmoji, { fontSize: categoryIconSize }]}>{categoria.emoji}</Text>
               <Text
                 style={[
                   styles.categoryText,
+                  { fontSize: categoryTextSize },
                   categoriaSeleccionada === categoria.id && styles.categoryTextActive,
                 ]}
               >
@@ -445,7 +463,7 @@ export default function EventosScreen() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando eventos...</Text>
+          <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando eventos...</Text>
         </View>
       ) : (
         <ScrollView
@@ -459,7 +477,7 @@ export default function EventosScreen() {
           {eventosFiltrados.length === 0 ? (
             <View style={styles.emptyState}>
               <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={64} color={colors.textSecondary} />
-              <Text style={styles.emptyStateText}>
+              <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(16) }]}>
                 {tabActual === 'hoy' 
                   ? 'No hay eventos para hoy' 
                   : 'No hay eventos próximos'}
@@ -491,7 +509,6 @@ export default function EventosScreen() {
         </TouchableOpacity>
       )}
 
-      {/* ✅ CRITICAL FIX v48.0: Scrollable filter modal with proper maxHeight */}
       <Modal
         visible={mostrarFiltros}
         animationType="slide"
@@ -504,20 +521,19 @@ export default function EventosScreen() {
         >
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filtros</Text>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Filtros</Text>
               <TouchableOpacity onPress={() => setMostrarFiltros(false)}>
                 <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            {/* ✅ CRITICAL FIX v48.0: Scrollable content with proper maxHeight */}
             <ScrollView 
               style={styles.modalScrollView}
               showsVerticalScrollIndicator={true}
               bounces={false}
             >
               <View style={styles.filterSection}>
-                <Text style={styles.filterTitle}>Categoría de Local</Text>
+                <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Categoría de Local</Text>
                 <View style={styles.categoriesGrid}>
                   {CATEGORIAS.map((categoria) => (
                     <TouchableOpacity
@@ -528,10 +544,11 @@ export default function EventosScreen() {
                       ]}
                       onPress={() => setCategoriaSeleccionada(categoria.id)}
                     >
-                      <Text style={styles.categoryFilterEmoji}>{categoria.emoji}</Text>
+                      <Text style={[styles.categoryFilterEmoji, { fontSize: categoryIconSize }]}>{categoria.emoji}</Text>
                       <Text
                         style={[
                           styles.categoryFilterText,
+                          { fontSize: scaleFontSize(14) },
                           categoriaSeleccionada === categoria.id && styles.categoryFilterTextActive,
                         ]}
                       >
@@ -543,30 +560,30 @@ export default function EventosScreen() {
               </View>
 
               <View style={styles.filterSection}>
-                <Text style={styles.filterTitle}>Rango de Fechas</Text>
+                <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Rango de Fechas</Text>
                 
                 <View style={styles.dateInputs}>
                   <View style={styles.dateInputContainer}>
-                    <Text style={styles.dateLabel}>Desde</Text>
+                    <Text style={[styles.dateLabel, { fontSize: scaleFontSize(14) }]}>Desde</Text>
                     <TouchableOpacity
                       style={styles.dateButton}
                       onPress={() => setShowDatePickerInicio(true)}
                     >
                       <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={18} color={colors.primary} />
-                      <Text style={styles.dateButtonText}>
+                      <Text style={[styles.dateButtonText, { fontSize: scaleFontSize(14) }]}>
                         {formatDate(fechaInicio)}
                       </Text>
                     </TouchableOpacity>
                   </View>
 
                   <View style={styles.dateInputContainer}>
-                    <Text style={styles.dateLabel}>Hasta</Text>
+                    <Text style={[styles.dateLabel, { fontSize: scaleFontSize(14) }]}>Hasta</Text>
                     <TouchableOpacity
                       style={styles.dateButton}
                       onPress={() => setShowDatePickerFin(true)}
                     >
                       <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={18} color={colors.primary} />
-                      <Text style={styles.dateButtonText}>
+                      <Text style={[styles.dateButtonText, { fontSize: scaleFontSize(14) }]}>
                         {formatDate(fechaFin)}
                       </Text>
                     </TouchableOpacity>
@@ -576,7 +593,7 @@ export default function EventosScreen() {
                 {fechaInicio && fechaFin && (
                   <View style={styles.dateRangeInfo}>
                     <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={16} color={colors.primary} />
-                    <Text style={styles.dateRangeText}>
+                    <Text style={[styles.dateRangeText, { fontSize: scaleFontSize(13) }]}>
                       Filtrando eventos del {formatDate(fechaInicio)} al {formatDate(fechaFin)}
                     </Text>
                   </View>
@@ -594,7 +611,7 @@ export default function EventosScreen() {
                         <TouchableWithoutFeedback>
                           <View style={styles.datePickerContainer}>
                             <View style={styles.datePickerHeader}>
-                              <Text style={styles.datePickerTitle}>Fecha de Inicio</Text>
+                              <Text style={[styles.datePickerTitle, { fontSize: scaleFontSize(18) }]}>Fecha de Inicio</Text>
                               <TouchableOpacity onPress={closeDateInicioPicker}>
                                 <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
                               </TouchableOpacity>
@@ -614,7 +631,7 @@ export default function EventosScreen() {
                                 style={styles.datePickerConfirmButton}
                                 onPress={closeDateInicioPicker}
                               >
-                                <Text style={styles.datePickerConfirmText}>Confirmar</Text>
+                                <Text style={[styles.datePickerConfirmText, { fontSize: scaleFontSize(16) }]}>Confirmar</Text>
                               </TouchableOpacity>
                             )}
                           </View>
@@ -636,7 +653,7 @@ export default function EventosScreen() {
                         <TouchableWithoutFeedback>
                           <View style={styles.datePickerContainer}>
                             <View style={styles.datePickerHeader}>
-                              <Text style={styles.datePickerTitle}>Fecha de Fin</Text>
+                              <Text style={[styles.datePickerTitle, { fontSize: scaleFontSize(18) }]}>Fecha de Fin</Text>
                               <TouchableOpacity onPress={closeDateFinPicker}>
                                 <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
                               </TouchableOpacity>
@@ -656,7 +673,7 @@ export default function EventosScreen() {
                                 style={styles.datePickerConfirmButton}
                                 onPress={closeDateFinPicker}
                               >
-                                <Text style={styles.datePickerConfirmText}>Confirmar</Text>
+                                <Text style={[styles.datePickerConfirmText, { fontSize: scaleFontSize(16) }]}>Confirmar</Text>
                               </TouchableOpacity>
                             )}
                           </View>
@@ -667,9 +684,8 @@ export default function EventosScreen() {
                 )}
               </View>
 
-              {/* ✅ CRITICAL FIX v48.0: Scrollable province list */}
               <View style={styles.filterSection}>
-                <Text style={styles.filterTitle}>Provincia</Text>
+                <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Provincia</Text>
                 <View style={styles.provinciasListContainer}>
                   {PROVINCIAS.map((provincia) => (
                     <TouchableOpacity
@@ -683,6 +699,7 @@ export default function EventosScreen() {
                       <Text
                         style={[
                           styles.provinciaText,
+                          { fontSize: scaleFontSize(15) },
                           provinciaSeleccionada === provincia && styles.provinciaTextActive,
                         ]}
                       >
@@ -693,7 +710,6 @@ export default function EventosScreen() {
                 </View>
               </View>
 
-              {/* ✅ Extra padding at bottom for scrolling */}
               <View style={{ height: 40 }} />
             </ScrollView>
 
@@ -702,7 +718,7 @@ export default function EventosScreen() {
                 style={styles.limpiarButton}
                 onPress={limpiarFiltros}
               >
-                <Text style={styles.limpiarButtonText}>Limpiar</Text>
+                <Text style={[styles.limpiarButtonText, { fontSize: scaleFontSize(16) }]}>Limpiar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.aplicarButtonModal}
@@ -712,7 +728,7 @@ export default function EventosScreen() {
                   colors={[colors.headerGradientStart, colors.headerGradientEnd]}
                   style={styles.aplicarButtonGradient}
                 >
-                  <Text style={styles.aplicarButtonText}>Aplicar</Text>
+                  <Text style={[styles.aplicarButtonText, { fontSize: scaleFontSize(16) }]}>Aplicar</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -730,14 +746,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
     marginTop: 16,
     gap: 12,
   },
   searchInput: {
     flex: 1,
     color: colors.text,
-    fontSize: 16,
   },
   tabs: {
     flexDirection: 'row',
@@ -755,7 +769,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   tabText: {
-    fontSize: 15,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.8)',
   },
@@ -777,7 +790,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 16,
     color: colors.textSecondary,
   },
   emptyState: {
@@ -787,7 +799,6 @@ const styles = StyleSheet.create({
     paddingVertical: 80,
   },
   emptyStateText: {
-    fontSize: 16,
     color: colors.textSecondary,
     marginTop: 16,
     textAlign: 'center',
@@ -833,7 +844,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   modalTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
   },
@@ -846,7 +856,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   filterTitle: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 12,
@@ -859,7 +868,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dateLabel: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
@@ -876,7 +884,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   dateButtonText: {
-    fontSize: 14,
     color: colors.text,
     fontWeight: '500',
   },
@@ -891,7 +898,6 @@ const styles = StyleSheet.create({
   },
   dateRangeText: {
     flex: 1,
-    fontSize: 13,
     color: colors.text,
     lineHeight: 18,
   },
@@ -908,7 +914,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   provinciaText: {
-    fontSize: 15,
     color: colors.text,
   },
   provinciaTextActive: {
@@ -934,7 +939,6 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   limpiarButtonText: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
@@ -948,7 +952,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   aplicarButtonText: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.white,
   },
@@ -980,7 +983,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   datePickerTitle: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
   },
@@ -997,7 +999,6 @@ const styles = StyleSheet.create({
   },
   datePickerConfirmText: {
     color: colors.white,
-    fontSize: 16,
     fontWeight: '600',
   },
   categoriesScroll: {
@@ -1025,10 +1026,9 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   categoryEmoji: {
-    fontSize: 16,
+    // fontSize set dynamically
   },
   categoryText: {
-    fontSize: 14,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
   },
@@ -1057,10 +1057,9 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   categoryFilterEmoji: {
-    fontSize: 20,
+    // fontSize set dynamically
   },
   categoryFilterText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
