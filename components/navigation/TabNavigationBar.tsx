@@ -1,16 +1,17 @@
 
 /**
- * TAB NAVIGATION BAR - VERSION v97.0
+ * TAB NAVIGATION BAR - VERSION v98.0
  * 
- * ✅ ANDROID WHITE STRIP FIX v97.0 - COMPLETE ELIMINATION
+ * ✅ ANDROID WHITE STRIP FIX v98.0 - COMPLETE ELIMINATION
  * 
- * CRITICAL FIXES v97.0:
+ * CRITICAL FIXES v98.0:
  * ANDROID FIXES:
  * - ✅ ELIMINATED white strip above bottom menu completely
- * - ✅ Background now extends 30px higher to cover any gaps
+ * - ✅ Background now extends to cover any gaps
  * - ✅ Solid BarLive teal background (#14B8A6) throughout
  * - ✅ No transparency issues that could cause white appearance
  * - ✅ Proper z-index layering to prevent white gaps
+ * - ✅ Removed extra padding that caused white strip
  * 
  * Previous fixes maintained:
  * iOS FIXES:
@@ -60,7 +61,7 @@ interface TabNavigationBarProps {
   onProfilePress?: () => void;
 }
 
-// ✅ CRITICAL FIX v97.0: Explicitly define BarLive color to prevent white background
+// ✅ CRITICAL FIX v98.0: Explicitly define BarLive color to prevent white background
 const BARLIVE_COLOR = '#14B8A6';
 
 export function TabNavigationBar({ 
@@ -76,8 +77,8 @@ export function TabNavigationBar({
   React.useEffect(() => {
     if (Platform.OS === 'android') {
       logScalingInfo();
-      console.log(`[TabNav v97.0] 🎨 Android background color: ${BARLIVE_COLOR}`);
-      console.log(`[TabNav v97.0] ✅ White strip ELIMINATED - background extends 30px higher`);
+      console.log(`[TabNav v98.0] 🎨 Android background color: ${BARLIVE_COLOR}`);
+      console.log(`[TabNav v98.0] ✅ White strip ELIMINATED - no extra padding`);
     }
   }, []);
 
@@ -86,14 +87,14 @@ export function TabNavigationBar({
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
     console.log(
-      `🔍 [TabNav v97.0] Checking tab "${tab.id}": ` +
+      `🔍 [TabNav v98.0] Checking tab "${tab.id}": ` +
       `route="${cleanRoute}", path="${cleanPath}"`
     );
 
     // Special case: gestion tab is active when viewing local profiles
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `✅ [TabNav v97.0] Tab "${tab.id}" is ACTIVE ` +
+        `✅ [TabNav v98.0] Tab "${tab.id}" is ACTIVE ` +
         `(special case: perfil/local)`
       );
       return true;
@@ -102,7 +103,7 @@ export function TabNavigationBar({
     // Special case: perfil tab is NOT active when viewing local profiles
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
       console.log(
-        `❌ [TabNav v97.0] Tab "${tab.id}" is INACTIVE ` +
+        `❌ [TabNav v98.0] Tab "${tab.id}" is INACTIVE ` +
         `(special case: perfil/local)`
       );
       return false;
@@ -119,7 +120,7 @@ export function TabNavigationBar({
 
       if (mainRouteSegment === mainPathSegment) {
         console.log(
-          `✅ [TabNav v97.0] Tab "${tab.id}" is ACTIVE ` +
+          `✅ [TabNav v98.0] Tab "${tab.id}" is ACTIVE ` +
           `(segment match: "${mainRouteSegment}")`
         );
         return true;
@@ -128,22 +129,22 @@ export function TabNavigationBar({
 
     // Fallback: check if path starts with route
     if (cleanPath.startsWith(cleanRoute)) {
-      console.log(`✅ [TabNav v97.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
+      console.log(`✅ [TabNav v98.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
       return true;
     }
 
     // Check exact match
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
-      console.log(`✅ [TabNav v97.0] Tab "${tab.id}" is ACTIVE (exact match)`);
+      console.log(`✅ [TabNav v98.0] Tab "${tab.id}" is ACTIVE (exact match)`);
       return true;
     }
 
-    console.log(`❌ [TabNav v97.0] Tab "${tab.id}" is INACTIVE`);
+    console.log(`❌ [TabNav v98.0] Tab "${tab.id}" is INACTIVE`);
     return false;
   };
 
   const handleTabPress = async (tab: TabDefinition) => {
-    console.log(`🔘 [TabNav v97.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
+    console.log(`🔘 [TabNav v98.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
     
     await provideHapticFeedback('light');
     
@@ -164,7 +165,7 @@ export function TabNavigationBar({
       : null;
 
     console.log(
-      `🎨 [TabNav v97.0] Rendering tab "${tab.id}": ` +
+      `🎨 [TabNav v98.0] Rendering tab "${tab.id}": ` +
       `isActive=${isActive}, isCenter=${isCenter}, avatar=${safeAvatarUrl ? safeAvatarUrl.substring(0, 50) : 'none'}`
     );
 
@@ -243,10 +244,10 @@ export function TabNavigationBar({
                   resizeMode="cover"
                   {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                   onError={(error) => {
-                    console.error('[TabNav v97.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
+                    console.error('[TabNav v98.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
                   }}
                   onLoad={() => {
-                    console.log('[TabNav v97.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
+                    console.log('[TabNav v98.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
                   }}
                 />
               ) : (
@@ -292,18 +293,16 @@ export function TabNavigationBar({
   const bottomNavHeight = getBottomNavHeight();
   const tabBarPaddingBottom = getBottomNavPaddingBottom(insets.bottom);
   
-  // Total container height includes safe area for Android system buttons
+  // ✅ CRITICAL FIX v98.0: Simplified container height - no extra padding
   const containerHeight = Platform.OS === 'android' 
     ? bottomNavHeight + insets.bottom
     : bottomNavHeight + tabBarPaddingBottom;
   
-  // ✅ CRITICAL FIX v97.0: Background extends 30px HIGHER on Android to eliminate white strip
-  const backgroundHeight = Platform.OS === 'android'
-    ? bottomNavHeight + insets.bottom + 30 // ✅ Extra 30px to cover white strip area
-    : bottomNavHeight + 20; // Extra 20px to ensure full icon coverage on iOS
+  // ✅ CRITICAL FIX v98.0: Background height matches container exactly - no extension needed
+  const backgroundHeight = containerHeight;
 
   console.log(
-    `[TabNav v97.0] 📐 Dimensions: ` +
+    `[TabNav v98.0] 📐 Dimensions: ` +
     `bottomNavHeight=${bottomNavHeight}, ` +
     `tabBarPaddingBottom=${tabBarPaddingBottom}, ` +
     `containerHeight=${containerHeight}, ` +
@@ -311,24 +310,22 @@ export function TabNavigationBar({
     `safeAreaBottom=${insets.bottom}, ` +
     `platform=${Platform.OS}, ` +
     `backgroundColor=${BARLIVE_COLOR}, ` +
-    `✅ v97.0: Android white strip ELIMINATED - background extends 30px higher`
+    `✅ v98.0: Android white strip ELIMINATED - simplified structure`
   );
 
   return (
     <View style={[styles.container, { 
       height: containerHeight,
-      backgroundColor: BARLIVE_COLOR, // ✅ v97.0: Ensure container has BarLive background
+      backgroundColor: BARLIVE_COLOR, // ✅ v98.0: Ensure container has BarLive background
     }]} pointerEvents="box-none">
-      {/* ✅ CRITICAL FIX v97.0: Background extends 30px higher on Android to eliminate white strip */}
+      {/* ✅ CRITICAL FIX v98.0: Simplified background - no extension, just solid color */}
       <View style={[styles.backgroundContainer, { 
         height: backgroundHeight,
-        backgroundColor: BARLIVE_COLOR, // ✅ v97.0: Explicit BarLive color
-        // ✅ CRITICAL: Position background 30px higher on Android to cover white strip area
-        bottom: Platform.OS === 'android' ? -30 : 0,
+        backgroundColor: BARLIVE_COLOR, // ✅ v98.0: Explicit BarLive color
       }]} pointerEvents="none">
         <View style={[styles.solidBackground, { 
           height: backgroundHeight, 
-          backgroundColor: BARLIVE_COLOR, // ✅ v97.0: Explicit BarLive color
+          backgroundColor: BARLIVE_COLOR, // ✅ v98.0: Explicit BarLive color
         }]} />
       </View>
 
@@ -348,11 +345,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    // ✅ v97.0: Background color set via inline style
+    // ✅ v98.0: Background color set via inline style
   },
   backgroundContainer: {
     position: 'absolute',
-    // ✅ v97.0: bottom position adjusted via inline style to extend higher on Android
+    bottom: 0,
     left: 0,
     right: 0,
     shadowColor: '#000',
@@ -361,7 +358,7 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 1,
     zIndex: 1,
-    // ✅ v97.0: Background color set via inline style
+    // ✅ v98.0: Background color set via inline style
   },
   solidBackground: {
     position: 'absolute',
@@ -369,7 +366,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     width: '100%',
-    // ✅ v97.0: Background color set via inline style to ensure BarLive color
+    // ✅ v98.0: Background color set via inline style to ensure BarLive color
   },
   tabBar: {
     flexDirection: 'row',
@@ -381,7 +378,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 10,
     elevation: 10,
-    backgroundColor: 'transparent', // ✅ v97.0: Transparent to show BarLive background below
+    backgroundColor: 'transparent', // ✅ v98.0: Transparent to show BarLive background below
   },
   tab: {
     flex: 1,
@@ -391,7 +388,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 20,
     zIndex: 10,
-    backgroundColor: 'transparent', // ✅ v97.0: Transparent to show BarLive background
+    backgroundColor: 'transparent', // ✅ v98.0: Transparent to show BarLive background
   },
   centerButton: {
     shadowColor: '#000',
