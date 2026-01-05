@@ -24,19 +24,18 @@ import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 import MomentoViewer from '@/components/momento/MomentoViewer';
 import PostViewerModal from '@/components/social/PostViewerModal';
 import { profileCache } from '@/utils/profileCache';
+import { scaleFontSize } from '@/utils/androidScaling';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
 
 /**
- * ✅ USER PROFILE v42.0 - INSTANT LOADING WITH PERSISTENCE + FILE:// FIX
+ * ✅ USER PROFILE v97.0 - ANDROID HEADER TITLE SIZE FIX
  * 
- * Features:
- * - ✅ NO loading screens - instant display with cached data
- * - ✅ Background sync for fresh data without blocking UI
- * - ✅ Persistent state - doesn't unmount when navigating away
- * - ✅ Same system as Lista de Locales and Feed Social
- * - ✅ FIXED v42.0: Filter out file:// URLs that cause ENOENT errors
+ * CRITICAL FIXES v97.0 (ANDROID ONLY):
+ * - ✅ Header title size standardized to match Explorar (20px on Android)
+ * - ✅ All other functionality maintained
+ * - ✅ iOS design remains unchanged
  */
 
 export default function UsuarioPerfilScreen() {
@@ -44,7 +43,7 @@ export default function UsuarioPerfilScreen() {
   const params = useLocalSearchParams();
   const { user: currentUser } = useAuth();
   
-  const [loading, setLoading] = useState(false); // ✅ Changed: No initial loading
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [usuario, setUsuario] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
@@ -67,7 +66,7 @@ export default function UsuarioPerfilScreen() {
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   const isTogglingFollow = useRef(false);
-  const hasLoadedOnce = useRef(false); // ✅ NEW: Track if we've loaded data
+  const hasLoadedOnce = useRef(false);
 
   const userId = params.userId as string;
   const isOwnProfile = currentUser && currentUser.id === userId;
@@ -89,12 +88,11 @@ export default function UsuarioPerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[UsuarioPerfil v42.0] Error loading current local:', error);
+        console.error('[UsuarioPerfil v97.0] Error loading current local:', error);
         return;
       }
 
       if (checkIn && checkIn.locales) {
-        // ✅ FIXED v42.0: Filter out file:// URLs
         const safeImageUrl = checkIn.locales.imagen_url && !checkIn.locales.imagen_url.startsWith('file://') 
           ? checkIn.locales.imagen_url 
           : null;
@@ -134,7 +132,7 @@ export default function UsuarioPerfilScreen() {
         setCanViewLocation(false);
       }
     } catch (error) {
-      console.error('[UsuarioPerfil v42.0] Error loading current local:', error);
+      console.error('[UsuarioPerfil v97.0] Error loading current local:', error);
     }
   }, [userId, isOwnProfile, currentUser, isAdminView]);
 
@@ -144,14 +142,14 @@ export default function UsuarioPerfilScreen() {
         .rpc('get_total_seguidores_count', { p_usuario_id: targetUserId });
 
       if (seguidoresError) {
-        console.error('[UsuarioPerfil v42.0] Error counting followers:', seguidoresError);
+        console.error('[UsuarioPerfil v97.0] Error counting followers:', seguidoresError);
       }
 
       const { data: seguidosData, error: seguidosError } = await supabase
         .rpc('get_total_siguiendo_count', { p_usuario_id: targetUserId });
 
       if (seguidosError) {
-        console.error('[UsuarioPerfil v42.0] Error counting following:', seguidosError);
+        console.error('[UsuarioPerfil v97.0] Error counting following:', seguidosError);
       }
 
       const actualSeguidores = seguidoresData || 0;
@@ -166,12 +164,12 @@ export default function UsuarioPerfilScreen() {
         .eq('id', targetUserId);
 
       if (updateError) {
-        console.error('[UsuarioPerfil v42.0] Error updating user counters:', updateError);
+        console.error('[UsuarioPerfil v97.0] Error updating user counters:', updateError);
       }
 
       return { seguidores: actualSeguidores, seguidos: actualSeguidos };
     } catch (error) {
-      console.error('[UsuarioPerfil v42.0] Error loading follower counts:', error);
+      console.error('[UsuarioPerfil v97.0] Error loading follower counts:', error);
       return { seguidores: 0, seguidos: 0 };
     }
   }, []);
@@ -194,7 +192,7 @@ export default function UsuarioPerfilScreen() {
         .single();
 
       if (userError || !userData) {
-        console.error('[UsuarioPerfil v42.0] Error loading user:', userError);
+        console.error('[UsuarioPerfil v97.0] Error loading user:', userError);
         if (!silent) {
           Alert.alert('Error', 'No se pudo cargar el perfil del usuario');
           router.back();
@@ -212,7 +210,6 @@ export default function UsuarioPerfilScreen() {
             .single();
 
           if (!followData) {
-            // ✅ FIXED v42.0: Filter out file:// URLs
             const safeUserData = {
               ...userData,
               avatar: userData.avatar && !userData.avatar.startsWith('file://') ? userData.avatar : null,
@@ -222,7 +219,6 @@ export default function UsuarioPerfilScreen() {
             return;
           }
         } else {
-          // ✅ FIXED v42.0: Filter out file:// URLs
           const safeUserData = {
             ...userData,
             avatar: userData.avatar && !userData.avatar.startsWith('file://') ? userData.avatar : null,
@@ -233,7 +229,6 @@ export default function UsuarioPerfilScreen() {
         }
       }
 
-      // ✅ FIXED v42.0: Filter out file:// URLs
       const safeUserData = {
         ...userData,
         avatar: userData.avatar && !userData.avatar.startsWith('file://') ? userData.avatar : null,
@@ -262,14 +257,13 @@ export default function UsuarioPerfilScreen() {
 
       setStats(newStats);
 
-      // ✅ Save to cache for instant loading next time
       await profileCache.set(userId, 'user', {
         profile: safeUserData,
         posts: postsData || [],
         stats: newStats,
       });
 
-      console.log('[UsuarioPerfil v42.0] ✅ Data loaded and cached');
+      console.log('[UsuarioPerfil v97.0] ✅ Data loaded and cached');
 
       if (currentUser) {
         const { data: followData } = await supabase
@@ -294,7 +288,7 @@ export default function UsuarioPerfilScreen() {
       await loadCurrentLocal();
       hasLoadedOnce.current = true;
     } catch (error) {
-      console.error('[UsuarioPerfil v42.0] Error loading data:', error);
+      console.error('[UsuarioPerfil v97.0] Error loading data:', error);
     } finally {
       if (!silent) {
         setLoading(false);
@@ -302,7 +296,6 @@ export default function UsuarioPerfilScreen() {
     }
   }, [userId, currentUser, router, loadFollowerCounts, loadCurrentLocal, isOwnProfile, isAdminView]);
 
-  // ✅ NEW: Load with cache first (instant), then refresh in background
   const loadUserDataWithCache = useCallback(async () => {
     if (!userId) {
       router.back();
@@ -310,15 +303,13 @@ export default function UsuarioPerfilScreen() {
     }
 
     try {
-      console.log('[UsuarioPerfil v42.0] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
+      console.log('[UsuarioPerfil v97.0] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
       
-      // Try to load from cache first
       const cachedData = await profileCache.get(userId, 'user');
       
       if (cachedData) {
-        console.log('[UsuarioPerfil v42.0] ⚡ INSTANT display with cached data');
+        console.log('[UsuarioPerfil v97.0] ⚡ INSTANT display with cached data');
         
-        // ✅ FIXED v42.0: Filter out file:// URLs from cached data
         const safeProfile = {
           ...cachedData.profile,
           avatar: cachedData.profile.avatar && !cachedData.profile.avatar.startsWith('file://') 
@@ -331,37 +322,33 @@ export default function UsuarioPerfilScreen() {
         setStats(cachedData.stats);
         hasLoadedOnce.current = true;
         
-        // Background refresh
         setTimeout(() => {
-          console.log('[UsuarioPerfil v42.0] 🔄 Background refresh...');
+          console.log('[UsuarioPerfil v97.0] 🔄 Background refresh...');
           loadUserData(true);
         }, 100);
       } else {
-        console.log('[UsuarioPerfil v42.0] 📡 No cache, loading from database...');
+        console.log('[UsuarioPerfil v97.0] 📡 No cache, loading from database...');
         await loadUserData(false);
       }
     } catch (error) {
-      console.error('[UsuarioPerfil v42.0] Error in loadUserDataWithCache:', error);
+      console.error('[UsuarioPerfil v97.0] Error in loadUserDataWithCache:', error);
       await loadUserData(false);
     }
   }, [userId, router, loadUserData]);
 
-  // ✅ NEW: Keep-Alive - Don't reset state when screen loses focus
   useFocusEffect(
     useCallback(() => {
-      console.log('[UsuarioPerfil v42.0] ⚡ Screen focused - keeping state alive');
+      console.log('[UsuarioPerfil v97.0] ⚡ Screen focused - keeping state alive');
       
-      // Only load if we haven't loaded yet
       if (!hasLoadedOnce.current) {
         loadUserDataWithCache();
       } else {
-        // Silent background refresh
-        console.log('[UsuarioPerfil v42.0] 🔄 Background refresh...');
+        console.log('[UsuarioPerfil v97.0] 🔄 Background refresh...');
         loadUserData(true);
       }
       
       return () => {
-        console.log('[UsuarioPerfil v42.0] Screen unfocused - state persisted');
+        console.log('[UsuarioPerfil v97.0] Screen unfocused - state persisted');
       };
     }, [loadUserDataWithCache, loadUserData])
   );
@@ -395,7 +382,7 @@ export default function UsuarioPerfilScreen() {
             filter: `seguido_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v42.0] ⚡ INSTANT update - Followers changed');
+            console.log('[UsuarioPerfil v97.0] ⚡ INSTANT update - Followers changed');
             const followerCounts = await loadFollowerCounts(userId);
             setStats(prev => ({
               ...prev,
@@ -412,7 +399,7 @@ export default function UsuarioPerfilScreen() {
             filter: `seguidor_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v42.0] ⚡ INSTANT update - Following changed');
+            console.log('[UsuarioPerfil v97.0] ⚡ INSTANT update - Following changed');
             const followerCounts = await loadFollowerCounts(userId);
             setStats(prev => ({
               ...prev,
@@ -429,7 +416,7 @@ export default function UsuarioPerfilScreen() {
             filter: `autor_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v42.0] ⚡ INSTANT update - Posts changed');
+            console.log('[UsuarioPerfil v97.0] ⚡ INSTANT update - Posts changed');
             await loadUserData(true);
           }
         )
@@ -442,7 +429,7 @@ export default function UsuarioPerfilScreen() {
             filter: `usuario_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v42.0] ⚡ INSTANT update - Check-in changed');
+            console.log('[UsuarioPerfil v97.0] ⚡ INSTANT update - Check-in changed');
             await loadCurrentLocal();
           }
         )
@@ -456,7 +443,7 @@ export default function UsuarioPerfilScreen() {
 
   useEffect(() => {
     if (params.openMomento === 'true' && !loading && usuario) {
-      console.log('[UsuarioPerfil v42.0] 🎬 Auto-opening momento viewer from message');
+      console.log('[UsuarioPerfil v97.0] 🎬 Auto-opening momento viewer from message');
       setShowMomentoViewer(true);
     }
   }, [params.openMomento, loading, usuario]);
@@ -546,7 +533,7 @@ export default function UsuarioPerfilScreen() {
         seguidores: updatedCounts.seguidores,
       }));
     } catch (error) {
-      console.error('[UsuarioPerfil v42.0] Error toggling follow:', error);
+      console.error('[UsuarioPerfil v97.0] Error toggling follow:', error);
       
       setIsFollowing(wasFollowing);
       setStats(prev => ({
@@ -620,7 +607,7 @@ export default function UsuarioPerfilScreen() {
                 Alert.alert('Éxito', 'Usuario bloqueado');
               }
             } catch (error) {
-              console.error('[UsuarioPerfil v42.0] Error toggling block:', error);
+              console.error('[UsuarioPerfil v97.0] Error toggling block:', error);
               Alert.alert('Error', 'No se pudo completar la acción');
             }
           },
@@ -679,7 +666,7 @@ export default function UsuarioPerfilScreen() {
               setCanViewLocation(false);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[UsuarioPerfil v42.0] Error exiting local:', error);
+              console.error('[UsuarioPerfil v97.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -688,7 +675,6 @@ export default function UsuarioPerfilScreen() {
     );
   };
 
-  // ✅ Show content immediately if we have cached data
   if (loading && !usuario) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -720,7 +706,13 @@ export default function UsuarioPerfilScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{usuario.username || usuario.nombre}</Text>
+          {/* ✅ CRITICAL FIX v97.0: Header title size matches Explorar (20px on Android) */}
+          <Text style={[
+            styles.headerTitle,
+            { fontSize: Platform.OS === 'android' ? scaleFontSize(24) : 20 }
+          ]}>
+            {usuario.username || usuario.nombre}
+          </Text>
           {!isOwnProfile && !isAdminView && (
             <TouchableOpacity onPress={handleBlock} style={styles.headerButton}>
               <IconSymbol
@@ -737,7 +729,7 @@ export default function UsuarioPerfilScreen() {
         {isAdminView && (
           <View style={styles.adminBadge}>
             <IconSymbol ios_icon_name="shield.fill" android_material_icon_name="admin_panel_settings" size={14} color={colors.white} />
-            <Text style={styles.adminBadgeText}>Modo Administrador</Text>
+            <Text style={[styles.adminBadgeText, { fontSize: scaleFontSize(12) }]}>Modo Administrador</Text>
           </View>
         )}
 
@@ -761,21 +753,21 @@ export default function UsuarioPerfilScreen() {
               />
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{usuario.nombre}</Text>
+              <Text style={[styles.profileName, { fontSize: scaleFontSize(22) }]}>{usuario.nombre}</Text>
               {usuario.username && (
-                <Text style={styles.profileUsername}>@{usuario.username}</Text>
+                <Text style={[styles.profileUsername, { fontSize: scaleFontSize(15) }]}>@{usuario.username}</Text>
               )}
               {usuario.perfil_privado && (
                 <View style={styles.privateProfileBadge}>
                   <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={12} color={colors.headerText} />
-                  <Text style={styles.privateProfileText}>Perfil Privado</Text>
+                  <Text style={[styles.privateProfileText, { fontSize: scaleFontSize(11) }]}>Perfil Privado</Text>
                 </View>
               )}
             </View>
           </View>
 
           {usuario.bio && !isPrivateAndNoAccess && (
-            <Text style={styles.profileBio}>{usuario.bio}</Text>
+            <Text style={[styles.profileBio, { fontSize: scaleFontSize(15) }]}>{usuario.bio}</Text>
           )}
 
           {currentLocal && canViewLocation && !isPrivateAndNoAccess && (
@@ -795,64 +787,64 @@ export default function UsuarioPerfilScreen() {
                       color={colors.primary} 
                     />
                   </View>
-                  <Text style={styles.statusCardTitle}>Estado actual</Text>
+                  <Text style={[styles.statusCardTitle, { fontSize: scaleFontSize(13) }]}>Estado actual</Text>
                 </View>
 
-              <TouchableOpacity 
-                style={styles.statusCardContent} 
-                onPress={handleViewLocal}
-                activeOpacity={0.9}
-              >
-                <View style={styles.statusLocalInfo}>
-                  {currentLocal.imagen_url ? (
-                    <Image 
-                      source={{ uri: currentLocal.imagen_url }} 
-                      style={styles.statusLocalImage}
-                      resizeMode="cover"
-                      {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
-                    />
-                  ) : (
-                    <View style={[styles.statusLocalImage, styles.statusLocalImagePlaceholder]}>
-                      <IconSymbol 
-                        ios_icon_name="building.2.fill" 
-                        android_material_icon_name="store" 
-                        size={20} 
-                        color="#FFFFFF" 
+                <TouchableOpacity 
+                  style={styles.statusCardContent} 
+                  onPress={handleViewLocal}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.statusLocalInfo}>
+                    {currentLocal.imagen_url ? (
+                      <Image 
+                        source={{ uri: currentLocal.imagen_url }} 
+                        style={styles.statusLocalImage}
+                        resizeMode="cover"
+                        {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                       />
-                    </View>
-                  )}
-                  
-                  <View style={styles.statusLocalDetails}>
-                    <Text style={styles.statusLocalLabel}>Ahora en</Text>
-                    <Text style={styles.statusLocalName} numberOfLines={1}>
-                      {currentLocal.nombre}
-                    </Text>
-                    {currentLocal.direccion && (
-                      <View style={styles.statusLocalAddress}>
+                    ) : (
+                      <View style={[styles.statusLocalImage, styles.statusLocalImagePlaceholder]}>
                         <IconSymbol 
-                          ios_icon_name="mappin" 
-                          android_material_icon_name="location_on" 
-                          size={10} 
-                          color="#6B7280" 
+                          ios_icon_name="building.2.fill" 
+                          android_material_icon_name="store" 
+                          size={20} 
+                          color="#FFFFFF" 
                         />
-                        <Text style={styles.statusLocalAddressText} numberOfLines={1}>
-                          {currentLocal.direccion}
-                        </Text>
                       </View>
                     )}
-                  </View>
+                    
+                    <View style={styles.statusLocalDetails}>
+                      <Text style={[styles.statusLocalLabel, { fontSize: scaleFontSize(11) }]}>Ahora en</Text>
+                      <Text style={[styles.statusLocalName, { fontSize: scaleFontSize(15) }]} numberOfLines={1}>
+                        {currentLocal.nombre}
+                      </Text>
+                      {currentLocal.direccion && (
+                        <View style={styles.statusLocalAddress}>
+                          <IconSymbol 
+                            ios_icon_name="mappin" 
+                            android_material_icon_name="location_on" 
+                            size={10} 
+                            color="#6B7280" 
+                          />
+                          <Text style={[styles.statusLocalAddressText, { fontSize: scaleFontSize(11) }]} numberOfLines={1}>
+                            {currentLocal.direccion}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
 
-                  <View style={styles.statusLocalArrow}>
-                    <IconSymbol 
-                      ios_icon_name="chevron.right" 
-                      android_material_icon_name="chevron_right" 
-                      size={16} 
-                      color="#9CA3AF" 
-                    />
+                    <View style={styles.statusLocalArrow}>
+                      <IconSymbol 
+                        ios_icon_name="chevron.right" 
+                        android_material_icon_name="chevron_right" 
+                        size={16} 
+                        color="#9CA3AF" 
+                      />
+                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-              
+                </TouchableOpacity>
+                
                 {isOwnProfile && (
                   <TouchableOpacity 
                     style={styles.statusExitButton} 
@@ -865,7 +857,7 @@ export default function UsuarioPerfilScreen() {
                       size={14} 
                       color="#6B7280" 
                     />
-                    <Text style={styles.statusExitButtonText}>Salir del local</Text>
+                    <Text style={[styles.statusExitButtonText, { fontSize: scaleFontSize(13) }]}>Salir del local</Text>
                   </TouchableOpacity>
                 )}
               </LinearGradient>
@@ -874,18 +866,18 @@ export default function UsuarioPerfilScreen() {
 
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{isPrivateAndNoAccess ? '-' : stats.posts}</Text>
-              <Text style={styles.statLabel}>Publicaciones</Text>
+              <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{isPrivateAndNoAccess ? '-' : stats.posts}</Text>
+              <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Publicaciones</Text>
             </View>
             <View style={styles.statDivider} />
             <TouchableOpacity style={styles.statItem} onPress={isPrivateAndNoAccess ? undefined : handleSeguidores} disabled={isPrivateAndNoAccess}>
-              <Text style={styles.statNumber}>{isPrivateAndNoAccess ? '-' : stats.seguidores}</Text>
-              <Text style={styles.statLabel}>Seguidores</Text>
+              <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{isPrivateAndNoAccess ? '-' : stats.seguidores}</Text>
+              <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Seguidores</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
             <TouchableOpacity style={styles.statItem} onPress={isPrivateAndNoAccess ? undefined : handleSeguidos} disabled={isPrivateAndNoAccess}>
-              <Text style={styles.statNumber}>{isPrivateAndNoAccess ? '-' : stats.seguidos}</Text>
-              <Text style={styles.statLabel}>Seguidos</Text>
+              <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{isPrivateAndNoAccess ? '-' : stats.seguidos}</Text>
+              <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Seguidos</Text>
             </TouchableOpacity>
           </View>
 
@@ -896,12 +888,12 @@ export default function UsuarioPerfilScreen() {
                 onPress={handleFollow}
                 disabled={isTogglingFollow.current}
               >
-                <Text style={[styles.actionButtonText, isFollowing && styles.actionButtonTextFollowing]}>
+                <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(15) }, isFollowing && styles.actionButtonTextFollowing]}>
                   {isFollowing ? 'Siguiendo' : 'Seguir'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton} onPress={handleMessage}>
-                <Text style={styles.actionButtonText}>Mensaje</Text>
+                <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(15) }]}>Mensaje</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -916,8 +908,8 @@ export default function UsuarioPerfilScreen() {
         {isPrivateAndNoAccess ? (
           <View style={styles.privateProfileMessage}>
             <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={64} color={colors.textSecondary} />
-            <Text style={styles.privateProfileTitle}>Este perfil es privado</Text>
-            <Text style={styles.privateProfileSubtext}>
+            <Text style={[styles.privateProfileTitle, { fontSize: scaleFontSize(20) }]}>Este perfil es privado</Text>
+            <Text style={[styles.privateProfileSubtext, { fontSize: scaleFontSize(15) }]}>
               Sigue a {usuario.nombre} para ver sus publicaciones
             </Text>
           </View>
@@ -953,7 +945,7 @@ export default function UsuarioPerfilScreen() {
         ) : (
           <View style={styles.emptyState}>
             <IconSymbol ios_icon_name="photo.on.rectangle" android_material_icon_name="photo_library" size={48} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>No hay publicaciones</Text>
+            <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>No hay publicaciones</Text>
           </View>
         )}
       </ScrollView>
@@ -1005,7 +997,6 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   headerTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
     flex: 1,
@@ -1026,7 +1017,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   adminBadgeText: {
-    fontSize: 12,
     fontWeight: '700',
     color: colors.white,
   },
@@ -1046,13 +1036,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileName: {
-    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 4,
   },
   profileUsername: {
-    fontSize: 15,
     color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 4,
   },
@@ -1067,12 +1055,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   privateProfileText: {
-    fontSize: 11,
     fontWeight: '700',
     color: colors.headerText,
   },
   profileBio: {
-    fontSize: 15,
     color: colors.headerText,
     lineHeight: 22,
     marginBottom: 16,
@@ -1102,7 +1088,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   statusCardTitle: {
-    fontSize: 13,
     fontWeight: '700',
     color: colors.headerText,
     textTransform: 'uppercase',
@@ -1134,13 +1119,11 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   statusLocalLabel: {
-    fontSize: 11,
     color: '#6B7280',
     marginBottom: 2,
     fontWeight: '500',
   },
   statusLocalName: {
-    fontSize: 15,
     fontWeight: '700',
     color: '#1F2937',
     marginBottom: 4,
@@ -1151,7 +1134,6 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   statusLocalAddressText: {
-    fontSize: 11,
     color: '#6B7280',
     flex: 1,
   },
@@ -1171,7 +1153,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(107, 114, 128, 0.3)',
   },
   statusExitButtonText: {
-    fontSize: 13,
     fontWeight: '700',
     color: '#6B7280',
   },
@@ -1187,13 +1168,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statNumber: {
-    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
   },
   statDivider: {
@@ -1219,7 +1198,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   actionButtonText: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -1236,14 +1214,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   privateProfileTitle: {
-    fontSize: 20,
     fontWeight: '700',
     color: colors.text,
     marginTop: 20,
     marginBottom: 8,
   },
   privateProfileSubtext: {
-    fontSize: 15,
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
@@ -1284,7 +1260,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   emptyText: {
-    fontSize: 16,
     color: colors.textSecondary,
     marginTop: 16,
   },

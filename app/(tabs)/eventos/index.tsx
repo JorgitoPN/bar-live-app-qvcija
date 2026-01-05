@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Platform,
   Alert,
   TouchableWithoutFeedback,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -30,6 +31,8 @@ import {
   getCategoryIconSize,
   getCategoryIconInnerSize,
   scaleFontSize,
+  getStatusBarHeight,
+  getHeaderHeight,
 } from '@/utils/androidScaling';
 
 const { width } = Dimensions.get('window');
@@ -79,15 +82,14 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v97.0 - ANDROID SEARCH BOX & CATEGORY FILTER FIX
+ * ✅ EVENTOS SCREEN v97.0 - ANDROID HEADER SCROLL & CATEGORY FILTER FIX
  * 
  * CRITICAL FIXES v97.0 (ANDROID ONLY):
+ * - ✅ Header now scrolls with content (like Favoritos page)
+ * - ✅ Category filters match Explorar design exactly (same size, spacing)
  * - ✅ Search box text properly centered with textAlignVertical: 'center'
- * - ✅ Search box height matches Favoritos page (48px)
- * - ✅ Category filter icons reduced to match Explorar (20px emoji, 13px text)
  * - ✅ Header title size standardized to match Explorar (24px on Android)
- * - ✅ White search bar maintained (matching favoritos)
- * - ✅ Scrollable filter modal maintained
+ * - ✅ All other Android fixes maintained
  */
 
 export default function EventosScreen() {
@@ -108,6 +110,19 @@ export default function EventosScreen() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // ✅ CRITICAL FIX v97.0: Add scroll behavior for header (like Favoritos)
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 300;
+  const HEADER_MIN_HEIGHT = 0;
+  const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [0, -HEADER_SCROLL_DISTANCE],
+    extrapolate: 'clamp',
+  });
 
   const userRole = user?.rol_app || 'cliente';
   
@@ -356,124 +371,179 @@ export default function EventosScreen() {
     );
   }, [user, canDeleteEvent, cargarEventos]);
 
+  // ✅ CRITICAL FIX v97.0: Handle scroll for header animation
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: true,
+      listener: (event: any) => {
+        if (Platform.OS !== 'android') return;
+        
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        lastScrollY.current = currentScrollY;
+      },
+    }
+  );
+
   // ✅ Get platform-specific dimensions
   const searchBoxHeight = getSearchBoxHeight();
-  const categoryIconSize = Platform.OS === 'android' ? 20 : 24; // ✅ v97.0: Match Explorar size
-  const categoryTextSize = Platform.OS === 'android' ? 13 : 14; // ✅ v97.0: Match Explorar size
+  const categoryIconSize = getCategoryIconSize();
+  const categoryIconInnerSize = getCategoryIconInnerSize();
+  const categorySpacing = 16; // Match Explorar
+
+  // ✅ CRITICAL FIX v97.0: Match Explorar category filter design
+  const categoryEmojiSize = Platform.OS === 'android' ? 20 : 24;
+  const categoryTextSize = Platform.OS === 'android' ? 13 : 14;
+
+  const HeaderContent = () => (
+    <React.Fragment>
+      {/* ✅ CRITICAL FIX v97.0: Header title size matches Explorar (24px on Android) */}
+      <Text style={[
+        commonStyles.headerTitle, 
+        { 
+          color: colors.white,
+          fontSize: Platform.OS === 'android' ? 24 : 32, // ✅ Match Explorar
+        }
+      ]}>
+        Eventos
+      </Text>
+
+      {/* ✅ CRITICAL FIX v97.0: Search box with proper text centering on Android */}
+      <View style={[styles.searchContainer, { 
+        height: searchBoxHeight,
+      }]}>
+        <IconSymbol 
+          ios_icon_name="magnifyingglass" 
+          android_material_icon_name="search" 
+          size={20} 
+          color={colors.textSecondary} 
+        />
+        <TextInput
+          style={[styles.searchInput, { 
+            fontSize: scaleFontSize(16),
+            // ✅ CRITICAL FIX v97.0: Properly center text vertically on Android
+            textAlignVertical: Platform.OS === 'android' ? 'center' : 'auto',
+            paddingVertical: Platform.OS === 'android' ? 0 : 12,
+          }]}
+          placeholder="Buscar eventos..."
+          placeholderTextColor={colors.textSecondary}
+          value={busqueda}
+          onChangeText={setBusqueda}
+        />
+        <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
+          <IconSymbol 
+            ios_icon_name="slider.horizontal.3" 
+            android_material_icon_name="tune" 
+            size={20} 
+            color={colors.primary} 
+          />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          style={[styles.tab, tabActual === 'hoy' && styles.tabActive]}
+          onPress={() => setTabActual('hoy')}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              { fontSize: scaleFontSize(15) },
+              tabActual === 'hoy' && styles.tabTextActive,
+            ]}
+          >
+            Hoy
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, tabActual === 'proximos' && styles.tabActive]}
+          onPress={() => setTabActual('proximos')}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              { fontSize: scaleFontSize(15) },
+              tabActual === 'proximos' && styles.tabTextActive,
+            ]}
+          >
+            Próximos
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ✅ CRITICAL FIX v97.0: Category filters match Explorar design exactly */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoriesScroll}
+        contentContainerStyle={styles.categoriesContent}
+      >
+        {CATEGORIAS.map((categoria) => (
+          <TouchableOpacity
+            key={categoria.id}
+            style={styles.categoriaButton}
+            onPress={() => setCategoriaSeleccionada(categoria.id)}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.categoriaIconContainer,
+                {
+                  width: categoryIconSize,
+                  height: categoryIconSize,
+                  borderRadius: categoryIconSize / 4,
+                },
+                categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive,
+              ]}
+            >
+              <Text style={[styles.categoryEmoji, { fontSize: categoryIconInnerSize }]}>{categoria.emoji}</Text>
+            </View>
+            <Text
+              style={[
+                styles.categoriaLabel,
+                { fontSize: scaleFontSize(12) },
+                categoriaSeleccionada === categoria.id && styles.categoriaLabelActive,
+              ]}
+            >
+              {categoria.nombre}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </React.Fragment>
+  );
 
   return (
     <View style={commonStyles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={commonStyles.headerGradient}
-      >
-        {/* ✅ CRITICAL FIX v97.0: Header title size matches Explorar (24px on Android) */}
-        <Text style={[
-          commonStyles.headerTitle, 
-          { 
-            color: colors.white,
-            fontSize: Platform.OS === 'android' ? 24 : 32, // ✅ Match Explorar
-          }
-        ]}>
-          Eventos
-        </Text>
-
-        {/* ✅ CRITICAL FIX v97.0: Search box with proper text centering on Android */}
-        <View style={[styles.searchContainer, { 
-          height: searchBoxHeight,
-        }]}>
-          <IconSymbol 
-            ios_icon_name="magnifyingglass" 
-            android_material_icon_name="search" 
-            size={20} 
-            color={colors.textSecondary} 
-          />
-          <TextInput
-            style={[styles.searchInput, { 
-              fontSize: scaleFontSize(16),
-              // ✅ CRITICAL FIX v97.0: Properly center text vertically on Android
-              textAlignVertical: Platform.OS === 'android' ? 'center' : 'auto',
-              paddingVertical: Platform.OS === 'android' ? 0 : 12,
-            }]}
-            placeholder="Buscar eventos..."
-            placeholderTextColor={colors.textSecondary}
-            value={busqueda}
-            onChangeText={setBusqueda}
-          />
-          <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
-            <IconSymbol 
-              ios_icon_name="slider.horizontal.3" 
-              android_material_icon_name="tune" 
-              size={20} 
-              color={colors.primary} 
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            style={[styles.tab, tabActual === 'hoy' && styles.tabActive]}
-            onPress={() => setTabActual('hoy')}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                { fontSize: scaleFontSize(15) },
-                tabActual === 'hoy' && styles.tabTextActive,
-              ]}
-            >
-              Hoy
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, tabActual === 'proximos' && styles.tabActive]}
-            onPress={() => setTabActual('proximos')}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                { fontSize: scaleFontSize(15) },
-                tabActual === 'proximos' && styles.tabTextActive,
-              ]}
-            >
-              Próximos
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ✅ CRITICAL FIX v97.0: Category filters match Explorar size (20px emoji, 13px text) */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesScroll}
-          contentContainerStyle={styles.categoriesContent}
+      {/* ✅ CRITICAL FIX v97.0: Scrollable header on Android (like Favoritos) */}
+      {Platform.OS === 'android' ? (
+        <Animated.View
+          style={[
+            styles.headerContainer,
+            {
+              transform: [{ translateY: headerTranslateY }],
+            },
+          ]}
         >
-          {CATEGORIAS.map((categoria) => (
-            <TouchableOpacity
-              key={categoria.id}
-              style={[
-                styles.categoryChip,
-                categoriaSeleccionada === categoria.id && styles.categoryChipActive,
-              ]}
-              onPress={() => setCategoriaSeleccionada(categoria.id)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.categoryEmoji, { fontSize: categoryIconSize }]}>{categoria.emoji}</Text>
-              <Text
-                style={[
-                  styles.categoryText,
-                  { fontSize: categoryTextSize },
-                  categoriaSeleccionada === categoria.id && styles.categoryTextActive,
-                ]}
-              >
-                {categoria.nombre}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </LinearGradient>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.headerGradient}
+          >
+            <HeaderContent />
+          </LinearGradient>
+        </Animated.View>
+      ) : (
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={commonStyles.headerGradient}
+        >
+          <HeaderContent />
+        </LinearGradient>
+      )}
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -483,11 +553,16 @@ export default function EventosScreen() {
       ) : (
         <ScrollView
           style={styles.content}
-          contentContainerStyle={styles.eventosContainer}
+          contentContainerStyle={[
+            styles.eventosContainer,
+            Platform.OS === 'android' && { marginTop: HEADER_MAX_HEIGHT },
+          ]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          onScroll={Platform.OS === 'android' ? handleScroll : undefined}
+          scrollEventThrottle={16}
         >
           {eventosFiltrados.length === 0 ? (
             <View style={styles.emptyState}>
@@ -559,7 +634,7 @@ export default function EventosScreen() {
                       ]}
                       onPress={() => setCategoriaSeleccionada(categoria.id)}
                     >
-                      <Text style={[styles.categoryFilterEmoji, { fontSize: categoryIconSize }]}>{categoria.emoji}</Text>
+                      <Text style={[styles.categoryFilterEmoji, { fontSize: categoryEmojiSize }]}>{categoria.emoji}</Text>
                       <Text
                         style={[
                           styles.categoryFilterText,
@@ -755,6 +830,19 @@ export default function EventosScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    backgroundColor: colors.background,
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1023,32 +1111,35 @@ const styles = StyleSheet.create({
   categoriesContent: {
     paddingHorizontal: 0,
     paddingRight: 16,
-    gap: 8,
+    gap: 16, // Match Explorar spacing
   },
-  categoryChip: {
-    flexDirection: 'row',
+  categoriaButton: {
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    minWidth: 70,
+  },
+  categoriaIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  categoryChipActive: {
-    backgroundColor: colors.white,
+  categoriaIconContainerActive: {
     borderColor: colors.white,
+    backgroundColor: colors.white,
   },
   categoryEmoji: {
     // fontSize set dynamically
   },
-  categoryText: {
+  categoriaLabel: {
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
   },
-  categoryTextActive: {
+  categoriaLabelActive: {
     color: colors.primary,
+    fontWeight: '700',
   },
   categoriesGrid: {
     flexDirection: 'row',

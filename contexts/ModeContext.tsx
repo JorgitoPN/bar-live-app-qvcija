@@ -54,18 +54,6 @@ const ACTIVE_PROFILE_TYPE_STORAGE_KEY = '@barlive_active_profile_type';
  * - ✅ Used useMemo to prevent unnecessary context recreation
  * - ✅ Simplified dependency arrays to prevent infinite loops
  * - ✅ Proper initialization flow without circular triggers
- * 
- * PREVIOUS FIXES v55.0:
- * - ✅ Only loads ACTIVE local assignments (activo=true) from propietarios_locales
- * - ✅ Prevents residual inactive assignments from appearing in owned locals
- * - ✅ Validates local ownership with activo=true check before switching profiles
- * - ✅ Ensures users can't interact with locals they no longer own
- * 
- * PREVIOUS FIXES v53.0:
- * - ✅ When switching to propietario mode, automatically assigns first local's role
- * - ✅ When user selects user profile, automatically switches back to cliente mode
- * - ✅ Proper mode synchronization with profile switching
- * - ✅ Fixed mode persistence across app restarts
  */
 
 export function ModeProvider({ children }: { children: ReactNode }) {
@@ -82,14 +70,24 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const [ownedLocals, setOwnedLocals] = useState<LocalProfile[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // ✅ CRITICAL FIX v97.0: Use ref to prevent concurrent loads
+  const isLoadingLocalsRef = useRef(false);
+
   // ✅ CRITICAL FIX v97.0: Memoize loadOwnedLocals to prevent recreation
   const loadOwnedLocals = useCallback(async () => {
+    // ✅ Prevent concurrent loads
+    if (isLoadingLocalsRef.current) {
+      console.log('[ModeContext v97.0] Already loading locals, skipping...');
+      return;
+    }
+
     if (!user) {
       setOwnedLocals([]);
       return;
     }
 
     try {
+      isLoadingLocalsRef.current = true;
       console.log('[ModeContext v97.0] 🔄 Loading owned locals for user:', user.id, isImpersonating ? '(impersonated)' : '(actual)');
       
       // ✅ CRITICAL FIX v55.0: Only load ACTIVE local assignments
@@ -127,6 +125,8 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('[ModeContext v97.0] ❌ Error loading owned locals:', error);
       setOwnedLocals([]);
+    } finally {
+      isLoadingLocalsRef.current = false;
     }
   }, [user?.id, isImpersonating]);
 
