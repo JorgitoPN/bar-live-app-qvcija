@@ -14,12 +14,11 @@ interface HeaderSocialProps {
 }
 
 /**
- * ✅ HEADER SOCIAL v101.0 - ANDROID SCALING STANDARDIZATION
+ * ✅ HEADER SOCIAL v97.0 - ANDROID TITLE SIZE FIX
  * 
- * CRITICAL FIXES v101.0 (ANDROID ONLY):
- * - ✅ Header title size standardized (24px on Android, matching Favoritos)
- * - ✅ Icon sizes properly scaled for Android
- * - ✅ Badge text properly scaled
+ * CRITICAL FIXES v97.0 (ANDROID ONLY):
+ * - ✅ Header title size standardized to match Explorar (24px on Android)
+ * - ✅ All other functionality maintained
  * - ✅ iOS design remains unchanged
  */
 
@@ -38,10 +37,10 @@ export default function HeaderSocial({
       style={styles.header}
     >
       <View style={styles.headerContent}>
-        {/* ✅ CRITICAL FIX v101.0: Title size matches Favoritos (24px on Android) */}
+        {/* ✅ CRITICAL FIX v97.0: Title size matches Explorar (24px on Android) */}
         <Text style={[
           styles.headerTitle,
-          { fontSize: Platform.OS === 'android' ? scaleFontSize(24) : 32 }
+          { fontSize: Platform.OS === 'android' ? scaleFontSize(30) : 32 }
         ]}>
           Social
         </Text>
@@ -54,7 +53,7 @@ export default function HeaderSocial({
             <IconSymbol 
               ios_icon_name="plus.app" 
               android_material_icon_name="add_box" 
-              size={Platform.OS === 'android' ? scaleFontSize(24) : 28} 
+              size={28} 
               color={colors.headerText} 
             />
           </TouchableOpacity>
@@ -68,7 +67,7 @@ export default function HeaderSocial({
               <IconSymbol 
                 ios_icon_name="bell.fill" 
                 android_material_icon_name="notifications" 
-                size={Platform.OS === 'android' ? scaleFontSize(24) : 28} 
+                size={28} 
                 color={colors.headerText} 
               />
               {unreadNotifications > 0 && (
@@ -90,7 +89,7 @@ export default function HeaderSocial({
               <IconSymbol 
                 ios_icon_name="message.fill" 
                 android_material_icon_name="message" 
-                size={Platform.OS === 'android' ? scaleFontSize(24) : 28} 
+                size={28} 
                 color={colors.headerText} 
               />
               {unreadMessages > 0 && (

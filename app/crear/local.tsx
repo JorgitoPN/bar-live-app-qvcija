@@ -24,7 +24,6 @@ import * as Location from 'expo-location';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
-import { scaleFontSize } from '@/utils/androidScaling';
 
 const MAX_GALLERY_IMAGES = 5;
 
@@ -116,13 +115,16 @@ const TIPOS_COCINA = [
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 /**
- * ✅ CREAR LOCAL v101.0 - ANDROID SCALING STANDARDIZATION
+ * ✅ CREAR LOCAL v10.0 - WITH DUPLICATE PREVENTION
  * 
- * CRITICAL FIXES v101.0 (ANDROID ONLY):
- * - ✅ All font sizes use scaleFontSize() for consistency with Favoritos
- * - ✅ All text elements properly scaled
- * - ✅ iOS design remains unchanged
- * - ✅ Duplicate prevention maintained
+ * Fixed issues:
+ * - ✅ FIXED: Bottom button no longer cut off - proper padding added
+ * - ✅ FIXED: Dimensions.get('window') error - using useWindowDimensions hook
+ * - ✅ OSM map viewer for precise location selection (Step 2) - ALWAYS VISIBLE
+ * - ✅ Full preview matching local details page exactly
+ * - ✅ All local information, images, gallery, and functions
+ * - ✅ Complete consistency with enriched Google locals
+ * - ✅ NEW: Duplicate local prevention - checks before creation
  */
 
 export default function CrearLocalScreen() {
@@ -264,12 +266,12 @@ export default function CrearLocalScreen() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'location_selected') {
-        console.log('[CrearLocal v101.0] Location selected:', data.lat, data.lng);
+        console.log('[CrearLocal v9.0] Location selected:', data.lat, data.lng);
         updateFormData('latitud', data.lat);
         updateFormData('longitud', data.lng);
       }
     } catch (error) {
-      console.error('[CrearLocal v101.0] Error parsing WebView message:', error);
+      console.error('[CrearLocal v9.0] Error parsing WebView message:', error);
     }
   };
 
@@ -450,10 +452,10 @@ export default function CrearLocalScreen() {
 
     setLoading(true);
     try {
-      console.log('[CrearLocal v101.0] 📝 Creating local with approval workflow...');
+      console.log('[CrearLocal v10.0] 📝 Creating local with approval workflow...');
 
       // ✅ CHECK FOR DUPLICATES BEFORE CREATING
-      console.log('[CrearLocal v101.0] 🔍 Checking for duplicate locals...');
+      console.log('[CrearLocal v10.0] 🔍 Checking for duplicate locals...');
       const { data: duplicates, error: duplicateError } = await supabase
         .rpc('check_duplicate_local', {
           p_nombre: formData.nombre,
@@ -462,11 +464,11 @@ export default function CrearLocalScreen() {
         });
 
       if (duplicateError) {
-        console.error('[CrearLocal v101.0] ❌ Error checking duplicates:', duplicateError);
+        console.error('[CrearLocal v10.0] ❌ Error checking duplicates:', duplicateError);
         // Continue anyway - don't block creation if check fails
       } else if (duplicates && duplicates.length > 0) {
         const duplicate = duplicates[0];
-        console.log('[CrearLocal v101.0] ⚠️ Duplicate local found:', duplicate);
+        console.log('[CrearLocal v10.0] ⚠️ Duplicate local found:', duplicate);
         
         setLoading(false);
         Alert.alert(
@@ -482,7 +484,7 @@ export default function CrearLocalScreen() {
         return;
       }
 
-      console.log('[CrearLocal v101.0] ✅ No duplicates found, proceeding with creation...');
+      console.log('[CrearLocal v10.0] ✅ No duplicates found, proceeding with creation...');
 
       let portadaUrl = formData.portada_url;
       if (portadaUrl && portadaUrl.startsWith('file://')) {
@@ -555,7 +557,7 @@ export default function CrearLocalScreen() {
 
       if (localError) throw localError;
 
-      console.log('[CrearLocal v101.0] ✅ Local created successfully with pending status');
+      console.log('[CrearLocal v10.0] ✅ Local created successfully with pending status');
 
       try {
         await supabase.functions.invoke('send-local-approval-notification', {
@@ -566,7 +568,7 @@ export default function CrearLocalScreen() {
           },
         });
       } catch (notificationError) {
-        console.error('[CrearLocal v101.0] ⚠️ Error sending notification:', notificationError);
+        console.error('[CrearLocal v10.0] ⚠️ Error sending notification:', notificationError);
       }
 
       setShowPreview(false);
@@ -576,7 +578,7 @@ export default function CrearLocalScreen() {
         [{ text: 'OK', onPress: () => router.push('/gestion/mis-locales') }]
       );
     } catch (error) {
-      console.error('[CrearLocal v101.0] ❌ Error creating local:', error);
+      console.error('[CrearLocal v10.0] ❌ Error creating local:', error);
       Alert.alert('Error', 'No se pudo crear el local. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -588,7 +590,7 @@ export default function CrearLocalScreen() {
       {[1, 2, 3, 4, 5].map((step) => (
         <View key={step} style={styles.stepItem}>
           <View style={[styles.stepCircle, currentStep >= step && styles.stepCircleActive]}>
-            <Text style={[styles.stepNumber, { fontSize: scaleFontSize(16) }, currentStep >= step && styles.stepNumberActive]}>
+            <Text style={[styles.stepNumber, currentStep >= step && styles.stepNumberActive]}>
               {step}
             </Text>
           </View>
@@ -600,15 +602,15 @@ export default function CrearLocalScreen() {
 
   const renderStep1 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(24) }]}>Información Básica</Text>
-      <Text style={[styles.stepDescription, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.stepTitle}>Información Básica</Text>
+      <Text style={styles.stepDescription}>
         Comienza con los datos esenciales de tu local
       </Text>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Nombre del Local *</Text>
+        <Text style={styles.label}>Nombre del Local *</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="Ej: Bar Central"
           placeholderTextColor={colors.textSecondary}
           value={formData.nombre}
@@ -617,7 +619,7 @@ export default function CrearLocalScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Tipo de Local *</Text>
+        <Text style={styles.label}>Tipo de Local *</Text>
         <View style={styles.tipoGrid}>
           {TIPOS_LOCAL.map((tipo) => (
             <TouchableOpacity
@@ -631,7 +633,7 @@ export default function CrearLocalScreen() {
                 size={24}
                 color={formData.tipo === tipo.value ? colors.headerText : colors.text}
               />
-              <Text style={[styles.tipoButtonText, { fontSize: scaleFontSize(14) }, formData.tipo === tipo.value && styles.tipoButtonTextActive]}>
+              <Text style={[styles.tipoButtonText, formData.tipo === tipo.value && styles.tipoButtonTextActive]}>
                 {tipo.label}
               </Text>
             </TouchableOpacity>
@@ -640,9 +642,9 @@ export default function CrearLocalScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Descripción</Text>
+        <Text style={styles.label}>Descripción</Text>
         <TextInput
-          style={[styles.input, styles.textArea, { fontSize: scaleFontSize(16) }]}
+          style={[styles.input, styles.textArea]}
           placeholder="Describe tu local..."
           placeholderTextColor={colors.textSecondary}
           value={formData.descripcion}
@@ -656,15 +658,15 @@ export default function CrearLocalScreen() {
 
   const renderStep2 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(24) }]}>Ubicación y Contacto</Text>
-      <Text style={[styles.stepDescription, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.stepTitle}>Ubicación y Contacto</Text>
+      <Text style={styles.stepDescription}>
         Añade la dirección completa y selecciona la ubicación exacta en el mapa
       </Text>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Dirección *</Text>
+        <Text style={styles.label}>Dirección *</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="Calle, número"
           placeholderTextColor={colors.textSecondary}
           value={formData.direccion}
@@ -674,9 +676,9 @@ export default function CrearLocalScreen() {
 
       <View style={styles.row}>
         <View style={[styles.inputContainer, styles.flex1]}>
-          <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Ciudad *</Text>
+          <Text style={styles.label}>Ciudad *</Text>
           <TextInput
-            style={[styles.input, { fontSize: scaleFontSize(16) }]}
+            style={styles.input}
             placeholder="Ciudad"
             placeholderTextColor={colors.textSecondary}
             value={formData.ciudad}
@@ -685,9 +687,9 @@ export default function CrearLocalScreen() {
         </View>
 
         <View style={[styles.inputContainer, styles.flex1]}>
-          <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Código Postal</Text>
+          <Text style={styles.label}>Código Postal</Text>
           <TextInput
-            style={[styles.input, { fontSize: scaleFontSize(16) }]}
+            style={styles.input}
             placeholder="28001"
             placeholderTextColor={colors.textSecondary}
             value={formData.codigo_postal}
@@ -698,9 +700,9 @@ export default function CrearLocalScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Provincia *</Text>
+        <Text style={styles.label}>Provincia *</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="Provincia"
           placeholderTextColor={colors.textSecondary}
           value={formData.provincia}
@@ -710,13 +712,13 @@ export default function CrearLocalScreen() {
 
       <TouchableOpacity style={styles.locationButton} onPress={handleGetCurrentLocation} disabled={loading}>
         <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={20} color={colors.primary} />
-        <Text style={[styles.locationButtonText, { fontSize: scaleFontSize(14) }]}>Usar mi ubicación actual</Text>
+        <Text style={styles.locationButtonText}>Usar mi ubicación actual</Text>
       </TouchableOpacity>
 
       {/* ✅ OSM Map Viewer - ALWAYS VISIBLE */}
       <View style={styles.mapContainer}>
-        <Text style={[styles.mapLabel, { fontSize: scaleFontSize(14) }]}>Ubicación Exacta en el Mapa *</Text>
-        <Text style={[styles.mapHelperText, { fontSize: scaleFontSize(12) }]}>
+        <Text style={styles.mapLabel}>Ubicación Exacta en el Mapa *</Text>
+        <Text style={styles.mapHelperText}>
           Arrastra el marcador o toca en el mapa para ajustar la ubicación exacta
         </Text>
         <View style={styles.mapViewer}>
@@ -731,14 +733,14 @@ export default function CrearLocalScreen() {
             renderLoading={() => (
               <View style={styles.mapLoadingContainer}>
                 <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={[styles.mapLoadingText, { fontSize: scaleFontSize(14) }]}>Cargando mapa...</Text>
+                <Text style={styles.mapLoadingText}>Cargando mapa...</Text>
               </View>
             )}
           />
         </View>
         {formData.latitud && formData.longitud && (
           <View style={styles.coordinatesDisplay}>
-            <Text style={[styles.coordinatesText, { fontSize: scaleFontSize(12) }]}>
+            <Text style={styles.coordinatesText}>
               📍 Lat: {formData.latitud.toFixed(6)}, Lng: {formData.longitud.toFixed(6)}
             </Text>
           </View>
@@ -746,9 +748,9 @@ export default function CrearLocalScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Teléfono</Text>
+        <Text style={styles.label}>Teléfono</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="+34 600 000 000"
           placeholderTextColor={colors.textSecondary}
           value={formData.telefono}
@@ -758,9 +760,9 @@ export default function CrearLocalScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Email</Text>
+        <Text style={styles.label}>Email</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="contacto@local.com"
           placeholderTextColor={colors.textSecondary}
           value={formData.email}
@@ -771,9 +773,9 @@ export default function CrearLocalScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Sitio Web</Text>
+        <Text style={styles.label}>Sitio Web</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="https://..."
           placeholderTextColor={colors.textSecondary}
           value={formData.web}
@@ -787,13 +789,13 @@ export default function CrearLocalScreen() {
 
   const renderStep3 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(24) }]}>Servicios y Ambiente</Text>
-      <Text style={[styles.stepDescription, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.stepTitle}>Servicios y Ambiente</Text>
+      <Text style={styles.stepDescription}>
         Información que ayudará a los clientes a conocer mejor tu local
       </Text>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Servicios y Comodidades</Text>
+        <Text style={styles.label}>Servicios y Comodidades</Text>
         <View style={styles.serviciosGrid}>
           {SERVICIOS_DISPONIBLES.map((servicio) => (
             <TouchableOpacity
@@ -801,7 +803,7 @@ export default function CrearLocalScreen() {
               style={[styles.servicioChip, formData.servicios.includes(servicio) && styles.servicioChipActive]}
               onPress={() => toggleServicio(servicio)}
             >
-              <Text style={[styles.servicioChipText, { fontSize: scaleFontSize(14) }, formData.servicios.includes(servicio) && styles.servicioChipTextActive]}>
+              <Text style={[styles.servicioChipText, formData.servicios.includes(servicio) && styles.servicioChipTextActive]}>
                 {servicio}
               </Text>
             </TouchableOpacity>
@@ -810,7 +812,7 @@ export default function CrearLocalScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Ambiente</Text>
+        <Text style={styles.label}>Ambiente</Text>
         <View style={styles.serviciosGrid}>
           {AMBIENTE_OPTIONS.map((ambiente) => (
             <TouchableOpacity
@@ -818,7 +820,7 @@ export default function CrearLocalScreen() {
               style={[styles.servicioChip, formData.ambiente.includes(ambiente) && styles.servicioChipActive]}
               onPress={() => toggleAmbiente(ambiente)}
             >
-              <Text style={[styles.servicioChipText, { fontSize: scaleFontSize(14) }, formData.ambiente.includes(ambiente) && styles.servicioChipTextActive]}>
+              <Text style={[styles.servicioChipText, formData.ambiente.includes(ambiente) && styles.servicioChipTextActive]}>
                 {ambiente}
               </Text>
             </TouchableOpacity>
@@ -827,7 +829,7 @@ export default function CrearLocalScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Música</Text>
+        <Text style={styles.label}>Música</Text>
         <View style={styles.serviciosGrid}>
           {MUSICA_OPTIONS.map((musica) => (
             <TouchableOpacity
@@ -835,7 +837,7 @@ export default function CrearLocalScreen() {
               style={[styles.servicioChip, formData.musica.includes(musica) && styles.servicioChipActive]}
               onPress={() => toggleMusica(musica)}
             >
-              <Text style={[styles.servicioChipText, { fontSize: scaleFontSize(14) }, formData.musica.includes(musica) && styles.servicioChipTextActive]}>
+              <Text style={[styles.servicioChipText, formData.musica.includes(musica) && styles.servicioChipTextActive]}>
                 {musica}
               </Text>
             </TouchableOpacity>
@@ -844,7 +846,7 @@ export default function CrearLocalScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Tipos de Cocina</Text>
+        <Text style={styles.label}>Tipos de Cocina</Text>
         <View style={styles.serviciosGrid}>
           {TIPOS_COCINA.map((tipo) => (
             <TouchableOpacity
@@ -852,7 +854,7 @@ export default function CrearLocalScreen() {
               style={[styles.servicioChip, formData.tipos_cocina.includes(tipo) && styles.servicioChipActive]}
               onPress={() => toggleTipoCocina(tipo)}
             >
-              <Text style={[styles.servicioChipText, { fontSize: scaleFontSize(14) }, formData.tipos_cocina.includes(tipo) && styles.servicioChipTextActive]}>
+              <Text style={[styles.servicioChipText, formData.tipos_cocina.includes(tipo) && styles.servicioChipTextActive]}>
                 {tipo}
               </Text>
             </TouchableOpacity>
@@ -864,15 +866,15 @@ export default function CrearLocalScreen() {
 
   const renderStep4 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(24) }]}>Horarios</Text>
-      <Text style={[styles.stepDescription, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.stepTitle}>Horarios</Text>
+      <Text style={styles.stepDescription}>
         Configura los horarios de apertura de tu local
       </Text>
 
       {DIAS_SEMANA.map((dia) => (
         <View key={dia} style={styles.horarioItem}>
           <View style={styles.horarioHeader}>
-            <Text style={[styles.horarioDia, { fontSize: scaleFontSize(16) }]}>{dia}</Text>
+            <Text style={styles.horarioDia}>{dia}</Text>
             <TouchableOpacity
               style={styles.horarioToggle}
               onPress={() => updateHorario(dia, 'abierto', !formData.horarios[dia]?.abierto)}
@@ -880,7 +882,7 @@ export default function CrearLocalScreen() {
               <View style={[styles.toggleCircle, formData.horarios[dia]?.abierto && styles.toggleCircleActive]}>
                 <View style={[styles.toggleDot, formData.horarios[dia]?.abierto && styles.toggleDotActive]} />
               </View>
-              <Text style={[styles.toggleText, { fontSize: scaleFontSize(14) }]}>
+              <Text style={styles.toggleText}>
                 {formData.horarios[dia]?.abierto ? 'Abierto' : 'Cerrado'}
               </Text>
             </TouchableOpacity>
@@ -889,20 +891,20 @@ export default function CrearLocalScreen() {
           {formData.horarios[dia]?.abierto && (
             <View style={styles.horarioInputs}>
               <View style={styles.horarioInputGroup}>
-                <Text style={[styles.horarioLabel, { fontSize: scaleFontSize(12) }]}>Apertura</Text>
+                <Text style={styles.horarioLabel}>Apertura</Text>
                 <TextInput
-                  style={[styles.horarioInput, { fontSize: scaleFontSize(14) }]}
+                  style={styles.horarioInput}
                   placeholder="09:00"
                   placeholderTextColor={colors.textSecondary}
                   value={formData.horarios[dia]?.apertura || ''}
                   onChangeText={(text) => updateHorario(dia, 'apertura', text)}
                 />
               </View>
-              <Text style={[styles.horarioSeparator, { fontSize: scaleFontSize(18) }]}>-</Text>
+              <Text style={styles.horarioSeparator}>-</Text>
               <View style={styles.horarioInputGroup}>
-                <Text style={[styles.horarioLabel, { fontSize: scaleFontSize(12) }]}>Cierre</Text>
+                <Text style={styles.horarioLabel}>Cierre</Text>
                 <TextInput
-                  style={[styles.horarioInput, { fontSize: scaleFontSize(14) }]}
+                  style={styles.horarioInput}
                   placeholder="22:00"
                   placeholderTextColor={colors.textSecondary}
                   value={formData.horarios[dia]?.cierre || ''}
@@ -918,14 +920,14 @@ export default function CrearLocalScreen() {
 
   const renderStep5 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(24) }]}>Imágenes</Text>
-      <Text style={[styles.stepDescription, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.stepTitle}>Imágenes</Text>
+      <Text style={styles.stepDescription}>
         Añade fotos atractivas de tu local
       </Text>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Foto de Portada</Text>
-        <Text style={[styles.helperText, { fontSize: scaleFontSize(12) }]}>Imagen principal que se mostrará en el perfil del local</Text>
+        <Text style={styles.label}>Foto de Portada</Text>
+        <Text style={styles.helperText}>Imagen principal que se mostrará en el perfil del local</Text>
         
         {formData.portada_url ? (
           <View style={styles.coverImageContainer}>
@@ -937,14 +939,14 @@ export default function CrearLocalScreen() {
         ) : (
           <TouchableOpacity style={styles.uploadButton} onPress={handleSelectCoverPhoto}>
             <IconSymbol ios_icon_name="photo" android_material_icon_name="add_photo_alternate" size={32} color={colors.primary} />
-            <Text style={[styles.uploadButtonText, { fontSize: scaleFontSize(14) }]}>Seleccionar Foto de Portada</Text>
+            <Text style={styles.uploadButtonText}>Seleccionar Foto de Portada</Text>
           </TouchableOpacity>
         )}
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Galería ({formData.galeria_urls.length}/{MAX_GALLERY_IMAGES})</Text>
-        <Text style={[styles.helperText, { fontSize: scaleFontSize(12) }]}>Añade hasta 5 imágenes para mostrar tu local</Text>
+        <Text style={styles.label}>Galería ({formData.galeria_urls.length}/{MAX_GALLERY_IMAGES})</Text>
+        <Text style={styles.helperText}>Añade hasta 5 imágenes para mostrar tu local</Text>
         
         {formData.galeria_urls.length > 0 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
@@ -965,7 +967,7 @@ export default function CrearLocalScreen() {
         {formData.galeria_urls.length < MAX_GALLERY_IMAGES && (
           <TouchableOpacity style={styles.uploadButton} onPress={handleSelectGalleryImages}>
             <IconSymbol ios_icon_name="photo.on.rectangle.angled" android_material_icon_name="add_photo_alternate" size={32} color={colors.primary} />
-            <Text style={[styles.uploadButtonText, { fontSize: scaleFontSize(14) }]}>Añadir Imágenes a la Galería</Text>
+            <Text style={styles.uploadButtonText}>Añadir Imágenes a la Galería</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -994,7 +996,7 @@ export default function CrearLocalScreen() {
             <TouchableOpacity style={styles.backButton} onPress={() => setShowPreview(false)}>
               <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(20) }]}>Vista Previa</Text>
+            <Text style={styles.headerTitle}>Vista Previa</Text>
             <View style={{ width: 40 }} />
           </LinearGradient>
 
@@ -1017,15 +1019,15 @@ export default function CrearLocalScreen() {
 
             {/* Header Section */}
             <View style={styles.previewHeaderSection}>
-              <Text style={[styles.previewLocalName, { fontSize: scaleFontSize(28) }]}>{formData.nombre}</Text>
+              <Text style={styles.previewLocalName}>{formData.nombre}</Text>
               <View style={styles.previewCategoryChip}>
-                <Text style={[styles.previewCategoryText, { fontSize: scaleFontSize(13) }]}>{TIPOS_LOCAL.find(t => t.value === formData.tipo)?.label}</Text>
+                <Text style={styles.previewCategoryText}>{TIPOS_LOCAL.find(t => t.value === formData.tipo)?.label}</Text>
               </View>
               
               {formData.direccion && (
                 <View style={styles.previewAddressRow}>
                   <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
-                  <Text style={[styles.previewAddressText, { fontSize: scaleFontSize(14) }]}>{formData.direccion}</Text>
+                  <Text style={styles.previewAddressText}>{formData.direccion}</Text>
                 </View>
               )}
             </View>
@@ -1033,7 +1035,7 @@ export default function CrearLocalScreen() {
             {/* Description */}
             {formData.descripcion && (
               <View style={styles.previewSection}>
-                <Text style={[styles.previewDescription, { fontSize: scaleFontSize(15) }]}>{formData.descripcion}</Text>
+                <Text style={styles.previewDescription}>{formData.descripcion}</Text>
               </View>
             )}
 
@@ -1048,7 +1050,7 @@ export default function CrearLocalScreen() {
                     style={styles.previewActionBtnGradient}
                   >
                     <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
-                    <Text style={[styles.previewActionBtnText, { fontSize: scaleFontSize(14) }]}>Llamar</Text>
+                    <Text style={styles.previewActionBtnText}>Llamar</Text>
                   </LinearGradient>
                 </View>
               )}
@@ -1062,7 +1064,7 @@ export default function CrearLocalScreen() {
                     style={styles.previewActionBtnGradient}
                   >
                     <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
-                    <Text style={[styles.previewActionBtnText, { fontSize: scaleFontSize(14) }]}>Cómo llegar</Text>
+                    <Text style={styles.previewActionBtnText}>Cómo llegar</Text>
                   </LinearGradient>
                 </View>
               )}
@@ -1075,13 +1077,13 @@ export default function CrearLocalScreen() {
                   <View style={styles.previewIconCircle}>
                     <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={20} color="#3B82F6" />
                   </View>
-                  <Text style={[styles.previewSectionTitle, { fontSize: scaleFontSize(18) }]}>Horarios</Text>
+                  <Text style={styles.previewSectionTitle}>Horarios</Text>
                 </View>
                 <View style={styles.previewScheduleCompact}>
                   {DIAS_SEMANA.map((dia) => (
                     <View key={dia} style={styles.previewScheduleRow}>
-                      <Text style={[styles.previewScheduleDay, { fontSize: scaleFontSize(13) }]}>{dia.substring(0, 3)}</Text>
-                      <Text style={[styles.previewScheduleHours, { fontSize: scaleFontSize(12) }]}>
+                      <Text style={styles.previewScheduleDay}>{dia.substring(0, 3)}</Text>
+                      <Text style={styles.previewScheduleHours}>
                         {formData.horarios[dia]?.abierto
                           ? `${formData.horarios[dia]?.apertura} - ${formData.horarios[dia]?.cierre}`
                           : 'Cerrado'}
@@ -1099,12 +1101,12 @@ export default function CrearLocalScreen() {
                   <View style={[styles.previewIconCircle, { backgroundColor: '#10B981' + '20' }]}>
                     <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
                   </View>
-                  <Text style={[styles.previewSectionTitle, { fontSize: scaleFontSize(18) }]}>Servicios Disponibles</Text>
+                  <Text style={styles.previewSectionTitle}>Servicios Disponibles</Text>
                 </View>
                 <View style={styles.previewTagsGrid}>
                   {formData.servicios.map((servicio, index) => (
                     <View key={index} style={styles.previewTag}>
-                      <Text style={[styles.previewTagText, { fontSize: scaleFontSize(13) }]}>{servicio}</Text>
+                      <Text style={styles.previewTagText}>{servicio}</Text>
                     </View>
                   ))}
                 </View>
@@ -1118,12 +1120,12 @@ export default function CrearLocalScreen() {
                   <View style={[styles.previewIconCircle, { backgroundColor: '#8B5CF6' + '20' }]}>
                     <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color="#8B5CF6" />
                   </View>
-                  <Text style={[styles.previewSectionTitle, { fontSize: scaleFontSize(18) }]}>Ambiente</Text>
+                  <Text style={styles.previewSectionTitle}>Ambiente</Text>
                 </View>
                 <View style={styles.previewTagsGrid}>
                   {formData.ambiente.map((tag, index) => (
                     <View key={index} style={styles.previewTag}>
-                      <Text style={[styles.previewTagText, { fontSize: scaleFontSize(13) }]}>{tag}</Text>
+                      <Text style={styles.previewTagText}>{tag}</Text>
                     </View>
                   ))}
                 </View>
@@ -1136,7 +1138,7 @@ export default function CrearLocalScreen() {
 
           <View style={styles.previewFooter}>
             <TouchableOpacity style={styles.previewSecondaryButton} onPress={() => setShowPreview(false)}>
-              <Text style={[styles.previewSecondaryButtonText, { fontSize: scaleFontSize(16) }]}>Editar</Text>
+              <Text style={styles.previewSecondaryButtonText}>Editar</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.previewPrimaryButton} onPress={handleSubmit} disabled={loading}>
               <LinearGradient
@@ -1146,7 +1148,7 @@ export default function CrearLocalScreen() {
                 {loading ? (
                   <ActivityIndicator size="small" color={colors.headerText} />
                 ) : (
-                  <Text style={[styles.previewPrimaryButtonText, { fontSize: scaleFontSize(16) }]}>Enviar Solicitud</Text>
+                  <Text style={styles.previewPrimaryButtonText}>Enviar Solicitud</Text>
                 )}
               </LinearGradient>
             </TouchableOpacity>
@@ -1173,7 +1175,7 @@ export default function CrearLocalScreen() {
             color={colors.headerText} 
           />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { fontSize: scaleFontSize(20) }]}>Crear Local</Text>
+        <Text style={styles.headerTitle}>Crear Local</Text>
         <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
           <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
         </TouchableOpacity>
@@ -1193,7 +1195,7 @@ export default function CrearLocalScreen() {
       <View style={styles.footer}>
         {currentStep > 1 && (
           <TouchableOpacity style={styles.secondaryButton} onPress={handlePrevious}>
-            <Text style={[styles.secondaryButtonText, { fontSize: scaleFontSize(16) }]}>Anterior</Text>
+            <Text style={styles.secondaryButtonText}>Anterior</Text>
           </TouchableOpacity>
         )}
 
@@ -1202,7 +1204,7 @@ export default function CrearLocalScreen() {
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             style={styles.primaryGradient}
           >
-            <Text style={[styles.primaryButtonText, { fontSize: scaleFontSize(16) }]}>
+            <Text style={styles.primaryButtonText}>
               {currentStep === 5 ? 'Vista Previa' : 'Siguiente'}
             </Text>
           </LinearGradient>
@@ -1234,6 +1236,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   headerTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -1264,6 +1267,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   stepNumber: {
+    fontSize: 16,
     fontWeight: '700',
     color: colors.textSecondary,
   },
@@ -1289,11 +1293,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   stepTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 8,
   },
   stepDescription: {
+    fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 24,
   },
@@ -1301,11 +1307,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
   },
   helperText: {
+    fontSize: 12,
     color: colors.textSecondary,
     marginBottom: 8,
   },
@@ -1316,6 +1324,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
+    fontSize: 16,
     color: colors.text,
   },
   textArea: {
@@ -1344,6 +1353,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   tipoButtonText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1369,6 +1379,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   locationButtonText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -1376,11 +1387,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   mapLabel: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
   },
   mapHelperText: {
+    fontSize: 12,
     color: colors.textSecondary,
     marginBottom: 12,
   },
@@ -1408,6 +1421,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   mapLoadingText: {
+    fontSize: 14,
     color: colors.textSecondary,
     fontWeight: '600',
   },
@@ -1418,6 +1432,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   coordinatesText: {
+    fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
     textAlign: 'center',
@@ -1440,6 +1455,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   servicioChipText: {
+    fontSize: 14,
     fontWeight: '500',
     color: colors.text,
   },
@@ -1458,6 +1474,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   uploadButtonText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -1514,6 +1531,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   horarioDia: {
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1543,6 +1561,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   toggleText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1555,6 +1574,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   horarioLabel: {
+    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
     marginBottom: 4,
@@ -1566,9 +1586,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
+    fontSize: 14,
     color: colors.text,
   },
   horarioSeparator: {
+    fontSize: 18,
     fontWeight: '600',
     color: colors.textSecondary,
     marginTop: 20,
@@ -1597,6 +1619,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: colors.primary,
+    fontSize: 16,
     fontWeight: '600',
   },
   primaryButton: {
@@ -1610,6 +1633,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: colors.headerText,
+    fontSize: 16,
     fontWeight: '600',
   },
   previewContainer: {
@@ -1654,6 +1678,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   previewLocalName: {
+    fontSize: 28,
     fontWeight: '800',
     color: colors.text,
     marginBottom: 12,
@@ -1667,6 +1692,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   previewCategoryText: {
+    fontSize: 13,
     fontWeight: '800',
     color: colors.headerText,
   },
@@ -1681,6 +1707,7 @@ const styles = StyleSheet.create({
   },
   previewAddressText: {
     flex: 1,
+    fontSize: 14,
     color: colors.text,
     fontWeight: '600',
   },
@@ -1690,6 +1717,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   previewDescription: {
+    fontSize: 15,
     color: colors.text,
     lineHeight: 22,
   },
@@ -1712,6 +1740,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   previewActionBtnText: {
+    fontSize: 14,
     fontWeight: '700',
     color: '#fff',
   },
@@ -1730,6 +1759,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   previewSectionTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
   },
@@ -1747,12 +1777,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   previewScheduleDay: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
     width: 50,
   },
   previewScheduleHours: {
     flex: 1,
+    fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '500',
   },
@@ -1770,6 +1802,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary + '30',
   },
   previewTagText: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -1797,6 +1830,7 @@ const styles = StyleSheet.create({
   },
   previewSecondaryButtonText: {
     color: colors.primary,
+    fontSize: 16,
     fontWeight: '600',
   },
   previewPrimaryButton: {
@@ -1810,6 +1844,7 @@ const styles = StyleSheet.create({
   },
   previewPrimaryButtonText: {
     color: colors.headerText,
+    fontSize: 16,
     fontWeight: '600',
   },
 });
