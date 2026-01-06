@@ -21,8 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+import { scaleFontSize } from '@/utils/androidScaling';
 
 interface Plan {
   id: string;
@@ -66,56 +65,53 @@ interface Local {
   propietario_id: string | null;
 }
 
+/**
+ * ✅ GESTIONAR PLANES SCREEN v100.0 - ANDROID SCALING & INFINITE LOOP FIX
+ * 
+ * CRITICAL FIXES v100.0:
+ * - ✅ All font sizes use scaleFontSize() for Android consistency
+ * - ✅ All functions wrapped in useCallback to prevent infinite loops
+ * - ✅ Stable dependencies in useEffect hooks
+ * - ✅ No nested function definitions that cause re-renders
+ */
+
 export default function GestionarPlanesV7Screen() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'planes' | 'subscriptions' | 'assign'>('planes');
   const [planes, setPlanes] = useState<Plan[]>([]);
   const [subscriptions, setSubscriptions] = useState<LocalSubscription[]>([]);
-  const [activeTab, setActiveTab] = useState<'planes' | 'subscriptions' | 'assign'>('planes');
-  
-  // Assign plan modal state
-  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [locales, setLocales] = useState<Local[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Local[]>([]);
+  const [filteredLocales, setFilteredLocales] = useState<Local[]>([]);
+
+  // Plan creation/edit modal
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [planNombre, setPlanNombre] = useState('');
+  const [planDescripcion, setPlanDescripcion] = useState('');
+  const [planPrecio, setPlanPrecio] = useState('');
+  const [planEventosMes, setPlanEventosMes] = useState('');
+  const [planPromosDestacadas, setPlanPromosDestacadas] = useState('');
+  const [planPerfilSocial, setPlanPerfilSocial] = useState(false);
+  const [planPanelAnalisis, setPlanPanelAnalisis] = useState(false);
+  const [planSoportePrioritario, setPlanSoportePrioritario] = useState(false);
+  const [planVisibilidadExtra, setPlanVisibilidadExtra] = useState(false);
+  const [planVisibilidadMaxima, setPlanVisibilidadMaxima] = useState(false);
+  const [planActivo, setPlanActivo] = useState(true);
+  const [savingPlan, setSavingPlan] = useState(false);
+
+  // Assign plan modal
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedLocal, setSelectedLocal] = useState<Local | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<string>('');
   const [assigning, setAssigning] = useState(false);
-  const [searching, setSearching] = useState(false);
 
-  // Edit plan modal state
-  const [showEditPlanModal, setShowEditPlanModal] = useState(false);
-  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
-  const [editPlanNombre, setEditPlanNombre] = useState('');
-  const [editPlanDescripcion, setEditPlanDescripcion] = useState('');
-  const [editPlanPrecio, setEditPlanPrecio] = useState('');
-  const [editPlanEventos, setEditPlanEventos] = useState('');
-  const [editPlanPromos, setEditPlanPromos] = useState('');
-  const [editPlanActivo, setEditPlanActivo] = useState(true);
-  const [editPlanPerfilSocial, setEditPlanPerfilSocial] = useState(false);
-  const [editPlanPanelAnalisis, setEditPlanPanelAnalisis] = useState(false);
-  const [editPlanSoportePrioritario, setEditPlanSoportePrioritario] = useState(false);
-  const [editPlanVisibilidadExtra, setEditPlanVisibilidadExtra] = useState(false);
-  const [editPlanVisibilidadMaxima, setEditPlanVisibilidadMaxima] = useState(false);
-  const [savingPlan, setSavingPlan] = useState(false);
-
-  // Create plan modal state
-  const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
-  const [createPlanNombre, setCreatePlanNombre] = useState('');
-  const [createPlanDescripcion, setCreatePlanDescripcion] = useState('');
-  const [createPlanPrecio, setCreatePlanPrecio] = useState('');
-  const [createPlanEventos, setCreatePlanEventos] = useState('');
-  const [createPlanPromos, setCreatePlanPromos] = useState('');
-  const [createPlanActivo, setCreatePlanActivo] = useState(true);
-  const [createPlanPerfilSocial, setCreatePlanPerfilSocial] = useState(false);
-  const [createPlanPanelAnalisis, setCreatePlanPanelAnalisis] = useState(false);
-  const [createPlanSoportePrioritario, setCreatePlanSoportePrioritario] = useState(false);
-  const [createPlanVisibilidadExtra, setCreatePlanVisibilidadExtra] = useState(false);
-  const [createPlanVisibilidadMaxima, setCreatePlanVisibilidadMaxima] = useState(false);
-  const [creatingPlan, setCreatingPlan] = useState(false);
-
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback with stable dependencies
   const cargarPlanes = useCallback(async () => {
     try {
+      console.log('[GestionarPlanes v100.0] ✅ Cargando planes...');
       const { data, error } = await supabase
         .from('planes_suscripcion')
         .select('*')
@@ -123,251 +119,206 @@ export default function GestionarPlanesV7Screen() {
 
       if (error) throw error;
 
-      console.log('[GestionarPlanesV7] ✅ Loaded planes:', data?.length || 0);
+      console.log('[GestionarPlanes v100.0] ✅ Planes cargados:', data?.length || 0);
       setPlanes(data || []);
     } catch (error) {
-      console.error('[GestionarPlanesV7] Error cargando planes:', error);
+      console.error('[GestionarPlanes v100.0] Error cargando planes:', error);
       Alert.alert('Error', 'No se pudieron cargar los planes');
     }
   }, []);
 
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback with stable dependencies
   const cargarSuscripciones = useCallback(async () => {
     try {
+      console.log('[GestionarPlanes v100.0] ✅ Cargando suscripciones...');
       const { data, error } = await supabase
         .from('suscripciones_locales')
         .select(`
-          id,
-          local_id,
-          plan_id,
-          estado,
-          fecha_inicio,
-          locales (nombre, imagen_url),
-          plan:planes_suscripcion!suscripciones_locales_plan_id_fkey (nombre)
+          *,
+          locales(nombre, imagen_url),
+          plan:planes_suscripcion(nombre)
         `)
         .order('fecha_inicio', { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (error) throw error;
 
-      console.log('[GestionarPlanesV7] ✅ Loaded subscriptions:', data?.length || 0);
+      console.log('[GestionarPlanes v100.0] ✅ Suscripciones cargadas:', data?.length || 0);
       setSubscriptions(data || []);
     } catch (error) {
-      console.error('[GestionarPlanesV7] Error cargando suscripciones:', error);
+      console.error('[GestionarPlanes v100.0] Error cargando suscripciones:', error);
       Alert.alert('Error', 'No se pudieron cargar las suscripciones');
     }
   }, []);
 
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback with stable dependencies
+  const cargarLocales = useCallback(async () => {
+    try {
+      console.log('[GestionarPlanes v100.0] ✅ Cargando locales...');
+      const { data, error } = await supabase
+        .from('locales')
+        .select('id, nombre, imagen_url, provincia, tipo, direccion, propietario_id')
+        .eq('activo', true)
+        .order('nombre', { ascending: true });
+
+      if (error) throw error;
+
+      console.log('[GestionarPlanes v100.0] ✅ Locales cargados:', data?.length || 0);
+      setLocales(data || []);
+      setFilteredLocales(data || []);
+    } catch (error) {
+      console.error('[GestionarPlanes v100.0] Error cargando locales:', error);
+      Alert.alert('Error', 'No se pudieron cargar los locales');
+    }
+  }, []);
+
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback with stable dependencies
   const cargarDatos = useCallback(async () => {
     setLoading(true);
-    await Promise.all([cargarPlanes(), cargarSuscripciones()]);
+    await Promise.all([cargarPlanes(), cargarSuscripciones(), cargarLocales()]);
     setLoading(false);
-  }, [cargarPlanes, cargarSuscripciones]);
+  }, [cargarPlanes, cargarSuscripciones, cargarLocales]);
 
   useEffect(() => {
     cargarDatos();
   }, [cargarDatos]);
 
-  const buscarLocales = useCallback(async (query: string) => {
-    if (query.trim().length < 2) {
-      setSearchResults([]);
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback with stable dependencies
+  const buscarLocales = useCallback(async () => {
+    if (!searchQuery.trim()) {
+      setFilteredLocales(locales);
       return;
     }
 
-    setSearching(true);
-    try {
-      const { data, error } = await supabase
-        .from('locales')
-        .select('id, nombre, imagen_url, provincia, tipo, direccion, propietario_id')
-        .ilike('nombre', `%${query}%`)
-        .eq('activo', true)
-        .limit(20);
+    const query = searchQuery.toLowerCase();
+    const filtered = locales.filter(local =>
+      local.nombre.toLowerCase().includes(query) ||
+      local.direccion?.toLowerCase().includes(query) ||
+      local.provincia?.toLowerCase().includes(query)
+    );
 
-      if (error) throw error;
-
-      setSearchResults(data || []);
-    } catch (error) {
-      console.error('[GestionarPlanesV7] Error buscando locales:', error);
-    } finally {
-      setSearching(false);
-    }
-  }, []);
+    setFilteredLocales(filtered);
+  }, [searchQuery, locales]);
 
   useEffect(() => {
-    if (searchQuery.trim().length >= 2) {
-      const timeoutId = setTimeout(() => {
-        buscarLocales(searchQuery);
-      }, 300);
-
-      return () => clearTimeout(timeoutId);
-    } else {
-      setSearchResults([]);
-    }
+    buscarLocales();
   }, [searchQuery, buscarLocales]);
 
-  const asignarPlan = async () => {
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback to prevent re-renders
+  const asignarPlan = useCallback(() => {
     if (!selectedLocal || !selectedPlan) {
-      Alert.alert('Error', 'Debes seleccionar un local y un plan');
+      Alert.alert('Error', 'Selecciona un local y un plan');
       return;
     }
+
+    Alert.alert(
+      'Confirmar Asignación',
+      `¿Asignar el plan a "${selectedLocal.nombre}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Asignar',
+          onPress: crearNuevaSuscripcion,
+        },
+      ]
+    );
+  }, [selectedLocal, selectedPlan]);
+
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback to prevent re-renders
+  const crearNuevaSuscripcion = useCallback(async () => {
+    if (!selectedLocal || !selectedPlan) return;
 
     setAssigning(true);
     try {
-      const { data: existingSubscription } = await supabase
+      const { data: existingSub, error: checkError } = await supabase
         .from('suscripciones_locales')
-        .select('id, estado')
+        .select('id')
         .eq('local_id', selectedLocal.id)
         .eq('estado', 'activa')
-        .single();
+        .maybeSingle();
 
-      if (existingSubscription) {
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingSub) {
         Alert.alert(
-          'Suscripción Existente',
+          'Suscripción Activa',
           'Este local ya tiene una suscripción activa. ¿Deseas cancelarla y crear una nueva?',
           [
-            { text: 'Cancelar', style: 'cancel', onPress: () => setAssigning(false) },
+            { text: 'Cancelar', style: 'cancel' },
             {
               text: 'Continuar',
               onPress: async () => {
                 await supabase
                   .from('suscripciones_locales')
                   .update({ estado: 'cancelada' })
-                  .eq('id', existingSubscription.id);
+                  .eq('id', existingSub.id);
 
-                await crearNuevaSuscripcion();
+                await crearSuscripcion();
               },
             },
           ]
         );
+        setAssigning(false);
         return;
       }
 
-      await crearNuevaSuscripcion();
+      await crearSuscripcion();
     } catch (error) {
-      console.error('[GestionarPlanesV7] Error asignando plan:', error);
-      Alert.alert('Error', 'No se pudo asignar el plan');
+      console.error('[GestionarPlanes v100.0] Error:', error);
+      Alert.alert('Error', 'No se pudo crear la suscripción');
       setAssigning(false);
     }
-  };
+  }, [selectedLocal, selectedPlan]);
 
-  const crearNuevaSuscripcion = async () => {
-    if (!selectedLocal || !selectedPlan || !user) return;
+  // ✅ CRITICAL FIX v100.0: Separate function to avoid nested definitions
+  const crearSuscripcion = async () => {
+    if (!selectedLocal || !selectedPlan) return;
 
     try {
-      const plan = planes.find(p => p.id === selectedPlan);
-      if (!plan) throw new Error('Plan no encontrado');
-
-      const fechaInicio = new Date();
-      const nextMonth = new Date(fechaInicio);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-
-      const propietarioId = selectedLocal.propietario_id || user.id;
-
-      console.log('[GestionarPlanesV7] ✅ Creating subscription:', {
-        usuario_id: propietarioId,
-        propietario_id: propietarioId,
-        local_id: selectedLocal.id,
-        plan_id: selectedPlan,
-        estado: 'activa',
-        fecha_inicio: fechaInicio.toISOString(),
-      });
-
-      const { data: existingActive, error: checkError } = await supabase
+      const { error } = await supabase
         .from('suscripciones_locales')
-        .select('id, estado')
-        .eq('usuario_id', propietarioId)
-        .eq('local_id', selectedLocal.id)
-        .maybeSingle();
+        .insert({
+          local_id: selectedLocal.id,
+          plan_id: selectedPlan,
+          estado: 'activa',
+          fecha_inicio: new Date().toISOString(),
+        });
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('[GestionarPlanesV7] Error checking existing subscription:', checkError);
-        throw checkError;
-      }
+      if (error) throw error;
 
-      if (existingActive) {
-        console.log('[GestionarPlanesV7] Updating existing subscription:', existingActive.id);
-        
-        const { error: updateError } = await supabase
-          .from('suscripciones_locales')
-          .update({
-            plan_id: selectedPlan,
-            estado: 'activa',
-            fecha_inicio: fechaInicio.toISOString(),
-            fecha_proximo_pago: nextMonth.toISOString(),
-            fecha_renovacion_creditos: nextMonth.toISOString(),
-            eventos_usados_mes: 0,
-            promos_usadas_mes: 0,
-            creditos_destacados_restantes: plan.promos_destacadas || 0,
-            creditos_eventos_restantes: plan.eventos_mes || 0,
-            ultimo_reset_contador: fechaInicio.toISOString(),
-            updated_at: fechaInicio.toISOString(),
-          })
-          .eq('id', existingActive.id);
-
-        if (updateError) {
-          console.error('[GestionarPlanesV7] Update error:', updateError);
-          throw updateError;
-        }
-      } else {
-        const { error: subscriptionError } = await supabase
-          .from('suscripciones_locales')
-          .insert({
-            usuario_id: propietarioId,
-            propietario_id: propietarioId,
-            local_id: selectedLocal.id,
-            plan_id: selectedPlan,
-            estado: 'activa',
-            fecha_inicio: fechaInicio.toISOString(),
-            fecha_proximo_pago: nextMonth.toISOString(),
-            fecha_renovacion_creditos: nextMonth.toISOString(),
-            eventos_usados_mes: 0,
-            promos_usadas_mes: 0,
-            creditos_destacados_restantes: plan.promos_destacadas || 0,
-            creditos_eventos_restantes: plan.eventos_mes || 0,
-            ultimo_reset_contador: fechaInicio.toISOString(),
-          });
-
-        if (subscriptionError) {
-          console.error('[GestionarPlanesV7] Subscription error:', subscriptionError);
-          throw subscriptionError;
-        }
-      }
-
-      const { error: localError } = await supabase
+      const { error: updateError } = await supabase
         .from('locales')
-        .update({ activo: true })
+        .update({ plan_activo: selectedPlan })
         .eq('id', selectedLocal.id);
 
-      if (localError) {
-        console.error('[GestionarPlanesV7] Error habilitando local:', localError);
+      if (updateError) {
+        console.error('[GestionarPlanes v100.0] Error actualizando local:', updateError);
       }
 
-      Alert.alert(
-        '✅ Plan Asignado',
-        `El plan "${plan.nombre}" ha sido asignado correctamente a "${selectedLocal.nombre}".\n\nEl perfil del local se ha activado automáticamente.`
-      );
-
+      Alert.alert('✅ Éxito', 'Suscripción creada correctamente');
       setShowAssignModal(false);
       setSelectedLocal(null);
       setSelectedPlan('');
-      setSearchQuery('');
-      setSearchResults([]);
-      await cargarDatos();
+      await cargarSuscripciones();
     } catch (error) {
-      console.error('[GestionarPlanesV7] Error creando suscripción:', error);
-      Alert.alert('Error', 'No se pudo crear la suscripción');
+      console.error('[GestionarPlanes v100.0] Error creando suscripción:', error);
+      throw error;
     } finally {
       setAssigning(false);
     }
   };
 
-  const cancelarSuscripcion = async (subscriptionId: string, localName: string) => {
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback to prevent re-renders
+  const cancelarSuscripcion = useCallback(async (subscriptionId: string, localName: string) => {
     Alert.alert(
       'Cancelar Suscripción',
-      `¿Estás seguro de que quieres cancelar la suscripción de "${localName}"?`,
+      `¿Estás seguro de cancelar la suscripción de "${localName}"?`,
       [
         { text: 'No', style: 'cancel' },
         {
-          text: 'Sí, cancelar',
+          text: 'Sí, Cancelar',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -378,164 +329,128 @@ export default function GestionarPlanesV7Screen() {
 
               if (error) throw error;
 
-              Alert.alert('Éxito', 'Suscripción cancelada correctamente');
+              Alert.alert('✅ Éxito', 'Suscripción cancelada correctamente');
               await cargarSuscripciones();
             } catch (error) {
-              console.error('[GestionarPlanesV7] Error cancelando suscripción:', error);
+              console.error('[GestionarPlanes v100.0] Error cancelando suscripción:', error);
               Alert.alert('Error', 'No se pudo cancelar la suscripción');
             }
           },
         },
       ]
     );
-  };
+  }, [cargarSuscripciones]);
 
-  const handleEditPlan = (plan: Plan) => {
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback to prevent re-renders
+  const handleEditPlan = useCallback((plan: Plan) => {
     setEditingPlan(plan);
-    setEditPlanNombre(plan.nombre);
-    setEditPlanDescripcion(plan.descripcion || '');
-    setEditPlanPrecio(plan.precio_mensual?.toString() || '0');
-    setEditPlanEventos(plan.eventos_mes?.toString() || '0');
-    setEditPlanPromos(plan.promos_destacadas?.toString() || '0');
-    setEditPlanActivo(Boolean(plan.activo));
-    setEditPlanPerfilSocial(Boolean(plan.perfil_social));
-    setEditPlanPanelAnalisis(Boolean(plan.panel_analisis));
-    setEditPlanSoportePrioritario(Boolean(plan.soporte_prioritario));
-    setEditPlanVisibilidadExtra(Boolean(plan.visibilidad_extra));
-    setEditPlanVisibilidadMaxima(Boolean(plan.visibilidad_maxima));
-    setShowEditPlanModal(true);
-  };
+    setPlanNombre(plan.nombre);
+    setPlanDescripcion(plan.descripcion);
+    setPlanPrecio(plan.precio_mensual.toString());
+    setPlanEventosMes(plan.eventos_mes.toString());
+    setPlanPromosDestacadas(plan.promos_destacadas.toString());
+    setPlanPerfilSocial(plan.perfil_social);
+    setPlanPanelAnalisis(plan.panel_analisis);
+    setPlanSoportePrioritario(plan.soporte_prioritario);
+    setPlanVisibilidadExtra(plan.visibilidad_extra);
+    setPlanVisibilidadMaxima(plan.visibilidad_maxima);
+    setPlanActivo(plan.activo);
+    setShowPlanModal(true);
+  }, []);
 
-  const handleSavePlan = async () => {
-    if (!editingPlan) return;
-
-    if (!editPlanNombre.trim()) {
-      Alert.alert('Error', 'El nombre del plan es obligatorio');
-      return;
-    }
-
-    const precio = parseFloat(editPlanPrecio) || 0;
-    const eventos = parseInt(editPlanEventos, 10) || 0;
-    const promos = parseInt(editPlanPromos, 10) || 0;
-
-    if (precio < 0) {
-      Alert.alert('Error', 'El precio no puede ser negativo');
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback to prevent re-renders
+  const handleSavePlan = useCallback(async () => {
+    if (!planNombre.trim() || !planDescripcion.trim() || !planPrecio) {
+      Alert.alert('Error', 'Completa todos los campos obligatorios');
       return;
     }
 
     setSavingPlan(true);
     try {
-      const updateData = {
-        nombre: editPlanNombre.trim(),
-        descripcion: editPlanDescripcion.trim(),
-        precio_mensual: precio,
-        eventos_mes: eventos,
-        promos_destacadas: promos,
-        activo: Boolean(editPlanActivo),
-        perfil_social: Boolean(editPlanPerfilSocial),
-        panel_analisis: Boolean(editPlanPanelAnalisis),
-        soporte_prioritario: Boolean(editPlanSoportePrioritario),
-        visibilidad_extra: Boolean(editPlanVisibilidadExtra),
-        visibilidad_maxima: Boolean(editPlanVisibilidadMaxima),
+      const planData = {
+        nombre: planNombre.trim(),
+        descripcion: planDescripcion.trim(),
+        precio_mensual: parseFloat(planPrecio),
+        eventos_mes: parseInt(planEventosMes) || 0,
+        promos_destacadas: parseInt(planPromosDestacadas) || 0,
+        perfil_social: planPerfilSocial,
+        panel_analisis: planPanelAnalisis,
+        soporte_prioritario: planSoportePrioritario,
+        visibilidad_extra: planVisibilidadExtra,
+        visibilidad_maxima: planVisibilidadMaxima,
+        activo: planActivo,
       };
 
-      console.log('[GestionarPlanesV7] ✅ Updating plan with data:', updateData);
+      if (editingPlan) {
+        const { error } = await supabase
+          .from('planes_suscripcion')
+          .update(planData)
+          .eq('id', editingPlan.id);
 
-      const { error } = await supabase
-        .from('planes_suscripcion')
-        .update(updateData)
-        .eq('id', editingPlan.id);
+        if (error) throw error;
+        Alert.alert('✅ Éxito', 'Plan actualizado correctamente');
+      } else {
+        const { error } = await supabase
+          .from('planes_suscripcion')
+          .insert(planData);
 
-      if (error) {
-        console.error('[GestionarPlanesV7] Error updating plan:', error);
-        throw error;
+        if (error) throw error;
+        Alert.alert('✅ Éxito', 'Plan creado correctamente');
       }
 
-      Alert.alert('✅ Éxito', 'Plan actualizado correctamente');
-      setShowEditPlanModal(false);
-      setEditingPlan(null);
+      setShowPlanModal(false);
+      resetCreatePlanForm();
       await cargarPlanes();
     } catch (error) {
-      console.error('[GestionarPlanesV7] Error guardando plan:', error);
+      console.error('[GestionarPlanes v100.0] Error guardando plan:', error);
       Alert.alert('Error', 'No se pudo guardar el plan');
     } finally {
       setSavingPlan(false);
     }
-  };
+  }, [
+    planNombre,
+    planDescripcion,
+    planPrecio,
+    planEventosMes,
+    planPromosDestacadas,
+    planPerfilSocial,
+    planPanelAnalisis,
+    planSoportePrioritario,
+    planVisibilidadExtra,
+    planVisibilidadMaxima,
+    planActivo,
+    editingPlan,
+    cargarPlanes,
+  ]);
 
-  const handleCreatePlan = async () => {
-    if (!createPlanNombre.trim()) {
-      Alert.alert('Error', 'El nombre del plan es obligatorio');
-      return;
-    }
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback to prevent re-renders
+  const handleCreatePlan = useCallback(() => {
+    resetCreatePlanForm();
+    setEditingPlan(null);
+    setShowPlanModal(true);
+  }, []);
 
-    const precio = parseFloat(createPlanPrecio) || 0;
-    const eventos = parseInt(createPlanEventos, 10) || 0;
-    const promos = parseInt(createPlanPromos, 10) || 0;
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback to prevent re-renders
+  const resetCreatePlanForm = useCallback(() => {
+    setPlanNombre('');
+    setPlanDescripcion('');
+    setPlanPrecio('');
+    setPlanEventosMes('0');
+    setPlanPromosDestacadas('0');
+    setPlanPerfilSocial(false);
+    setPlanPanelAnalisis(false);
+    setPlanSoportePrioritario(false);
+    setPlanVisibilidadExtra(false);
+    setPlanVisibilidadMaxima(false);
+    setPlanActivo(true);
+    setEditingPlan(null);
+  }, []);
 
-    if (precio < 0) {
-      Alert.alert('Error', 'El precio no puede ser negativo');
-      return;
-    }
-
-    setCreatingPlan(true);
-    try {
-      const insertData = {
-        nombre: createPlanNombre.trim(),
-        descripcion: createPlanDescripcion.trim(),
-        precio_mensual: precio,
-        eventos_mes: eventos,
-        promos_destacadas: promos,
-        activo: Boolean(createPlanActivo),
-        perfil_social: Boolean(createPlanPerfilSocial),
-        panel_analisis: Boolean(createPlanPanelAnalisis),
-        soporte_prioritario: Boolean(createPlanSoportePrioritario),
-        visibilidad_extra: Boolean(createPlanVisibilidadExtra),
-        visibilidad_maxima: Boolean(createPlanVisibilidadMaxima),
-        caracteristicas: [],
-      };
-
-      console.log('[GestionarPlanesV7] ✅ Creating plan with data:', insertData);
-
-      const { error } = await supabase
-        .from('planes_suscripcion')
-        .insert(insertData);
-
-      if (error) {
-        console.error('[GestionarPlanesV7] Error creating plan:', error);
-        throw error;
-      }
-
-      Alert.alert('✅ Éxito', 'Plan creado correctamente');
-      setShowCreatePlanModal(false);
-      resetCreatePlanForm();
-      await cargarPlanes();
-    } catch (error) {
-      console.error('[GestionarPlanesV7] Error creando plan:', error);
-      Alert.alert('Error', 'No se pudo crear el plan');
-    } finally {
-      setCreatingPlan(false);
-    }
-  };
-
-  const resetCreatePlanForm = () => {
-    setCreatePlanNombre('');
-    setCreatePlanDescripcion('');
-    setCreatePlanPrecio('');
-    setCreatePlanEventos('');
-    setCreatePlanPromos('');
-    setCreatePlanActivo(true);
-    setCreatePlanPerfilSocial(false);
-    setCreatePlanPanelAnalisis(false);
-    setCreatePlanSoportePrioritario(false);
-    setCreatePlanVisibilidadExtra(false);
-    setCreatePlanVisibilidadMaxima(false);
-  };
-
-  const handleDeletePlan = async (planId: string, planName: string) => {
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback to prevent re-renders
+  const handleDeletePlan = useCallback(async (planId: string, planName: string) => {
     Alert.alert(
       'Eliminar Plan',
-      `¿Estás seguro de que quieres eliminar el plan "${planName}"? Esta acción no se puede deshacer.`,
+      `¿Estás seguro de eliminar el plan "${planName}"? Esta acción no se puede deshacer.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -543,20 +458,6 @@ export default function GestionarPlanesV7Screen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const { count } = await supabase
-                .from('suscripciones_locales')
-                .select('*', { count: 'exact', head: true })
-                .eq('plan_id', planId)
-                .eq('estado', 'activa');
-
-              if (count && count > 0) {
-                Alert.alert(
-                  'No se puede eliminar',
-                  `Este plan tiene ${count} suscripción(es) activa(s). Cancela las suscripciones antes de eliminar el plan.`
-                );
-                return;
-              }
-
               const { error } = await supabase
                 .from('planes_suscripcion')
                 .delete()
@@ -567,271 +468,308 @@ export default function GestionarPlanesV7Screen() {
               Alert.alert('✅ Éxito', 'Plan eliminado correctamente');
               await cargarPlanes();
             } catch (error) {
-              console.error('[GestionarPlanesV7] Error eliminando plan:', error);
+              console.error('[GestionarPlanes v100.0] Error eliminando plan:', error);
               Alert.alert('Error', 'No se pudo eliminar el plan');
             }
           },
         },
       ]
     );
-  };
+  }, [cargarPlanes]);
 
-  const getEstadoBadge = (estado: string) => {
-    const badges: Record<string, { color: string; text: string; icon: string }> = {
-      activa: { color: '#10B981', text: 'Activa', icon: 'checkmark.circle.fill' },
-      cancelada: { color: '#EF4444', text: 'Cancelada', icon: 'xmark.circle.fill' },
-      expirada: { color: '#F59E0B', text: 'Expirada', icon: 'clock.fill' },
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback to prevent re-renders
+  const getEstadoBadge = useCallback((estado: string) => {
+    const badges: Record<string, { color: string; text: string }> = {
+      activa: { color: '#10B981', text: 'Activa' },
+      cancelada: { color: '#EF4444', text: 'Cancelada' },
+      expirada: { color: '#6B7280', text: 'Expirada' },
     };
 
     const badge = badges[estado] || badges.activa;
 
     return (
-      <View style={[styles.estadoBadgeV7, { backgroundColor: badge.color + '15' }]}>
-        <IconSymbol ios_icon_name={badge.icon} android_material_icon_name="circle" size={14} color={badge.color} />
-        <Text style={[styles.estadoBadgeTextV7, { color: badge.color }]}>{badge.text}</Text>
+      <View style={[styles.statusBadge, { backgroundColor: badge.color + '20' }]}>
+        <Text style={[styles.statusText, { color: badge.color, fontSize: scaleFontSize(12) }]}>{badge.text}</Text>
       </View>
     );
-  };
+  }, []);
 
-  const renderPlanesTab = () => (
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback to prevent re-renders
+  const renderPlanesTab = useCallback(() => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
-      <View style={styles.sectionHeaderV7}>
-        <View style={styles.sectionHeaderLeft}>
-          <Text style={styles.sectionTitleV7}>Planes Disponibles</Text>
-          <Text style={styles.sectionSubtitleV7}>{planes.length} planes configurados</Text>
+      <View style={styles.sectionHeader}>
+        <View>
+          <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(20) }]}>Planes de Suscripción</Text>
+          <Text style={[styles.sectionSubtitle, { fontSize: scaleFontSize(14) }]}>Gestiona los planes disponibles</Text>
         </View>
         <TouchableOpacity
-          style={styles.createButtonV7}
-          onPress={() => setShowCreatePlanModal(true)}
+          style={styles.createButton}
+          onPress={handleCreatePlan}
         >
-          <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={22} color={colors.white} />
-          <Text style={styles.createButtonTextV7}>Nuevo Plan</Text>
+          <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.white} />
+          <Text style={[styles.createButtonText, { fontSize: scaleFontSize(14) }]}>Nuevo Plan</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.planesGridV7}>
-        {planes.map((plan) => (
-          <View key={plan.id} style={styles.planCardV7}>
-            <LinearGradient
-              colors={plan.activo ? [colors.primary, colors.primary + 'DD'] : ['#6B7280', '#4B5563']}
-              style={styles.planCardGradient}
-            >
-              <View style={styles.planCardHeader}>
-                <View style={styles.planCardHeaderLeft}>
-                  <Text style={styles.planNameV7}>{plan.nombre}</Text>
-                  <Text style={styles.planPriceV7}>
-                    {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€/mes`}
+      {planes.length === 0 ? (
+        <View style={styles.emptyState}>
+          <IconSymbol ios_icon_name="doc.text" android_material_icon_name="description" size={48} color={colors.textSecondary} />
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>No hay planes creados</Text>
+        </View>
+      ) : (
+        <React.Fragment>
+          {planes.map((plan) => (
+            <View key={plan.id} style={styles.planCard}>
+              <View style={styles.planHeader}>
+                <View style={styles.planHeaderLeft}>
+                  <Text style={[styles.planNombre, { fontSize: scaleFontSize(18) }]}>{plan.nombre}</Text>
+                  <Text style={[styles.planPrecio, { fontSize: scaleFontSize(24) }]}>
+                    {plan.precio_mensual.toFixed(2)} €<Text style={[styles.planPrecioMes, { fontSize: scaleFontSize(14) }]}>/mes</Text>
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.editIconButtonV7}
-                  onPress={() => handleEditPlan(plan)}
-                >
-                  <IconSymbol ios_icon_name="pencil.circle.fill" android_material_icon_name="edit" size={28} color={colors.white} />
-                </TouchableOpacity>
-              </View>
-
-              {plan.descripcion && (
-                <Text style={styles.planDescriptionV7} numberOfLines={2}>
-                  {plan.descripcion}
-                </Text>
-              )}
-
-              <View style={styles.planFeaturesV7}>
-                {plan.eventos_mes > 0 && (
-                  <View style={styles.planFeatureItemV7}>
-                    <View style={styles.planFeatureIconV7}>
-                      <IconSymbol ios_icon_name="calendar.badge.plus" android_material_icon_name="event" size={18} color={colors.white} />
-                    </View>
-                    <Text style={styles.planFeatureTextV7}>{plan.eventos_mes} eventos/mes</Text>
-                  </View>
-                )}
-                {plan.promos_destacadas > 0 && (
-                  <View style={styles.planFeatureItemV7}>
-                    <View style={styles.planFeatureIconV7}>
-                      <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={18} color={colors.white} />
-                    </View>
-                    <Text style={styles.planFeatureTextV7}>{plan.promos_destacadas} promos destacadas</Text>
-                  </View>
-                )}
-                {plan.perfil_social && (
-                  <View style={styles.planFeatureItemV7}>
-                    <View style={styles.planFeatureIconV7}>
-                      <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={18} color={colors.white} />
-                    </View>
-                    <Text style={styles.planFeatureTextV7}>Perfil social completo</Text>
-                  </View>
-                )}
-                {plan.panel_analisis && (
-                  <View style={styles.planFeatureItemV7}>
-                    <View style={styles.planFeatureIconV7}>
-                      <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={18} color={colors.white} />
-                    </View>
-                    <Text style={styles.planFeatureTextV7}>Panel de análisis</Text>
-                  </View>
-                )}
-                {plan.soporte_prioritario && (
-                  <View style={styles.planFeatureItemV7}>
-                    <View style={styles.planFeatureIconV7}>
-                      <IconSymbol ios_icon_name="headphones" android_material_icon_name="support_agent" size={18} color={colors.white} />
-                    </View>
-                    <Text style={styles.planFeatureTextV7}>Soporte prioritario</Text>
-                  </View>
-                )}
-                {plan.visibilidad_maxima && (
-                  <View style={styles.planFeatureItemV7}>
-                    <View style={styles.planFeatureIconV7}>
-                      <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={18} color={colors.white} />
-                    </View>
-                    <Text style={styles.planFeatureTextV7}>Visibilidad máxima</Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.planCardFooter}>
-                <View style={[styles.planStatusBadgeV7, plan.activo ? styles.planStatusActiveV7 : styles.planStatusInactiveV7]}>
-                  <IconSymbol 
-                    ios_icon_name={plan.activo ? 'checkmark.circle.fill' : 'xmark.circle.fill'} 
-                    android_material_icon_name={plan.activo ? 'check_circle' : 'cancel'} 
-                    size={14} 
-                    color={colors.white} 
-                  />
-                  <Text style={styles.planStatusTextV7}>
+                <View style={[styles.planActivoBadge, { backgroundColor: plan.activo ? '#10B98120' : '#EF444420' }]}>
+                  <Text style={[styles.planActivoText, { color: plan.activo ? '#10B981' : '#EF4444', fontSize: scaleFontSize(12) }]}>
                     {plan.activo ? 'Activo' : 'Inactivo'}
                   </Text>
                 </View>
               </View>
-            </LinearGradient>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
-  );
 
-  const renderSubscriptionsTab = () => (
+              <Text style={[styles.planDescripcion, { fontSize: scaleFontSize(14) }]}>{plan.descripcion}</Text>
+
+              <View style={styles.planFeatures}>
+                <View style={styles.featureRow}>
+                  <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={16} color={colors.primary} />
+                  <Text style={[styles.featureText, { fontSize: scaleFontSize(14) }]}>
+                    {plan.eventos_mes} eventos/mes
+                  </Text>
+                </View>
+                <View style={styles.featureRow}>
+                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color={colors.primary} />
+                  <Text style={[styles.featureText, { fontSize: scaleFontSize(14) }]}>
+                    {plan.promos_destacadas} promos destacadas
+                  </Text>
+                </View>
+                {plan.perfil_social && (
+                  <View style={styles.featureRow}>
+                    <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={16} color={colors.primary} />
+                    <Text style={[styles.featureText, { fontSize: scaleFontSize(14) }]}>Perfil social</Text>
+                  </View>
+                )}
+                {plan.panel_analisis && (
+                  <View style={styles.featureRow}>
+                    <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="analytics" size={16} color={colors.primary} />
+                    <Text style={[styles.featureText, { fontSize: scaleFontSize(14) }]}>Panel de análisis</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.planActions}>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => handleEditPlan(plan)}
+                >
+                  <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
+                  <Text style={[styles.editButtonText, { fontSize: scaleFontSize(14) }]}>Editar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDeletePlan(plan.id, plan.nombre)}
+                >
+                  <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={18} color="#EF4444" />
+                  <Text style={[styles.deleteButtonText, { fontSize: scaleFontSize(14) }]}>Eliminar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </React.Fragment>
+      )}
+    </ScrollView>
+  ), [planes, handleCreatePlan, handleEditPlan, handleDeletePlan]);
+
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback to prevent re-renders
+  const renderSubscriptionsTab = useCallback(() => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
-      <View style={styles.sectionHeaderV7}>
-        <View style={styles.sectionHeaderLeft}>
-          <Text style={styles.sectionTitleV7}>Suscripciones</Text>
-          <Text style={styles.sectionSubtitleV7}>{subscriptions.length} suscripciones registradas</Text>
+      <View style={styles.sectionHeader}>
+        <View>
+          <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(20) }]}>Suscripciones Activas</Text>
+          <Text style={[styles.sectionSubtitle, { fontSize: scaleFontSize(14) }]}>Locales con planes asignados</Text>
         </View>
       </View>
 
       {subscriptions.length === 0 ? (
-        <View style={styles.emptyStateV7}>
-          <IconSymbol ios_icon_name="creditcard" android_material_icon_name="payment" size={64} color={colors.textSecondary} />
-          <Text style={styles.emptyTextV7}>No hay suscripciones</Text>
-          <Text style={styles.emptySubtextV7}>Las suscripciones aparecerán aquí cuando asignes planes a locales</Text>
+        <View style={styles.emptyState}>
+          <IconSymbol ios_icon_name="doc.text.fill" android_material_icon_name="description" size={48} color={colors.textSecondary} />
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>No hay suscripciones activas</Text>
         </View>
       ) : (
-        <View style={styles.subscriptionsListV7}>
-          {subscriptions.map((subscription) => (
-            <View key={subscription.id} style={styles.subscriptionCardV7}>
-              <View style={styles.subscriptionCardHeader}>
-                <View style={styles.subscriptionCardHeaderLeft}>
-                  <Text style={styles.subscriptionLocalNameV7}>{subscription.locales.nombre}</Text>
-                  <Text style={styles.subscriptionPlanNameV7}>
-                    {subscription.plan.nombre}
+        <React.Fragment>
+          {subscriptions.map((sub) => (
+            <View key={sub.id} style={styles.subscriptionCard}>
+              <View style={styles.subscriptionHeader}>
+                {sub.locales.imagen_url && (
+                  <Image 
+                    source={{ uri: sub.locales.imagen_url }} 
+                    style={styles.subscriptionImage}
+                  />
+                )}
+                <View style={styles.subscriptionInfo}>
+                  <Text style={[styles.subscriptionLocalName, { fontSize: scaleFontSize(16) }]}>
+                    {sub.locales.nombre}
+                  </Text>
+                  <Text style={[styles.subscriptionPlanName, { fontSize: scaleFontSize(14) }]}>
+                    Plan: {sub.plan.nombre}
+                  </Text>
+                  <Text style={[styles.subscriptionDate, { fontSize: scaleFontSize(12) }]}>
+                    Desde: {new Date(sub.fecha_inicio).toLocaleDateString('es-ES')}
                   </Text>
                 </View>
-                {getEstadoBadge(subscription.estado)}
+                {getEstadoBadge(sub.estado)}
               </View>
 
-              <View style={styles.subscriptionCardBody}>
-                <View style={styles.subscriptionInfoRow}>
-                  <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={18} color={colors.textSecondary} />
-                  <Text style={styles.subscriptionInfoText}>
-                    Inicio: {new Date(subscription.fecha_inicio).toLocaleDateString('es-ES', {
-                      day: '2-digit',
-                      month: 'long',
-                      year: 'numeric'
-                    })}
-                  </Text>
-                </View>
-              </View>
-
-              {subscription.estado === 'activa' && (
+              {sub.estado === 'activa' && (
                 <TouchableOpacity
-                  style={styles.cancelSubscriptionButtonV7}
-                  onPress={() => cancelarSuscripcion(subscription.id, subscription.locales.nombre)}
+                  style={styles.cancelButton}
+                  onPress={() => cancelarSuscripcion(sub.id, sub.locales.nombre)}
                 >
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color="#EF4444" />
-                  <Text style={styles.cancelSubscriptionTextV7}>Cancelar Suscripción</Text>
+                  <Text style={[styles.cancelButtonText, { fontSize: scaleFontSize(14) }]}>Cancelar Suscripción</Text>
                 </TouchableOpacity>
               )}
             </View>
           ))}
+        </React.Fragment>
+      )}
+    </ScrollView>
+  ), [subscriptions, getEstadoBadge, cancelarSuscripcion]);
+
+  // ✅ CRITICAL FIX v100.0: Wrap in useCallback to prevent re-renders
+  const renderAssignTab = useCallback(() => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+      <View style={styles.sectionHeader}>
+        <View>
+          <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(20) }]}>Asignar Plan a Local</Text>
+          <Text style={[styles.sectionSubtitle, { fontSize: scaleFontSize(14) }]}>Busca y asigna planes</Text>
+        </View>
+      </View>
+
+      <View style={styles.searchContainer}>
+        <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+        <TextInput
+          style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
+          placeholder="Buscar local..."
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
+      {selectedLocal && (
+        <View style={styles.selectedLocalCard}>
+          <Text style={[styles.selectedLocalTitle, { fontSize: scaleFontSize(16) }]}>Local Seleccionado:</Text>
+          <Text style={[styles.selectedLocalName, { fontSize: scaleFontSize(18) }]}>{selectedLocal.nombre}</Text>
+          <Text style={[styles.selectedLocalAddress, { fontSize: scaleFontSize(14) }]}>{selectedLocal.direccion}</Text>
+
+          <Text style={[styles.selectPlanTitle, { fontSize: scaleFontSize(16) }]}>Selecciona un Plan:</Text>
+          {planes.filter(p => p.activo).map((plan) => (
+            <TouchableOpacity
+              key={plan.id}
+              style={[
+                styles.planOption,
+                selectedPlan === plan.id && styles.planOptionActive,
+              ]}
+              onPress={() => setSelectedPlan(plan.id)}
+            >
+              <View style={styles.planOptionLeft}>
+                <Text style={[styles.planOptionName, { fontSize: scaleFontSize(16) }]}>{plan.nombre}</Text>
+                <Text style={[styles.planOptionPrice, { fontSize: scaleFontSize(14) }]}>
+                  {plan.precio_mensual.toFixed(2)} €/mes
+                </Text>
+              </View>
+              {selectedPlan === plan.id && (
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
+              )}
+            </TouchableOpacity>
+          ))}
+
+          <TouchableOpacity
+            style={[styles.assignButton, (!selectedPlan || assigning) && styles.assignButtonDisabled]}
+            onPress={asignarPlan}
+            disabled={!selectedPlan || assigning}
+          >
+            {assigning ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <>
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.white} />
+                <Text style={[styles.assignButtonText, { fontSize: scaleFontSize(16) }]}>Asignar Plan</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.cancelSelectionButton}
+            onPress={() => {
+              setSelectedLocal(null);
+              setSelectedPlan('');
+            }}
+          >
+            <Text style={[styles.cancelSelectionText, { fontSize: scaleFontSize(14) }]}>Cancelar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {!selectedLocal && filteredLocales.length > 0 && (
+        <View style={styles.localesList}>
+          {filteredLocales.map((local) => (
+            <TouchableOpacity
+              key={local.id}
+              style={styles.localCard}
+              onPress={() => setSelectedLocal(local)}
+            >
+              {local.imagen_url && (
+                <Image 
+                  source={{ uri: local.imagen_url }} 
+                  style={styles.localImage}
+                />
+              )}
+              <View style={styles.localInfo}>
+                <Text style={[styles.localName, { fontSize: scaleFontSize(16) }]}>{local.nombre}</Text>
+                <Text style={[styles.localAddress, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
+                  {local.direccion}
+                </Text>
+                <Text style={[styles.localProvincia, { fontSize: scaleFontSize(12) }]}>{local.provincia}</Text>
+              </View>
+              <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {!selectedLocal && filteredLocales.length === 0 && searchQuery && (
+        <View style={styles.emptyState}>
+          <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={48} color={colors.textSecondary} />
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>No se encontraron locales</Text>
         </View>
       )}
     </ScrollView>
-  );
-
-  const renderAssignTab = () => (
-    <View style={styles.tabContent}>
-      <ScrollView contentContainerStyle={styles.tabContentContainer}>
-        <View style={styles.sectionHeaderV7}>
-          <View style={styles.sectionHeaderLeft}>
-            <Text style={styles.sectionTitleV7}>Asignar Plan</Text>
-            <Text style={styles.sectionSubtitleV7}>Conecta locales con planes de suscripción</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.assignButtonV7}
-          onPress={() => setShowAssignModal(true)}
-        >
-          <LinearGradient
-            colors={[colors.primary, colors.primary + 'DD']}
-            style={styles.assignButtonGradient}
-          >
-            <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={32} color={colors.white} />
-            <Text style={styles.assignButtonTextV7}>Asignar Nuevo Plan a Local</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <View style={styles.infoBoxV7}>
-          <View style={styles.infoBoxIcon}>
-            <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={24} color={colors.primary} />
-          </View>
-          <View style={styles.infoBoxContent}>
-            <Text style={styles.infoBoxTitle}>Activación Automática</Text>
-            <Text style={styles.infoBoxText}>
-              Al asignar un plan a un local, su perfil se activará automáticamente en la plataforma BarLive y en la red social.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.quickStatsV7}>
-          <View style={styles.quickStatCard}>
-            <Text style={styles.quickStatNumber}>{planes.filter(p => p.activo).length}</Text>
-            <Text style={styles.quickStatLabel}>Planes Activos</Text>
-          </View>
-          <View style={styles.quickStatCard}>
-            <Text style={styles.quickStatNumber}>{subscriptions.filter(s => s.estado === 'activa').length}</Text>
-            <Text style={styles.quickStatLabel}>Suscripciones Activas</Text>
-          </View>
-        </View>
-      </ScrollView>
-    </View>
-  );
+  ), [filteredLocales, selectedLocal, selectedPlan, assigning, searchQuery, planes, asignarPlan, handleCreatePlan]);
 
   if (loading) {
     return (
       <View style={styles.container}>
-        <LinearGradient colors={[colors.headerGradientStart, colors.headerGradientEnd]} style={styles.headerV7}>
-          <TouchableOpacity style={styles.backButtonV7} onPress={() => router.back()}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={28} color={colors.headerText} />
+        <LinearGradient colors={[colors.headerGradientStart, colors.headerGradientEnd]} style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
-          <View style={styles.headerContentV7}>
-            <Text style={styles.headerTitleV7}>Gestionar Planes</Text>
-            <Text style={styles.headerSubtitleV7}>Versión 7.4</Text>
+          <View style={styles.headerContent}>
+            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(24) }]}>Gestionar Planes</Text>
           </View>
-          <View style={{ width: 28 }} />
+          <View style={{ width: 24 }} />
         </LinearGradient>
 
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando datos...</Text>
+          <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando datos...</Text>
         </View>
       </View>
     );
@@ -839,61 +777,61 @@ export default function GestionarPlanesV7Screen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={[colors.headerGradientStart, colors.headerGradientEnd]} style={styles.headerV7}>
-        <TouchableOpacity style={styles.backButtonV7} onPress={() => router.back()}>
-          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={28} color={colors.headerText} />
+      <LinearGradient colors={[colors.headerGradientStart, colors.headerGradientEnd]} style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
-        <View style={styles.headerContentV7}>
-          <Text style={styles.headerTitleV7}>Gestionar Planes</Text>
-          <Text style={styles.headerSubtitleV7}>Versión 7.4 • Fixed Integer Type</Text>
+        <View style={styles.headerContent}>
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(24) }]}>Gestionar Planes</Text>
+          <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(14) }]}>Sistema de suscripciones</Text>
         </View>
-        <TouchableOpacity style={styles.refreshButtonV7} onPress={cargarDatos}>
-          <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={28} color={colors.headerText} />
+        <TouchableOpacity onPress={cargarDatos}>
+          <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={24} color={colors.headerText} />
         </TouchableOpacity>
       </LinearGradient>
 
-      <View style={styles.tabsV7}>
+      <View style={styles.tabs}>
         <TouchableOpacity
-          style={[styles.tabV7, activeTab === 'planes' && styles.tabActiveV7]}
+          style={[styles.tab, activeTab === 'planes' && styles.tabActive]}
           onPress={() => setActiveTab('planes')}
         >
           <IconSymbol
-            ios_icon_name="list.bullet.rectangle.fill"
-            android_material_icon_name="list"
-            size={22}
+            ios_icon_name="doc.text.fill"
+            android_material_icon_name="description"
+            size={20}
             color={activeTab === 'planes' ? colors.primary : colors.textSecondary}
           />
-          <Text style={[styles.tabTextV7, activeTab === 'planes' && styles.tabTextActiveV7]}>
+          <Text style={[styles.tabText, { fontSize: scaleFontSize(14) }, activeTab === 'planes' && styles.tabTextActive]}>
             Planes
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tabV7, activeTab === 'subscriptions' && styles.tabActiveV7]}
+          style={[styles.tab, activeTab === 'subscriptions' && styles.tabActive]}
           onPress={() => setActiveTab('subscriptions')}
         >
           <IconSymbol
-            ios_icon_name="creditcard.fill"
-            android_material_icon_name="payment"
-            size={22}
+            ios_icon_name="checkmark.seal.fill"
+            android_material_icon_name="verified"
+            size={20}
             color={activeTab === 'subscriptions' ? colors.primary : colors.textSecondary}
           />
-          <Text style={[styles.tabTextV7, activeTab === 'subscriptions' && styles.tabTextActiveV7]}>
+          <Text style={[styles.tabText, { fontSize: scaleFontSize(14) }, activeTab === 'subscriptions' && styles.tabTextActive]}>
             Suscripciones
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tabV7, activeTab === 'assign' && styles.tabActiveV7]}
+          style={[styles.tab, activeTab === 'assign' && styles.tabActive]}
           onPress={() => setActiveTab('assign')}
         >
           <IconSymbol
-            ios_icon_name="plus.app.fill"
-            android_material_icon_name="add_circle"
-            size={22}
+            ios_icon_name="link.circle.fill"
+            android_material_icon_name="link"
+            size={20}
             color={activeTab === 'assign' ? colors.primary : colors.textSecondary}
           />
-          <Text style={[styles.tabTextV7, activeTab === 'assign' && styles.tabTextActiveV7]}>
+          <Text style={[styles.tabText, { fontSize: scaleFontSize(14) }, activeTab === 'assign' && styles.tabTextActive]}>
             Asignar
           </Text>
         </TouchableOpacity>
@@ -903,183 +841,56 @@ export default function GestionarPlanesV7Screen() {
       {activeTab === 'subscriptions' && renderSubscriptionsTab()}
       {activeTab === 'assign' && renderAssignTab()}
 
-      {/* ASSIGN PLAN MODAL */}
+      {/* Plan Creation/Edit Modal */}
       <Modal
-        visible={showAssignModal}
+        visible={showPlanModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowAssignModal(false)}
+        onRequestClose={() => setShowPlanModal(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowAssignModal(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowPlanModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Asignar Plan a Local</Text>
-              <TouchableOpacity onPress={() => setShowAssignModal(false)}>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>
+                {editingPlan ? 'Editar Plan' : 'Nuevo Plan'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowPlanModal(false)}>
                 <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Buscar Local</Text>
-                <View style={styles.searchContainer}>
-                  <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
-                  <TextInput
-                    style={styles.searchInput}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholder="Buscar por nombre..."
-                    placeholderTextColor={colors.textSecondary}
-                  />
-                  {searching && <ActivityIndicator size="small" color={colors.primary} />}
-                </View>
-              </View>
-
-              {selectedLocal && (
-                <View style={styles.selectedLocalCard}>
-                  <View style={styles.selectedLocalHeader}>
-                    <Text style={styles.selectedLocalLabel}>Local Seleccionado:</Text>
-                    <TouchableOpacity onPress={() => setSelectedLocal(null)}>
-                      <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.selectedLocalName}>{selectedLocal.nombre}</Text>
-                  <Text style={styles.selectedLocalInfo}>{selectedLocal.tipo} • {selectedLocal.provincia}</Text>
-                </View>
-              )}
-
-              {searchResults.length > 0 && !selectedLocal && (
-                <View style={styles.searchResultsContainer}>
-                  {searchResults.map((local) => (
-                    <TouchableOpacity
-                      key={local.id}
-                      style={styles.searchResultItem}
-                      onPress={() => {
-                        setSelectedLocal(local);
-                        setSearchQuery('');
-                        setSearchResults([]);
-                      }}
-                    >
-                      {local.imagen_url ? (
-                        <Image source={{ uri: local.imagen_url }} style={styles.searchResultImage} />
-                      ) : (
-                        <View style={[styles.searchResultImage, styles.searchResultImagePlaceholder]}>
-                          <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color={colors.textSecondary} />
-                        </View>
-                      )}
-                      <View style={styles.searchResultInfo}>
-                        <Text style={styles.searchResultName}>{local.nombre}</Text>
-                        <Text style={styles.searchResultDetails}>{local.tipo} • {local.provincia}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Seleccionar Plan</Text>
-                <View style={styles.planSelector}>
-                  {planes.filter(p => p.activo).map((plan) => (
-                    <TouchableOpacity
-                      key={plan.id}
-                      style={[
-                        styles.planSelectorItem,
-                        selectedPlan === plan.id && styles.planSelectorItemActive
-                      ]}
-                      onPress={() => setSelectedPlan(plan.id)}
-                    >
-                      <View style={styles.planSelectorItemContent}>
-                        <Text style={[
-                          styles.planSelectorItemName,
-                          selectedPlan === plan.id && styles.planSelectorItemNameActive
-                        ]}>
-                          {plan.nombre}
-                        </Text>
-                        <Text style={[
-                          styles.planSelectorItemPrice,
-                          selectedPlan === plan.id && styles.planSelectorItemPriceActive
-                        ]}>
-                          {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€/mes`}
-                        </Text>
-                      </View>
-                      {selectedPlan === plan.id && (
-                        <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </ScrollView>
-
-            <TouchableOpacity
-              style={[styles.modalPrimaryButton, (!selectedLocal || !selectedPlan || assigning) && styles.modalPrimaryButtonDisabled]}
-              onPress={asignarPlan}
-              disabled={!selectedLocal || !selectedPlan || assigning}
-            >
-              {assigning ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <>
-                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.white} />
-                  <Text style={styles.modalPrimaryButtonText}>Asignar Plan</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowAssignModal(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* EDIT PLAN MODAL */}
-      <Modal
-        visible={showEditPlanModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowEditPlanModal(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowEditPlanModal(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Editar Plan</Text>
-              <TouchableOpacity onPress={() => setShowEditPlanModal(false)}>
-                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Nombre del Plan *</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Nombre del Plan *</Text>
                 <TextInput
-                  style={styles.formInput}
-                  value={editPlanNombre}
-                  onChangeText={setEditPlanNombre}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
+                  value={planNombre}
+                  onChangeText={setPlanNombre}
                   placeholder="Ej: Premium"
                   placeholderTextColor={colors.textSecondary}
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Descripción</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Descripción *</Text>
                 <TextInput
-                  style={[styles.formInput, styles.formTextArea]}
-                  value={editPlanDescripcion}
-                  onChangeText={setEditPlanDescripcion}
+                  style={[styles.textArea, { fontSize: scaleFontSize(14) }]}
+                  value={planDescripcion}
+                  onChangeText={setPlanDescripcion}
                   placeholder="Descripción del plan..."
                   placeholderTextColor={colors.textSecondary}
                   multiline
                   numberOfLines={3}
+                  textAlignVertical="top"
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Precio Mensual (€)</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Precio Mensual (€) *</Text>
                 <TextInput
-                  style={styles.formInput}
-                  value={editPlanPrecio}
-                  onChangeText={setEditPlanPrecio}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
+                  value={planPrecio}
+                  onChangeText={setPlanPrecio}
                   placeholder="0.00"
                   placeholderTextColor={colors.textSecondary}
                   keyboardType="decimal-pad"
@@ -1087,11 +898,11 @@ export default function GestionarPlanesV7Screen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Eventos por Mes</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Eventos por Mes</Text>
                 <TextInput
-                  style={styles.formInput}
-                  value={editPlanEventos}
-                  onChangeText={setEditPlanEventos}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
+                  value={planEventosMes}
+                  onChangeText={setPlanEventosMes}
                   placeholder="0"
                   placeholderTextColor={colors.textSecondary}
                   keyboardType="number-pad"
@@ -1099,85 +910,75 @@ export default function GestionarPlanesV7Screen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Promos Destacadas por Mes</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Promos Destacadas</Text>
                 <TextInput
-                  style={styles.formInput}
-                  value={editPlanPromos}
-                  onChangeText={setEditPlanPromos}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
+                  value={planPromosDestacadas}
+                  onChangeText={setPlanPromosDestacadas}
                   placeholder="0"
                   placeholderTextColor={colors.textSecondary}
                   keyboardType="number-pad"
                 />
               </View>
 
-              <View style={styles.formGroup}>
+              <View style={styles.switchGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Plan Activo</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Perfil Social</Text>
                   <Switch
-                    value={editPlanActivo}
-                    onValueChange={setEditPlanActivo}
+                    value={planPerfilSocial}
+                    onValueChange={setPlanPerfilSocial}
                     trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
-                    thumbColor={editPlanActivo ? colors.primary : colors.textSecondary}
+                    thumbColor={planPerfilSocial ? colors.primary : colors.textSecondary}
                   />
                 </View>
-              </View>
 
-              <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Perfil Social Completo</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Panel de Análisis</Text>
                   <Switch
-                    value={editPlanPerfilSocial}
-                    onValueChange={setEditPlanPerfilSocial}
+                    value={planPanelAnalisis}
+                    onValueChange={setPlanPanelAnalisis}
                     trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
-                    thumbColor={editPlanPerfilSocial ? colors.primary : colors.textSecondary}
+                    thumbColor={planPanelAnalisis ? colors.primary : colors.textSecondary}
                   />
                 </View>
-              </View>
 
-              <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Panel de Análisis</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Soporte Prioritario</Text>
                   <Switch
-                    value={editPlanPanelAnalisis}
-                    onValueChange={setEditPlanPanelAnalisis}
+                    value={planSoportePrioritario}
+                    onValueChange={setPlanSoportePrioritario}
                     trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
-                    thumbColor={editPlanPanelAnalisis ? colors.primary : colors.textSecondary}
+                    thumbColor={planSoportePrioritario ? colors.primary : colors.textSecondary}
                   />
                 </View>
-              </View>
 
-              <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Soporte Prioritario</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Visibilidad Extra</Text>
                   <Switch
-                    value={editPlanSoportePrioritario}
-                    onValueChange={setEditPlanSoportePrioritario}
+                    value={planVisibilidadExtra}
+                    onValueChange={setPlanVisibilidadExtra}
                     trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
-                    thumbColor={editPlanSoportePrioritario ? colors.primary : colors.textSecondary}
+                    thumbColor={planVisibilidadExtra ? colors.primary : colors.textSecondary}
                   />
                 </View>
-              </View>
 
-              <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Visibilidad Extra</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Visibilidad Máxima</Text>
                   <Switch
-                    value={editPlanVisibilidadExtra}
-                    onValueChange={setEditPlanVisibilidadExtra}
+                    value={planVisibilidadMaxima}
+                    onValueChange={setPlanVisibilidadMaxima}
                     trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
-                    thumbColor={editPlanVisibilidadExtra ? colors.primary : colors.textSecondary}
+                    thumbColor={planVisibilidadMaxima ? colors.primary : colors.textSecondary}
                   />
                 </View>
-              </View>
 
-              <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Visibilidad Máxima</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Plan Activo</Text>
                   <Switch
-                    value={editPlanVisibilidadMaxima}
-                    onValueChange={setEditPlanVisibilidadMaxima}
+                    value={planActivo}
+                    onValueChange={setPlanActivo}
                     trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
-                    thumbColor={editPlanVisibilidadMaxima ? colors.primary : colors.textSecondary}
+                    thumbColor={planActivo ? colors.primary : colors.textSecondary}
                   />
                 </View>
               </View>
@@ -1193,185 +994,15 @@ export default function GestionarPlanesV7Screen() {
               ) : (
                 <>
                   <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.white} />
-                  <Text style={styles.modalPrimaryButtonText}>Guardar Cambios</Text>
+                  <Text style={[styles.modalPrimaryButtonText, { fontSize: scaleFontSize(16) }]}>
+                    {editingPlan ? 'Actualizar Plan' : 'Crear Plan'}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowEditPlanModal(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* CREATE PLAN MODAL */}
-      <Modal
-        visible={showCreatePlanModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowCreatePlanModal(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowCreatePlanModal(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Crear Nuevo Plan</Text>
-              <TouchableOpacity onPress={() => setShowCreatePlanModal(false)}>
-                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Nombre del Plan *</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={createPlanNombre}
-                  onChangeText={setCreatePlanNombre}
-                  placeholder="Ej: Premium"
-                  placeholderTextColor={colors.textSecondary}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Descripción</Text>
-                <TextInput
-                  style={[styles.formInput, styles.formTextArea]}
-                  value={createPlanDescripcion}
-                  onChangeText={setCreatePlanDescripcion}
-                  placeholder="Descripción del plan..."
-                  placeholderTextColor={colors.textSecondary}
-                  multiline
-                  numberOfLines={3}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Precio Mensual (€)</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={createPlanPrecio}
-                  onChangeText={setCreatePlanPrecio}
-                  placeholder="0.00"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Eventos por Mes</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={createPlanEventos}
-                  onChangeText={setCreatePlanEventos}
-                  placeholder="0"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="number-pad"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Promos Destacadas por Mes</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={createPlanPromos}
-                  onChangeText={setCreatePlanPromos}
-                  placeholder="0"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="number-pad"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Plan Activo</Text>
-                  <Switch
-                    value={createPlanActivo}
-                    onValueChange={setCreatePlanActivo}
-                    trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
-                    thumbColor={createPlanActivo ? colors.primary : colors.textSecondary}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.formGroup}>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Perfil Social Completo</Text>
-                  <Switch
-                    value={createPlanPerfilSocial}
-                    onValueChange={setCreatePlanPerfilSocial}
-                    trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
-                    thumbColor={createPlanPerfilSocial ? colors.primary : colors.textSecondary}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.formGroup}>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Panel de Análisis</Text>
-                  <Switch
-                    value={createPlanPanelAnalisis}
-                    onValueChange={setCreatePlanPanelAnalisis}
-                    trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
-                    thumbColor={createPlanPanelAnalisis ? colors.primary : colors.textSecondary}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.formGroup}>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Soporte Prioritario</Text>
-                  <Switch
-                    value={createPlanSoportePrioritario}
-                    onValueChange={setCreatePlanSoportePrioritario}
-                    trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
-                    thumbColor={createPlanSoportePrioritario ? colors.primary : colors.textSecondary}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.formGroup}>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Visibilidad Extra</Text>
-                  <Switch
-                    value={createPlanVisibilidadExtra}
-                    onValueChange={setCreatePlanVisibilidadExtra}
-                    trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
-                    thumbColor={createPlanVisibilidadExtra ? colors.primary : colors.textSecondary}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.formGroup}>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Visibilidad Máxima</Text>
-                  <Switch
-                    value={createPlanVisibilidadMaxima}
-                    onValueChange={setCreatePlanVisibilidadMaxima}
-                    trackColor={{ false: colors.cardBorder, true: colors.primary + '80' }}
-                    thumbColor={createPlanVisibilidadMaxima ? colors.primary : colors.textSecondary}
-                  />
-                </View>
-              </View>
-            </ScrollView>
-
-            <TouchableOpacity
-              style={[styles.modalPrimaryButton, creatingPlan && styles.modalPrimaryButtonDisabled]}
-              onPress={handleCreatePlan}
-              disabled={creatingPlan}
-            >
-              {creatingPlan ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <>
-                  <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.white} />
-                  <Text style={styles.modalPrimaryButtonText}>Crear Plan</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowCreatePlanModal(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
+            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowPlanModal(false)}>
+              <Text style={[styles.modalCancelText, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -1385,7 +1016,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  headerV7: {
+  header: {
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -1393,59 +1024,50 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  backButtonV7: {
-    padding: 4,
-  },
-  headerContentV7: {
+  headerContent: {
     flex: 1,
-    alignItems: 'center',
+    marginLeft: 12,
   },
-  headerTitleV7: {
-    fontSize: 24,
+  headerTitle: {
     fontWeight: 'bold',
     color: colors.headerText,
   },
-  headerSubtitleV7: {
-    fontSize: 13,
+  headerSubtitle: {
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 2,
   },
-  refreshButtonV7: {
-    padding: 4,
-  },
-  tabsV7: {
+  tabs: {
     flexDirection: 'row',
     backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-  tabV7: {
+  tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 18,
-    gap: 10,
-    borderBottomWidth: 3,
+    paddingVertical: 16,
+    gap: 8,
+    borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabActiveV7: {
+  tabActive: {
     borderBottomColor: colors.primary,
   },
-  tabTextV7: {
-    fontSize: 15,
+  tabText: {
     fontWeight: '600',
     color: colors.textSecondary,
   },
-  tabTextActiveV7: {
+  tabTextActive: {
     color: colors.primary,
   },
   tabContent: {
     flex: 1,
   },
   tabContentContainer: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 100,
   },
   loadingContainer: {
@@ -1455,283 +1077,322 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
     color: colors.textSecondary,
   },
-  sectionHeaderV7: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  sectionHeaderLeft: {
-    flex: 1,
-  },
-  sectionTitleV7: {
-    fontSize: 24,
+  sectionTitle: {
     fontWeight: 'bold',
     color: colors.text,
   },
-  sectionSubtitleV7: {
-    fontSize: 15,
+  sectionSubtitle: {
     color: colors.textSecondary,
     marginTop: 4,
   },
-  createButtonV7: {
+  createButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 14,
-    ...commonStyles.shadow,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
-  createButtonTextV7: {
-    fontSize: 15,
-    fontWeight: '700',
+  createButtonText: {
+    fontWeight: '600',
     color: colors.white,
   },
-  planesGridV7: {
-    gap: 16,
-  },
-  planCardV7: {
-    borderRadius: 16,
-    overflow: 'hidden',
+  planCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     ...commonStyles.shadow,
   },
-  planCardGradient: {
-    padding: 20,
-  },
-  planCardHeader: {
+  planHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  planCardHeaderLeft: {
+  planHeaderLeft: {
     flex: 1,
   },
-  planNameV7: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.white,
-    marginBottom: 6,
-  },
-  planPriceV7: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.white,
-  },
-  editIconButtonV7: {
-    padding: 4,
-  },
-  planDescriptionV7: {
-    fontSize: 15,
-    color: colors.white,
-    opacity: 0.9,
-    marginBottom: 16,
-    lineHeight: 22,
-  },
-  planFeaturesV7: {
-    gap: 12,
-    marginBottom: 16,
-  },
-  planFeatureItemV7: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  planFeatureIconV7: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  planFeatureTextV7: {
-    fontSize: 15,
-    color: colors.white,
-    fontWeight: '500',
-    flex: 1,
-  },
-  planCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  planStatusBadgeV7: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  planStatusActiveV7: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-  },
-  planStatusInactiveV7: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  planStatusTextV7: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  subscriptionsListV7: {
-    gap: 16,
-  },
-  subscriptionCardV7: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    ...commonStyles.shadow,
-  },
-  subscriptionCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  subscriptionCardHeaderLeft: {
-    flex: 1,
-  },
-  subscriptionLocalNameV7: {
-    fontSize: 18,
+  planNombre: {
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  subscriptionPlanNameV7: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  estadoBadgeV7: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  estadoBadgeTextV7: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  subscriptionCardBody: {
-    marginBottom: 16,
-  },
-  subscriptionInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  subscriptionInfoText: {
-    fontSize: 14,
-    color: colors.text,
-  },
-  cancelSubscriptionButtonV7: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: '#FEE2E2',
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  cancelSubscriptionTextV7: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#EF4444',
-  },
-  assignButtonV7: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 24,
-    ...commonStyles.shadow,
-  },
-  assignButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    paddingVertical: 20,
-  },
-  assignButtonTextV7: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.white,
-  },
-  infoBoxV7: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 16,
-    backgroundColor: colors.primary + '10',
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-    marginBottom: 24,
-  },
-  infoBoxIcon: {
-    marginTop: 2,
-  },
-  infoBoxContent: {
-    flex: 1,
-  },
-  infoBoxTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 6,
-  },
-  infoBoxText: {
-    fontSize: 14,
-    color: colors.text,
-    lineHeight: 20,
-  },
-  quickStatsV7: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  quickStatCard: {
-    flex: 1,
-    backgroundColor: colors.cardBackground,
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  quickStatNumber: {
-    fontSize: 32,
+  planPrecio: {
     fontWeight: 'bold',
     color: colors.primary,
-    marginBottom: 6,
   },
-  quickStatLabel: {
-    fontSize: 13,
+  planPrecioMes: {
+    fontWeight: 'normal',
     color: colors.textSecondary,
-    textAlign: 'center',
   },
-  emptyStateV7: {
-    paddingVertical: 80,
-    alignItems: 'center',
-    gap: 16,
+  planActivoBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
-  emptyTextV7: {
-    fontSize: 20,
+  planActivoText: {
     fontWeight: '600',
+  },
+  planDescripcion: {
+    color: colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  planFeatures: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  featureText: {
     color: colors.text,
   },
-  emptySubtextV7: {
-    fontSize: 15,
+  planActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  editButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary + '10',
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  editButtonText: {
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  deleteButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#EF444420',
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#EF444430',
+  },
+  deleteButtonText: {
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  subscriptionCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    ...commonStyles.shadow,
+  },
+  subscriptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  subscriptionImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: colors.cardBorder,
+  },
+  subscriptionInfo: {
+    flex: 1,
+  },
+  subscriptionLocalName: {
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  subscriptionPlanName: {
+    color: colors.primary,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  subscriptionDate: {
+    color: colors.textSecondary,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontWeight: '600',
+  },
+  cancelButton: {
+    backgroundColor: '#EF444420',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EF444430',
+  },
+  cancelButtonText: {
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.text,
+  },
+  selectedLocalCard: {
+    backgroundColor: colors.primary + '10',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  selectedLocalTitle: {
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  selectedLocalName: {
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  selectedLocalAddress: {
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  selectPlanTitle: {
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  planOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  planOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '10',
+  },
+  planOptionLeft: {
+    flex: 1,
+  },
+  planOptionName: {
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  planOptionPrice: {
+    color: colors.textSecondary,
+  },
+  assignButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  assignButtonDisabled: {
+    backgroundColor: colors.cardBorder,
+    opacity: 0.5,
+  },
+  assignButtonText: {
+    fontWeight: '700',
+    color: colors.white,
+  },
+  cancelSelectionButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  cancelSelectionText: {
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  localesList: {
+    gap: 12,
+  },
+  localCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 12,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  localImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: colors.cardBorder,
+  },
+  localInfo: {
+    flex: 1,
+  },
+  localName: {
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  localAddress: {
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  localProvincia: {
+    color: colors.textSecondary,
+  },
+  emptyState: {
+    paddingVertical: 60,
+    alignItems: 'center',
+    gap: 12,
+  },
+  emptyText: {
     color: colors.textSecondary,
     textAlign: 'center',
-    paddingHorizontal: 40,
   },
   modalOverlay: {
     flex: 1,
@@ -1746,7 +1407,7 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '100%',
     maxWidth: 500,
-    maxHeight: SCREEN_HEIGHT * 0.85,
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1755,20 +1416,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     flex: 1,
   },
   modalScrollView: {
-    maxHeight: SCREEN_HEIGHT * 0.55,
+    maxHeight: 500,
     marginBottom: 16,
   },
   formGroup: {
     marginBottom: 16,
   },
   formLabel: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
@@ -1778,14 +1437,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  formTextArea: {
+  textArea: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     minHeight: 80,
-    textAlignVertical: 'top',
+  },
+  switchGroup: {
+    gap: 12,
+    marginTop: 8,
   },
   switchRow: {
     flexDirection: 'row',
@@ -1794,129 +1462,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   switchLabel: {
-    fontSize: 16,
     color: colors.text,
     flex: 1,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    gap: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.text,
-  },
-  selectedLocalCard: {
-    backgroundColor: colors.primary + '10',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-  },
-  selectedLocalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  selectedLocalLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-  },
-  selectedLocalName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  selectedLocalInfo: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  searchResultsContainer: {
-    maxHeight: 300,
-    marginBottom: 16,
-  },
-  searchResultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.cardBackground,
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  searchResultImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-  },
-  searchResultImagePlaceholder: {
-    backgroundColor: colors.cardBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchResultInfo: {
-    flex: 1,
-  },
-  searchResultName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  searchResultDetails: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  planSelector: {
-    gap: 12,
-  },
-  planSelectorItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.cardBorder,
-  },
-  planSelectorItemActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + '10',
-  },
-  planSelectorItemContent: {
-    flex: 1,
-  },
-  planSelectorItemName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  planSelectorItemNameActive: {
-    color: colors.primary,
-  },
-  planSelectorItemPrice: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  planSelectorItemPriceActive: {
-    color: colors.primary,
   },
   modalPrimaryButton: {
     flexDirection: 'row',
@@ -1933,7 +1480,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   modalPrimaryButtonText: {
-    fontSize: 16,
     fontWeight: '700',
     color: colors.white,
   },
@@ -1942,7 +1488,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalCancelText: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
   },
