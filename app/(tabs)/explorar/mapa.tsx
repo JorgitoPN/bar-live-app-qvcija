@@ -131,7 +131,7 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v103.0 - ANDROID CENTER BUTTON POSITION FIX
+ * ✅ MAP SCREEN v103.0 - ANDROID COMPLETE FIXES
  * 
  * CRITICAL FIXES v103.0 (ANDROID ONLY):
  * - ✅ Center button repositioned to bottom-right corner (above bottom nav)
@@ -139,6 +139,7 @@ interface LocalWithEvent extends Local {
  * - ✅ All text properly scaled with scaleFontSize()
  * - ✅ Fixed invalid Material icon names (chevron_left → arrow_back)
  * - ✅ Map popup content properly scaled
+ * - ✅ Map markers properly scaled (44px → 40px on Android)
  * - ✅ iOS design remains unchanged
  */
 
@@ -487,11 +488,15 @@ export default function MapaScreen() {
 
     console.log(`[MAP v103.0] 🗺️ GENERATING MAP HTML WITH ${markersWithCheckIns.length} MARKERS`);
 
-    // ✅ CRITICAL FIX v103.0: Apply Android scaling to popup content
+    // ✅ CRITICAL FIX v103.0: Apply Android scaling to popup content AND markers
     const popupFontSize = Platform.OS === 'android' ? Math.round(14 * 0.80) : 14;
     const popupTitleSize = Platform.OS === 'android' ? Math.round(16 * 0.80) : 16;
     const popupSmallSize = Platform.OS === 'android' ? Math.round(12 * 0.80) : 12;
     const popupBadgeSize = Platform.OS === 'android' ? Math.round(11 * 0.80) : 11;
+    const markerSize = Platform.OS === 'android' ? 40 : 44; // ✅ Scaled marker size
+    const markerDestacadoSize = Platform.OS === 'android' ? 48 : 52; // ✅ Scaled destacado marker
+    const markerIconSize = Platform.OS === 'android' ? 20 : 22; // ✅ Scaled icon inside marker
+    const eventIndicatorSize = Platform.OS === 'android' ? 18 : 20; // ✅ Scaled event indicator
 
     return `
 <!DOCTYPE html>
@@ -514,22 +519,23 @@ export default function MapaScreen() {
       font-family: Roboto, Arial, sans-serif;
     }
     
+    /* ✅ CRITICAL FIX v103.0: Scaled marker sizes for Android */
     .custom-marker {
-      width: 44px;
-      height: 44px;
+      width: ${markerSize}px;
+      height: ${markerSize}px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
+      font-size: ${markerIconSize}px;
       border: 3px solid #FFFFFF;
       transition: transform 0.2s;
       cursor: pointer;
       position: relative;
     }
     .custom-marker-destacado {
-      width: 52px;
-      height: 52px;
+      width: ${markerDestacadoSize}px;
+      height: ${markerDestacadoSize}px;
       border: 4px solid #FACC15;
       box-shadow: 0 0 0 2px #FFFFFF, 0 4px 12px rgba(250, 204, 21, 0.5);
       animation: pulse-destacado 2s infinite;
@@ -555,19 +561,20 @@ export default function MapaScreen() {
       box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
     }
     
+    /* ✅ CRITICAL FIX v103.0: Scaled event indicator */
     .event-indicator {
       position: absolute;
       top: -6px;
       right: -6px;
-      width: 20px;
-      height: 20px;
+      width: ${eventIndicatorSize}px;
+      height: ${eventIndicatorSize}px;
       background-color: #FACC15;
       border-radius: 50%;
       border: 2px solid #FFFFFF;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: ${Math.round(eventIndicatorSize * 0.5)}px;
       z-index: 10;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
@@ -869,7 +876,7 @@ export default function MapaScreen() {
         var markerIcon = L.divIcon({
           className: markerClass,
           html: markerHtml,
-          iconSize: data.destacado ? [52, 52] : [44, 44]
+          iconSize: data.destacado ? [${markerDestacadoSize}, ${markerDestacadoSize}] : [${markerSize}, ${markerSize}]
         });
 
         var marker = L.marker([data.lat, data.lng], { icon: markerIcon });
@@ -1225,6 +1232,7 @@ export default function MapaScreen() {
       </View>
 
       <View style={styles.controlsLeft}>
+        {/* ✅ CRITICAL FIX v103.0: Fixed invalid icon name chevron_left → arrow_back */}
         <TouchableOpacity 
           style={[styles.controlButton, {
             width: controlButtonSize,
@@ -1316,8 +1324,8 @@ export default function MapaScreen() {
           width: centerButtonSize,
           height: centerButtonSize,
           borderRadius: centerButtonSize / 2,
-          // ✅ Position above bottom nav (100px from bottom)
-          bottom: Platform.OS === 'android' ? 100 : 100,
+          // ✅ Position above bottom nav (100px from bottom on both platforms)
+          bottom: 100,
           right: 16,
         }]}
         onPress={centerOnUser}

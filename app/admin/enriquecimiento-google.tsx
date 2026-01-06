@@ -11,6 +11,7 @@ import {
   TextInput,
   Switch,
   Modal,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -25,6 +26,7 @@ import { dataCache } from '@/utils/dataCache';
 import { performanceMonitor } from '@/utils/performanceMonitor';
 import { descargarYSubirFotosLocal, generarMetadatosFotos, verificarBucketSupabase } from '@/utils/enrichmentPhotos';
 import { useAuth } from '@/contexts/AuthContext';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 // Tipos de categorías
 const CATEGORIAS = [
@@ -102,6 +104,16 @@ const DIAS_SEMANA: Record<number, string> = {
 
 // Maximum logs to keep in memory
 const MAX_LOGS = 50;
+
+/**
+ * ✅ ENRIQUECIMIENTO GOOGLE v103.0 - ANDROID SCALING FIX
+ * 
+ * CRITICAL FIXES v103.0 (ANDROID ONLY):
+ * - ✅ All text properly scaled with scaleFontSize()
+ * - ✅ All icons properly scaled with scaleIconSize()
+ * - ✅ Fixed invalid Material icon names (chevron.down → expand_more, etc.)
+ * - ✅ iOS design remains unchanged
+ */
 
 export default function EnriquecimientoGoogleScreen() {
   const router = useRouter();
@@ -996,32 +1008,42 @@ export default function EnriquecimientoGoogleScreen() {
 
   const renderPaso1 = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>1. Seleccionar Zona y Categoría</Text>
+      <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(20) }]}>1. Seleccionar Zona y Categoría</Text>
       
       <View style={styles.card}>
-        <Text style={styles.label}>Comunidad Autónoma</Text>
+        <Text style={[styles.label, { fontSize: scaleFontSize(16) }]}>Comunidad Autónoma</Text>
         <TouchableOpacity
           style={styles.selectorButton}
           onPress={() => setMostrarSelectorComunidad(true)}
         >
-          <Text style={styles.selectorButtonText}>{comunidadSeleccionada}</Text>
-          <IconSymbol name="chevron.down" size={20} color={colors.textSecondary} />
+          <Text style={[styles.selectorButtonText, { fontSize: scaleFontSize(16) }]}>{comunidadSeleccionada}</Text>
+          <IconSymbol 
+            ios_icon_name="chevron.down" 
+            android_material_icon_name="expand_more" 
+            size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+            color={colors.textSecondary} 
+          />
         </TouchableOpacity>
 
-        <Text style={[styles.label, { marginTop: 20 }]}>Provincia</Text>
+        <Text style={[styles.label, { marginTop: 20, fontSize: scaleFontSize(16) }]}>Provincia</Text>
         <TouchableOpacity
           style={styles.selectorButton}
           onPress={() => setMostrarSelectorProvincia(true)}
         >
-          <Text style={styles.selectorButtonText}>{provinciaSeleccionada}</Text>
-          <IconSymbol name="chevron.down" size={20} color={colors.textSecondary} />
+          <Text style={[styles.selectorButtonText, { fontSize: scaleFontSize(16) }]}>{provinciaSeleccionada}</Text>
+          <IconSymbol 
+            ios_icon_name="chevron.down" 
+            android_material_icon_name="expand_more" 
+            size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+            color={colors.textSecondary} 
+          />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.buttonPrimary, { marginTop: 20 }]}
           onPress={() => setPaso(2)}
         >
-          <Text style={styles.buttonText}>Continuar</Text>
+          <Text style={[styles.buttonText, { fontSize: scaleFontSize(16) }]}>Continuar</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1032,7 +1054,7 @@ export default function EnriquecimientoGoogleScreen() {
           {cargando ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={styles.buttonText}>Sincronizar Catálogo</Text>
+            <Text style={[styles.buttonText, { fontSize: scaleFontSize(16) }]}>Sincronizar Catálogo</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -1041,14 +1063,14 @@ export default function EnriquecimientoGoogleScreen() {
 
   const renderPaso2 = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>2. Seleccionar Categoría</Text>
-      <Text style={styles.subtitle}>{provinciaSeleccionada}</Text>
+      <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(20) }]}>2. Seleccionar Categoría</Text>
+      <Text style={[styles.subtitle, { fontSize: scaleFontSize(16) }]}>{provinciaSeleccionada}</Text>
 
       <View style={[styles.card, { marginBottom: 15 }]}>
         <View style={styles.switchRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.switchLabel}>Re-enriquecer locales activos</Text>
-            <Text style={styles.switchSubLabel}>Actualizar datos de locales ya enriquecidos</Text>
+            <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Re-enriquecer locales activos</Text>
+            <Text style={[styles.switchSubLabel, { fontSize: scaleFontSize(13) }]}>Actualizar datos de locales ya enriquecidos</Text>
           </View>
           <Switch
             value={reEnriquecer}
@@ -1063,49 +1085,49 @@ export default function EnriquecimientoGoogleScreen() {
       <View style={styles.statsCard}>
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{estadisticas.totalOSM}</Text>
-            <Text style={styles.statLabel}>Total OSM</Text>
+            <Text style={[styles.statValue, { fontSize: scaleFontSize(24) }]}>{estadisticas.totalOSM}</Text>
+            <Text style={[styles.statLabel, { fontSize: scaleFontSize(12) }]}>Total OSM</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#10B981' }]}>{estadisticas.enriquecidos}</Text>
-            <Text style={styles.statLabel}>Enriquecidos</Text>
+            <Text style={[styles.statValue, { color: '#10B981', fontSize: scaleFontSize(24) }]}>{estadisticas.enriquecidos}</Text>
+            <Text style={[styles.statLabel, { fontSize: scaleFontSize(12) }]}>Enriquecidos</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#EF4444' }]}>{estadisticas.rechazados}</Text>
-            <Text style={styles.statLabel}>Rechazados</Text>
+            <Text style={[styles.statValue, { color: '#EF4444', fontSize: scaleFontSize(24) }]}>{estadisticas.rechazados}</Text>
+            <Text style={[styles.statLabel, { fontSize: scaleFontSize(12) }]}>Rechazados</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#F59E0B' }]}>{estadisticas.pendientes}</Text>
-            <Text style={styles.statLabel}>Pendientes</Text>
+            <Text style={[styles.statValue, { color: '#F59E0B', fontSize: scaleFontSize(24) }]}>{estadisticas.pendientes}</Text>
+            <Text style={[styles.statLabel, { fontSize: scaleFontSize(12) }]}>Pendientes</Text>
           </View>
         </View>
-        <Text style={styles.progressLabel}>
+        <Text style={[styles.progressLabel, { fontSize: scaleFontSize(14) }]}>
           Progreso general: {estadisticas.totalOSM > 0 ? ((estadisticas.enriquecidos / estadisticas.totalOSM) * 100).toFixed(1) : 0}%
         </Text>
       </View>
 
       {estadisticas.totalOSM === 0 && (
         <View style={[styles.infoBox, { backgroundColor: '#FEF3C7', marginBottom: 15 }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#92400E' }]}>⚠️ Sin locales importados</Text>
-          <Text style={[styles.infoBoxText, { color: '#92400E' }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#92400E', fontSize: scaleFontSize(13) }]}>⚠️ Sin locales importados</Text>
+          <Text style={[styles.infoBoxText, { color: '#92400E', fontSize: scaleFontSize(12) }]}>
             No hay locales importados de OSM en {provinciaSeleccionada}.
           </Text>
-          <Text style={[styles.infoBoxText, { color: '#92400E', marginTop: 5 }]}>
+          <Text style={[styles.infoBoxText, { color: '#92400E', marginTop: 5, fontSize: scaleFontSize(12) }]}>
             Debes ir primero a &quot;Importación OSM&quot; para importar locales antes de poder enriquecerlos.
           </Text>
           <TouchableOpacity
             style={[styles.button, styles.buttonPrimary, { marginTop: 10 }]}
             onPress={() => router.push('/admin/importacion-osm')}
           >
-            <Text style={styles.buttonText}>Ir a Importación OSM</Text>
+            <Text style={[styles.buttonText, { fontSize: scaleFontSize(16) }]}>Ir a Importación OSM</Text>
           </TouchableOpacity>
           
           <View style={[styles.infoBox, { backgroundColor: '#DBEAFE', marginTop: 15 }]}>
-            <Text style={[styles.infoBoxTitle, { color: '#1E40AF' }]}>💡 Información</Text>
-            <Text style={[styles.infoBoxText, { color: '#1E40AF' }]}>
+            <Text style={[styles.infoBoxTitle, { color: '#1E40AF', fontSize: scaleFontSize(13) }]}>💡 Información</Text>
+            <Text style={[styles.infoBoxText, { color: '#1E40AF', fontSize: scaleFontSize(12) }]}>
               El catálogo de importación OSM contiene los locales que has importado desde OpenStreetMap.
             </Text>
-            <Text style={[styles.infoBoxText, { color: '#1E40AF', marginTop: 5 }]}>
+            <Text style={[styles.infoBoxText, { color: '#1E40AF', marginTop: 5, fontSize: scaleFontSize(12) }]}>
               Una vez importados, aparecerán aquí para que puedas enriquecerlos con datos de Google Places.
             </Text>
           </View>
@@ -1121,20 +1143,20 @@ export default function EnriquecimientoGoogleScreen() {
             onPress={() => seleccionarCategoria(cat.categoria)}
             disabled={cat.total === 0}
           >
-            <Text style={styles.categoriaEmoji}>{cat.emoji}</Text>
-            <Text style={styles.categoriaNombre}>{cat.categoria}</Text>
-            <Text style={styles.categoriaStats}>Catalogados OSM</Text>
-            <Text style={styles.categoriaTotal}>{cat.total}</Text>
+            <Text style={[styles.categoriaEmoji, { fontSize: scaleFontSize(32) }]}>{cat.emoji}</Text>
+            <Text style={[styles.categoriaNombre, { fontSize: scaleFontSize(16) }]}>{cat.categoria}</Text>
+            <Text style={[styles.categoriaStats, { fontSize: scaleFontSize(11) }]}>Catalogados OSM</Text>
+            <Text style={[styles.categoriaTotal, { fontSize: scaleFontSize(20) }]}>{cat.total}</Text>
             
             <View style={styles.categoriaDetails}>
               {cat.enriquecidos > 0 && (
-                <Text style={styles.categoriaDetail}>✨ {cat.enriquecidos}</Text>
+                <Text style={[styles.categoriaDetail, { fontSize: scaleFontSize(12) }]}>✨ {cat.enriquecidos}</Text>
               )}
               {cat.pendientes > 0 && (
-                <Text style={[styles.categoriaDetail, { color: '#F59E0B' }]}>⏳ {cat.pendientes}</Text>
+                <Text style={[styles.categoriaDetail, { color: '#F59E0B', fontSize: scaleFontSize(12) }]}>⏳ {cat.pendientes}</Text>
               )}
               {cat.rechazados > 0 && (
-                <Text style={[styles.categoriaDetail, { color: '#EF4444' }]}>❌ {cat.rechazados}</Text>
+                <Text style={[styles.categoriaDetail, { color: '#EF4444', fontSize: scaleFontSize(12) }]}>❌ {cat.rechazados}</Text>
               )}
             </View>
           </TouchableOpacity>
@@ -1145,13 +1167,13 @@ export default function EnriquecimientoGoogleScreen() {
 
   const renderPaso3 = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>3. Configurar Enriquecimiento</Text>
-      <Text style={styles.subtitle}>{categoriaSeleccionada}</Text>
+      <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(20) }]}>3. Configurar Enriquecimiento</Text>
+      <Text style={[styles.subtitle, { fontSize: scaleFontSize(16) }]}>{categoriaSeleccionada}</Text>
 
       {/* Warning about excluded locales */}
       <View style={[styles.infoBox, { backgroundColor: '#FEE2E2', marginBottom: 15 }]}>
-        <Text style={[styles.infoBoxTitle, { color: '#991B1B' }]}>🗑️ Eliminación Automática de Rechazados</Text>
-        <Text style={[styles.infoBoxText, { color: '#991B1B', marginTop: 5 }]}>
+        <Text style={[styles.infoBoxTitle, { color: '#991B1B', fontSize: scaleFontSize(13) }]}>🗑️ Eliminación Automática de Rechazados</Text>
+        <Text style={[styles.infoBoxText, { color: '#991B1B', marginTop: 5, fontSize: scaleFontSize(12) }]}>
           Los locales rechazados durante el enriquecimiento serán:
           {'\n\n'}
           ✅ Agregados a la tabla de exclusión
@@ -1165,16 +1187,16 @@ export default function EnriquecimientoGoogleScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.infoText}>
+        <Text style={[styles.infoText, { fontSize: scaleFontSize(14) }]}>
           Quedan {localesPendientes} locales pendientes de enriquecer
         </Text>
-        <Text style={[styles.infoText, { fontSize: 12, color: colors.textSecondary, marginTop: 5 }]}>
+        <Text style={[styles.infoText, { fontSize: scaleFontSize(12), color: colors.textSecondary, marginTop: 5 }]}>
           {localesAEnriquecer.length} locales cargados en memoria
         </Text>
 
-        <Text style={[styles.label, { marginTop: 20 }]}>Locales por lote</Text>
+        <Text style={[styles.label, { marginTop: 20, fontSize: scaleFontSize(16) }]}>Locales por lote</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { fontSize: scaleFontSize(16) }]}
           value={localesPorLote.toString()}
           onChangeText={text => setLocalesPorLote(parseInt(text) || 0)}
           keyboardType="number-pad"
@@ -1182,8 +1204,8 @@ export default function EnriquecimientoGoogleScreen() {
         />
 
         <View style={[styles.infoBox, { marginTop: 15, backgroundColor: '#DBEAFE' }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#1E40AF' }]}>🔍 Búsqueda Mejorada Multi-Estrategia</Text>
-          <Text style={[styles.infoBoxText, { color: '#1E40AF', marginTop: 5 }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#1E40AF', fontSize: scaleFontSize(13) }]}>🔍 Búsqueda Mejorada Multi-Estrategia</Text>
+          <Text style={[styles.infoBoxText, { color: '#1E40AF', marginTop: 5, fontSize: scaleFontSize(12) }]}>
             Se utilizan 5 estrategias de búsqueda:{'\n\n'}
             1️⃣ Nombre + Ciudad + Provincia{'\n'}
             2️⃣ Búsqueda por proximidad con tipo (100m){'\n'}
@@ -1195,8 +1217,8 @@ export default function EnriquecimientoGoogleScreen() {
         </View>
 
         <View style={[styles.infoBox, { marginTop: 10, backgroundColor: '#D1FAE5' }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#065F46' }]}>✅ Sistema de Validación Inteligente</Text>
-          <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5 }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#065F46', fontSize: scaleFontSize(13) }]}>✅ Sistema de Validación Inteligente</Text>
+          <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5, fontSize: scaleFontSize(12) }]}>
             Validación mejorada:{'\n\n'}
             ✅ Análisis de nombre (detecta discotecas por nombre){'\n'}
             ✅ Tipos válidos priorizados sobre prohibidos{'\n'}
@@ -1208,18 +1230,18 @@ export default function EnriquecimientoGoogleScreen() {
         </View>
 
         <View style={[styles.infoBox, { marginTop: 10, backgroundColor: '#FEF3C7' }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#92400E' }]}>💰 Estimación de Coste</Text>
-          <Text style={[styles.infoBoxText, { color: '#92400E' }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#92400E', fontSize: scaleFontSize(13) }]}>💰 Estimación de Coste</Text>
+          <Text style={[styles.infoBoxText, { color: '#92400E', fontSize: scaleFontSize(12) }]}>
             ${calcularCosteEstimado(Math.min(localesPorLote, localesPendientes, localesAEnriquecer.length))} en Google Places API
           </Text>
-          <Text style={[styles.infoBoxText, { color: '#92400E', fontSize: 11, marginTop: 3 }]}>
+          <Text style={[styles.infoBoxText, { color: '#92400E', fontSize: scaleFontSize(11), marginTop: 3 }]}>
             (2 llamadas por local: búsqueda + detalles + hasta 4 fotos)
           </Text>
         </View>
 
         <View style={[styles.infoBox, { marginTop: 10, backgroundColor: '#E0E7FF' }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#3730A3' }]}>📸 Almacenamiento de Fotos</Text>
-          <Text style={[styles.infoBoxText, { color: '#3730A3' }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#3730A3', fontSize: scaleFontSize(13) }]}>📸 Almacenamiento de Fotos</Text>
+          <Text style={[styles.infoBoxText, { color: '#3730A3', fontSize: scaleFontSize(12) }]}>
             Las fotos se descargarán de Google Places y se subirán a Supabase Storage.{'\n\n'}
             ✅ Evita llamadas continuas a la API de Google{'\n'}
             ✅ Las fotos se almacenan en tu propia base de datos{'\n'}
@@ -1235,7 +1257,7 @@ export default function EnriquecimientoGoogleScreen() {
           {procesando ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={styles.buttonText}>
+            <Text style={[styles.buttonText, { fontSize: scaleFontSize(16) }]}>
               Enriquecer {Math.min(localesPorLote, localesPendientes, localesAEnriquecer.length)} Locales
             </Text>
           )}
@@ -1245,7 +1267,7 @@ export default function EnriquecimientoGoogleScreen() {
       {/* Progreso */}
       {procesando && (
         <View style={styles.progressCard}>
-          <Text style={styles.progressTitle}>
+          <Text style={[styles.progressTitle, { fontSize: scaleFontSize(16) }]}>
             Procesando {progreso.actual} de {progreso.total}
           </Text>
           <View style={styles.progressBar}>
@@ -1256,7 +1278,7 @@ export default function EnriquecimientoGoogleScreen() {
               ]}
             />
           </View>
-          <Text style={styles.progressPercentage}>
+          <Text style={[styles.progressPercentage, { fontSize: scaleFontSize(14) }]}>
             {((progreso.actual / progreso.total) * 100).toFixed(0)}%
           </Text>
         </View>
@@ -1266,22 +1288,27 @@ export default function EnriquecimientoGoogleScreen() {
       {logs.length > 0 && (
         <View style={styles.logsCard}>
           <View style={styles.logsHeader}>
-            <Text style={styles.logsTitle}>📡 Logs en Tiempo Real</Text>
+            <Text style={[styles.logsTitle, { fontSize: scaleFontSize(16) }]}>📡 Logs en Tiempo Real</Text>
             <TouchableOpacity
               style={styles.copyButton}
               onPress={copiarLogs}
             >
-              <IconSymbol name="doc.on.doc" size={20} color={colors.primary} />
-              <Text style={styles.copyButtonText}>Copiar</Text>
+              <IconSymbol 
+                ios_icon_name="doc.on.doc" 
+                android_material_icon_name="content_copy" 
+                size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+                color={colors.primary} 
+              />
+              <Text style={[styles.copyButtonText, { fontSize: scaleFontSize(14) }]}>Copiar</Text>
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.logsContainer} nestedScrollEnabled>
             {logs.map((log, index) => (
               <View key={index} style={styles.logEntry}>
-                <Text style={[styles.logTimestamp, { color: getLogColor(log.tipo) }]}>
+                <Text style={[styles.logTimestamp, { color: getLogColor(log.tipo), fontSize: scaleFontSize(11) }]}>
                   [{log.timestamp}]
                 </Text>
-                <Text style={[styles.logMessage, { color: getLogColor(log.tipo) }]}>
+                <Text style={[styles.logMessage, { color: getLogColor(log.tipo), fontSize: scaleFontSize(11) }]}>
                   {log.mensaje}
                 </Text>
               </View>
@@ -1309,10 +1336,15 @@ export default function EnriquecimientoGoogleScreen() {
     <View style={styles.container}>
       <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color="white" />
+          <IconSymbol 
+            ios_icon_name="chevron.left" 
+            android_material_icon_name="arrow_back" 
+            size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
+            color="white" 
+          />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Enriquecimiento con Google Places</Text>
-        <Text style={styles.headerSubtitle}>
+        <Text style={[styles.headerTitle, { fontSize: scaleFontSize(24) }]}>Enriquecimiento con Google Places</Text>
+        <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(14) }]}>
           🔍 Búsqueda multi-estrategia + Validación inteligente + Eliminación automática
         </Text>
       </LinearGradient>
@@ -1329,11 +1361,17 @@ export default function EnriquecimientoGoogleScreen() {
               ]}
             >
               {paso > step ? (
-                <IconSymbol name="checkmark" size={16} color="white" />
+                <IconSymbol 
+                  ios_icon_name="checkmark" 
+                  android_material_icon_name="check" 
+                  size={Platform.OS === 'android' ? scaleIconSize(16) : 16} 
+                  color="white" 
+                />
               ) : (
                 <Text
                   style={[
                     styles.stepNumber,
+                    { fontSize: scaleFontSize(16) },
                     paso >= step && styles.stepNumberActive,
                   ]}
                 >
@@ -1371,9 +1409,14 @@ export default function EnriquecimientoGoogleScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Seleccionar Comunidad Autónoma</Text>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(18) }]}>Seleccionar Comunidad Autónoma</Text>
               <TouchableOpacity onPress={() => setMostrarSelectorComunidad(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol 
+                  ios_icon_name="xmark" 
+                  android_material_icon_name="close" 
+                  size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
+                  color={colors.text} 
+                />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalScroll}>
@@ -1389,13 +1432,19 @@ export default function EnriquecimientoGoogleScreen() {
                   <Text
                     style={[
                       styles.modalItemText,
+                      { fontSize: scaleFontSize(16) },
                       comunidadSeleccionada === comunidad && styles.modalItemTextSelected,
                     ]}
                   >
                     {comunidad}
                   </Text>
                   {comunidadSeleccionada === comunidad && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                    <IconSymbol 
+                      ios_icon_name="checkmark" 
+                      android_material_icon_name="check" 
+                      size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+                      color={colors.primary} 
+                    />
                   )}
                 </TouchableOpacity>
               ))}
@@ -1414,9 +1463,14 @@ export default function EnriquecimientoGoogleScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Seleccionar Provincia</Text>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(18) }]}>Seleccionar Provincia</Text>
               <TouchableOpacity onPress={() => setMostrarSelectorProvincia(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol 
+                  ios_icon_name="xmark" 
+                  android_material_icon_name="close" 
+                  size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
+                  color={colors.text} 
+                />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalScroll}>
@@ -1432,13 +1486,19 @@ export default function EnriquecimientoGoogleScreen() {
                   <Text
                     style={[
                       styles.modalItemText,
+                      { fontSize: scaleFontSize(16) },
                       provinciaSeleccionada === provincia && styles.modalItemTextSelected,
                     ]}
                   >
                     {provincia}
                   </Text>
                   {provinciaSeleccionada === provincia && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                    <IconSymbol 
+                      ios_icon_name="checkmark" 
+                      android_material_icon_name="check" 
+                      size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+                      color={colors.primary} 
+                    />
                   )}
                 </TouchableOpacity>
               ))}
@@ -1461,13 +1521,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   headerTitle: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
     marginTop: 10,
   },
   headerSubtitle: {
-    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 5,
   },
@@ -1498,7 +1556,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
   },
   stepNumber: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.textSecondary,
   },
@@ -1522,13 +1579,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 10,
   },
   subtitle: {
-    fontSize: 16,
     color: colors.textSecondary,
     marginBottom: 15,
   },
@@ -1540,7 +1595,6 @@ const styles = StyleSheet.create({
     ...commonStyles.shadow,
   },
   label: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 10,
@@ -1557,7 +1611,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   selectorButtonText: {
-    fontSize: 16,
     color: colors.text,
     fontWeight: '500',
   },
@@ -1575,7 +1628,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: 'white',
-    fontSize: 16,
     fontWeight: 'bold',
   },
   switchRow: {
@@ -1584,12 +1636,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   switchLabel: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
   switchSubLabel: {
-    fontSize: 13,
     color: colors.textSecondary,
     marginTop: 3,
   },
@@ -1609,17 +1659,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
   },
   statLabel: {
-    fontSize: 12,
     color: colors.textSecondary,
     marginTop: 5,
   },
   progressLabel: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
@@ -1639,22 +1686,18 @@ const styles = StyleSheet.create({
     ...commonStyles.shadow,
   },
   categoriaEmoji: {
-    fontSize: 32,
     marginBottom: 8,
   },
   categoriaNombre: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 5,
   },
   categoriaStats: {
-    fontSize: 11,
     color: colors.textSecondary,
     marginBottom: 3,
   },
   categoriaTotal: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.primary,
     marginBottom: 8,
@@ -1665,7 +1708,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoriaDetail: {
-    fontSize: 12,
     fontWeight: '600',
     color: '#10B981',
     marginHorizontal: 3,
@@ -1676,13 +1718,11 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   infoBoxTitle: {
-    fontSize: 13,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 5,
   },
   infoBoxText: {
-    fontSize: 12,
     color: colors.textSecondary,
     marginTop: 3,
   },
@@ -1691,12 +1731,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 8,
     padding: 12,
-    fontSize: 16,
     color: colors.text,
     backgroundColor: 'white',
   },
   infoText: {
-    fontSize: 14,
     color: colors.text,
   },
   progressCard: {
@@ -1707,7 +1745,6 @@ const styles = StyleSheet.create({
     ...commonStyles.shadow,
   },
   progressTitle: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 10,
@@ -1725,7 +1762,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   progressPercentage: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
@@ -1744,7 +1780,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   logsTitle: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
   },
@@ -1757,7 +1792,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   copyButtonText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
     marginLeft: 5,
@@ -1770,12 +1804,10 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   logTimestamp: {
-    fontSize: 11,
     fontWeight: '600',
     marginRight: 8,
   },
   logMessage: {
-    fontSize: 11,
     flex: 1,
   },
   modalOverlay: {
@@ -1798,7 +1830,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   modalTitle: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
   },
@@ -1817,7 +1848,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   modalItemText: {
-    fontSize: 16,
     color: colors.text,
   },
   modalItemTextSelected: {

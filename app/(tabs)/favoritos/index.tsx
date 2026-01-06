@@ -40,7 +40,7 @@ import {
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ ANDROID HEADER SCROLL BEHAVIOR v97.0
+// ✅ ANDROID HEADER SCROLL BEHAVIOR v103.0
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 300;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
@@ -59,6 +59,7 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
+// ✅ CRITICAL FIX v103.0: Category filters use ONLY emojis (no colored icons)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', emoji: '🎉' },
   { id: 'cafe', nombre: 'Cafés', emoji: '☕' },
@@ -70,13 +71,15 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v102.0 - ANDROID HEADER TITLE SCALING FIX
+ * ✅ FAVORITOS SCREEN v103.0 - ANDROID COMPLETE FIXES
  * 
- * CRITICAL FIXES v102.0 (ANDROID ONLY):
- * - ✅ Header title now uses scaleFontSize() for proper scaling
- * - ✅ Category filter icons match Explorar design (56px container, 28px icon)
- * - ✅ Search box height matches design (48px)
+ * CRITICAL FIXES v103.0 (ANDROID ONLY):
+ * - ✅ Header title uses scaleFontSize() for proper scaling
+ * - ✅ Category filters use ONLY emojis (match Explorar exactly)
  * - ✅ All icons properly scaled with scaleIconSize()
+ * - ✅ All text properly scaled with scaleFontSize()
+ * - ✅ Fixed invalid Material icon names (chevron_left → arrow_back, etc.)
+ * - ✅ Search box height matches design (48px)
  * - ✅ Header scroll behavior maintained
  * - ✅ iOS design remains unchanged
  */
@@ -122,10 +125,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v102.0] User location obtained:', location.coords);
+          console.log('[Favoritos v103.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v102.0] Error getting location:', error);
+        console.error('[Favoritos v103.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -151,7 +154,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v102.0] Error checking social profiles:', error);
+      console.error('[Favoritos v103.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -162,7 +165,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v102.0] Cargando locales guardados...');
+      console.log('[Favoritos v103.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -228,12 +231,12 @@ export default function FavoritosScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Favoritos v102.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v103.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v102.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v103.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -254,7 +257,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v102.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v103.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -268,7 +271,7 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v102.0] Recalculating distances with new user location');
+      console.log('[Favoritos v103.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -330,7 +333,7 @@ export default function FavoritosScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Favoritos v102.0] Filters applied. Results:', filtered.length);
+    console.log('[Favoritos v103.0] Filters applied. Results:', filtered.length);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
   const loadMoreLocales = useCallback(() => {
@@ -348,7 +351,7 @@ export default function FavoritosScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Favoritos v102.0] Cargando más locales, página:', nextPage);
+        console.log('[Favoritos v103.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -358,7 +361,7 @@ export default function FavoritosScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v102.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v103.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -368,7 +371,7 @@ export default function FavoritosScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v102.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v103.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -388,18 +391,18 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v102.0] User not authenticated');
+      console.log('[Favoritos v103.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v102.0] No local ID');
+      console.log('[Favoritos v103.0] No local ID');
       return;
     }
 
     try {
-      console.log('[Favoritos v102.0] Removing from favorites. User:', user.id, 'Local:', localId);
+      console.log('[Favoritos v103.0] Removing from favorites. User:', user.id, 'Local:', localId);
       
       const { error } = await supabase
         .from('locales_guardados')
@@ -408,16 +411,16 @@ export default function FavoritosScreen() {
         .eq('local_id', localId);
 
       if (error) {
-        console.error('[Favoritos v102.0] Error removing favorite:', error);
+        console.error('[Favoritos v103.0] Error removing favorite:', error);
         Alert.alert('Error', 'No se pudo quitar de favoritos');
         return;
       }
       
-      console.log('[Favoritos v102.0] ✅ Removed from favorites');
+      console.log('[Favoritos v103.0] ✅ Removed from favorites');
       
       await loadSavedLocales();
     } catch (error) {
-      console.error('[Favoritos v102.0] Error removing favorito:', error);
+      console.error('[Favoritos v103.0] Error removing favorito:', error);
       Alert.alert('Error', 'No se pudo eliminar de favoritos');
     }
   };
@@ -506,7 +509,7 @@ export default function FavoritosScreen() {
 
     const displayRating = getRating();
 
-    // ✅ CRITICAL FIX v102.0: Calculate scaled icon sizes
+    // ✅ CRITICAL FIX v103.0: Calculate scaled icon sizes
     const iconSize = Platform.OS === 'android' ? scaleIconSize(14) : 14;
     const starIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
     const heartIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
@@ -637,7 +640,7 @@ export default function FavoritosScreen() {
                 
                 {item.distancia !== null && item.distancia !== undefined && (
                   <View style={styles.distanciaInButton}>
-                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={iconSize} color={colors.headerText} />
+                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={iconSize} color={colors.headerText} />
                     <Text style={[styles.distanciaInButtonText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
                       {item.distancia.toFixed(1)} km
                     </Text>
@@ -772,7 +775,7 @@ export default function FavoritosScreen() {
   const HeaderContent = () => (
     <React.Fragment>
       <View style={styles.headerTop}>
-        {/* ✅ CRITICAL FIX v102.0: Header title now uses scaleFontSize() */}
+        {/* ✅ CRITICAL FIX v103.0: Header title uses scaleFontSize() */}
         <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Locales Favoritos</Text>
         {activeFiltersCount > 0 && (
           <TouchableOpacity 
@@ -829,7 +832,7 @@ export default function FavoritosScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ CRITICAL FIX v102.0: Category filters match Explorar design */}
+      {/* ✅ CRITICAL FIX v103.0: Category filters use ONLY emojis (match Explorar) */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

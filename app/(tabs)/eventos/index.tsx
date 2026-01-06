@@ -49,6 +49,7 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
+// ✅ CRITICAL FIX v103.0: Category filters use ONLY emojis (no colored icons)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', emoji: '🎉' },
   { id: 'cafe', nombre: 'Cafés', emoji: '☕' },
@@ -83,12 +84,14 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v102.0 - ANDROID CATEGORY FILTER DESIGN FIX
+ * ✅ EVENTOS SCREEN v103.0 - ANDROID COMPLETE FIXES
  * 
- * CRITICAL FIXES v102.0 (ANDROID ONLY):
- * - ✅ Category filters now match Explorar design exactly (56px container, 28px icon)
+ * CRITICAL FIXES v103.0 (ANDROID ONLY):
+ * - ✅ Category filters use ONLY emojis (match Explorar exactly)
  * - ✅ Header title uses scaleFontSize() for proper scaling
  * - ✅ All icons properly scaled with scaleIconSize()
+ * - ✅ All text properly scaled with scaleFontSize()
+ * - ✅ Fixed invalid Material icon names
  * - ✅ Search box text properly centered with textAlignVertical
  * - ✅ Header scrolls with content (like Favoritos)
  * - ✅ iOS design remains unchanged
@@ -144,7 +147,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v102.0] Cargando eventos...');
+      console.log('[Eventos v103.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -176,11 +179,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v102.0] Error cargando eventos:', error);
+        console.error('[Eventos v103.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v102.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v103.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -215,7 +218,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v102.0] Error:', error);
+      console.error('[Eventos v103.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -349,7 +352,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v102.0] Deleting event:', eventoId);
+              console.log('[Eventos v103.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -357,14 +360,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v102.0] Error deleting event:', error);
+                console.error('[Eventos v103.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v102.0] Error deleting event:', error);
+              console.error('[Eventos v103.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -394,7 +397,7 @@ export default function EventosScreen() {
 
   const HeaderContent = () => (
     <React.Fragment>
-      {/* ✅ CRITICAL FIX v102.0: Header title uses scaleFontSize() */}
+      {/* ✅ CRITICAL FIX v103.0: Header title uses scaleFontSize() */}
       <Text style={[
         commonStyles.headerTitle, 
         { 
@@ -467,7 +470,7 @@ export default function EventosScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ CRITICAL FIX v102.0: Category filters match Explorar design exactly */}
+      {/* ✅ CRITICAL FIX v103.0: Category filters use ONLY emojis (match Explorar) */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

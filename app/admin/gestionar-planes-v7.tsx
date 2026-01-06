@@ -14,6 +14,7 @@ import {
   Dimensions,
   Pressable,
   Image,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -21,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -65,6 +67,16 @@ interface Local {
   direccion: string;
   propietario_id: string | null;
 }
+
+/**
+ * ✅ GESTIONAR PLANES v103.0 - ANDROID SCALING FIX
+ * 
+ * CRITICAL FIXES v103.0 (ANDROID ONLY):
+ * - ✅ All text properly scaled with scaleFontSize()
+ * - ✅ All icons properly scaled with scaleIconSize()
+ * - ✅ Fixed invalid Material icon names
+ * - ✅ iOS design remains unchanged
+ */
 
 export default function GestionarPlanesV7Screen() {
   const router = useRouter();
@@ -123,10 +135,10 @@ export default function GestionarPlanesV7Screen() {
 
       if (error) throw error;
 
-      console.log('[GestionarPlanesV7] ✅ Loaded planes:', data?.length || 0);
+      console.log('[GestionarPlanesV7 v103.0] ✅ Loaded planes:', data?.length || 0);
       setPlanes(data || []);
     } catch (error) {
-      console.error('[GestionarPlanesV7] Error cargando planes:', error);
+      console.error('[GestionarPlanesV7 v103.0] Error cargando planes:', error);
       Alert.alert('Error', 'No se pudieron cargar los planes');
     }
   }, []);
@@ -149,10 +161,10 @@ export default function GestionarPlanesV7Screen() {
 
       if (error) throw error;
 
-      console.log('[GestionarPlanesV7] ✅ Loaded subscriptions:', data?.length || 0);
+      console.log('[GestionarPlanesV7 v103.0] ✅ Loaded subscriptions:', data?.length || 0);
       setSubscriptions(data || []);
     } catch (error) {
-      console.error('[GestionarPlanesV7] Error cargando suscripciones:', error);
+      console.error('[GestionarPlanesV7 v103.0] Error cargando suscripciones:', error);
       Alert.alert('Error', 'No se pudieron cargar las suscripciones');
     }
   }, []);
@@ -186,7 +198,7 @@ export default function GestionarPlanesV7Screen() {
 
       setSearchResults(data || []);
     } catch (error) {
-      console.error('[GestionarPlanesV7] Error buscando locales:', error);
+      console.error('[GestionarPlanesV7 v103.0] Error buscando locales:', error);
     } finally {
       setSearching(false);
     }
@@ -243,7 +255,7 @@ export default function GestionarPlanesV7Screen() {
 
       await crearNuevaSuscripcion();
     } catch (error) {
-      console.error('[GestionarPlanesV7] Error asignando plan:', error);
+      console.error('[GestionarPlanesV7 v103.0] Error asignando plan:', error);
       Alert.alert('Error', 'No se pudo asignar el plan');
       setAssigning(false);
     }
@@ -262,7 +274,7 @@ export default function GestionarPlanesV7Screen() {
 
       const propietarioId = selectedLocal.propietario_id || user.id;
 
-      console.log('[GestionarPlanesV7] ✅ Creating subscription:', {
+      console.log('[GestionarPlanesV7 v103.0] ✅ Creating subscription:', {
         usuario_id: propietarioId,
         propietario_id: propietarioId,
         local_id: selectedLocal.id,
@@ -279,12 +291,12 @@ export default function GestionarPlanesV7Screen() {
         .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') {
-        console.error('[GestionarPlanesV7] Error checking existing subscription:', checkError);
+        console.error('[GestionarPlanesV7 v103.0] Error checking existing subscription:', checkError);
         throw checkError;
       }
 
       if (existingActive) {
-        console.log('[GestionarPlanesV7] Updating existing subscription:', existingActive.id);
+        console.log('[GestionarPlanesV7 v103.0] Updating existing subscription:', existingActive.id);
         
         const { error: updateError } = await supabase
           .from('suscripciones_locales')
@@ -304,7 +316,7 @@ export default function GestionarPlanesV7Screen() {
           .eq('id', existingActive.id);
 
         if (updateError) {
-          console.error('[GestionarPlanesV7] Update error:', updateError);
+          console.error('[GestionarPlanesV7 v103.0] Update error:', updateError);
           throw updateError;
         }
       } else {
@@ -327,7 +339,7 @@ export default function GestionarPlanesV7Screen() {
           });
 
         if (subscriptionError) {
-          console.error('[GestionarPlanesV7] Subscription error:', subscriptionError);
+          console.error('[GestionarPlanesV7 v103.0] Subscription error:', subscriptionError);
           throw subscriptionError;
         }
       }
@@ -338,7 +350,7 @@ export default function GestionarPlanesV7Screen() {
         .eq('id', selectedLocal.id);
 
       if (localError) {
-        console.error('[GestionarPlanesV7] Error habilitando local:', localError);
+        console.error('[GestionarPlanesV7 v103.0] Error habilitando local:', localError);
       }
 
       Alert.alert(
@@ -353,7 +365,7 @@ export default function GestionarPlanesV7Screen() {
       setSearchResults([]);
       await cargarDatos();
     } catch (error) {
-      console.error('[GestionarPlanesV7] Error creando suscripción:', error);
+      console.error('[GestionarPlanesV7 v103.0] Error creando suscripción:', error);
       Alert.alert('Error', 'No se pudo crear la suscripción');
     } finally {
       setAssigning(false);
@@ -381,7 +393,7 @@ export default function GestionarPlanesV7Screen() {
               Alert.alert('Éxito', 'Suscripción cancelada correctamente');
               await cargarSuscripciones();
             } catch (error) {
-              console.error('[GestionarPlanesV7] Error cancelando suscripción:', error);
+              console.error('[GestionarPlanesV7 v103.0] Error cancelando suscripción:', error);
               Alert.alert('Error', 'No se pudo cancelar la suscripción');
             }
           },
@@ -439,7 +451,7 @@ export default function GestionarPlanesV7Screen() {
         visibilidad_maxima: Boolean(editPlanVisibilidadMaxima),
       };
 
-      console.log('[GestionarPlanesV7] ✅ Updating plan with data:', updateData);
+      console.log('[GestionarPlanesV7 v103.0] ✅ Updating plan with data:', updateData);
 
       const { error } = await supabase
         .from('planes_suscripcion')
@@ -447,7 +459,7 @@ export default function GestionarPlanesV7Screen() {
         .eq('id', editingPlan.id);
 
       if (error) {
-        console.error('[GestionarPlanesV7] Error updating plan:', error);
+        console.error('[GestionarPlanesV7 v103.0] Error updating plan:', error);
         throw error;
       }
 
@@ -456,7 +468,7 @@ export default function GestionarPlanesV7Screen() {
       setEditingPlan(null);
       await cargarPlanes();
     } catch (error) {
-      console.error('[GestionarPlanesV7] Error guardando plan:', error);
+      console.error('[GestionarPlanesV7 v103.0] Error guardando plan:', error);
       Alert.alert('Error', 'No se pudo guardar el plan');
     } finally {
       setSavingPlan(false);
@@ -495,14 +507,14 @@ export default function GestionarPlanesV7Screen() {
         caracteristicas: [],
       };
 
-      console.log('[GestionarPlanesV7] ✅ Creating plan with data:', insertData);
+      console.log('[GestionarPlanesV7 v103.0] ✅ Creating plan with data:', insertData);
 
       const { error } = await supabase
         .from('planes_suscripcion')
         .insert(insertData);
 
       if (error) {
-        console.error('[GestionarPlanesV7] Error creating plan:', error);
+        console.error('[GestionarPlanesV7 v103.0] Error creating plan:', error);
         throw error;
       }
 
@@ -511,7 +523,7 @@ export default function GestionarPlanesV7Screen() {
       resetCreatePlanForm();
       await cargarPlanes();
     } catch (error) {
-      console.error('[GestionarPlanesV7] Error creando plan:', error);
+      console.error('[GestionarPlanesV7 v103.0] Error creando plan:', error);
       Alert.alert('Error', 'No se pudo crear el plan');
     } finally {
       setCreatingPlan(false);
@@ -567,7 +579,7 @@ export default function GestionarPlanesV7Screen() {
               Alert.alert('✅ Éxito', 'Plan eliminado correctamente');
               await cargarPlanes();
             } catch (error) {
-              console.error('[GestionarPlanesV7] Error eliminando plan:', error);
+              console.error('[GestionarPlanesV7 v103.0] Error eliminando plan:', error);
               Alert.alert('Error', 'No se pudo eliminar el plan');
             }
           },
@@ -577,18 +589,23 @@ export default function GestionarPlanesV7Screen() {
   };
 
   const getEstadoBadge = (estado: string) => {
-    const badges: Record<string, { color: string; text: string; icon: string }> = {
-      activa: { color: '#10B981', text: 'Activa', icon: 'checkmark.circle.fill' },
-      cancelada: { color: '#EF4444', text: 'Cancelada', icon: 'xmark.circle.fill' },
-      expirada: { color: '#F59E0B', text: 'Expirada', icon: 'clock.fill' },
+    const badges: Record<string, { color: string; text: string; icon: string; androidIcon: string }> = {
+      activa: { color: '#10B981', text: 'Activa', icon: 'checkmark.circle.fill', androidIcon: 'check_circle' },
+      cancelada: { color: '#EF4444', text: 'Cancelada', icon: 'xmark.circle.fill', androidIcon: 'cancel' },
+      expirada: { color: '#F59E0B', text: 'Expirada', icon: 'clock.fill', androidIcon: 'schedule' },
     };
 
     const badge = badges[estado] || badges.activa;
 
     return (
       <View style={[styles.estadoBadgeV7, { backgroundColor: badge.color + '15' }]}>
-        <IconSymbol ios_icon_name={badge.icon} android_material_icon_name="circle" size={14} color={badge.color} />
-        <Text style={[styles.estadoBadgeTextV7, { color: badge.color }]}>{badge.text}</Text>
+        <IconSymbol 
+          ios_icon_name={badge.icon} 
+          android_material_icon_name={badge.androidIcon} 
+          size={Platform.OS === 'android' ? scaleIconSize(14) : 14} 
+          color={badge.color} 
+        />
+        <Text style={[styles.estadoBadgeTextV7, { color: badge.color, fontSize: scaleFontSize(13) }]}>{badge.text}</Text>
       </View>
     );
   };
@@ -597,15 +614,20 @@ export default function GestionarPlanesV7Screen() {
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={styles.sectionHeaderV7}>
         <View style={styles.sectionHeaderLeft}>
-          <Text style={styles.sectionTitleV7}>Planes Disponibles</Text>
-          <Text style={styles.sectionSubtitleV7}>{planes.length} planes configurados</Text>
+          <Text style={[styles.sectionTitleV7, { fontSize: scaleFontSize(24) }]}>Planes Disponibles</Text>
+          <Text style={[styles.sectionSubtitleV7, { fontSize: scaleFontSize(15) }]}>{planes.length} planes configurados</Text>
         </View>
         <TouchableOpacity
           style={styles.createButtonV7}
           onPress={() => setShowCreatePlanModal(true)}
         >
-          <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={22} color={colors.white} />
-          <Text style={styles.createButtonTextV7}>Nuevo Plan</Text>
+          <IconSymbol 
+            ios_icon_name="plus.circle.fill" 
+            android_material_icon_name="add_circle" 
+            size={Platform.OS === 'android' ? scaleIconSize(22) : 22} 
+            color={colors.white} 
+          />
+          <Text style={[styles.createButtonTextV7, { fontSize: scaleFontSize(15) }]}>Nuevo Plan</Text>
         </TouchableOpacity>
       </View>
 
@@ -618,8 +640,8 @@ export default function GestionarPlanesV7Screen() {
             >
               <View style={styles.planCardHeader}>
                 <View style={styles.planCardHeaderLeft}>
-                  <Text style={styles.planNameV7}>{plan.nombre}</Text>
-                  <Text style={styles.planPriceV7}>
+                  <Text style={[styles.planNameV7, { fontSize: scaleFontSize(22) }]}>{plan.nombre}</Text>
+                  <Text style={[styles.planPriceV7, { fontSize: scaleFontSize(28) }]}>
                     {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€/mes`}
                   </Text>
                 </View>
@@ -627,12 +649,17 @@ export default function GestionarPlanesV7Screen() {
                   style={styles.editIconButtonV7}
                   onPress={() => handleEditPlan(plan)}
                 >
-                  <IconSymbol ios_icon_name="pencil.circle.fill" android_material_icon_name="edit" size={28} color={colors.white} />
+                  <IconSymbol 
+                    ios_icon_name="pencil.circle.fill" 
+                    android_material_icon_name="edit" 
+                    size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+                    color={colors.white} 
+                  />
                 </TouchableOpacity>
               </View>
 
               {plan.descripcion && (
-                <Text style={styles.planDescriptionV7} numberOfLines={2}>
+                <Text style={[styles.planDescriptionV7, { fontSize: scaleFontSize(15) }]} numberOfLines={2}>
                   {plan.descripcion}
                 </Text>
               )}
@@ -641,49 +668,79 @@ export default function GestionarPlanesV7Screen() {
                 {plan.eventos_mes > 0 && (
                   <View style={styles.planFeatureItemV7}>
                     <View style={styles.planFeatureIconV7}>
-                      <IconSymbol ios_icon_name="calendar.badge.plus" android_material_icon_name="event" size={18} color={colors.white} />
+                      <IconSymbol 
+                        ios_icon_name="calendar.badge.plus" 
+                        android_material_icon_name="event" 
+                        size={Platform.OS === 'android' ? scaleIconSize(18) : 18} 
+                        color={colors.white} 
+                      />
                     </View>
-                    <Text style={styles.planFeatureTextV7}>{plan.eventos_mes} eventos/mes</Text>
+                    <Text style={[styles.planFeatureTextV7, { fontSize: scaleFontSize(15) }]}>{plan.eventos_mes} eventos/mes</Text>
                   </View>
                 )}
                 {plan.promos_destacadas > 0 && (
                   <View style={styles.planFeatureItemV7}>
                     <View style={styles.planFeatureIconV7}>
-                      <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={18} color={colors.white} />
+                      <IconSymbol 
+                        ios_icon_name="star.fill" 
+                        android_material_icon_name="star" 
+                        size={Platform.OS === 'android' ? scaleIconSize(18) : 18} 
+                        color={colors.white} 
+                      />
                     </View>
-                    <Text style={styles.planFeatureTextV7}>{plan.promos_destacadas} promos destacadas</Text>
+                    <Text style={[styles.planFeatureTextV7, { fontSize: scaleFontSize(15) }]}>{plan.promos_destacadas} promos destacadas</Text>
                   </View>
                 )}
                 {plan.perfil_social && (
                   <View style={styles.planFeatureItemV7}>
                     <View style={styles.planFeatureIconV7}>
-                      <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={18} color={colors.white} />
+                      <IconSymbol 
+                        ios_icon_name="person.2.fill" 
+                        android_material_icon_name="people" 
+                        size={Platform.OS === 'android' ? scaleIconSize(18) : 18} 
+                        color={colors.white} 
+                      />
                     </View>
-                    <Text style={styles.planFeatureTextV7}>Perfil social completo</Text>
+                    <Text style={[styles.planFeatureTextV7, { fontSize: scaleFontSize(15) }]}>Perfil social completo</Text>
                   </View>
                 )}
                 {plan.panel_analisis && (
                   <View style={styles.planFeatureItemV7}>
                     <View style={styles.planFeatureIconV7}>
-                      <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={18} color={colors.white} />
+                      <IconSymbol 
+                        ios_icon_name="chart.bar.fill" 
+                        android_material_icon_name="bar_chart" 
+                        size={Platform.OS === 'android' ? scaleIconSize(18) : 18} 
+                        color={colors.white} 
+                      />
                     </View>
-                    <Text style={styles.planFeatureTextV7}>Panel de análisis</Text>
+                    <Text style={[styles.planFeatureTextV7, { fontSize: scaleFontSize(15) }]}>Panel de análisis</Text>
                   </View>
                 )}
                 {plan.soporte_prioritario && (
                   <View style={styles.planFeatureItemV7}>
                     <View style={styles.planFeatureIconV7}>
-                      <IconSymbol ios_icon_name="headphones" android_material_icon_name="support_agent" size={18} color={colors.white} />
+                      <IconSymbol 
+                        ios_icon_name="headphones" 
+                        android_material_icon_name="support_agent" 
+                        size={Platform.OS === 'android' ? scaleIconSize(18) : 18} 
+                        color={colors.white} 
+                      />
                     </View>
-                    <Text style={styles.planFeatureTextV7}>Soporte prioritario</Text>
+                    <Text style={[styles.planFeatureTextV7, { fontSize: scaleFontSize(15) }]}>Soporte prioritario</Text>
                   </View>
                 )}
                 {plan.visibilidad_maxima && (
                   <View style={styles.planFeatureItemV7}>
                     <View style={styles.planFeatureIconV7}>
-                      <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={18} color={colors.white} />
+                      <IconSymbol 
+                        ios_icon_name="sparkles" 
+                        android_material_icon_name="auto_awesome" 
+                        size={Platform.OS === 'android' ? scaleIconSize(18) : 18} 
+                        color={colors.white} 
+                      />
                     </View>
-                    <Text style={styles.planFeatureTextV7}>Visibilidad máxima</Text>
+                    <Text style={[styles.planFeatureTextV7, { fontSize: scaleFontSize(15) }]}>Visibilidad máxima</Text>
                   </View>
                 )}
               </View>
@@ -693,10 +750,10 @@ export default function GestionarPlanesV7Screen() {
                   <IconSymbol 
                     ios_icon_name={plan.activo ? 'checkmark.circle.fill' : 'xmark.circle.fill'} 
                     android_material_icon_name={plan.activo ? 'check_circle' : 'cancel'} 
-                    size={14} 
+                    size={Platform.OS === 'android' ? scaleIconSize(14) : 14} 
                     color={colors.white} 
                   />
-                  <Text style={styles.planStatusTextV7}>
+                  <Text style={[styles.planStatusTextV7, { fontSize: scaleFontSize(13) }]}>
                     {plan.activo ? 'Activo' : 'Inactivo'}
                   </Text>
                 </View>
@@ -712,16 +769,21 @@ export default function GestionarPlanesV7Screen() {
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={styles.sectionHeaderV7}>
         <View style={styles.sectionHeaderLeft}>
-          <Text style={styles.sectionTitleV7}>Suscripciones</Text>
-          <Text style={styles.sectionSubtitleV7}>{subscriptions.length} suscripciones registradas</Text>
+          <Text style={[styles.sectionTitleV7, { fontSize: scaleFontSize(24) }]}>Suscripciones</Text>
+          <Text style={[styles.sectionSubtitleV7, { fontSize: scaleFontSize(15) }]}>{subscriptions.length} suscripciones registradas</Text>
         </View>
       </View>
 
       {subscriptions.length === 0 ? (
         <View style={styles.emptyStateV7}>
-          <IconSymbol ios_icon_name="creditcard" android_material_icon_name="payment" size={64} color={colors.textSecondary} />
-          <Text style={styles.emptyTextV7}>No hay suscripciones</Text>
-          <Text style={styles.emptySubtextV7}>Las suscripciones aparecerán aquí cuando asignes planes a locales</Text>
+          <IconSymbol 
+            ios_icon_name="creditcard" 
+            android_material_icon_name="payment" 
+            size={Platform.OS === 'android' ? scaleIconSize(64) : 64} 
+            color={colors.textSecondary} 
+          />
+          <Text style={[styles.emptyTextV7, { fontSize: scaleFontSize(20) }]}>No hay suscripciones</Text>
+          <Text style={[styles.emptySubtextV7, { fontSize: scaleFontSize(15) }]}>Las suscripciones aparecerán aquí cuando asignes planes a locales</Text>
         </View>
       ) : (
         <View style={styles.subscriptionsListV7}>
@@ -729,8 +791,8 @@ export default function GestionarPlanesV7Screen() {
             <View key={subscription.id} style={styles.subscriptionCardV7}>
               <View style={styles.subscriptionCardHeader}>
                 <View style={styles.subscriptionCardHeaderLeft}>
-                  <Text style={styles.subscriptionLocalNameV7}>{subscription.locales.nombre}</Text>
-                  <Text style={styles.subscriptionPlanNameV7}>
+                  <Text style={[styles.subscriptionLocalNameV7, { fontSize: scaleFontSize(18) }]}>{subscription.locales.nombre}</Text>
+                  <Text style={[styles.subscriptionPlanNameV7, { fontSize: scaleFontSize(15) }]}>
                     {subscription.plan.nombre}
                   </Text>
                 </View>
@@ -739,8 +801,13 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.subscriptionCardBody}>
                 <View style={styles.subscriptionInfoRow}>
-                  <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={18} color={colors.textSecondary} />
-                  <Text style={styles.subscriptionInfoText}>
+                  <IconSymbol 
+                    ios_icon_name="calendar" 
+                    android_material_icon_name="event" 
+                    size={Platform.OS === 'android' ? scaleIconSize(18) : 18} 
+                    color={colors.textSecondary} 
+                  />
+                  <Text style={[styles.subscriptionInfoText, { fontSize: scaleFontSize(14) }]}>
                     Inicio: {new Date(subscription.fecha_inicio).toLocaleDateString('es-ES', {
                       day: '2-digit',
                       month: 'long',
@@ -755,8 +822,13 @@ export default function GestionarPlanesV7Screen() {
                   style={styles.cancelSubscriptionButtonV7}
                   onPress={() => cancelarSuscripcion(subscription.id, subscription.locales.nombre)}
                 >
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color="#EF4444" />
-                  <Text style={styles.cancelSubscriptionTextV7}>Cancelar Suscripción</Text>
+                  <IconSymbol 
+                    ios_icon_name="xmark.circle.fill" 
+                    android_material_icon_name="cancel" 
+                    size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+                    color="#EF4444" 
+                  />
+                  <Text style={[styles.cancelSubscriptionTextV7, { fontSize: scaleFontSize(15) }]}>Cancelar Suscripción</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -771,8 +843,8 @@ export default function GestionarPlanesV7Screen() {
       <ScrollView contentContainerStyle={styles.tabContentContainer}>
         <View style={styles.sectionHeaderV7}>
           <View style={styles.sectionHeaderLeft}>
-            <Text style={styles.sectionTitleV7}>Asignar Plan</Text>
-            <Text style={styles.sectionSubtitleV7}>Conecta locales con planes de suscripción</Text>
+            <Text style={[styles.sectionTitleV7, { fontSize: scaleFontSize(24) }]}>Asignar Plan</Text>
+            <Text style={[styles.sectionSubtitleV7, { fontSize: scaleFontSize(15) }]}>Conecta locales con planes de suscripción</Text>
           </View>
         </View>
 
@@ -784,18 +856,28 @@ export default function GestionarPlanesV7Screen() {
             colors={[colors.primary, colors.primary + 'DD']}
             style={styles.assignButtonGradient}
           >
-            <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={32} color={colors.white} />
-            <Text style={styles.assignButtonTextV7}>Asignar Nuevo Plan a Local</Text>
+            <IconSymbol 
+              ios_icon_name="plus.circle.fill" 
+              android_material_icon_name="add_circle" 
+              size={Platform.OS === 'android' ? scaleIconSize(32) : 32} 
+              color={colors.white} 
+            />
+            <Text style={[styles.assignButtonTextV7, { fontSize: scaleFontSize(18) }]}>Asignar Nuevo Plan a Local</Text>
           </LinearGradient>
         </TouchableOpacity>
 
         <View style={styles.infoBoxV7}>
           <View style={styles.infoBoxIcon}>
-            <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={24} color={colors.primary} />
+            <IconSymbol 
+              ios_icon_name="info.circle.fill" 
+              android_material_icon_name="info" 
+              size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
+              color={colors.primary} 
+            />
           </View>
           <View style={styles.infoBoxContent}>
-            <Text style={styles.infoBoxTitle}>Activación Automática</Text>
-            <Text style={styles.infoBoxText}>
+            <Text style={[styles.infoBoxTitle, { fontSize: scaleFontSize(16) }]}>Activación Automática</Text>
+            <Text style={[styles.infoBoxText, { fontSize: scaleFontSize(14) }]}>
               Al asignar un plan a un local, su perfil se activará automáticamente en la plataforma BarLive y en la red social.
             </Text>
           </View>
@@ -803,12 +885,12 @@ export default function GestionarPlanesV7Screen() {
 
         <View style={styles.quickStatsV7}>
           <View style={styles.quickStatCard}>
-            <Text style={styles.quickStatNumber}>{planes.filter(p => p.activo).length}</Text>
-            <Text style={styles.quickStatLabel}>Planes Activos</Text>
+            <Text style={[styles.quickStatNumber, { fontSize: scaleFontSize(32) }]}>{planes.filter(p => p.activo).length}</Text>
+            <Text style={[styles.quickStatLabel, { fontSize: scaleFontSize(13) }]}>Planes Activos</Text>
           </View>
           <View style={styles.quickStatCard}>
-            <Text style={styles.quickStatNumber}>{subscriptions.filter(s => s.estado === 'activa').length}</Text>
-            <Text style={styles.quickStatLabel}>Suscripciones Activas</Text>
+            <Text style={[styles.quickStatNumber, { fontSize: scaleFontSize(32) }]}>{subscriptions.filter(s => s.estado === 'activa').length}</Text>
+            <Text style={[styles.quickStatLabel, { fontSize: scaleFontSize(13) }]}>Suscripciones Activas</Text>
           </View>
         </View>
       </ScrollView>
@@ -820,18 +902,23 @@ export default function GestionarPlanesV7Screen() {
       <View style={styles.container}>
         <LinearGradient colors={[colors.headerGradientStart, colors.headerGradientEnd]} style={styles.headerV7}>
           <TouchableOpacity style={styles.backButtonV7} onPress={() => router.back()}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={28} color={colors.headerText} />
+            <IconSymbol 
+              ios_icon_name="chevron.left" 
+              android_material_icon_name="arrow_back" 
+              size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+              color={colors.headerText} 
+            />
           </TouchableOpacity>
           <View style={styles.headerContentV7}>
-            <Text style={styles.headerTitleV7}>Gestionar Planes</Text>
-            <Text style={styles.headerSubtitleV7}>Versión 7.4</Text>
+            <Text style={[styles.headerTitleV7, { fontSize: scaleFontSize(24) }]}>Gestionar Planes</Text>
+            <Text style={[styles.headerSubtitleV7, { fontSize: scaleFontSize(13) }]}>Versión 7.4</Text>
           </View>
           <View style={{ width: 28 }} />
         </LinearGradient>
 
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando datos...</Text>
+          <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando datos...</Text>
         </View>
       </View>
     );
@@ -841,14 +928,24 @@ export default function GestionarPlanesV7Screen() {
     <View style={styles.container}>
       <LinearGradient colors={[colors.headerGradientStart, colors.headerGradientEnd]} style={styles.headerV7}>
         <TouchableOpacity style={styles.backButtonV7} onPress={() => router.back()}>
-          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={28} color={colors.headerText} />
+          <IconSymbol 
+            ios_icon_name="chevron.left" 
+            android_material_icon_name="arrow_back" 
+            size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+            color={colors.headerText} 
+          />
         </TouchableOpacity>
         <View style={styles.headerContentV7}>
-          <Text style={styles.headerTitleV7}>Gestionar Planes</Text>
-          <Text style={styles.headerSubtitleV7}>Versión 7.4 • Fixed Integer Type</Text>
+          <Text style={[styles.headerTitleV7, { fontSize: scaleFontSize(24) }]}>Gestionar Planes</Text>
+          <Text style={[styles.headerSubtitleV7, { fontSize: scaleFontSize(13) }]}>Versión 7.4 • Fixed Integer Type</Text>
         </View>
         <TouchableOpacity style={styles.refreshButtonV7} onPress={cargarDatos}>
-          <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={28} color={colors.headerText} />
+          <IconSymbol 
+            ios_icon_name="arrow.clockwise" 
+            android_material_icon_name="refresh" 
+            size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+            color={colors.headerText} 
+          />
         </TouchableOpacity>
       </LinearGradient>
 
@@ -860,10 +957,10 @@ export default function GestionarPlanesV7Screen() {
           <IconSymbol
             ios_icon_name="list.bullet.rectangle.fill"
             android_material_icon_name="list"
-            size={22}
+            size={Platform.OS === 'android' ? scaleIconSize(22) : 22}
             color={activeTab === 'planes' ? colors.primary : colors.textSecondary}
           />
-          <Text style={[styles.tabTextV7, activeTab === 'planes' && styles.tabTextActiveV7]}>
+          <Text style={[styles.tabTextV7, { fontSize: scaleFontSize(15) }, activeTab === 'planes' && styles.tabTextActiveV7]}>
             Planes
           </Text>
         </TouchableOpacity>
@@ -875,10 +972,10 @@ export default function GestionarPlanesV7Screen() {
           <IconSymbol
             ios_icon_name="creditcard.fill"
             android_material_icon_name="payment"
-            size={22}
+            size={Platform.OS === 'android' ? scaleIconSize(22) : 22}
             color={activeTab === 'subscriptions' ? colors.primary : colors.textSecondary}
           />
-          <Text style={[styles.tabTextV7, activeTab === 'subscriptions' && styles.tabTextActiveV7]}>
+          <Text style={[styles.tabTextV7, { fontSize: scaleFontSize(15) }, activeTab === 'subscriptions' && styles.tabTextActiveV7]}>
             Suscripciones
           </Text>
         </TouchableOpacity>
@@ -890,10 +987,10 @@ export default function GestionarPlanesV7Screen() {
           <IconSymbol
             ios_icon_name="plus.app.fill"
             android_material_icon_name="add_circle"
-            size={22}
+            size={Platform.OS === 'android' ? scaleIconSize(22) : 22}
             color={activeTab === 'assign' ? colors.primary : colors.textSecondary}
           />
-          <Text style={[styles.tabTextV7, activeTab === 'assign' && styles.tabTextActiveV7]}>
+          <Text style={[styles.tabTextV7, { fontSize: scaleFontSize(15) }, activeTab === 'assign' && styles.tabTextActiveV7]}>
             Asignar
           </Text>
         </TouchableOpacity>
@@ -913,19 +1010,29 @@ export default function GestionarPlanesV7Screen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowAssignModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Asignar Plan a Local</Text>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Asignar Plan a Local</Text>
               <TouchableOpacity onPress={() => setShowAssignModal(false)}>
-                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
+                <IconSymbol 
+                  ios_icon_name="xmark.circle.fill" 
+                  android_material_icon_name="cancel" 
+                  size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+                  color={colors.textSecondary} 
+                />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Buscar Local</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Buscar Local</Text>
                 <View style={styles.searchContainer}>
-                  <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+                  <IconSymbol 
+                    ios_icon_name="magnifyingglass" 
+                    android_material_icon_name="search" 
+                    size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+                    color={colors.textSecondary} 
+                  />
                   <TextInput
-                    style={styles.searchInput}
+                    style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     placeholder="Buscar por nombre..."
@@ -938,13 +1045,18 @@ export default function GestionarPlanesV7Screen() {
               {selectedLocal && (
                 <View style={styles.selectedLocalCard}>
                   <View style={styles.selectedLocalHeader}>
-                    <Text style={styles.selectedLocalLabel}>Local Seleccionado:</Text>
+                    <Text style={[styles.selectedLocalLabel, { fontSize: scaleFontSize(12) }]}>Local Seleccionado:</Text>
                     <TouchableOpacity onPress={() => setSelectedLocal(null)}>
-                      <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+                      <IconSymbol 
+                        ios_icon_name="xmark.circle.fill" 
+                        android_material_icon_name="cancel" 
+                        size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+                        color={colors.textSecondary} 
+                      />
                     </TouchableOpacity>
                   </View>
-                  <Text style={styles.selectedLocalName}>{selectedLocal.nombre}</Text>
-                  <Text style={styles.selectedLocalInfo}>{selectedLocal.tipo} • {selectedLocal.provincia}</Text>
+                  <Text style={[styles.selectedLocalName, { fontSize: scaleFontSize(18) }]}>{selectedLocal.nombre}</Text>
+                  <Text style={[styles.selectedLocalInfo, { fontSize: scaleFontSize(14) }]}>{selectedLocal.tipo} • {selectedLocal.provincia}</Text>
                 </View>
               )}
 
@@ -964,12 +1076,17 @@ export default function GestionarPlanesV7Screen() {
                         <Image source={{ uri: local.imagen_url }} style={styles.searchResultImage} />
                       ) : (
                         <View style={[styles.searchResultImage, styles.searchResultImagePlaceholder]}>
-                          <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color={colors.textSecondary} />
+                          <IconSymbol 
+                            ios_icon_name="building.2.fill" 
+                            android_material_icon_name="store" 
+                            size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
+                            color={colors.textSecondary} 
+                          />
                         </View>
                       )}
                       <View style={styles.searchResultInfo}>
-                        <Text style={styles.searchResultName}>{local.nombre}</Text>
-                        <Text style={styles.searchResultDetails}>{local.tipo} • {local.provincia}</Text>
+                        <Text style={[styles.searchResultName, { fontSize: scaleFontSize(15) }]}>{local.nombre}</Text>
+                        <Text style={[styles.searchResultDetails, { fontSize: scaleFontSize(13) }]}>{local.tipo} • {local.provincia}</Text>
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -977,7 +1094,7 @@ export default function GestionarPlanesV7Screen() {
               )}
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Seleccionar Plan</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Seleccionar Plan</Text>
                 <View style={styles.planSelector}>
                   {planes.filter(p => p.activo).map((plan) => (
                     <TouchableOpacity
@@ -991,19 +1108,26 @@ export default function GestionarPlanesV7Screen() {
                       <View style={styles.planSelectorItemContent}>
                         <Text style={[
                           styles.planSelectorItemName,
+                          { fontSize: scaleFontSize(16) },
                           selectedPlan === plan.id && styles.planSelectorItemNameActive
                         ]}>
                           {plan.nombre}
                         </Text>
                         <Text style={[
                           styles.planSelectorItemPrice,
+                          { fontSize: scaleFontSize(14) },
                           selectedPlan === plan.id && styles.planSelectorItemPriceActive
                         ]}>
                           {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€/mes`}
                         </Text>
                       </View>
                       {selectedPlan === plan.id && (
-                        <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
+                        <IconSymbol 
+                          ios_icon_name="checkmark.circle.fill" 
+                          android_material_icon_name="check_circle" 
+                          size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
+                          color={colors.primary} 
+                        />
                       )}
                     </TouchableOpacity>
                   ))}
@@ -1020,14 +1144,19 @@ export default function GestionarPlanesV7Screen() {
                 <ActivityIndicator size="small" color={colors.white} />
               ) : (
                 <>
-                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.white} />
-                  <Text style={styles.modalPrimaryButtonText}>Asignar Plan</Text>
+                  <IconSymbol 
+                    ios_icon_name="checkmark.circle.fill" 
+                    android_material_icon_name="check_circle" 
+                    size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+                    color={colors.white} 
+                  />
+                  <Text style={[styles.modalPrimaryButtonText, { fontSize: scaleFontSize(16) }]}>Asignar Plan</Text>
                 </>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowAssignModal(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
+              <Text style={[styles.modalCancelText, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -1043,17 +1172,22 @@ export default function GestionarPlanesV7Screen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowEditPlanModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Editar Plan</Text>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Editar Plan</Text>
               <TouchableOpacity onPress={() => setShowEditPlanModal(false)}>
-                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
+                <IconSymbol 
+                  ios_icon_name="xmark.circle.fill" 
+                  android_material_icon_name="cancel" 
+                  size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+                  color={colors.textSecondary} 
+                />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Nombre del Plan *</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Nombre del Plan *</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={editPlanNombre}
                   onChangeText={setEditPlanNombre}
                   placeholder="Ej: Premium"
@@ -1062,9 +1196,9 @@ export default function GestionarPlanesV7Screen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Descripción</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Descripción</Text>
                 <TextInput
-                  style={[styles.formInput, styles.formTextArea]}
+                  style={[styles.formInput, styles.formTextArea, { fontSize: scaleFontSize(16) }]}
                   value={editPlanDescripcion}
                   onChangeText={setEditPlanDescripcion}
                   placeholder="Descripción del plan..."
@@ -1075,9 +1209,9 @@ export default function GestionarPlanesV7Screen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Precio Mensual (€)</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Precio Mensual (€)</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={editPlanPrecio}
                   onChangeText={setEditPlanPrecio}
                   placeholder="0.00"
@@ -1087,9 +1221,9 @@ export default function GestionarPlanesV7Screen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Eventos por Mes</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Eventos por Mes</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={editPlanEventos}
                   onChangeText={setEditPlanEventos}
                   placeholder="0"
@@ -1099,9 +1233,9 @@ export default function GestionarPlanesV7Screen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Promos Destacadas por Mes</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Promos Destacadas por Mes</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={editPlanPromos}
                   onChangeText={setEditPlanPromos}
                   placeholder="0"
@@ -1112,7 +1246,7 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Plan Activo</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Plan Activo</Text>
                   <Switch
                     value={editPlanActivo}
                     onValueChange={setEditPlanActivo}
@@ -1124,7 +1258,7 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Perfil Social Completo</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Perfil Social Completo</Text>
                   <Switch
                     value={editPlanPerfilSocial}
                     onValueChange={setEditPlanPerfilSocial}
@@ -1136,7 +1270,7 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Panel de Análisis</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Panel de Análisis</Text>
                   <Switch
                     value={editPlanPanelAnalisis}
                     onValueChange={setEditPlanPanelAnalisis}
@@ -1148,7 +1282,7 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Soporte Prioritario</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Soporte Prioritario</Text>
                   <Switch
                     value={editPlanSoportePrioritario}
                     onValueChange={setEditPlanSoportePrioritario}
@@ -1160,7 +1294,7 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Visibilidad Extra</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Visibilidad Extra</Text>
                   <Switch
                     value={editPlanVisibilidadExtra}
                     onValueChange={setEditPlanVisibilidadExtra}
@@ -1172,7 +1306,7 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Visibilidad Máxima</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Visibilidad Máxima</Text>
                   <Switch
                     value={editPlanVisibilidadMaxima}
                     onValueChange={setEditPlanVisibilidadMaxima}
@@ -1192,14 +1326,19 @@ export default function GestionarPlanesV7Screen() {
                 <ActivityIndicator size="small" color={colors.white} />
               ) : (
                 <>
-                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.white} />
-                  <Text style={styles.modalPrimaryButtonText}>Guardar Cambios</Text>
+                  <IconSymbol 
+                    ios_icon_name="checkmark.circle.fill" 
+                    android_material_icon_name="check_circle" 
+                    size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+                    color={colors.white} 
+                  />
+                  <Text style={[styles.modalPrimaryButtonText, { fontSize: scaleFontSize(16) }]}>Guardar Cambios</Text>
                 </>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowEditPlanModal(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
+              <Text style={[styles.modalCancelText, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -1215,17 +1354,22 @@ export default function GestionarPlanesV7Screen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowCreatePlanModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Crear Nuevo Plan</Text>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Crear Nuevo Plan</Text>
               <TouchableOpacity onPress={() => setShowCreatePlanModal(false)}>
-                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
+                <IconSymbol 
+                  ios_icon_name="xmark.circle.fill" 
+                  android_material_icon_name="cancel" 
+                  size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+                  color={colors.textSecondary} 
+                />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Nombre del Plan *</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Nombre del Plan *</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={createPlanNombre}
                   onChangeText={setCreatePlanNombre}
                   placeholder="Ej: Premium"
@@ -1234,9 +1378,9 @@ export default function GestionarPlanesV7Screen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Descripción</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Descripción</Text>
                 <TextInput
-                  style={[styles.formInput, styles.formTextArea]}
+                  style={[styles.formInput, styles.formTextArea, { fontSize: scaleFontSize(16) }]}
                   value={createPlanDescripcion}
                   onChangeText={setCreatePlanDescripcion}
                   placeholder="Descripción del plan..."
@@ -1247,9 +1391,9 @@ export default function GestionarPlanesV7Screen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Precio Mensual (€)</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Precio Mensual (€)</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={createPlanPrecio}
                   onChangeText={setCreatePlanPrecio}
                   placeholder="0.00"
@@ -1259,9 +1403,9 @@ export default function GestionarPlanesV7Screen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Eventos por Mes</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Eventos por Mes</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={createPlanEventos}
                   onChangeText={setCreatePlanEventos}
                   placeholder="0"
@@ -1271,9 +1415,9 @@ export default function GestionarPlanesV7Screen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Promos Destacadas por Mes</Text>
+                <Text style={[styles.formLabel, { fontSize: scaleFontSize(14) }]}>Promos Destacadas por Mes</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { fontSize: scaleFontSize(16) }]}
                   value={createPlanPromos}
                   onChangeText={setCreatePlanPromos}
                   placeholder="0"
@@ -1284,7 +1428,7 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Plan Activo</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Plan Activo</Text>
                   <Switch
                     value={createPlanActivo}
                     onValueChange={setCreatePlanActivo}
@@ -1296,7 +1440,7 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Perfil Social Completo</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Perfil Social Completo</Text>
                   <Switch
                     value={createPlanPerfilSocial}
                     onValueChange={setCreatePlanPerfilSocial}
@@ -1308,7 +1452,7 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Panel de Análisis</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Panel de Análisis</Text>
                   <Switch
                     value={createPlanPanelAnalisis}
                     onValueChange={setCreatePlanPanelAnalisis}
@@ -1320,7 +1464,7 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Soporte Prioritario</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Soporte Prioritario</Text>
                   <Switch
                     value={createPlanSoportePrioritario}
                     onValueChange={setCreatePlanSoportePrioritario}
@@ -1332,7 +1476,7 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Visibilidad Extra</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Visibilidad Extra</Text>
                   <Switch
                     value={createPlanVisibilidadExtra}
                     onValueChange={setCreatePlanVisibilidadExtra}
@@ -1344,7 +1488,7 @@ export default function GestionarPlanesV7Screen() {
 
               <View style={styles.formGroup}>
                 <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Visibilidad Máxima</Text>
+                  <Text style={[styles.switchLabel, { fontSize: scaleFontSize(16) }]}>Visibilidad Máxima</Text>
                   <Switch
                     value={createPlanVisibilidadMaxima}
                     onValueChange={setCreatePlanVisibilidadMaxima}
@@ -1364,14 +1508,19 @@ export default function GestionarPlanesV7Screen() {
                 <ActivityIndicator size="small" color={colors.white} />
               ) : (
                 <>
-                  <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.white} />
-                  <Text style={styles.modalPrimaryButtonText}>Crear Plan</Text>
+                  <IconSymbol 
+                    ios_icon_name="plus.circle.fill" 
+                    android_material_icon_name="add_circle" 
+                    size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+                    color={colors.white} 
+                  />
+                  <Text style={[styles.modalPrimaryButtonText, { fontSize: scaleFontSize(16) }]}>Crear Plan</Text>
                 </>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowCreatePlanModal(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
+              <Text style={[styles.modalCancelText, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -1401,12 +1550,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitleV7: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: colors.headerText,
   },
   headerSubtitleV7: {
-    fontSize: 13,
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 2,
@@ -1434,7 +1581,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primary,
   },
   tabTextV7: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -1455,7 +1601,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
     color: colors.textSecondary,
   },
   sectionHeaderV7: {
@@ -1468,14 +1613,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionTitleV7: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
   },
   sectionSubtitleV7: {
-    fontSize: 15,
     color: colors.textSecondary,
-    marginTop: 4,
   },
   createButtonV7: {
     flexDirection: 'row',
@@ -1488,7 +1630,6 @@ const styles = StyleSheet.create({
     ...commonStyles.shadow,
   },
   createButtonTextV7: {
-    fontSize: 15,
     fontWeight: '700',
     color: colors.white,
   },
@@ -1513,13 +1654,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   planNameV7: {
-    fontSize: 22,
     fontWeight: 'bold',
     color: colors.white,
     marginBottom: 6,
   },
   planPriceV7: {
-    fontSize: 28,
     fontWeight: 'bold',
     color: colors.white,
   },
@@ -1527,7 +1666,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   planDescriptionV7: {
-    fontSize: 15,
     color: colors.white,
     opacity: 0.9,
     marginBottom: 16,
@@ -1551,7 +1689,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   planFeatureTextV7: {
-    fontSize: 15,
     color: colors.white,
     fontWeight: '500',
     flex: 1,
@@ -1575,7 +1712,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   planStatusTextV7: {
-    fontSize: 13,
     fontWeight: '700',
     color: colors.white,
   },
@@ -1600,13 +1736,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subscriptionLocalNameV7: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 6,
   },
   subscriptionPlanNameV7: {
-    fontSize: 15,
     color: colors.textSecondary,
   },
   estadoBadgeV7: {
@@ -1618,7 +1752,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   estadoBadgeTextV7: {
-    fontSize: 13,
     fontWeight: '700',
   },
   subscriptionCardBody: {
@@ -1630,7 +1763,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   subscriptionInfoText: {
-    fontSize: 14,
     color: colors.text,
   },
   cancelSubscriptionButtonV7: {
@@ -1643,7 +1775,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   cancelSubscriptionTextV7: {
-    fontSize: 15,
     fontWeight: '700',
     color: '#EF4444',
   },
@@ -1661,7 +1792,6 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   assignButtonTextV7: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: colors.white,
   },
@@ -1683,13 +1813,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoBoxTitle: {
-    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 6,
   },
   infoBoxText: {
-    fontSize: 14,
     color: colors.text,
     lineHeight: 20,
   },
@@ -1707,13 +1835,11 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   quickStatNumber: {
-    fontSize: 32,
     fontWeight: 'bold',
     color: colors.primary,
     marginBottom: 6,
   },
   quickStatLabel: {
-    fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -1723,12 +1849,10 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   emptyTextV7: {
-    fontSize: 20,
     fontWeight: '600',
     color: colors.text,
   },
   emptySubtextV7: {
-    fontSize: 15,
     color: colors.textSecondary,
     textAlign: 'center',
     paddingHorizontal: 40,
@@ -1755,7 +1879,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     flex: 1,
@@ -1768,7 +1891,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   formLabel: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
@@ -1778,7 +1900,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -1794,7 +1915,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   switchLabel: {
-    fontSize: 16,
     color: colors.text,
     flex: 1,
   },
@@ -1811,7 +1931,6 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
     color: colors.text,
   },
   selectedLocalCard: {
@@ -1829,19 +1948,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   selectedLocalLabel: {
-    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
     textTransform: 'uppercase',
   },
   selectedLocalName: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
   },
   selectedLocalInfo: {
-    fontSize: 14,
     color: colors.textSecondary,
   },
   searchResultsContainer: {
@@ -1873,13 +1989,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchResultName: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 2,
   },
   searchResultDetails: {
-    fontSize: 13,
     color: colors.textSecondary,
   },
   planSelector: {
@@ -1903,7 +2017,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   planSelectorItemName: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
@@ -1912,7 +2025,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   planSelectorItemPrice: {
-    fontSize: 14,
     color: colors.textSecondary,
   },
   planSelectorItemPriceActive: {
@@ -1933,7 +2045,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   modalPrimaryButtonText: {
-    fontSize: 16,
     fontWeight: '700',
     color: colors.white,
   },
@@ -1942,7 +2053,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalCancelText: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
   },
