@@ -1,4 +1,3 @@
-
 // https://docs.expo.dev/guides/using-eslint/
 module.exports = {
   extends: [
@@ -22,17 +21,6 @@ module.exports = {
   env: {
     browser: true,
   },
-  settings: {
-    'import/resolver': {
-      typescript: {
-        alwaysTryTypes: true,
-        project: './tsconfig.json',
-      },
-      node: {
-        extensions: ['.js', '.jsx', '.ts', '.tsx'],
-      },
-    },
-  },
   rules: {
     "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/no-explicit-any": "off",
@@ -47,8 +35,7 @@ module.exports = {
     "react/prop-types": 1,
     "no-case-declarations": "off",
     "no-empty": "off",
-    "react/display-name": "off",
-    "react-hooks/exhaustive-deps": "error"
+    "react/display-name": "off"
   },
   overrides: [
     {

@@ -22,7 +22,6 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useImpersonation } from '@/contexts/ImpersonationContext';
-import { scaleFontSize } from '@/utils/androidScaling';
 
 interface Usuario {
   id: string;
@@ -42,13 +41,18 @@ interface Usuario {
 const USUARIOS_POR_PAGINA = 20;
 
 /**
- * ✅ USER MANAGEMENT v100.0 - ANDROID SCALING STANDARDIZATION
+ * ✅ USER MANAGEMENT v1.1 - ADMIN PANEL
  * 
- * CRITICAL FIXES v100.0 (ANDROID ONLY):
- * - ✅ All font sizes use scaleFontSize() for consistency
- * - ✅ Header title size standardized
- * - ✅ All text elements properly scaled
- * - ✅ iOS design remains unchanged
+ * Features:
+ * - ✅ List all users with pagination
+ * - ✅ Search by name, email, or username
+ * - ✅ Filter by role (admin, propietario, cliente)
+ * - ✅ Filter by status (active/inactive)
+ * - ✅ Filter by provider (barlive, google)
+ * - ✅ Toggle user active status
+ * - ✅ View user details
+ * - ✅ Statistics dashboard
+ * - ✅ User impersonation button
  */
 
 export default function GestionarUsuariosScreen() {
@@ -100,7 +104,7 @@ export default function GestionarUsuariosScreen() {
 
       setContadores(stats);
     } catch (error) {
-      console.error('[GestionarUsuarios v100.0] Error cargando contadores:', error);
+      console.error('[GestionarUsuarios] Error cargando contadores:', error);
     }
   }, []);
 
@@ -142,11 +146,11 @@ export default function GestionarUsuariosScreen() {
       const { data, error, count } = await query;
 
       if (error) {
-        console.error('[GestionarUsuarios v100.0] Error cargando usuarios:', error);
+        console.error('[GestionarUsuarios] Error cargando usuarios:', error);
         throw error;
       }
 
-      console.log('[GestionarUsuarios v100.0] Usuarios cargados:', data?.length || 0);
+      console.log('[GestionarUsuarios] Usuarios cargados:', data?.length || 0);
       
       if (reset) {
         setUsuarios(data || []);
@@ -159,7 +163,7 @@ export default function GestionarUsuariosScreen() {
       setTotalUsuarios(count || 0);
       setHasMore((data?.length || 0) === USUARIOS_POR_PAGINA);
     } catch (error) {
-      console.error('[GestionarUsuarios v100.0] Error cargando usuarios:', error);
+      console.error('[GestionarUsuarios] Error cargando usuarios:', error);
       Alert.alert('Error', 'No se pudieron cargar los usuarios');
     } finally {
       setInitialLoading(false);
@@ -168,14 +172,14 @@ export default function GestionarUsuariosScreen() {
   }, [busqueda, filtroRol, filtroEstado, filtroProvider]);
 
   useEffect(() => {
-    console.log('[GestionarUsuarios v100.0] Initial load');
+    console.log('[GestionarUsuarios] Initial load');
     cargarContadores();
     cargarUsuarios(true, 1);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!initialLoading) {
-      console.log('[GestionarUsuarios v100.0] Filters changed, reloading...');
+      console.log('[GestionarUsuarios] Filters changed, reloading...');
       const timer = setTimeout(() => {
         cargarUsuarios(true, 1);
       }, 500);
@@ -204,7 +208,7 @@ export default function GestionarUsuariosScreen() {
       );
       cargarContadores();
     } catch (error) {
-      console.error('[GestionarUsuarios v100.0] Error actualizando usuario:', error);
+      console.error('[GestionarUsuarios] Error actualizando usuario:', error);
       Alert.alert('Error', 'No se pudo actualizar el usuario');
     }
   }, [cargarContadores]);
@@ -227,7 +231,7 @@ export default function GestionarUsuariosScreen() {
             }
 
             try {
-              console.log('[GestionarUsuarios v100.0] Restableciendo contraseña para:', usuario.id);
+              console.log('[GestionarUsuarios] Restableciendo contraseña para:', usuario.id);
 
               // Call the Edge Function to update password
               const { data: { session } } = await supabase.auth.getSession();
@@ -257,13 +261,13 @@ export default function GestionarUsuariosScreen() {
                 throw new Error(result.error || 'Error al actualizar la contraseña');
               }
 
-              console.log('[GestionarUsuarios v100.0] ✅ Contraseña actualizada correctamente');
+              console.log('[GestionarUsuarios] ✅ Contraseña actualizada correctamente');
               Alert.alert(
                 'Éxito',
                 `La contraseña de ${usuario.nombre} ha sido actualizada correctamente.`
               );
             } catch (error) {
-              console.error('[GestionarUsuarios v100.0] Error restableciendo contraseña:', error);
+              console.error('[GestionarUsuarios] Error restableciendo contraseña:', error);
               Alert.alert(
                 'Error',
                 error instanceof Error ? error.message : 'No se pudo restablecer la contraseña'
@@ -314,7 +318,7 @@ export default function GestionarUsuariosScreen() {
                 ]
               );
             } catch (error) {
-              console.error('[GestionarUsuarios v100.0] Error starting impersonation:', error);
+              console.error('[GestionarUsuarios] Error starting impersonation:', error);
               Alert.alert('Error', 'No se pudo iniciar la suplantación');
             }
           },
@@ -339,7 +343,7 @@ export default function GestionarUsuariosScreen() {
 
   const handleLoadMore = useCallback(() => {
     if (hasMore && !loadingMore && !initialLoading) {
-      console.log('[GestionarUsuarios v100.0] Loading more, page:', paginaActual);
+      console.log('[GestionarUsuarios] Loading more, page:', paginaActual);
       cargarUsuarios(false, paginaActual);
     }
   }, [hasMore, loadingMore, initialLoading, paginaActual, cargarUsuarios]);
@@ -361,43 +365,43 @@ export default function GestionarUsuariosScreen() {
 
           <View style={styles.usuarioInfo}>
             <View style={styles.usuarioHeader}>
-              <Text style={[styles.usuarioNombre, { fontSize: scaleFontSize(16) }]} numberOfLines={1}>
+              <Text style={styles.usuarioNombre} numberOfLines={1}>
                 {usuario.nombre}
               </Text>
               {usuario.rol_app === 'admin' && (
                 <View style={styles.adminBadge}>
                   <IconSymbol ios_icon_name="shield.fill" android_material_icon_name="shield" size={12} color="#EF4444" />
-                  <Text style={[styles.adminBadgeText, { fontSize: scaleFontSize(10) }]}>ADMIN</Text>
+                  <Text style={styles.adminBadgeText}>ADMIN</Text>
                 </View>
               )}
               {usuario.rol_app === 'propietario' && (
                 <View style={styles.propietarioBadge}>
                   <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="business" size={12} color="#F59E0B" />
-                  <Text style={[styles.propietarioBadgeText, { fontSize: scaleFontSize(10) }]}>PROPIETARIO</Text>
+                  <Text style={styles.propietarioBadgeText}>PROPIETARIO</Text>
                 </View>
               )}
             </View>
 
             {usuario.username && (
-              <Text style={[styles.usuarioUsername, { fontSize: scaleFontSize(13) }]}>@{usuario.username}</Text>
+              <Text style={styles.usuarioUsername}>@{usuario.username}</Text>
             )}
 
-            <Text style={[styles.usuarioEmail, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
+            <Text style={styles.usuarioEmail} numberOfLines={1}>
               {usuario.email}
             </Text>
 
             <View style={styles.usuarioMeta}>
               <View style={styles.metaItem}>
                 <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={12} color={colors.textSecondary} />
-                <Text style={[styles.metaText, { fontSize: scaleFontSize(11) }]}>{usuario.seguidores} seguidores</Text>
+                <Text style={styles.metaText}>{usuario.seguidores} seguidores</Text>
               </View>
               <View style={styles.metaItem}>
                 <IconSymbol ios_icon_name="square.grid.3x3" android_material_icon_name="grid_on" size={12} color={colors.textSecondary} />
-                <Text style={[styles.metaText, { fontSize: scaleFontSize(11) }]}>{usuario.posts} posts</Text>
+                <Text style={styles.metaText}>{usuario.posts} posts</Text>
               </View>
               {usuario.provider && (
                 <View style={styles.providerBadge}>
-                  <Text style={[styles.providerText, { fontSize: scaleFontSize(10) }]}>{usuario.provider}</Text>
+                  <Text style={styles.providerText}>{usuario.provider}</Text>
                 </View>
               )}
             </View>
@@ -407,7 +411,7 @@ export default function GestionarUsuariosScreen() {
         <View style={styles.usuarioActions}>
           <View style={styles.toggleRow}>
             <View style={styles.toggleItem}>
-              <Text style={[styles.toggleLabel, { fontSize: scaleFontSize(11) }]}>Activo:</Text>
+              <Text style={styles.toggleLabel}>Activo:</Text>
               <Switch
                 value={usuario.activo}
                 onValueChange={() => {
@@ -483,7 +487,7 @@ export default function GestionarUsuariosScreen() {
                           Alert.alert('Éxito', 'Usuario eliminado correctamente');
                           cargarContadores();
                         } catch (error) {
-                          console.error('[GestionarUsuarios v100.0] Error eliminando usuario:', error);
+                          console.error('[GestionarUsuarios] Error eliminando usuario:', error);
                           Alert.alert('Error', 'No se pudo eliminar el usuario');
                         }
                       },
@@ -507,23 +511,23 @@ export default function GestionarUsuariosScreen() {
   const renderHeader = () => (
     <React.Fragment>
       <View style={styles.statsSection}>
-        <Text style={[styles.statsSectionTitle, { fontSize: scaleFontSize(16) }]}>Estadísticas de Usuarios</Text>
+        <Text style={styles.statsSectionTitle}>Estadísticas de Usuarios</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Text style={[styles.statNumber, { fontSize: scaleFontSize(18) }]}>{contadores.total}</Text>
-            <Text style={[styles.statLabel, { fontSize: scaleFontSize(10) }]}>Total</Text>
+            <Text style={styles.statNumber}>{contadores.total}</Text>
+            <Text style={styles.statLabel}>Total</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={[styles.statNumber, { fontSize: scaleFontSize(18), color: '#EF4444' }]}>{contadores.admins}</Text>
-            <Text style={[styles.statLabel, { fontSize: scaleFontSize(10) }]}>Admins</Text>
+            <Text style={[styles.statNumber, { color: '#EF4444' }]}>{contadores.admins}</Text>
+            <Text style={styles.statLabel}>Admins</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={[styles.statNumber, { fontSize: scaleFontSize(18), color: '#F59E0B' }]}>{contadores.propietarios}</Text>
-            <Text style={[styles.statLabel, { fontSize: scaleFontSize(10) }]}>Propietarios</Text>
+            <Text style={[styles.statNumber, { color: '#F59E0B' }]}>{contadores.propietarios}</Text>
+            <Text style={styles.statLabel}>Propietarios</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={[styles.statNumber, { fontSize: scaleFontSize(18), color: colors.primary }]}>{contadores.clientes}</Text>
-            <Text style={[styles.statLabel, { fontSize: scaleFontSize(10) }]}>Clientes</Text>
+            <Text style={[styles.statNumber, { color: colors.primary }]}>{contadores.clientes}</Text>
+            <Text style={styles.statLabel}>Clientes</Text>
           </View>
         </View>
       </View>
@@ -531,7 +535,7 @@ export default function GestionarUsuariosScreen() {
       <View style={styles.searchContainer}>
         <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
         <TextInput
-          style={[styles.searchInput, { fontSize: scaleFontSize(15) }]}
+          style={styles.searchInput}
           placeholder="Buscar por nombre, email o username..."
           placeholderTextColor={colors.textSecondary}
           value={busqueda}
@@ -550,7 +554,7 @@ export default function GestionarUsuariosScreen() {
           onPress={() => setShowFiltersModal(true)}
         >
           <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle" android_material_icon_name="filter_list" size={20} color={hayFiltrosActivos() ? colors.headerText : colors.text} />
-          <Text style={[styles.filterButtonText, { fontSize: scaleFontSize(14) }, hayFiltrosActivos() && styles.filterButtonTextActive]}>
+          <Text style={[styles.filterButtonText, hayFiltrosActivos() && styles.filterButtonTextActive]}>
             Filtros {hayFiltrosActivos() && '•'}
           </Text>
         </TouchableOpacity>
@@ -561,13 +565,13 @@ export default function GestionarUsuariosScreen() {
             onPress={limpiarFiltros}
           >
             <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={16} color={colors.textSecondary} />
-            <Text style={[styles.clearFiltersText, { fontSize: scaleFontSize(13) }]}>Limpiar</Text>
+            <Text style={styles.clearFiltersText}>Limpiar</Text>
           </TouchableOpacity>
         )}
       </View>
 
       <View style={styles.resultsIndicator}>
-        <Text style={[styles.resultsText, { fontSize: scaleFontSize(13) }]}>
+        <Text style={styles.resultsText}>
           Mostrando {usuarios.length} de {totalUsuarios} usuarios
         </Text>
       </View>
@@ -579,7 +583,7 @@ export default function GestionarUsuariosScreen() {
     return (
       <View style={styles.footerLoader}>
         <ActivityIndicator size="small" color={colors.primary} />
-        <Text style={[styles.footerLoaderText, { fontSize: scaleFontSize(14) }]}>Cargando más...</Text>
+        <Text style={styles.footerLoaderText}>Cargando más...</Text>
       </View>
     );
   }, [loadingMore]);
@@ -587,8 +591,8 @@ export default function GestionarUsuariosScreen() {
   const renderEmpty = useCallback(() => (
     <View style={styles.emptyState}>
       <IconSymbol ios_icon_name="person.2" android_material_icon_name="people_outline" size={48} color={colors.textSecondary} />
-      <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>No se encontraron usuarios</Text>
-      <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.emptyText}>No se encontraron usuarios</Text>
+      <Text style={styles.emptySubtext}>
         Intenta ajustar los filtros de búsqueda
       </Text>
     </View>
@@ -598,7 +602,7 @@ export default function GestionarUsuariosScreen() {
     return (
       <View style={[styles.container, styles.centerContent]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando usuarios...</Text>
+        <Text style={styles.loadingText}>Cargando usuarios...</Text>
       </View>
     );
   }
@@ -612,7 +616,7 @@ export default function GestionarUsuariosScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { fontSize: scaleFontSize(20) }]}>Gestionar Usuarios</Text>
+        <Text style={styles.headerTitle}>Gestionar Usuarios</Text>
         <View style={{ width: 40 }} />
       </LinearGradient>
 
@@ -645,7 +649,7 @@ export default function GestionarUsuariosScreen() {
         >
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Filtros</Text>
+              <Text style={styles.modalTitle}>Filtros</Text>
               <TouchableOpacity onPress={() => setShowFiltersModal(false)}>
                 <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -653,7 +657,7 @@ export default function GestionarUsuariosScreen() {
 
             <View style={styles.modalBody}>
               <View style={styles.filterSection}>
-                <Text style={[styles.filterSectionTitle, { fontSize: scaleFontSize(14) }]}>Rol</Text>
+                <Text style={styles.filterSectionTitle}>Rol</Text>
                 <View style={styles.filterOptions}>
                   {['todos', 'admin', 'propietario', 'cliente'].map(option => (
                     <TouchableOpacity
@@ -666,7 +670,6 @@ export default function GestionarUsuariosScreen() {
                     >
                       <Text style={[
                         styles.filterOptionText,
-                        { fontSize: scaleFontSize(13) },
                         filtroRol === option && styles.filterOptionTextActive
                       ]}>
                         {option.charAt(0).toUpperCase() + option.slice(1)}
@@ -677,7 +680,7 @@ export default function GestionarUsuariosScreen() {
               </View>
 
               <View style={styles.filterSection}>
-                <Text style={[styles.filterSectionTitle, { fontSize: scaleFontSize(14) }]}>Estado</Text>
+                <Text style={styles.filterSectionTitle}>Estado</Text>
                 <View style={styles.filterOptions}>
                   {['todos', 'activos', 'inactivos'].map(option => (
                     <TouchableOpacity
@@ -690,7 +693,6 @@ export default function GestionarUsuariosScreen() {
                     >
                       <Text style={[
                         styles.filterOptionText,
-                        { fontSize: scaleFontSize(13) },
                         filtroEstado === option && styles.filterOptionTextActive
                       ]}>
                         {option.charAt(0).toUpperCase() + option.slice(1)}
@@ -701,7 +703,7 @@ export default function GestionarUsuariosScreen() {
               </View>
 
               <View style={styles.filterSection}>
-                <Text style={[styles.filterSectionTitle, { fontSize: scaleFontSize(14) }]}>Proveedor</Text>
+                <Text style={styles.filterSectionTitle}>Proveedor</Text>
                 <View style={styles.filterOptions}>
                   {['todos', 'barlive', 'google'].map(option => (
                     <TouchableOpacity
@@ -714,7 +716,6 @@ export default function GestionarUsuariosScreen() {
                     >
                       <Text style={[
                         styles.filterOptionText,
-                        { fontSize: scaleFontSize(13) },
                         filtroProvider === option && styles.filterOptionTextActive
                       ]}>
                         {option.charAt(0).toUpperCase() + option.slice(1)}
@@ -730,13 +731,13 @@ export default function GestionarUsuariosScreen() {
                 style={styles.modalButtonSecondary}
                 onPress={limpiarFiltros}
               >
-                <Text style={[styles.modalButtonSecondaryText, { fontSize: scaleFontSize(15) }]}>Limpiar Filtros</Text>
+                <Text style={styles.modalButtonSecondaryText}>Limpiar Filtros</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalButtonPrimary}
                 onPress={() => setShowFiltersModal(false)}
               >
-                <Text style={[styles.modalButtonPrimaryText, { fontSize: scaleFontSize(15) }]}>Aplicar</Text>
+                <Text style={styles.modalButtonPrimaryText}>Aplicar</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -756,6 +757,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
+    fontSize: 16,
     color: colors.text,
     marginTop: 16,
   },
@@ -771,6 +773,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   headerTitle: {
+    fontSize: 20,
     fontWeight: '800',
     color: colors.headerText,
     flex: 1,
@@ -785,6 +788,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statsSectionTitle: {
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 12,
@@ -803,11 +807,13 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   statNumber: {
+    fontSize: 18,
     fontWeight: '800',
     color: colors.primary,
     marginBottom: 2,
   },
   statLabel: {
+    fontSize: 10,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -827,6 +833,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: 12,
+    fontSize: 15,
     color: colors.text,
   },
   filterButtonsRow: {
@@ -852,6 +859,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   filterButtonText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
@@ -866,6 +874,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   clearFiltersText: {
+    fontSize: 13,
     color: colors.textSecondary,
     fontWeight: '600',
   },
@@ -874,6 +883,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   resultsText: {
+    fontSize: 13,
     color: colors.textSecondary,
   },
   usuarioCard: {
@@ -911,6 +921,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   usuarioNombre: {
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
     flex: 1,
@@ -925,6 +936,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   adminBadgeText: {
+    fontSize: 10,
     fontWeight: '700',
     color: '#EF4444',
   },
@@ -938,15 +950,18 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   propietarioBadgeText: {
+    fontSize: 10,
     fontWeight: '700',
     color: '#F59E0B',
   },
   usuarioUsername: {
+    fontSize: 13,
     color: colors.primary,
     fontWeight: '600',
     marginBottom: 4,
   },
   usuarioEmail: {
+    fontSize: 12,
     color: colors.textSecondary,
     marginBottom: 8,
   },
@@ -961,6 +976,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metaText: {
+    fontSize: 11,
     color: colors.textSecondary,
   },
   providerBadge: {
@@ -970,6 +986,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   providerText: {
+    fontSize: 10,
     fontWeight: '600',
     color: colors.primary,
     textTransform: 'uppercase',
@@ -994,6 +1011,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   toggleLabel: {
+    fontSize: 11,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1049,6 +1067,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   footerLoaderText: {
+    fontSize: 14,
     color: colors.textSecondary,
   },
   emptyState: {
@@ -1057,11 +1076,13 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginTop: 12,
   },
   emptySubtext: {
+    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
   },
@@ -1085,6 +1106,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   modalTitle: {
+    fontSize: 20,
     fontWeight: '800',
     color: colors.text,
   },
@@ -1095,6 +1117,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   filterSectionTitle: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 10,
@@ -1117,6 +1140,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   filterOptionText: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1140,6 +1164,7 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   modalButtonSecondaryText: {
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1151,6 +1176,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalButtonPrimaryText: {
+    fontSize: 15,
     fontWeight: '600',
     color: colors.headerText,
   },
