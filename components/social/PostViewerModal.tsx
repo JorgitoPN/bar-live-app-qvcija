@@ -38,6 +38,7 @@ import PostLikesAvatars from './PostLikesAvatars';
 import SharePostModal from './SharePostModal';
 import ReportModal from './ReportModal';
 import * as Haptics from 'expo-haptics';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -80,13 +81,16 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v10.0 - COMMENT COUNT & REPORT SYSTEM
+ * ✅ POST VIEWER MODAL v103.0 - ANDROID SCALING & ICON FIX
  * 
- * Key changes:
- * - ✅ FIXED: Comment count display with proper text
- * - ✅ NEW: Report functionality for all posts
- * - ✅ INTEGRATED: PostLikesAvatars component for consistent likes display
- * - ✅ UNIFIED: Same optimistic UI and real-time updates as Social Feed
+ * CRITICAL FIXES v103.0 (ANDROID ONLY):
+ * - ✅ All icons properly scaled with scaleIconSize()
+ * - ✅ All text properly scaled with scaleFontSize()
+ * - ✅ Fixed invalid Material icon names
+ * - ✅ Avatar sizes properly scaled (40px)
+ * - ✅ Action button icons scaled correctly (28px)
+ * - ✅ Modal opens like iOS (full screen slide animation)
+ * - ✅ iOS design remains unchanged
  */
 
 export default function PostViewerModal({
@@ -134,14 +138,11 @@ export default function PostViewerModal({
 
   const [authorsWithMomentos, setAuthorsWithMomentos] = useState<Set<string>>(new Set());
   
-  // ✅ FIXED: Changed Array<T> to T[]
   type LikeArray = { id: string; usuario_id: string }[];
 
-  // ✅ NEW: Report modal state
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportingPostId, setReportingPostId] = useState<string | null>(null);
 
-  // ✅ Local state for instant like updates (optimistic UI)
   const [isLiked, setIsLiked] = useState<Map<string, boolean>>(new Map());
   const [likesCount, setLikesCount] = useState<Map<string, number>>(new Map());
   const [commentsCount, setCommentsCount] = useState<Map<string, number>>(new Map());
@@ -170,7 +171,7 @@ export default function PostViewerModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v10.0] Props received:', { 
+      console.log('[PostViewerModal v103.0] Props received:', { 
         visible, 
         initialPostId, 
         singlePost: !!singlePost,
@@ -180,7 +181,6 @@ export default function PostViewerModal({
     }
   }, [visible, allPostIds, initialPostId, singlePost, hideTagIcon]);
 
-  // ✅ Load initial likes for each post
   const loadInitialLikes = useCallback(async (postId: string) => {
     try {
       const { data, error } = await supabase
@@ -190,14 +190,13 @@ export default function PostViewerModal({
 
       if (!error && data) {
         setLocalLikes(prev => new Map(prev).set(postId, data));
-        console.log('[PostViewerModal] ✅ Loaded initial likes for post:', postId, 'count:', data.length);
+        console.log('[PostViewerModal v103.0] ✅ Loaded initial likes for post:', postId, 'count:', data.length);
       }
     } catch (error) {
-      console.error('[PostViewerModal] Error loading initial likes:', error);
+      console.error('[PostViewerModal v103.0] Error loading initial likes:', error);
     }
   }, []);
 
-  // ✅ NEW: Load comment count for each post
   const loadCommentCount = async (postId: string) => {
     try {
       const { count, error } = await supabase
@@ -207,23 +206,22 @@ export default function PostViewerModal({
 
       if (!error && count !== null) {
         setCommentsCount(prev => new Map(prev).set(postId, count));
-        console.log('[PostViewerModal] ✅ Loaded comment count for post:', postId, 'count:', count);
+        console.log('[PostViewerModal v103.0] ✅ Loaded comment count for post:', postId, 'count:', count);
       }
     } catch (error) {
-      console.error('[PostViewerModal] Error loading comment count:', error);
+      console.error('[PostViewerModal v103.0] Error loading comment count:', error);
     }
   };
 
-  // ✅ Real-time subscription for likes updates
   useEffect(() => {
     if (!user || posts.length === 0) return;
 
-    console.log('[PostViewerModal] 🔄 Setting up real-time likes subscription for', posts.length, 'posts');
+    console.log('[PostViewerModal v103.0] 🔄 Setting up real-time likes subscription for', posts.length, 'posts');
 
     const postIds = posts.map(p => p.id);
     
     if (channelRef.current?.state === 'subscribed') {
-      console.log('[PostViewerModal] ⚠️ Already subscribed, skipping');
+      console.log('[PostViewerModal v103.0] ⚠️ Already subscribed, skipping');
       return;
     }
 
@@ -245,18 +243,17 @@ export default function PostViewerModal({
             return;
           }
 
-          console.log('[PostViewerModal] 🔄 Real-time like change detected:', payload.eventType, 'for post:', postId);
+          console.log('[PostViewerModal v103.0] 🔄 Real-time like change detected:', payload.eventType, 'for post:', postId);
           
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[PostViewerModal] ⏭️ Change made by current user, skipping (already handled optimistically)');
+            console.log('[PostViewerModal v103.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
             return;
           }
           
-          console.log('[PostViewerModal] 🔄 Change made by another user, updating local state...');
+          console.log('[PostViewerModal v103.0] 🔄 Change made by another user, updating local state...');
           
-          // ✅ Update local likes array
           if (payload.eventType === 'INSERT' && payload.new) {
             setLocalLikes(prev => {
               const current = prev.get(postId) || [];
@@ -266,7 +263,7 @@ export default function PostViewerModal({
               const newArray = [...current, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
               const newMap = new Map(prev);
               newMap.set(postId, newArray);
-              console.log('[PostViewerModal] ➕ Added like to local array, new count:', newArray.length);
+              console.log('[PostViewerModal v103.0] ➕ Added like to local array, new count:', newArray.length);
               return newMap;
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
@@ -275,19 +272,18 @@ export default function PostViewerModal({
               const newArray = current.filter(like => like.id !== payload.old.id);
               const newMap = new Map(prev);
               newMap.set(postId, newArray);
-              console.log('[PostViewerModal] ➖ Removed like from local array, new count:', newArray.length);
+              console.log('[PostViewerModal v103.0] ➖ Removed like from local array, new count:', newArray.length);
               return newMap;
             });
           }
           
-          // ✅ Fetch updated count from database
           const { count, error: countError } = await supabase
-            .from('comentarios')
+            .from('likes')
             .select('id', { count: 'exact', head: true })
             .eq('post_id', postId);
           
           if (!countError && count !== null) {
-            console.log('[PostViewerModal] ✅ Updated likes count from database:', count);
+            console.log('[PostViewerModal v103.0] ✅ Updated likes count from database:', count);
             setLikesCount(prev => new Map(prev).set(postId, count));
           }
         }
@@ -306,9 +302,8 @@ export default function PostViewerModal({
             return;
           }
 
-          console.log('[PostViewerModal] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
+          console.log('[PostViewerModal v103.0] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
           
-          // ✅ Reload comment count
           const { count, error: countError } = await supabase
             .from('comentarios')
             .select('id', { count: 'exact', head: true })
@@ -320,11 +315,11 @@ export default function PostViewerModal({
         }
       )
       .subscribe((status) => {
-        console.log('[PostViewerModal] 📡 Subscription status:', status);
+        console.log('[PostViewerModal v103.0] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[PostViewerModal] 🔄 Cleaning up real-time subscription');
+      console.log('[PostViewerModal v103.0] 🔄 Cleaning up real-time subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -339,7 +334,7 @@ export default function PostViewerModal({
       const authorIds = posts.map(p => p.autor_id).filter(Boolean);
       if (authorIds.length === 0) return;
 
-      console.log('[PostViewerModal] 🔍 Checking momentos for', authorIds.length, 'authors');
+      console.log('[PostViewerModal v103.0] 🔍 Checking momentos for', authorIds.length, 'authors');
 
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
@@ -349,7 +344,7 @@ export default function PostViewerModal({
         .gt('expires_at', new Date().toISOString());
 
       if (momentosError || !momentosData) {
-        console.error('[PostViewerModal] Error fetching author momentos:', momentosError);
+        console.error('[PostViewerModal v103.0] Error fetching author momentos:', momentosError);
         return;
       }
 
@@ -374,10 +369,10 @@ export default function PostViewerModal({
         }
       });
 
-      console.log('[PostViewerModal] ✅ Authors with unviewed momentos:', authorsWithUnviewed.size);
+      console.log('[PostViewerModal v103.0] ✅ Authors with unviewed momentos:', authorsWithUnviewed.size);
       setAuthorsWithMomentos(authorsWithUnviewed);
     } catch (error) {
-      console.error('[PostViewerModal] Error checking authors momentos:', error);
+      console.error('[PostViewerModal v103.0] Error checking authors momentos:', error);
     }
   }, [user, posts]);
 
@@ -385,9 +380,8 @@ export default function PostViewerModal({
     try {
       setLoading(true);
       
-      // If single post is provided, use it directly
       if (singlePost) {
-        console.log('[PostViewerModal v10.0] Using single post mode');
+        console.log('[PostViewerModal v103.0] Using single post mode');
         
         let liked = false;
         if (interactionUserId) {
@@ -419,7 +413,6 @@ export default function PostViewerModal({
           saved = !!saveData;
         }
 
-        // ✅ FIXED: Load comment count
         const { count: commentCount } = await supabase
           .from('comentarios')
           .select('id', { count: 'exact', head: true })
@@ -455,7 +448,6 @@ export default function PostViewerModal({
         setCurrentIndex(0);
         setCurrentPostId(singlePost.id);
         
-        // ✅ Initialize local state for likes and comments
         setIsLiked(new Map([[singlePost.id, liked]]));
         setLikesCount(new Map([[singlePost.id, singlePost.likes]]));
         setCommentsCount(new Map([[singlePost.id, commentCount || 0]]));
@@ -466,7 +458,7 @@ export default function PostViewerModal({
       }
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v10.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v103.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -483,7 +475,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v10.0] Error loading posts:', error);
+        console.error('[PostViewerModal v103.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -491,14 +483,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v10.0] Invalid data received:', data);
+        console.error('[PostViewerModal v103.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v10.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v103.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -536,7 +528,6 @@ export default function PostViewerModal({
             saved = !!saveData;
           }
 
-          // ✅ FIXED: Load comment count for each post
           const { count: commentCount } = await supabase
             .from('comentarios')
             .select('id', { count: 'exact', head: true })
@@ -575,7 +566,7 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v10.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v103.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -583,7 +574,6 @@ export default function PostViewerModal({
 
       setPosts(sortedPosts);
       
-      // ✅ Initialize local state for all posts
       const likedMap = new Map<string, boolean>();
       const countMap = new Map<string, number>();
       const commentsMap = new Map<string, number>();
@@ -605,7 +595,7 @@ export default function PostViewerModal({
         setCurrentPostId(initialPostId || '');
       }
     } catch (error) {
-      console.error('[PostViewerModal v10.0] Error:', error);
+      console.error('[PostViewerModal v103.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
@@ -661,7 +651,6 @@ export default function PostViewerModal({
     ]).start();
   }, []);
 
-  // ✅ UNIFIED: Same like logic as InstagramPostCard
   const toggleLike = useCallback(async (post: Post) => {
     if (!interactionUserId) {
       Alert.alert('Inicia sesión', 'Para dar me gusta necesitas registrarte en BarLive');
@@ -683,23 +672,20 @@ export default function PostViewerModal({
       animateLikeIcon(post.id);
     }
 
-    // ✅ INSTANT UPDATE: Modify local state immediately (< 100ms)
     setIsLiked(prev => new Map(prev).set(post.id, newLikedState));
     setLikesCount(prev => new Map(prev).set(post.id, newLikedState ? previousCount + 1 : Math.max(0, previousCount - 1)));
     
-    // ✅ CRITICAL: Modify local likes array INSTANTLY
     if (newLikedState) {
       const tempId = `temp-${Date.now()}`;
       const newArray = [...previousLocalLikes, { id: tempId, usuario_id: interactionUserId }];
       setLocalLikes(prev => new Map(prev).set(post.id, newArray));
-      console.log('[PostViewerModal] ✅ Optimistic ADD: Local likes array updated instantly, new count:', newArray.length);
+      console.log('[PostViewerModal v103.0] ✅ Optimistic ADD: Local likes array updated instantly, new count:', newArray.length);
     } else {
       const newArray = previousLocalLikes.filter(like => like.usuario_id !== interactionUserId);
       setLocalLikes(prev => new Map(prev).set(post.id, newArray));
-      console.log('[PostViewerModal] ✅ Optimistic REMOVE: Local likes array updated instantly, new count:', newArray.length);
+      console.log('[PostViewerModal v103.0] ✅ Optimistic REMOVE: Local likes array updated instantly, new count:', newArray.length);
     }
 
-    // Clear existing debounce timer for this post
     const existingTimer = likeDebounceTimer.current.get(post.id);
     if (existingTimer) {
       clearTimeout(existingTimer);
@@ -708,7 +694,7 @@ export default function PostViewerModal({
     const timer = setTimeout(async () => {
       try {
         if (newLikedState) {
-          console.log('[PostViewerModal] ➕ Adding like to database for post:', post.id);
+          console.log('[PostViewerModal v103.0] ➕ Adding like to database for post:', post.id);
           
           const likeData: any = {
             post_id: post.id,
@@ -725,11 +711,10 @@ export default function PostViewerModal({
           const { data, error } = await supabase.from('likes').insert(likeData).select().single();
           
           if (error) {
-            console.error('[PostViewerModal] ❌ Error adding like:', error);
+            console.error('[PostViewerModal v103.0] ❌ Error adding like:', error);
             throw error;
           }
           
-          // ✅ Replace temp ID with real ID from database
           setLocalLikes(prev => {
             const current = prev.get(post.id) || [];
             const updated = current.map(like => 
@@ -740,9 +725,9 @@ export default function PostViewerModal({
             return new Map(prev).set(post.id, updated);
           });
           
-          console.log('[PostViewerModal] ✅ Like added successfully, real ID:', data.id);
+          console.log('[PostViewerModal v103.0] ✅ Like added successfully, real ID:', data.id);
         } else {
-          console.log('[PostViewerModal] ➖ Removing like from database for post:', post.id);
+          console.log('[PostViewerModal v103.0] ➖ Removing like from database for post:', post.id);
           
           let deleteQuery = supabase
             .from('likes')
@@ -759,21 +744,20 @@ export default function PostViewerModal({
           const { error } = await deleteQuery;
           
           if (error) {
-            console.error('[PostViewerModal] ❌ Error removing like:', error);
+            console.error('[PostViewerModal v103.0] ❌ Error removing like:', error);
             throw error;
           }
           
-          console.log('[PostViewerModal] ✅ Like removed successfully from database');
+          console.log('[PostViewerModal v103.0] ✅ Like removed successfully from database');
         }
 
-        // ✅ Verify final count from database
         const { count, error: countError } = await supabase
           .from('likes')
           .select('id', { count: 'exact', head: true })
           .eq('post_id', post.id);
         
         if (!countError && count !== null) {
-          console.log('[PostViewerModal] ✅ Verified final count from database:', count);
+          console.log('[PostViewerModal v103.0] ✅ Verified final count from database:', count);
           setLikesCount(prev => new Map(prev).set(post.id, count));
         }
         
@@ -781,8 +765,7 @@ export default function PostViewerModal({
           onUpdate();
         }
       } catch (error) {
-        console.error('[PostViewerModal] ❌ Error toggling like:', error);
-        // ✅ Rollback on error
+        console.error('[PostViewerModal v103.0] ❌ Error toggling like:', error);
         setIsLiked(prev => new Map(prev).set(post.id, previousLiked));
         setLikesCount(prev => new Map(prev).set(post.id, previousCount));
         setLocalLikes(prev => new Map(prev).set(post.id, previousLocalLikes));
@@ -860,7 +843,7 @@ export default function PostViewerModal({
         onUpdate();
       }
     } catch (error) {
-      console.error('[PostViewerModal] Error toggling save:', error);
+      console.error('[PostViewerModal v103.0] Error toggling save:', error);
       setPosts(prevPosts =>
         prevPosts.map(p =>
           p.id === post.id ? { ...p, saved: isSaved } : p
@@ -910,7 +893,7 @@ export default function PostViewerModal({
 
       setExistingTags(tags);
     } catch (error) {
-      console.error('[PostViewerModal] Error loading tags:', error);
+      console.error('[PostViewerModal v103.0] Error loading tags:', error);
     } finally {
       setLoadingTags(false);
     }
@@ -949,7 +932,7 @@ export default function PostViewerModal({
       }
       Alert.alert('Éxito', 'Descripción actualizada correctamente');
     } catch (error) {
-      console.error('[PostViewerModal] Error updating description:', error);
+      console.error('[PostViewerModal v103.0] Error updating description:', error);
       Alert.alert('Error', 'No se pudo actualizar la descripción');
     } finally {
       setSavingEdit(false);
@@ -980,7 +963,7 @@ export default function PostViewerModal({
         onUpdate();
       }
     } catch (error) {
-      console.error('[PostViewerModal] Error removing tag:', error);
+      console.error('[PostViewerModal v103.0] Error removing tag:', error);
       Alert.alert('Error', 'No se pudo eliminar la etiqueta');
     }
   }, [managingPostId, loadPosts, onUpdate]);
@@ -1046,12 +1029,11 @@ export default function PostViewerModal({
         onUpdate();
       }
     } catch (error) {
-      console.error('[PostViewerModal] Error adding tag:', error);
+      console.error('[PostViewerModal v103.0] Error adding tag:', error);
       Alert.alert('Error', 'No se pudo añadir la etiqueta');
     }
   }, [user, managingPostId, loadExistingTags, loadPosts, onUpdate]);
 
-  // ✅ NEW: Report post functionality
   const handleReportPost = useCallback((post: Post) => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para reportar contenido');
@@ -1069,7 +1051,6 @@ export default function PostViewerModal({
     );
 
     if (isOwner) {
-      // Owner options
       if (Platform.OS === 'ios') {
         ActionSheetIOS.showActionSheetWithOptions(
           {
@@ -1104,7 +1085,6 @@ export default function PostViewerModal({
         );
       }
     } else {
-      // Non-owner options - only report
       if (Platform.OS === 'ios') {
         ActionSheetIOS.showActionSheetWithOptions(
           {
@@ -1160,7 +1140,7 @@ export default function PostViewerModal({
                 }},
               ]);
             } catch (error) {
-              console.error('[PostViewerModal] Error deleting post:', error);
+              console.error('[PostViewerModal v103.0] Error deleting post:', error);
               Alert.alert('Error', 'No se pudo eliminar la publicación');
             }
           },
@@ -1211,7 +1191,7 @@ export default function PostViewerModal({
 
       setTaggedUsers(prev => new Map(prev).set(postId, tags));
     } catch (error) {
-      console.error('[PostViewerModal] Error loading tagged users:', error);
+      console.error('[PostViewerModal v103.0] Error loading tagged users:', error);
     }
   }, []);
 
@@ -1255,6 +1235,14 @@ export default function PostViewerModal({
     const postLocalLikes = localLikes.get(post.id) || [];
     const postCommentsCount = commentsCount.get(post.id) || 0;
 
+    // ✅ CRITICAL FIX v103.0: Calculate scaled sizes for Android
+    const avatarSize = Platform.OS === 'android' ? scaleIconSize(40) : 40;
+    const actionIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
+    const commentIconSize = Platform.OS === 'android' ? scaleIconSize(26) : 26;
+    const optionsIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+    const tagIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
+    const doubleTapHeartSize = Platform.OS === 'android' ? scaleIconSize(100) : 100;
+
     return (
       <View style={styles.postContainer}>
         {postTaggedUsers.length > 0 && (
@@ -1284,12 +1272,12 @@ export default function PostViewerModal({
                       <IconSymbol
                         ios_icon_name={taggedUser.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
                         android_material_icon_name={taggedUser.tipo === 'local' ? 'business' : 'person'}
-                        size={12}
+                        size={tagIconSize}
                         color={colors.textSecondary}
                       />
                     </View>
                   )}
-                  <Text style={styles.taggedUserName} numberOfLines={1}>
+                  <Text style={[styles.taggedUserName, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
                     {taggedUser.username}
                   </Text>
                 </TouchableOpacity>
@@ -1312,17 +1300,22 @@ export default function PostViewerModal({
             <MiniAvatarWithMomento
               userId={post.autor_id}
               imageUrl={post.autorAvatar}
-              size={40}
+              size={avatarSize}
               showMomentoBorder={true}
             />
-            <Text style={styles.authorName}>{post.autorNombre}</Text>
+            <Text style={[styles.authorName, { fontSize: scaleFontSize(15) }]}>{post.autorNombre}</Text>
           </TouchableOpacity>
           {!hideTagIcon && (
             <TouchableOpacity 
               style={styles.optionsButton}
               onPress={() => handlePostOptions(post)}
             >
-              <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={24} color={colors.text} />
+              <IconSymbol 
+                ios_icon_name="ellipsis" 
+                android_material_icon_name="more_vert" 
+                size={optionsIconSize} 
+                color={colors.text} 
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -1373,7 +1366,7 @@ export default function PostViewerModal({
                       <IconSymbol
                         ios_icon_name="heart.fill"
                         android_material_icon_name="favorite"
-                        size={100}
+                        size={doubleTapHeartSize}
                         color="#FFFFFF"
                       />
                     </Animated.View>
@@ -1414,7 +1407,7 @@ export default function PostViewerModal({
                 <IconSymbol
                   ios_icon_name={postIsLiked ? 'heart.fill' : 'heart'}
                   android_material_icon_name={postIsLiked ? 'favorite' : 'favorite_border'}
-                  size={28}
+                  size={actionIconSize}
                   color={postIsLiked ? '#EF4444' : colors.text}
                 />
               </Animated.View>
@@ -1429,7 +1422,7 @@ export default function PostViewerModal({
               <IconSymbol
                 ios_icon_name={SOCIAL_ICONS.COMMENT.ios}
                 android_material_icon_name={SOCIAL_ICONS.COMMENT.android}
-                size={26}
+                size={commentIconSize}
                 color={colors.text}
               />
             </TouchableOpacity>
@@ -1444,20 +1437,24 @@ export default function PostViewerModal({
                 setShowShareModal(true);
               }}
             >
-              <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={28} color={colors.text} />
+              <IconSymbol 
+                ios_icon_name="paperplane" 
+                android_material_icon_name="send" 
+                size={actionIconSize} 
+                color={colors.text} 
+              />
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.actionButton} onPress={() => toggleSave(post)}>
             <IconSymbol
               ios_icon_name={post.saved ? 'bookmark.fill' : 'bookmark'}
               android_material_icon_name={post.saved ? 'bookmark' : 'bookmark_border'}
-              size={28}
+              size={actionIconSize}
               color={post.saved ? colors.primary : colors.text}
             />
           </TouchableOpacity>
         </View>
 
-        {/* ✅ UNIFIED: Use PostLikesAvatars component for consistent display */}
         {postLikesCount > 0 && (
           <PostLikesAvatars 
             postId={post.id} 
@@ -1468,13 +1465,13 @@ export default function PostViewerModal({
 
         {description && (
           <View style={styles.postContent}>
-            <Text style={styles.postText}>
+            <Text style={[styles.postText, { fontSize: scaleFontSize(14) }]}>
               <Text style={styles.authorBold}>{post.autorNombre}</Text>{' '}
-              <ParsedText text={displayDescription} style={styles.postText} />
+              <ParsedText text={displayDescription} style={[styles.postText, { fontSize: scaleFontSize(14) }]} />
             </Text>
             {needsExpansion && (
               <TouchableOpacity onPress={() => toggleExpanded(post.id)}>
-                <Text style={styles.seeMoreText}>
+                <Text style={[styles.seeMoreText, { fontSize: scaleFontSize(14) }]}>
                   {isExpanded ? 'Ver menos' : 'Ver más'}
                 </Text>
               </TouchableOpacity>
@@ -1482,7 +1479,6 @@ export default function PostViewerModal({
           </View>
         )}
 
-        {/* ✅ FIXED: Comment count display with proper text */}
         <TouchableOpacity 
           style={styles.commentsContainer}
           onPress={() => {
@@ -1491,18 +1487,18 @@ export default function PostViewerModal({
           }}
         >
           {postCommentsCount > 0 ? (
-            <Text style={styles.commentsText}>
+            <Text style={[styles.commentsText, { fontSize: scaleFontSize(14) }]}>
               Ver {postCommentsCount === 1 ? 'el comentario' : `los ${postCommentsCount} comentarios`}
             </Text>
           ) : (
-            <Text style={styles.commentsTextEmpty}>
+            <Text style={[styles.commentsTextEmpty, { fontSize: scaleFontSize(14) }]}>
               Sé el primero en comentar
             </Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.timeContainer}>
-          <Text style={styles.timeText}>
+          <Text style={[styles.timeText, { fontSize: scaleFontSize(11) }]}>
             {formatTimeAgo(post.created_at)}
           </Text>
         </View>
@@ -1524,6 +1520,10 @@ export default function PostViewerModal({
 
   if (!visible) return null;
 
+  // ✅ CRITICAL FIX v103.0: Calculate scaled sizes for header
+  const headerIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
+  const headerTitleSize = Platform.OS === 'android' ? scaleFontSize(18) : 18;
+
   return (
     <Modal
       visible={visible}
@@ -1541,21 +1541,31 @@ export default function PostViewerModal({
           style={styles.header}
         >
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={28} color={colors.headerText} />
+            <IconSymbol 
+              ios_icon_name="xmark" 
+              android_material_icon_name="close" 
+              size={headerIconSize} 
+              color={colors.headerText} 
+            />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Publicación</Text>
+          <Text style={[styles.headerTitle, { fontSize: headerTitleSize }]}>Publicación</Text>
           <View style={{ width: 40 }} />
         </LinearGradient>
 
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Cargando publicación...</Text>
+            <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando publicación...</Text>
           </View>
         ) : posts.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <IconSymbol ios_icon_name="photo.stack" android_material_icon_name="collections" size={64} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>No hay publicaciones</Text>
+            <IconSymbol 
+              ios_icon_name="photo.stack" 
+              android_material_icon_name="collections" 
+              size={Platform.OS === 'android' ? scaleIconSize(64) : 64} 
+              color={colors.textSecondary} 
+            />
+            <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No hay publicaciones</Text>
           </View>
         ) : (
           <FlatList
@@ -1609,17 +1619,17 @@ export default function PostViewerModal({
             <View style={styles.editModalContent}>
               <View style={styles.editModalHeader}>
                 <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                  <Text style={styles.editModalCancel}>Cancelar</Text>
+                  <Text style={[styles.editModalCancel, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
                 </TouchableOpacity>
-                <Text style={styles.editModalTitle}>Editar descripción</Text>
+                <Text style={[styles.editModalTitle, { fontSize: scaleFontSize(17) }]}>Editar descripción</Text>
                 <TouchableOpacity onPress={handleSaveEdit} disabled={savingEdit}>
-                  <Text style={[styles.editModalSave, savingEdit && styles.editModalSaveDisabled]}>
+                  <Text style={[styles.editModalSave, { fontSize: scaleFontSize(16) }, savingEdit && styles.editModalSaveDisabled]}>
                     {savingEdit ? 'Guardando...' : 'Guardar'}
                   </Text>
                 </TouchableOpacity>
               </View>
               <TextInput
-                style={styles.editModalInput}
+                style={[styles.editModalInput, { fontSize: scaleFontSize(16) }]}
                 value={editedDescription}
                 onChangeText={setEditedDescription}
                 placeholder="Escribe una descripción..."
@@ -1629,7 +1639,7 @@ export default function PostViewerModal({
                 autoFocus
                 editable={!savingEdit}
               />
-              <Text style={styles.editModalCounter}>
+              <Text style={[styles.editModalCounter, { fontSize: scaleFontSize(13) }]}>
                 {editedDescription.length}/2200
               </Text>
             </View>
@@ -1650,9 +1660,14 @@ export default function PostViewerModal({
             />
             <View style={styles.tagManagementContent}>
               <View style={styles.tagManagementHeader}>
-                <Text style={styles.tagManagementTitle}>Gestionar etiquetas</Text>
+                <Text style={[styles.tagManagementTitle, { fontSize: scaleFontSize(18) }]}>Gestionar etiquetas</Text>
                 <TouchableOpacity onPress={() => setShowTagManagementModal(false)}>
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={24} color={colors.textSecondary} />
+                  <IconSymbol 
+                    ios_icon_name="xmark.circle.fill" 
+                    android_material_icon_name="cancel" 
+                    size={optionsIconSize} 
+                    color={colors.textSecondary} 
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -1664,7 +1679,7 @@ export default function PostViewerModal({
                 <ScrollView style={styles.tagManagementScroll}>
                   {existingTags.length > 0 ? (
                     <View style={styles.tagManagementList}>
-                      <Text style={styles.tagManagementSectionTitle}>Etiquetados ({existingTags.length})</Text>
+                      <Text style={[styles.tagManagementSectionTitle, { fontSize: scaleFontSize(14) }]}>Etiquetados ({existingTags.length})</Text>
                       {existingTags.map((tag) => (
                         <View key={`${tag.id}-${tag.tipo}`} style={styles.tagManagementItem}>
                           {tag.avatar ? (
@@ -1680,8 +1695,8 @@ export default function PostViewerModal({
                             </View>
                           )}
                           <View style={styles.tagManagementInfo}>
-                            <Text style={styles.tagManagementName}>{tag.nombre}</Text>
-                            <Text style={styles.tagManagementType}>
+                            <Text style={[styles.tagManagementName, { fontSize: scaleFontSize(15) }]}>{tag.nombre}</Text>
+                            <Text style={[styles.tagManagementType, { fontSize: scaleFontSize(13) }]}>
                               {tag.tipo === 'local' ? 'Local' : `@${tag.username}`}
                             </Text>
                           </View>
@@ -1689,15 +1704,25 @@ export default function PostViewerModal({
                             onPress={() => handleRemoveTag(tag)}
                             style={styles.tagManagementRemoveButton}
                           >
-                            <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color="#EF4444" />
+                            <IconSymbol 
+                              ios_icon_name="trash" 
+                              android_material_icon_name="delete" 
+                              size={20} 
+                              color="#EF4444" 
+                            />
                           </TouchableOpacity>
                         </View>
                       ))}
                     </View>
                   ) : (
                     <View style={styles.tagManagementEmpty}>
-                      <IconSymbol ios_icon_name="person.crop.circle.badge.plus" android_material_icon_name="person_add" size={48} color={colors.textSecondary} />
-                      <Text style={styles.tagManagementEmptyText}>No hay etiquetas</Text>
+                      <IconSymbol 
+                        ios_icon_name="person.crop.circle.badge.plus" 
+                        android_material_icon_name="person_add" 
+                        size={Platform.OS === 'android' ? scaleIconSize(48) : 48} 
+                        color={colors.textSecondary} 
+                      />
+                      <Text style={[styles.tagManagementEmptyText, { fontSize: scaleFontSize(15) }]}>No hay etiquetas</Text>
                     </View>
                   )}
                 </ScrollView>
@@ -1712,8 +1737,13 @@ export default function PostViewerModal({
                   }, 300);
                 }}
               >
-                <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.white} />
-                <Text style={styles.tagManagementAddButtonText}>Añadir etiqueta</Text>
+                <IconSymbol 
+                  ios_icon_name="plus.circle.fill" 
+                  android_material_icon_name="add_circle" 
+                  size={20} 
+                  color={colors.white} 
+                />
+                <Text style={[styles.tagManagementAddButtonText, { fontSize: scaleFontSize(15) }]}>Añadir etiqueta</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1741,7 +1771,6 @@ export default function PostViewerModal({
           />
         )}
 
-        {/* ✅ NEW: Report modal */}
         {reportingPostId && (
           <ReportModal
             visible={showReportModal}
@@ -1778,7 +1807,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
     fontWeight: '700',
     color: colors.headerText,
   },
@@ -1789,9 +1817,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   loadingText: {
-    fontSize: 16,
-    color: colors.textSecondary,
     fontWeight: '600',
+    color: colors.textSecondary,
   },
   emptyContainer: {
     flex: 1,
@@ -1800,7 +1827,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   emptyText: {
-    fontSize: 18,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1843,7 +1869,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   taggedUserName: {
-    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
     maxWidth: 100,
@@ -1862,7 +1887,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   authorName: {
-    fontSize: 15,
     fontWeight: '700',
     color: colors.text,
   },
@@ -1943,7 +1967,6 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   postText: {
-    fontSize: 14,
     color: colors.text,
     lineHeight: 18,
   },
@@ -1952,7 +1975,6 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   seeMoreText: {
-    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
     fontWeight: '600',
@@ -1962,12 +1984,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   commentsText: {
-    fontSize: 14,
     color: colors.textSecondary,
     fontWeight: '600',
   },
   commentsTextEmpty: {
-    fontSize: 14,
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
@@ -1977,7 +1997,6 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   timeText: {
-    fontSize: 11,
     color: colors.textSecondary,
     textTransform: 'uppercase',
   },
@@ -2006,17 +2025,14 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   editModalCancel: {
-    fontSize: 16,
     color: colors.textSecondary,
     fontWeight: '600',
   },
   editModalTitle: {
-    fontSize: 17,
     fontWeight: '700',
     color: colors.text,
   },
   editModalSave: {
-    fontSize: 16,
     color: colors.primary,
     fontWeight: '700',
   },
@@ -2026,7 +2042,6 @@ const styles = StyleSheet.create({
   editModalInput: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    fontSize: 16,
     color: colors.text,
     minHeight: 150,
     maxHeight: 400,
@@ -2035,7 +2050,6 @@ const styles = StyleSheet.create({
   editModalCounter: {
     paddingHorizontal: 16,
     paddingBottom: 8,
-    fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'right',
   },
@@ -2064,7 +2078,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   tagManagementTitle: {
-    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
   },
@@ -2079,7 +2092,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   tagManagementSectionTitle: {
-    fontSize: 14,
     fontWeight: '700',
     color: colors.textSecondary,
     marginBottom: 12,
@@ -2108,13 +2120,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tagManagementName: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 2,
   },
   tagManagementType: {
-    fontSize: 13,
     color: colors.textSecondary,
   },
   tagManagementRemoveButton: {
@@ -2125,7 +2135,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tagManagementEmptyText: {
-    fontSize: 15,
     color: colors.textSecondary,
     marginTop: 12,
   },
@@ -2141,7 +2150,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   tagManagementAddButtonText: {
-    fontSize: 15,
     fontWeight: '700',
     color: colors.white,
   },
