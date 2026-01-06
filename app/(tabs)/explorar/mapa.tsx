@@ -131,13 +131,14 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v103.0 - ANDROID CENTER BUTTON POSITION FIX
+ * ✅ MAP SCREEN v103.0 - ANDROID CENTER BUTTON & MARKER SCALING FIX
  * 
  * CRITICAL FIXES v103.0 (ANDROID ONLY):
  * - ✅ Center button repositioned to bottom-right corner (above bottom nav)
  * - ✅ All icons properly scaled with scaleIconSize()
  * - ✅ All text properly scaled with scaleFontSize()
  * - ✅ Fixed invalid Material icon names (chevron_left → arrow_back)
+ * - ✅ Map markers properly scaled (44px → scaled size)
  * - ✅ Map popup content properly scaled
  * - ✅ iOS design remains unchanged
  */
@@ -487,11 +488,16 @@ export default function MapaScreen() {
 
     console.log(`[MAP v103.0] 🗺️ GENERATING MAP HTML WITH ${markersWithCheckIns.length} MARKERS`);
 
-    // ✅ CRITICAL FIX v103.0: Apply Android scaling to popup content
+    // ✅ CRITICAL FIX v103.0: Apply Android scaling to popup content AND markers
     const popupFontSize = Platform.OS === 'android' ? Math.round(14 * 0.80) : 14;
     const popupTitleSize = Platform.OS === 'android' ? Math.round(16 * 0.80) : 16;
     const popupSmallSize = Platform.OS === 'android' ? Math.round(12 * 0.80) : 12;
     const popupBadgeSize = Platform.OS === 'android' ? Math.round(11 * 0.80) : 11;
+    
+    // ✅ CRITICAL FIX v103.0: Scale marker sizes for Android
+    const markerSize = Platform.OS === 'android' ? Math.round(44 * 0.92) : 44;
+    const markerSizeDestacado = Platform.OS === 'android' ? Math.round(52 * 0.92) : 52;
+    const markerFontSize = Platform.OS === 'android' ? Math.round(22 * 0.92) : 22;
 
     return `
 <!DOCTYPE html>
@@ -515,21 +521,21 @@ export default function MapaScreen() {
     }
     
     .custom-marker {
-      width: 44px;
-      height: 44px;
+      width: ${markerSize}px;
+      height: ${markerSize}px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
+      font-size: ${markerFontSize}px;
       border: 3px solid #FFFFFF;
       transition: transform 0.2s;
       cursor: pointer;
       position: relative;
     }
     .custom-marker-destacado {
-      width: 52px;
-      height: 52px;
+      width: ${markerSizeDestacado}px;
+      height: ${markerSizeDestacado}px;
       border: 4px solid #FACC15;
       box-shadow: 0 0 0 2px #FFFFFF, 0 4px 12px rgba(250, 204, 21, 0.5);
       animation: pulse-destacado 2s infinite;
@@ -869,7 +875,7 @@ export default function MapaScreen() {
         var markerIcon = L.divIcon({
           className: markerClass,
           html: markerHtml,
-          iconSize: data.destacado ? [52, 52] : [44, 44]
+          iconSize: data.destacado ? [${markerSizeDestacado}, ${markerSizeDestacado}] : [${markerSize}, ${markerSize}]
         });
 
         var marker = L.marker([data.lat, data.lng], { icon: markerIcon });
@@ -1316,7 +1322,7 @@ export default function MapaScreen() {
           width: centerButtonSize,
           height: centerButtonSize,
           borderRadius: centerButtonSize / 2,
-          // ✅ Position above bottom nav (100px from bottom)
+          // ✅ FIXED: Position above bottom nav (100px from bottom) on Android
           bottom: Platform.OS === 'android' ? 100 : 100,
           right: 16,
         }]}
