@@ -25,17 +25,18 @@ import { useFilters } from '@/contexts/FilterContext';
 import { addPubCategoryIfNeeded, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
 import { calcularDistancia } from '@/utils/locationUtils';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
+import { scaleIconSize, scaleFontSize } from '@/utils/androidScaling';
 
 const { width } = Dimensions.get('window');
 
 const CATEGORIAS_LOCALES = [
-  { id: 'todos', label: 'Todos', icon: 'mappin.circle.fill' },
-  { id: 'cafe', label: 'Cafés', icon: 'cup.and.saucer.fill' },
-  { id: 'restaurante', label: 'Restaurantes', icon: 'fork.knife' },
-  { id: 'bar', label: 'Bares', icon: 'wineglass.fill' },
-  { id: 'pub', label: 'Pubs', icon: 'mug.fill' },
-  { id: 'cocteleria', label: 'Coctelería', icon: 'wineglass' },
-  { id: 'discoteca', label: 'Discotecas', icon: 'music.note' },
+  { id: 'todos', label: 'Todos', icon: 'mappin.circle.fill', androidIcon: 'location_on' },
+  { id: 'cafe', label: 'Cafés', icon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
+  { id: 'restaurante', label: 'Restaurantes', icon: 'fork.knife', androidIcon: 'restaurant' },
+  { id: 'bar', label: 'Bares', icon: 'wineglass.fill', androidIcon: 'wine_bar' },
+  { id: 'pub', label: 'Pubs', icon: 'mug.fill', androidIcon: 'sports_bar' },
+  { id: 'cocteleria', label: 'Coctelería', icon: 'wineglass', androidIcon: 'wine_bar' },
+  { id: 'discoteca', label: 'Discotecas', icon: 'music.note', androidIcon: 'music_note' },
 ];
 
 // ✅ COORDINATES FOR AUTONOMOUS COMMUNITIES (for fly-to feature)
@@ -132,11 +133,15 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v5.4 - FIXED LOADING TEXT
+ * ✅ MAP SCREEN v102.0 - ANDROID SCALING & ICON FIX
  * 
- * Changes:
- * - ✅ FIXED: Changed "Cargando 0 locales" to "Preparando mapa"
- * - ✅ Removed locale count from loading text
+ * CRITICAL FIXES v102.0 (ANDROID ONLY):
+ * - ✅ All icons properly scaled with scaleIconSize()
+ * - ✅ All text properly scaled with scaleFontSize()
+ * - ✅ Fixed invalid Material icon names (chevron_left → chevron_back)
+ * - ✅ Category icons use valid Material names
+ * - ✅ Control buttons properly sized
+ * - ✅ iOS design remains unchanged
  */
 
 export default function MapaScreen() {
@@ -161,24 +166,23 @@ export default function MapaScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[MAP] 🔍 Requesting location permissions...');
+        console.log('[MAP v102.0] 🔍 Requesting location permissions...');
         
-        // Check if location services are available
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[MAP] ⚠️ Location services are disabled, using default location (Madrid)');
+          console.log('[MAP v102.0] ⚠️ Location services are disabled, using default location (Madrid)');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[MAP] ⚠️ Location permission denied, using default location (Madrid)');
+          console.log('[MAP v102.0] ⚠️ Location permission denied, using default location (Madrid)');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
-        console.log('[MAP] ✅ Location permission granted, getting position...');
+        console.log('[MAP v102.0] ✅ Location permission granted, getting position...');
         
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -190,36 +194,33 @@ export default function MapaScreen() {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
-        console.log('[MAP] 📍 User location obtained:', {
+        console.log('[MAP v102.0] 📍 User location obtained:', {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
       } catch (error: any) {
-        console.error('[MAP] ❌ Error getting location:', {
+        console.error('[MAP v102.0] ❌ Error getting location:', {
           message: error?.message || 'Unknown error',
           code: error?.code,
         });
-        // Use default location (Madrid) if error occurs
-        console.log('[MAP] ⚠️ Using default location (Madrid) due to error');
+        console.log('[MAP v102.0] ⚠️ Using default location (Madrid) due to error');
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
   }, []);
 
-  // ✅ INSTANT LOAD: Use data from GlobalDataContext (same as Lista de Locales)
+  // ✅ INSTANT LOAD: Use data from GlobalDataContext
   useEffect(() => {
-    console.log('⚡ [MAP] ========================================');
-    console.log('⚡ [MAP] INSTANT HYDRATION from GlobalDataContext');
-    console.log('⚡ [MAP] Total locales available:', globalLocales.length);
+    console.log('⚡ [MAP v102.0] ========================================');
+    console.log('⚡ [MAP v102.0] INSTANT HYDRATION from GlobalDataContext');
+    console.log('⚡ [MAP v102.0] Total locales available:', globalLocales.length);
     
     if (globalLocales.length > 0) {
       setIsLoadingMarkers(true);
       
-      // Transform global locales to map format
       const now = new Date();
       const currentDate = now.toISOString().split('T')[0];
       
-      // Load events in background (non-blocking)
       supabase
         .from('eventos')
         .select('id, titulo, fecha, fecha_fin, hora, hora_fin, imagen_url, precio, local_id')
@@ -247,7 +248,6 @@ export default function MapaScreen() {
             }
           }
 
-          // Transform locales with events
           const localesTransformados: LocalWithEvent[] = globalLocales.map((local) => {
             const evento = eventsByLocal.get(local.id) || null;
 
@@ -260,8 +260,7 @@ export default function MapaScreen() {
 
           setTodosLosLocales(localesTransformados);
           setIsLoadingMarkers(false);
-          console.log(`⚡ [MAP] ✅ INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
-          console.log(`⚡ [MAP] ✅ Map and markers will render SIMULTANEOUSLY`);
+          console.log(`⚡ [MAP v102.0] ✅ INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
         });
     }
   }, [globalLocales]);
@@ -269,7 +268,7 @@ export default function MapaScreen() {
   // ✅ BACKGROUND SYNC: Refresh data silently in background
   useEffect(() => {
     const backgroundRefresh = async () => {
-      console.log('🔄 [MAP] Background refresh triggered');
+      console.log('🔄 [MAP v102.0] Background refresh triggered');
       await refreshData(true);
     };
 
@@ -278,17 +277,11 @@ export default function MapaScreen() {
     return () => clearInterval(interval);
   }, [refreshData]);
 
-  // ✅ OPTIMIZED: Memoize filtered locals to prevent unnecessary re-renders
+  // ✅ OPTIMIZED: Memoize filtered locals
   const localesFiltradosMemo = useMemo(() => {
-    console.log('[MAP] 🔍 ========================================');
-    console.log('[MAP] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
-    console.log('[MAP] 🔍 Selected category:', categoriaSeleccionada);
-    console.log('[MAP] 🔍 Filter state:', filtroEstado);
-    console.log('[MAP] 🔍 Global filters:', globalFiltros);
-    console.log('[MAP] 📊 Total locals to filter:', todosLosLocales.length);
+    console.log('[MAP v102.0] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
     
     let filtrados = todosLosLocales.filter(local => {
-      // Category filter
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
       localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
       
@@ -301,27 +294,22 @@ export default function MapaScreen() {
         );
       }
       
-      // Open/Closed filter
       let matchEstado = true;
       if (filtroEstado === 'abiertos') {
         const estado = getEstadoLocal(local);
         matchEstado = estado.estaAbierto === true;
       }
       
-      // ✅ SYNCHRONIZED: Apply global filters from FilterContext
       let matchGlobalFilters = true;
       
-      // Community filter
       if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
         matchGlobalFilters = matchGlobalFilters && local.comunidad === globalFiltros.comunidad;
       }
       
-      // Province filter
       if (globalFiltros.provincia) {
         matchGlobalFilters = matchGlobalFilters && local.provincia === globalFiltros.provincia;
       }
       
-      // ✅ FIXED: Type filter - check if local has ANY of the selected types
       if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
         const hasMatchingType = globalFiltros.tipo.some(tipo => 
           localCategories.some((cat: string) => cat.toLowerCase() === tipo.toLowerCase())
@@ -329,7 +317,6 @@ export default function MapaScreen() {
         matchGlobalFilters = matchGlobalFilters && hasMatchingType;
       }
       
-      // ✅ FIXED: Services filter - check if local has ALL selected services
       if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
         const localServices = local.servicios_disponibles || {};
         const hasAllServices = globalFiltros.servicios.every(servicio => 
@@ -338,7 +325,6 @@ export default function MapaScreen() {
         matchGlobalFilters = matchGlobalFilters && hasAllServices;
       }
       
-      // ✅ FIXED: Ambiente filter - check if local has ANY of the selected ambientes
       if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0 && !globalFiltros.ambiente.includes('cualquiera')) {
         const localAmbiente = local.ambiente_completo || {};
         const hasMatchingAmbiente = globalFiltros.ambiente.some(amb => 
@@ -347,7 +333,6 @@ export default function MapaScreen() {
         matchGlobalFilters = matchGlobalFilters && hasMatchingAmbiente;
       }
       
-      // ✅ NEW: Clientela filter - check if local has ANY of the selected clientela
       if (globalFiltros.clientela && globalFiltros.clientela.length > 0 && !globalFiltros.clientela.includes('cualquiera')) {
         const localClientela = local.clientela || {};
         const hasMatchingClientela = globalFiltros.clientela.some(cli => 
@@ -356,7 +341,6 @@ export default function MapaScreen() {
         matchGlobalFilters = matchGlobalFilters && hasMatchingClientela;
       }
       
-      // Distance filter
       if (globalFiltros.distancia && userLocation) {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -370,19 +354,17 @@ export default function MapaScreen() {
       return matchCategoria && matchEstado && matchGlobalFilters;
     });
     
-    console.log(`[MAP] ✅ Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
+    console.log(`[MAP v102.0] ✅ Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
     
     return filtrados;
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado, globalFiltros, userLocation]);
 
-  // ✅ Update localesFiltrados when memoized value changes
   useEffect(() => {
     setLocalesFiltrados(localesFiltradosMemo);
   }, [localesFiltradosMemo]);
 
-  // ✅ MEMOIZED MARKERS: Prevent unnecessary re-renders
   const markersData = useMemo(() => {
-    console.log('[MAP] 🎯 Memoizing markers data...');
+    console.log('[MAP v102.0] 🎯 Memoizing markers data...');
     
     return localesFiltrados.map(local => {
       const estadoCompleto = getEstadoLocal(local);
@@ -496,11 +478,10 @@ export default function MapaScreen() {
           });
         }
       } catch (error) {
-        console.error('[MAP] Error loading check-ins:', error);
+        console.error('[MAP v102.0] Error loading check-ins:', error);
       }
     }
 
-    // Add check-in info to markers
     const markersWithCheckIns = markersData.map(marker => {
       const checkInInfo = checkInsByLocal.get(marker.id) || { isUserHere: false, friendsCount: 0 };
       return {
@@ -510,12 +491,7 @@ export default function MapaScreen() {
       };
     });
 
-    console.log(`[MAP] 🗺️ ========================================`);
-    console.log(`[MAP] 🗺️ GENERATING MAP HTML WITH CLUSTERING`);
-    console.log(`[MAP] 🗺️ Total markers to display: ${markersWithCheckIns.length}`);
-    console.log(`[MAP] 🗺️ Center: ${centerLat}, ${centerLng}`);
-    console.log(`[MAP] 🗺️ ✅ INSTANT RENDERING - NO DELAYS`);
-    console.log(`[MAP] 🗺️ ========================================`);
+    console.log(`[MAP v102.0] 🗺️ GENERATING MAP HTML WITH ${markersWithCheckIns.length} MARKERS`);
 
     return `
 <!DOCTYPE html>
@@ -817,11 +793,7 @@ export default function MapaScreen() {
   <div id="map"></div>
   <script>
     try {
-      console.log('[MAP HTML] ========================================');
-      console.log('[MAP HTML] ⚡ INSTANT INITIALIZATION');
-      console.log('[MAP HTML] ⚡ Markers pre-loaded: ${markersWithCheckIns.length}');
-      console.log('[MAP HTML] ⚡ CLUSTERING ENABLED for performance');
-      console.log('[MAP HTML] ========================================');
+      console.log('[MAP HTML v102.0] ⚡ INSTANT INITIALIZATION');
       
       var map = L.map('map', {
         zoomControl: false,
@@ -833,7 +805,6 @@ export default function MapaScreen() {
         attribution: ''
       }).addTo(map);
 
-      // ✅ MARKER CLUSTERING for performance
       var markers = L.markerClusterGroup({
         maxClusterRadius: 50,
         spiderfyOnMaxZoom: true,
@@ -860,8 +831,6 @@ export default function MapaScreen() {
 
       var markersData = ${JSON.stringify(markersWithCheckIns)};
       
-      console.log('[MAP HTML] ✅ Markers data loaded:', markersData.length);
-      
       var lastZoom = map.getZoom();
       map.on('zoomend', function() {
         var currentZoom = map.getZoom();
@@ -879,7 +848,6 @@ export default function MapaScreen() {
         lastZoom = currentZoom;
       });
       
-      var markersCreated = 0;
       markersData.forEach(function(data) {
         var markerClass = 'custom-marker marker-' + data.estado;
         if (data.destacado) {
@@ -1009,7 +977,6 @@ export default function MapaScreen() {
             id: data.id
           }));
           
-          // ✅ FIXED: Proper popup centering without going off-screen
           setTimeout(function() {
             var px = map.project(marker.getLatLng());
             px.y -= 140;
@@ -1023,26 +990,19 @@ export default function MapaScreen() {
         });
 
         markers.addLayer(marker);
-        markersCreated++;
       });
 
       map.addLayer(markers);
       
-      console.log('[MAP HTML] ========================================');
-      console.log('[MAP HTML] ✅ Map initialized successfully');
-      console.log('[MAP HTML] ✅ Total markers created:', markersCreated);
-      console.log('[MAP HTML] ✅ CLUSTERING ACTIVE');
-      console.log('[MAP HTML] ✅ INSTANT DISPLAY - ZERO DELAY');
-      console.log('[MAP HTML] ========================================');
+      console.log('[MAP HTML v102.0] ✅ Map initialized successfully');
       
       setTimeout(function() {
         map.invalidateSize();
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
       }, 100);
       
-      // ✅ EXPOSE flyTo function for filter-based navigation
       window.flyToLocation = function(lat, lng, zoom) {
-        console.log('[MAP HTML] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
+        console.log('[MAP HTML v102.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
         map.flyTo([lat, lng], zoom, {
           animate: true,
           duration: 1.5,
@@ -1051,7 +1011,7 @@ export default function MapaScreen() {
       };
       
     } catch (error) {
-      console.error('[MAP HTML] Map initialization error:', error);
+      console.error('[MAP HTML v102.0] Map initialization error:', error);
     }
   </script>
 </body>
@@ -1059,11 +1019,10 @@ export default function MapaScreen() {
     `;
   }, [markersData, user, userLocation]);
 
-  // ✅ INSTANT DISPLAY: Generate map HTML as soon as markers are ready
   useEffect(() => {
     const generateHTML = async () => {
       if (localesFiltrados.length > 0 && !isLoadingMarkers) {
-        console.log('[MAP] 🚀 Generating map HTML with', localesFiltrados.length, 'markers');
+        console.log('[MAP v102.0] 🚀 Generating map HTML with', localesFiltrados.length, 'markers');
         const html = await generateMapHTML();
         setMapHTML(html);
       }
@@ -1072,7 +1031,6 @@ export default function MapaScreen() {
     generateHTML();
   }, [localesFiltrados, user, generateMapHTML, isLoadingMarkers]);
 
-  // ✅ FLY-TO: Automatically center map on selected community/province
   useEffect(() => {
     const currentFiltersKey = JSON.stringify({
       comunidad: globalFiltros.comunidad,
@@ -1082,10 +1040,9 @@ export default function MapaScreen() {
     if (currentFiltersKey !== previousFiltersRef.current && webViewRef.current && isMapReady) {
       previousFiltersRef.current = currentFiltersKey;
       
-      // Check if province is selected
       if (globalFiltros.provincia && PROVINCIA_COORDINATES[globalFiltros.provincia]) {
         const coords = PROVINCIA_COORDINATES[globalFiltros.provincia];
-        console.log(`[MAP] 🛫 FLY-TO: Province "${globalFiltros.provincia}"`, coords);
+        console.log(`[MAP v102.0] 🛫 FLY-TO: Province "${globalFiltros.provincia}"`, coords);
         
         webViewRef.current.injectJavaScript(`
           if (typeof window.flyToLocation !== 'undefined') {
@@ -1094,10 +1051,9 @@ export default function MapaScreen() {
           true;
         `);
       }
-      // Check if community is selected
       else if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades' && COMUNIDAD_COORDINATES[globalFiltros.comunidad]) {
         const coords = COMUNIDAD_COORDINATES[globalFiltros.comunidad];
-        console.log(`[MAP] 🛫 FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
+        console.log(`[MAP v102.0] 🛫 FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
         
         webViewRef.current.injectJavaScript(`
           if (typeof window.flyToLocation !== 'undefined') {
@@ -1144,28 +1100,23 @@ export default function MapaScreen() {
   };
 
   const handleVerDetalles = (localId: string) => {
-    console.log('[MAP] Navigating to local details:', localId);
+    console.log('[MAP v102.0] Navigating to local details:', localId);
     router.push(`/detalle/local?id=${localId}`);
   };
 
   const handleWebViewMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      console.log('📨 [MAP] Received message from WebView:', data);
+      console.log('📨 [MAP v102.0] Received message from WebView:', data);
       
       if (data.type === 'navigate' && data.id) {
-        console.log('🗺️ [MAP] Navigating to local details:', data.id);
         handleVerDetalles(data.id);
-      } else if (data.type === 'popup_opened' && data.id) {
-        console.log('📍 [MAP] Popup opened for local:', data.id);
-      } else if (data.type === 'zoom_close' && data.id) {
-        console.log('🔍 [MAP] Zoomed close to local:', data.id);
       } else if (data.type === 'map_ready') {
-        console.log('✅ [MAP] Map is ready for interactions');
+        console.log('✅ [MAP v102.0] Map is ready for interactions');
         setIsMapReady(true);
       }
     } catch (error) {
-      console.error('❌ [MAP] Error parsing WebView message:', error);
+      console.error('❌ [MAP v102.0] Error parsing WebView message:', error);
     }
   };
 
@@ -1174,11 +1125,16 @@ export default function MapaScreen() {
       <View style={styles.mapContainer}>
         {Platform.OS === 'web' ? (
           <View style={styles.webNotSupported}>
-            <IconSymbol ios_icon_name="map" android_material_icon_name="map" size={64} color={colors.textSecondary} />
-            <Text style={styles.webNotSupportedText}>
+            <IconSymbol 
+              ios_icon_name="map" 
+              android_material_icon_name="map" 
+              size={Platform.OS === 'android' ? scaleIconSize(64) : 64} 
+              color={colors.textSecondary} 
+            />
+            <Text style={[styles.webNotSupportedText, { fontSize: scaleFontSize(18) }]}>
               Los mapas no están disponibles en la versión web de Natively.
             </Text>
-            <Text style={styles.webNotSupportedSubtext}>
+            <Text style={[styles.webNotSupportedSubtext, { fontSize: scaleFontSize(14) }]}>
               Por favor, usa la aplicación móvil para ver el mapa.
             </Text>
           </View>
@@ -1191,12 +1147,12 @@ export default function MapaScreen() {
                     <IconSymbol 
                       ios_icon_name="map.fill" 
                       android_material_icon_name="map" 
-                      size={64} 
+                      size={Platform.OS === 'android' ? scaleIconSize(64) : 64} 
                       color={colors.primary} 
                     />
                   </View>
                   <ActivityIndicator size="large" color={colors.primary} style={styles.loadingSpinner} />
-                  <Text style={styles.loadingText}>Preparando mapa...</Text>
+                  <Text style={[styles.loadingText, { fontSize: scaleFontSize(18) }]}>Preparando mapa...</Text>
                 </View>
               </View>
             )}
@@ -1210,7 +1166,7 @@ export default function MapaScreen() {
                 domStorageEnabled={true}
                 onError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
-                  console.error('[MAP] WebView error:', nativeEvent);
+                  console.error('[MAP v102.0] WebView error:', nativeEvent);
                 }}
               />
             )}
@@ -1243,13 +1199,14 @@ export default function MapaScreen() {
                 ]}>
                   <IconSymbol 
                     ios_icon_name={categoria.icon as any}
-                    android_material_icon_name={categoria.icon as any}
-                    size={28} 
+                    android_material_icon_name={categoria.androidIcon}
+                    size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
                     color={categoriaSeleccionada === categoria.id ? '#FFFFFF' : colors.primary}
                   />
                 </View>
                 <Text style={[
                   styles.categoriaLabel,
+                  { fontSize: scaleFontSize(12) },
                   categoriaSeleccionada === categoria.id && styles.categoriaLabelActive
                 ]}>
                   {categoria.label}
@@ -1262,17 +1219,35 @@ export default function MapaScreen() {
 
       <View style={styles.controlsLeft}>
         <TouchableOpacity 
-          style={styles.controlButton}
+          style={[styles.controlButton, {
+            width: Platform.OS === 'android' ? scaleIconSize(48) : 48,
+            height: Platform.OS === 'android' ? scaleIconSize(48) : 48,
+            borderRadius: Platform.OS === 'android' ? scaleIconSize(24) : 24,
+          }]}
           onPress={() => router.back()}
         >
-          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="chevron_left" size={24} color={colors.text} />
+          <IconSymbol 
+            ios_icon_name="chevron.left" 
+            android_material_icon_name="chevron_back" 
+            size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
+            color={colors.text} 
+          />
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={styles.controlButton}
+          style={[styles.controlButton, {
+            width: Platform.OS === 'android' ? scaleIconSize(48) : 48,
+            height: Platform.OS === 'android' ? scaleIconSize(48) : 48,
+            borderRadius: Platform.OS === 'android' ? scaleIconSize(24) : 24,
+          }]}
           onPress={() => setMostrarFiltros(true)}
         >
-          <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle.fill" android_material_icon_name="filter_list" size={24} color={colors.primary} />
+          <IconSymbol 
+            ios_icon_name="line.3.horizontal.decrease.circle.fill" 
+            android_material_icon_name="filter_list" 
+            size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
+            color={colors.primary} 
+          />
         </TouchableOpacity>
       </View>
 
@@ -1288,6 +1263,7 @@ export default function MapaScreen() {
             >
               <Text style={[
                 styles.estadoOptionText,
+                { fontSize: scaleFontSize(11) },
                 filtroEstado === 'todos' && styles.estadoOptionTextActive
               ]}>
                 Todos
@@ -1302,6 +1278,7 @@ export default function MapaScreen() {
             >
               <Text style={[
                 styles.estadoOptionText,
+                { fontSize: scaleFontSize(11) },
                 filtroEstado === 'abiertos' && styles.estadoOptionTextActive
               ]}>
                 Abiertos
@@ -1313,24 +1290,33 @@ export default function MapaScreen() {
         <View style={styles.leyenda}>
           <View style={styles.leyendaItem}>
             <View style={[styles.leyendaDot, { backgroundColor: '#22C55E' }]} />
-            <Text style={styles.leyendaText}>Abierto</Text>
+            <Text style={[styles.leyendaText, { fontSize: scaleFontSize(10) }]}>Abierto</Text>
           </View>
           <View style={styles.leyendaItem}>
             <View style={[styles.leyendaDot, { backgroundColor: '#EF4444' }]} />
-            <Text style={styles.leyendaText}>Cerrado</Text>
+            <Text style={[styles.leyendaText, { fontSize: scaleFontSize(10) }]}>Cerrado</Text>
           </View>
           <View style={styles.leyendaItem}>
             <View style={[styles.leyendaDot, { backgroundColor: '#9CA3AF' }]} />
-            <Text style={styles.leyendaText}>S/Info</Text>
+            <Text style={[styles.leyendaText, { fontSize: scaleFontSize(10) }]}>S/Info</Text>
           </View>
         </View>
       </View>
 
       <TouchableOpacity 
-        style={styles.centerButton}
+        style={[styles.centerButton, {
+          width: Platform.OS === 'android' ? scaleIconSize(56) : 56,
+          height: Platform.OS === 'android' ? scaleIconSize(56) : 56,
+          borderRadius: Platform.OS === 'android' ? scaleIconSize(28) : 28,
+        }]}
         onPress={centerOnUser}
       >
-        <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={24} color={colors.primary} />
+        <IconSymbol 
+          ios_icon_name="location.fill" 
+          android_material_icon_name="my_location" 
+          size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
+          color={colors.primary} 
+        />
       </TouchableOpacity>
 
       <FiltrosAvanzadosSheet
@@ -1378,7 +1364,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   loadingText: {
-    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 8,
@@ -1391,14 +1376,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   webNotSupportedText: {
-    fontSize: 18,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
     marginTop: 16,
   },
   webNotSupportedSubtext: {
-    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 8,
@@ -1449,7 +1432,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
   },
   categoriaLabel: {
-    fontSize: 12,
     fontWeight: '600',
     color: colors.white,
     textAlign: 'center',
@@ -1474,9 +1456,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   controlButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
     backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1517,7 +1496,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   estadoOptionText: {
-    fontSize: 11,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -1550,7 +1528,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   leyendaText: {
-    fontSize: 10,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1558,9 +1535,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     bottom: 100,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
     backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
