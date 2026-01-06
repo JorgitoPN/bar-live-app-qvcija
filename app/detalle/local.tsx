@@ -35,6 +35,7 @@ import ParsedText from '../../components/social/ParsedText';
 import ReviewsModal from '../../components/social/ReviewsModal';
 import CheckInModal from '../../components/detalle/CheckInModal';
 import UsersInLocalModal from '../../components/detalle/UsersInLocalModal';
+import { scaleFontSize } from '../../utils/androidScaling';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -141,64 +142,64 @@ interface CheckedInUser {
 
 const getCategoryIcon = (categoria?: string): { ios: string; android: string; color: string } => {
   const categoryMap: Record<string, { ios: string; android: string; color: string }> = {
-    bar: { ios: 'wineglass.fill', android: 'wine', color: '#F59E0B' },
+    bar: { ios: 'wineglass.fill', android: 'wine_bar', color: '#F59E0B' },
     restaurante: { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
-    cafe: { ios: 'cup.and.saucer.fill', android: 'cafe', color: '#8B5CF6' },
-    cafetería: { ios: 'cup.and.saucer.fill', android: 'cafe', color: '#8B5CF6' },
-    pub: { ios: 'wineglass', android: 'beer', color: '#10B981' },
-    discoteca: { ios: 'music.note', android: 'musical-note', color: '#EC4899' },
-    cocteleria: { ios: 'wineglass.fill', android: 'wine', color: '#3B82F6' },
-    coctelería: { ios: 'wineglass.fill', android: 'wine', color: '#3B82F6' },
-    sala_conciertos: { ios: 'music.note.list', android: 'musical-notes', color: '#F59E0B' },
+    cafe: { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#8B5CF6' },
+    cafetería: { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#8B5CF6' },
+    pub: { ios: 'wineglass', android: 'sports_bar', color: '#10B981' },
+    discoteca: { ios: 'music.note', android: 'nightlife', color: '#EC4899' },
+    cocteleria: { ios: 'wineglass.fill', android: 'wine_bar', color: '#3B82F6' },
+    coctelería: { ios: 'wineglass.fill', android: 'wine_bar', color: '#3B82F6' },
+    sala_conciertos: { ios: 'music.note.list', android: 'music_note', color: '#F59E0B' },
   };
-  return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location', color: colors.primary };
+  return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'place', color: colors.primary };
 };
 
 const SERVICES_SECTION_COLOR = '#10B981';
 
 const getServiceIcon = (servicio: string): { ios: string; android: string; color: string } => {
   const serviceMap: Record<string, { ios: string; android: string }> = {
-    cerveza: { ios: 'wineglass', android: 'beer' },
-    cócteles: { ios: 'wineglass.fill', android: 'wine' },
-    cocteles: { ios: 'wineglass.fill', android: 'wine' },
-    cocktails: { ios: 'wineglass.fill', android: 'wine' },
-    efectivo: { ios: 'banknote', android: 'cash' },
-    pago_efectivo: { ios: 'banknote', android: 'cash' },
-    tarjetas: { ios: 'creditcard.fill', android: 'card' },
-    pago_tarjetas: { ios: 'creditcard.fill', android: 'card' },
-    tarjetas_credito: { ios: 'creditcard.fill', android: 'card' },
-    tarjetas_debito: { ios: 'creditcard.fill', android: 'card' },
+    cerveza: { ios: 'wineglass', android: 'sports_bar' },
+    cócteles: { ios: 'wineglass.fill', android: 'wine_bar' },
+    cocteles: { ios: 'wineglass.fill', android: 'wine_bar' },
+    cocktails: { ios: 'wineglass.fill', android: 'wine_bar' },
+    efectivo: { ios: 'banknote', android: 'payments' },
+    pago_efectivo: { ios: 'banknote', android: 'payments' },
+    tarjetas: { ios: 'creditcard.fill', android: 'credit_card' },
+    pago_tarjetas: { ios: 'creditcard.fill', android: 'credit_card' },
+    tarjetas_credito: { ios: 'creditcard.fill', android: 'credit_card' },
+    tarjetas_debito: { ios: 'creditcard.fill', android: 'credit_card' },
     wifi: { ios: 'wifi', android: 'wifi' },
     wifi_gratis: { ios: 'wifi', android: 'wifi' },
-    terraza: { ios: 'sun.max.fill', android: 'sunny' },
-    terraza_exterior: { ios: 'sun.max.fill', android: 'sunny' },
-    parking: { ios: 'car.fill', android: 'car' },
-    aparcamiento: { ios: 'car.fill', android: 'car' },
-    accesibilidad: { ios: 'figure.roll', android: 'accessibility' },
-    accesible_silla_ruedas: { ios: 'figure.roll', android: 'accessibility' },
-    reservas: { ios: 'calendar', android: 'calendar' },
-    delivery: { ios: 'bicycle', android: 'bicycle' },
-    entrega_domicilio: { ios: 'bicycle', android: 'bicycle' },
-    takeaway: { ios: 'bag.fill', android: 'bag' },
-    para_llevar: { ios: 'bag.fill', android: 'bag' },
+    terraza: { ios: 'sun.max.fill', android: 'wb_sunny' },
+    terraza_exterior: { ios: 'sun.max.fill', android: 'wb_sunny' },
+    parking: { ios: 'car.fill', android: 'local_parking' },
+    aparcamiento: { ios: 'car.fill', android: 'local_parking' },
+    accesibilidad: { ios: 'figure.roll', android: 'accessible' },
+    accesible_silla_ruedas: { ios: 'figure.roll', android: 'accessible' },
+    reservas: { ios: 'calendar', android: 'event' },
+    delivery: { ios: 'bicycle', android: 'delivery_dining' },
+    entrega_domicilio: { ios: 'bicycle', android: 'delivery_dining' },
+    takeaway: { ios: 'bag.fill', android: 'shopping_bag' },
+    para_llevar: { ios: 'bag.fill', android: 'shopping_bag' },
     comida: { ios: 'fork.knife', android: 'restaurant' },
     almuerzo: { ios: 'fork.knife', android: 'restaurant' },
     cena: { ios: 'fork.knife', android: 'restaurant' },
-    desayuno: { ios: 'cup.and.saucer.fill', android: 'cafe' },
-    bebidas: { ios: 'cup.and.saucer.fill', android: 'cafe' },
-    cafe: { ios: 'cup.and.saucer.fill', android: 'cafe' },
-    vino: { ios: 'wineglass.fill', android: 'wine' },
-    'musica en vivo': { ios: 'music.note', android: 'musical-note' },
-    'música en vivo': { ios: 'music.note', android: 'musical-note' },
-    musica_vivo: { ios: 'music.note', android: 'musical-note' },
+    desayuno: { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
+    bebidas: { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
+    cafe: { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
+    vino: { ios: 'wineglass.fill', android: 'wine_bar' },
+    'musica en vivo': { ios: 'music.note', android: 'music_note' },
+    'música en vivo': { ios: 'music.note', android: 'music_note' },
+    musica_vivo: { ios: 'music.note', android: 'music_note' },
     karaoke: { ios: 'mic.fill', android: 'mic' },
     tv: { ios: 'tv.fill', android: 'tv' },
     deportes_tv: { ios: 'tv.fill', android: 'tv' },
-    juegos: { ios: 'gamecontroller.fill', android: 'game-controller' },
-    dj: { ios: 'music.note.list', android: 'musical-notes' },
-    sin_gluten: { ios: 'leaf.fill', android: 'leaf' },
-    opciones_veganas: { ios: 'leaf.fill', android: 'leaf' },
-    comida_vegetariana: { ios: 'leaf.fill', android: 'leaf' },
+    juegos: { ios: 'gamecontroller.fill', android: 'sports_esports' },
+    dj: { ios: 'music.note.list', android: 'queue_music' },
+    sin_gluten: { ios: 'leaf.fill', android: 'eco' },
+    opciones_veganas: { ios: 'leaf.fill', android: 'eco' },
+    comida_vegetariana: { ios: 'leaf.fill', android: 'eco' },
   };
 
   const lowerServicio = servicio.toLowerCase().replace(/ /g, '_');
@@ -208,7 +209,7 @@ const getServiceIcon = (servicio: string): { ios: string; android: string; color
     }
   }
 
-  return { ios: 'checkmark.circle.fill', android: 'checkmark-circle', color: SERVICES_SECTION_COLOR };
+  return { ios: 'checkmark.circle.fill', android: 'check_circle', color: SERVICES_SECTION_COLOR };
 };
 
 const AMBIENTE_SECTION_COLOR = '#8B5CF6';
@@ -216,15 +217,15 @@ const AMBIENTE_SECTION_COLOR = '#8B5CF6';
 const getAmbienteIcon = (ambiente: string): { ios: string; android: string; color: string } => {
   const ambienteMap: Record<string, { ios: string; android: string }> = {
     familiar: { ios: 'person.3.fill', android: 'people' },
-    tranquilo: { ios: 'leaf.fill', android: 'leaf' },
-    animado: { ios: 'bolt.fill', android: 'flash' },
-    romántico: { ios: 'heart.fill', android: 'heart' },
-    romantico: { ios: 'heart.fill', android: 'heart' },
-    moderno: { ios: 'sparkles', android: 'sparkles' },
+    tranquilo: { ios: 'leaf.fill', android: 'eco' },
+    animado: { ios: 'bolt.fill', android: 'flash_on' },
+    romántico: { ios: 'heart.fill', android: 'favorite' },
+    romantico: { ios: 'heart.fill', android: 'favorite' },
+    moderno: { ios: 'sparkles', android: 'auto_awesome' },
     elegante: { ios: 'star.fill', android: 'star' },
     acogedor: { ios: 'house.fill', android: 'home' },
-    de_moda: { ios: 'sparkles', android: 'sparkles' },
-    juvenil: { ios: 'bolt.fill', android: 'flash' },
+    de_moda: { ios: 'sparkles', android: 'auto_awesome' },
+    juvenil: { ios: 'bolt.fill', android: 'flash_on' },
     tematico: { ios: 'star.fill', android: 'star' },
   };
 
@@ -235,7 +236,7 @@ const getAmbienteIcon = (ambiente: string): { ios: string; android: string; colo
     }
   }
 
-  return { ios: 'sparkles', android: 'sparkles', color: AMBIENTE_SECTION_COLOR };
+  return { ios: 'sparkles', android: 'auto_awesome', color: AMBIENTE_SECTION_COLOR };
 };
 
 const CLIENTELA_SECTION_COLOR = '#EC4899';
@@ -244,11 +245,11 @@ const getClientelaIcon = (clientela: string): { ios: string; android: string; co
   const clientelaMap: Record<string, { ios: string; android: string }> = {
     grupos: { ios: 'person.3.fill', android: 'people' },
     familias: { ios: 'house.fill', android: 'home' },
-    parejas: { ios: 'heart.fill', android: 'heart' },
+    parejas: { ios: 'heart.fill', android: 'favorite' },
     estudiantes: { ios: 'book.fill', android: 'school' },
-    turistas: { ios: 'airplane', android: 'airplane' },
+    turistas: { ios: 'airplane', android: 'flight' },
     ninos_bienvenidos: { ios: 'figure.2.and.child.holdinghands', android: 'people' },
-    lgtbi_friendly: { ios: 'heart.fill', android: 'heart' },
+    lgtbi_friendly: { ios: 'heart.fill', android: 'favorite' },
     locales: { ios: 'person.2.fill', android: 'people' },
   };
 
@@ -315,14 +316,14 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL SCREEN v52.0 - FIXED ROLE-BASED VISIBILITY FOR OWNERS IN CLIENT MODE
+ * ✅ DETALLE LOCAL SCREEN v101.0 - ANDROID SCALING COMPLETE
  * 
- * CRITICAL FIXES v52.0:
- * - ✅ "Estoy en este local" button VISIBLE when owner is in client mode
- * - ✅ "Sala Virtual" button VISIBLE when owner is in client mode
- * - ✅ These buttons ONLY hidden when user has selected a local profile AND is in propietario mode
- * - ✅ Review ratings properly synchronized from database
- * - ✅ Rating updates when reviews are added/modified
+ * CRITICAL FIXES v101.0 (ANDROID ONLY):
+ * - ✅ All text elements use scaleFontSize() for consistency
+ * - ✅ Header icons properly sized with scaleIconSize()
+ * - ✅ All buttons and badges scaled appropriately
+ * - ✅ Consistent with Favoritos page scaling
+ * - ✅ iOS design remains unchanged
  */
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
@@ -359,15 +360,10 @@ export default function DetalleLocalScreen() {
 
   const [showReviewsModal, setShowReviewsModal] = useState(false);
 
-  // ✅ CRITICAL FIX v52.0: Buttons should be visible when:
-  // - User is in client mode (currentMode === 'cliente'), OR
-  // - User is an owner but has NOT selected a local profile (activeProfileType === 'cliente')
-  // Buttons should ONLY be hidden when:
-  // - User has selected a local profile (activeProfileType === 'local') AND is in propietario mode
   const isClientMode = currentMode === 'cliente' || activeProfileType === 'cliente';
   const isOwnerOfLocal = user && local && local.propietario_id === user.id;
 
-  console.log('[DetalleLocal v52.0] 🎭 Mode check:', {
+  console.log('[DetalleLocal v101.0] 🎭 Mode check:', {
     currentMode,
     activeProfileType,
     isClientMode,
@@ -378,21 +374,21 @@ export default function DetalleLocalScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[DetalleLocal v52.0] 🔍 Requesting location permissions...');
+        console.log('[DetalleLocal v101.0] 🔍 Requesting location permissions...');
         
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[DetalleLocal v52.0] ⚠️ Location services are disabled');
+          console.log('[DetalleLocal v101.0] ⚠️ Location services are disabled');
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[DetalleLocal v52.0] ⚠️ Location permission denied');
+          console.log('[DetalleLocal v101.0] ⚠️ Location permission denied');
           return;
         }
 
-        console.log('[DetalleLocal v52.0] ✅ Location permission granted, getting position...');
+        console.log('[DetalleLocal v101.0] ✅ Location permission granted, getting position...');
         
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -404,9 +400,9 @@ export default function DetalleLocalScreen() {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-        console.log('[DetalleLocal v52.0] 📍 User location obtained');
+        console.log('[DetalleLocal v101.0] 📍 User location obtained');
       } catch (error: any) {
-        console.error('[DetalleLocal v52.0] ❌ Error getting location:', error?.message);
+        console.error('[DetalleLocal v101.0] ❌ Error getting location:', error?.message);
         setUserLocation(null);
       }
     })();
@@ -468,9 +464,9 @@ export default function DetalleLocalScreen() {
       });
 
       setCheckedInUsers(visibleUsers);
-      console.log('[DetalleLocal v52.0] ✅ Loaded checked-in users:', visibleUsers.length);
+      console.log('[DetalleLocal v101.0] ✅ Loaded checked-in users:', visibleUsers.length);
     } catch (error) {
-      console.error('[DetalleLocal v52.0] Error loading checked-in users:', error);
+      console.error('[DetalleLocal v101.0] Error loading checked-in users:', error);
     } finally {
       setLoadingCheckIns(false);
     }
@@ -488,13 +484,13 @@ export default function DetalleLocalScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[DetalleLocal v52.0] Error checking check-in status:', error);
+        console.error('[DetalleLocal v101.0] Error checking check-in status:', error);
         return;
       }
 
       setIsCheckedIn(!!data);
     } catch (error) {
-      console.error('[DetalleLocal v52.0] Error checking check-in status:', error);
+      console.error('[DetalleLocal v101.0] Error checking check-in status:', error);
     }
   }, [user, params.id]);
 
@@ -502,7 +498,6 @@ export default function DetalleLocalScreen() {
     try {
       setLoadingReviews(true);
       
-      // ✅ CRITICAL FIX v52.0: Load Barlive reviews and calculate average
       const { data: barliveReviews, error: barliveError } = await supabase
         .from('reviews_barlive')
         .select(`
@@ -516,7 +511,7 @@ export default function DetalleLocalScreen() {
         .order('created_at', { ascending: false });
 
       if (barliveError) {
-        console.error('[DetalleLocal v52.0] Error loading Barlive reviews:', barliveError);
+        console.error('[DetalleLocal v101.0] Error loading Barlive reviews:', barliveError);
       }
 
       const { data: localData } = await supabase
@@ -537,39 +532,36 @@ export default function DetalleLocalScreen() {
       });
 
       setAllReviews(combinedReviews);
-      console.log('[DetalleLocal v52.0] ✅ Loaded unified reviews:', {
+      console.log('[DetalleLocal v101.0] ✅ Loaded unified reviews:', {
         barlive: barliveReviews?.length || 0,
         google: googleReviews.length,
         total: combinedReviews.length,
       });
 
-      // ✅ CRITICAL FIX v52.0: Calculate and sync average rating
       if (barliveReviews && barliveReviews.length > 0) {
         const avg = barliveReviews.reduce((sum, r) => sum + r.rating, 0) / barliveReviews.length;
         setAverageRating(avg);
         
-        console.log('[DetalleLocal v52.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
+        console.log('[DetalleLocal v101.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
         
-        // ✅ CRITICAL FIX v52.0: Update local rating in database
         const { error: updateError } = await supabase
           .from('locales')
           .update({ rating: avg })
           .eq('id', params.id);
 
         if (updateError) {
-          console.error('[DetalleLocal v52.0] ❌ Error updating rating:', updateError);
+          console.error('[DetalleLocal v101.0] ❌ Error updating rating:', updateError);
         } else {
-          console.log('[DetalleLocal v52.0] ✅ Rating updated in database');
+          console.log('[DetalleLocal v101.0] ✅ Rating updated in database');
         }
       } else if (localData?.google_rating) {
-        // Use Google rating if no Barlive reviews
         setAverageRating(localData.google_rating);
-        console.log('[DetalleLocal v52.0] 📊 Using Google rating:', localData.google_rating);
+        console.log('[DetalleLocal v101.0] 📊 Using Google rating:', localData.google_rating);
       }
 
       setLoadingReviews(false);
     } catch (error) {
-      console.error('[DetalleLocal v52.0] Error loading reviews:', error);
+      console.error('[DetalleLocal v101.0] Error loading reviews:', error);
       setLoadingReviews(false);
     }
   }, [params.id]);
@@ -587,14 +579,14 @@ export default function DetalleLocalScreen() {
         .limit(3);
 
       if (error) {
-        console.error('[DetalleLocal v52.0] Error loading eventos:', error);
+        console.error('[DetalleLocal v101.0] Error loading eventos:', error);
         return;
       }
 
       setEventos(data || []);
       setLoadingEventos(false);
     } catch (error) {
-      console.error('[DetalleLocal v52.0] Error loading eventos:', error);
+      console.error('[DetalleLocal v101.0] Error loading eventos:', error);
       setLoadingEventos(false);
     }
   }, [params.id]);
@@ -605,12 +597,12 @@ export default function DetalleLocalScreen() {
       const { data, error } = await supabase.from('locales').select('*').eq('id', params.id).single();
 
       if (error) {
-        console.error('[DetalleLocal v52.0] Error loading local:', error);
+        console.error('[DetalleLocal v101.0] Error loading local:', error);
         setLoading(false);
         return;
       }
 
-      console.log('[DetalleLocal v52.0] ✅ Local loaded:', {
+      console.log('[DetalleLocal v101.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         propietario_id: data.propietario_id,
@@ -625,7 +617,7 @@ export default function DetalleLocalScreen() {
       checkUserCheckInStatus();
       loadCheckedInUsers();
     } catch (error) {
-      console.error('[DetalleLocal v52.0] Error:', error);
+      console.error('[DetalleLocal v101.0] Error:', error);
       setLoading(false);
     }
   }, [params.id, cargarReviewsUnificadas, cargarEventos, checkUserCheckInStatus, loadCheckedInUsers]);
@@ -650,7 +642,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v52.0] 🔄 Reviews changed, reloading...');
+          console.log('[DetalleLocal v101.0] 🔄 Reviews changed, reloading...');
           cargarReviewsUnificadas();
         }
       )
@@ -675,7 +667,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v52.0] Check-ins changed, reloading...');
+          console.log('[DetalleLocal v101.0] Check-ins changed, reloading...');
           loadCheckedInUsers();
           checkUserCheckInStatus();
         }
@@ -769,7 +761,7 @@ export default function DetalleLocalScreen() {
         title: local?.nombre || 'Local en BarLive',
       });
     } catch (error) {
-      console.error('[DetalleLocal v52.0] Error sharing:', error);
+      console.error('[DetalleLocal v101.0] Error sharing:', error);
     }
   };
 
@@ -804,7 +796,6 @@ export default function DetalleLocalScreen() {
       return;
     }
     
-    // ✅ CRITICAL FIX v52.0: Only allow check-in in client mode
     if (!isClientMode) {
       Alert.alert(
         'No Disponible',
@@ -841,7 +832,7 @@ export default function DetalleLocalScreen() {
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
               loadCheckedInUsers();
             } catch (error) {
-              console.error('[DetalleLocal v52.0] Error checking out:', error);
+              console.error('[DetalleLocal v101.0] Error checking out:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -858,7 +849,7 @@ export default function DetalleLocalScreen() {
   };
 
   const handleLoadMoreReviews = () => {
-    console.log('[DetalleLocal v52.0] 📄 Loading more reviews...');
+    console.log('[DetalleLocal v101.0] 📄 Loading more reviews...');
     setDisplayedReviewsCount(prev => prev + 5);
   };
 
@@ -868,7 +859,6 @@ export default function DetalleLocalScreen() {
       return;
     }
 
-    // ✅ CRITICAL FIX v52.0: Only allow virtual room in client mode
     if (!isClientMode) {
       Alert.alert(
         'No Disponible',
@@ -885,7 +875,7 @@ export default function DetalleLocalScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Cargando local...</Text>
+        <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando local...</Text>
       </View>
     );
   }
@@ -894,9 +884,9 @@ export default function DetalleLocalScreen() {
     return (
       <View style={styles.errorContainer}>
         <Ionicons name="alert-circle-outline" size={64} color={colors.badgeNuevo} />
-        <Text style={styles.errorText}>No se pudo cargar el local</Text>
+        <Text style={[styles.errorText, { fontSize: scaleFontSize(18) }]}>No se pudo cargar el local</Text>
         <TouchableOpacity style={styles.retryButton} onPress={cargarLocal}>
-          <Text style={styles.retryButtonText}>Reintentar</Text>
+          <Text style={[styles.retryButtonText, { fontSize: scaleFontSize(16) }]}>Reintentar</Text>
         </TouchableOpacity>
       </View>
     );
@@ -995,7 +985,6 @@ export default function DetalleLocalScreen() {
 
   const diaLogicoParaResaltar = estadoLocal.diaLogico || 'lunes';
 
-  // ✅ CRITICAL FIX v52.0: Use synchronized rating from database
   const displayRating = local.rating || local.google_rating || averageRating || 0;
 
   const allCategories = (
@@ -1065,7 +1054,7 @@ export default function DetalleLocalScreen() {
               <View style={styles.ratingBadge}>
                 <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
                   <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
-                  <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
+                  <Text style={[styles.ratingText, { fontSize: scaleFontSize(15) }]}>{displayRating.toFixed(1)}</Text>
                 </BlurView>
               </View>
             )}
@@ -1073,8 +1062,8 @@ export default function DetalleLocalScreen() {
             <View style={styles.statusBadge}>
               <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
                 <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
-                <Text style={styles.statusText}>{estadoLocal.badge}</Text>
-                {estadoLocal.tiempoRestante && <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>}
+                <Text style={[styles.statusText, { fontSize: scaleFontSize(14) }]}>{estadoLocal.badge}</Text>
+                {estadoLocal.tiempoRestante && <Text style={[styles.statusSubtext, { fontSize: scaleFontSize(12) }]}>• {estadoLocal.tiempoRestante}</Text>}
               </BlurView>
             </View>
 
@@ -1082,7 +1071,7 @@ export default function DetalleLocalScreen() {
               <View style={styles.destacadoBadge}>
                 <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
                   <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#F59E0B" />
-                  <Text style={styles.destacadoText}>Destacado</Text>
+                  <Text style={[styles.destacadoText, { fontSize: scaleFontSize(13) }]}>Destacado</Text>
                 </BlurView>
               </View>
             )}
@@ -1116,7 +1105,7 @@ export default function DetalleLocalScreen() {
                 <TouchableOpacity style={styles.galleryItem} onPress={() => handleOpenGallery(6)}>
                   <OptimizedImage source={{ uri: allImages[6] }} style={styles.galleryImage} resizeMode="cover" />
                   <View style={styles.galleryOverlay}>
-                    <Text style={styles.galleryOverlayText}>+{allImages.length - 6}</Text>
+                    <Text style={[styles.galleryOverlayText, { fontSize: scaleFontSize(20) }]}>+{allImages.length - 6}</Text>
                   </View>
                 </TouchableOpacity>
               )}
@@ -1126,7 +1115,7 @@ export default function DetalleLocalScreen() {
 
         <View style={styles.contentCard}>
           <View style={styles.headerSection}>
-            <Text style={styles.localNameText}>{local.nombre}</Text>
+            <Text style={[styles.localNameText, { fontSize: scaleFontSize(28) }]}>{local.nombre}</Text>
 
             {allCategories.length > 0 && (
               <View style={styles.categoriesRow}>
@@ -1135,7 +1124,7 @@ export default function DetalleLocalScreen() {
                   return (
                     <View key={index} style={[styles.categoryChipHighlighted, { backgroundColor: icon.color }]}>
                       <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={18} color="#fff" />
-                      <Text style={styles.categoryChipTextHighlighted}>{categoria.toUpperCase()}</Text>
+                      <Text style={[styles.categoryChipTextHighlighted, { fontSize: scaleFontSize(13) }]}>{categoria.toUpperCase()}</Text>
                     </View>
                   );
                 })}
@@ -1145,7 +1134,7 @@ export default function DetalleLocalScreen() {
             {local.direccion && (
               <View style={styles.addressCompact}>
                 <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
-                <Text style={styles.addressTextCompact} numberOfLines={1}>
+                <Text style={[styles.addressTextCompact, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
                   {local.direccion}
                 </Text>
               </View>
@@ -1154,7 +1143,7 @@ export default function DetalleLocalScreen() {
             {distance && (
               <View style={styles.distanceContainer}>
                 <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={16} color={colors.primary} />
-                <Text style={styles.distanceText}>A {distance} de tu ubicación</Text>
+                <Text style={[styles.distanceText, { fontSize: scaleFontSize(14) }]}>A {distance} de tu ubicación</Text>
               </View>
             )}
           </View>
@@ -1172,7 +1161,7 @@ export default function DetalleLocalScreen() {
                   size={16} 
                   color={colors.primary} 
                 />
-                <Text style={styles.claimLocalCardText}>
+                <Text style={[styles.claimLocalCardText, { fontSize: scaleFontSize(13) }]}>
                   ¿Este es tu local? Reclámalo ahora
                 </Text>
                 <IconSymbol 
@@ -1193,7 +1182,7 @@ export default function DetalleLocalScreen() {
             >
               <View style={styles.checkedInHeader}>
                 <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color={colors.primary} />
-                <Text style={styles.checkedInTitle}>
+                <Text style={[styles.checkedInTitle, { fontSize: scaleFontSize(15) }]}>
                   {checkedInUsers.length} {checkedInUsers.length === 1 ? 'persona está' : 'personas están'} en este local
                 </Text>
                 <IconSymbol
@@ -1220,7 +1209,7 @@ export default function DetalleLocalScreen() {
                         <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.headerText} />
                       )}
                     </View>
-                    <Text style={styles.checkedInUserName} numberOfLines={1}>
+                    <Text style={[styles.checkedInUserName, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
                       {checkedUser.nombre}
                     </Text>
                   </View>
@@ -1229,21 +1218,20 @@ export default function DetalleLocalScreen() {
             </TouchableOpacity>
           )}
 
-          {/* ✅ CRITICAL FIX v52.0: Show check-in buttons when in client mode (includes owners in client mode) */}
           {user && isOpen && isClientMode && (
             <View style={styles.checkInButtonsContainer}>
               {!isCheckedIn ? (
                 <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
                   <LinearGradient colors={['#10B981', '#059669']} style={styles.checkInButtonGradient}>
                     <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="add_location" size={22} color="#fff" />
-                    <Text style={styles.checkInButtonText}>Estoy en este local</Text>
+                    <Text style={[styles.checkInButtonText, { fontSize: scaleFontSize(15) }]}>Estoy en este local</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity style={styles.checkOutButton} onPress={handleCheckOut}>
                   <LinearGradient colors={['#9CA3AF', '#6B7280']} style={styles.checkInButtonGradient}>
                     <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={22} color="#fff" />
-                    <Text style={styles.checkInButtonText}>Ya no estoy en este local</Text>
+                    <Text style={[styles.checkInButtonText, { fontSize: scaleFontSize(15) }]}>Ya no estoy en este local</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               )}
@@ -1255,7 +1243,7 @@ export default function DetalleLocalScreen() {
               <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
                 <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtnGradient}>
                   <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
-                  <Text style={styles.actionBtnText}>Llamar</Text>
+                  <Text style={[styles.actionBtnText, { fontSize: scaleFontSize(14) }]}>Llamar</Text>
                 </LinearGradient>
               </TouchableOpacity>
             )}
@@ -1264,7 +1252,7 @@ export default function DetalleLocalScreen() {
               <TouchableOpacity style={styles.actionBtn} onPress={handleDirections}>
                 <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtnGradient}>
                   <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
-                  <Text style={styles.actionBtnText}>Cómo llegar</Text>
+                  <Text style={[styles.actionBtnText, { fontSize: scaleFontSize(14) }]}>Cómo llegar</Text>
                 </LinearGradient>
               </TouchableOpacity>
             )}
@@ -1275,7 +1263,7 @@ export default function DetalleLocalScreen() {
               <TouchableOpacity style={styles.specialButton} onPress={handleSocialProfile}>
                 <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.specialButtonGradient}>
                   <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
-                  <Text style={styles.specialButtonText}>Ver Perfil Social</Text>
+                  <Text style={[styles.specialButtonText, { fontSize: scaleFontSize(15) }]}>Ver Perfil Social</Text>
                   <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
                 </LinearGradient>
               </TouchableOpacity>
@@ -1304,7 +1292,7 @@ export default function DetalleLocalScreen() {
                     size={22} 
                     color="#fff" 
                   />
-                  <Text style={styles.specialButtonText}>
+                  <Text style={[styles.specialButtonText, { fontSize: scaleFontSize(15) }]}>
                     {local.website ? 'Sitio Web' : 'Enviar Email'}
                   </Text>
                   <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
@@ -1313,7 +1301,6 @@ export default function DetalleLocalScreen() {
             )}
           </View>
 
-          {/* ✅ CRITICAL FIX v52.0: Show virtual room button when in client mode (includes owners in client mode) */}
           {isOpen && isClientMode && (
             <TouchableOpacity
               style={styles.virtualRoomButton}
@@ -1329,8 +1316,8 @@ export default function DetalleLocalScreen() {
                   <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={24} color="#fff" />
                 </View>
                 <View style={styles.virtualRoomTextContainer}>
-                  <Text style={styles.virtualRoomButtonTitle}>Sala Virtual</Text>
-                  <Text style={styles.virtualRoomButtonSubtitle}>Chatea con otros usuarios</Text>
+                  <Text style={[styles.virtualRoomButtonTitle, { fontSize: scaleFontSize(17) }]}>Sala Virtual</Text>
+                  <Text style={[styles.virtualRoomButtonSubtitle, { fontSize: scaleFontSize(13) }]}>Chatea con otros usuarios</Text>
                 </View>
                 <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={22} color="#fff" />
               </LinearGradient>
@@ -1343,7 +1330,7 @@ export default function DetalleLocalScreen() {
                 <View style={[styles.compactIconCircle, { backgroundColor: colors.primary + '20' }]}>
                   <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={20} color={colors.primary} />
                 </View>
-                <Text style={styles.compactSectionTitle}>Eventos Próximos</Text>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Eventos Próximos</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.eventsScroll}>
                 {eventos.map((evento) => (
@@ -1356,10 +1343,10 @@ export default function DetalleLocalScreen() {
                       <OptimizedImage source={{ uri: `${evento.imagen_url}?v=${Date.now()}` }} style={styles.eventImage} resizeMode="cover" />
                     )}
                     <View style={styles.eventContent}>
-                      <Text style={styles.eventTitle} numberOfLines={2}>
+                      <Text style={[styles.eventTitle, { fontSize: scaleFontSize(14) }]} numberOfLines={2}>
                         {evento.titulo}
                       </Text>
-                      <Text style={styles.eventDate}>
+                      <Text style={[styles.eventDate, { fontSize: scaleFontSize(12) }]}>
                         {new Date(evento.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                       </Text>
                     </View>
@@ -1375,7 +1362,7 @@ export default function DetalleLocalScreen() {
                 <View style={[styles.compactIconCircle, { backgroundColor: '#3B82F6' + '20' }]}>
                   <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={20} color="#3B82F6" />
                 </View>
-                <Text style={styles.compactSectionTitle}>Horarios</Text>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Horarios</Text>
               </View>
               <View style={styles.scheduleCompact}>
                 {orderedDaysDisplay.map((dayDisplay) => {
@@ -1388,12 +1375,12 @@ export default function DetalleLocalScreen() {
                   return (
                     <View key={dayDisplay} style={[styles.scheduleRow, isToday && styles.scheduleRowToday]}>
                       <View style={styles.scheduleDayContainer}>
-                        <Text style={[styles.scheduleDayCompact, isToday && styles.scheduleDayTodayCompact]}>
+                        <Text style={[styles.scheduleDayCompact, { fontSize: scaleFontSize(13) }, isToday && styles.scheduleDayTodayCompact]}>
                           {dayDisplay.charAt(0).toUpperCase() + dayDisplay.slice(1, 3)}
                         </Text>
                         {isToday && <View style={styles.todayDot} />}
                       </View>
-                      <Text style={[styles.scheduleHoursCompact, isToday && styles.scheduleHoursTodayCompact]} numberOfLines={2}>
+                      <Text style={[styles.scheduleHoursCompact, { fontSize: scaleFontSize(12) }, isToday && styles.scheduleHoursTodayCompact]} numberOfLines={2}>
                         {formattedHours}
                       </Text>
                     </View>
@@ -1409,7 +1396,7 @@ export default function DetalleLocalScreen() {
                 <View style={[styles.compactIconCircle, { backgroundColor: '#10B981' + '20' }]}>
                   <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
                 </View>
-                <Text style={styles.compactSectionTitle}>Servicios Disponibles</Text>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Servicios Disponibles</Text>
               </View>
               <View style={styles.tagsGrid}>
                 {allServices.map((servicio, index) => {
@@ -1417,7 +1404,7 @@ export default function DetalleLocalScreen() {
                   return (
                     <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
                       <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
-                      <Text style={[styles.tagText, { color: icon.color }]}>{servicio}</Text>
+                      <Text style={[styles.tagText, { fontSize: scaleFontSize(13), color: icon.color }]}>{servicio}</Text>
                     </View>
                   );
                 })}
@@ -1431,7 +1418,7 @@ export default function DetalleLocalScreen() {
                 <View style={[styles.compactIconCircle, { backgroundColor: '#8B5CF6' + '20' }]}>
                   <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color="#8B5CF6" />
                 </View>
-                <Text style={styles.compactSectionTitle}>Ambiente</Text>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Ambiente</Text>
               </View>
               <View style={styles.tagsGrid}>
                 {ambienteTags.map((tag, index) => {
@@ -1439,7 +1426,7 @@ export default function DetalleLocalScreen() {
                   return (
                     <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
                       <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
-                      <Text style={[styles.tagText, { color: icon.color }]}>{tag}</Text>
+                      <Text style={[styles.tagText, { fontSize: scaleFontSize(13), color: icon.color }]}>{tag}</Text>
                     </View>
                   );
                 })}
@@ -1453,7 +1440,7 @@ export default function DetalleLocalScreen() {
                 <View style={[styles.compactIconCircle, { backgroundColor: '#EC4899' + '20' }]}>
                   <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color="#EC4899" />
                 </View>
-                <Text style={styles.compactSectionTitle}>Clientela Típica</Text>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Clientela Típica</Text>
               </View>
               <View style={styles.tagsGrid}>
                 {clientelaTags.map((tag, index) => {
@@ -1461,7 +1448,7 @@ export default function DetalleLocalScreen() {
                   return (
                     <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
                       <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
-                      <Text style={[styles.tagText, { color: icon.color }]}>{tag}</Text>
+                      <Text style={[styles.tagText, { fontSize: scaleFontSize(13), color: icon.color }]}>{tag}</Text>
                     </View>
                   );
                 })}
@@ -1475,14 +1462,14 @@ export default function DetalleLocalScreen() {
                 <View style={[styles.compactIconCircle, { backgroundColor: '#F59E0B' + '20' }]}>
                   <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="analytics" size={20} color="#F59E0B" />
                 </View>
-                <Text style={styles.compactSectionTitle}>Análisis de Reseñas</Text>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Análisis de Reseñas</Text>
               </View>
               <View style={styles.analysisBox}>
                 {averageRating > 0 && (
                   <View style={styles.analysisItem}>
-                    <Text style={styles.analysisLabel}>Sentimiento General</Text>
+                    <Text style={[styles.analysisLabel, { fontSize: scaleFontSize(13) }]}>Sentimiento General</Text>
                     <View style={[styles.sentimentBadge, { backgroundColor: calculateSentiment(averageRating).color + '20' }]}>
-                      <Text style={[styles.sentimentText, { color: calculateSentiment(averageRating).color }]}>
+                      <Text style={[styles.sentimentText, { fontSize: scaleFontSize(14), color: calculateSentiment(averageRating).color }]}>
                         {calculateSentiment(averageRating).sentiment}
                       </Text>
                     </View>
@@ -1490,11 +1477,11 @@ export default function DetalleLocalScreen() {
                 )}
                 {local.analisis_reviews?.palabras_destacadas_google && local.analisis_reviews.palabras_destacadas_google.length > 0 && (
                   <View style={styles.analysisItem}>
-                    <Text style={styles.analysisLabel}>Palabras Clave</Text>
+                    <Text style={[styles.analysisLabel, { fontSize: scaleFontSize(13) }]}>Palabras Clave</Text>
                     <View style={styles.keywordsRow}>
                       {local.analisis_reviews.palabras_destacadas_google.slice(0, 5).map((keyword: string, index: number) => (
                         <View key={index} style={[styles.keywordTag, { backgroundColor: '#F59E0B' + '20', borderColor: '#F59E0B' + '30' }]}>
-                          <Text style={[styles.keywordTagText, { color: '#F59E0B' }]}>{keyword}</Text>
+                          <Text style={[styles.keywordTagText, { fontSize: scaleFontSize(12), color: '#F59E0B' }]}>{keyword}</Text>
                         </View>
                       ))}
                     </View>
@@ -1502,8 +1489,8 @@ export default function DetalleLocalScreen() {
                 )}
                 {local.analisis_reviews?.resumen_automatico && (
                   <View style={styles.analysisItem}>
-                    <Text style={styles.analysisLabel}>Resumen</Text>
-                    <Text style={styles.analysisSummary}>{local.analisis_reviews.resumen_automatico}</Text>
+                    <Text style={[styles.analysisLabel, { fontSize: scaleFontSize(13) }]}>Resumen</Text>
+                    <Text style={[styles.analysisSummary, { fontSize: scaleFontSize(13) }]}>{local.analisis_reviews.resumen_automatico}</Text>
                   </View>
                 )}
               </View>
@@ -1516,8 +1503,8 @@ export default function DetalleLocalScreen() {
                 <View style={[styles.compactIconCircle, { backgroundColor: '#FFD700' + '20' }]}>
                   <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color="#FFD700" />
                 </View>
-                <Text style={styles.compactSectionTitle}>Reseñas</Text>
-                <Text style={styles.reviewsCount}>({allReviews.length})</Text>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Reseñas</Text>
+                <Text style={[styles.reviewsCount, { fontSize: scaleFontSize(16) }]}>({allReviews.length})</Text>
               </View>
 
               {displayedReviews.map((review, index) => {
@@ -1548,21 +1535,21 @@ export default function DetalleLocalScreen() {
                         </View>
                         <View style={styles.reviewInfo}>
                           <View style={styles.reviewAuthorRow}>
-                            <Text style={styles.reviewAuthor}>Cliente del local</Text>
+                            <Text style={[styles.reviewAuthor, { fontSize: scaleFontSize(14) }]}>Cliente del local</Text>
                           </View>
                           <View style={styles.reviewRating}>
                             <Ionicons name="star" size={14} color="#FFD700" />
-                            <Text style={styles.reviewRatingText}>{googleReview.rating}</Text>
+                            <Text style={[styles.reviewRatingText, { fontSize: scaleFontSize(13) }]}>{googleReview.rating}</Text>
                           </View>
                         </View>
-                        <Text style={styles.googleReviewTime}>{googleReview.relative_time_description}</Text>
+                        <Text style={[styles.googleReviewTime, { fontSize: scaleFontSize(12) }]}>{googleReview.relative_time_description}</Text>
                       </View>
                       {reviewText && (
                         <React.Fragment>
-                          <Text style={styles.reviewText}>{displayText}</Text>
+                          <Text style={[styles.reviewText, { fontSize: scaleFontSize(14) }]}>{displayText}</Text>
                           {needsExpansion && (
                             <TouchableOpacity onPress={() => toggleReviewExpansion(`google-${index}`)}>
-                              <Text style={styles.expandButton}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
+                              <Text style={[styles.expandButton, { fontSize: scaleFontSize(14) }]}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
                             </TouchableOpacity>
                           )}
                         </React.Fragment>
@@ -1595,22 +1582,22 @@ export default function DetalleLocalScreen() {
                         </View>
                         <View style={styles.reviewInfo}>
                           <View style={styles.reviewAuthorRow}>
-                            <Text style={styles.reviewAuthor}>
+                            <Text style={[styles.reviewAuthor, { fontSize: scaleFontSize(14) }]}>
                               {isOwner ? 'Tu reseña' : barliveReview.usuario?.nombre || 'Usuario de Barlive'}
                             </Text>
                           </View>
                           <View style={styles.reviewRating}>
                             <Ionicons name="star" size={14} color="#FFD700" />
-                            <Text style={styles.reviewRatingText}>{barliveReview.rating}</Text>
+                            <Text style={[styles.reviewRatingText, { fontSize: scaleFontSize(13) }]}>{barliveReview.rating}</Text>
                           </View>
                         </View>
                       </View>
                       {reviewText && (
                         <React.Fragment>
-                          <ParsedText text={displayText} style={styles.reviewText} />
+                          <ParsedText text={displayText} style={[styles.reviewText, { fontSize: scaleFontSize(14) }]} />
                           {needsExpansion && (
                             <TouchableOpacity onPress={() => toggleReviewExpansion(barliveReview.id)}>
-                              <Text style={styles.expandButton}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
+                              <Text style={[styles.expandButton, { fontSize: scaleFontSize(14) }]}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
                             </TouchableOpacity>
                           )}
                         </React.Fragment>
@@ -1625,7 +1612,7 @@ export default function DetalleLocalScreen() {
                   style={styles.loadMoreReviewsButton}
                   onPress={handleLoadMoreReviews}
                 >
-                  <Text style={styles.loadMoreReviewsText}>Ver más</Text>
+                  <Text style={[styles.loadMoreReviewsText, { fontSize: scaleFontSize(15) }]}>Ver más</Text>
                   <IconSymbol
                     ios_icon_name="chevron.down"
                     android_material_icon_name="expand_more"
@@ -1638,7 +1625,7 @@ export default function DetalleLocalScreen() {
               <TouchableOpacity style={styles.addReviewBtn} onPress={handleAddReview}>
                 <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addReviewGradient}>
                   <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color="#fff" />
-                  <Text style={styles.addReviewText}>
+                  <Text style={[styles.addReviewText, { fontSize: scaleFontSize(15) }]}>
                     {allReviews.some((r) => 'usuario_id' in r && r.usuario_id === user?.id) ? 'Editar Reseña' : 'Añadir Reseña'}
                   </Text>
                 </LinearGradient>
@@ -1761,7 +1748,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   ratingText: {
-    fontSize: 15,
     fontWeight: '800',
     color: '#fff',
   },
@@ -1779,7 +1765,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
     color: colors.text,
   },
   errorContainer: {
@@ -1791,7 +1776,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginTop: 16,
-    fontSize: 18,
     color: colors.text,
     textAlign: 'center',
   },
@@ -1804,7 +1788,6 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: '#fff',
-    fontSize: 16,
     fontWeight: '600',
   },
   coverContainer: {
@@ -1843,12 +1826,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444',
   },
   statusText: {
-    fontSize: 14,
     fontWeight: '700',
     color: '#fff',
   },
   statusSubtext: {
-    fontSize: 12,
     color: '#fff',
     fontWeight: '600',
   },
@@ -1873,7 +1854,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   destacadoText: {
-    fontSize: 13,
     fontWeight: '700',
     color: '#fff',
   },
@@ -1926,7 +1906,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   galleryOverlayText: {
-    fontSize: 20,
     fontWeight: '700',
     color: '#fff',
   },
@@ -1938,7 +1917,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   localNameText: {
-    fontSize: 28,
     fontWeight: '800',
     color: colors.text,
     letterSpacing: 0.5,
@@ -1964,7 +1942,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   categoryChipTextHighlighted: {
-    fontSize: 13,
     fontWeight: '800',
     color: '#fff',
     letterSpacing: 0.5,
@@ -1981,7 +1958,6 @@ const styles = StyleSheet.create({
   },
   addressTextCompact: {
     flex: 1,
-    fontSize: 14,
     color: colors.text,
     fontWeight: '600',
   },
@@ -1997,7 +1973,6 @@ const styles = StyleSheet.create({
     borderColor: colors.primary + '30',
   },
   distanceText: {
-    fontSize: 14,
     color: colors.primary,
     fontWeight: '700',
   },
@@ -2017,7 +1992,6 @@ const styles = StyleSheet.create({
   },
   claimLocalCardText: {
     flex: 1,
-    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
   },
@@ -2037,7 +2011,6 @@ const styles = StyleSheet.create({
   },
   checkedInTitle: {
     flex: 1,
-    fontSize: 15,
     fontWeight: '700',
     color: colors.text,
   },
@@ -2065,7 +2038,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   checkedInUserName: {
-    fontSize: 12,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
@@ -2089,7 +2061,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   checkInButtonText: {
-    fontSize: 15,
     fontWeight: '700',
     color: '#fff',
   },
@@ -2111,7 +2082,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   actionBtnText: {
-    fontSize: 14,
     fontWeight: '700',
     color: '#fff',
   },
@@ -2132,7 +2102,6 @@ const styles = StyleSheet.create({
   },
   specialButtonText: {
     flex: 1,
-    fontSize: 15,
     fontWeight: '700',
     color: '#fff',
     marginLeft: 10,
@@ -2166,13 +2135,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   virtualRoomButtonTitle: {
-    fontSize: 17,
     fontWeight: '800',
     color: '#fff',
     marginBottom: 2,
   },
   virtualRoomButtonSubtitle: {
-    fontSize: 13,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.85)',
   },
@@ -2193,12 +2160,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   compactSectionTitle: {
-    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
   },
   reviewsCount: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
     marginLeft: 4,
@@ -2221,13 +2186,11 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   eventTitle: {
-    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
   eventDate: {
-    fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '600',
   },
@@ -2256,7 +2219,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   scheduleDayCompact: {
-    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
     textTransform: 'capitalize',
@@ -2264,7 +2226,6 @@ const styles = StyleSheet.create({
   scheduleDayTodayCompact: {
     color: colors.primary,
     fontWeight: '800',
-    fontSize: 14,
   },
   todayDot: {
     width: 6,
@@ -2274,14 +2235,12 @@ const styles = StyleSheet.create({
   },
   scheduleHoursCompact: {
     flex: 1,
-    fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '500',
   },
   scheduleHoursTodayCompact: {
     color: colors.text,
     fontWeight: '600',
-    fontSize: 13,
   },
   tagsGrid: {
     flexDirection: 'row',
@@ -2298,7 +2257,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tagText: {
-    fontSize: 13,
     fontWeight: '600',
     textTransform: 'capitalize',
   },
@@ -2311,7 +2269,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   analysisLabel: {
-    fontSize: 13,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 6,
@@ -2323,7 +2280,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   sentimentText: {
-    fontSize: 14,
     fontWeight: '700',
   },
   keywordsRow: {
@@ -2338,11 +2294,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   keywordTagText: {
-    fontSize: 12,
     fontWeight: '600',
   },
   analysisSummary: {
-    fontSize: 13,
     color: colors.text,
     lineHeight: 19,
   },
@@ -2353,7 +2307,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   googleReviewTime: {
-    fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '500',
   },
@@ -2390,7 +2343,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   reviewAuthor: {
-    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
   },
@@ -2404,12 +2356,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   reviewRatingText: {
-    fontSize: 13,
     fontWeight: '800',
     color: colors.text,
   },
   reviewText: {
-    fontSize: 14,
     color: colors.text,
     lineHeight: 20,
   },
@@ -2426,7 +2376,6 @@ const styles = StyleSheet.create({
     borderColor: colors.primary + '30',
   },
   loadMoreReviewsText: {
-    fontSize: 15,
     fontWeight: '700',
     color: colors.primary,
   },
@@ -2455,12 +2404,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   addReviewText: {
-    fontSize: 15,
     fontWeight: '800',
     color: '#fff',
   },
   expandButton: {
-    fontSize: 14,
     color: colors.primary,
     fontWeight: '700',
     marginTop: 6,

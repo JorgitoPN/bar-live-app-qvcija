@@ -23,12 +23,12 @@ import TarjetaLocal from '@/components/home/TarjetaLocal';
 import BarraFiltrosInteractiva from '@/components/home/BarraFiltrosInteractiva';
 import * as Location from 'expo-location';
 import { getEstadoLocal } from '@/utils/timeUtils';
+import { scaleFontSize } from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const MAX_FEATURED_DISTANCE_KM = 100;
 
-// ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 220;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
@@ -62,6 +62,16 @@ interface Filtro {
   activo?: boolean;
 }
 
+/**
+ * ✅ HOME SCREEN v101.0 - ANDROID SCALING + BANNER WHITE BACKGROUND FIX
+ * 
+ * CRITICAL FIXES v101.0 (ANDROID ONLY):
+ * - ✅ All text uses scaleFontSize() for consistency
+ * - ✅ Banner white background removed on Android
+ * - ✅ Header properly scaled
+ * - ✅ iOS design remains unchanged
+ */
+
 export default function HomeScreen() {
   const router = useRouter();
   const { userId, user, isImpersonating } = useEffectiveUser();
@@ -78,7 +88,6 @@ export default function HomeScreen() {
     destacado: false,
   });
 
-  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef<'up' | 'down'>('down');
@@ -132,7 +141,7 @@ export default function HomeScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        console.log('[Home] Permiso de ubicación denegado');
+        console.log('[Home v101.0] Permiso de ubicación denegado');
         return;
       }
 
@@ -145,12 +154,12 @@ export default function HomeScreen() {
         longitude: location.coords.longitude,
       });
 
-      console.log('[Home] ✅ Ubicación obtenida:', {
+      console.log('[Home v101.0] ✅ Ubicación obtenida:', {
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       });
     } catch (error) {
-      console.error('[Home] Error obteniendo ubicación:', error);
+      console.error('[Home v101.0] Error obteniendo ubicación:', error);
     }
   }, []);
 
@@ -168,7 +177,7 @@ export default function HomeScreen() {
 
   const cargarLocales = useCallback(async () => {
     try {
-      console.log(`[Home] 🔄 Cargando locales para usuario ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'})`);
+      console.log(`[Home v101.0] 🔄 Cargando locales para usuario ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'})`);
       
       let query = supabase
         .from('locales')
@@ -212,7 +221,7 @@ export default function HomeScreen() {
       });
 
       if (userLocation) {
-        console.log('[Home] 📍 User location:', userLocation);
+        console.log('[Home v101.0] 📍 User location:', userLocation);
         
         localesConDistancia = localesConDistancia.map(local => {
           if (local.latitud && local.longitud) {
@@ -290,10 +299,10 @@ export default function HomeScreen() {
         localesConDistancia = [...localesAbiertos, ...localesCerrados];
       }
 
-      console.log('[Home] ✅ Locales cargados:', localesConDistancia.length);
+      console.log('[Home v101.0] ✅ Locales cargados:', localesConDistancia.length);
       setLocales(localesConDistancia);
     } catch (error) {
-      console.error('[Home] ❌ Error cargando locales:', error);
+      console.error('[Home v101.0] ❌ Error cargando locales:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -316,7 +325,7 @@ export default function HomeScreen() {
   }, [cargarLocales]);
 
   const handleFiltroPress = useCallback((filtroId: string) => {
-    console.log('[Home] Filtro presionado:', filtroId);
+    console.log('[Home v101.0] Filtro presionado:', filtroId);
     
     if (filtroId === 'todos') {
       setFiltros(prev => ({ ...prev, tipo: 'todos' }));
@@ -330,14 +339,13 @@ export default function HomeScreen() {
   }, []);
 
   const handleMasFiltrosPress = useCallback(() => {
-    console.log('[Home] Más filtros presionado');
+    console.log('[Home v101.0] Más filtros presionado');
   }, []);
 
   const handleClaimOrCreateLocal = useCallback(() => {
     router.push('/auth/local-ownership-request' as any);
   }, [router]);
 
-  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     {
@@ -363,14 +371,13 @@ export default function HomeScreen() {
     return (
       <View style={[styles.container, styles.centerContent]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Cargando locales...</Text>
+        <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando locales...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0: Animated header */}
       {Platform.OS === 'android' ? (
         <Animated.View
           style={[
@@ -385,8 +392,8 @@ export default function HomeScreen() {
             style={styles.header}
           >
             <View style={styles.headerContent}>
-              <Text style={styles.headerTitle}>BarLive</Text>
-              <Text style={styles.headerSubtitle}>
+              <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>BarLive</Text>
+              <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(15) }]}>
                 {isImpersonating 
                   ? `Viendo como ${impersonationSession?.impersonated_user_name}` 
                   : 'Descubre los mejores locales'}
@@ -403,7 +410,7 @@ export default function HomeScreen() {
           {isImpersonating && (
             <View style={styles.impersonationIndicator}>
               <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={18} color={colors.white} />
-              <Text style={styles.impersonationIndicatorText}>
+              <Text style={[styles.impersonationIndicatorText, { fontSize: scaleFontSize(13) }]}>
                 Vista de usuario impersonado
               </Text>
             </View>
@@ -415,32 +422,46 @@ export default function HomeScreen() {
             onMasFiltrosPress={handleMasFiltrosPress}
           />
 
+          {/* ✅ CRITICAL FIX v101.0: Banner with NO white background on Android */}
           <TouchableOpacity 
             style={styles.claimLocalBanner}
             onPress={handleClaimOrCreateLocal}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
           >
-            <View style={styles.claimLocalContent}>
-              <IconSymbol 
-                ios_icon_name="building.2" 
-                android_material_icon_name="business" 
-                size={16} 
-                color={colors.primary} 
-              />
-              <Text style={styles.claimLocalText} numberOfLines={1}>
-                Reclama tu local o crea uno nuevo
-              </Text>
-              <IconSymbol 
-                ios_icon_name="chevron.right" 
-                android_material_icon_name="chevron_right" 
-                size={14} 
-                color={colors.textSecondary} 
-              />
-            </View>
+            <LinearGradient
+              colors={[colors.primary + '20', colors.primary + '10']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.claimLocalGradient}
+            >
+              <View style={styles.claimLocalContent}>
+                <IconSymbol 
+                  ios_icon_name="building.2" 
+                  android_material_icon_name="business" 
+                  size={16} 
+                  color={colors.primary} 
+                />
+                {/* ✅ CRITICAL FIX v101.0: NO backgroundColor - text displays directly on gradient */}
+                <Text 
+                  style={[
+                    styles.claimLocalText, 
+                    { fontSize: scaleFontSize(13) }
+                  ]} 
+                  numberOfLines={1}
+                >
+                  Reclama tu local o crea uno nuevo
+                </Text>
+                <IconSymbol 
+                  ios_icon_name="chevron.right" 
+                  android_material_icon_name="chevron_right" 
+                  size={14} 
+                  color={colors.textSecondary} 
+                />
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
       ) : (
-        // iOS: Static header (no animation)
         <React.Fragment>
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -521,8 +542,8 @@ export default function HomeScreen() {
         {locales.length === 0 ? (
           <View style={styles.emptyState}>
             <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={64} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>No se encontraron locales</Text>
-            <Text style={styles.emptySubtext}>
+            <Text style={[styles.emptyText, { fontSize: scaleFontSize(20) }]}>No se encontraron locales</Text>
+            <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(15) }]}>
               Intenta ajustar los filtros de búsqueda
             </Text>
           </View>
@@ -548,11 +569,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: 16,
     color: colors.text,
     marginTop: 16,
   },
-  // ✅ ANDROID HEADER SCROLL BEHAVIOR v94.0
   headerContainer: {
     position: 'absolute',
     top: 0,
@@ -596,7 +615,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   impersonationIndicatorText: {
-    fontSize: 13,
     fontWeight: '600',
     color: colors.white,
   },
@@ -604,10 +622,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 8,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary + '20',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  claimLocalGradient: {
+    borderWidth: 1.5,
+    borderColor: colors.primary + '30',
+    borderRadius: 12,
   },
   claimLocalContent: {
     flexDirection: 'row',
@@ -618,9 +639,9 @@ const styles = StyleSheet.create({
   },
   claimLocalText: {
     flex: 1,
-    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
+    // ✅ CRITICAL FIX v101.0: NO backgroundColor - text displays directly on gradient
   },
   content: {
     flex: 1,
@@ -648,14 +669,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyText: {
-    fontSize: 20,
     fontWeight: '600',
     color: colors.text,
     marginTop: 16,
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 15,
     color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
