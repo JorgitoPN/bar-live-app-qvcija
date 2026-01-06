@@ -31,6 +31,7 @@ import {
   getCategoryIconSize,
   getCategoryIconInnerSize,
   scaleFontSize,
+  scaleIconSize,
   getStatusBarHeight,
   getHeaderHeight,
 } from '@/utils/androidScaling';
@@ -82,14 +83,15 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v97.0 - ANDROID HEADER SCROLL & CATEGORY FILTER FIX
+ * ✅ EVENTOS SCREEN v102.0 - ANDROID CATEGORY FILTER DESIGN FIX
  * 
- * CRITICAL FIXES v97.0 (ANDROID ONLY):
- * - ✅ Header now scrolls with content (like Favoritos page)
- * - ✅ Category filters match Explorar design exactly (same size, spacing)
- * - ✅ Search box text properly centered with textAlignVertical: 'center'
- * - ✅ Header title size standardized to match Explorar (24px on Android)
- * - ✅ All other Android fixes maintained
+ * CRITICAL FIXES v102.0 (ANDROID ONLY):
+ * - ✅ Category filters now match Explorar design exactly (56px container, 28px icon)
+ * - ✅ Header title uses scaleFontSize() for proper scaling
+ * - ✅ All icons properly scaled with scaleIconSize()
+ * - ✅ Search box text properly centered with textAlignVertical
+ * - ✅ Header scrolls with content (like Favoritos)
+ * - ✅ iOS design remains unchanged
  */
 
 export default function EventosScreen() {
@@ -142,7 +144,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v97.0] Cargando eventos...');
+      console.log('[Eventos v102.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -174,11 +176,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v97.0] Error cargando eventos:', error);
+        console.error('[Eventos v102.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v97.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v102.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -213,7 +215,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v97.0] Error:', error);
+      console.error('[Eventos v102.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -347,7 +349,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v97.0] Deleting event:', eventoId);
+              console.log('[Eventos v102.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -355,14 +357,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v97.0] Error deleting event:', error);
+                console.error('[Eventos v102.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v97.0] Error deleting event:', error);
+              console.error('[Eventos v102.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -389,20 +391,15 @@ export default function EventosScreen() {
   const searchBoxHeight = getSearchBoxHeight();
   const categoryIconSize = getCategoryIconSize();
   const categoryIconInnerSize = getCategoryIconInnerSize();
-  const categorySpacing = 16; // Match Explorar
-
-  // ✅ CRITICAL FIX v97.0: Match Explorar category filter design
-  const categoryEmojiSize = Platform.OS === 'android' ? 20 : 24;
-  const categoryTextSize = Platform.OS === 'android' ? 13 : 14;
 
   const HeaderContent = () => (
     <React.Fragment>
-      {/* ✅ CRITICAL FIX v97.0: Header title size matches Explorar (24px on Android) */}
+      {/* ✅ CRITICAL FIX v102.0: Header title uses scaleFontSize() */}
       <Text style={[
         commonStyles.headerTitle, 
         { 
           color: colors.white,
-          fontSize: Platform.OS === 'android' ? 24 : 32, // ✅ Match Explorar
+          fontSize: scaleFontSize(32),
         }
       ]}>
         Eventos
@@ -415,13 +412,12 @@ export default function EventosScreen() {
         <IconSymbol 
           ios_icon_name="magnifyingglass" 
           android_material_icon_name="search" 
-          size={20} 
+          size={scaleIconSize(20)} 
           color={colors.textSecondary} 
         />
         <TextInput
           style={[styles.searchInput, { 
             fontSize: scaleFontSize(16),
-            // ✅ CRITICAL FIX v97.0: Properly center text vertically on Android
             textAlignVertical: Platform.OS === 'android' ? 'center' : 'auto',
             paddingVertical: Platform.OS === 'android' ? 0 : 12,
           }]}
@@ -434,7 +430,7 @@ export default function EventosScreen() {
           <IconSymbol 
             ios_icon_name="slider.horizontal.3" 
             android_material_icon_name="tune" 
-            size={20} 
+            size={scaleIconSize(20)} 
             color={colors.primary} 
           />
         </TouchableOpacity>
@@ -471,7 +467,7 @@ export default function EventosScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ CRITICAL FIX v97.0: Category filters match Explorar design exactly */}
+      {/* ✅ CRITICAL FIX v102.0: Category filters match Explorar design exactly */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -594,7 +590,7 @@ export default function EventosScreen() {
             colors={[colors.primary, colors.secondary]}
             style={styles.fabGradient}
           >
-            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={28} color={colors.white} />
+            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={scaleIconSize(28)} color={colors.white} />
           </LinearGradient>
         </TouchableOpacity>
       )}
@@ -613,7 +609,7 @@ export default function EventosScreen() {
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Filtros</Text>
               <TouchableOpacity onPress={() => setMostrarFiltros(false)}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(24)} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -634,7 +630,7 @@ export default function EventosScreen() {
                       ]}
                       onPress={() => setCategoriaSeleccionada(categoria.id)}
                     >
-                      <Text style={[styles.categoryFilterEmoji, { fontSize: categoryEmojiSize }]}>{categoria.emoji}</Text>
+                      <Text style={[styles.categoryFilterEmoji, { fontSize: categoryIconInnerSize }]}>{categoria.emoji}</Text>
                       <Text
                         style={[
                           styles.categoryFilterText,
@@ -659,7 +655,7 @@ export default function EventosScreen() {
                       style={styles.dateButton}
                       onPress={() => setShowDatePickerInicio(true)}
                     >
-                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={18} color={colors.primary} />
+                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={scaleIconSize(18)} color={colors.primary} />
                       <Text style={[styles.dateButtonText, { fontSize: scaleFontSize(14) }]}>
                         {formatDate(fechaInicio)}
                       </Text>
@@ -672,7 +668,7 @@ export default function EventosScreen() {
                       style={styles.dateButton}
                       onPress={() => setShowDatePickerFin(true)}
                     >
-                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={18} color={colors.primary} />
+                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={scaleIconSize(18)} color={colors.primary} />
                       <Text style={[styles.dateButtonText, { fontSize: scaleFontSize(14) }]}>
                         {formatDate(fechaFin)}
                       </Text>
@@ -682,7 +678,7 @@ export default function EventosScreen() {
 
                 {fechaInicio && fechaFin && (
                   <View style={styles.dateRangeInfo}>
-                    <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={16} color={colors.primary} />
+                    <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={scaleIconSize(16)} color={colors.primary} />
                     <Text style={[styles.dateRangeText, { fontSize: scaleFontSize(13) }]}>
                       Filtrando eventos del {formatDate(fechaInicio)} al {formatDate(fechaFin)}
                     </Text>
@@ -703,7 +699,7 @@ export default function EventosScreen() {
                             <View style={styles.datePickerHeader}>
                               <Text style={[styles.datePickerTitle, { fontSize: scaleFontSize(18) }]}>Fecha de Inicio</Text>
                               <TouchableOpacity onPress={closeDateInicioPicker}>
-                                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
+                                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(28)} color={colors.textSecondary} />
                               </TouchableOpacity>
                             </View>
                             <DateTimePicker
@@ -745,7 +741,7 @@ export default function EventosScreen() {
                             <View style={styles.datePickerHeader}>
                               <Text style={[styles.datePickerTitle, { fontSize: scaleFontSize(18) }]}>Fecha de Fin</Text>
                               <TouchableOpacity onPress={closeDateFinPicker}>
-                                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
+                                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(28)} color={colors.textSecondary} />
                               </TouchableOpacity>
                             </View>
                             <DateTimePicker
@@ -1111,7 +1107,7 @@ const styles = StyleSheet.create({
   categoriesContent: {
     paddingHorizontal: 0,
     paddingRight: 16,
-    gap: 16, // Match Explorar spacing
+    gap: 16,
   },
   categoriaButton: {
     alignItems: 'center',

@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
@@ -15,7 +16,7 @@ import { useRouter } from 'expo-router';
 import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
 import MomentoUpload from './MomentoUpload';
 import MomentoViewer from './MomentoViewer';
-import { scaleFontSize } from '@/utils/androidScaling';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 interface MomentoAuthor {
   id: string;
@@ -26,14 +27,15 @@ interface MomentoAuthor {
 }
 
 /**
- * ✅ MOMENTO CAROUSEL v101.0 - ANDROID SCALING APPLIED
+ * ✅ MOMENTO CAROUSEL v102.0 - ANDROID AVATAR SIZE FIX
  * 
- * CRITICAL FIXES v101.0 (ANDROID ONLY):
- * - ✅ Avatar size properly scaled for Android
+ * CRITICAL FIXES v102.0 (ANDROID ONLY):
+ * - ✅ Avatar size reduced to 80px on Android (was 100px)
+ * - ✅ Properly scaled for consistency with other components
  * - ✅ Text uses scaleFontSize() for consistency
  * - ✅ Uses UnifiedMomentoAvatar for consistent neon border
  * - ✅ Real-time synchronization of momento status
- * - ✅ iOS design remains unchanged
+ * - ✅ iOS design remains unchanged (100px)
  */
 
 export default function MomentoCarousel() {
@@ -45,17 +47,18 @@ export default function MomentoCarousel() {
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [selectedAuthor, setSelectedAuthor] = useState<MomentoAuthor | null>(null);
 
-  const AVATAR_SIZE = 100;
+  // ✅ CRITICAL FIX v102.0: Reduced avatar size on Android
+  const AVATAR_SIZE = Platform.OS === 'android' ? 80 : 100;
 
   const loadMomentoAuthors = useCallback(async () => {
     if (!userId) {
-      console.log('[MomentoCarousel v101.0] No user ID, skipping load');
+      console.log('[MomentoCarousel v102.0] No user ID, skipping load');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('[MomentoCarousel v101.0] 🔄 Loading momento authors...');
+      console.log('[MomentoCarousel v102.0] 🔄 Loading momento authors...');
 
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
@@ -70,19 +73,19 @@ export default function MomentoCarousel() {
         .order('created_at', { ascending: false });
 
       if (momentosError) {
-        console.error('[MomentoCarousel v101.0] ❌ Error loading momentos:', momentosError);
+        console.error('[MomentoCarousel v102.0] ❌ Error loading momentos:', momentosError);
         setLoading(false);
         return;
       }
 
       if (!momentosData || momentosData.length === 0) {
-        console.log('[MomentoCarousel v101.0] ℹ️ No active momentos found');
+        console.log('[MomentoCarousel v102.0] ℹ️ No active momentos found');
         setAuthors([]);
         setLoading(false);
         return;
       }
 
-      console.log('[MomentoCarousel v101.0] ✅ Found momentos:', momentosData.length);
+      console.log('[MomentoCarousel v102.0] ✅ Found momentos:', momentosData.length);
 
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData } = await supabase
@@ -156,9 +159,9 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel v101.0] ✅ Loaded authors:', authorsArray.length);
+      console.log('[MomentoCarousel v102.0] ✅ Loaded authors:', authorsArray.length);
     } catch (error) {
-      console.error('[MomentoCarousel v101.0] ❌ Error loading authors:', error);
+      console.error('[MomentoCarousel v102.0] ❌ Error loading authors:', error);
     } finally {
       setLoading(false);
     }
@@ -170,7 +173,7 @@ export default function MomentoCarousel() {
     if (!userId) return;
 
     const momentosChannel = supabase
-      .channel('momento-carousel-updates-v101')
+      .channel('momento-carousel-updates-v102')
       .on(
         'postgres_changes',
         {
@@ -179,7 +182,7 @@ export default function MomentoCarousel() {
           table: 'momentos',
         },
         (payload) => {
-          console.log('[MomentoCarousel v101.0] 🔄 Momento update detected:', payload);
+          console.log('[MomentoCarousel v102.0] 🔄 Momento update detected:', payload);
           loadMomentoAuthors();
         }
       )
@@ -192,7 +195,7 @@ export default function MomentoCarousel() {
           filter: `usuario_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('[MomentoCarousel v101.0] 🔄 View update detected:', payload);
+          console.log('[MomentoCarousel v102.0] 🔄 View update detected:', payload);
           loadMomentoAuthors();
         }
       )

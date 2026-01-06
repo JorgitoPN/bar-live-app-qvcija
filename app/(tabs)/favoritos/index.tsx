@@ -35,6 +35,7 @@ import {
   getCategoryIconSize,
   getCategoryIconInnerSize,
   scaleFontSize,
+  scaleIconSize,
 } from '@/utils/androidScaling';
 
 const ITEMS_PER_PAGE = 20;
@@ -69,13 +70,15 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v97.0 - ANDROID CATEGORY FILTER FIX
+ * ✅ FAVORITOS SCREEN v102.0 - ANDROID HEADER TITLE SCALING FIX
  * 
- * CRITICAL FIXES v97.0 (ANDROID ONLY):
- * - ✅ Category filter icons reduced to match design (20px emoji, 13px text)
+ * CRITICAL FIXES v102.0 (ANDROID ONLY):
+ * - ✅ Header title now uses scaleFontSize() for proper scaling
+ * - ✅ Category filter icons match Explorar design (56px container, 28px icon)
  * - ✅ Search box height matches design (48px)
+ * - ✅ All icons properly scaled with scaleIconSize()
  * - ✅ Header scroll behavior maintained
- * - ✅ All other Android fixes maintained
+ * - ✅ iOS design remains unchanged
  */
 
 export default function FavoritosScreen() {
@@ -119,10 +122,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v97.0] User location obtained:', location.coords);
+          console.log('[Favoritos v102.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v97.0] Error getting location:', error);
+        console.error('[Favoritos v102.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -148,7 +151,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v97.0] Error checking social profiles:', error);
+      console.error('[Favoritos v102.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -159,7 +162,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v97.0] Cargando locales guardados...');
+      console.log('[Favoritos v102.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -225,12 +228,12 @@ export default function FavoritosScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Favoritos v97.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v102.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v97.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v102.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -251,7 +254,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v97.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v102.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -265,7 +268,7 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v97.0] Recalculating distances with new user location');
+      console.log('[Favoritos v102.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -327,7 +330,7 @@ export default function FavoritosScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Favoritos v97.0] Filters applied. Results:', filtered.length);
+    console.log('[Favoritos v102.0] Filters applied. Results:', filtered.length);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
   const loadMoreLocales = useCallback(() => {
@@ -345,7 +348,7 @@ export default function FavoritosScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Favoritos v97.0] Cargando más locales, página:', nextPage);
+        console.log('[Favoritos v102.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -355,7 +358,7 @@ export default function FavoritosScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v97.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v102.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -365,7 +368,7 @@ export default function FavoritosScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v97.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v102.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -385,18 +388,18 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v97.0] User not authenticated');
+      console.log('[Favoritos v102.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v97.0] No local ID');
+      console.log('[Favoritos v102.0] No local ID');
       return;
     }
 
     try {
-      console.log('[Favoritos v97.0] Removing from favorites. User:', user.id, 'Local:', localId);
+      console.log('[Favoritos v102.0] Removing from favorites. User:', user.id, 'Local:', localId);
       
       const { error } = await supabase
         .from('locales_guardados')
@@ -405,16 +408,16 @@ export default function FavoritosScreen() {
         .eq('local_id', localId);
 
       if (error) {
-        console.error('[Favoritos v97.0] Error removing favorite:', error);
+        console.error('[Favoritos v102.0] Error removing favorite:', error);
         Alert.alert('Error', 'No se pudo quitar de favoritos');
         return;
       }
       
-      console.log('[Favoritos v97.0] ✅ Removed from favorites');
+      console.log('[Favoritos v102.0] ✅ Removed from favorites');
       
       await loadSavedLocales();
     } catch (error) {
-      console.error('[Favoritos v97.0] Error removing favorito:', error);
+      console.error('[Favoritos v102.0] Error removing favorito:', error);
       Alert.alert('Error', 'No se pudo eliminar de favoritos');
     }
   };
@@ -503,6 +506,12 @@ export default function FavoritosScreen() {
 
     const displayRating = getRating();
 
+    // ✅ CRITICAL FIX v102.0: Calculate scaled icon sizes
+    const iconSize = Platform.OS === 'android' ? scaleIconSize(14) : 14;
+    const starIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
+    const heartIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+    const actionIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
+
     return (
       <TouchableOpacity 
         style={[
@@ -533,7 +542,7 @@ export default function FavoritosScreen() {
 
           {isDestacado && (
             <View style={styles.badgeDestacadoHeader}>
-              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#92400E" />
+              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={starIconSize} color="#92400E" />
               <Text style={[styles.badgeDestacadoHeaderText, { fontSize: scaleFontSize(12) }]}>Destacado</Text>
             </View>
           )}
@@ -548,7 +557,7 @@ export default function FavoritosScreen() {
 
           {displayRating > 0 && (
             <View style={styles.ratingBadge}>
-              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color="#FACC15" />
+              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={starIconSize} color="#FACC15" />
               <Text style={[styles.ratingBadgeText, { fontSize: scaleFontSize(12) }]}>{displayRating.toFixed(1)}</Text>
             </View>
           )}
@@ -571,7 +580,7 @@ export default function FavoritosScreen() {
             <IconSymbol
               ios_icon_name="heart.fill"
               android_material_icon_name="favorite"
-              size={20}
+              size={heartIconSize}
               color="#EF4444"
             />
           </TouchableOpacity>
@@ -585,7 +594,7 @@ export default function FavoritosScreen() {
           </View>
 
           <View style={styles.infoRow}>
-            <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={iconSize} color={colors.textSecondary} />
             <Text style={[styles.infoText, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
               {item.direccion}
             </Text>
@@ -608,7 +617,7 @@ export default function FavoritosScreen() {
                 style={styles.perfilSocialButton} 
                 onPress={(e) => handlePerfilSocial(item.id, e)}
               >
-                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={16} color={colors.headerText} />
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={actionIconSize} color={colors.headerText} />
                 <Text style={[styles.perfilSocialText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Perfil Social</Text>
               </TouchableOpacity>
             )}
@@ -622,13 +631,13 @@ export default function FavoritosScreen() {
             >
               <View style={styles.comoLlegarContent}>
                 <View style={styles.comoLlegarLeft}>
-                  <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={16} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={actionIconSize} color={colors.headerText} />
                   <Text style={[styles.comoLlegarText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Cómo llegar</Text>
                 </View>
                 
                 {item.distancia !== null && item.distancia !== undefined && (
                   <View style={styles.distanciaInButton}>
-                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={14} color={colors.headerText} />
+                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={iconSize} color={colors.headerText} />
                     <Text style={[styles.distanciaInButtonText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
                       {item.distancia.toFixed(1)} km
                     </Text>
@@ -724,7 +733,7 @@ export default function FavoritosScreen() {
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.headerGradient}
         >
-          <Text style={styles.headerTitle}>Locales Favoritos</Text>
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Locales Favoritos</Text>
         </LinearGradient>
 
         <LoginPrompt
@@ -744,7 +753,7 @@ export default function FavoritosScreen() {
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.headerGradient}
         >
-          <Text style={styles.headerTitle}>Locales Favoritos</Text>
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Locales Favoritos</Text>
         </LinearGradient>
 
         <View style={styles.loadingContainer}>
@@ -757,26 +766,26 @@ export default function FavoritosScreen() {
 
   // ✅ Get platform-specific dimensions
   const searchBoxHeight = getSearchBoxHeight();
-  const categoryIconSize = Platform.OS === 'android' ? 20 : 24; // Reduced on Android
-  const categoryTextSize = Platform.OS === 'android' ? 13 : 14; // Reduced on Android
+  const categoryIconSize = getCategoryIconSize();
+  const categoryIconInnerSize = getCategoryIconInnerSize();
 
   const HeaderContent = () => (
     <React.Fragment>
       <View style={styles.headerTop}>
-        <Text style={styles.headerTitle}>Locales Favoritos</Text>
+        {/* ✅ CRITICAL FIX v102.0: Header title now uses scaleFontSize() */}
+        <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Locales Favoritos</Text>
         {activeFiltersCount > 0 && (
           <TouchableOpacity 
             style={styles.clearFiltersHeaderButton}
             onPress={clearFilters}
             activeOpacity={0.7}
           >
-            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.headerText} />
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(20)} color={colors.headerText} />
             <Text style={[styles.clearFiltersHeaderText, { fontSize: scaleFontSize(13) }]}>Limpiar</Text>
           </TouchableOpacity>
         )}
       </View>
       
-      {/* ✅ CRITICAL FIX v97.0: Search box height matches Eventos (48px) */}
       <View style={[styles.searchContainer, { 
         height: searchBoxHeight,
         paddingVertical: Platform.OS === 'android' ? 10 : 10,
@@ -784,7 +793,7 @@ export default function FavoritosScreen() {
         <IconSymbol 
           ios_icon_name="magnifyingglass" 
           android_material_icon_name="search"
-          size={20} 
+          size={scaleIconSize(20)} 
           color={colors.textSecondary}
         />
         <TextInput
@@ -805,7 +814,7 @@ export default function FavoritosScreen() {
             <IconSymbol 
               ios_icon_name="xmark.circle.fill" 
               android_material_icon_name="cancel"
-              size={20} 
+              size={scaleIconSize(20)} 
               color={colors.textSecondary}
             />
           </TouchableOpacity>
@@ -814,13 +823,13 @@ export default function FavoritosScreen() {
           <IconSymbol 
             ios_icon_name="slider.horizontal.3" 
             android_material_icon_name="tune" 
-            size={20} 
+            size={scaleIconSize(20)} 
             color={colors.primary} 
           />
         </TouchableOpacity>
       </View>
 
-      {/* ✅ CRITICAL FIX v97.0: Reduced category filter sizes on Android */}
+      {/* ✅ CRITICAL FIX v102.0: Category filters match Explorar design */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -830,19 +839,28 @@ export default function FavoritosScreen() {
         {CATEGORIAS.map((categoria) => (
           <TouchableOpacity
             key={categoria.id}
-            style={[
-              styles.categoryChip,
-              selectedCategory === categoria.id && styles.categoryChipActive,
-            ]}
+            style={styles.categoriaButton}
             onPress={() => setSelectedCategory(categoria.id)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.categoryEmoji, { fontSize: categoryIconSize }]}>{categoria.emoji}</Text>
+            <View
+              style={[
+                styles.categoriaIconContainer,
+                {
+                  width: categoryIconSize,
+                  height: categoryIconSize,
+                  borderRadius: categoryIconSize / 4,
+                },
+                selectedCategory === categoria.id && styles.categoriaIconContainerActive,
+              ]}
+            >
+              <Text style={[styles.categoryEmoji, { fontSize: categoryIconInnerSize }]}>{categoria.emoji}</Text>
+            </View>
             <Text
               style={[
-                styles.categoryText,
-                { fontSize: categoryTextSize },
-                selectedCategory === categoria.id && styles.categoryTextActive,
+                styles.categoriaLabel,
+                { fontSize: scaleFontSize(12) },
+                selectedCategory === categoria.id && styles.categoriaLabelActive,
               ]}
             >
               {categoria.nombre}
@@ -938,7 +956,7 @@ export default function FavoritosScreen() {
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Filtros</Text>
               <TouchableOpacity onPress={() => setMostrarFiltros(false)}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(24)} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -959,7 +977,7 @@ export default function FavoritosScreen() {
                       ]}
                       onPress={() => setSelectedCategory(categoria.id)}
                     >
-                      <Text style={[styles.categoryFilterEmoji, { fontSize: categoryIconSize }]}>{categoria.emoji}</Text>
+                      <Text style={[styles.categoryFilterEmoji, { fontSize: categoryIconInnerSize }]}>{categoria.emoji}</Text>
                       <Text
                         style={[
                           styles.categoryFilterText,
@@ -1062,7 +1080,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 32,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -1104,32 +1121,35 @@ const styles = StyleSheet.create({
   categoriesContent: {
     paddingHorizontal: 0,
     paddingRight: 16,
-    gap: 8,
+    gap: 16,
   },
-  categoryChip: {
-    flexDirection: 'row',
+  categoriaButton: {
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    minWidth: 70,
+  },
+  categoriaIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  categoryChipActive: {
-    backgroundColor: colors.white,
+  categoriaIconContainerActive: {
     borderColor: colors.white,
+    backgroundColor: colors.white,
   },
   categoryEmoji: {
     // fontSize set dynamically
   },
-  categoryText: {
+  categoriaLabel: {
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
   },
-  categoryTextActive: {
+  categoriaLabelActive: {
     color: colors.primary,
+    fontWeight: '700',
   },
   resultsCountContainer: {
     flexDirection: 'row',
