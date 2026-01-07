@@ -40,12 +40,10 @@ import {
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ ANDROID HEADER SCROLL BEHAVIOR v103.0
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 300;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
-// ✅ FIX v95.0: Create Animated FlatList component for Android
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
 const PROVINCIAS = [
@@ -59,29 +57,25 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
-// ✅ CRITICAL FIX v103.0: Category filters use ONLY emojis (no colored icons)
+// ✅ CRITICAL FIX v104.0: Category filters with TEAL/CYAN color scheme (matching Explorar)
 const CATEGORIAS = [
-  { id: 'todas', nombre: 'Todas', emoji: '🎉' },
-  { id: 'cafe', nombre: 'Cafés', emoji: '☕' },
-  { id: 'restaurante', nombre: 'Restaurantes', emoji: '🍽️' },
-  { id: 'bar', nombre: 'Bares', emoji: '🍺' },
-  { id: 'pub', nombre: 'Pubs', emoji: '🍻' },
-  { id: 'cocteleria', nombre: 'Coctelería', emoji: '🍸' },
-  { id: 'discoteca', nombre: 'Discotecas', emoji: '💃' },
+  { id: 'todas', nombre: 'Todas', emoji: '🎉', color: '#14B8A6' },
+  { id: 'cafe', nombre: 'Cafés', emoji: '☕', color: '#14B8A6' },
+  { id: 'restaurante', nombre: 'Restaurantes', emoji: '🍽️', color: '#14B8A6' },
+  { id: 'bar', nombre: 'Bares', emoji: '🍺', color: '#14B8A6' },
+  { id: 'pub', nombre: 'Pubs', emoji: '🍻', color: '#14B8A6' },
+  { id: 'cocteleria', nombre: 'Coctelería', emoji: '🍸', color: '#14B8A6' },
+  { id: 'discoteca', nombre: 'Discotecas', emoji: '💃', color: '#14B8A6' },
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v103.0 - ANDROID COMPLETE FIXES
+ * ✅ FAVORITOS SCREEN v104.0 - TEAL ICON FIX
  * 
- * CRITICAL FIXES v103.0 (ANDROID ONLY):
- * - ✅ Header title uses scaleFontSize() for proper scaling
- * - ✅ Category filters use ONLY emojis (match Explorar exactly)
- * - ✅ All icons properly scaled with scaleIconSize()
- * - ✅ All text properly scaled with scaleFontSize()
- * - ✅ Fixed invalid Material icon names (chevron_left → arrow_back, etc.)
- * - ✅ Search box height matches design (48px)
- * - ✅ Header scroll behavior maintained
- * - ✅ iOS design remains unchanged
+ * CRITICAL FIXES v104.0:
+ * - ✅ Category filters now show TEAL/CYAN colored icons (matching Explorar)
+ * - ✅ Active category has teal background with white emoji
+ * - ✅ Inactive categories have white/transparent background with teal border
+ * - ✅ Consistent design across Explorar, Eventos, and Favoritos
  */
 
 export default function FavoritosScreen() {
@@ -105,7 +99,6 @@ export default function FavoritosScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
 
-  // ✅ ANDROID HEADER SCROLL BEHAVIOR v95.0
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
 
@@ -125,10 +118,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v103.0] User location obtained:', location.coords);
+          console.log('[Favoritos v104.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v103.0] Error getting location:', error);
+        console.error('[Favoritos v104.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -154,7 +147,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v103.0] Error checking social profiles:', error);
+      console.error('[Favoritos v104.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -165,7 +158,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v103.0] Cargando locales guardados...');
+      console.log('[Favoritos v104.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -231,12 +224,12 @@ export default function FavoritosScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Favoritos v103.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v104.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v103.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v104.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -257,7 +250,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v103.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v104.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -271,7 +264,7 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v103.0] Recalculating distances with new user location');
+      console.log('[Favoritos v104.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -333,7 +326,7 @@ export default function FavoritosScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Favoritos v103.0] Filters applied. Results:', filtered.length);
+    console.log('[Favoritos v104.0] Filters applied. Results:', filtered.length);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
   const loadMoreLocales = useCallback(() => {
@@ -351,7 +344,7 @@ export default function FavoritosScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Favoritos v103.0] Cargando más locales, página:', nextPage);
+        console.log('[Favoritos v104.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -361,7 +354,7 @@ export default function FavoritosScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v103.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v104.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -371,7 +364,7 @@ export default function FavoritosScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v103.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v104.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -391,18 +384,18 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v103.0] User not authenticated');
+      console.log('[Favoritos v104.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v103.0] No local ID');
+      console.log('[Favoritos v104.0] No local ID');
       return;
     }
 
     try {
-      console.log('[Favoritos v103.0] Removing from favorites. User:', user.id, 'Local:', localId);
+      console.log('[Favoritos v104.0] Removing from favorites. User:', user.id, 'Local:', localId);
       
       const { error } = await supabase
         .from('locales_guardados')
@@ -411,16 +404,16 @@ export default function FavoritosScreen() {
         .eq('local_id', localId);
 
       if (error) {
-        console.error('[Favoritos v103.0] Error removing favorite:', error);
+        console.error('[Favoritos v104.0] Error removing favorite:', error);
         Alert.alert('Error', 'No se pudo quitar de favoritos');
         return;
       }
       
-      console.log('[Favoritos v103.0] ✅ Removed from favorites');
+      console.log('[Favoritos v104.0] ✅ Removed from favorites');
       
       await loadSavedLocales();
     } catch (error) {
-      console.error('[Favoritos v103.0] Error removing favorito:', error);
+      console.error('[Favoritos v104.0] Error removing favorito:', error);
       Alert.alert('Error', 'No se pudo eliminar de favoritos');
     }
   };
@@ -509,7 +502,6 @@ export default function FavoritosScreen() {
 
     const displayRating = getRating();
 
-    // ✅ CRITICAL FIX v103.0: Calculate scaled icon sizes
     const iconSize = Platform.OS === 'android' ? scaleIconSize(14) : 14;
     const starIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
     const heartIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
@@ -767,7 +759,6 @@ export default function FavoritosScreen() {
     );
   }
 
-  // ✅ Get platform-specific dimensions
   const searchBoxHeight = getSearchBoxHeight();
   const categoryIconSize = getCategoryIconSize();
   const categoryIconInnerSize = getCategoryIconInnerSize();
@@ -775,7 +766,6 @@ export default function FavoritosScreen() {
   const HeaderContent = () => (
     <React.Fragment>
       <View style={styles.headerTop}>
-        {/* ✅ CRITICAL FIX v103.0: Header title uses scaleFontSize() */}
         <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Locales Favoritos</Text>
         {activeFiltersCount > 0 && (
           <TouchableOpacity 
@@ -832,44 +822,48 @@ export default function FavoritosScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ CRITICAL FIX v103.0: Category filters use ONLY emojis (match Explorar) */}
+      {/* ✅ CRITICAL FIX v104.0: Category filters with TEAL/CYAN icons */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.categoriesScroll}
         contentContainerStyle={styles.categoriesContent}
       >
-        {CATEGORIAS.map((categoria) => (
-          <TouchableOpacity
-            key={categoria.id}
-            style={styles.categoriaButton}
-            onPress={() => setSelectedCategory(categoria.id)}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.categoriaIconContainer,
-                {
-                  width: categoryIconSize,
-                  height: categoryIconSize,
-                  borderRadius: categoryIconSize / 4,
-                },
-                selectedCategory === categoria.id && styles.categoriaIconContainerActive,
-              ]}
+        {CATEGORIAS.map((categoria) => {
+          const isActive = selectedCategory === categoria.id;
+          return (
+            <TouchableOpacity
+              key={categoria.id}
+              style={styles.categoriaButton}
+              onPress={() => setSelectedCategory(categoria.id)}
+              activeOpacity={0.7}
             >
-              <Text style={[styles.categoryEmoji, { fontSize: categoryIconInnerSize }]}>{categoria.emoji}</Text>
-            </View>
-            <Text
-              style={[
-                styles.categoriaLabel,
-                { fontSize: scaleFontSize(12) },
-                selectedCategory === categoria.id && styles.categoriaLabelActive,
-              ]}
-            >
-              {categoria.nombre}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <View
+                style={[
+                  styles.categoriaIconContainer,
+                  {
+                    width: categoryIconSize,
+                    height: categoryIconSize,
+                    borderRadius: categoryIconSize / 4,
+                    backgroundColor: isActive ? categoria.color : 'rgba(255, 255, 255, 0.2)',
+                    borderColor: isActive ? categoria.color : 'rgba(255, 255, 255, 0.3)',
+                  },
+                ]}
+              >
+                <Text style={[styles.categoryEmoji, { fontSize: categoryIconInnerSize }]}>{categoria.emoji}</Text>
+              </View>
+              <Text
+                style={[
+                  styles.categoriaLabel,
+                  { fontSize: scaleFontSize(12) },
+                  isActive && { color: colors.white, fontWeight: '700' },
+                ]}
+              >
+                {categoria.nombre}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
       
       {allSavedLocales.length > 0 && (
@@ -971,27 +965,30 @@ export default function FavoritosScreen() {
               <View style={styles.filterSection}>
                 <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Categoría de Local</Text>
                 <View style={styles.categoriesGrid}>
-                  {CATEGORIAS.map((categoria) => (
-                    <TouchableOpacity
-                      key={categoria.id}
-                      style={[
-                        styles.categoryFilterItem,
-                        selectedCategory === categoria.id && styles.categoryFilterItemActive,
-                      ]}
-                      onPress={() => setSelectedCategory(categoria.id)}
-                    >
-                      <Text style={[styles.categoryFilterEmoji, { fontSize: categoryIconInnerSize }]}>{categoria.emoji}</Text>
-                      <Text
+                  {CATEGORIAS.map((categoria) => {
+                    const isActive = selectedCategory === categoria.id;
+                    return (
+                      <TouchableOpacity
+                        key={categoria.id}
                         style={[
-                          styles.categoryFilterText,
-                          { fontSize: scaleFontSize(14) },
-                          selectedCategory === categoria.id && styles.categoryFilterTextActive,
+                          styles.categoryFilterItem,
+                          isActive && { backgroundColor: categoria.color, borderColor: categoria.color },
                         ]}
+                        onPress={() => setSelectedCategory(categoria.id)}
                       >
-                        {categoria.nombre}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text style={[styles.categoryFilterEmoji, { fontSize: categoryIconInnerSize }]}>{categoria.emoji}</Text>
+                        <Text
+                          style={[
+                            styles.categoryFilterText,
+                            { fontSize: scaleFontSize(14) },
+                            isActive && styles.categoryFilterTextActive,
+                          ]}
+                        >
+                          {categoria.nombre}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
 
@@ -1134,13 +1131,7 @@ const styles = StyleSheet.create({
   categoriaIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  categoriaIconContainerActive: {
-    borderColor: colors.white,
-    backgroundColor: colors.white,
   },
   categoryEmoji: {
     // fontSize set dynamically
@@ -1149,10 +1140,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
-  },
-  categoriaLabelActive: {
-    color: colors.primary,
-    fontWeight: '700',
   },
   resultsCountContainer: {
     flexDirection: 'row',
@@ -1548,10 +1535,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     minWidth: '47%',
-  },
-  categoryFilterItemActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   categoryFilterEmoji: {
     // fontSize set dynamically

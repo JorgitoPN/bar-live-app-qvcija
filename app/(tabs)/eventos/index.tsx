@@ -49,15 +49,15 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
-// ✅ CRITICAL FIX v103.0: Category filters use ONLY emojis (no colored icons)
+// ✅ CRITICAL FIX v104.0: Category filters use TEAL ICONS (not emojis)
 const CATEGORIAS = [
-  { id: 'todas', nombre: 'Todas', emoji: '🎉' },
-  { id: 'cafe', nombre: 'Cafés', emoji: '☕' },
-  { id: 'restaurante', nombre: 'Restaurantes', emoji: '🍽️' },
-  { id: 'bar', nombre: 'Bares', emoji: '🍺' },
-  { id: 'pub', nombre: 'Pubs', emoji: '🍻' },
-  { id: 'cocteleria', nombre: 'Coctelería', emoji: '🍸' },
-  { id: 'discoteca', nombre: 'Discotecas', emoji: '💃' },
+  { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
+  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
+  { id: 'restaurante', nombre: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
+  { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
+  { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
+  { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'local_drink' },
+  { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
 ];
 
 interface Evento {
@@ -84,17 +84,14 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v103.0 - ANDROID COMPLETE FIXES
+ * ✅ EVENTOS SCREEN v104.0 - TEAL ICON FIX
  * 
- * CRITICAL FIXES v103.0 (ANDROID ONLY):
- * - ✅ Category filters use ONLY emojis (match Explorar exactly)
- * - ✅ Header title uses scaleFontSize() for proper scaling
- * - ✅ All icons properly scaled with scaleIconSize()
- * - ✅ All text properly scaled with scaleFontSize()
- * - ✅ Fixed invalid Material icon names
- * - ✅ Search box text properly centered with textAlignVertical
- * - ✅ Header scrolls with content (like Favoritos)
- * - ✅ iOS design remains unchanged
+ * CRITICAL FIXES v104.0:
+ * - ✅ Category filters now use TEAL-COLORED ICONS (not emojis)
+ * - ✅ Icons match the design system with proper Material Icons
+ * - ✅ Active state shows white background with teal icon
+ * - ✅ Inactive state shows teal background with white icon
+ * - ✅ All previous Android fixes maintained
  */
 
 export default function EventosScreen() {
@@ -116,7 +113,6 @@ export default function EventosScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ✅ CRITICAL FIX v97.0: Add scroll behavior for header (like Favoritos)
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 300;
@@ -147,7 +143,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v103.0] Cargando eventos...');
+      console.log('[Eventos v104.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -179,11 +175,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v103.0] Error cargando eventos:', error);
+        console.error('[Eventos v104.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v103.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v104.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -218,7 +214,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v103.0] Error:', error);
+      console.error('[Eventos v104.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -230,6 +226,7 @@ export default function EventosScreen() {
   }, [cargarEventos]);
 
   const onRefresh = () => {
+    console.log('[Eventos v104.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     cargarEventos();
   };
@@ -352,7 +349,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v103.0] Deleting event:', eventoId);
+              console.log('[Eventos v104.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -360,14 +357,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v103.0] Error deleting event:', error);
+                console.error('[Eventos v104.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v103.0] Error deleting event:', error);
+              console.error('[Eventos v104.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -376,7 +373,6 @@ export default function EventosScreen() {
     );
   }, [user, canDeleteEvent, cargarEventos]);
 
-  // ✅ CRITICAL FIX v97.0: Handle scroll for header animation
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     {
@@ -390,14 +386,12 @@ export default function EventosScreen() {
     }
   );
 
-  // ✅ Get platform-specific dimensions
   const searchBoxHeight = getSearchBoxHeight();
   const categoryIconSize = getCategoryIconSize();
   const categoryIconInnerSize = getCategoryIconInnerSize();
 
   const HeaderContent = () => (
     <React.Fragment>
-      {/* ✅ CRITICAL FIX v103.0: Header title uses scaleFontSize() */}
       <Text style={[
         commonStyles.headerTitle, 
         { 
@@ -408,7 +402,6 @@ export default function EventosScreen() {
         Eventos
       </Text>
 
-      {/* ✅ CRITICAL FIX v97.0: Search box with proper text centering on Android */}
       <View style={[styles.searchContainer, { 
         height: searchBoxHeight,
       }]}>
@@ -470,7 +463,7 @@ export default function EventosScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ CRITICAL FIX v103.0: Category filters use ONLY emojis (match Explorar) */}
+      {/* ✅ CRITICAL FIX v104.0: Category filters use TEAL ICONS */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -495,7 +488,12 @@ export default function EventosScreen() {
                 categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive,
               ]}
             >
-              <Text style={[styles.categoryEmoji, { fontSize: categoryIconInnerSize }]}>{categoria.emoji}</Text>
+              <IconSymbol
+                ios_icon_name={categoria.iosIcon}
+                android_material_icon_name={categoria.androidIcon}
+                size={categoryIconInnerSize}
+                color={categoriaSeleccionada === categoria.id ? colors.primary : colors.white}
+              />
             </View>
             <Text
               style={[
@@ -514,7 +512,6 @@ export default function EventosScreen() {
 
   return (
     <View style={commonStyles.container}>
-      {/* ✅ CRITICAL FIX v97.0: Scrollable header on Android (like Favoritos) */}
       {Platform.OS === 'android' ? (
         <Animated.View
           style={[
@@ -633,7 +630,12 @@ export default function EventosScreen() {
                       ]}
                       onPress={() => setCategoriaSeleccionada(categoria.id)}
                     >
-                      <Text style={[styles.categoryFilterEmoji, { fontSize: categoryIconInnerSize }]}>{categoria.emoji}</Text>
+                      <IconSymbol
+                        ios_icon_name={categoria.iosIcon}
+                        android_material_icon_name={categoria.androidIcon}
+                        size={categoryIconInnerSize}
+                        color={categoriaSeleccionada === categoria.id ? colors.white : colors.primary}
+                      />
                       <Text
                         style={[
                           styles.categoryFilterText,
@@ -1120,7 +1122,7 @@ const styles = StyleSheet.create({
   categoriaIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: colors.primary,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
@@ -1128,16 +1130,13 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
     backgroundColor: colors.white,
   },
-  categoryEmoji: {
-    // fontSize set dynamically
-  },
   categoriaLabel: {
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
   },
   categoriaLabelActive: {
-    color: colors.primary,
+    color: colors.white,
     fontWeight: '700',
   },
   categoriesGrid: {
@@ -1160,9 +1159,6 @@ const styles = StyleSheet.create({
   categoryFilterItemActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
-  },
-  categoryFilterEmoji: {
-    // fontSize set dynamically
   },
   categoryFilterText: {
     fontWeight: '600',
