@@ -1,25 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  getSearchBoxHeight,
-  getCategoryIconSize,
-  getCategoryIconInnerSize,
-  scaleFontSize,
-  scaleIconSize,
-} from '@/utils/androidScaling';
-import LoginPrompt from '@/components/common/LoginPrompt';
-import { useRouter } from 'expo-router';
-import { supabase } from '@/utils/supabase';
-import { colors, commonStyles } from '@/styles/commonStyles';
-import { useAuth } from '@/contexts/AuthContext';
-import { getEstadoLocal } from '@/utils/timeUtils';
-import { getCategoryIcon } from '@/utils/categoryIcons';
-import LoginRequiredModal from '@/components/common/LoginRequiredModal';
-import { calcularDistancia } from '@/utils/locationUtils';
-import { IconSymbol } from '@/components/IconSymbol';
-import * as Location from 'expo-location';
-import { LinearGradient } from 'expo-linear-gradient';
-import {
   View,
   Text,
   StyleSheet,
@@ -37,63 +18,138 @@ import {
   Platform,
   Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { IconSymbol } from '@/components/IconSymbol';
+import { colors, commonStyles } from '@/styles/commonStyles';
+import { useRouter } from 'expo-router';
+import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import LoginPrompt from '@/components/common/LoginPrompt';
+import { getEstadoLocal } from '@/utils/timeUtils';
+import { getCategoryIcon } from '@/utils/categoryIcons';
+import * as Location from 'expo-location';
+import { calcularDistancia } from '@/utils/locationUtils';
+import {
+  getSearchBoxHeight,
+  getCategoryIconSize,
+  getCategoryIconInnerSize,
+  scaleFontSize,
+  scaleIconSize,
+} from '@/utils/androidScaling';
 
 const ITEMS_PER_PAGE = 20;
-const HEADER_MAX_HEIGHT = 180;
-const HEADER_MIN_HEIGHT = 60;
+
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 300;
+const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
 const PROVINCIAS = [
   'Todas',
-  'Madrid',
-  'Barcelona',
-  'Valencia',
-  'Sevilla',
-  'Zaragoza',
-  'Málaga',
-  'Murcia',
-  'Palma',
-  'Las Palmas',
-  'Bilbao',
+  'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila', 'Badajoz',
+  'Barcelona', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria', 'Castellón', 'Ciudad Real',
+  'Córdoba', 'Cuenca', 'Girona', 'Granada', 'Guadalajara', 'Guipúzcoa', 'Huelva',
+  'Huesca', 'Islas Baleares', 'Jaén', 'La Coruña', 'La Rioja', 'Las Palmas', 'León',
+  'Lleida', 'Lugo', 'Madrid', 'Málaga', 'Murcia', 'Navarra', 'Ourense', 'Palencia',
+  'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife', 'Segovia', 'Sevilla', 'Soria',
+  'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
+// ✅ CRITICAL FIX v106.0: Category filters with TEAL ICONS (matching Explorar and Eventos)
 const CATEGORIAS = [
-  { id: 'todos', label: 'Todos', icon: 'apps', color: colors.teal },
-  { id: 'bar', label: 'Bares', icon: 'local_bar', color: colors.teal },
-  { id: 'discoteca', label: 'Discotecas', icon: 'nightlife', color: colors.teal },
-  { id: 'restaurante', label: 'Restaurantes', icon: 'restaurant', color: colors.teal },
-  { id: 'pub', label: 'Pubs', icon: 'sports_bar', color: colors.teal },
-  { id: 'cafe', label: 'Cafés', icon: 'local_cafe', color: colors.teal },
-  { id: 'terraza', label: 'Terrazas', icon: 'deck', color: colors.teal },
+  { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
+  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
+  { id: 'restaurante', nombre: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
+  { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
+  { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
+  { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'local_drink' },
+  { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
 ];
+
+/**
+ * ✅ FAVORITOS SCREEN v106.0 - TEAL ICON FIX
+ * 
+ * CRITICAL FIXES v106.0:
+ * - ✅ Category filters now show TEAL-COLORED ICONS (not emojis)
+ * - ✅ Icons match Explorar and Eventos design with proper Material Icons
+ * - ✅ Active category has white background with teal icon
+ * - ✅ Inactive categories have teal background with white icon
+ * - ✅ Consistent design across all pages
+ */
 
 export default function FavoritosScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [allSavedLocales, setAllSavedLocales] = useState<any[]>([]);
-  const [filteredLocales, setFilteredLocales] = useState<any[]>([]);
   const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [filteredLocales, setFilteredLocales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('todos');
-  const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [checkingSocialProfiles, setCheckingSocialProfiles] = useState<Set<string>>(new Set());
+  const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
+  
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('todas');
+  const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
+
   const scrollY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [0, -HEADER_SCROLL_DISTANCE],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const location = await Location.getCurrentPositionAsync({});
-        setUserLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({});
+          setUserLocation({
+            lat: location.coords.latitude,
+            lng: location.coords.longitude,
+          });
+          console.log('[Favoritos v106.0] User location obtained:', location.coords);
+        }
+      } catch (error) {
+        console.error('[Favoritos v106.0] Error getting location:', error);
       }
     })();
+  }, []);
+
+  const checkSocialProfilesForLocales = useCallback(async (localIds: string[]) => {
+    if (localIds.length === 0) return;
+
+    try {
+      const { data: posts, error: postsError } = await supabase
+        .from('posts')
+        .select('local_id')
+        .eq('tipo', 'local')
+        .in('local_id', localIds);
+
+      if (postsError) throw postsError;
+
+      const newSocialProfiles = new Map();
+      const localsWithPosts = new Set(posts?.map(p => p.local_id) || []);
+      
+      localIds.forEach(localId => {
+        newSocialProfiles.set(localId, localsWithPosts.has(localId));
+      });
+      
+      setSocialProfiles(newSocialProfiles);
+    } catch (error) {
+      console.error('[Favoritos v106.0] Error checking social profiles:', error);
+    }
   }, []);
 
   const loadSavedLocales = useCallback(async () => {
@@ -103,389 +159,898 @@ export default function FavoritosScreen() {
     }
 
     try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('favoritos')
+      console.log('[Favoritos v106.0] Cargando locales guardados...');
+      const { data: savedLocalesData, error: localesError } = await supabase
+        .from('locales_guardados')
         .select(`
           local_id,
           locales (
             id,
             nombre,
-            tipo,
             direccion,
             provincia,
-            imagen_url,
+            comunidad,
             latitud,
             longitud,
+            imagen_url,
+            galeria_urls,
+            rating,
+            tipo,
+            barlive_type,
+            barlive_types,
             horarios_completos,
-            google_business_status,
             estado_actual,
-            valoracion,
-            google_rating,
-            precio_medio,
-            nivel_precio_google,
-            barlive_types
+            destacado,
+            nuevo,
+            google_rating
           )
         `)
-        .eq('usuario_id', user.id);
+        .eq('usuario_id', user.id)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (localesError) throw localesError;
 
-      const locales = data
-        ?.map((fav: any) => fav.locales)
-        .filter((local: any) => local !== null) || [];
-
-      setAllSavedLocales(locales);
-      setFilteredLocales(locales);
-      setDisplayedLocales(locales.slice(0, ITEMS_PER_PAGE));
-      setCurrentPage(1);
+      if (savedLocalesData) {
+        const formattedLocales = savedLocalesData
+          .filter(sl => sl.locales)
+          .map((sl: any) => {
+            const local = sl.locales;
+            
+            let distancia = null;
+            if (userLocation && local.latitud && local.longitud) {
+              distancia = calcularDistancia(
+                userLocation.lat,
+                userLocation.lng,
+                parseFloat(local.latitud),
+                parseFloat(local.longitud)
+              );
+            }
+            
+            return {
+              ...local,
+              coordenadas: {
+                lat: parseFloat(local.latitud),
+                lng: parseFloat(local.longitud),
+              },
+              imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
+              distancia: distancia,
+            };
+          });
+        
+        setAllSavedLocales(formattedLocales);
+        setFilteredLocales(formattedLocales);
+        
+        const firstPage = formattedLocales.slice(0, ITEMS_PER_PAGE);
+        setDisplayedLocales(firstPage);
+        setCurrentPage(1);
+        setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
+        
+        console.log('[Favoritos v106.0] Locales guardados cargados:', formattedLocales.length);
+        
+        checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
+      }
     } catch (error) {
-      console.error('Error loading saved locales:', error);
-      Alert.alert('Error', 'No se pudieron cargar los locales guardados');
+      console.error('[Favoritos v106.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, userLocation, checkSocialProfilesForLocales]);
 
   useEffect(() => {
     loadSavedLocales();
+
+    if (user) {
+      const savedLocalesChannel = supabase
+        .channel('user-saved-locales-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'locales_guardados',
+            filter: `usuario_id=eq.${user.id}`,
+          },
+          () => {
+            console.log('[Favoritos v106.0] Saved locales changed, reloading...');
+            loadSavedLocales();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(savedLocalesChannel);
+      };
+    }
   }, [user, loadSavedLocales]);
+
+  useEffect(() => {
+    if (userLocation && allSavedLocales.length > 0) {
+      console.log('[Favoritos v106.0] Recalculating distances with new user location');
+      const updatedLocales = allSavedLocales.map(local => {
+        const distancia = calcularDistancia(
+          userLocation.lat,
+          userLocation.lng,
+          local.coordenadas.lat,
+          local.coordenadas.lng
+        );
+        return {
+          ...local,
+          distancia: distancia,
+        };
+      });
+      setAllSavedLocales(updatedLocales);
+      setFilteredLocales(updatedLocales);
+      
+      const firstPage = updatedLocales.slice(0, currentPage * ITEMS_PER_PAGE);
+      setDisplayedLocales(firstPage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation, currentPage]);
 
   useEffect(() => {
     let filtered = [...allSavedLocales];
 
-    if (selectedCategory !== 'todos') {
-      filtered = filtered.filter((local) => {
-        const tipos = local.barlive_types || [local.tipo];
-        return tipos.some((t: string) => t?.toLowerCase() === selectedCategory.toLowerCase());
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(local => {
+        const nombre = local.nombre?.toLowerCase() || '';
+        const direccion = local.direccion?.toLowerCase() || '';
+        const provincia = local.provincia?.toLowerCase() || '';
+        const tipo = local.tipo?.toLowerCase() || '';
+        
+        return nombre.includes(query) || 
+               direccion.includes(query) || 
+               provincia.includes(query) ||
+               tipo.includes(query);
+      });
+    }
+
+    if (selectedCategory !== 'todas') {
+      filtered = filtered.filter(local => {
+        const barliveTypes = local.barlive_types || [];
+        
+        if (selectedCategory === 'discoteca') {
+          return barliveTypes.includes('discoteca') || barliveTypes.includes('sala_conciertos');
+        }
+        
+        return barliveTypes.includes(selectedCategory);
       });
     }
 
     if (provinciaSeleccionada !== 'Todas') {
-      filtered = filtered.filter((local) => local.provincia === provinciaSeleccionada);
-    }
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (local) =>
-          local.nombre?.toLowerCase().includes(query) ||
-          local.direccion?.toLowerCase().includes(query) ||
-          local.provincia?.toLowerCase().includes(query)
-      );
+      filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
     }
 
     setFilteredLocales(filtered);
-    setDisplayedLocales(filtered.slice(0, ITEMS_PER_PAGE));
+    const firstPage = filtered.slice(0, ITEMS_PER_PAGE);
+    setDisplayedLocales(firstPage);
     setCurrentPage(1);
+    setHasMore(filtered.length > ITEMS_PER_PAGE);
+    
+    console.log('[Favoritos v106.0] Filters applied. Results:', filtered.length);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
   const loadMoreLocales = useCallback(() => {
-    if (displayedLocales.length >= filteredLocales.length) return;
+    if (loadingMore || !hasMore) return;
 
-    const nextPage = currentPage + 1;
-    const newLocales = filteredLocales.slice(0, nextPage * ITEMS_PER_PAGE);
-    setDisplayedLocales(newLocales);
-    setCurrentPage(nextPage);
-  }, [currentPage, displayedLocales.length, filteredLocales]);
+    setLoadingMore(true);
+    
+    setTimeout(() => {
+      const nextPage = currentPage + 1;
+      const startIndex = currentPage * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const nextItems = filteredLocales.slice(startIndex, endIndex);
+      
+      if (nextItems.length > 0) {
+        setDisplayedLocales(prev => [...prev, ...nextItems]);
+        setCurrentPage(nextPage);
+        setHasMore(endIndex < filteredLocales.length);
+        console.log('[Favoritos v106.0] Cargando más locales, página:', nextPage);
+      } else {
+        setHasMore(false);
+      }
+      
+      setLoadingMore(false);
+    }, 300);
+  }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh = async () => {
+    console.log('[Favoritos v106.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
+    setSearchQuery('');
+    setSelectedCategory('todas');
+    setProvinciaSeleccionada('Todas');
     await loadSavedLocales();
     setRefreshing(false);
-  }, [loadSavedLocales]);
+  };
 
-  const toggleFavorito = useCallback(
-    async (localId: string) => {
-      if (!user) {
-        setShowLoginModal(true);
-        return;
-      }
-
-      try {
-        const { error } = await supabase
-          .from('favoritos')
-          .delete()
-          .eq('usuario_id', user.id)
-          .eq('local_id', localId);
-
-        if (error) throw error;
-
-        setAllSavedLocales((prev) => prev.filter((local) => local.id !== localId));
-      } catch (error) {
-        console.error('Error removing favorite:', error);
-        Alert.alert('Error', 'No se pudo eliminar de favoritos');
-      }
-    },
-    [user]
-  );
-
-  const handleComoLlegar = useCallback((local: any, e: any) => {
-    e.stopPropagation();
-    if (local.latitud && local.longitud) {
-      const url = Platform.select({
-        ios: `maps:0,0?q=${local.latitud},${local.longitud}`,
-        android: `geo:0,0?q=${local.latitud},${local.longitud}(${encodeURIComponent(local.nombre)})`,
-      });
-      if (url) Linking.openURL(url);
-    }
+  const clearFilters = useCallback(() => {
+    console.log('[Favoritos v106.0] 🧹 Clearing all filters');
+    setSearchQuery('');
+    setSelectedCategory('todas');
+    setProvinciaSeleccionada('Todas');
   }, []);
 
-  const handlePerfilSocial = useCallback(
-    (localId: string, e: any) => {
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery.trim()) count++;
+    if (selectedCategory !== 'todas') count++;
+    if (provinciaSeleccionada !== 'Todas') count++;
+    return count;
+  }, [searchQuery, selectedCategory, provinciaSeleccionada]);
+
+  const toggleFavorito = async (localId: string, e?: any) => {
+    if (e) {
       e.stopPropagation();
-      router.push(`/perfil/local?id=${localId}`);
-    },
-    [router]
-  );
+    }
+    
+    if (!user) {
+      console.log('[Favoritos v106.0] User not authenticated');
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
+      return;
+    }
 
-  const renderLocalCard = useCallback(
-    ({ item }: { item: any }) => {
-      const estado = getEstadoLocal(item.horarios_completos, item.google_business_status);
-      const distancia = userLocation && item.latitud && item.longitud
-        ? calcularDistancia(
-            userLocation.latitude,
-            userLocation.longitude,
-            item.latitud,
-            item.longitud
-          )
-        : null;
+    if (!localId) {
+      console.log('[Favoritos v106.0] No local ID');
+      return;
+    }
 
-      return (
-        <TouchableOpacity
-          style={styles.localCard}
-          onPress={() => router.push(`/detalle/local?id=${item.id}`)}
-          activeOpacity={0.7}
-        >
-          <Image
-            source={{ uri: item.imagen_url || 'https://via.placeholder.com/150' }}
-            style={styles.localImage}
-          />
-          <View style={styles.localInfo}>
-            <View style={styles.localHeader}>
-              <Text style={styles.localNombre} numberOfLines={1}>
-                {item.nombre}
-              </Text>
-              <TouchableOpacity
-                onPress={() => toggleFavorito(item.id)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <IconSymbol
-                  android_material_icon_name="favorite"
-                  ios_icon_name="heart.fill"
-                  size={scaleIconSize(20)}
-                  color={colors.teal}
-                />
-              </TouchableOpacity>
-            </View>
+    try {
+      console.log('[Favoritos v106.0] Removing from favorites. User:', user.id, 'Local:', localId);
+      
+      const { error } = await supabase
+        .from('locales_guardados')
+        .delete()
+        .eq('usuario_id', user.id)
+        .eq('local_id', localId);
 
-            <View style={styles.localDetails}>
-              <Text style={styles.localDireccion} numberOfLines={1}>
-                {item.direccion || 'Sin dirección'}
-              </Text>
-              {distancia && (
-                <Text style={styles.distancia}>{distancia.toFixed(1)} km</Text>
-              )}
-            </View>
+      if (error) {
+        console.error('[Favoritos v106.0] Error removing favorite:', error);
+        Alert.alert('Error', 'No se pudo quitar de favoritos');
+        return;
+      }
+      
+      console.log('[Favoritos v106.0] ✅ Removed from favorites');
+      
+      await loadSavedLocales();
+    } catch (error) {
+      console.error('[Favoritos v106.0] Error removing favorito:', error);
+      Alert.alert('Error', 'No se pudo eliminar de favoritos');
+    }
+  };
 
-            <View style={styles.localFooter}>
-              <View style={[styles.estadoBadge, estado.color === 'green' ? styles.estadoAbierto : styles.estadoCerrado]}>
-                <Text style={styles.estadoTexto}>{estado.texto}</Text>
-              </View>
+  const handleComoLlegar = (local: any, e: any) => {
+    e.stopPropagation();
+    const { lat, lng } = local.coordenadas;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    Linking.openURL(url);
+  };
 
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={(e) => handleComoLlegar(item, e)}
-                >
-                  <IconSymbol
-                    android_material_icon_name="directions"
-                    ios_icon_name="arrow.triangle.turn.up.right.diamond"
-                    size={scaleIconSize(18)}
-                    color={colors.teal}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={(e) => handlePerfilSocial(item.id, e)}
-                >
-                  <IconSymbol
-                    android_material_icon_name="person"
-                    ios_icon_name="person.circle"
-                    size={scaleIconSize(18)}
-                    color={colors.teal}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </TouchableOpacity>
+  const handlePerfilSocial = (localId: string, e: any) => {
+    e.stopPropagation();
+    router.push(`/perfil/local?localId=${localId}`);
+  };
+
+  const renderLocalCard = ({ item }: { item: any }) => {
+    const estado = getEstadoLocal(item);
+    const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
+    const isDestacado = item.destacado;
+    const hasSocialProfile = socialProfiles.get(item.id) || false;
+
+    const getBadgeColor = () => {
+      if (estado.badge === 'Abierto ahora' || estado.badge === 'Abierto 24h') {
+        return '#22C55E';
+      }
+      if (estado.badge === 'Cierra pronto') {
+        return '#F97316';
+      }
+      if (estado.badge === 'Abre pronto') {
+        return '#EAB308';
+      }
+      if (estado.estaAbierto === false) {
+        return '#EF4444';
+      }
+      return '#9CA3AF';
+    };
+
+    const getBadgeText = () => {
+      if (estado.badge === 'Abierto 24h') {
+        return 'Abierto 24h';
+      }
+      
+      if (estado.tiempoRestante) {
+        if (estado.badge === 'Abierto ahora') {
+          return `Abierto ahora • Cierra en ${estado.tiempoRestante}`;
+        }
+        if (estado.badge === 'Cierra pronto') {
+          return `Cierra en ${estado.tiempoRestante}`;
+        }
+        if (estado.badge === 'Abre pronto') {
+          return `Abre en ${estado.tiempoRestante}`;
+        }
+        return `${estado.badge} • ${estado.tiempoRestante}`;
+      }
+      return estado.badge;
+    };
+
+    const shouldDimImage = () => {
+      return estado.estaAbierto === false || estado.estaAbierto === null;
+    };
+
+    const formatCategories = () => {
+      const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
+      let categories = item.barlive_types || [];
+      if (categories.length === 0 && item.barlive_type) {
+        categories = [item.barlive_type];
+      }
+      
+      return categories.filter((cat: string) => 
+        !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
       );
-    },
-    [userLocation, router, toggleFavorito, handleComoLlegar, handlePerfilSocial]
-  );
+    };
 
-  const renderFooter = useCallback(() => {
-    if (displayedLocales.length >= filteredLocales.length) return null;
+    const categoriasAMostrar = formatCategories();
+
+    const getRating = () => {
+      if (item.rating && item.rating > 0) {
+        return item.rating;
+      }
+      if (item.google_rating && item.google_rating > 0) {
+        return item.google_rating;
+      }
+      return 0;
+    };
+
+    const displayRating = getRating();
+
+    const iconSize = Platform.OS === 'android' ? scaleIconSize(14) : 14;
+    const starIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
+    const heartIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+    const actionIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
+
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.card,
+          isDestacado && styles.cardDestacado
+        ]} 
+        onPress={() => router.push(`/detalle/local?id=${item.id}`)}
+        activeOpacity={0.9}
+      >
+        <View style={styles.imageContainer}>
+          {imagenPrincipal ? (
+            <Image
+              source={{ uri: imagenPrincipal }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.image, styles.placeholderImage]}>
+              <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={48} color={colors.textSecondary} />
+            </View>
+          )}
+
+          {shouldDimImage() && (
+            <View style={styles.dimmedOverlay} />
+          )}
+
+          <View style={styles.imageOverlay} />
+
+          {isDestacado && (
+            <View style={styles.badgeDestacadoHeader}>
+              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={starIconSize} color="#92400E" />
+              <Text style={[styles.badgeDestacadoHeaderText, { fontSize: scaleFontSize(12) }]}>Destacado</Text>
+            </View>
+          )}
+
+          <View style={[
+            styles.badgeEstadoSuperior, 
+            { backgroundColor: getBadgeColor() + 'E6' },
+            isDestacado && styles.badgeEstadoSuperiorConDestacado
+          ]}>
+            <Text style={[styles.badgeEstadoSuperiorText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{getBadgeText()}</Text>
+          </View>
+
+          {displayRating > 0 && (
+            <View style={styles.ratingBadge}>
+              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={starIconSize} color="#FACC15" />
+              <Text style={[styles.ratingBadgeText, { fontSize: scaleFontSize(12) }]}>{displayRating.toFixed(1)}</Text>
+            </View>
+          )}
+
+          {item.nuevo && (
+            <View style={styles.badgeNuevoContainer}>
+              <View style={styles.badgeNuevo}>
+                <Text style={[styles.badgeNuevoText, { fontSize: scaleFontSize(12) }]}>Nuevo</Text>
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.favoritoButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              toggleFavorito(item.id, e);
+            }}
+          >
+            <IconSymbol
+              ios_icon_name="heart.fill"
+              android_material_icon_name="favorite"
+              size={heartIconSize}
+              color="#EF4444"
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={[styles.nombre, { fontSize: scaleFontSize(18) }]} numberOfLines={1}>
+              {item.nombre}
+            </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={iconSize} color={colors.textSecondary} />
+            <Text style={[styles.infoText, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
+              {item.direccion}
+            </Text>
+          </View>
+
+          {categoriasAMostrar.length > 0 && (
+            <View style={styles.categoriasContainer}>
+              {categoriasAMostrar.map((categoria: string, index: number) => (
+                <View key={index} style={styles.categoriaBadge}>
+                  <Text style={[styles.categoriaIcon, { fontSize: scaleFontSize(12) }]}>{getCategoryIcon(categoria)}</Text>
+                  <Text style={[styles.categoriaText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{categoria}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.actionButtonsContainer}>
+            {hasSocialProfile && (
+              <TouchableOpacity 
+                style={styles.perfilSocialButton} 
+                onPress={(e) => handlePerfilSocial(item.id, e)}
+              >
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={actionIconSize} color={colors.headerText} />
+                <Text style={[styles.perfilSocialText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Perfil Social</Text>
+              </TouchableOpacity>
+            )}
+            
+            <TouchableOpacity 
+              style={[
+                styles.comoLlegarButton,
+                !hasSocialProfile && styles.comoLlegarButtonFull
+              ]} 
+              onPress={(e) => handleComoLlegar(item, e)}
+            >
+              <View style={styles.comoLlegarContent}>
+                <View style={styles.comoLlegarLeft}>
+                  <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={actionIconSize} color={colors.headerText} />
+                  <Text style={[styles.comoLlegarText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Cómo llegar</Text>
+                </View>
+                
+                {item.distancia !== null && item.distancia !== undefined && (
+                  <View style={styles.distanciaInButton}>
+                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={iconSize} color={colors.headerText} />
+                    <Text style={[styles.distanciaInButtonText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
+                      {item.distancia.toFixed(1)} km
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color={colors.teal} />
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={[styles.footerLoaderText, { fontSize: scaleFontSize(14) }]}>Cargando más...</Text>
       </View>
     );
-  }, [displayedLocales.length, filteredLocales.length]);
+  };
 
-  const renderEmpty = useCallback(() => {
+  const renderEmpty = () => {
     if (loading) return null;
+    
+    if (activeFiltersCount > 0 && filteredLocales.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <IconSymbol
+            ios_icon_name="magnifyingglass"
+            android_material_icon_name="search"
+            size={64}
+            color={colors.textSecondary}
+          />
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No se encontraron resultados</Text>
+          <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
+            Intenta con otros filtros de búsqueda
+          </Text>
+          <TouchableOpacity 
+            style={styles.clearFiltersButton}
+            onPress={clearFilters}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.clearFiltersButtonText, { fontSize: scaleFontSize(14) }]}>Limpiar filtros</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    
     return (
-      <View style={styles.emptyContainer}>
+      <View style={styles.emptyState}>
         <IconSymbol
-          android_material_icon_name="favorite_border"
           ios_icon_name="heart"
-          size={scaleIconSize(64)}
+          android_material_icon_name="favorite_border"
+          size={64}
           color={colors.textSecondary}
         />
-        <Text style={styles.emptyText}>
-          {!user
-            ? 'Inicia sesión para guardar tus locales favoritos'
-            : 'No tienes locales guardados'}
+        <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No tienes locales favoritos</Text>
+        <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
+          Explora locales y guarda tus favoritos tocando el ícono de corazón
         </Text>
-        {!user && (
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => setShowLoginModal(true)}
+      </View>
+    );
+  };
+
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: true,
+      listener: (event: any) => {
+        if (Platform.OS !== 'android') return;
+        
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const diff = currentScrollY - lastScrollY.current;
+        
+        if (diff > 5) {
+          // Scrolling down
+        } else if (diff < -5) {
+          // Scrolling up
+        }
+        
+        lastScrollY.current = currentScrollY;
+      },
+    }
+  );
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.headerGradient}
+        >
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Locales Favoritos</Text>
+        </LinearGradient>
+
+        <LoginPrompt
+          title="Inicia sesión para ver tus favoritos"
+          message="Regístrate o inicia sesión en BarLive para guardar tus locales favoritos y acceder a ellos desde cualquier dispositivo."
+          icon="heart.circle"
+          androidIcon="favorite"
+        />
+      </View>
+    );
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.headerGradient}
+        >
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Locales Favoritos</Text>
+        </LinearGradient>
+
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando favoritos...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const searchBoxHeight = getSearchBoxHeight();
+  const categoryIconSize = getCategoryIconSize();
+  const categoryIconInnerSize = getCategoryIconInnerSize();
+
+  const HeaderContent = () => (
+    <React.Fragment>
+      <View style={styles.headerTop}>
+        <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Locales Favoritos</Text>
+        {activeFiltersCount > 0 && (
+          <TouchableOpacity 
+            style={styles.clearFiltersHeaderButton}
+            onPress={clearFilters}
+            activeOpacity={0.7}
           >
-            <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(20)} color={colors.headerText} />
+            <Text style={[styles.clearFiltersHeaderText, { fontSize: scaleFontSize(13) }]}>Limpiar</Text>
           </TouchableOpacity>
         )}
       </View>
-    );
-  }, [loading, user]);
-
-  const HeaderContent = useCallback(() => {
-    const headerHeight = scrollY.interpolate({
-      inputRange: [0, HEADER_SCROLL_DISTANCE],
-      outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
-      extrapolate: 'clamp',
-    });
-
-    const headerOpacity = scrollY.interpolate({
-      inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
-      outputRange: [1, 0.5, 0],
-      extrapolate: 'clamp',
-    });
-
-    return (
-      <Animated.View style={[styles.header, { height: headerHeight }]}>
-        <LinearGradient
-          colors={['#0D9488', '#14B8A6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
+      
+      <View style={[styles.searchContainer, { 
+        height: searchBoxHeight,
+        paddingVertical: Platform.OS === 'android' ? 10 : 10,
+      }]}>
+        <IconSymbol 
+          ios_icon_name="magnifyingglass" 
+          android_material_icon_name="search"
+          size={scaleIconSize(20)} 
+          color={colors.textSecondary}
         />
-        <Animated.View style={[styles.headerContent, { opacity: headerOpacity }]}>
-          <Text style={styles.headerTitle}>Locales Favoritos</Text>
-          <Text style={styles.headerSubtitle}>
-            {filteredLocales.length} {filteredLocales.length === 1 ? 'local' : 'locales'}
-          </Text>
-        </Animated.View>
+        <TextInput
+          style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
+          placeholder="Buscar en favoritos..."
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity 
+            onPress={() => setSearchQuery('')}
+            style={styles.clearButton}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="xmark.circle.fill" 
+              android_material_icon_name="cancel"
+              size={scaleIconSize(20)} 
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
+          <IconSymbol 
+            ios_icon_name="slider.horizontal.3" 
+            android_material_icon_name="tune" 
+            size={scaleIconSize(20)} 
+            color={colors.primary} 
+          />
+        </TouchableOpacity>
+      </View>
 
-        <View style={styles.searchContainer}>
-          <IconSymbol
-            android_material_icon_name="search"
-            ios_icon_name="magnifyingglass"
-            size={scaleIconSize(20)}
-            color={colors.textSecondary}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar locales..."
-            placeholderTextColor={colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+      {/* ✅ CRITICAL FIX v106.0: Category filters with TEAL ICONS (matching Explorar and Eventos) */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoriesScroll}
+        contentContainerStyle={styles.categoriesContent}
+      >
+        {CATEGORIAS.map((categoria) => (
+          <TouchableOpacity
+            key={categoria.id}
+            style={styles.categoriaButton}
+            onPress={() => setSelectedCategory(categoria.id)}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.categoriaIconContainer,
+                {
+                  width: categoryIconSize,
+                  height: categoryIconSize,
+                  borderRadius: categoryIconSize / 4,
+                },
+                selectedCategory === categoria.id && styles.categoriaIconContainerActive,
+              ]}
+            >
               <IconSymbol
-                android_material_icon_name="close"
-                ios_icon_name="xmark.circle.fill"
-                size={scaleIconSize(20)}
-                color={colors.textSecondary}
+                ios_icon_name={categoria.iosIcon}
+                android_material_icon_name={categoria.androidIcon}
+                size={categoryIconInnerSize}
+                color={selectedCategory === categoria.id ? colors.primary : colors.white}
               />
-            </TouchableOpacity>
+            </View>
+            <Text
+              style={[
+                styles.categoriaLabel,
+                { fontSize: scaleFontSize(12) },
+                selectedCategory === categoria.id && styles.categoriaLabelActive,
+              ]}
+            >
+              {categoria.nombre}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+      
+      {allSavedLocales.length > 0 && (
+        <View style={styles.resultsCountContainer}>
+          <Text style={[styles.resultsCount, { fontSize: scaleFontSize(14) }]}>
+            {activeFiltersCount > 0
+              ? `${filteredLocales.length} de ${allSavedLocales.length} locales`
+              : `${filteredLocales.length} locales guardados`
+            }
+          </Text>
+          {activeFiltersCount > 0 && (
+            <View style={styles.filterCountBadge}>
+              <Text style={[styles.filterCountText, { fontSize: scaleFontSize(11) }]}>{activeFiltersCount}</Text>
+            </View>
           )}
         </View>
+      )}
+    </React.Fragment>
+  );
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesScroll}
-          contentContainerStyle={styles.categoriesContent}
-        >
-          {CATEGORIAS.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.categoryChip,
-                selectedCategory === cat.id && styles.categoryChipActive,
-              ]}
-              onPress={() => setSelectedCategory(cat.id)}
-            >
-              <View style={[
-                styles.categoryIconContainer,
-                selectedCategory === cat.id && styles.categoryIconContainerActive
-              ]}>
-                <IconSymbol
-                  android_material_icon_name={cat.icon}
-                  ios_icon_name={cat.icon}
-                  size={getCategoryIconInnerSize()}
-                  color={selectedCategory === cat.id ? '#FFFFFF' : cat.color}
-                />
-              </View>
-              <Text
-                style={[
-                  styles.categoryLabel,
-                  selectedCategory === cat.id && styles.categoryLabelActive,
-                ]}
-              >
-                {cat.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </Animated.View>
-    );
-  }, [scrollY, searchQuery, selectedCategory, filteredLocales.length]);
-
-  if (!user) {
-    return <LoginPrompt />;
-  }
+  const ListComponent = Platform.OS === 'android' ? AnimatedFlatList : FlatList;
 
   return (
     <View style={styles.container}>
-      <HeaderContent />
-      <FlatList
+      {Platform.OS === 'android' ? (
+        <Animated.View
+          style={[
+            styles.headerContainer,
+            {
+              transform: [{ translateY: headerTranslateY }],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.headerGradient}
+          >
+            <HeaderContent />
+          </LinearGradient>
+        </Animated.View>
+      ) : (
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.headerGradient}
+        >
+          <HeaderContent />
+        </LinearGradient>
+      )}
+
+      <ListComponent
         data={displayedLocales}
         renderItem={renderLocalCard}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        keyExtractor={(item: any) => item.id}
+        contentContainerStyle={[
+          styles.listContent,
+          Platform.OS === 'android' && { marginTop: HEADER_MAX_HEIGHT },
+        ]}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
+          <RefreshControl 
+            refreshing={refreshing} 
             onRefresh={onRefresh}
-            tintColor={colors.teal}
-            colors={[colors.teal]}
+            tintColor={colors.primary}
           />
         }
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
         onEndReached={loadMoreLocales}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        onScroll={Platform.OS === 'android' ? handleScroll : undefined}
+        scrollEventThrottle={16}
       />
+
+      <Modal
+        visible={mostrarFiltros}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setMostrarFiltros(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setMostrarFiltros(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Filtros</Text>
+              <TouchableOpacity onPress={() => setMostrarFiltros(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(24)} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView 
+              style={styles.modalScrollView}
+              showsVerticalScrollIndicator={true}
+              bounces={false}
+            >
+              <View style={styles.filterSection}>
+                <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Categoría de Local</Text>
+                <View style={styles.categoriesGrid}>
+                  {CATEGORIAS.map((categoria) => (
+                    <TouchableOpacity
+                      key={categoria.id}
+                      style={[
+                        styles.categoryFilterItem,
+                        selectedCategory === categoria.id && styles.categoryFilterItemActive,
+                      ]}
+                      onPress={() => setSelectedCategory(categoria.id)}
+                    >
+                      <IconSymbol
+                        ios_icon_name={categoria.iosIcon}
+                        android_material_icon_name={categoria.androidIcon}
+                        size={categoryIconInnerSize}
+                        color={selectedCategory === categoria.id ? colors.white : colors.primary}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryFilterText,
+                          { fontSize: scaleFontSize(14) },
+                          selectedCategory === categoria.id && styles.categoryFilterTextActive,
+                        ]}
+                      >
+                        {categoria.nombre}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.filterSection}>
+                <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Provincia</Text>
+                <View style={styles.provinciasListContainer}>
+                  {PROVINCIAS.map((provincia) => (
+                    <TouchableOpacity
+                      key={provincia}
+                      style={[
+                        styles.provinciaItem,
+                        provinciaSeleccionada === provincia && styles.provinciaItemActive,
+                      ]}
+                      onPress={() => setProvinciaSeleccionada(provincia)}
+                    >
+                      <Text
+                        style={[
+                          styles.provinciaText,
+                          { fontSize: scaleFontSize(15) },
+                          provinciaSeleccionada === provincia && styles.provinciaTextActive,
+                        ]}
+                      >
+                        {provincia}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={{ height: 40 }} />
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.limpiarButton}
+                onPress={() => {
+                  setSelectedCategory('todas');
+                  setProvinciaSeleccionada('Todas');
+                }}
+              >
+                <Text style={[styles.limpiarButtonText, { fontSize: scaleFontSize(16) }]}>Limpiar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.aplicarButtonModal}
+                onPress={() => setMostrarFiltros(false)}
+              >
+                <LinearGradient
+                  colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                  style={styles.aplicarButtonGradient}
+                >
+                  <Text style={[styles.aplicarButtonText, { fontSize: scaleFontSize(16) }]}>Aplicar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       <LoginRequiredModal
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
@@ -499,194 +1064,552 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    overflow: 'hidden',
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingHorizontal: 20,
-    paddingBottom: 15,
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    backgroundColor: colors.background,
   },
-  headerContent: {
-    marginBottom: 15,
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   headerTitle: {
-    fontSize: scaleFontSize(28),
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 5,
+    color: colors.headerText,
   },
-  headerSubtitle: {
-    fontSize: scaleFontSize(14),
-    color: 'rgba(255, 255, 255, 0.9)',
+  clearFiltersHeaderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  clearFiltersHeaderText: {
+    fontWeight: '600',
+    color: colors.headerText,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
-    paddingHorizontal: 15,
-    height: getSearchBoxHeight(),
-    marginBottom: 15,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 10,
-    fontSize: scaleFontSize(16),
     color: colors.text,
+    padding: 0,
+    marginLeft: 8,
+  },
+  clearButton: {
+    padding: 4,
   },
   categoriesScroll: {
-    marginTop: 5,
+    marginBottom: 12,
+    marginRight: -16,
   },
   categoriesContent: {
-    paddingRight: 20,
-    gap: 10,
+    paddingHorizontal: 0,
+    paddingRight: 16,
+    gap: 16,
   },
-  categoryChip: {
+  categoriaButton: {
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 70,
+  },
+  categoriaIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  categoriaIconContainerActive: {
+    borderColor: colors.white,
+    backgroundColor: colors.white,
+  },
+  categoriaLabel: {
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
+  categoriaLabelActive: {
+    color: colors.white,
+    fontWeight: '700',
+  },
+  resultsCountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    marginRight: 10,
     gap: 8,
   },
-  categoryChipActive: {
-    backgroundColor: colors.teal,
-  },
-  categoryIconContainer: {
-    width: getCategoryIconSize(),
-    height: getCategoryIconSize(),
-    borderRadius: getCategoryIconSize() / 2,
-    backgroundColor: 'rgba(13, 148, 136, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categoryIconContainerActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  categoryLabel: {
-    fontSize: scaleFontSize(14),
+  resultsCount: {
+    color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '600',
-    color: colors.text,
   },
-  categoryLabelActive: {
-    color: '#FFFFFF',
+  filterCountBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  filterCountText: {
+    fontWeight: '800',
+    color: colors.headerText,
   },
   listContent: {
-    padding: 15,
-    paddingTop: 10,
+    padding: 16,
+    paddingBottom: 100,
   },
-  localCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    marginBottom: 15,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  localImage: {
-    width: 100,
-    height: 120,
-  },
-  localInfo: {
-    flex: 1,
-    padding: 12,
-    justifyContent: 'space-between',
-  },
-  localHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  localNombre: {
-    flex: 1,
-    fontSize: scaleFontSize(16),
-    fontWeight: '600',
-    color: colors.text,
-    marginRight: 8,
-  },
-  localDetails: {
-    marginBottom: 8,
-  },
-  localDireccion: {
-    fontSize: scaleFontSize(13),
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  distancia: {
-    fontSize: scaleFontSize(12),
-    color: colors.teal,
-    fontWeight: '500',
-  },
-  localFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  estadoBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  estadoAbierto: {
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-  },
-  estadoCerrado: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-  },
-  estadoTexto: {
-    fontSize: scaleFontSize(11),
-    fontWeight: '600',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  iconButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(13, 148, 136, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footerLoader: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  emptyContainer: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 60,
   },
+  loadingText: {
+    marginTop: 16,
+    color: colors.textSecondary,
+  },
+  footerLoader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  footerLoaderText: {
+    color: colors.textSecondary,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
+  },
   emptyText: {
-    fontSize: scaleFontSize(16),
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  emptySubtext: {
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 15,
-    marginBottom: 20,
+    lineHeight: 20,
   },
-  loginButton: {
-    backgroundColor: colors.teal,
+  clearFiltersButton: {
+    marginTop: 20,
+    backgroundColor: colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
+    borderRadius: 10,
+  },
+  clearFiltersButtonText: {
+    fontWeight: '600',
+    color: colors.headerText,
+  },
+  card: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardDestacado: {
+    borderWidth: 3,
+    borderColor: '#FACC15',
+    shadowColor: '#FACC15',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  imageContainer: {
+    width: '100%',
+    height: 200,
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderImage: {
+    backgroundColor: colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dimmedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+  },
+  badgeDestacadoHeader: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FACC15',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+    zIndex: 11,
+  },
+  badgeDestacadoHeaderText: {
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  badgeEstadoSuperior: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 10,
+    maxWidth: '70%',
+  },
+  badgeEstadoSuperiorConDestacado: {
+    top: 52,
+  },
+  badgeEstadoSuperiorText: {
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  ratingBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 12,
+  },
+  ratingBadgeText: {
+    fontWeight: '700',
+    color: colors.headerText,
+    letterSpacing: 0.3,
+  },
+  badgeNuevoContainer: {
+    position: 'absolute',
+    top: 56,
+    right: 12,
+    zIndex: 9,
+  },
+  badgeNuevo: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 8,
   },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: scaleFontSize(16),
+  badgeNuevoText: {
+    fontWeight: '700',
+    color: colors.headerText,
+  },
+  favoritoButton: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  content: {
+    padding: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  nombre: {
+    fontWeight: '700',
+    color: colors.text,
+    flex: 1,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  infoText: {
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  categoriasContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  categoriaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+    maxWidth: '48%',
+  },
+  categoriaIcon: {
+    // fontSize set dynamically
+  },
+  categoriaText: {
     fontWeight: '600',
+    color: colors.primary,
+    textTransform: 'capitalize',
+    flexShrink: 1,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  perfilSocialButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.secondary + '99',
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
+    minWidth: 0,
+  },
+  perfilSocialText: {
+    fontWeight: '600',
+    color: colors.headerText,
+    flexShrink: 1,
+  },
+  comoLlegarButton: {
+    flex: 1,
+    backgroundColor: colors.primary + '99',
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 0,
+  },
+  comoLlegarButtonFull: {
+    flex: 1,
+  },
+  comoLlegarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  comoLlegarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  comoLlegarText: {
+    fontWeight: '600',
+    color: colors.headerText,
+    flexShrink: 1,
+  },
+  distanciaInButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
+  },
+  distanciaInButtonText: {
+    fontWeight: '600',
+    color: colors.headerText,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  modalTitle: {
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  modalScrollView: {
+    maxHeight: '100%',
+    paddingHorizontal: 20,
+  },
+  filterSection: {
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  filterTitle: {
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  categoryFilterItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    minWidth: '47%',
+  },
+  categoryFilterItemActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  categoryFilterText: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  categoryFilterTextActive: {
+    color: colors.white,
+  },
+  provinciasListContainer: {
+    gap: 8,
+  },
+  provinciaItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: colors.background,
+  },
+  provinciaItemActive: {
+    backgroundColor: colors.primary,
+  },
+  provinciaText: {
+    color: colors.text,
+  },
+  provinciaTextActive: {
+    color: colors.white,
+    fontWeight: '600',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+  },
+  limpiarButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  limpiarButtonText: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  aplicarButtonModal: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  aplicarButtonGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  aplicarButtonText: {
+    fontWeight: '600',
+    color: colors.white,
   },
 });
