@@ -43,10 +43,8 @@ import { getCategoryIcon } from '@/utils/categoryIcons';
 const ITEMS_PER_PAGE = 20;
 
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 380 : 400;
-const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
+const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
-
-const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
 const PROVINCIAS = [
   'Todas',
@@ -59,7 +57,7 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
-// ✅ CRITICAL FIX v111.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos)
+// ✅ CRITICAL FIX v112.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
@@ -71,11 +69,13 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v111.0 - SCROLL UP TO SHOW HEADER + MODE SELECTOR FIX
+ * ✅ EXPLORAR SCREEN v112.0 - FIXED SCROLL UP TO SHOW HEADER
  * 
- * CRITICAL FIXES v111.0:
+ * CRITICAL FIXES v112.0:
  * - ✅ FIXED: Header reappears when scrolling UP (gesture hacia arriba)
- * - ✅ FIXED: Mode selector shows Cliente/Propietario/Admin roles (not profile)
+ * - ✅ FIXED: Scroll direction detection with proper thresholds
+ * - ✅ FIXED: Smooth Animated.timing transitions (250ms)
+ * - ✅ Mode selector shows Cliente/Propietario/Admin roles (not profile)
  * - ✅ Category filters use TEAL-COLORED ICONS (matching Eventos & Favoritos)
  * - ✅ Map icon positioned on RIGHT side of mode selector
  * - ✅ Banner positioned BELOW category filters
@@ -104,11 +104,10 @@ export default function ExplorarScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
 
+  // ✅ v112.0: CRITICAL FIX - Proper scroll tracking refs
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
-  const scrollDirection = useRef<'up' | 'down'>('down');
-
-  // ✅ v111.0: Header translation for scroll-to-hide/show
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -121,10 +120,10 @@ export default function ExplorarScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Explorar v111.0] User location obtained:', location.coords);
+          console.log('[Explorar v112.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Explorar v111.0] Error getting location:', error);
+        console.error('[Explorar v112.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -150,13 +149,13 @@ export default function ExplorarScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Explorar v111.0] Error checking social profiles:', error);
+      console.error('[Explorar v112.0] Error checking social profiles:', error);
     }
   }, []);
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v111.0] Cargando locales...');
+      console.log('[Explorar v112.0] Cargando locales...');
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
         .select('*')
@@ -197,12 +196,12 @@ export default function ExplorarScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Explorar v111.0] Locales cargados:', formattedLocales.length);
+        console.log('[Explorar v112.0] Locales cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Explorar v111.0] Error cargando locales:', error);
+      console.error('[Explorar v112.0] Error cargando locales:', error);
     } finally {
       setLoading(false);
     }
@@ -214,7 +213,7 @@ export default function ExplorarScreen() {
 
   useEffect(() => {
     if (userLocation && allLocales.length > 0) {
-      console.log('[Explorar v111.0] Recalculating distances with new user location');
+      console.log('[Explorar v112.0] Recalculating distances with new user location');
       const updatedLocales = allLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -276,7 +275,7 @@ export default function ExplorarScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Explorar v111.0] Filters applied. Results:', filtered.length);
+    console.log('[Explorar v112.0] Filters applied. Results:', filtered.length);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allLocales]);
 
   const loadMoreLocales = useCallback(() => {
@@ -294,7 +293,7 @@ export default function ExplorarScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Explorar v111.0] Cargando más locales, página:', nextPage);
+        console.log('[Explorar v112.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -304,7 +303,7 @@ export default function ExplorarScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v111.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v112.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -314,7 +313,7 @@ export default function ExplorarScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v111.0] 🧹 Clearing all filters');
+    console.log('[Explorar v112.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -334,13 +333,13 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v111.0] User not authenticated');
+      console.log('[Explorar v112.0] User not authenticated');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v111.0] No local ID');
+      console.log('[Explorar v112.0] No local ID');
       return;
     }
 
@@ -353,7 +352,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v111.0] Removing from favorites');
+        console.log('[Explorar v112.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -362,7 +361,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v111.0] Adding to favorites');
+        console.log('[Explorar v112.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -375,7 +374,7 @@ export default function ExplorarScreen() {
       
       await loadLocales();
     } catch (error) {
-      console.error('[Explorar v111.0] Error toggling favorito:', error);
+      console.error('[Explorar v112.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
@@ -392,12 +391,12 @@ export default function ExplorarScreen() {
     router.push(`/perfil/local?localId=${localId}`);
   };
 
-  // ✅ v111.0: Navigate to map page
+  // ✅ v112.0: Navigate to map page
   const handleNavigateToMap = () => {
     router.push('/(tabs)/explorar/mapa');
   };
 
-  // ✅ v111.0: Navigate to claim/create local
+  // ✅ v112.0: Navigate to claim/create local
   const handleClaimOrCreateLocal = () => {
     if (!user) {
       setShowLoginModal(true);
@@ -406,31 +405,66 @@ export default function ExplorarScreen() {
     router.push('/auth/local-ownership-request');
   };
 
-  // ✅ v111.0: Get mode label for display
+  // ✅ v112.0: Get mode label for display
   const getModeLabel = () => {
     if (currentMode === 'admin') return 'Admin';
     if (currentMode === 'propietario') return 'Propietario';
     return 'Cliente';
   };
 
-  // ✅ v111.0: Get mode icon
+  // ✅ v112.0: Get mode icon
   const getModeIcon = () => {
     if (currentMode === 'admin') return { ios: 'shield.fill', android: 'admin_panel_settings' };
     if (currentMode === 'propietario') return { ios: 'building.2.fill', android: 'store' };
     return { ios: 'person.fill', android: 'person' };
   };
 
-  // ✅ v111.0: Handle mode change
+  // ✅ v112.0: Handle mode change
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
-      console.log('[Explorar v111.0] Changing mode to:', newMode);
+      console.log('[Explorar v112.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v111.0] Error changing mode:', error);
+      console.error('[Explorar v112.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
+
+  // ✅ v112.0: CRITICAL FIX - Proper scroll handler with direction detection
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: true,
+      listener: (event: any) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const diff = currentScrollY - lastScrollY.current;
+
+        // Scroll hacia abajo (ocultar header)
+        if (diff > 5 && isHeaderVisible && currentScrollY > 50) {
+          console.log('[Explorar v112.0] 📜 Scrolling DOWN, hiding header');
+          setIsHeaderVisible(false);
+          Animated.timing(headerTranslateY, {
+            toValue: -HEADER_SCROLL_DISTANCE,
+            duration: 250,
+            useNativeDriver: true,
+          }).start();
+        }
+        // Scroll hacia arriba (mostrar header)
+        else if (diff < -5 && !isHeaderVisible) {
+          console.log('[Explorar v112.0] 📜 Scrolling UP, showing header');
+          setIsHeaderVisible(true);
+          Animated.timing(headerTranslateY, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+          }).start();
+        }
+
+        lastScrollY.current = currentScrollY;
+      },
+    }
+  );
 
   const renderLocalCard = ({ item }: { item: any }) => {
     const estado = getEstadoLocal(item);
@@ -703,45 +737,6 @@ export default function ExplorarScreen() {
     );
   };
 
-  // ✅ v111.0: CRITICAL FIX - Scroll handler that shows header on scroll UP
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    {
-      useNativeDriver: true,
-      listener: (event: any) => {
-        const currentScrollY = event.nativeEvent.contentOffset.y;
-        const diff = currentScrollY - lastScrollY.current;
-        
-        // Determine scroll direction
-        if (diff > 5) {
-          // Scrolling DOWN - hide header
-          if (scrollDirection.current !== 'down') {
-            console.log('[Explorar v111.0] 📜 Scrolling DOWN, hiding header');
-            scrollDirection.current = 'down';
-            Animated.timing(headerTranslateY, {
-              toValue: -HEADER_SCROLL_DISTANCE,
-              duration: 250,
-              useNativeDriver: true,
-            }).start();
-          }
-        } else if (diff < -5) {
-          // Scrolling UP - show header
-          if (scrollDirection.current !== 'up') {
-            console.log('[Explorar v111.0] 📜 Scrolling UP, showing header');
-            scrollDirection.current = 'up';
-            Animated.timing(headerTranslateY, {
-              toValue: 0,
-              duration: 250,
-              useNativeDriver: true,
-            }).start();
-          }
-        }
-        
-        lastScrollY.current = currentScrollY;
-      },
-    }
-  );
-
   if (loading) {
     return (
       <View style={styles.container}>
@@ -767,11 +762,11 @@ export default function ExplorarScreen() {
 
   const HeaderContent = () => (
     <React.Fragment>
-      {/* ✅ FIXED v111.0: Header top with mode selector and map icon on the RIGHT */}
+      {/* ✅ FIXED v112.0: Header top with mode selector and map icon on the RIGHT */}
       <View style={styles.headerTop}>
         <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Explorar</Text>
         <View style={styles.headerActions}>
-          {/* ✅ FIXED v111.0: Mode selector FIRST (on the left) - shows role, not profile */}
+          {/* ✅ FIXED v112.0: Mode selector FIRST (on the left) - shows role, not profile */}
           {user && (
             <TouchableOpacity 
               style={styles.modeSelectorButton}
@@ -796,7 +791,7 @@ export default function ExplorarScreen() {
             </TouchableOpacity>
           )}
 
-          {/* ✅ FIXED v111.0: Map icon SECOND (on the right) */}
+          {/* ✅ FIXED v112.0: Map icon SECOND (on the right) */}
           <TouchableOpacity 
             style={styles.mapButton}
             onPress={handleNavigateToMap}
@@ -865,7 +860,7 @@ export default function ExplorarScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ CRITICAL FIX v111.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos) */}
+      {/* ✅ CRITICAL FIX v112.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos) */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -910,7 +905,7 @@ export default function ExplorarScreen() {
         ))}
       </ScrollView>
 
-      {/* ✅ FIXED v111.0: Banner moved BELOW category filters */}
+      {/* ✅ FIXED v112.0: Banner moved BELOW category filters */}
       {user && (
         <TouchableOpacity 
           style={styles.claimBanner}
@@ -944,43 +939,32 @@ export default function ExplorarScreen() {
     </React.Fragment>
   );
 
-  const ListComponent = Platform.OS === 'android' ? AnimatedFlatList : FlatList;
-
   return (
     <View style={styles.container}>
-      {/* ✅ ENABLED v111.0: Animated header that hides on scroll down, shows on scroll up */}
-      {Platform.OS === 'android' ? (
-        <Animated.View
-          style={[
-            styles.headerContainer,
-            {
-              transform: [{ translateY: headerTranslateY }],
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            style={styles.headerGradient}
-          >
-            <HeaderContent />
-          </LinearGradient>
-        </Animated.View>
-      ) : (
+      {/* ✅ ENABLED v112.0: Animated header that hides on scroll down, shows on scroll up */}
+      <Animated.View
+        style={[
+          styles.headerContainer,
+          {
+            transform: [{ translateY: headerTranslateY }],
+          },
+        ]}
+      >
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.headerGradient}
         >
           <HeaderContent />
         </LinearGradient>
-      )}
+      </Animated.View>
 
-      <ListComponent
+      <FlatList
         data={displayedLocales}
         renderItem={renderLocalCard}
         keyExtractor={(item: any) => item.id}
         contentContainerStyle={[
           styles.listContent,
-          Platform.OS === 'android' && { marginTop: HEADER_MAX_HEIGHT },
+          { marginTop: HEADER_MAX_HEIGHT },
         ]}
         refreshControl={
           <RefreshControl 
@@ -996,11 +980,11 @@ export default function ExplorarScreen() {
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
-        onScroll={Platform.OS === 'android' ? handleScroll : undefined}
+        onScroll={handleScroll}
         scrollEventThrottle={16}
       />
 
-      {/* ✅ v111.0: Mode selector modal - shows Cliente/Propietario/Admin roles */}
+      {/* ✅ v112.0: Mode selector modal - shows Cliente/Propietario/Admin roles */}
       <Modal
         visible={showModeSelectorModal}
         animationType="slide"
