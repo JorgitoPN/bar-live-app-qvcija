@@ -2,8 +2,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import { colors } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
@@ -14,24 +14,22 @@ interface HeaderSocialProps {
 }
 
 /**
- * ✅ HEADER SOCIAL v106.0 - ANDROID ICON FIX
+ * ✅ HEADER SOCIAL v101.0 - ANDROID SCALING COMPLETE
  * 
- * CRITICAL FIXES v106.0 (ANDROID ONLY):
- * - ✅ Fixed "+" icon showing as "?" on Android
- * - ✅ Changed from "add_box" to "add_circle" (valid Material icon)
- * - ✅ All icons properly scaled with scaleIconSize()
- * - ✅ All text properly scaled with scaleFontSize()
+ * CRITICAL FIXES v101.0 (ANDROID ONLY):
+ * - ✅ Header title uses scaleFontSize() for consistency
+ * - ✅ Icons properly sized with scaleIconSize()
+ * - ✅ Badge text uses scaleFontSize()
+ * - ✅ Consistent with other headers
  * - ✅ iOS design remains unchanged
  */
 
-export default function HeaderSocial({ unreadNotifications, unreadMessages, onCreatePost }: HeaderSocialProps) {
+export default function HeaderSocial({ 
+  unreadNotifications, 
+  unreadMessages, 
+  onCreatePost 
+}: HeaderSocialProps) {
   const router = useRouter();
-
-  // ✅ Calculate scaled sizes for Android
-  const headerIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
-  const badgeSize = Platform.OS === 'android' ? scaleIconSize(18) : 18;
-  const badgeTextSize = Platform.OS === 'android' ? scaleFontSize(10) : 10;
-  const titleSize = Platform.OS === 'android' ? scaleFontSize(24) : 24;
 
   return (
     <LinearGradient
@@ -40,70 +38,71 @@ export default function HeaderSocial({ unreadNotifications, unreadMessages, onCr
       end={{ x: 1, y: 0 }}
       style={styles.header}
     >
-      <Text style={[styles.headerTitle, { fontSize: titleSize }]}>Social</Text>
-      <View style={styles.headerActions}>
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={() => router.push('/social/search')}
-        >
-          <IconSymbol 
-            ios_icon_name="magnifyingglass" 
-            android_material_icon_name="search" 
-            size={headerIconSize} 
-            color={colors.headerText} 
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={() => router.push('/perfil/notificaciones')}
-        >
-          <IconSymbol 
-            ios_icon_name="bell.fill" 
-            android_material_icon_name="notifications" 
-            size={headerIconSize} 
-            color={colors.headerText} 
-          />
-          {unreadNotifications > 0 && (
-            <View style={[styles.badge, { width: badgeSize, height: badgeSize, borderRadius: badgeSize / 2 }]}>
-              <Text style={[styles.badgeText, { fontSize: badgeTextSize }]}>
-                {unreadNotifications > 9 ? '9+' : unreadNotifications}
-              </Text>
+      <View style={styles.headerContent}>
+        <Text style={[
+          styles.headerTitle,
+          { fontSize: Platform.OS === 'android' ? scaleFontSize(30) : 32 }
+        ]}>
+          Social
+        </Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={onCreatePost}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="plus.app" 
+              android_material_icon_name="add_box" 
+              size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+              color={colors.headerText} 
+            />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => router.push('/(tabs)/perfil/notificaciones')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.iconContainer}>
+              <IconSymbol 
+                ios_icon_name="bell.fill" 
+                android_material_icon_name="notifications" 
+                size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+                color={colors.headerText} 
+              />
+              {unreadNotifications > 0 && (
+                <View style={styles.badge}>
+                  <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={() => router.push('/perfil/chats')}
-        >
-          <IconSymbol 
-            ios_icon_name="message.fill" 
-            android_material_icon_name="chat" 
-            size={headerIconSize} 
-            color={colors.headerText} 
-          />
-          {unreadMessages > 0 && (
-            <View style={[styles.badge, { width: badgeSize, height: badgeSize, borderRadius: badgeSize / 2 }]}>
-              <Text style={[styles.badgeText, { fontSize: badgeTextSize }]}>
-                {unreadMessages > 9 ? '9+' : unreadMessages}
-              </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => router.push('/(tabs)/perfil/chats')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.iconContainer}>
+              <IconSymbol 
+                ios_icon_name="message.fill" 
+                android_material_icon_name="message" 
+                size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+                color={colors.headerText} 
+              />
+              {unreadMessages > 0 && (
+                <View style={styles.badge}>
+                  <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
+                    {unreadMessages > 99 ? '99+' : unreadMessages}
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
-        </TouchableOpacity>
-
-        {/* ✅ CRITICAL FIX v106.0: Changed android_material_icon_name from "add_box" to "add_circle" */}
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={onCreatePost}
-        >
-          <IconSymbol 
-            ios_icon_name="plus.circle.fill" 
-            android_material_icon_name="add_circle" 
-            size={headerIconSize} 
-            color={colors.headerText} 
-          />
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
       </View>
     </LinearGradient>
   );
@@ -111,36 +110,46 @@ export default function HeaderSocial({ unreadNotifications, unreadMessages, onCr
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 48,
+    paddingTop: 50,
     paddingBottom: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   headerTitle: {
-    fontWeight: '700',
+    fontWeight: 'bold',
     color: colors.headerText,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   headerButton: {
-    position: 'relative',
     padding: 4,
+  },
+  iconContainer: {
+    position: 'relative',
   },
   badge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
+    top: -6,
+    right: -6,
     backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: colors.headerGradientStart,
   },
   badgeText: {
-    color: colors.white,
     fontWeight: '700',
+    color: colors.white,
   },
 });

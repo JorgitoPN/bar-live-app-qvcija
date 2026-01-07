@@ -13,10 +13,12 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 // ✅ COMPREHENSIVE SF Symbol to Ionicons mapping
-// VERSION v106.0: ANDROID ICON FIX - FIXED "add_box" → "add_circle"
-// ✅ FIXED: "add_box" is NOT a valid Material icon - changed to "add_circle"
-// ✅ FIXED: "more_vert" is the correct Material icon for three dots
+// VERSION v37.0: COMPLETE ANDROID-iOS PARITY - ALL ICONS MAPPED
+// ✅ FIXED: Comprehensive Material Design icon mappings
 // ✅ FIXED: All common icons properly mapped
+// ✅ FIXED: Better fallback system
+// ✅ FIXED: Support for both naming conventions
+// ✅ FIXED: Guaranteed icon rendering on all platforms
 const MAPPING = {
   // Navigation & Home
   "house.fill": "home",
@@ -246,9 +248,6 @@ const MAPPING = {
   "gamecontroller.fill": "game-controller",
   "mic.fill": "mic",
   "tv.fill": "tv",
-  
-  // ✅ CRITICAL FIX v106.0: "ellipsis" maps to "more_vert" (three vertical dots)
-  "ellipsis": "ellipsis-vertical",
   "ellipsis.horizontal": "ellipsis-horizontal",
   "ellipsis.circle": "ellipsis-horizontal-circle",
   "ellipsis.circle.fill": "ellipsis-horizontal-circle",
@@ -297,7 +296,8 @@ const MAPPING = {
   "text.aligncenter": "text",
   "text.alignright": "text",
   
-  // ✅ CRITICAL FIX v106.0: Complete Material Design icon mappings
+  // ✅ CRITICAL FIX v38.1: Complete Material Design icon mappings
+  // These are ALL the icons that were showing as question marks
   "expand_more": "chevron-down",
   "expand_less": "chevron-up",
   "arrow_back": "arrow-back",
@@ -413,15 +413,7 @@ const MAPPING = {
   "shopping_cart": "cart",
   "swap_horiz": "swap-horizontal",
   "swap_vert": "swap-vertical",
-  
-  // ✅ CRITICAL FIX v106.0: "add_circle" is the correct Material icon for "+"
   "add_circle": "add-circle",
-  "add_circle_outline": "add-circle-outline",
-  
-  // ✅ CRITICAL FIX v106.0: "more_vert" is the correct Material icon for three vertical dots
-  "more_vert": "ellipsis-vertical",
-  "more_horiz": "ellipsis-horizontal",
-  
   "lock": "lock-closed",
   "refresh": "refresh",
   "rotate_left": "arrow-undo",
@@ -444,14 +436,14 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
  * 
- * VERSION v106.0: ANDROID ICON FIX - FIXED "add_box" → "add_circle"
- * ✅ FIXED: "add_box" is NOT a valid Material icon - changed to "add_circle"
- * ✅ FIXED: "more_vert" is the correct Material icon for three dots
+ * VERSION v38.1: COMPLETE ANDROID-iOS PARITY - ALL ICONS MAPPED
+ * ✅ FIXED: Comprehensive Material Design icon mappings
  * ✅ FIXED: All common icons properly mapped
  * ✅ FIXED: Better fallback system (uses generic icon instead of question mark)
  * ✅ FIXED: Support for both naming conventions
  * ✅ FIXED: Guaranteed icon rendering on all platforms
  * ✅ FIXED: Consistent icon sizes and colors across platforms
+ * ✅ FIXED v38.1: Added missing icons (verified, report, etc.)
  */
 export function IconSymbol({
   name,
@@ -497,12 +489,12 @@ export function IconSymbol({
     }
   }
   
-  // ✅ CRITICAL FIX v106.0: Better fallback - use a generic icon instead of question mark
+  // ✅ CRITICAL FIX v37.0: Better fallback - use a generic icon instead of question mark
   if (!iconName) {
     const sfSymbolName = name || ios_icon_name || android_material_icon_name;
     if (Platform.OS === 'android') {
       console.warn(
-        `⚠️ [IconSymbol v106.0 Android] No icon mapping found for "${sfSymbolName}". ` +
+        `⚠️ [IconSymbol v37.0 Android] No icon mapping found for "${sfSymbolName}". ` +
         `Using fallback icon. Please add mapping to MAPPING object in components/IconSymbol.tsx`
       );
     }
