@@ -326,19 +326,6 @@ export default function GestionarPlanesScreen() {
     return () => clearTimeout(timer);
   }, [searchQuery, buscarLocales]);
 
-  const crearNuevaSuscripcion = useCallback(async () => {
-    if (!selectedLocal || !selectedPlan) return;
-
-    const { error } = await supabase.from('local_subscriptions').insert({
-      local_id: selectedLocal.id,
-      plan_id: selectedPlan.id,
-      estado: 'activa',
-      fecha_inicio: new Date().toISOString(),
-    });
-
-    if (error) throw error;
-  }, [selectedLocal, selectedPlan]);
-
   const asignarPlan = useCallback(async () => {
     if (!selectedLocal || !selectedPlan) return;
 
@@ -354,7 +341,18 @@ export default function GestionarPlanesScreen() {
       console.error('Error asignando plan:', error);
       Alert.alert('Error', 'No se pudo asignar el plan');
     }
-  }, [selectedLocal, selectedPlan, crearNuevaSuscripcion, cargarDatos]);
+  }, [selectedLocal, selectedPlan, cargarDatos]);
+
+  const crearNuevaSuscripcion = async () => {
+    const { error } = await supabase.from('local_subscriptions').insert({
+      local_id: selectedLocal!.id,
+      plan_id: selectedPlan!.id,
+      estado: 'activa',
+      fecha_inicio: new Date().toISOString(),
+    });
+
+    if (error) throw error;
+  };
 
   const cancelarSuscripcion = useCallback(async (subscriptionId: string, localName: string) => {
     Alert.alert(
@@ -387,36 +385,31 @@ export default function GestionarPlanesScreen() {
 
   const handleEditPlan = (plan: Plan) => {
     // Implementar edición
-    console.log('Editar plan:', plan);
   };
 
   const handleViewPlanDetail = (plan: Plan) => {
     // Implementar vista detalle
-    console.log('Ver detalle plan:', plan);
   };
 
   const handleSavePlan = () => {
     // Implementar guardado
-    console.log('Guardar plan');
   };
 
   const handleCreatePlan = () => {
     // Implementar creación
-    console.log('Crear plan');
   };
 
   const handleDeletePlan = (planId: string, planName: string) => {
     // Implementar eliminación
-    console.log('Eliminar plan:', planId, planName);
   };
 
   const getEstadoBadge = (estado: string) => {
-    const badgeColors = {
+    const colors = {
       activa: '#10b981',
       cancelada: '#ef4444',
       expirada: '#f59e0b',
     };
-    return badgeColors[estado as keyof typeof badgeColors] || '#6b7280';
+    return colors[estado as keyof typeof colors] || '#6b7280';
   };
 
   const renderPlanesTab = () => (
