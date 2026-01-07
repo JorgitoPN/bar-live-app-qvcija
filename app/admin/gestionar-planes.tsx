@@ -326,6 +326,22 @@ export default function GestionarPlanesScreen() {
     return () => clearTimeout(timer);
   }, [searchQuery, buscarLocales]);
 
+  // ✅ CRITICAL FIX: Define crearNuevaSuscripcion before asignarPlan
+  const crearNuevaSuscripcion = useCallback(async () => {
+    if (!selectedLocal || !selectedPlan) {
+      throw new Error('Local o plan no seleccionado');
+    }
+
+    const { error } = await supabase.from('local_subscriptions').insert({
+      local_id: selectedLocal.id,
+      plan_id: selectedPlan.id,
+      estado: 'activa',
+      fecha_inicio: new Date().toISOString(),
+    });
+
+    if (error) throw error;
+  }, [selectedLocal, selectedPlan]);
+
   const asignarPlan = useCallback(async () => {
     if (!selectedLocal || !selectedPlan) return;
 
@@ -341,18 +357,7 @@ export default function GestionarPlanesScreen() {
       console.error('Error asignando plan:', error);
       Alert.alert('Error', 'No se pudo asignar el plan');
     }
-  }, [selectedLocal, selectedPlan, cargarDatos]);
-
-  const crearNuevaSuscripcion = async () => {
-    const { error } = await supabase.from('local_subscriptions').insert({
-      local_id: selectedLocal!.id,
-      plan_id: selectedPlan!.id,
-      estado: 'activa',
-      fecha_inicio: new Date().toISOString(),
-    });
-
-    if (error) throw error;
-  };
+  }, [selectedLocal, selectedPlan, crearNuevaSuscripcion, cargarDatos]);
 
   const cancelarSuscripcion = useCallback(async (subscriptionId: string, localName: string) => {
     Alert.alert(
@@ -384,22 +389,27 @@ export default function GestionarPlanesScreen() {
   }, [cargarDatos]);
 
   const handleEditPlan = (plan: Plan) => {
+    console.log('Edit plan:', plan.id);
     // Implementar edición
   };
 
   const handleViewPlanDetail = (plan: Plan) => {
+    console.log('View plan detail:', plan.id);
     // Implementar vista detalle
   };
 
   const handleSavePlan = () => {
+    console.log('Save plan');
     // Implementar guardado
   };
 
   const handleCreatePlan = () => {
+    console.log('Create plan');
     // Implementar creación
   };
 
   const handleDeletePlan = (planId: string, planName: string) => {
+    console.log('Delete plan:', planId, planName);
     // Implementar eliminación
   };
 
@@ -544,7 +554,7 @@ export default function GestionarPlanesScreen() {
     <View style={styles.container}>
       <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 12 }}>
-          <IconSymbol name="chevron.left" size={24} color="#fff" />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gestionar Planes</Text>
         <Text style={styles.headerSubtitle}>Administra planes y suscripciones</Text>

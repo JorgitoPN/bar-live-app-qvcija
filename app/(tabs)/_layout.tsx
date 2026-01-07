@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Dimensions, Alert } from 'react-native';
 import { Tabs, useRouter, usePathname } from 'expo-router';
-import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
+import FloatingTabBar from '@/components/FloatingTabBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 
@@ -98,183 +98,6 @@ export default function TabLayout() {
     }
   }, [user, userRole, pathname, router]);
 
-  // Define tabs based on user role and current mode
-  const getTabsForRole = (): TabBarItem[] => {
-    // ✅ CRITICAL: Only show admin tabs for the authorized admin email
-    const ADMIN_EMAIL = 'jorgepereznoyagh@gmail.com';
-    const isAuthorizedAdmin = userRole === 'admin' && user?.email === ADMIN_EMAIL;
-    
-    // Admin users see admin tabs when in admin mode (WITHOUT Eventos)
-    if (isAuthorizedAdmin && currentMode === 'admin') {
-      return [
-        {
-          name: 'admin',
-          route: '/(tabs)/admin',
-          icon: 'gear',
-          label: 'Admin',
-        },
-        {
-          name: 'explorar',
-          route: '/(tabs)/explorar',
-          icon: 'sparkles',
-          label: 'Explorar',
-        },
-        {
-          name: 'perfil',
-          route: '/(tabs)/perfil',
-          icon: 'person.fill',
-          label: 'Perfil',
-        },
-      ];
-    }
-
-    // Admin users in propietario mode
-    if (isAuthorizedAdmin && currentMode === 'propietario') {
-      return [
-        {
-          name: 'gestion',
-          route: '/(tabs)/gestion',
-          icon: 'briefcase.fill',
-          label: 'Gestión',
-        },
-        {
-          name: 'favoritos',
-          route: '/(tabs)/favoritos',
-          icon: 'heart.fill',
-          label: 'Favoritos',
-        },
-        {
-          name: 'explorar',
-          route: '/(tabs)/explorar',
-          icon: 'sparkles',
-          label: 'Explorar',
-        },
-        {
-          name: 'social',
-          route: '/(tabs)/social',
-          icon: 'person.2.fill',
-          label: 'Social',
-        },
-        {
-          name: 'perfil',
-          route: '/(tabs)/perfil',
-          icon: 'person.fill',
-          label: 'Perfil',
-        },
-      ];
-    }
-
-    // Propietario users can switch between cliente and propietario modes
-    if (userRole === 'propietario') {
-      if (currentMode === 'propietario') {
-        return [
-          {
-            name: 'gestion',
-            route: '/(tabs)/gestion',
-            icon: 'briefcase.fill',
-            label: 'Gestión',
-          },
-          {
-            name: 'favoritos',
-            route: '/(tabs)/favoritos',
-            icon: 'heart.fill',
-            label: 'Favoritos',
-          },
-          {
-            name: 'explorar',
-            route: '/(tabs)/explorar',
-            icon: 'sparkles',
-            label: 'Explorar',
-          },
-          {
-            name: 'social',
-            route: '/(tabs)/social',
-            icon: 'person.2.fill',
-            label: 'Social',
-          },
-          {
-            name: 'perfil',
-            route: '/(tabs)/perfil',
-            icon: 'person.fill',
-            label: 'Perfil',
-          },
-        ];
-      } else {
-        // Cliente mode for propietario
-        return [
-          {
-            name: 'eventos',
-            route: '/(tabs)/eventos',
-            icon: 'calendar',
-            label: 'Eventos',
-          },
-          {
-            name: 'favoritos',
-            route: '/(tabs)/favoritos',
-            icon: 'heart.fill',
-            label: 'Favoritos',
-          },
-          {
-            name: 'explorar',
-            route: '/(tabs)/explorar',
-            icon: 'sparkles',
-            label: 'Explorar',
-          },
-          {
-            name: 'social',
-            route: '/(tabs)/social',
-            icon: 'person.2.fill',
-            label: 'Social',
-          },
-          {
-            name: 'perfil',
-            route: '/(tabs)/perfil',
-            icon: 'person.fill',
-            label: 'Perfil',
-          },
-        ];
-      }
-    }
-
-    // Cliente users see cliente tabs (default)
-    // Also used for admin in cliente mode
-    return [
-      {
-        name: 'eventos',
-        route: '/(tabs)/eventos',
-        icon: 'calendar',
-        label: 'Eventos',
-      },
-      {
-        name: 'favoritos',
-        route: '/(tabs)/favoritos',
-        icon: 'heart.fill',
-        label: 'Favoritos',
-      },
-      {
-        name: 'explorar',
-        route: '/(tabs)/explorar',
-        icon: 'sparkles',
-        label: 'Explorar',
-      },
-      {
-        name: 'social',
-        route: '/(tabs)/social',
-        icon: 'person.2.fill',
-        label: 'Social',
-      },
-      {
-        name: 'perfil',
-        route: '/(tabs)/perfil',
-        icon: 'person.fill',
-        label: 'Perfil',
-      },
-    ];
-  };
-
-  const tabs = getTabsForRole();
-  console.log('[TabLayout] ⚡ Rendering tabs:', tabs.map(t => t.name));
-
   return (
     <>
       <Tabs
@@ -365,7 +188,6 @@ export default function TabLayout() {
       
       {/* ⚡ Floating Tab Bar - Optimized for instant navigation */}
       <FloatingTabBar 
-        tabs={tabs} 
         containerWidth={screenWidth} 
         key={`${userRole}-${currentMode}`} 
       />
