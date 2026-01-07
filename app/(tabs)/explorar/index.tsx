@@ -1,5 +1,7 @@
 
+import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useMode } from '@/contexts/ModeContext';
 import {
   View,
   Text,
@@ -18,20 +20,9 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { useRouter } from 'expo-router';
-import { supabase } from '@/utils/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-import { useMode } from '@/contexts/ModeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
-import LoginPrompt from '@/components/common/LoginPrompt';
-import { getEstadoLocal } from '@/utils/timeUtils';
-import { getCategoryIcon } from '@/utils/categoryIcons';
-import * as Location from 'expo-location';
-import { calcularDistancia } from '@/utils/locationUtils';
-import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import {
   getSearchBoxHeight,
   getCategoryIconSize,
@@ -39,6 +30,15 @@ import {
   scaleFontSize,
   scaleIconSize,
 } from '@/utils/androidScaling';
+import { useRouter } from 'expo-router';
+import { getEstadoLocal } from '@/utils/timeUtils';
+import { IconSymbol } from '@/components/IconSymbol';
+import LoginPrompt from '@/components/common/LoginPrompt';
+import * as Location from 'expo-location';
+import { calcularDistancia } from '@/utils/locationUtils';
+import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { getCategoryIcon } from '@/utils/categoryIcons';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -59,7 +59,7 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
-// ✅ CRITICAL FIX v109.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos)
+// ✅ CRITICAL FIX v110.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
@@ -71,12 +71,13 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v109.0 - RESTORED MISSING ELEMENTS + SCROLL HIDE HEADER
+ * ✅ EXPLORAR SCREEN v110.0 - COMPLETE FIXES
  * 
- * CRITICAL FIXES v109.0:
- * - ✅ RESTORED: Map icon in header (navigates to mapa page)
- * - ✅ RESTORED: Mode selector (Cliente, Propietario, Admin) in header
- * - ✅ RESTORED: Banner "Reclama tu local o crea uno nuevo"
+ * CRITICAL FIXES v110.0:
+ * - ✅ FIXED: ProfileSwitcher dropdown now shows properly with 3 options
+ * - ✅ FIXED: Map icon moved to RIGHT side of mode selector
+ * - ✅ FIXED: Banner moved BELOW category filters
+ * - ✅ REMOVED: Venue count section completely removed
  * - ✅ ENABLED: Header hides on scroll down gesture
  * - ✅ Category filters use TEAL-COLORED ICONS (matching Eventos & Favoritos)
  */
@@ -107,7 +108,7 @@ export default function ExplorarScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
 
-  // ✅ NEW v109.0: Header translation for scroll-to-hide
+  // ✅ v110.0: Header translation for scroll-to-hide
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
     outputRange: [0, -HEADER_SCROLL_DISTANCE],
@@ -124,10 +125,10 @@ export default function ExplorarScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Explorar v109.0] User location obtained:', location.coords);
+          console.log('[Explorar v110.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Explorar v109.0] Error getting location:', error);
+        console.error('[Explorar v110.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -153,13 +154,13 @@ export default function ExplorarScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Explorar v109.0] Error checking social profiles:', error);
+      console.error('[Explorar v110.0] Error checking social profiles:', error);
     }
   }, []);
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v109.0] Cargando locales...');
+      console.log('[Explorar v110.0] Cargando locales...');
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
         .select('*')
@@ -200,12 +201,12 @@ export default function ExplorarScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Explorar v109.0] Locales cargados:', formattedLocales.length);
+        console.log('[Explorar v110.0] Locales cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Explorar v109.0] Error cargando locales:', error);
+      console.error('[Explorar v110.0] Error cargando locales:', error);
     } finally {
       setLoading(false);
     }
@@ -217,7 +218,7 @@ export default function ExplorarScreen() {
 
   useEffect(() => {
     if (userLocation && allLocales.length > 0) {
-      console.log('[Explorar v109.0] Recalculating distances with new user location');
+      console.log('[Explorar v110.0] Recalculating distances with new user location');
       const updatedLocales = allLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -279,7 +280,7 @@ export default function ExplorarScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Explorar v109.0] Filters applied. Results:', filtered.length);
+    console.log('[Explorar v110.0] Filters applied. Results:', filtered.length);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allLocales]);
 
   const loadMoreLocales = useCallback(() => {
@@ -297,7 +298,7 @@ export default function ExplorarScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Explorar v109.0] Cargando más locales, página:', nextPage);
+        console.log('[Explorar v110.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -307,7 +308,7 @@ export default function ExplorarScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v109.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v110.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -317,7 +318,7 @@ export default function ExplorarScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v109.0] 🧹 Clearing all filters');
+    console.log('[Explorar v110.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -337,13 +338,13 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v109.0] User not authenticated');
+      console.log('[Explorar v110.0] User not authenticated');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v109.0] No local ID');
+      console.log('[Explorar v110.0] No local ID');
       return;
     }
 
@@ -356,7 +357,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v109.0] Removing from favorites');
+        console.log('[Explorar v110.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -365,7 +366,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v109.0] Adding to favorites');
+        console.log('[Explorar v110.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -378,7 +379,7 @@ export default function ExplorarScreen() {
       
       await loadLocales();
     } catch (error) {
-      console.error('[Explorar v109.0] Error toggling favorito:', error);
+      console.error('[Explorar v110.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
@@ -395,12 +396,12 @@ export default function ExplorarScreen() {
     router.push(`/perfil/local?localId=${localId}`);
   };
 
-  // ✅ NEW v109.0: Navigate to map page
+  // ✅ v110.0: Navigate to map page
   const handleNavigateToMap = () => {
     router.push('/(tabs)/explorar/mapa');
   };
 
-  // ✅ NEW v109.0: Navigate to claim/create local
+  // ✅ v110.0: Navigate to claim/create local
   const handleClaimOrCreateLocal = () => {
     if (!user) {
       setShowLoginModal(true);
@@ -409,7 +410,7 @@ export default function ExplorarScreen() {
     router.push('/auth/local-ownership-request');
   };
 
-  // ✅ NEW v109.0: Get mode label
+  // ✅ v110.0: Get mode label
   const getModeLabel = () => {
     if (currentMode === 'admin') return 'Admin';
     if (currentMode === 'propietario') {
@@ -421,7 +422,7 @@ export default function ExplorarScreen() {
     return 'Cliente';
   };
 
-  // ✅ NEW v109.0: Get mode icon
+  // ✅ v110.0: Get mode icon
   const getModeIcon = () => {
     if (currentMode === 'admin') return { ios: 'shield.fill', android: 'admin_panel_settings' };
     if (currentMode === 'propietario') return { ios: 'building.2.fill', android: 'store' };
@@ -707,11 +708,11 @@ export default function ExplorarScreen() {
         const currentScrollY = event.nativeEvent.contentOffset.y;
         const diff = currentScrollY - lastScrollY.current;
         
-        // ✅ NEW v109.0: Log scroll direction for debugging
+        // ✅ v110.0: Log scroll direction for debugging
         if (diff > 5) {
-          console.log('[Explorar v109.0] Scrolling down, hiding header');
+          console.log('[Explorar v110.0] Scrolling down, hiding header');
         } else if (diff < -5) {
-          console.log('[Explorar v109.0] Scrolling up, showing header');
+          console.log('[Explorar v110.0] Scrolling up, showing header');
         }
         
         lastScrollY.current = currentScrollY;
@@ -744,25 +745,11 @@ export default function ExplorarScreen() {
 
   const HeaderContent = () => (
     <React.Fragment>
-      {/* ✅ RESTORED v109.0: Header top with map icon and mode selector */}
+      {/* ✅ FIXED v110.0: Header top with mode selector and map icon on the RIGHT */}
       <View style={styles.headerTop}>
         <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Explorar</Text>
         <View style={styles.headerActions}>
-          {/* ✅ RESTORED v109.0: Map icon */}
-          <TouchableOpacity 
-            style={styles.mapButton}
-            onPress={handleNavigateToMap}
-            activeOpacity={0.7}
-          >
-            <IconSymbol 
-              ios_icon_name="map.fill" 
-              android_material_icon_name="map" 
-              size={scaleIconSize(24)} 
-              color={colors.headerText} 
-            />
-          </TouchableOpacity>
-
-          {/* ✅ RESTORED v109.0: Mode selector */}
+          {/* ✅ FIXED v110.0: Mode selector FIRST (on the left) */}
           {user && (
             <TouchableOpacity 
               style={styles.modeSelectorButton}
@@ -787,6 +774,20 @@ export default function ExplorarScreen() {
             </TouchableOpacity>
           )}
 
+          {/* ✅ FIXED v110.0: Map icon SECOND (on the right) */}
+          <TouchableOpacity 
+            style={styles.mapButton}
+            onPress={handleNavigateToMap}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="map.fill" 
+              android_material_icon_name="map" 
+              size={scaleIconSize(24)} 
+              color={colors.headerText} 
+            />
+          </TouchableOpacity>
+
           {activeFiltersCount > 0 && (
             <TouchableOpacity 
               style={styles.clearFiltersHeaderButton}
@@ -798,38 +799,6 @@ export default function ExplorarScreen() {
           )}
         </View>
       </View>
-
-      {/* ✅ RESTORED v109.0: Banner "Reclama tu local o crea uno nuevo" */}
-      {user && (
-        <TouchableOpacity 
-          style={styles.claimBanner}
-          onPress={handleClaimOrCreateLocal}
-          activeOpacity={0.8}
-        >
-          <View style={styles.claimBannerContent}>
-            <IconSymbol 
-              ios_icon_name="building.2.fill" 
-              android_material_icon_name="store" 
-              size={scaleIconSize(24)} 
-              color={colors.headerText} 
-            />
-            <View style={styles.claimBannerTextContainer}>
-              <Text style={[styles.claimBannerTitle, { fontSize: scaleFontSize(15) }]}>
-                ¿Tienes un local?
-              </Text>
-              <Text style={[styles.claimBannerSubtitle, { fontSize: scaleFontSize(13) }]}>
-                Reclámalo o crea uno nuevo
-              </Text>
-            </View>
-            <IconSymbol 
-              ios_icon_name="chevron.right" 
-              android_material_icon_name="chevron_right" 
-              size={scaleIconSize(20)} 
-              color={colors.headerText} 
-            />
-          </View>
-        </TouchableOpacity>
-      )}
       
       <View style={[styles.searchContainer, { 
         height: searchBoxHeight,
@@ -874,7 +843,7 @@ export default function ExplorarScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ CRITICAL FIX v109.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos) */}
+      {/* ✅ CRITICAL FIX v110.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos) */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -918,22 +887,40 @@ export default function ExplorarScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
-      
-      {allLocales.length > 0 && (
-        <View style={styles.resultsCountContainer}>
-          <Text style={[styles.resultsCount, { fontSize: scaleFontSize(14) }]}>
-            {activeFiltersCount > 0
-              ? `${filteredLocales.length} de ${allLocales.length} locales`
-              : `${filteredLocales.length} locales`
-            }
-          </Text>
-          {activeFiltersCount > 0 && (
-            <View style={styles.filterCountBadge}>
-              <Text style={[styles.filterCountText, { fontSize: scaleFontSize(11) }]}>{activeFiltersCount}</Text>
+
+      {/* ✅ FIXED v110.0: Banner moved BELOW category filters */}
+      {user && (
+        <TouchableOpacity 
+          style={styles.claimBanner}
+          onPress={handleClaimOrCreateLocal}
+          activeOpacity={0.8}
+        >
+          <View style={styles.claimBannerContent}>
+            <IconSymbol 
+              ios_icon_name="building.2.fill" 
+              android_material_icon_name="store" 
+              size={scaleIconSize(24)} 
+              color={colors.headerText} 
+            />
+            <View style={styles.claimBannerTextContainer}>
+              <Text style={[styles.claimBannerTitle, { fontSize: scaleFontSize(15) }]}>
+                ¿Tienes un local?
+              </Text>
+              <Text style={[styles.claimBannerSubtitle, { fontSize: scaleFontSize(13) }]}>
+                Reclámalo o crea uno nuevo
+              </Text>
             </View>
-          )}
-        </View>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron_right" 
+              size={scaleIconSize(20)} 
+              color={colors.headerText} 
+            />
+          </View>
+        </TouchableOpacity>
       )}
+
+      {/* ✅ REMOVED v110.0: Venue count section completely removed */}
     </React.Fragment>
   );
 
@@ -941,7 +928,7 @@ export default function ExplorarScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅ ENABLED v109.0: Animated header that hides on scroll down */}
+      {/* ✅ ENABLED v110.0: Animated header that hides on scroll down */}
       {Platform.OS === 'android' ? (
         <Animated.View
           style={[
@@ -1108,7 +1095,7 @@ export default function ExplorarScreen() {
         onClose={() => setShowLoginModal(false)}
       />
 
-      {/* ✅ RESTORED v109.0: Profile switcher modal */}
+      {/* ✅ FIXED v110.0: Profile switcher modal properly connected */}
       <ProfileSwitcher
         visible={showProfileSwitcher}
         onClose={() => setShowProfileSwitcher(false)}
@@ -1151,14 +1138,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  mapButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   modeSelectorButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1174,7 +1153,7 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     flexShrink: 1,
   },
-  clearFiltersHeaderButton: {
+  mapButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -1182,31 +1161,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  claimBanner: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    marginBottom: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  claimBannerContent: {
-    flexDirection: 'row',
+  clearFiltersHeaderButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
-    padding: 12,
-    gap: 12,
-  },
-  claimBannerTextContainer: {
-    flex: 1,
-  },
-  claimBannerTitle: {
-    fontWeight: '700',
-    color: colors.headerText,
-    marginBottom: 2,
-  },
-  claimBannerSubtitle: {
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -1260,27 +1221,31 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '700',
   },
-  resultsCountContainer: {
+  claimBanner: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  claimBannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    padding: 12,
+    gap: 12,
   },
-  resultsCount: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '600',
+  claimBannerTextContainer: {
+    flex: 1,
   },
-  filterCountBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  filterCountText: {
-    fontWeight: '800',
+  claimBannerTitle: {
+    fontWeight: '700',
     color: colors.headerText,
+    marginBottom: 2,
+  },
+  claimBannerSubtitle: {
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   listContent: {
     padding: 16,
