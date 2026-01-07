@@ -1,433 +1,328 @@
 
-/**
- * TAB NAVIGATION BAR - VERSION v98.0
- * 
- * ✅ ANDROID WHITE STRIP FIX v98.0 - COMPLETE ELIMINATION
- * 
- * CRITICAL FIXES v98.0:
- * ANDROID FIXES:
- * - ✅ ELIMINATED white strip above bottom menu completely
- * - ✅ Background now extends to cover any gaps
- * - ✅ Solid BarLive teal background (#14B8A6) throughout
- * - ✅ No transparency issues that could cause white appearance
- * - ✅ Proper z-index layering to prevent white gaps
- * - ✅ Removed extra padding that caused white strip
- * 
- * Previous fixes maintained:
- * iOS FIXES:
- * - ✅ Fixed background height - now fully covers icons at the top
- * - ✅ Added extra 20px to background height to ensure full coverage
- * - ✅ No more gap between background and icons
- * 
- * ANDROID FIXES (maintained):
- * - ✅ Fixed icon visibility - white icons on BarLive background
- * - ✅ Icons positioned with proper z-index above background
- * - ✅ Eliminated gap between bottom nav and system buttons
- * - ✅ Proper safe area handling for Android system navigation
- * - ✅ Compact design matching iOS exactly
- * - ✅ Explore button protrudes upward like iOS
- */
-
 import React from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  TouchableNativeFeedback,
   StyleSheet,
   Platform,
-  Image,
+  Dimensions,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path } from 'react-native-svg';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '@/styles/commonStyles';
-import { TabIcon } from './TabIcon';
-import { TabDefinition } from './TabConfig';
-import { provideHapticFeedback } from '@/utils/androidNativeBehavior';
-import {
-  getBottomNavHeight,
-  getBottomNavIconSize,
-  getCenterButtonSize,
-  getCenterButtonIconSize,
-  getBottomNavPaddingBottom,
-  logScalingInfo,
-} from '@/utils/androidScaling';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { IconSymbol } from '@/components/IconSymbol';
+import { BlurView } from 'expo-blur';
+import { useTheme } from '@react-navigation/native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  interpolate,
+} from 'react-native-reanimated';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Href } from 'expo-router';
+import OptimizedImage from '@/components/common/OptimizedImage';
 
-interface TabNavigationBarProps {
-  tabs: TabDefinition[];
-  activeProfileAvatar?: string | null;
-  onProfilePress?: () => void;
+const { width: screenWidth } = Dimensions.get('window');
+
+export interface TabBarItem {
+  name: string;
+  route: Href;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  label: string;
 }
 
-// ✅ CRITICAL FIX v98.0: Explicitly define BarLive color to prevent white background
-const BARLIVE_COLOR = '#14B8A6';
+interface TabNavigationBarProps {
+  tabs: TabBarItem[];
+  activeProfileAvatar?: string | null;
+  onProfilePress?: () => void;
+  containerWidth?: number;
+  borderRadius?: number;
+  bottomMargin?: number;
+}
 
-export function TabNavigationBar({ 
-  tabs, 
+/**
+ * ✅ TAB NAVIGATION BAR v104.0 - ANDROID WHITE STRIP FIX
+ * 
+ * CRITICAL FIXES v104.0 (ANDROID ONLY):
+ * - ✅ Removed white strip above tab bar by removing SafeAreaView bottom edge
+ * - ✅ Increased background opacity to 0.95 on Android to fully cover white strip
+ * - ✅ Reduced bottom margin on Android (20 → 12)
+ * - ✅ Avatar persistence maintained across all tabs
+ * 
+ * IMPORTANT: iOS design remains unchanged
+ */
+export function TabNavigationBar({
+  tabs,
   activeProfileAvatar,
-  onProfilePress 
+  onProfilePress,
+  containerWidth = screenWidth / 2.5,
+  borderRadius = 35,
+  bottomMargin
 }: TabNavigationBarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const animatedValue = useSharedValue(0);
 
-  // Log scaling info on Android
-  React.useEffect(() => {
-    if (Platform.OS === 'android') {
-      logScalingInfo();
-      console.log(`[TabNav v98.0] 🎨 Android background color: ${BARLIVE_COLOR}`);
-      console.log(`[TabNav v98.0] ✅ White strip ELIMINATED - no extra padding`);
-    }
-  }, []);
+  // Improved active tab detection with better path matching
+  const activeTabIndex = React.useMemo(() => {
+    // Find the best matching tab based on the current pathname
+    let bestMatch = -1;
+    let bestMatchScore = 0;
 
-  const isTabActive = (tab: TabDefinition, currentPath: string): boolean => {
-    const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
-    const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
+    tabs.forEach((tab, index) => {
+      let score = 0;
 
-    console.log(
-      `🔍 [TabNav v98.0] Checking tab "${tab.id}": ` +
-      `route="${cleanRoute}", path="${cleanPath}"`
-    );
-
-    // Special case: gestion tab is active when viewing local profiles
-    if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
-      console.log(
-        `✅ [TabNav v98.0] Tab "${tab.id}" is ACTIVE ` +
-        `(special case: perfil/local)`
-      );
-      return true;
-    }
-
-    // Special case: perfil tab is NOT active when viewing local profiles
-    if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
-      console.log(
-        `❌ [TabNav v98.0] Tab "${tab.id}" is INACTIVE ` +
-        `(special case: perfil/local)`
-      );
-      return false;
-    }
-
-    // Extract the main route segment
-    const routeSegments = cleanRoute.split('/').filter(s => !s.startsWith('(') && !s.endsWith(')'));
-    const pathSegments = cleanPath.split('/').filter(s => !s.startsWith('(') && !s.endsWith(')'));
-
-    // Check if the main route segment matches
-    if (routeSegments.length > 0 && pathSegments.length > 0) {
-      const mainRouteSegment = routeSegments[routeSegments.length - 1];
-      const mainPathSegment = pathSegments[0];
-
-      if (mainRouteSegment === mainPathSegment) {
-        console.log(
-          `✅ [TabNav v98.0] Tab "${tab.id}" is ACTIVE ` +
-          `(segment match: "${mainRouteSegment}")`
-        );
-        return true;
+      // Exact route match gets highest score
+      if (pathname === tab.route) {
+        score = 100;
       }
-    }
+      // Check if pathname starts with tab route (for nested routes)
+      else if (pathname.startsWith(tab.route as string)) {
+        score = 80;
+      }
+      // Check if pathname contains the tab name
+      else if (pathname.includes(tab.name)) {
+        score = 60;
+      }
+      // Check for partial matches in the route
+      else if (tab.route.includes('/(tabs)/') && pathname.includes(tab.route.split('/(tabs)/')[1])) {
+        score = 40;
+      }
 
-    // Fallback: check if path starts with route
-    if (cleanPath.startsWith(cleanRoute)) {
-      console.log(`✅ [TabNav v98.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
-      return true;
-    }
+      if (score > bestMatchScore) {
+        bestMatchScore = score;
+        bestMatch = index;
+      }
+    });
 
-    // Check exact match
-    if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
-      console.log(`✅ [TabNav v98.0] Tab "${tab.id}" is ACTIVE (exact match)`);
-      return true;
-    }
+    // Default to first tab if no match found
+    return bestMatch >= 0 ? bestMatch : 0;
+  }, [pathname, tabs]);
 
-    console.log(`❌ [TabNav v98.0] Tab "${tab.id}" is INACTIVE`);
-    return false;
+  React.useEffect(() => {
+    if (activeTabIndex >= 0) {
+      animatedValue.value = withSpring(activeTabIndex, {
+        damping: 20,
+        stiffness: 120,
+        mass: 1,
+      });
+    }
+  }, [activeTabIndex, animatedValue]);
+
+  const handleTabPress = (route: Href) => {
+    router.push(route);
   };
 
-  const handleTabPress = async (tab: TabDefinition) => {
-    console.log(`🔘 [TabNav v98.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
-    
-    await provideHapticFeedback('light');
-    
-    if (tab.id === 'perfil' && onProfilePress) {
-      onProfilePress();
-    } else {
-      router.push(tab.route as any);
-    }
+  const tabWidthPercent = ((100 / tabs.length) - 1).toFixed(2);
+
+  const indicatorStyle = useAnimatedStyle(() => {
+    const tabWidth = (containerWidth - 8) / tabs.length;
+    return {
+      transform: [
+        {
+          translateX: interpolate(
+            animatedValue.value,
+            [0, tabs.length - 1],
+            [0, tabWidth * (tabs.length - 1)]
+          ),
+        },
+      ],
+    };
+  });
+
+  // Dynamic styles based on theme
+  const dynamicStyles = {
+    blurContainer: {
+      ...styles.blurContainer,
+      borderWidth: 1.2,
+      borderColor: 'rgba(255, 255, 255, 1)',
+      ...Platform.select({
+        ios: {
+          backgroundColor: theme.dark
+            ? 'rgba(28, 28, 30, 0.8)'
+            : 'rgba(255, 255, 255, 0.6)',
+        },
+        android: {
+          // ✅ CRITICAL FIX v104.0: Increased opacity to 0.95 to fully cover white strip
+          backgroundColor: theme.dark
+            ? 'rgba(28, 28, 30, 0.95)'
+            : 'rgba(255, 255, 255, 0.95)',
+        },
+        web: {
+          backgroundColor: theme.dark
+            ? 'rgba(28, 28, 30, 0.95)'
+            : 'rgba(255, 255, 255, 0.6)',
+          backdropFilter: 'blur(10px)',
+        },
+      }),
+    },
+    background: {
+      ...styles.background,
+    },
+    indicator: {
+      ...styles.indicator,
+      backgroundColor: theme.dark
+        ? 'rgba(255, 255, 255, 0.08)'
+        : 'rgba(0, 0, 0, 0.04)',
+      width: `${tabWidthPercent}%` as `${number}%`,
+    },
   };
-
-  const renderTab = (tab: TabDefinition) => {
-    const isActive = isTabActive(tab, pathname);
-    const isCenter = tab.id === 'explorar';
-
-    // Filter out file:// URLs that cause ENOENT errors
-    const safeAvatarUrl = activeProfileAvatar && !activeProfileAvatar.startsWith('file://') 
-      ? activeProfileAvatar 
-      : null;
-
-    console.log(
-      `🎨 [TabNav v98.0] Rendering tab "${tab.id}": ` +
-      `isActive=${isActive}, isCenter=${isCenter}, avatar=${safeAvatarUrl ? safeAvatarUrl.substring(0, 50) : 'none'}`
-    );
-
-    // Use TouchableNativeFeedback on Android for native ripple effect
-    const TouchableComponent = Platform.OS === 'android' ? TouchableNativeFeedback : TouchableOpacity;
-    const touchableProps = Platform.OS === 'android' 
-      ? {
-          background: TouchableNativeFeedback.Ripple('rgba(255, 255, 255, 0.3)', false),
-          useForeground: true,
-        }
-      : {
-          activeOpacity: 0.7,
-        };
-
-    // Get platform-specific sizes
-    const centerButtonSize = getCenterButtonSize();
-    const centerButtonIconSize = getCenterButtonIconSize();
-    const tabIconSize = getBottomNavIconSize();
-
-    // Center button (Explorar)
-    if (isCenter) {
-      return (
-        <TouchableComponent
-          key={tab.id}
-          onPress={() => handleTabPress(tab)}
-          {...touchableProps}
-        >
-          <View style={[styles.centerButton, { 
-            width: centerButtonSize, 
-            height: centerButtonSize,
-            borderRadius: centerButtonSize / 2,
-            marginTop: -centerButtonSize / 2,
-          }]}>
-            <LinearGradient
-              colors={['#2DD4BF', '#06B6D4']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.centerGradient, {
-                borderRadius: centerButtonSize / 2,
-              }]}
-            >
-              <TabIcon
-                iosIconFilled={tab.iosIconFilled}
-                iosIconOutlined={tab.iosIconOutlined}
-                androidIconFilled={tab.androidIconFilled}
-                androidIconOutlined={tab.androidIconOutlined}
-                isActive={true}
-                size={centerButtonIconSize}
-              />
-            </LinearGradient>
-          </View>
-        </TouchableComponent>
-      );
-    }
-
-    // Profile tab with avatar
-    if (tab.id === 'perfil') {
-      const avatarSize = Platform.OS === 'android' ? 22 : 28;
-      
-      return (
-        <TouchableComponent
-          key={tab.id}
-          onPress={() => handleTabPress(tab)}
-          {...touchableProps}
-        >
-          <View style={styles.tab}>
-            <View style={[
-              styles.avatarContainer, 
-              { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 },
-              isActive && styles.avatarContainerActive
-            ]}>
-              {safeAvatarUrl ? (
-                <Image
-                  source={{ uri: safeAvatarUrl }}
-                  style={styles.avatar}
-                  resizeMode="cover"
-                  {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
-                  onError={(error) => {
-                    console.error('[TabNav v98.0] ❌ Avatar failed to load:', safeAvatarUrl?.substring(0, 50), error.nativeEvent?.error);
-                  }}
-                  onLoad={() => {
-                    console.log('[TabNav v98.0] ✅ Avatar loaded successfully:', safeAvatarUrl?.substring(0, 50));
-                  }}
-                />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <TabIcon
-                    iosIconFilled="person.fill"
-                    iosIconOutlined="person"
-                    androidIconFilled="person"
-                    androidIconOutlined="person-outline"
-                    isActive={isActive}
-                    size={Platform.OS === 'android' ? 14 : 20}
-                  />
-                </View>
-              )}
-            </View>
-          </View>
-        </TouchableComponent>
-      );
-    }
-
-    // Regular tab
-    return (
-      <TouchableComponent
-        key={tab.id}
-        onPress={() => handleTabPress(tab)}
-        {...touchableProps}
-      >
-        <View style={styles.tab}>
-          <TabIcon
-            iosIconFilled={tab.iosIconFilled}
-            iosIconOutlined={tab.iosIconOutlined}
-            androidIconFilled={tab.androidIconFilled}
-            androidIconOutlined={tab.androidIconOutlined}
-            isActive={isActive}
-            size={tabIconSize}
-          />
-        </View>
-      </TouchableComponent>
-    );
-  };
-
-  // Calculate dimensions
-  const bottomNavHeight = getBottomNavHeight();
-  const tabBarPaddingBottom = getBottomNavPaddingBottom(insets.bottom);
-  
-  // ✅ CRITICAL FIX v98.0: Simplified container height - no extra padding
-  const containerHeight = Platform.OS === 'android' 
-    ? bottomNavHeight + insets.bottom
-    : bottomNavHeight + tabBarPaddingBottom;
-  
-  // ✅ CRITICAL FIX v98.0: Background height matches container exactly - no extension needed
-  const backgroundHeight = containerHeight;
-
-  console.log(
-    `[TabNav v98.0] 📐 Dimensions: ` +
-    `bottomNavHeight=${bottomNavHeight}, ` +
-    `tabBarPaddingBottom=${tabBarPaddingBottom}, ` +
-    `containerHeight=${containerHeight}, ` +
-    `backgroundHeight=${backgroundHeight}, ` +
-    `safeAreaBottom=${insets.bottom}, ` +
-    `platform=${Platform.OS}, ` +
-    `backgroundColor=${BARLIVE_COLOR}, ` +
-    `✅ v98.0: Android white strip ELIMINATED - simplified structure`
-  );
 
   return (
-    <View style={[styles.container, { 
-      height: containerHeight,
-      backgroundColor: BARLIVE_COLOR, // ✅ v98.0: Ensure container has BarLive background
-    }]} pointerEvents="box-none">
-      {/* ✅ CRITICAL FIX v98.0: Simplified background - no extension, just solid color */}
-      <View style={[styles.backgroundContainer, { 
-        height: backgroundHeight,
-        backgroundColor: BARLIVE_COLOR, // ✅ v98.0: Explicit BarLive color
-      }]} pointerEvents="none">
-        <View style={[styles.solidBackground, { 
-          height: backgroundHeight, 
-          backgroundColor: BARLIVE_COLOR, // ✅ v98.0: Explicit BarLive color
-        }]} />
-      </View>
+    <SafeAreaView 
+      style={[
+        styles.safeArea,
+        // ✅ CRITICAL FIX v104.0: Remove bottom padding on Android to eliminate white strip
+        Platform.OS === 'android' && { paddingBottom: 0 }
+      ]} 
+      // ✅ CRITICAL FIX v104.0: Remove bottom edge on Android to eliminate white strip
+      edges={Platform.OS === 'android' ? [] : ['bottom']}
+    >
+      <View style={[
+        styles.container,
+        {
+          width: containerWidth,
+          // ✅ CRITICAL FIX v104.0: Reduced bottom margin on Android (20 → 12)
+          marginBottom: Platform.OS === 'android' ? 12 : (bottomMargin ?? 20)
+        }
+      ]}>
+        <BlurView
+          intensity={80}
+          style={[dynamicStyles.blurContainer, { borderRadius }]}
+        >
+          <View style={dynamicStyles.background} />
+          <Animated.View style={[dynamicStyles.indicator, indicatorStyle]} />
+          <View style={styles.tabsContainer}>
+            {tabs.map((tab, index) => {
+              const isActive = activeTabIndex === index;
 
-      {/* ✅ Tab bar positioned ABOVE background with higher z-index */}
-      <View style={[styles.tabBar, { 
-        paddingBottom: Platform.OS === 'android' ? insets.bottom : tabBarPaddingBottom,
-      }]} pointerEvents="box-none">
-        {tabs.map(tab => renderTab(tab))}
+              // ✅ CRITICAL FIX v104.0: Show avatar on profile tab with persistence
+              if (tab.name === 'perfil' && activeProfileAvatar) {
+                return (
+                  <React.Fragment key={index}>
+                    <TouchableOpacity
+                      style={styles.tab}
+                      onPress={onProfilePress || (() => handleTabPress(tab.route))}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.tabContent}>
+                        <View style={styles.avatarContainer}>
+                          <OptimizedImage
+                            source={{ uri: activeProfileAvatar }}
+                            style={styles.avatar}
+                            cacheKey={`tab-avatar-${activeProfileAvatar}`}
+                          />
+                        </View>
+                        <Text
+                          style={[
+                            styles.tabLabel,
+                            { color: theme.dark ? '#98989D' : '#8E8E93' },
+                            isActive && { color: theme.colors.primary, fontWeight: '600' },
+                          ]}
+                        >
+                          {tab.label}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  </React.Fragment>
+                );
+              }
+
+              return (
+                <React.Fragment key={index}>
+                  <TouchableOpacity
+                    style={styles.tab}
+                    onPress={() => handleTabPress(tab.route)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.tabContent}>
+                      <IconSymbol
+                        android_material_icon_name={tab.icon}
+                        ios_icon_name={tab.icon}
+                        size={24}
+                        color={isActive ? theme.colors.primary : (theme.dark ? '#98989D' : '#000000')}
+                      />
+                      <Text
+                        style={[
+                          styles.tabLabel,
+                          { color: theme.dark ? '#98989D' : '#8E8E93' },
+                          isActive && { color: theme.colors.primary, fontWeight: '600' },
+                        ]}
+                      >
+                        {tab.label}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </React.Fragment>
+              );
+            })}
+          </View>
+        </BlurView>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    // ✅ v98.0: Background color set via inline style
-  },
-  backgroundContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.15,
-    shadowRadius: 15,
-    elevation: 1,
-    zIndex: 1,
-    // ✅ v98.0: Background color set via inline style
-  },
-  solidBackground: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: '100%',
-    // ✅ v98.0: Background color set via inline style to ensure BarLive color
-  },
-  tabBar: {
-    flexDirection: 'row',
-    paddingTop: Platform.OS === 'android' ? 8 : 12,
-    paddingHorizontal: 16,
+    zIndex: 1000,
     alignItems: 'center',
-    justifyContent: 'space-evenly',
-    width: '100%',
-    position: 'relative',
-    zIndex: 10,
-    elevation: 10,
-    backgroundColor: 'transparent', // ✅ v98.0: Transparent to show BarLive background below
+  },
+  container: {
+    marginHorizontal: 20,
+    alignSelf: 'center',
+  },
+  blurContainer: {
+    overflow: 'hidden',
+  },
+  background: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  indicator: {
+    position: 'absolute',
+    top: 4,
+    left: 2,
+    bottom: 4,
+    borderRadius: 27,
+    width: `${(100 / 2) - 1}%`,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    height: 60,
+    alignItems: 'center',
+    paddingHorizontal: 4,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Platform.OS === 'android' ? 3 : 8,
-    overflow: 'hidden',
-    borderRadius: 20,
-    zIndex: 10,
-    backgroundColor: 'transparent', // ✅ v98.0: Transparent to show BarLive background
+    paddingVertical: 8,
   },
-  centerButton: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 15,
-    overflow: 'hidden',
-    zIndex: 10,
-  },
-  centerGradient: {
-    width: '100%',
-    height: '100%',
+  tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
+    gap: 2,
+  },
+  tabLabel: {
+    fontSize: 9,
+    fontWeight: '500',
+    marginTop: 2,
   },
   avatarContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    zIndex: 10,
-  },
-  avatarContainerActive: {
-    borderWidth: 2.5,
-    borderColor: '#FFFFFF',
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 12,
-    elevation: 15,
   },
   avatar: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  avatarPlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
   },
 });

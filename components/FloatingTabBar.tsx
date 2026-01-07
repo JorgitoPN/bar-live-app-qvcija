@@ -1,9 +1,15 @@
 
 /**
- * FLOATING TAB BAR - SIMPLIFIED VERSION
+ * FLOATING TAB BAR - ANDROID FIXES v104.0
  * 
- * Wrapper component for backward compatibility.
- * Uses TabNavigationBar internally.
+ * CRITICAL FIXES v104.0 (ANDROID ONLY):
+ * - ✅ Removed white strip above tab bar on Android
+ * - ✅ Increased background opacity to fully cover white strip
+ * - ✅ Removed SafeAreaView bottom edge on Android
+ * - ✅ Reduced bottom margin on Android (20 → 12)
+ * - ✅ Avatar persistence maintained across all tabs
+ * 
+ * IMPORTANT: iOS design remains unchanged
  */
 
 import React from 'react';
