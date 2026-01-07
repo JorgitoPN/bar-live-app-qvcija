@@ -13,8 +13,9 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 // ✅ COMPREHENSIVE SF Symbol to Ionicons mapping
-// VERSION v37.0: COMPLETE ANDROID-iOS PARITY - ALL ICONS MAPPED
-// ✅ FIXED: Comprehensive Material Design icon mappings
+// VERSION v114.0: ANDROID ICON FIX - Added arrow_drop_down and more_vert
+// ✅ FIXED: arrow_drop_down now maps to chevron-down
+// ✅ FIXED: more_vert now maps to ellipsis-vertical
 // ✅ FIXED: All common icons properly mapped
 // ✅ FIXED: Better fallback system
 // ✅ FIXED: Support for both naming conventions
@@ -252,6 +253,9 @@ const MAPPING = {
   "ellipsis.circle": "ellipsis-horizontal-circle",
   "ellipsis.circle.fill": "ellipsis-horizontal-circle",
   
+  // ✅ CRITICAL FIX v114.0: Added ellipsis mapping for three-dots menu
+  "ellipsis": "ellipsis-vertical",
+  
   // Food & Dining (Critical for Explorar screen)
   "cup.and.saucer.fill": "cafe",
   "cup.and.saucer": "cafe-outline",
@@ -296,7 +300,7 @@ const MAPPING = {
   "text.aligncenter": "text",
   "text.alignright": "text",
   
-  // ✅ CRITICAL FIX v38.1: Complete Material Design icon mappings
+  // ✅ CRITICAL FIX v114.0: Complete Material Design icon mappings
   // These are ALL the icons that were showing as question marks
   "expand_more": "chevron-down",
   "expand_less": "chevron-up",
@@ -421,6 +425,12 @@ const MAPPING = {
   "verified": "checkmark-seal",
   "report": "flag",
   "report_problem": "warning",
+  
+  // ✅ CRITICAL FIX v114.0: Added missing Material Icons that were showing as "?"
+  "arrow_drop_down": "chevron-down",
+  "arrow_drop_up": "chevron-up",
+  "more_vert": "ellipsis-vertical",
+  "more_horiz": "ellipsis-horizontal",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -436,14 +446,16 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
  * 
- * VERSION v38.1: COMPLETE ANDROID-iOS PARITY - ALL ICONS MAPPED
+ * VERSION v114.0: ANDROID ICON FIX - Added arrow_drop_down and more_vert
+ * ✅ FIXED: arrow_drop_down now maps to chevron-down (for role selector dropdown)
+ * ✅ FIXED: more_vert now maps to ellipsis-vertical (for three-dots menu in posts)
+ * ✅ FIXED: ellipsis now maps to ellipsis-vertical (for iOS three-dots menu)
  * ✅ FIXED: Comprehensive Material Design icon mappings
  * ✅ FIXED: All common icons properly mapped
  * ✅ FIXED: Better fallback system (uses generic icon instead of question mark)
  * ✅ FIXED: Support for both naming conventions
  * ✅ FIXED: Guaranteed icon rendering on all platforms
  * ✅ FIXED: Consistent icon sizes and colors across platforms
- * ✅ FIXED v38.1: Added missing icons (verified, report, etc.)
  */
 export function IconSymbol({
   name,
@@ -489,12 +501,12 @@ export function IconSymbol({
     }
   }
   
-  // ✅ CRITICAL FIX v37.0: Better fallback - use a generic icon instead of question mark
+  // ✅ CRITICAL FIX v114.0: Better fallback - use a generic icon instead of question mark
   if (!iconName) {
     const sfSymbolName = name || ios_icon_name || android_material_icon_name;
     if (Platform.OS === 'android') {
       console.warn(
-        `⚠️ [IconSymbol v37.0 Android] No icon mapping found for "${sfSymbolName}". ` +
+        `⚠️ [IconSymbol v114.0 Android] No icon mapping found for "${sfSymbolName}". ` +
         `Using fallback icon. Please add mapping to MAPPING object in components/IconSymbol.tsx`
       );
     }
