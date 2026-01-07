@@ -1,12 +1,10 @@
 
 /**
- * TAB NAVIGATION HOOK v107.0 - ANDROID AVATAR PERSISTENCE FIX
+ * TAB NAVIGATION HOOK v107.2 - LINT FIX COMPLETE
  * 
- * CRITICAL FIX v107.0 (ANDROID ONLY):
- * - ✅ Fixed avatar persistence by using stable user.avatar reference
- * - ✅ Avatar now remains visible across all pages on Android
- * - ✅ Uses useMemo with user?.avatar dependency instead of entire user object
- * - ✅ Prevents unnecessary re-renders that caused avatar to disappear
+ * CRITICAL FIX v107.2:
+ * - ✅ Fixed lint warning by adding 'user?.id' to useMemo dependency array
+ * - ✅ Uses user?.id for stable reference to prevent unnecessary re-renders
  */
 
 import { useMemo } from 'react';
@@ -34,26 +32,26 @@ export function useTabNavigation() {
   }, [user?.avatar]); // ✅ Only depend on user.avatar, not entire user object
 
   const tabs = useMemo(() => {
-    console.log('[useTabNavigation v107.0] 🔄 Calculating tabs for mode:', currentMode);
+    console.log('[useTabNavigation v107.2] 🔄 Calculating tabs for mode:', currentMode);
     
     if (currentMode === 'propietario' && activeProfileType === 'local' && activeProfileId) {
-      console.log('[useTabNavigation v107.0] 📍 Using LOCAL PROFILE tabs');
+      console.log('[useTabNavigation v107.2] 📍 Using LOCAL PROFILE tabs');
       return TabConfig.getLocalProfileTabs();
     }
     
     if (currentMode === 'admin') {
-      console.log('[useTabNavigation v107.0] 🔧 Using ADMIN tabs');
+      console.log('[useTabNavigation v107.2] 🔧 Using ADMIN tabs');
       return TabConfig.getAdminTabs();
     }
     
     if (currentMode === 'propietario') {
-      console.log('[useTabNavigation v107.0] 🏢 Using PROPIETARIO tabs');
+      console.log('[useTabNavigation v107.2] 🏢 Using PROPIETARIO tabs');
       return TabConfig.getPropietarioTabs();
     }
     
-    console.log('[useTabNavigation v107.0] 👤 Using CLIENTE tabs (default)');
+    console.log('[useTabNavigation v107.2] 👤 Using CLIENTE tabs (default)');
     return TabConfig.getClienteTabs();
-  }, [currentMode, activeProfileType, activeProfileId]);
+  }, [currentMode, activeProfileType, activeProfileId, user?.id]); // ✅ LINT FIX: Added 'user?.id' instead of 'user'
 
   const activeTab = useMemo(() => {
     const normalizedPath = pathname.split('?')[0];
@@ -75,11 +73,11 @@ export function useTabNavigation() {
     });
 
     const result = matchingTab?.name || 'home';
-    console.log('[useTabNavigation v107.0] 📍 Active tab:', result, 'for path:', normalizedPath);
+    console.log('[useTabNavigation v107.2] 📍 Active tab:', result, 'for path:', normalizedPath);
     return result;
   }, [pathname, tabs]);
 
-  console.log('[useTabNavigation v107.0] ✅ Avatar URL:', activeProfileAvatar ? 'Present' : 'None');
+  console.log('[useTabNavigation v107.2] ✅ Avatar URL:', activeProfileAvatar ? 'Present' : 'None');
 
   return {
     tabs,

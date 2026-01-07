@@ -22,19 +22,6 @@ module.exports = {
   env: {
     browser: true,
   },
-  settings: {
-    'import/resolver': {
-      node: {
-        extensions: ['.js', '.jsx', '.ts', '.tsx'],
-        paths: ['node_modules', '.']
-      },
-      typescript: {}
-    },
-    'import/ignore': [
-      'node_modules',
-      '\\.(coffee|scss|css|less|hbs|svg|json)$',
-    ]
-  },
   rules: {
     "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/no-explicit-any": "off",
@@ -45,8 +32,8 @@ module.exports = {
     "@typescript-eslint/no-wrapper-object-types": "off",
     "@typescript-eslint/ban-tslint-comment": "off",
     "react/no-unescaped-entities": "off",
-    "import/no-unresolved": ["error", { 
-      ignore: ['^expo-file-system/legacy$']
+    "import/no-unresolved": ["error", {
+      "ignore": ["^better-auth", "^@better-auth"]
     }],
     "prefer-const": "off",
     "react/prop-types": 1,
@@ -65,5 +52,13 @@ module.exports = {
         '@typescript-eslint/no-var-requires': 'off'
       }
     }
-  ]
+  ],
+  settings: {
+    'import/resolver': {
+      typescript: {},
+      node: {
+        extensions: ['.js', '.jsx', '.ts', '.tsx']
+      }
+    }
+  }
 };

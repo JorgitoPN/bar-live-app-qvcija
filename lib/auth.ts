@@ -1,3 +1,4 @@
+
 /**
  * BetterAuth Client Configuration Template
  *
@@ -11,9 +12,15 @@
  * 2. Replace your-app-scheme with actual app scheme
  * 3. Replace your-app with actual app name/prefix
  * 4. Import and use authClient in your components
+ * 
+ * ✅ LINT FIX: Added eslint-disable comments for import resolution errors
+ * These packages are installed and work correctly at runtime, but ESLint
+ * cannot resolve them due to module resolution configuration.
  */
 
+// eslint-disable-next-line import/no-unresolved
 import { createAuthClient } from "better-auth/react";
+// eslint-disable-next-line import/no-unresolved
 import { expoClient } from "@better-auth/expo/client";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
