@@ -72,7 +72,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const isLoadingLocalsRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
 
-  // ✅ LINT FIX: Added 'user?.id' to dependencies
+  // ✅ LINT FIX: Added 'user' to dependencies
   const loadOwnedLocals = useCallback(async () => {
     // ✅ Prevent concurrent loads
     if (isLoadingLocalsRef.current) {
@@ -133,7 +133,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     } finally {
       isLoadingLocalsRef.current = false;
     }
-  }, [user?.id, isImpersonating]);
+  }, [user, isImpersonating]);
 
   // Initialize all state from AsyncStorage on mount
   useEffect(() => {
@@ -274,16 +274,16 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id, isInitialized]);
 
-  // ✅ LINT FIX: Added 'user?.id' to dependencies
+  // ✅ LINT FIX: Added 'user' to dependencies
   useEffect(() => {
     if (user && (currentMode === 'propietario' || user.rol_app === 'propietario' || user.rol_app === 'admin')) {
       if (lastUserIdRef.current !== user.id) {
         loadOwnedLocals();
       }
     }
-  }, [user?.id, currentMode, loadOwnedLocals]);
+  }, [user, currentMode, loadOwnedLocals]);
 
-  // ✅ LINT FIX: Wrapped setCurrentMode in useCallback
+  // ✅ LINT FIX: Wrapped setCurrentMode in useCallback with proper dependencies
   const setCurrentMode = useCallback(async (mode: UserMode) => {
     try {
       console.log('[ModeContext v99.2] 🔄 Setting mode to:', mode);
@@ -352,7 +352,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       console.error('[ModeContext v99.2] ❌ Error saving mode:', error);
       setCurrentModeState(mode);
     }
-  }, [user?.id, ownedLocals, loadOwnedLocals]);
+  }, [user, ownedLocals, loadOwnedLocals, switchToClientProfile, switchToLocalProfile]);
 
   const switchToClientProfile = useCallback(async () => {
     if (!user) {
@@ -383,7 +383,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('[ModeContext v99.2] ❌ Error switching to client profile:', error);
     }
-  }, [user?.id]);
+  }, [user]);
 
   const switchToLocalProfile = useCallback(async (localId: string) => {
     if (!user) {
@@ -438,7 +438,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('[ModeContext v99.2] ❌ Error switching to local profile:', error);
     }
-  }, [user?.id]);
+  }, [user]);
 
   const selectedLocalId = activeProfileType === 'local' ? activeProfileId : null;
   const isInteractingAsLocal = activeProfileType === 'local';

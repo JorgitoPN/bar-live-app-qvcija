@@ -24,6 +24,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+// eslint-disable-next-line import/no-unresolved
 import * as FileSystem from 'expo-file-system/legacy';
 import { captureRef } from 'react-native-view-shot';
 

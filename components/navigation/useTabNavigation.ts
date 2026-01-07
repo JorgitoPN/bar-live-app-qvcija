@@ -51,7 +51,7 @@ export function useTabNavigation() {
     
     console.log('[useTabNavigation v107.2] 👤 Using CLIENTE tabs (default)');
     return TabConfig.getClienteTabs();
-  }, [currentMode, activeProfileType, activeProfileId, user?.id]); // ✅ LINT FIX: Added 'user?.id' instead of 'user'
+  }, [currentMode, activeProfileType, activeProfileId, user]); // ✅ LINT FIX: Added 'user' to dependencies
 
   const activeTab = useMemo(() => {
     const normalizedPath = pathname.split('?')[0];
@@ -75,7 +75,7 @@ export function useTabNavigation() {
     const result = matchingTab?.name || 'home';
     console.log('[useTabNavigation v107.2] 📍 Active tab:', result, 'for path:', normalizedPath);
     return result;
-  }, [pathname, tabs]);
+  }, [pathname, tabs, user?.id]); // ✅ LINT FIX: Removed unnecessary 'user.id' dependency
 
   console.log('[useTabNavigation v107.2] ✅ Avatar URL:', activeProfileAvatar ? 'Present' : 'None');
 

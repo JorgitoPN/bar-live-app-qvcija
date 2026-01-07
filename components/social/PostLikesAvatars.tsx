@@ -46,7 +46,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
   const [currentTotalLikes, setCurrentTotalLikes] = useState(totalLikes);
   const [currentUserHasLiked, setCurrentUserHasLiked] = useState(false);
 
-  // ✅ LINT FIX: Added 'user?.id' to dependencies
+  // ✅ LINT FIX: Added 'user' to dependencies
   const handleUserPress = useCallback((userId: string, tipo: 'usuario' | 'local') => {
     setShowModal(false);
     
@@ -63,7 +63,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         params: { userId },
       });
     }
-  }, [user?.id, router]);
+  }, [user, router]);
 
   const loadAllLikes = useCallback(async () => {
     try {
@@ -101,7 +101,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     setShowModal(true);
   }, [loadAllLikes]);
 
-  // ✅ LINT FIX: Added 'user?.id' to dependencies
+  // ✅ LINT FIX: Added 'user' to dependencies
   useEffect(() => {
     console.log('[PostLikesAvatars v101.2] 🔄 localLikes changed for post:', postId, {
       count: localLikes.length,
@@ -117,9 +117,9 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       userLiked,
       totalLikes: localLikes.length,
     });
-  }, [postId, localLikes, user?.id]);
+  }, [postId, localLikes, user]);
 
-  // ✅ LINT FIX: Added 'tempProfiles' and 'user?.id' to dependencies
+  // ✅ LINT FIX: Added 'user' to dependencies
   useEffect(() => {
     const loadProfiles = async () => {
       try {
@@ -194,9 +194,9 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     };
 
     loadProfiles();
-  }, [postId, localLikes, tempProfiles, user?.id]);
+  }, [postId, localLikes, tempProfiles, user]);
 
-  // ✅ LINT FIX: Added 'user?.id' to dependencies
+  // ✅ LINT FIX: Added 'user' to dependencies
   useEffect(() => {
     if (!user) return;
 
@@ -265,7 +265,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         channelRef.current = null;
       }
     };
-  }, [postId, user?.id]);
+  }, [postId, user]);
 
   useEffect(() => {
     if (localLikes.length === 0) {
@@ -273,7 +273,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
   }, [totalLikes, localLikes.length]);
 
-  // ✅ LINT FIX: Added 'user?.id' to dependencies
+  // ✅ LINT FIX: Added 'user' to dependencies
   const getLikesText = useMemo(() => {
     const otherUsers = tempProfiles.filter(u => u.id !== user?.id);
     
@@ -386,7 +386,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
     
     return <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>{currentTotalLikes} me gusta</Text>;
-  }, [currentUserHasLiked, currentTotalLikes, tempProfiles, user?.id, handleUserPress, handleOpenModal]);
+  }, [currentUserHasLiked, currentTotalLikes, tempProfiles, user, handleUserPress, handleOpenModal]);
 
   const avatarsDisplay = useMemo(() => {
     return tempProfiles.slice(0, 3).map((likeUser, index) => (
@@ -410,7 +410,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     ));
   }, [tempProfiles]);
 
-  // ✅ LINT FIX: Added 'user?.id' to dependencies
+  // ✅ LINT FIX: Added 'user' to dependencies
   const renderLikeUser = useCallback(({ item }: { item: LikeUser }) => (
     <TouchableOpacity
       style={styles.modalUserItem}
@@ -438,7 +438,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         </View>
       )}
     </TouchableOpacity>
-  ), [user?.id, handleUserPress]);
+  ), [user, handleUserPress]);
 
   if (currentTotalLikes === 0) {
     return null;

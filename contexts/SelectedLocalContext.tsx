@@ -56,7 +56,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     loadSelectedLocal();
   }, []);
 
-  // ✅ LINT FIX: Added 'user?.id' to dependencies
+  // ✅ LINT FIX: Added 'user' to dependencies
   const loadUserLocales = useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[SelectedLocalContext v99.2] Already loading, skipping...');
@@ -146,9 +146,9 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
       setLoadingLocales(false);
       isLoadingRef.current = false;
     }
-  }, [user?.id, selectedLocalId]);
+  }, [user, selectedLocalId]);
 
-  // ✅ LINT FIX: Added 'user?.id' to dependencies
+  // ✅ LINT FIX: Added 'user' to dependencies
   useEffect(() => {
     if (user && user.rol_app === 'propietario') {
       if (lastUserIdRef.current !== user.id) {
@@ -159,7 +159,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
       setLoadingLocales(false);
       lastUserIdRef.current = null;
     }
-  }, [user?.id, loadUserLocales]);
+  }, [user, loadUserLocales]);
 
   const setSelectedLocalId = async (localId: string | null) => {
     try {
