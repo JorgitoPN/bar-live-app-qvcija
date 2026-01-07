@@ -14,13 +14,13 @@ interface HeaderSocialProps {
 }
 
 /**
- * ✅ HEADER SOCIAL v105.0 - ANDROID ICON FIX
+ * ✅ HEADER SOCIAL v101.0 - ANDROID SCALING COMPLETE
  * 
- * CRITICAL FIXES v105.0 (ANDROID ONLY):
- * - ✅ Fixed "+" icon: Changed from "add_box" to "add_circle" (valid Material icon)
+ * CRITICAL FIXES v101.0 (ANDROID ONLY):
  * - ✅ Header title uses scaleFontSize() for consistency
  * - ✅ Icons properly sized with scaleIconSize()
  * - ✅ Badge text uses scaleFontSize()
+ * - ✅ Consistent with other headers
  * - ✅ iOS design remains unchanged
  */
 
@@ -46,7 +46,6 @@ export default function HeaderSocial({
           Social
         </Text>
         <View style={styles.headerActions}>
-          {/* ✅ CRITICAL FIX v105.0: Changed android_material_icon_name from "add_box" to "add_circle" */}
           <TouchableOpacity 
             style={styles.headerButton}
             onPress={onCreatePost}
@@ -54,7 +53,7 @@ export default function HeaderSocial({
           >
             <IconSymbol 
               ios_icon_name="plus.app" 
-              android_material_icon_name="add_circle" 
+              android_material_icon_name="add_box" 
               size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
               color={colors.headerText} 
             />
