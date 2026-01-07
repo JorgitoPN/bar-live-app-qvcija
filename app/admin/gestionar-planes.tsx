@@ -326,7 +326,7 @@ export default function GestionarPlanesScreen() {
     return () => clearTimeout(timer);
   }, [searchQuery, buscarLocales]);
 
-  // ✅ CRITICAL FIX: Define crearNuevaSuscripcion before asignarPlan
+  // ✅ FIX: Define crearNuevaSuscripcion with all dependencies
   const crearNuevaSuscripcion = useCallback(async () => {
     if (!selectedLocal || !selectedPlan) {
       throw new Error('Local o plan no seleccionado');
@@ -342,6 +342,7 @@ export default function GestionarPlanesScreen() {
     if (error) throw error;
   }, [selectedLocal, selectedPlan]);
 
+  // ✅ FIX: Include crearNuevaSuscripcion in dependencies
   const asignarPlan = useCallback(async () => {
     if (!selectedLocal || !selectedPlan) return;
 
@@ -554,7 +555,7 @@ export default function GestionarPlanesScreen() {
     <View style={styles.container}>
       <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 12 }}>
-          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color="#fff" />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gestionar Planes</Text>
         <Text style={styles.headerSubtitle}>Administra planes y suscripciones</Text>
