@@ -26,10 +26,10 @@ interface ProfileSwitcherProps {
 }
 
 /**
- * ✅ PROFILE SWITCHER v113.0 - ANDROID ICON FIX
+ * ✅ PROFILE SWITCHER v114.0 - ANDROID ICON FIX
  * 
- * CRITICAL FIXES v113.0:
- * - ✅ Fixed dropdown arrow icon for Android (arrow_drop_down instead of chevron.down)
+ * CRITICAL FIXES v114.0:
+ * - ✅ Fixed dropdown arrow icon for Android (arrow_drop_down is correct Material Icons name)
  * - ✅ All previous fixes maintained
  */
 
@@ -57,13 +57,13 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
     const effectiveId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
     
     if (!effectiveId) {
-      console.log('[ProfileSwitcher v113.0] ⚠️ No effective user ID, skipping load');
+      console.log('[ProfileSwitcher v114.0] ⚠️ No effective user ID, skipping load');
       return;
     }
 
     try {
       setLoading(true);
-      console.log('[ProfileSwitcher v113.0] 🔄 Loading owned locals for user:', effectiveId, isImpersonating ? '(impersonated)' : '(actual)');
+      console.log('[ProfileSwitcher v114.0] 🔄 Loading owned locals for user:', effectiveId, isImpersonating ? '(impersonated)' : '(actual)');
 
       const { data: propietariosData, error: propietariosError } = await supabase
         .from('propietarios_locales')
@@ -82,7 +82,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
         .eq('activo', true);
 
       if (propietariosError) {
-        console.error('[ProfileSwitcher v113.0] ❌ Error loading owned locals:', propietariosError);
+        console.error('[ProfileSwitcher v114.0] ❌ Error loading owned locals:', propietariosError);
         return;
       }
 
@@ -90,10 +90,10 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
         .filter(p => p.locales && p.locales.activo === true)
         .map(p => p.locales);
 
-      console.log('[ProfileSwitcher v113.0] ✅ Loaded', activeOwnedLocals.length, 'active owned locals');
+      console.log('[ProfileSwitcher v114.0] ✅ Loaded', activeOwnedLocals.length, 'active owned locals');
       setOwnedLocals(activeOwnedLocals);
     } catch (error) {
-      console.error('[ProfileSwitcher v113.0] ❌ Error loading owned locals:', error);
+      console.error('[ProfileSwitcher v114.0] ❌ Error loading owned locals:', error);
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
 
   useEffect(() => {
     if (visible && user?.id) {
-      console.log('[ProfileSwitcher v113.0] 🔄 Modal opened, loading owned locals');
+      console.log('[ProfileSwitcher v114.0] 🔄 Modal opened, loading owned locals');
       loadOwnedLocals();
     }
   }, [visible, user?.id, loadOwnedLocals]);
@@ -109,21 +109,21 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
   const handleSwitchToClient = useCallback(async () => {
     setSwitching(true);
     try {
-      console.log('[ProfileSwitcher v113.0] 🔄 Switching to client profile');
+      console.log('[ProfileSwitcher v114.0] 🔄 Switching to client profile');
       
       await setCurrentMode('cliente');
       await switchToClientProfile();
       
-      console.log('[ProfileSwitcher v113.0] ✅ Profile switched to client, mode set to cliente');
+      console.log('[ProfileSwitcher v114.0] ✅ Profile switched to client, mode set to cliente');
       
       onClose();
       
       setTimeout(() => {
-        console.log('[ProfileSwitcher v113.0] ✅ Navigating to user profile');
+        console.log('[ProfileSwitcher v114.0] ✅ Navigating to user profile');
         router.push('/(tabs)/perfil');
       }, 100);
     } catch (error) {
-      console.error('[ProfileSwitcher v113.0] ❌ Error switching to client:', error);
+      console.error('[ProfileSwitcher v114.0] ❌ Error switching to client:', error);
     } finally {
       setSwitching(false);
     }
@@ -132,21 +132,21 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
   const handleSwitchToLocal = useCallback(async (localId: string) => {
     setSwitching(true);
     try {
-      console.log('[ProfileSwitcher v113.0] 🔄 Switching to local profile:', localId);
+      console.log('[ProfileSwitcher v114.0] 🔄 Switching to local profile:', localId);
       
       await setCurrentMode('propietario');
       await switchToLocalProfile(localId);
       
-      console.log('[ProfileSwitcher v113.0] ✅ Profile switched to local, mode set to propietario');
+      console.log('[ProfileSwitcher v114.0] ✅ Profile switched to local, mode set to propietario');
       
       onClose();
       
       setTimeout(() => {
-        console.log('[ProfileSwitcher v113.0] ✅ Navigating to local profile');
+        console.log('[ProfileSwitcher v114.0] ✅ Navigating to local profile');
         router.push(`/perfil/local?localId=${localId}`);
       }, 100);
     } catch (error) {
-      console.error('[ProfileSwitcher v113.0] ❌ Error switching to local:', error);
+      console.error('[ProfileSwitcher v114.0] ❌ Error switching to local:', error);
     } finally {
       setSwitching(false);
     }
@@ -182,7 +182,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
                 ]
               );
             } catch (error) {
-              console.error('[ProfileSwitcher v113.0] Error ending impersonation:', error);
+              console.error('[ProfileSwitcher v114.0] Error ending impersonation:', error);
               Alert.alert('Error', 'No se pudo finalizar la suplantación');
             } finally {
               setSwitching(false);
