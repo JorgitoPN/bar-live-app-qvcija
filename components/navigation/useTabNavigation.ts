@@ -1,87 +1,210 @@
 
 /**
- * TAB NAVIGATION HOOK v107.2 - LINT FIX COMPLETE
+ * TAB NAVIGATION HOOK - v103.0
  * 
- * CRITICAL FIX v107.2:
- * - ✅ Fixed lint warning by adding 'user?.id' to useMemo dependency array
- * - ✅ Uses user?.id for stable reference to prevent unnecessary re-renders
+ * Custom hook to manage tab navigation state and logic.
+ * 
+ * 🔥 FIX v103.0: ANDROID PROFILE AVATAR PERSISTENCE - COMPLETE FIX
+ * - ✅ Avatar now persists across ALL pages on Android
+ * - ✅ Uses stable user ID reference instead of full user object
+ * - ✅ Properly handles local profile avatars
+ * - ✅ Real-time updates when avatar changes
+ * - ✅ Filters out file:// URLs that cause errors
+ * - ✅ Memoized avatar to prevent unnecessary re-renders
+ * - ✅ Fixed dependency arrays to prevent infinite loops
  */
 
-import { useMemo } from 'react';
-import { usePathname } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import { useMemo, useEffect, useState, useCallback } from 'react';
+import { useEffectiveUser } from '@/hooks/useEffectiveUser';
 import { useMode } from '@/contexts/ModeContext';
-import { TabConfig } from './TabConfig';
-import type { TabBarItem } from '../FloatingTabBar';
+import { getTabsForContext, TabDefinition } from './TabConfig';
+import { supabase } from '@/utils/supabase';
 
 export function useTabNavigation() {
-  const pathname = usePathname();
-  const { user } = useAuth();
-  const { currentMode, activeProfileType, activeProfileId } = useMode();
+  const { user, userId } = useEffectiveUser();
+  const { currentMode, activeProfileType, activeProfileId, activeLocalData, ownedLocals } = useMode();
+  
+  // ✅ CRITICAL FIX v103.0: Local state for avatar to ensure persistence across navigation
+  const [currentAvatar, setCurrentAvatar] = useState<string | null>(null);
 
-  // ✅ CRITICAL FIX v107.0: Use stable avatar reference to prevent re-renders
-  const activeProfileAvatar = useMemo(() => {
-    if (!user) return null;
-    
-    // Filter out file:// URLs
-    if (user.avatar && user.avatar.startsWith('file://')) {
-      return null;
-    }
-    
-    return user.avatar || null;
-  }, [user?.avatar]); // ✅ Only depend on user.avatar, not entire user object
+  // Determine user role
+  const userRole = user?.rol_app || 'cliente';
 
-  const tabs = useMemo(() => {
-    console.log('[useTabNavigation v107.2] 🔄 Calculating tabs for mode:', currentMode);
-    
-    if (currentMode === 'propietario' && activeProfileType === 'local' && activeProfileId) {
-      console.log('[useTabNavigation v107.2] 📍 Using LOCAL PROFILE tabs');
-      return TabConfig.getLocalProfileTabs();
+  // Determine if user is an owner (has permission to see ownership-required tabs)
+  const isOwner = useMemo(() => {
+    if (!user) {
+      return false;
     }
-    
-    if (currentMode === 'admin') {
-      console.log('[useTabNavigation v107.2] 🔧 Using ADMIN tabs');
-      return TabConfig.getAdminTabs();
-    }
-    
+
+    // If user is in propietario mode, they are considered an owner
     if (currentMode === 'propietario') {
-      console.log('[useTabNavigation v107.2] 🏢 Using PROPIETARIO tabs');
-      return TabConfig.getPropietarioTabs();
+      console.log('🔑 [useTabNavigation v103.0] User is in propietario mode → isOwner = true');
+      return true;
     }
-    
-    console.log('[useTabNavigation v107.2] 👤 Using CLIENTE tabs (default)');
-    return TabConfig.getClienteTabs();
-  }, [currentMode, activeProfileType, activeProfileId, user]); // ✅ LINT FIX: Added 'user' to dependencies
 
-  const activeTab = useMemo(() => {
-    const normalizedPath = pathname.split('?')[0];
-    
-    const matchingTab = tabs.find(tab => {
-      if (tab.route === '/(tabs)/(home)') {
-        return normalizedPath === '/' || 
-               normalizedPath === '/(tabs)' || 
-               normalizedPath === '/(tabs)/(home)' ||
-               normalizedPath.startsWith('/(tabs)/(home)');
-      }
-      
-      if (tab.route.includes('(tabs)')) {
-        const routeBase = tab.route.replace('/(tabs)/', '').split('/')[0];
-        return normalizedPath.includes(`/(tabs)/${routeBase}`);
-      }
-      
-      return normalizedPath === tab.route || normalizedPath.startsWith(tab.route + '/');
+    // If user has propietario or admin role, they are considered an owner
+    if (userRole === 'propietario' || userRole === 'admin') {
+      console.log('🔑 [useTabNavigation v103.0] User has propietario/admin role → isOwner = true');
+      return true;
+    }
+
+    // If user has any owned locals, they are considered an owner
+    if (ownedLocals && ownedLocals.length > 0) {
+      console.log('🔑 [useTabNavigation v103.0] User owns', ownedLocals.length, 'locals → isOwner = true');
+      return true;
+    }
+
+    console.log('🔑 [useTabNavigation v103.0] User is not an owner → isOwner = false');
+    return false;
+  }, [user, currentMode, userRole, ownedLocals]);
+
+  // Get tabs for current context
+  const tabs = useMemo(() => {
+    const contextTabs = getTabsForContext(
+      userRole as 'cliente' | 'propietario' | 'admin',
+      currentMode,
+      isOwner
+    );
+
+    console.log('🎯 [useTabNavigation v103.0] Computed tabs:', {
+      userRole,
+      currentMode,
+      isOwner,
+      tabCount: contextTabs.length,
+      tabs: contextTabs.map(t => `${t.id} (order: ${t.order[currentMode]})`).join(', ')
     });
 
-    const result = matchingTab?.name || 'home';
-    console.log('[useTabNavigation v107.2] 📍 Active tab:', result, 'for path:', normalizedPath);
-    return result;
-  }, [pathname, tabs, user?.id]); // ✅ LINT FIX: Removed unnecessary 'user.id' dependency
+    return contextTabs;
+  }, [userRole, currentMode, isOwner]);
 
-  console.log('[useTabNavigation v107.2] ✅ Avatar URL:', activeProfileAvatar ? 'Present' : 'None');
+  // ✅ CRITICAL FIX v103.0: Load and maintain avatar state with stable dependencies
+  const loadAvatar = useCallback(async () => {
+    if (activeProfileType === 'local' && activeProfileId) {
+      // Load local avatar
+      console.log('[useTabNavigation v103.0] 🖼️ Loading local avatar for:', activeProfileId);
+      
+      if (activeLocalData?.imagen_url) {
+        const safeUrl = activeLocalData.imagen_url.startsWith('file://') 
+          ? null 
+          : activeLocalData.imagen_url;
+        setCurrentAvatar(safeUrl);
+        console.log('[useTabNavigation v103.0] ✅ Local avatar from cache:', safeUrl?.substring(0, 50));
+      } else {
+        const { data, error } = await supabase
+          .from('locales')
+          .select('imagen_url')
+          .eq('id', activeProfileId)
+          .single();
+        
+        if (!error && data?.imagen_url) {
+          const safeUrl = data.imagen_url.startsWith('file://') 
+            ? null 
+            : data.imagen_url;
+          setCurrentAvatar(safeUrl);
+          console.log('[useTabNavigation v103.0] ✅ Local avatar from DB:', safeUrl?.substring(0, 50));
+        } else {
+          setCurrentAvatar(null);
+          console.log('[useTabNavigation v103.0] ⚠️ No local avatar found');
+        }
+      }
+    } else if (userId) {
+      // Load user avatar
+      console.log('[useTabNavigation v103.0] 🖼️ Loading user avatar for:', userId);
+      
+      if (user?.avatar) {
+        const safeUrl = user.avatar.startsWith('file://') 
+          ? null 
+          : user.avatar;
+        setCurrentAvatar(safeUrl);
+        console.log('[useTabNavigation v103.0] ✅ User avatar from context:', safeUrl?.substring(0, 50));
+      } else {
+        const { data, error } = await supabase
+          .from('usuarios')
+          .select('avatar')
+          .eq('id', userId)
+          .single();
+        
+        if (!error && data?.avatar) {
+          const safeUrl = data.avatar.startsWith('file://') 
+            ? null 
+            : data.avatar;
+          setCurrentAvatar(safeUrl);
+          console.log('[useTabNavigation v103.0] ✅ User avatar from DB:', safeUrl?.substring(0, 50));
+        } else {
+          setCurrentAvatar(null);
+          console.log('[useTabNavigation v103.0] ⚠️ No user avatar found');
+        }
+      }
+    } else {
+      setCurrentAvatar(null);
+      console.log('[useTabNavigation v103.0] ⚠️ No userId available');
+    }
+  }, [activeProfileType, activeProfileId, activeLocalData?.imagen_url, userId, user?.avatar]);
+
+  // ✅ CRITICAL FIX v103.0: Load avatar on mount and when dependencies change
+  useEffect(() => {
+    loadAvatar();
+  }, [loadAvatar]);
+
+  // ✅ CRITICAL FIX v103.0: Subscribe to real-time avatar updates with stable dependencies
+  useEffect(() => {
+    if (!userId && !activeProfileId) return;
+
+    const table = activeProfileType === 'local' ? 'locales' : 'usuarios';
+    const id = activeProfileType === 'local' ? activeProfileId : userId;
+
+    if (!id) return;
+
+    console.log('[useTabNavigation v103.0] 📡 Subscribing to avatar updates:', { table, id });
+
+    const channel = supabase
+      .channel(`tab-nav-avatar-updates-${table}-${id}-v103`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: table,
+          filter: `id=eq.${id}`,
+        },
+        (payload: any) => {
+          console.log('[useTabNavigation v103.0] 🔄 Avatar update detected:', payload.new);
+          
+          const newAvatar = activeProfileType === 'local' 
+            ? payload.new.imagen_url 
+            : payload.new.avatar;
+          
+          if (newAvatar) {
+            const safeUrl = newAvatar.startsWith('file://') ? null : newAvatar;
+            setCurrentAvatar(safeUrl);
+            console.log('[useTabNavigation v103.0] ✅ Avatar updated via real-time:', safeUrl?.substring(0, 50));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[useTabNavigation v103.0] 🔄 Cleaning up avatar subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [userId, activeProfileId, activeProfileType]);
+
+  // ✅ CRITICAL FIX v103.0: Memoize avatar to prevent unnecessary re-renders
+  const activeProfileAvatar = useMemo(() => {
+    console.log('[useTabNavigation v103.0] 🎯 Active profile avatar:', {
+      activeProfileType,
+      currentAvatar: currentAvatar?.substring(0, 50),
+      source: activeProfileType === 'local' ? 'local' : 'user',
+    });
+    
+    return currentAvatar;
+  }, [activeProfileType, currentAvatar]);
 
   return {
     tabs,
-    activeTab,
     activeProfileAvatar,
+    userRole,
+    currentMode,
+    isOwner,
   };
 }

@@ -24,11 +24,14 @@ interface LikeUser {
 }
 
 /**
- * ✅ POST LIKES AVATARS v101.2 - LINT FIX COMPLETE
+ * ✅ POST LIKES AVATARS v101.0 - FIXED INFINITE LOOP + ANDROID SCALING
  * 
- * CRITICAL FIXES v101.2:
- * - ✅ Fixed all lint warnings by adding 'user?.id' to dependency arrays
- * - ✅ Uses user?.id for stable references to prevent unnecessary re-renders
+ * CRITICAL FIXES v101.0:
+ * - ✅ FIXED: Removed circular dependencies causing "Maximum update depth exceeded"
+ * - ✅ FIXED: Proper memoization with stable dependencies
+ * - ✅ FIXED: Separated data loading from state updates
+ * - ✅ All text uses scaleFontSize() for Android consistency
+ * - ✅ iOS design remains unchanged
  */
 
 export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }: PostLikesAvatarsProps) {
@@ -46,7 +49,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
   const [currentTotalLikes, setCurrentTotalLikes] = useState(totalLikes);
   const [currentUserHasLiked, setCurrentUserHasLiked] = useState(false);
 
-  // ✅ LINT FIX: Added 'user' to dependencies
+  // ✅ CRITICAL FIX v101.0: Stable callback with minimal dependencies
   const handleUserPress = useCallback((userId: string, tipo: 'usuario' | 'local') => {
     setShowModal(false);
     
@@ -63,8 +66,9 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         params: { userId },
       });
     }
-  }, [user, router]);
+  }, [user?.id, router]); // ✅ FIXED: Only depend on user.id, not entire user object
 
+  // ✅ CRITICAL FIX v101.0: Stable callback with minimal dependencies
   const loadAllLikes = useCallback(async () => {
     try {
       setLoadingModal(true);
@@ -90,20 +94,22 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         setAllLikes(users);
       }
     } catch (error) {
-      console.error('[PostLikesAvatars v101.2] Error loading all likes:', error);
+      console.error('[PostLikesAvatars v101.0] Error loading all likes:', error);
     } finally {
       setLoadingModal(false);
     }
-  }, [postId]);
+  }, [postId]); // ✅ FIXED: Only depend on postId
 
+  // ✅ CRITICAL FIX v101.0: Stable callback
   const handleOpenModal = useCallback(() => {
     loadAllLikes();
     setShowModal(true);
   }, [loadAllLikes]);
 
-  // ✅ LINT FIX: Added 'user' to dependencies
+  // ✅ CRITICAL FIX v101.0: Update state immediately when localLikes changes
+  // This effect ONLY updates state, does NOT fetch data
   useEffect(() => {
-    console.log('[PostLikesAvatars v101.2] 🔄 localLikes changed for post:', postId, {
+    console.log('[PostLikesAvatars v101.0] 🔄 localLikes changed for post:', postId, {
       count: localLikes.length,
       users: localLikes.map(l => l.usuario_id),
     });
@@ -113,20 +119,21 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     const userLiked = user ? localLikes.some(like => like.usuario_id === user.id) : false;
     setCurrentUserHasLiked(userLiked);
 
-    console.log('[PostLikesAvatars v101.2] ✅ State updated:', {
+    console.log('[PostLikesAvatars v101.0] ✅ State updated:', {
       userLiked,
       totalLikes: localLikes.length,
     });
-  }, [postId, localLikes, user]);
+  }, [postId, localLikes, user?.id]); // ✅ FIXED: Only depend on user.id
 
-  // ✅ LINT FIX: Added 'user' to dependencies
+  // ✅ CRITICAL FIX v101.0: Separate effect for loading profile data
+  // This effect ONLY runs when localLikes changes, NOT when tempProfiles changes
   useEffect(() => {
     const loadProfiles = async () => {
       try {
         const userIds = localLikes.map(like => like.usuario_id).slice(0, 3);
         
         if (userIds.length === 0) {
-          console.log('[PostLikesAvatars v101.2] ℹ️ No likes to display, clearing tempProfiles');
+          console.log('[PostLikesAvatars v101.0] ℹ️ No likes to display, clearing tempProfiles');
           setTempProfiles([]);
           initialProfilesRef.current = [];
           return;
@@ -137,7 +144,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
           const userAlreadyInProfiles = tempProfiles.some(p => p.id === user.id);
           
           if (!userAlreadyInProfiles) {
-            console.log('[PostLikesAvatars v101.2] ➕ OPTIMISTIC: Adding current user profile IMMEDIATELY');
+            console.log('[PostLikesAvatars v101.0] ➕ OPTIMISTIC: Adding current user profile IMMEDIATELY');
             
             const optimisticUserProfile: LikeUser = {
               id: user.id,
@@ -148,21 +155,21 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
             };
             
             setTempProfiles(prev => [optimisticUserProfile, ...prev.filter(p => p.id !== user.id)]);
-            console.log('[PostLikesAvatars v101.2] ✅ OPTIMISTIC: User avatar added instantly');
+            console.log('[PostLikesAvatars v101.0] ✅ OPTIMISTIC: User avatar added instantly');
           }
         } else if (user) {
           // User unliked - remove immediately
           const userInProfiles = tempProfiles.some(p => p.id === user.id);
           
           if (userInProfiles) {
-            console.log('[PostLikesAvatars v101.2] ➖ OPTIMISTIC: Removing current user profile IMMEDIATELY');
+            console.log('[PostLikesAvatars v101.0] ➖ OPTIMISTIC: Removing current user profile IMMEDIATELY');
             setTempProfiles(prev => prev.filter(p => p.id !== user.id));
-            console.log('[PostLikesAvatars v101.2] ✅ OPTIMISTIC: User avatar removed instantly');
+            console.log('[PostLikesAvatars v101.0] ✅ OPTIMISTIC: User avatar removed instantly');
           }
         }
         
         // Fetch full profile data in background
-        console.log('[PostLikesAvatars v101.2] 🔍 Fetching user data in background for:', userIds);
+        console.log('[PostLikesAvatars v101.0] 🔍 Fetching user data in background for:', userIds);
         
         const { data, error } = await supabase
           .from('usuarios')
@@ -181,29 +188,29 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
               tipo: 'usuario' as const,
             }));
           
-          console.log('[PostLikesAvatars v101.2] ✅ Loaded', orderedUsers.length, 'like users');
+          console.log('[PostLikesAvatars v101.0] ✅ Loaded', orderedUsers.length, 'like users');
           
           setTempProfiles(orderedUsers);
           initialProfilesRef.current = orderedUsers;
         } else if (error) {
-          console.error('[PostLikesAvatars v101.2] ❌ Error loading like users:', error);
+          console.error('[PostLikesAvatars v101.0] ❌ Error loading like users:', error);
         }
       } catch (error) {
-        console.error('[PostLikesAvatars v101.2] ❌ Exception loading like users:', error);
+        console.error('[PostLikesAvatars v101.0] ❌ Exception loading like users:', error);
       }
     };
 
     loadProfiles();
-  }, [postId, localLikes, tempProfiles, user]);
+  }, [postId, localLikes, user?.id]); // ✅ FIXED: Removed tempProfiles from dependencies to prevent loop
 
-  // ✅ LINT FIX: Added 'user' to dependencies
+  // ✅ CRITICAL FIX v101.0: Real-time subscription with stable dependencies
   useEffect(() => {
     if (!user) return;
 
-    console.log('[PostLikesAvatars v101.2] 🔄 Setting up real-time subscription for post:', postId);
+    console.log('[PostLikesAvatars v101.0] 🔄 Setting up real-time subscription for post:', postId);
 
     if (channelRef.current?.state === 'subscribed') {
-      console.log('[PostLikesAvatars v101.2] ⚠️ Already subscribed, skipping');
+      console.log('[PostLikesAvatars v101.0] ⚠️ Already subscribed, skipping');
       return;
     }
 
@@ -221,16 +228,16 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
           filter: `post_id=eq.${postId}`,
         },
         async (payload) => {
-          console.log('[PostLikesAvatars v101.2] 🔄 Real-time like change detected:', payload.eventType, 'by user:', payload.new?.usuario_id || payload.old?.usuario_id);
+          console.log('[PostLikesAvatars v101.0] 🔄 Real-time like change detected:', payload.eventType, 'by user:', payload.new?.usuario_id || payload.old?.usuario_id);
           
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[PostLikesAvatars v101.2] ⏭️ Change made by current user, skipping (already handled optimistically)');
+            console.log('[PostLikesAvatars v101.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
             return;
           }
           
-          console.log('[PostLikesAvatars v101.2] 🔄 Change made by another user, reloading...');
+          console.log('[PostLikesAvatars v101.0] 🔄 Change made by another user, reloading...');
           
           const { count, error: countError } = await supabase
             .from('likes')
@@ -238,7 +245,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
             .eq('post_id', postId);
           
           if (!countError && count !== null) {
-            console.log('[PostLikesAvatars v101.2] ✅ Updated likes count via real-time:', count);
+            console.log('[PostLikesAvatars v101.0] ✅ Updated likes count via real-time:', count);
             setCurrentTotalLikes(count);
           }
           
@@ -255,29 +262,30 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         }
       )
       .subscribe((status) => {
-        console.log('[PostLikesAvatars v101.2] 📡 Subscription status:', status);
+        console.log('[PostLikesAvatars v101.0] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[PostLikesAvatars v101.2] 🔄 Cleaning up subscription');
+      console.log('[PostLikesAvatars v101.0] 🔄 Cleaning up subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [postId, user]);
+  }, [postId, user?.id]); // ✅ FIXED: Only depend on user.id
 
+  // ✅ CRITICAL FIX v101.0: Update from prop when localLikes is empty
   useEffect(() => {
     if (localLikes.length === 0) {
       setCurrentTotalLikes(totalLikes);
     }
   }, [totalLikes, localLikes.length]);
 
-  // ✅ LINT FIX: Added 'user' to dependencies
+  // ✅ CRITICAL FIX v101.0: Memoize text generation with stable dependencies
   const getLikesText = useMemo(() => {
     const otherUsers = tempProfiles.filter(u => u.id !== user?.id);
     
-    console.log('[PostLikesAvatars v101.2] 📊 Generating text:', {
+    console.log('[PostLikesAvatars v101.0] 📊 Generating text:', {
       currentUserHasLiked,
       currentTotalLikes,
       tempProfilesCount: tempProfiles.length,
@@ -386,8 +394,9 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
     
     return <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>{currentTotalLikes} me gusta</Text>;
-  }, [currentUserHasLiked, currentTotalLikes, tempProfiles, user, handleUserPress, handleOpenModal]);
+  }, [currentUserHasLiked, currentTotalLikes, tempProfiles, user?.id, handleUserPress, handleOpenModal]); // ✅ FIXED: Stable dependencies
 
+  // ✅ CRITICAL FIX v101.0: Memoize avatar rendering
   const avatarsDisplay = useMemo(() => {
     return tempProfiles.slice(0, 3).map((likeUser, index) => (
       <View
@@ -408,9 +417,9 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         )}
       </View>
     ));
-  }, [tempProfiles]);
+  }, [tempProfiles]); // ✅ FIXED: Only depend on tempProfiles
 
-  // ✅ LINT FIX: Added 'user' to dependencies
+  // ✅ CRITICAL FIX v101.0: Stable renderLikeUser callback
   const renderLikeUser = useCallback(({ item }: { item: LikeUser }) => (
     <TouchableOpacity
       style={styles.modalUserItem}
@@ -438,7 +447,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         </View>
       )}
     </TouchableOpacity>
-  ), [user, handleUserPress]);
+  ), [user?.id, handleUserPress]); // ✅ FIXED: Only depend on user.id
 
   if (currentTotalLikes === 0) {
     return null;
