@@ -29,14 +29,15 @@ import { scaleIconSize, scaleFontSize } from '@/utils/androidScaling';
 
 const { width } = Dimensions.get('window');
 
+// ✅ CRITICAL FIX v105.0: Use teal IconSymbol components (matching Eventos/Favoritos/Explorar style)
 const CATEGORIAS_LOCALES = [
-  { id: 'todos', label: 'Todos', icon: 'mappin.circle.fill', androidIcon: 'location_on' },
+  { id: 'todos', label: 'Todos', icon: 'apps', androidIcon: 'apps' },
   { id: 'cafe', label: 'Cafés', icon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
   { id: 'restaurante', label: 'Restaurantes', icon: 'fork.knife', androidIcon: 'restaurant' },
-  { id: 'bar', label: 'Bares', icon: 'wineglass.fill', androidIcon: 'wine_bar' },
+  { id: 'bar', label: 'Bares', icon: 'wineglass.fill', androidIcon: 'local_bar' },
   { id: 'pub', label: 'Pubs', icon: 'mug.fill', androidIcon: 'sports_bar' },
-  { id: 'cocteleria', label: 'Coctelería', icon: 'wineglass', androidIcon: 'wine_bar' },
-  { id: 'discoteca', label: 'Discotecas', icon: 'music.note', androidIcon: 'music_note' },
+  { id: 'cocteleria', label: 'Coctelería', icon: 'wineglass', androidIcon: 'local_drink' },
+  { id: 'discoteca', label: 'Discotecas', icon: 'music.note', androidIcon: 'nightlife' },
 ];
 
 const COMUNIDAD_COORDINATES: Record<string, { lat: number; lng: number; zoom: number }> = {
@@ -131,16 +132,14 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v103.0 - ANDROID COMPLETE FIXES
+ * ✅ MAP SCREEN v105.0 - TEAL ICONS FIX
  * 
- * CRITICAL FIXES v103.0 (ANDROID ONLY):
- * - ✅ Center button repositioned to bottom-right corner (above bottom nav)
- * - ✅ All icons properly scaled with scaleIconSize()
- * - ✅ All text properly scaled with scaleFontSize()
- * - ✅ Fixed invalid Material icon names (chevron_left → arrow_back)
- * - ✅ Map popup content properly scaled
- * - ✅ Map markers properly scaled (44px → 40px on Android)
- * - ✅ iOS design remains unchanged
+ * CRITICAL FIXES v105.0:
+ * - ✅ Category filters now use TEAL ICONS (matching Eventos/Favoritos/Explorar style)
+ * - ✅ Icons use colors.primary (teal/verde azulado)
+ * - ✅ Active state: white background with teal icon
+ * - ✅ Inactive state: teal background with white icon
+ * - ✅ All previous Android fixes maintained
  */
 
 export default function MapaScreen() {
@@ -164,23 +163,23 @@ export default function MapaScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[MAP v103.0] 🔍 Requesting location permissions...');
+        console.log('[MAP v105.0] 🔍 Requesting location permissions...');
         
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[MAP v103.0] ⚠️ Location services are disabled, using default location (Madrid)');
+          console.log('[MAP v105.0] ⚠️ Location services are disabled, using default location (Madrid)');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[MAP v103.0] ⚠️ Location permission denied, using default location (Madrid)');
+          console.log('[MAP v105.0] ⚠️ Location permission denied, using default location (Madrid)');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
-        console.log('[MAP v103.0] ✅ Location permission granted, getting position...');
+        console.log('[MAP v105.0] ✅ Location permission granted, getting position...');
         
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -192,25 +191,25 @@ export default function MapaScreen() {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
-        console.log('[MAP v103.0] 📍 User location obtained:', {
+        console.log('[MAP v105.0] 📍 User location obtained:', {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
       } catch (error: any) {
-        console.error('[MAP v103.0] ❌ Error getting location:', {
+        console.error('[MAP v105.0] ❌ Error getting location:', {
           message: error?.message || 'Unknown error',
           code: error?.code,
         });
-        console.log('[MAP v103.0] ⚠️ Using default location (Madrid) due to error');
+        console.log('[MAP v105.0] ⚠️ Using default location (Madrid) due to error');
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
   }, []);
 
   useEffect(() => {
-    console.log('⚡ [MAP v103.0] ========================================');
-    console.log('⚡ [MAP v103.0] INSTANT HYDRATION from GlobalDataContext');
-    console.log('⚡ [MAP v103.0] Total locales available:', globalLocales.length);
+    console.log('⚡ [MAP v105.0] ========================================');
+    console.log('⚡ [MAP v105.0] INSTANT HYDRATION from GlobalDataContext');
+    console.log('⚡ [MAP v105.0] Total locales available:', globalLocales.length);
     
     if (globalLocales.length > 0) {
       setIsLoadingMarkers(true);
@@ -257,14 +256,14 @@ export default function MapaScreen() {
 
           setTodosLosLocales(localesTransformados);
           setIsLoadingMarkers(false);
-          console.log(`⚡ [MAP v103.0] ✅ INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
+          console.log(`⚡ [MAP v105.0] ✅ INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
         });
     }
   }, [globalLocales]);
 
   useEffect(() => {
     const backgroundRefresh = async () => {
-      console.log('🔄 [MAP v103.0] Background refresh triggered');
+      console.log('🔄 [MAP v105.0] Background refresh triggered');
       await refreshData(true);
     };
 
@@ -274,7 +273,7 @@ export default function MapaScreen() {
   }, [refreshData]);
 
   const localesFiltradosMemo = useMemo(() => {
-    console.log('[MAP v103.0] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
+    console.log('[MAP v105.0] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
     
     let filtrados = todosLosLocales.filter(local => {
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
@@ -349,7 +348,7 @@ export default function MapaScreen() {
       return matchCategoria && matchEstado && matchGlobalFilters;
     });
     
-    console.log(`[MAP v103.0] ✅ Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
+    console.log(`[MAP v105.0] ✅ Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
     
     return filtrados;
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado, globalFiltros, userLocation]);
@@ -359,7 +358,7 @@ export default function MapaScreen() {
   }, [localesFiltradosMemo]);
 
   const markersData = useMemo(() => {
-    console.log('[MAP v103.0] 🎯 Memoizing markers data...');
+    console.log('[MAP v105.0] 🎯 Memoizing markers data...');
     
     return localesFiltrados.map(local => {
       const estadoCompleto = getEstadoLocal(local);
@@ -473,7 +472,7 @@ export default function MapaScreen() {
           });
         }
       } catch (error) {
-        console.error('[MAP v103.0] Error loading check-ins:', error);
+        console.error('[MAP v105.0] Error loading check-ins:', error);
       }
     }
 
@@ -486,9 +485,9 @@ export default function MapaScreen() {
       };
     });
 
-    console.log(`[MAP v103.0] 🗺️ GENERATING MAP HTML WITH ${markersWithCheckIns.length} MARKERS`);
+    console.log(`[MAP v105.0] 🗺️ GENERATING MAP HTML WITH ${markersWithCheckIns.length} MARKERS`);
 
-    // ✅ CRITICAL FIX v103.0: Apply Android scaling to popup content AND markers
+    // ✅ CRITICAL FIX v105.0: Apply Android scaling to popup content AND markers
     const popupFontSize = Platform.OS === 'android' ? Math.round(14 * 0.80) : 14;
     const popupTitleSize = Platform.OS === 'android' ? Math.round(16 * 0.80) : 16;
     const popupSmallSize = Platform.OS === 'android' ? Math.round(12 * 0.80) : 12;
@@ -519,7 +518,7 @@ export default function MapaScreen() {
       font-family: Roboto, Arial, sans-serif;
     }
     
-    /* ✅ CRITICAL FIX v103.0: Scaled marker sizes for Android */
+    /* ✅ CRITICAL FIX v105.0: Scaled marker sizes for Android */
     .custom-marker {
       width: ${markerSize}px;
       height: ${markerSize}px;
@@ -561,7 +560,7 @@ export default function MapaScreen() {
       box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
     }
     
-    /* ✅ CRITICAL FIX v103.0: Scaled event indicator */
+    /* ✅ CRITICAL FIX v105.0: Scaled event indicator */
     .event-indicator {
       position: absolute;
       top: -6px;
@@ -800,7 +799,7 @@ export default function MapaScreen() {
   <div id="map"></div>
   <script>
     try {
-      console.log('[MAP HTML v103.0] ⚡ INSTANT INITIALIZATION');
+      console.log('[MAP HTML v105.0] ⚡ INSTANT INITIALIZATION');
       
       var map = L.map('map', {
         zoomControl: false,
@@ -1001,7 +1000,7 @@ export default function MapaScreen() {
 
       map.addLayer(markers);
       
-      console.log('[MAP HTML v103.0] ✅ Map initialized successfully');
+      console.log('[MAP HTML v105.0] ✅ Map initialized successfully');
       
       setTimeout(function() {
         map.invalidateSize();
@@ -1009,7 +1008,7 @@ export default function MapaScreen() {
       }, 100);
       
       window.flyToLocation = function(lat, lng, zoom) {
-        console.log('[MAP HTML v103.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
+        console.log('[MAP HTML v105.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
         map.flyTo([lat, lng], zoom, {
           animate: true,
           duration: 1.5,
@@ -1018,7 +1017,7 @@ export default function MapaScreen() {
       };
       
     } catch (error) {
-      console.error('[MAP HTML v103.0] Map initialization error:', error);
+      console.error('[MAP HTML v105.0] Map initialization error:', error);
     }
   </script>
 </body>
@@ -1029,7 +1028,7 @@ export default function MapaScreen() {
   useEffect(() => {
     const generateHTML = async () => {
       if (localesFiltrados.length > 0 && !isLoadingMarkers) {
-        console.log('[MAP v103.0] 🚀 Generating map HTML with', localesFiltrados.length, 'markers');
+        console.log('[MAP v105.0] 🚀 Generating map HTML with', localesFiltrados.length, 'markers');
         const html = await generateMapHTML();
         setMapHTML(html);
       }
@@ -1049,7 +1048,7 @@ export default function MapaScreen() {
       
       if (globalFiltros.provincia && PROVINCIA_COORDINATES[globalFiltros.provincia]) {
         const coords = PROVINCIA_COORDINATES[globalFiltros.provincia];
-        console.log(`[MAP v103.0] 🛫 FLY-TO: Province "${globalFiltros.provincia}"`, coords);
+        console.log(`[MAP v105.0] 🛫 FLY-TO: Province "${globalFiltros.provincia}"`, coords);
         
         webViewRef.current.injectJavaScript(`
           if (typeof window.flyToLocation !== 'undefined') {
@@ -1060,7 +1059,7 @@ export default function MapaScreen() {
       }
       else if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades' && COMUNIDAD_COORDINATES[globalFiltros.comunidad]) {
         const coords = COMUNIDAD_COORDINATES[globalFiltros.comunidad];
-        console.log(`[MAP v103.0] 🛫 FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
+        console.log(`[MAP v105.0] 🛫 FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
         
         webViewRef.current.injectJavaScript(`
           if (typeof window.flyToLocation !== 'undefined') {
@@ -1107,27 +1106,27 @@ export default function MapaScreen() {
   };
 
   const handleVerDetalles = (localId: string) => {
-    console.log('[MAP v103.0] Navigating to local details:', localId);
+    console.log('[MAP v105.0] Navigating to local details:', localId);
     router.push(`/detalle/local?id=${localId}`);
   };
 
   const handleWebViewMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      console.log('📨 [MAP v103.0] Received message from WebView:', data);
+      console.log('📨 [MAP v105.0] Received message from WebView:', data);
       
       if (data.type === 'navigate' && data.id) {
         handleVerDetalles(data.id);
       } else if (data.type === 'map_ready') {
-        console.log('✅ [MAP v103.0] Map is ready for interactions');
+        console.log('✅ [MAP v105.0] Map is ready for interactions');
         setIsMapReady(true);
       }
     } catch (error) {
-      console.error('❌ [MAP v103.0] Error parsing WebView message:', error);
+      console.error('❌ [MAP v105.0] Error parsing WebView message:', error);
     }
   };
 
-  // ✅ CRITICAL FIX v103.0: Calculate scaled sizes
+  // ✅ CRITICAL FIX v105.0: Calculate scaled sizes
   const categoryIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
   const controlButtonSize = Platform.OS === 'android' ? scaleIconSize(48) : 48;
   const controlIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
@@ -1180,7 +1179,7 @@ export default function MapaScreen() {
                 domStorageEnabled={true}
                 onError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
-                  console.error('[MAP v103.0] WebView error:', nativeEvent);
+                  console.error('[MAP v105.0] WebView error:', nativeEvent);
                 }}
               />
             )}
@@ -1211,11 +1210,12 @@ export default function MapaScreen() {
                   styles.categoriaIconContainer,
                   categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive
                 ]}>
+                  {/* ✅ CRITICAL FIX v105.0: Use teal icons (matching Eventos/Favoritos/Explorar) */}
                   <IconSymbol 
                     ios_icon_name={categoria.icon as any}
                     android_material_icon_name={categoria.androidIcon}
                     size={categoryIconSize} 
-                    color={categoriaSeleccionada === categoria.id ? '#FFFFFF' : colors.primary}
+                    color={categoriaSeleccionada === categoria.id ? colors.primary : colors.white}
                   />
                 </View>
                 <Text style={[
@@ -1232,7 +1232,6 @@ export default function MapaScreen() {
       </View>
 
       <View style={styles.controlsLeft}>
-        {/* ✅ CRITICAL FIX v103.0: Fixed invalid icon name chevron_left → arrow_back */}
         <TouchableOpacity 
           style={[styles.controlButton, {
             width: controlButtonSize,
@@ -1318,7 +1317,7 @@ export default function MapaScreen() {
         </View>
       </View>
 
-      {/* ✅ CRITICAL FIX v103.0: Center button repositioned to bottom-right corner on Android */}
+      {/* ✅ CRITICAL FIX v105.0: Center button repositioned to bottom-right corner on Android */}
       <TouchableOpacity 
         style={[styles.centerButton, {
           width: centerButtonSize,
@@ -1435,10 +1434,10 @@ const styles = StyleSheet.create({
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: colors.primary,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: colors.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -1446,8 +1445,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   categoriaIconContainerActive: {
-    borderColor: colors.primary,
-    backgroundColor: '#00FF88',
+    borderColor: colors.white,
+    backgroundColor: colors.white,
     shadowOpacity: 0.25,
   },
   categoriaLabel: {
