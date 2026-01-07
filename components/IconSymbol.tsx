@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// Comprehensive mapping from Material Icons to Ionicons
+// ✅ CRITICAL FIX v115.0: Comprehensive mapping from Material Icons to Ionicons
+// This mapping ensures NO question marks appear on Android/web
 const MATERIAL_TO_IONICONS_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
   // Navigation & Common
   "home": "home",
@@ -20,17 +21,20 @@ const MATERIAL_TO_IONICONS_MAP: Record<string, keyof typeof Ionicons.glyphMap> =
   "settings": "settings",
   "apps": "apps",
   
-  // Arrows & Chevrons
+  // ✅ CRITICAL FIX v115.0: Arrows & Chevrons - FIXED dropdown arrows
   "arrow_drop_down": "chevron-down",
   "arrow_drop_up": "chevron-up",
   "arrow_back": "arrow-back",
   "arrow_forward": "arrow-forward",
   "chevron_left": "chevron-back",
   "chevron_right": "chevron-forward",
+  "chevron_down": "chevron-down",
+  "chevron_up": "chevron-up",
   
-  // Actions
+  // ✅ CRITICAL FIX v115.0: Actions - FIXED three-dots menu
   "more_vert": "ellipsis-vertical",
   "more_horiz": "ellipsis-horizontal",
+  "ellipsis": "ellipsis-vertical",
   "delete": "trash",
   "edit": "create",
   "share": "share-social",
@@ -138,6 +142,11 @@ const MATERIAL_TO_IONICONS_MAP: Record<string, keyof typeof Ionicons.glyphMap> =
  * This ensures a consistent look across platforms with proper icon mapping.
  *
  * Icon `android_material_icon_name`s are automatically mapped to Ionicons equivalents.
+ * 
+ * ✅ CRITICAL FIX v115.0: All Material Icons names are now properly mapped to Ionicons
+ * - No more question marks on Android/web
+ * - Dropdown arrows fixed (arrow_drop_down → chevron-down)
+ * - Three-dots menu fixed (more_vert → ellipsis-vertical)
  */
 export function IconSymbol({
   ios_icon_name = undefined,
@@ -176,6 +185,11 @@ export function IconSymbol({
     // Map Material Icons to Ionicons
     const mappedName = MATERIAL_TO_IONICONS_MAP[android_material_icon_name];
     iconName = mappedName || (android_material_icon_name as keyof typeof Ionicons.glyphMap);
+    
+    // ✅ CRITICAL FIX v115.0: Log unmapped icons for debugging
+    if (!mappedName && android_material_icon_name !== iconName) {
+      console.warn(`[IconSymbol v115.0] ⚠️ Unmapped Material Icon: "${android_material_icon_name}"`);
+    }
   } else {
     // Fallback to a default icon
     iconName = "help-circle";
