@@ -59,7 +59,7 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
-// ✅ CRITICAL FIX v110.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos)
+// ✅ CRITICAL FIX v111.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
@@ -71,15 +71,14 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v110.0 - COMPLETE FIXES
+ * ✅ EXPLORAR SCREEN v111.0 - SCROLL UP TO SHOW HEADER + MODE SELECTOR FIX
  * 
- * CRITICAL FIXES v110.0:
- * - ✅ FIXED: ProfileSwitcher dropdown now shows properly with 3 options
- * - ✅ FIXED: Map icon moved to RIGHT side of mode selector
- * - ✅ FIXED: Banner moved BELOW category filters
- * - ✅ REMOVED: Venue count section completely removed
- * - ✅ ENABLED: Header hides on scroll down gesture
+ * CRITICAL FIXES v111.0:
+ * - ✅ FIXED: Header reappears when scrolling UP (gesture hacia arriba)
+ * - ✅ FIXED: Mode selector shows Cliente/Propietario/Admin roles (not profile)
  * - ✅ Category filters use TEAL-COLORED ICONS (matching Eventos & Favoritos)
+ * - ✅ Map icon positioned on RIGHT side of mode selector
+ * - ✅ Banner positioned BELOW category filters
  */
 
 export default function ExplorarScreen() {
@@ -99,7 +98,7 @@ export default function ExplorarScreen() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [checkingSocialProfiles, setCheckingSocialProfiles] = useState<Set<string>>(new Set());
   const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
-  const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
+  const [showModeSelectorModal, setShowModeSelectorModal] = useState(false);
   
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
@@ -107,13 +106,10 @@ export default function ExplorarScreen() {
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
+  const scrollDirection = useRef<'up' | 'down'>('down');
 
-  // ✅ v110.0: Header translation for scroll-to-hide
-  const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [0, -HEADER_SCROLL_DISTANCE],
-    extrapolate: 'clamp',
-  });
+  // ✅ v111.0: Header translation for scroll-to-hide/show
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     (async () => {
@@ -125,10 +121,10 @@ export default function ExplorarScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Explorar v110.0] User location obtained:', location.coords);
+          console.log('[Explorar v111.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Explorar v110.0] Error getting location:', error);
+        console.error('[Explorar v111.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -154,13 +150,13 @@ export default function ExplorarScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Explorar v110.0] Error checking social profiles:', error);
+      console.error('[Explorar v111.0] Error checking social profiles:', error);
     }
   }, []);
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v110.0] Cargando locales...');
+      console.log('[Explorar v111.0] Cargando locales...');
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
         .select('*')
@@ -201,12 +197,12 @@ export default function ExplorarScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Explorar v110.0] Locales cargados:', formattedLocales.length);
+        console.log('[Explorar v111.0] Locales cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Explorar v110.0] Error cargando locales:', error);
+      console.error('[Explorar v111.0] Error cargando locales:', error);
     } finally {
       setLoading(false);
     }
@@ -218,7 +214,7 @@ export default function ExplorarScreen() {
 
   useEffect(() => {
     if (userLocation && allLocales.length > 0) {
-      console.log('[Explorar v110.0] Recalculating distances with new user location');
+      console.log('[Explorar v111.0] Recalculating distances with new user location');
       const updatedLocales = allLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -280,7 +276,7 @@ export default function ExplorarScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Explorar v110.0] Filters applied. Results:', filtered.length);
+    console.log('[Explorar v111.0] Filters applied. Results:', filtered.length);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allLocales]);
 
   const loadMoreLocales = useCallback(() => {
@@ -298,7 +294,7 @@ export default function ExplorarScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Explorar v110.0] Cargando más locales, página:', nextPage);
+        console.log('[Explorar v111.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -308,7 +304,7 @@ export default function ExplorarScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v110.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v111.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -318,7 +314,7 @@ export default function ExplorarScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v110.0] 🧹 Clearing all filters');
+    console.log('[Explorar v111.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -338,13 +334,13 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v110.0] User not authenticated');
+      console.log('[Explorar v111.0] User not authenticated');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v110.0] No local ID');
+      console.log('[Explorar v111.0] No local ID');
       return;
     }
 
@@ -357,7 +353,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v110.0] Removing from favorites');
+        console.log('[Explorar v111.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -366,7 +362,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v110.0] Adding to favorites');
+        console.log('[Explorar v111.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -379,7 +375,7 @@ export default function ExplorarScreen() {
       
       await loadLocales();
     } catch (error) {
-      console.error('[Explorar v110.0] Error toggling favorito:', error);
+      console.error('[Explorar v111.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
@@ -396,12 +392,12 @@ export default function ExplorarScreen() {
     router.push(`/perfil/local?localId=${localId}`);
   };
 
-  // ✅ v110.0: Navigate to map page
+  // ✅ v111.0: Navigate to map page
   const handleNavigateToMap = () => {
     router.push('/(tabs)/explorar/mapa');
   };
 
-  // ✅ v110.0: Navigate to claim/create local
+  // ✅ v111.0: Navigate to claim/create local
   const handleClaimOrCreateLocal = () => {
     if (!user) {
       setShowLoginModal(true);
@@ -410,23 +406,30 @@ export default function ExplorarScreen() {
     router.push('/auth/local-ownership-request');
   };
 
-  // ✅ v110.0: Get mode label
+  // ✅ v111.0: Get mode label for display
   const getModeLabel = () => {
     if (currentMode === 'admin') return 'Admin';
-    if (currentMode === 'propietario') {
-      if (activeProfileType === 'local' && activeLocalData) {
-        return activeLocalData.nombre;
-      }
-      return 'Propietario';
-    }
+    if (currentMode === 'propietario') return 'Propietario';
     return 'Cliente';
   };
 
-  // ✅ v110.0: Get mode icon
+  // ✅ v111.0: Get mode icon
   const getModeIcon = () => {
     if (currentMode === 'admin') return { ios: 'shield.fill', android: 'admin_panel_settings' };
     if (currentMode === 'propietario') return { ios: 'building.2.fill', android: 'store' };
     return { ios: 'person.fill', android: 'person' };
+  };
+
+  // ✅ v111.0: Handle mode change
+  const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
+    try {
+      console.log('[Explorar v111.0] Changing mode to:', newMode);
+      await setCurrentMode(newMode);
+      setShowModeSelectorModal(false);
+    } catch (error) {
+      console.error('[Explorar v111.0] Error changing mode:', error);
+      Alert.alert('Error', 'No se pudo cambiar el modo');
+    }
   };
 
   const renderLocalCard = ({ item }: { item: any }) => {
@@ -700,6 +703,7 @@ export default function ExplorarScreen() {
     );
   };
 
+  // ✅ v111.0: CRITICAL FIX - Scroll handler that shows header on scroll UP
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     {
@@ -708,11 +712,29 @@ export default function ExplorarScreen() {
         const currentScrollY = event.nativeEvent.contentOffset.y;
         const diff = currentScrollY - lastScrollY.current;
         
-        // ✅ v110.0: Log scroll direction for debugging
+        // Determine scroll direction
         if (diff > 5) {
-          console.log('[Explorar v110.0] Scrolling down, hiding header');
+          // Scrolling DOWN - hide header
+          if (scrollDirection.current !== 'down') {
+            console.log('[Explorar v111.0] 📜 Scrolling DOWN, hiding header');
+            scrollDirection.current = 'down';
+            Animated.timing(headerTranslateY, {
+              toValue: -HEADER_SCROLL_DISTANCE,
+              duration: 250,
+              useNativeDriver: true,
+            }).start();
+          }
         } else if (diff < -5) {
-          console.log('[Explorar v110.0] Scrolling up, showing header');
+          // Scrolling UP - show header
+          if (scrollDirection.current !== 'up') {
+            console.log('[Explorar v111.0] 📜 Scrolling UP, showing header');
+            scrollDirection.current = 'up';
+            Animated.timing(headerTranslateY, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: true,
+            }).start();
+          }
         }
         
         lastScrollY.current = currentScrollY;
@@ -745,15 +767,15 @@ export default function ExplorarScreen() {
 
   const HeaderContent = () => (
     <React.Fragment>
-      {/* ✅ FIXED v110.0: Header top with mode selector and map icon on the RIGHT */}
+      {/* ✅ FIXED v111.0: Header top with mode selector and map icon on the RIGHT */}
       <View style={styles.headerTop}>
         <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Explorar</Text>
         <View style={styles.headerActions}>
-          {/* ✅ FIXED v110.0: Mode selector FIRST (on the left) */}
+          {/* ✅ FIXED v111.0: Mode selector FIRST (on the left) - shows role, not profile */}
           {user && (
             <TouchableOpacity 
               style={styles.modeSelectorButton}
-              onPress={() => setShowProfileSwitcher(true)}
+              onPress={() => setShowModeSelectorModal(true)}
               activeOpacity={0.7}
             >
               <IconSymbol 
@@ -774,7 +796,7 @@ export default function ExplorarScreen() {
             </TouchableOpacity>
           )}
 
-          {/* ✅ FIXED v110.0: Map icon SECOND (on the right) */}
+          {/* ✅ FIXED v111.0: Map icon SECOND (on the right) */}
           <TouchableOpacity 
             style={styles.mapButton}
             onPress={handleNavigateToMap}
@@ -843,7 +865,7 @@ export default function ExplorarScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ CRITICAL FIX v110.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos) */}
+      {/* ✅ CRITICAL FIX v111.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos) */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -888,7 +910,7 @@ export default function ExplorarScreen() {
         ))}
       </ScrollView>
 
-      {/* ✅ FIXED v110.0: Banner moved BELOW category filters */}
+      {/* ✅ FIXED v111.0: Banner moved BELOW category filters */}
       {user && (
         <TouchableOpacity 
           style={styles.claimBanner}
@@ -919,8 +941,6 @@ export default function ExplorarScreen() {
           </View>
         </TouchableOpacity>
       )}
-
-      {/* ✅ REMOVED v110.0: Venue count section completely removed */}
     </React.Fragment>
   );
 
@@ -928,7 +948,7 @@ export default function ExplorarScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅ ENABLED v110.0: Animated header that hides on scroll down */}
+      {/* ✅ ENABLED v111.0: Animated header that hides on scroll down, shows on scroll up */}
       {Platform.OS === 'android' ? (
         <Animated.View
           style={[
@@ -979,6 +999,127 @@ export default function ExplorarScreen() {
         onScroll={Platform.OS === 'android' ? handleScroll : undefined}
         scrollEventThrottle={16}
       />
+
+      {/* ✅ v111.0: Mode selector modal - shows Cliente/Propietario/Admin roles */}
+      <Modal
+        visible={showModeSelectorModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowModeSelectorModal(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowModeSelectorModal(false)}
+        >
+          <Pressable style={styles.modeSelectorModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Seleccionar Rol</Text>
+              <TouchableOpacity onPress={() => setShowModeSelectorModal(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(24)} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modeOptionsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.modeOption,
+                  currentMode === 'cliente' && styles.modeOptionActive
+                ]}
+                onPress={() => handleModeChange('cliente')}
+                activeOpacity={0.7}
+              >
+                <IconSymbol 
+                  ios_icon_name="person.fill" 
+                  android_material_icon_name="person" 
+                  size={scaleIconSize(32)} 
+                  color={currentMode === 'cliente' ? colors.primary : colors.text} 
+                />
+                <Text style={[
+                  styles.modeOptionText,
+                  { fontSize: scaleFontSize(16) },
+                  currentMode === 'cliente' && styles.modeOptionTextActive
+                ]}>
+                  Cliente
+                </Text>
+                {currentMode === 'cliente' && (
+                  <IconSymbol 
+                    ios_icon_name="checkmark.circle.fill" 
+                    android_material_icon_name="check_circle" 
+                    size={scaleIconSize(24)} 
+                    color={colors.primary} 
+                  />
+                )}
+              </TouchableOpacity>
+
+              {(user?.rol_app === 'propietario' || user?.rol_app === 'admin') && (
+                <TouchableOpacity
+                  style={[
+                    styles.modeOption,
+                    currentMode === 'propietario' && styles.modeOptionActive
+                  ]}
+                  onPress={() => handleModeChange('propietario')}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol 
+                    ios_icon_name="building.2.fill" 
+                    android_material_icon_name="store" 
+                    size={scaleIconSize(32)} 
+                    color={currentMode === 'propietario' ? colors.primary : colors.text} 
+                  />
+                  <Text style={[
+                    styles.modeOptionText,
+                    { fontSize: scaleFontSize(16) },
+                    currentMode === 'propietario' && styles.modeOptionTextActive
+                  ]}>
+                    Propietario
+                  </Text>
+                  {currentMode === 'propietario' && (
+                    <IconSymbol 
+                      ios_icon_name="checkmark.circle.fill" 
+                      android_material_icon_name="check_circle" 
+                      size={scaleIconSize(24)} 
+                      color={colors.primary} 
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {user?.rol_app === 'admin' && (
+                <TouchableOpacity
+                  style={[
+                    styles.modeOption,
+                    currentMode === 'admin' && styles.modeOptionActive
+                  ]}
+                  onPress={() => handleModeChange('admin')}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol 
+                    ios_icon_name="shield.fill" 
+                    android_material_icon_name="admin_panel_settings" 
+                    size={scaleIconSize(32)} 
+                    color={currentMode === 'admin' ? colors.primary : colors.text} 
+                  />
+                  <Text style={[
+                    styles.modeOptionText,
+                    { fontSize: scaleFontSize(16) },
+                    currentMode === 'admin' && styles.modeOptionTextActive
+                  ]}>
+                    Admin
+                  </Text>
+                  {currentMode === 'admin' && (
+                    <IconSymbol 
+                      ios_icon_name="checkmark.circle.fill" 
+                      android_material_icon_name="check_circle" 
+                      size={scaleIconSize(24)} 
+                      color={colors.primary} 
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal
         visible={mostrarFiltros}
@@ -1093,12 +1234,6 @@ export default function ExplorarScreen() {
       <LoginRequiredModal
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-      />
-
-      {/* ✅ FIXED v110.0: Profile switcher modal properly connected */}
-      <ProfileSwitcher
-        visible={showProfileSwitcher}
-        onClose={() => setShowProfileSwitcher(false)}
       />
     </View>
   );
@@ -1577,6 +1712,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     maxHeight: '80%',
   },
+  modeSelectorModal: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '60%',
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1589,6 +1730,33 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontWeight: 'bold',
     color: colors.text,
+  },
+  modeOptionsContainer: {
+    padding: 20,
+    gap: 12,
+  },
+  modeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  modeOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '10',
+  },
+  modeOptionText: {
+    flex: 1,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  modeOptionTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
   },
   modalScrollView: {
     maxHeight: '100%',
