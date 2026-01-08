@@ -5,7 +5,6 @@ import { IconSymbol } from "@/components/IconSymbol";
 import { useTheme } from "@react-navigation/native";
 import { ModalDemo } from "./homeData";
 import { GlassView } from "expo-glass-effect";
-import { scaleFontSize, scaleIconSize } from "@/utils/androidScaling";
 
 interface DemoCardProps {
   item: ModalDemo;
@@ -23,7 +22,7 @@ export function DemoCard({ item }: DemoCardProps) {
       glassEffectStyle="regular"
     >
       <View style={[styles.demoIcon, { backgroundColor: item.color }]}>
-        <IconSymbol ios_icon_name="square.grid.3x3" android_material_icon_name="apps" color={theme.dark ? '#111111' : '#FFFFFF'} size={scaleIconSize(24)} />
+        <IconSymbol ios_icon_name="square.grid.3x3" android_material_icon_name="apps" color={theme.dark ? '#111111' : '#FFFFFF'} size={24} />
       </View>
       <View style={styles.demoContent}>
         <Text style={[styles.demoTitle, { color: theme.colors.text }]}>
@@ -71,13 +70,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   demoTitle: {
-    fontSize: scaleFontSize(18),
+    fontSize: 18,
     fontWeight: '600',
     marginBottom: 4,
   },
   demoDescription: {
-    fontSize: scaleFontSize(14),
-    lineHeight: scaleFontSize(18),
+    fontSize: 14,
+    lineHeight: 18,
   },
   tryButton: {
     paddingHorizontal: 16,
@@ -85,7 +84,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   tryButtonText: {
-    fontSize: scaleFontSize(14),
+    fontSize: 14,
     fontWeight: '600',
   },
 });

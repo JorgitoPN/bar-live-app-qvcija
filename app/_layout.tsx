@@ -91,30 +91,6 @@ export default function RootLayout() {
                         <Stack.Screen name="legal" options={{ headerShown: false }} />
                         <Stack.Screen name="soporte" options={{ headerShown: false }} />
                         <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
-                        
-                        {/* Modal presentations */}
-                        <Stack.Screen 
-                          name="modal" 
-                          options={{ 
-                            presentation: 'modal',
-                            headerShown: false 
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="formsheet" 
-                          options={{ 
-                            presentation: 'formSheet',
-                            headerShown: false 
-                          }} 
-                        />
-                        <Stack.Screen 
-                          name="transparent-modal" 
-                          options={{ 
-                            presentation: 'transparentModal',
-                            headerShown: false,
-                            animation: 'fade'
-                          }} 
-                        />
                       </Stack>
                     </PostsProvider>
                   </FilterProvider>
