@@ -1,260 +1,133 @@
 
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
 
-/**
- * ✅ COMMON STYLES v93.0 - ANDROID RESPONSIVE SCALING FIX
- * 
- * CRITICAL FIXES v93.0 (ANDROID ONLY):
- * - ✅ Significantly reduced font sizes on Android for better responsiveness
- * - ✅ Reduced header padding to save screen space
- * - ✅ Adjusted all text sizes to prevent oversized appearance
- * - ✅ Content now scales properly on Android devices
- * - ✅ iOS design remains unchanged (reference design)
- * 
- * Previous fixes maintained:
- * - ✅ Consistent colors across all platforms
- * - ✅ Proper safe area handling
- * - ✅ Platform-specific adjustments for optimal UX
- * - ✅ Unified design system
- */
-
-// Header gradient colors - abc
+// Color palette
 export const colors = {
-  // Primary brand colors
-  primary: '#14B8A6',
-  secondary: '#06B6D4',
-  
-  // Header gradient
-  headerGradientStart: '#14B8A6',
-  headerGradientEnd: '#06B6D4',
-  headerText: '#FFFFFF',
+  // Primary colors
+  primary: '#007AFF',
+  primaryDark: '#0051D5',
+  primaryLight: '#4DA2FF',
   
   // Background colors
-  background: '#F9FAFB',
-  cardBackground: '#FFFFFF',
-  cardBorder: '#E5E7EB',
+  background: '#000000',
+  backgroundSecondary: '#1C1C1E',
+  card: '#2C2C2E',
   
   // Text colors
-  text: '#111827',
-  textSecondary: '#6B7280',
-  textTertiary: '#9CA3AF',
+  text: '#FFFFFF',
+  textSecondary: '#8E8E93',
+  textTertiary: '#636366',
+  
+  // UI colors
+  border: '#38383A',
+  separator: '#48484A',
   
   // Status colors
-  success: '#10B981',
-  error: '#EF4444',
-  warning: '#F59E0B',
-  info: '#3B82F6',
+  success: '#34C759',
+  error: '#FF3B30',
+  warning: '#FF9500',
+  info: '#007AFF',
   
-  // Badge colors
-  badgeAbierto: '#22C55E',
-  badgeCerrado: '#EF4444',
-  badgeCierraPronto: '#F97316',
-  badgeAbrePronto: '#EAB308',
-  badgeNuevo: '#EF4444',
-  badgeDestacado: '#FACC15',
+  // Accent colors
+  accent: '#FF2D55',
+  accentSecondary: '#5856D6',
   
-  // Social colors
-  like: '#EF4444',
-  comment: '#3B82F6',
-  share: '#10B981',
-  save: '#F59E0B',
-  
-  // Utility colors
-  white: '#FFFFFF',
-  black: '#000000',
-  transparent: 'transparent',
-  
-  // Overlay colors
+  // Transparent overlays
   overlay: 'rgba(0, 0, 0, 0.5)',
   overlayLight: 'rgba(0, 0, 0, 0.3)',
   overlayDark: 'rgba(0, 0, 0, 0.7)',
-  
-  // Border colors
-  border: '#E5E7EB',
-  borderLight: '#F3F4F6',
-  borderDark: '#D1D5DB',
 };
 
+// Common styles
 export const commonStyles = StyleSheet.create({
-  // ✅ ANDROID FIX v93.0: Container with proper padding matching iOS
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop: 0,
   },
-  
-  // ✅ ANDROID FIX v93.0: Header gradient with significantly reduced padding on Android
-  headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 36, // Reduced from 40 to 36 on Android
-    paddingBottom: Platform.OS === 'ios' ? 16 : 10, // Reduced from 12 to 10 on Android
-    paddingHorizontal: 20,
-  },
-  
-  // ✅ ANDROID FIX v93.0: Significantly reduced header title size on Android
-  headerTitle: {
-    fontSize: Platform.OS === 'ios' ? 32 : 24, // Reduced from 28 to 24 on Android (25% reduction)
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  
-  // ✅ ANDROID FIX v93.0: Reduced header subtitle size on Android
-  headerSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 15 : 13, // Reduced from 14 to 13 on Android
-    color: colors.headerText,
-    opacity: 0.9,
-    marginTop: 4,
-  },
-  
-  // Card styles
   card: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  
-  // Shadow styles
-  shadow: Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-    },
-    android: {
-      elevation: 4,
-    },
-    default: {},
-  }),
-  
-  shadowLarge: Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
-    },
-    android: {
-      elevation: 8,
-    },
-    default: {},
-  }),
-  
-  // Button styles
-  button: {
+    backgroundColor: colors.card,
     borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    padding: 16,
+    marginBottom: 12,
+  },
+  cardShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
-  buttonPrimary: {
-    backgroundColor: colors.primary,
-  },
-  
-  buttonSecondary: {
-    backgroundColor: colors.secondary,
-  },
-  
   buttonText: {
+    color: colors.text,
     fontSize: 16,
     fontWeight: '600',
-    color: colors.white,
   },
-  
-  // Input styles
   input: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    padding: 12,
     fontSize: 16,
     color: colors.text,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: colors.border,
   },
-  
-  // ✅ ANDROID FIX v93.0: Significantly reduced text sizes for better Android responsiveness
   title: {
-    fontSize: Platform.OS === 'ios' ? 24 : 20, // Reduced from 22 to 20 on Android
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
+    marginBottom: 8,
   },
-  
   subtitle: {
-    fontSize: Platform.OS === 'ios' ? 18 : 16, // Reduced from 17 to 16 on Android
+    fontSize: 18,
     fontWeight: '600',
     color: colors.text,
+    marginBottom: 6,
   },
-  
-  body: {
-    fontSize: Platform.OS === 'ios' ? 16 : 15, // Reduced from 16 to 15 on Android
+  text: {
+    fontSize: 16,
     color: colors.text,
-    lineHeight: 24,
   },
-  
-  caption: {
-    fontSize: Platform.OS === 'ios' ? 14 : 13, // Reduced from 14 to 13 on Android
+  textSecondary: {
+    fontSize: 14,
     color: colors.textSecondary,
   },
-  
-  // Layout styles
+  textSmall: {
+    fontSize: 12,
+    color: colors.textTertiary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.separator,
+    marginVertical: 12,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
-  column: {
-    flexDirection: 'column',
-  },
-  
-  center: {
-    justifyContent: 'center',
+  spaceBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  
-  spaceBetween: {
-    justifyContent: 'space-between',
-  },
-  
-  // Spacing
-  marginSmall: {
-    margin: 8,
-  },
-  
-  marginMedium: {
-    margin: 16,
-  },
-  
-  marginLarge: {
-    margin: 24,
-  },
-  
-  paddingSmall: {
-    padding: 8,
-  },
-  
-  paddingMedium: {
-    padding: 16,
-  },
-  
-  paddingLarge: {
-    padding: 24,
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
-export default commonStyles;
+// Header gradient colors
+export const headerGradientColors = ['#1a1a1a', '#000000'];
+
+// Tab bar colors
+export const tabBarColors = {
+  active: colors.primary,
+  inactive: colors.textSecondary,
+  background: colors.backgroundSecondary,
+};
