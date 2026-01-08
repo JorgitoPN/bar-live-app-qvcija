@@ -3,8 +3,7 @@ import { StyleSheet, Text, View, Pressable, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { GlassView } from 'expo-glass-effect';
 import { useTheme } from '@react-navigation/native';
-
-const scaleFontSize = (size: number) => Platform.OS === 'android' ? size * 0.8 : size;
+import { scaleFontSize } from '@/utils/androidScaling';
 
 export default function FormSheetModal() {
   const theme = useTheme();
@@ -45,7 +44,7 @@ const styles = StyleSheet.create({
   },
   button: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: Platform.OS === 'android' ? 10 : 12,
     borderRadius: 8,
   },
   buttonText: {
