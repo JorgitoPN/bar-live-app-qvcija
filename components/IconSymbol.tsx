@@ -11,147 +11,197 @@ import {
 } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
-// Comprehensive icon mapping for all icons used in the app
+// Comprehensive icon mapping to ensure valid MaterialIcons names
+// Maps SF Symbols (iOS) and custom names to Material Icons
 const ICON_MAPPING: Record<string, keyof typeof MaterialIcons.glyphMap> = {
-  // Outline variants
-  'home-outline': 'home',
-  'calendar-outline': 'event',
-  'heart-outline': 'favorite-border',
-  'compass-outline': 'explore',
-  'people-outline': 'people-outline',
-  'business-outline': 'business',
-  'briefcase-outline': 'work-outline',
-  'settings-outline': 'settings',
-  'person-outline': 'person-outline',
-  'notifications-outline': 'notifications-none',
-  'chatbubble-outline': 'chat-bubble-outline',
-  'search-outline': 'search',
-  'add-outline': 'add-circle-outline',
-  'close-outline': 'close',
-  'checkmark-outline': 'check-circle-outline',
-  'trash-outline': 'delete-outline',
-  'create-outline': 'edit',
-  'eye-outline': 'visibility',
-  'eye-off-outline': 'visibility-off',
-  'lock-closed-outline': 'lock-outline',
-  'mail-outline': 'email',
-  'call-outline': 'phone',
-  'location-outline': 'location-on',
-  'time-outline': 'access-time',
-  'star-outline': 'star-border',
-  'share-outline': 'share',
-  'bookmark-outline': 'bookmark-border',
-  'image-outline': 'image',
-  'camera-outline': 'camera-alt',
-  'document-outline': 'description',
-  'folder-outline': 'folder',
-  'download-outline': 'download',
-  'cloud-upload-outline': 'cloud-upload',
-  'arrow-back-outline': 'arrow-back',
-  'arrow-forward-outline': 'arrow-forward',
-  'chevron-back-outline': 'chevron-left',
-  'chevron-forward-outline': 'chevron-right',
-  'chevron-down-outline': 'keyboard-arrow-down',
-  'chevron-up-outline': 'keyboard-arrow-up',
-  'menu-outline': 'menu',
-  'ellipsis-horizontal-outline': 'more-horiz',
-  'ellipsis-vertical-outline': 'more-vert',
-  'filter-outline': 'filter-list',
-  'options-outline': 'tune',
-  'refresh-outline': 'refresh',
-  'sync-outline': 'sync',
-  'warning-outline': 'warning',
-  'information-circle-outline': 'info',
-  'help-circle-outline': 'help-outline',
-  'alert-circle-outline': 'error-outline',
-  'checkmark-circle-outline': 'check-circle-outline',
-  'close-circle-outline': 'cancel',
-  
-  // Filled variants
-  'home': 'home',
-  'calendar': 'event',
-  'heart': 'favorite',
-  'compass': 'explore',
-  'people': 'people',
-  'business': 'business',
-  'briefcase': 'work',
-  'settings': 'settings',
+  // Basic icons
   'person': 'person',
-  'notifications': 'notifications',
-  'chatbubble': 'chat-bubble',
-  'search': 'search',
-  'add': 'add-circle',
-  'close': 'close',
-  'checkmark': 'check-circle',
-  'trash': 'delete',
-  'create': 'edit',
-  'eye': 'visibility',
-  'eye-off': 'visibility-off',
-  'lock-closed': 'lock',
+  'home': 'home',
+  'phone': 'phone',
+  'email': 'email',
   'mail': 'email',
-  'call': 'phone',
-  'location': 'location-on',
-  'time': 'access-time',
-  'star': 'star',
-  'share': 'share',
-  'bookmark': 'bookmark',
-  'image': 'image',
-  'camera': 'camera-alt',
-  'document': 'description',
-  'folder': 'folder',
-  'download': 'download',
-  'cloud-upload': 'cloud-upload',
-  'arrow-back': 'arrow-back',
-  'arrow-forward': 'arrow-forward',
-  'chevron-back': 'chevron-left',
-  'chevron-forward': 'chevron-right',
-  'chevron-down': 'keyboard-arrow-down',
-  'chevron-up': 'keyboard-arrow-up',
+  'search': 'search',
   'menu': 'menu',
-  'ellipsis-horizontal': 'more-horiz',
-  'ellipsis-vertical': 'more-vert',
-  'filter': 'filter-list',
-  'options': 'tune',
-  'refresh': 'refresh',
-  'sync': 'sync',
-  'warning': 'warning',
-  'information-circle': 'info',
-  'help-circle': 'help-outline',
-  'alert-circle': 'error',
-  'checkmark-circle': 'check-circle',
-  'close-circle': 'cancel',
+  'close': 'close',
+  'settings': 'settings',
+  'delete': 'delete',
+  'edit': 'edit',
+  'add': 'add',
+  'remove': 'remove',
+  'check': 'check',
+  'clear': 'clear',
+  'done': 'done',
+  'cancel': 'cancel',
   
-  // Additional mappings for app-specific icons
-  'label': 'local-offer',
-  'tune': 'tune',
-  'groups': 'groups',
-  'location_city': 'location-city',
+  // Location icons
+  'location-on': 'location-on',
+  'location_on': 'location-on',
+  'location-off': 'location-off',
+  'location_off': 'location-off',
+  'map': 'map',
+  'place': 'place',
+  'navigation': 'navigation',
+  'my-location': 'my-location',
   'my_location': 'my-location',
-  'arrow_drop_down': 'arrow-drop-down',
-  'more_vert': 'more-vert',
+  
+  // SF Symbols to Material Icons mapping
+  'person.circle.fill': 'account-circle',
+  'phone.fill': 'phone',
+  'location.fill': 'location-on',
+  'mappin': 'location-on',
+  'mappin.circle.fill': 'location-on',
+  'mappin.slash.circle.fill': 'location-off',
+  'house': 'home',
+  'house.fill': 'home',
+  'magnifyingglass': 'search',
+  'gearshape': 'settings',
+  'gearshape.fill': 'settings',
+  'trash': 'delete',
+  'trash.fill': 'delete',
+  'pencil': 'edit',
+  'plus': 'add',
+  'plus.circle': 'add-circle',
+  'plus.circle.fill': 'add-circle',
+  'minus': 'remove',
+  'xmark': 'close',
+  'checkmark': 'check',
+  
+  // Social & Communication
+  'message': 'message',
+  'message.fill': 'message',
+  'chat': 'chat',
   'send': 'send',
-  'attach-file': 'attach-file',
-  'mic': 'mic',
-  'videocam': 'videocam',
+  'bell': 'notifications',
+  'bell.fill': 'notifications',
+  'notifications': 'notifications',
+  'notification-important': 'notification-important',
+  'favorite': 'favorite',
+  'favorite-border': 'favorite-border',
+  'heart': 'favorite',
+  'heart.fill': 'favorite',
+  'star': 'star',
+  'star-border': 'star-border',
+  'thumb-up': 'thumb-up',
+  'thumb-down': 'thumb-down',
+  
+  // Media & Content
+  'camera': 'camera',
+  'photo': 'photo',
+  'photo.fill': 'photo',
+  'image': 'image',
+  'photo.on.rectangle': 'photo-library',
+  'photo_library': 'photo-library',
+  'collections': 'collections',
+  'square.stack.fill': 'collections',
+  'movie': 'movie',
   'play-arrow': 'play-arrow',
   'pause': 'pause',
   'stop': 'stop',
   'volume-up': 'volume-up',
   'volume-off': 'volume-off',
-  'wifi': 'wifi',
-  'bluetooth': 'bluetooth',
-  'gps-fixed': 'gps-fixed',
-  'brightness-high': 'brightness-high',
-  'brightness-low': 'brightness-low',
-  'battery-full': 'battery-full',
-  'signal-cellular-alt': 'signal-cellular-alt',
+  
+  // UI Controls
+  'visibility': 'visibility',
+  'visibility-off': 'visibility-off',
+  'eye': 'visibility',
+  'eye.fill': 'visibility',
+  'lock': 'lock',
+  'lock.fill': 'lock',
+  'lock-open': 'lock-open',
+  'help': 'help',
+  'info': 'info',
+  'warning': 'warning',
+  'error': 'error',
+  'check-circle': 'check-circle',
+  
+  // Navigation
+  'arrow-back': 'arrow-back',
+  'arrow-forward': 'arrow-forward',
+  'arrow-upward': 'arrow-upward',
+  'arrow-downward': 'arrow-downward',
+  'chevron-left': 'chevron-left',
+  'chevron-right': 'chevron-right',
+  'chevron.right': 'chevron-right',
+  'chevron-up': 'expand-less',
+  'chevron-down': 'expand-more',
+  'arrow_drop_down': 'expand-more',
+  'more-vert': 'more-vert',
+  'more-horiz': 'more-horiz',
+  'menu-open': 'menu-open',
+  
+  // Shopping & Commerce
   'shopping-cart': 'shopping-cart',
+  'shopping_cart': 'shopping-cart',
+  'cart': 'shopping-cart',
+  'cart.fill': 'shopping-cart',
   'shopping-bag': 'shopping-bag',
   'payment': 'payment',
   'credit-card': 'credit-card',
+  'local-offer': 'local-offer',
   'store': 'store',
   'receipt': 'receipt',
-  'local-offer': 'local-offer',
+  
+  // Time & Calendar
+  'calendar-today': 'calendar-today',
+  'schedule': 'schedule',
+  'access-time': 'access-time',
+  'alarm': 'alarm',
+  'event': 'event',
+  'date-range': 'date-range',
+  'watch-later': 'watch-later',
+  
+  // Content & Files
+  'description': 'description',
+  'folder': 'folder',
+  'folder-open': 'folder-open',
+  'insert-drive-file': 'insert-drive-file',
+  'cloud': 'cloud',
+  'cloud-upload': 'cloud-upload',
+  'cloud-download': 'cloud-download',
+  'attach-file': 'attach-file',
+  'link': 'link',
+  
+  // User & Account
+  'account-circle': 'account-circle',
+  'person-outline': 'person-outline',
+  'person.crop.square': 'person-outline',
+  'group': 'group',
+  'people': 'people',
+  'groups': 'people',
+  
+  // Actions
+  'refresh': 'refresh',
+  'sync': 'sync',
+  'share': 'share',
+  'download': 'download',
+  'upload': 'upload',
+  'save': 'save',
+  'bookmark': 'bookmark',
+  'bookmark-border': 'bookmark-border',
+  
+  // Grid & Layout
+  'grid-on': 'grid-on',
+  'grid_on': 'grid-on',
+  'square.grid.3x3': 'grid-on',
+  'view-module': 'view-module',
+  'view-list': 'view-list',
+  
+  // Business & Work
+  'work': 'work',
+  'work-outline': 'work-outline',
+  'briefcase': 'work',
+  'briefcase.fill': 'work',
+  'business': 'business',
+  'building.2.fill': 'store',
+  
+  // Misc
+  'mic': 'mic',
+  'videocam': 'videocam',
+  'arrow.triangle.2.circlepath': 'swap-horiz',
+  'swap_horiz': 'swap-horiz',
+  'filter_list': 'filter-list',
+  'tune': 'filter-list',
+  'label': 'local-offer',
 };
 
 /**
@@ -168,34 +218,30 @@ export function IconSymbol({
   style,
 }: {
   ios_icon_name?: string | undefined;
-  android_material_icon_name: string;
+  android_material_icon_name: keyof typeof MaterialIcons.glyphMap;
   size?: number;
   color: string | OpaqueColorValue;
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
 }) {
-  // 3-Level Fallback System:
-  // 1. Check ICON_MAPPING for custom mappings
-  let iconName = ICON_MAPPING[android_material_icon_name];
+  // Map the icon name to a valid MaterialIcons name
+  const mappedIconName = ICON_MAPPING[android_material_icon_name] || android_material_icon_name;
   
-  // 2. If not in mapping, check if it exists directly in MaterialIcons
-  if (!iconName) {
-    iconName = MaterialIcons.glyphMap[android_material_icon_name as keyof typeof MaterialIcons.glyphMap] 
-      ? (android_material_icon_name as keyof typeof MaterialIcons.glyphMap)
-      : undefined;
-  }
+  // Validate that the icon exists in MaterialIcons
+  const isValidIcon = MaterialIcons.glyphMap[mappedIconName] !== undefined;
   
-  // 3. Fallback to safe default if still not found
-  if (!iconName || MaterialIcons.glyphMap[iconName] === undefined) {
-    console.warn(`⚠️ Invalid Material Icon: "${android_material_icon_name}" → Using fallback "help-outline"`);
-    iconName = 'help-outline';
+  // Use fallback icon if invalid
+  const finalIconName = isValidIcon ? mappedIconName : 'help-outline';
+  
+  if (!isValidIcon) {
+    console.warn(`⚠️ Invalid MaterialIcon: "${android_material_icon_name}" (mapped to: "${mappedIconName}"). Using "help-outline" as fallback. Please use a valid Material Icons name.`);
   }
 
   return (
     <MaterialIcons
       color={color}
       size={size}
-      name={iconName}
+      name={finalIconName}
       style={style as StyleProp<TextStyle>}
     />
   );
