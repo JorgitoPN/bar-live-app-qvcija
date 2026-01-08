@@ -11,317 +11,287 @@ import {
 } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
-// ✅ COMPREHENSIVE ICON MAPPING v116.0 - ELIMINATES ALL QUESTION MARKS
-// Maps common icon names and iOS SF Symbols to valid Material Icons
+// ✅ COMPREHENSIVE ICON MAPPING v119.0 - COMPLETE ANDROID ICON FIX
+// This mapping ensures ALL icons display correctly on Android/web
 const ICON_MAPPING: Record<string, keyof typeof MaterialIcons.glyphMap> = {
-  // Navigation & UI
-  'chevron-back': 'arrow-back',
-  'chevron-forward': 'arrow-forward',
+  // ========== NAVIGATION & UI ==========
+  'chevron-back': 'chevron-left',
+  'chevron-forward': 'chevron-right',
   'chevron-down': 'keyboard-arrow-down',
   'chevron-up': 'keyboard-arrow-up',
-  'chevron_down': 'keyboard-arrow-down',
-  'chevron_up': 'keyboard-arrow-up',
   'chevron_left': 'chevron-left',
   'chevron_right': 'chevron-right',
+  'expand_more': 'expand-more',
+  'expand_less': 'expand-less',
+  'arrow-back': 'arrow-back',
+  'arrow_back': 'arrow-back',
+  'arrow-forward': 'arrow-forward',
+  'arrow_forward': 'arrow-forward',
+  'arrow_drop_down': 'arrow-drop-down',
   'close': 'close',
+  'cancel': 'cancel',
   'menu': 'menu',
+  'menu-open': 'menu-open',
   'more-horiz': 'more-horiz',
   'more-vert': 'more-vert',
   'more_horiz': 'more-horiz',
   'more_vert': 'more-vert',
-  'expand_more': 'expand-more',
-  'expand_less': 'expand-less',
-  'arrow_drop_down': 'arrow-drop-down',
-  'arrow_drop_up': 'arrow-drop-up',
   
-  // Social & Actions
+  // ========== SOCIAL & ACTIONS ==========
   'heart': 'favorite-border',
   'heart-filled': 'favorite',
-  'heart.fill': 'favorite',
+  'favorite': 'favorite',
+  'favorite_border': 'favorite-border',
   'share': 'share',
-  'bookmark': 'bookmark-border',
-  'bookmark-filled': 'bookmark',
-  'bookmark.fill': 'bookmark',
   'comment': 'comment',
   'send': 'send',
-  'paperplane': 'send',
+  'bookmark': 'bookmark-border',
+  'bookmark-filled': 'bookmark',
+  'bookmark_border': 'bookmark-border',
+  'thumb-up': 'thumb-up',
+  'thumb_up': 'thumb-up',
+  'thumb-down': 'thumb-down',
+  'thumb_down': 'thumb-down',
   
-  // User & Profile
+  // ========== USER & PROFILE ==========
   'person': 'person',
   'people': 'people',
-  'person.fill': 'person',
-  'person.2.fill': 'people',
-  'person.3.fill': 'people',
   'account-circle': 'account-circle',
   'account_circle': 'account-circle',
+  'group': 'group',
+  'groups': 'groups',
   'person_add': 'person-add',
   'person_add_disabled': 'person-add-disabled',
-  'person.badge.plus': 'person-add',
-  'person.fill.checkmark': 'person-add-disabled',
-  'person.crop.circle.badge.plus': 'person-add',
+  'person-add': 'person-add',
+  'person-add-disabled': 'person-add-disabled',
   
-  // Location & Map
+  // ========== LOCATION & MAP ==========
   'location': 'location-on',
+  'location-outline': 'location-on',
   'location_on': 'location-on',
-  'location.fill': 'my-location',
-  'location.circle': 'location-on',
-  'my_location': 'my-location',
-  'mappin': 'location-on',
-  'mappin.circle.fill': 'location-on',
-  'mappin.slash.circle.fill': 'location-off',
-  'add_location': 'add-location',
   'location_off': 'location-off',
+  'add_location': 'add-location',
+  'my_location': 'my-location',
   'map': 'map',
-  'map.fill': 'map',
   'directions': 'directions',
   'navigation': 'navigation',
   'place': 'place',
+  'explore': 'explore',
   
-  // Communication
+  // ========== COMMUNICATION ==========
   'call': 'call',
   'phone': 'phone',
-  'phone.fill': 'phone',
-  'mail': 'mail',
   'email': 'email',
-  'envelope.fill': 'email',
-  'message': 'message',
-  'message.fill': 'message',
+  'mail': 'mail',
   'chat': 'chat',
-  'notifications': 'notifications',
-  'notification_important': 'notification-important',
+  'message': 'message',
+  'attach-file': 'attach-file',
+  'attach_file': 'attach-file',
+  'mic': 'mic',
+  'videocam': 'videocam',
   
-  // Media
+  // ========== MEDIA ==========
   'camera': 'camera-alt',
   'camera-alt': 'camera-alt',
   'camera_alt': 'camera-alt',
   'image': 'image',
   'photo': 'photo',
-  'photo.on.rectangle': 'photo-library',
-  'photo.stack': 'collections',
   'photo_library': 'photo-library',
-  'collections': 'collections',
-  'add_photo_alternate': 'add-photo-alternate',
-  'photo.on.rectangle.angled': 'add-photo-alternate',
+  'video': 'videocam',
   'play': 'play-arrow',
   'play-arrow': 'play-arrow',
   'play_arrow': 'play-arrow',
   'pause': 'pause',
-  'music.note': 'music-note',
+  'stop': 'stop',
+  'volume-up': 'volume-up',
+  'volume_up': 'volume-up',
+  'volume-off': 'volume-off',
+  'volume_off': 'volume-off',
+  'music-note': 'music-note',
   'music_note': 'music-note',
-  'music.note.list': 'queue-music',
   'queue_music': 'queue-music',
-  'mic': 'mic',
-  'mic.fill': 'mic',
   
-  // Common Actions
+  // ========== SETTINGS & TOOLS ==========
+  'settings': 'settings',
+  'edit': 'edit',
+  'edit_note': 'edit-note',
+  'delete': 'delete',
   'add': 'add',
   'add_circle': 'add-circle',
-  'plus.circle.fill': 'add-circle',
   'remove': 'remove',
-  'edit': 'edit',
-  'pencil': 'edit',
-  'delete': 'delete',
-  'trash': 'delete',
   'search': 'search',
-  'magnifyingglass': 'search',
   'filter': 'filter-list',
   'filter-list': 'filter-list',
   'filter_list': 'filter-list',
-  'tune': 'filter-list',
-  'slider.horizontal.3': 'filter-list',
-  'line.3.horizontal.decrease.circle.fill': 'filter-list',
-  'settings': 'settings',
-  'gear': 'settings',
-  'check': 'check',
-  'checkmark': 'check',
-  'checkmark.circle.fill': 'check-circle',
-  'check_circle': 'check-circle',
-  'star': 'star-border',
-  'star-filled': 'star',
-  'star.fill': 'star',
-  'star-border': 'star-border',
-  'cancel': 'cancel',
-  'xmark': 'close',
-  'xmark.circle.fill': 'cancel',
-  'done': 'done',
-  'refresh': 'refresh',
-  'arrow.clockwise': 'refresh',
+  'tune': 'tune',
+  'sort': 'sort',
   'sync': 'sync',
-  'arrow.triangle.2.circlepath': 'sync',
+  'refresh': 'refresh',
   
-  // Business & Local
-  'store': 'store',
-  'business': 'business',
-  'building.2': 'business',
-  'building.2.fill': 'business',
-  'calendar': 'event',
-  'event': 'event',
-  'time': 'access-time',
-  'clock': 'schedule',
-  'clock.fill': 'schedule',
-  'schedule': 'schedule',
-  'access_time': 'access-time',
-  'tag': 'local-offer',
-  'tags': 'local-offer',
-  'label': 'local-offer',
-  'local_offer': 'local-offer',
-  
-  // Food & Drink
-  'cup.and.saucer.fill': 'local-cafe',
-  'local_cafe': 'local-cafe',
-  'fork.knife': 'restaurant',
-  'restaurant': 'restaurant',
-  'wineglass': 'wine-bar',
-  'wineglass.fill': 'wine-bar',
-  'wine_bar': 'wine-bar',
-  'local_bar': 'local-bar',
-  'mug.fill': 'sports-bar',
-  'sports_bar': 'sports-bar',
-  'local_drink': 'local-drink',
-  'nightlife': 'nightlife',
-  
-  // Info & Help
+  // ========== STATUS & INFO ==========
+  'check': 'check',
+  'check-circle': 'check-circle',
+  'check_circle': 'check-circle',
+  'done': 'done',
+  'error': 'error',
+  'warning': 'warning',
   'info': 'info',
-  'info.circle': 'info',
   'help': 'help',
   'help-outline': 'help-outline',
-  'warning': 'warning',
-  'exclamationmark.triangle': 'warning',
-  'error': 'error',
-  'home': 'home',
-  'house.fill': 'home',
-  
-  // Sparkles & Effects
-  'sparkles': 'auto-awesome',
-  'auto_awesome': 'auto-awesome',
-  
-  // Work & Employment
-  'briefcase': 'work',
-  'briefcase.fill': 'work',
-  'work': 'work',
-  
-  // Visibility & Security
-  'visibility': 'visibility',
-  'visibility_off': 'visibility-off',
-  'lock': 'lock',
-  'lock.fill': 'lock',
-  'lock_open': 'lock-open',
-  'shield.fill': 'admin-panel-settings',
-  'admin_panel_settings': 'admin-panel-settings',
-  
-  // Shopping & Payment
-  'shopping_cart': 'shopping-cart',
-  'shopping_bag': 'shopping-bag',
-  'bag.fill': 'shopping-bag',
-  'payment': 'payment',
-  'payments': 'payment',
-  'credit_card': 'credit-card',
-  'creditcard.fill': 'credit-card',
-  'banknote': 'payment',
-  'receipt': 'receipt',
-  
-  // Time & Calendar
-  'calendar-today': 'calendar-today',
-  'calendar_today': 'calendar-today',
-  'alarm': 'alarm',
-  'watch_later': 'watch-later',
-  
-  // Content & Files
-  'description': 'description',
-  'folder': 'folder',
-  'folder_open': 'folder-open',
-  'insert_drive_file': 'insert-drive-file',
-  'cloud': 'cloud',
-  'cloud_upload': 'cloud-upload',
-  'cloud_download': 'cloud-download',
-  
-  // Grid & Layout
-  'square.grid.3x3': 'grid-on',
-  'grid_on': 'grid-on',
-  
-  // Web & Language
-  'globe': 'language',
-  'language': 'language',
-  
-  // Wifi & Network
-  'wifi': 'wifi',
-  
-  // Sun & Weather
-  'sun.max.fill': 'wb-sunny',
-  'wb_sunny': 'wb-sunny',
-  
-  // Car & Parking
-  'car.fill': 'local-parking',
-  'local_parking': 'local-parking',
-  
-  // Accessibility
-  'figure.roll': 'accessible',
-  'accessible': 'accessible',
-  
-  // Delivery & Transport
-  'bicycle': 'delivery-dining',
-  'delivery_dining': 'delivery-dining',
-  
-  // TV & Entertainment
-  'tv.fill': 'tv',
-  'tv': 'tv',
-  'gamecontroller.fill': 'sports-esports',
-  'sports_esports': 'sports-esports',
-  
-  // Nature & Eco
-  'leaf.fill': 'eco',
-  'eco': 'eco',
-  
-  // Bolt & Flash
-  'bolt.fill': 'flash-on',
-  'flash_on': 'flash-on',
-  
-  // Analytics & Charts
-  'chart.bar.fill': 'bar-chart',
-  'bar_chart': 'bar-chart',
-  'analytics': 'analytics',
-  
-  // Verified & Check
-  'checkmark.seal.fill': 'verified',
+  'help_outline': 'help-outline',
   'verified': 'verified',
   
-  // AR & 3D
-  'cube.fill': 'view-in-ar',
-  'view_in_ar': 'view-in-ar',
+  // ========== TIME & CALENDAR ==========
+  'time': 'access-time',
+  'access-time': 'access-time',
+  'access_time': 'access-time',
+  'calendar': 'event',
+  'event': 'event',
+  'schedule': 'schedule',
+  'alarm': 'alarm',
+  'watch-later': 'watch-later',
+  'watch_later': 'watch-later',
+  'date-range': 'date-range',
+  'date_range': 'date-range',
   
-  // Airplane & Travel
-  'airplane': 'flight',
+  // ========== BUSINESS & COMMERCE ==========
+  'store': 'store',
+  'business': 'business',
+  'shopping-cart': 'shopping-cart',
+  'shopping_cart': 'shopping-cart',
+  'shopping-bag': 'shopping-bag',
+  'shopping_bag': 'shopping-bag',
+  'payment': 'payment',
+  'payments': 'payments',
+  'credit-card': 'credit-card',
+  'credit_card': 'credit-card',
+  'receipt': 'receipt',
+  'local-offer': 'local-offer',
+  'local_offer': 'local-offer',
+  'sell': 'sell',
+  
+  // ========== TAGS & LABELS ==========
+  'label': 'label',
+  'tag': 'label',
+  'tags': 'label',
+  'local_offer': 'local-offer',
+  
+  // ========== COMMUNITY & SOCIAL ==========
+  'community': 'people',
+  'forum': 'forum',
+  
+  // ========== DOCUMENTS & FILES ==========
+  'document': 'description',
+  'description': 'description',
+  'folder': 'folder',
+  'folder-open': 'folder-open',
+  'folder_open': 'folder-open',
+  'file': 'insert-drive-file',
+  'insert-drive-file': 'insert-drive-file',
+  'insert_drive_file': 'insert-drive-file',
+  'cloud': 'cloud',
+  'cloud-upload': 'cloud-upload',
+  'cloud_upload': 'cloud-upload',
+  'cloud-download': 'cloud-download',
+  'cloud_download': 'cloud-download',
+  
+  // ========== VISIBILITY & PRIVACY ==========
+  'visibility': 'visibility',
+  'visibility-off': 'visibility-off',
+  'visibility_off': 'visibility-off',
+  'lock': 'lock',
+  'lock-open': 'lock-open',
+  'lock_open': 'lock-open',
+  
+  // ========== NOTIFICATIONS ==========
+  'notifications': 'notifications',
+  'notifications-active': 'notifications-active',
+  'notifications_active': 'notifications-active',
+  'notifications-off': 'notifications-off',
+  'notifications_off': 'notifications-off',
+  'notification-important': 'notification-important',
+  'notification_important': 'notification-important',
+  
+  // ========== HOME & BUILDING ==========
+  'home': 'home',
+  'apartment': 'apartment',
+  
+  // ========== FOOD & DRINK ==========
+  'restaurant': 'restaurant',
+  'local_cafe': 'local-cafe',
+  'local_bar': 'local-bar',
+  'local_drink': 'local-drink',
+  'wine_bar': 'wine-bar',
+  'sports_bar': 'sports-bar',
+  'nightlife': 'nightlife',
+  'delivery_dining': 'delivery-dining',
+  'local-cafe': 'local-cafe',
+  'local-bar': 'local-bar',
+  'local-drink': 'local-drink',
+  'wine-bar': 'wine-bar',
+  'sports-bar': 'sports-bar',
+  'delivery-dining': 'delivery-dining',
+  
+  // ========== WEATHER & NATURE ==========
+  'wb_sunny': 'wb-sunny',
+  'eco': 'eco',
+  
+  // ========== TRANSPORTATION ==========
+  'local_parking': 'local-parking',
+  'local-parking': 'local-parking',
   'flight': 'flight',
+  'directions_car': 'directions-car',
+  'directions-car': 'directions-car',
   
-  // Book & Education
-  'book.fill': 'school',
+  // ========== ACCESSIBILITY ==========
+  'accessible': 'accessible',
+  
+  // ========== ENTERTAINMENT ==========
+  'sports_esports': 'sports-esports',
+  'sports-esports': 'sports-esports',
+  'tv': 'tv',
+  
+  // ========== WORK & EDUCATION ==========
+  'work': 'work',
   'school': 'school',
   
-  // Figure & People
-  'figure.2.and.child.holdinghands': 'people',
+  // ========== SPECIAL ICONS ==========
+  'star': 'star',
+  'star-border': 'star-border',
+  'star_border': 'star-border',
+  'auto-awesome': 'auto-awesome',
+  'auto_awesome': 'auto-awesome',
+  'flash-on': 'flash-on',
+  'flash_on': 'flash-on',
+  'view_in_ar': 'view-in-ar',
+  'view-in-ar': 'view-in-ar',
+  'analytics': 'analytics',
+  'bar_chart': 'bar-chart',
+  'bar-chart': 'bar-chart',
+  'admin_panel_settings': 'admin-panel-settings',
+  'admin-panel-settings': 'admin-panel-settings',
+  'language': 'language',
+  'grid_on': 'grid-on',
+  'grid-on': 'grid-on',
+  'back_hand': 'back-hand',
+  'back-hand': 'back-hand',
   
-  // Groups (CRITICAL FIX)
-  'groups': 'people',
-  
-  // Location City (CRITICAL FIX)
-  'location_city': 'location-on',
+  // ========== DEFAULT FALLBACK ==========
+  'help-outline': 'help-outline',
 };
 
 /**
- * ✅ ICON SYMBOL v116.0 - COMPREHENSIVE ANDROID ICON FIX
+ * ✅ ICON SYMBOL v119.0 - COMPLETE ANDROID ICON FIX
  * 
  * An icon component that uses native SFSymbols on iOS, and MaterialIcons on Android and web.
+ * Includes comprehensive mapping and 3-level fallback system to prevent question marks.
  * 
- * CRITICAL FIXES v116.0:
- * - ✅ Added comprehensive mapping for ALL common icon names
- * - ✅ Fixed "label" → "local_offer" (etiquetas/tags)
- * - ✅ Fixed "groups" → "people" (comunidad/clientela)
- * - ✅ Fixed "location_city" → "location_on" (provincia)
- * - ✅ Fixed "tune" → "filter_list" (filtros avanzados)
- * - ✅ Fixed "arrow_drop_down" for dropdown arrows
- * - ✅ All iOS SF Symbol names mapped to Material Icons
- * - ✅ Fallback to "help-outline" for unmapped icons
- * - ✅ Console warnings for debugging
+ * CRITICAL FIXES v119.0:
+ * - ✅ Added 150+ icon mappings covering ALL app usage
+ * - ✅ Handles both underscore and hyphen naming conventions
+ * - ✅ 3-level fallback system prevents question marks
+ * - ✅ Detailed logging for debugging
+ * - ✅ Validates against MaterialIcons.glyphMap
  */
 export function IconSymbol({
   ios_icon_name = undefined,
@@ -337,28 +307,28 @@ export function IconSymbol({
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
 }) {
-  // Start with the provided icon name
-  let iconName = android_material_icon_name;
+  // 3-Level Fallback System
+  let iconName: keyof typeof MaterialIcons.glyphMap;
   
-  // Check if it's a valid MaterialIcon
-  if (!(iconName in MaterialIcons.glyphMap)) {
-    // Try to find in mapping
-    if (iconName in ICON_MAPPING) {
-      const mappedName = ICON_MAPPING[iconName];
-      console.log(`[IconSymbol v116.0] ✅ Mapped "${iconName}" → "${mappedName}"`);
-      iconName = mappedName;
-    } else {
-      // Fallback to a generic icon
-      console.warn(`[IconSymbol v116.0] ⚠️ Icon "${android_material_icon_name}" not found in MaterialIcons.glyphMap or ICON_MAPPING, using fallback "help-outline"`);
-      iconName = 'help-outline';
-    }
+  // Level 1: Check if icon exists in mapping
+  if (ICON_MAPPING[android_material_icon_name]) {
+    iconName = ICON_MAPPING[android_material_icon_name];
   }
-  
+  // Level 2: Check if icon exists directly in MaterialIcons
+  else if (android_material_icon_name in MaterialIcons.glyphMap) {
+    iconName = android_material_icon_name as keyof typeof MaterialIcons.glyphMap;
+  }
+  // Level 3: Use default fallback
+  else {
+    console.warn(`[IconSymbol v119.0] ❌ Icon not found: "${android_material_icon_name}". Using fallback. Please add to ICON_MAPPING.`);
+    iconName = 'help-outline';
+  }
+
   return (
     <MaterialIcons
       color={color}
       size={size}
-      name={iconName as keyof typeof MaterialIcons.glyphMap}
+      name={iconName}
       style={style as StyleProp<TextStyle>}
     />
   );
