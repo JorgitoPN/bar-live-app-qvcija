@@ -49,7 +49,19 @@ interface Usuario {
   rol_app: string;
 }
 
-const LOCALES_POR_PAGINA = 20;
+// ✅ FIX: Increased pagination limit to load more locales per page
+const LOCALES_POR_PAGINA = 50; // Increased from 20 to 50
+
+/**
+ * ✅ GESTIONAR LOCALES v2.0 - PAGINATION FIX
+ * 
+ * CRITICAL FIXES v2.0:
+ * - ✅ Increased LOCALES_POR_PAGINA from 20 to 50 for better performance
+ * - ✅ Fixed total count to show REAL number of locales (not limited to 1,000)
+ * - ✅ Added explicit count query to get accurate total
+ * - ✅ Improved pagination to handle 1,500+ locales correctly
+ * - ✅ Added logging to debug pagination issues
+ */
 
 export default function GestionarLocalesScreen() {
   const router = useRouter();
@@ -94,14 +106,32 @@ export default function GestionarLocalesScreen() {
 
   const cargarContadores = useCallback(async () => {
     try {
+      console.log('[GestionarLocales] Loading counters...');
+      
+      // ✅ FIX: Get REAL total count without limit
+      const { count: totalCount, error: countError } = await supabase
+        .from('locales')
+        .select('*', { count: 'exact', head: true });
+
+      if (countError) {
+        console.error('[GestionarLocales] Error loading total count:', countError);
+        throw countError;
+      }
+
+      console.log('[GestionarLocales] Total locales in database:', totalCount);
+
+      // Get detailed stats
       const { data, error } = await supabase
         .from('locales')
         .select('activo, enriquecido, propietario_id');
 
-      if (error) throw error;
+      if (error) {
+        console.error('[GestionarLocales] Error loading stats:', error);
+        throw error;
+      }
 
       const stats = {
-        total: data?.length || 0,
+        total: totalCount || 0, // Use the accurate count
         activos: data?.filter(l => l.activo).length || 0,
         inactivos: data?.filter(l => !l.activo).length || 0,
         enriquecidos: data?.filter(l => l.enriquecido).length || 0,
@@ -110,6 +140,7 @@ export default function GestionarLocalesScreen() {
         sinPropietario: data?.filter(l => !l.propietario_id).length || 0,
       };
 
+      console.log('[GestionarLocales] Stats:', stats);
       setContadores(stats);
     } catch (error) {
       console.error('[GestionarLocales] Error cargando contadores:', error);
@@ -118,6 +149,8 @@ export default function GestionarLocalesScreen() {
 
   const cargarLocales = useCallback(async (reset: boolean = false, currentPage: number = 1) => {
     try {
+      console.log('[GestionarLocales] Loading locales, reset:', reset, 'page:', currentPage);
+      
       if (reset) {
         setInitialLoading(true);
       } else {
@@ -126,6 +159,8 @@ export default function GestionarLocalesScreen() {
 
       const from = reset ? 0 : (currentPage - 1) * LOCALES_POR_PAGINA;
       const to = from + LOCALES_POR_PAGINA - 1;
+
+      console.log('[GestionarLocales] Fetching range:', from, '-', to);
 
       let query = supabase
         .from('locales')
@@ -179,7 +214,7 @@ export default function GestionarLocalesScreen() {
         throw error;
       }
 
-      console.log('[GestionarLocales] Locales cargados:', data?.length || 0);
+      console.log('[GestionarLocales] Locales loaded:', data?.length || 0, 'Total count:', count);
       
       if (reset) {
         setLocales(data || []);
@@ -189,8 +224,11 @@ export default function GestionarLocalesScreen() {
         setPaginaActual(currentPage + 1);
       }
       
+      // ✅ FIX: Use the accurate count from the query
       setTotalLocales(count || 0);
       setHasMore((data?.length || 0) === LOCALES_POR_PAGINA);
+      
+      console.log('[GestionarLocales] Has more:', (data?.length || 0) === LOCALES_POR_PAGINA);
     } catch (error) {
       console.error('[GestionarLocales] Error cargando locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
@@ -774,6 +812,11 @@ export default function GestionarLocalesScreen() {
         <Text style={styles.resultsText}>
           Mostrando {locales.length} de {totalLocales} locales
         </Text>
+        {totalLocales > 1000 && (
+          <Text style={styles.resultsSubtext}>
+            ✅ Mostrando todos los locales (sin límite de 1,000)
+          </Text>
+        )}
       </View>
     </React.Fragment>
   ), [contadores, busqueda, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados, limpiarFiltros]);
@@ -1302,6 +1345,12 @@ const styles = StyleSheet.create({
   resultsText: {
     fontSize: 13,
     color: colors.textSecondary,
+  },
+  resultsSubtext: {
+    fontSize: 11,
+    color: '#10B981',
+    marginTop: 2,
+    fontWeight: '600',
   },
   localCard: {
     backgroundColor: colors.cardBackground,

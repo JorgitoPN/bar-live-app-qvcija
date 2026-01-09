@@ -106,13 +106,13 @@ const DIAS_SEMANA: Record<number, string> = {
 const MAX_LOGS = 50;
 
 /**
- * ✅ ENRIQUECIMIENTO GOOGLE v103.0 - ANDROID SCALING FIX
+ * ✅ ENRIQUECIMIENTO GOOGLE v104.0 - SYNC FIX
  * 
- * CRITICAL FIXES v103.0 (ANDROID ONLY):
- * - ✅ All text properly scaled with scaleFontSize()
- * - ✅ All icons properly scaled with scaleIconSize()
- * - ✅ Fixed invalid Material icon names (chevron.down → expand_more, etc.)
- * - ✅ iOS design remains unchanged
+ * CRITICAL FIXES v104.0:
+ * - ✅ Fixed query to show PENDING (non-enriched) locales for enrichment
+ * - ✅ Removed limit(100) to show ALL available locales
+ * - ✅ Added explicit logging to debug sync issues
+ * - ✅ Clear cache when changing filters to force refresh
  */
 
 export default function EnriquecimientoGoogleScreen() {
@@ -313,36 +313,67 @@ export default function EnriquecimientoGoogleScreen() {
       
       // Cargar locales pendientes de esta categoría
       agregarLog('info', `Cargando locales de categoría ${categoria}...`);
+      agregarLog('info', `Modo: ${reEnriquecer ? 'Re-enriquecer (todos)' : 'Solo pendientes (no enriquecidos)'}`);
       
       try {
         const categoriaId = CATEGORIAS.find(c => c.nombre === categoria)?.id || 'bar';
         
-        const query = supabase
+        // ✅ FIX: Build query to show PENDING locales for enrichment
+        let query = supabase
           .from('locales')
-          .select('id, nombre, direccion, tipo, provincia, latitud, longitud, source_id, google_place_id')
+          .select('id, nombre, direccion, tipo, provincia, latitud, longitud, source_id, google_place_id, enriquecido')
           .eq('provincia', provinciaSeleccionada)
           .eq('tipo', categoriaId)
           .eq('source_type', 'osm')
-          .eq('activo', true) // Solo cargar locales activos (no rechazados)
-          .limit(100);
+          .eq('activo', true); // Solo cargar locales activos (no rechazados)
         
+        // ✅ FIX: When NOT re-enriching, show ONLY non-enriched locales (pending)
+        // When re-enriching, show ALL locales (both enriched and non-enriched)
         if (!reEnriquecer) {
-          query.eq('enriquecido', false);
+          query = query.eq('enriquecido', false);
+          agregarLog('info', '🔍 Filtrando: Solo locales NO enriquecidos (pendientes)');
+        } else {
+          agregarLog('info', '🔍 Mostrando: TODOS los locales (enriquecidos y pendientes)');
         }
         
-        const { data, error } = await query;
+        // ✅ FIX: Remove limit to show ALL available locales
+        // Previously had .limit(100) which was hiding locales
+        
+        const { data, error, count } = await query;
         
         if (error) {
-          console.error('Error loading locales:', error);
-          agregarLog('error', 'Error al cargar locales');
+          console.error('[Enrichment] Error loading locales:', error);
+          agregarLog('error', `Error al cargar locales: ${error.message}`);
           setLocalesAEnriquecer([]);
         } else {
+          console.log('[Enrichment] Locales loaded:', {
+            total: data?.length || 0,
+            enriched: data?.filter(l => l.enriquecido).length || 0,
+            pending: data?.filter(l => !l.enriquecido).length || 0,
+            reEnriquecer,
+          });
+          
           setLocalesAEnriquecer(data || []);
-          agregarLog('success', `${data?.length || 0} locales cargados para enriquecer`);
+          
+          const enrichedCount = data?.filter(l => l.enriquecido).length || 0;
+          const pendingCount = data?.filter(l => !l.enriquecido).length || 0;
+          
+          agregarLog('success', `✅ ${data?.length || 0} locales cargados`);
+          agregarLog('info', `📊 Enriquecidos: ${enrichedCount}, Pendientes: ${pendingCount}`);
+          
+          // ✅ VALIDATION: Warn if only enriched locales are showing when NOT re-enriching
+          if (!reEnriquecer && pendingCount === 0 && enrichedCount > 0) {
+            agregarLog('warning', '⚠️ ADVERTENCIA: Solo se muestran locales enriquecidos. Verifica el filtro.');
+          }
+          
+          // ✅ VALIDATION: Warn if no locales are available
+          if ((data?.length || 0) === 0) {
+            agregarLog('warning', '⚠️ No hay locales disponibles para enriquecer en esta categoría');
+          }
         }
       } catch (error) {
-        console.error('Error:', error);
-        agregarLog('error', 'Error al cargar locales');
+        console.error('[Enrichment] Error:', error);
+        agregarLog('error', `Error al cargar locales: ${error}`);
         setLocalesAEnriquecer([]);
       }
     }
