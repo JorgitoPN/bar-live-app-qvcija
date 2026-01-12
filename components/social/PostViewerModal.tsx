@@ -1549,6 +1549,7 @@ export default function PostViewerModal({
       transparent={false}
       animationType="slide"
       onRequestClose={onClose}
+      {...(Platform.OS === 'ios' ? { presentationStyle: 'fullScreen' } : {})}
     >
       <View style={styles.container}>
         <StatusBar 

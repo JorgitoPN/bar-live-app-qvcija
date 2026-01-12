@@ -813,6 +813,7 @@ export default function MomentoViewer({
         visible={visible} 
         transparent={false}
         animationType="fade"
+        {...(Platform.OS === 'ios' ? { presentationStyle: 'fullScreen' } : {})}
       >
         <StatusBar 
           barStyle="light-content" 
@@ -842,6 +843,7 @@ export default function MomentoViewer({
       visible={visible} 
       transparent={false}
       animationType="fade"
+      {...(Platform.OS === 'ios' ? { presentationStyle: 'fullScreen' } : {})}
     >
       <StatusBar 
         barStyle="light-content" 
