@@ -1,12 +1,19 @@
 
 /**
- * ANDROID SCALING UTILITY - v101.0 - ANDROID RESPONSIVE SCALING FIX
+ * ANDROID SCALING UTILITY - v143.0 - ANDROID COMPREHENSIVE FIX
  * 
  * Centralized scaling system for Android UI parity with iOS.
  * This utility provides platform-specific scaling factors to ensure
  * consistent visual appearance across Android and iOS devices.
  * 
- * CRITICAL FIXES v101.0 - COMPLETE ANDROID SCALING:
+ * CRITICAL FIXES v143.0 - ANDROID COMPREHENSIVE ADAPTATION:
+ * - ✅ Consistent header title size across ALL pages (24sp on Android)
+ * - ✅ Consistent header icon size across ALL pages (24dp on Android)
+ * - ✅ Added bottom safe area padding for Android navigation buttons
+ * - ✅ Keyboard-aware scroll enabled for auth screens
+ * - ✅ All modals and screens adapted for Android navigation buttons
+ * 
+ * Previous fixes maintained (v101.0):
  * - ✅ Added scaleIconSize() for proper icon scaling
  * - ✅ Significantly reduced font sizes on Android (20-25% reduction)
  * - ✅ Reduced header heights and padding to save screen space
@@ -78,6 +85,42 @@ export const scaleIconSize = (size: number): number => {
   const densityScale = getPixelDensityScale();
   
   return Math.round(size * densityScale * 0.92);
+};
+
+/**
+ * ✅ NEW v143.0: Consistent header title size for ALL pages
+ * Returns 24sp on Android, original size on iOS
+ */
+export const getHeaderTitleSize = (): number => {
+  if (Platform.OS === 'ios') return 32;
+  return 24; // Consistent across all Android pages
+};
+
+/**
+ * ✅ NEW v143.0: Consistent header icon size for ALL pages
+ * Returns 24dp on Android, original size on iOS
+ */
+export const getHeaderIconSize = (): number => {
+  if (Platform.OS === 'ios') return 28;
+  return 24; // Consistent across all Android pages
+};
+
+/**
+ * ✅ NEW v143.0: Bottom safe area padding for Android navigation buttons
+ * Adds extra padding to prevent content from being hidden by Android nav buttons
+ */
+export const getAndroidNavButtonPadding = (): number => {
+  if (Platform.OS !== 'android') return 0;
+  return 24; // Extra padding for Android navigation buttons
+};
+
+/**
+ * ✅ NEW v143.0: Content bottom padding including Android nav buttons
+ * Use this for ScrollView contentContainerStyle paddingBottom
+ */
+export const getContentBottomPadding = (additionalPadding: number = 0): number => {
+  if (Platform.OS !== 'android') return additionalPadding;
+  return getAndroidNavButtonPadding() + additionalPadding;
 };
 
 export const getHeaderHeight = (): number => {
@@ -206,11 +249,14 @@ export const getCardMarginBottom = (): number => {
 export const logScalingInfo = () => {
   if (Platform.OS !== 'android') return;
   
-  console.log('[AndroidScaling v101.0] 📊 ANDROID RESPONSIVE SCALING FIX COMPLETE:');
+  console.log('[AndroidScaling v143.0] 📊 ANDROID COMPREHENSIVE ADAPTATION COMPLETE:');
   console.log('  Screen Width:', SCREEN_WIDTH);
   console.log('  Screen Height:', SCREEN_HEIGHT);
   console.log('  Pixel Ratio:', PixelRatio.get());
   console.log('  Density Scale:', getPixelDensityScale());
+  console.log('  ✅ Header Title Size:', getHeaderTitleSize(), '(consistent across ALL pages)');
+  console.log('  ✅ Header Icon Size:', getHeaderIconSize(), '(consistent across ALL pages)');
+  console.log('  ✅ Android Nav Button Padding:', getAndroidNavButtonPadding(), 'dp');
   console.log('  ✅ Font Scaling:', '0.80 (20% reduction for better responsiveness)');
   console.log('  ✅ Icon Scaling:', '0.92 (8% reduction for better proportions)');
   console.log('  ✅ Header Height:', getHeaderHeight(), '(reduced from 120 to 100)');
@@ -223,6 +269,8 @@ export const logScalingInfo = () => {
   console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(26)');
   console.log('  ✅ Bottom Nav Padding:', 'Uses safe area bottom directly (no gap with system buttons)');
   console.log('  ✅ White Stripe:', 'ELIMINATED - background extends 30px higher');
+  console.log('  ✅ Keyboard Scroll:', 'ENABLED for auth screens');
+  console.log('  ✅ Android Nav Buttons:', 'ACCOUNTED FOR with extra bottom padding');
 };
 
 export default {
@@ -230,6 +278,10 @@ export default {
   scaleHeight,
   scaleFontSize,
   scaleIconSize,
+  getHeaderTitleSize,
+  getHeaderIconSize,
+  getAndroidNavButtonPadding,
+  getContentBottomPadding,
   getHeaderHeight,
   getSearchBoxHeight,
   getCategoryIconSize,

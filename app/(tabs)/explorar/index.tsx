@@ -29,6 +29,9 @@ import {
   getCategoryIconInnerSize,
   scaleFontSize,
   scaleIconSize,
+  getHeaderTitleSize,
+  getHeaderIconSize,
+  getContentBottomPadding,
 } from '@/utils/androidScaling';
 import { useRouter } from 'expo-router';
 import { getEstadoLocal } from '@/utils/timeUtils';
@@ -69,9 +72,12 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v140.0 - ANDROID SCALING COMPLETE
+ * ✅ EXPLORAR SCREEN v143.0 - ANDROID COMPREHENSIVE ADAPTATION
  * 
- * CRITICAL FIXES v140.0 (ANDROID ONLY):
+ * CRITICAL FIXES v143.0 (ANDROID ONLY):
+ * - ✅ Consistent header title size (24sp on Android)
+ * - ✅ Consistent header icon size (24dp on Android)
+ * - ✅ Bottom padding for Android navigation buttons
  * - ✅ ALL font sizes properly scaled with scaleFontSize()
  * - ✅ ALL icon sizes properly scaled with scaleIconSize()
  * - ✅ Consistent padding and margins throughout
@@ -876,59 +882,63 @@ export default function ExplorarScreen() {
   const categoryIconInnerSize = getCategoryIconInnerSize();
   const modeIcon = getModeIcon();
 
-  const HeaderContent = () => (
-    <React.Fragment>
-      <View style={styles.headerTop}>
-        <Text style={[styles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 32) }]}>Explorar</Text>
-        <View style={styles.headerActions}>
-          {user && (
+  const HeaderContent = () => {
+    const headerTitleSize = getHeaderTitleSize(); // 32 on iOS, 24 on Android (CONSISTENT)
+    const headerIconSize = getHeaderIconSize(); // 28 on iOS, 24 on Android (CONSISTENT)
+
+    return (
+      <React.Fragment>
+        <View style={styles.headerTop}>
+          <Text style={[styles.headerTitle, { fontSize: headerTitleSize }]}>Explorar</Text>
+          <View style={styles.headerActions}>
+            {user && (
+              <TouchableOpacity 
+                style={styles.modeSelectorButton}
+                onPress={() => setShowModeSelectorModal(true)}
+                activeOpacity={0.7}
+              >
+                <IconSymbol 
+                  ios_icon_name={modeIcon.ios} 
+                  android_material_icon_name={modeIcon.android} 
+                  size={scaleIconSize(18)} 
+                  color={colors.headerText} 
+                />
+                <Text style={[styles.modeSelectorText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
+                  {getModeLabel()}
+                </Text>
+                <IconSymbol 
+                  ios_icon_name="chevron.down" 
+                  android_material_icon_name="arrow_drop_down" 
+                  size={scaleIconSize(16)} 
+                  color={colors.headerText} 
+                />
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity 
-              style={styles.modeSelectorButton}
-              onPress={() => setShowModeSelectorModal(true)}
+              style={styles.mapButton}
+              onPress={handleNavigateToMap}
               activeOpacity={0.7}
             >
               <IconSymbol 
-                ios_icon_name={modeIcon.ios} 
-                android_material_icon_name={modeIcon.android} 
-                size={scaleIconSize(18)} 
-                color={colors.headerText} 
-              />
-              <Text style={[styles.modeSelectorText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
-                {getModeLabel()}
-              </Text>
-              <IconSymbol 
-                ios_icon_name="chevron.down" 
-                android_material_icon_name="arrow_drop_down" 
-                size={scaleIconSize(16)} 
+                ios_icon_name="map.fill" 
+                android_material_icon_name="map" 
+                size={headerIconSize} 
                 color={colors.headerText} 
               />
             </TouchableOpacity>
-          )}
 
-          <TouchableOpacity 
-            style={styles.mapButton}
-            onPress={handleNavigateToMap}
-            activeOpacity={0.7}
-          >
-            <IconSymbol 
-              ios_icon_name="map.fill" 
-              android_material_icon_name="map" 
-              size={scaleIconSize(24)} 
-              color={colors.headerText} 
-            />
-          </TouchableOpacity>
-
-          {activeFiltersCount > 0 && (
-            <TouchableOpacity 
-              style={styles.clearFiltersHeaderButton}
-              onPress={clearFilters}
-              activeOpacity={0.7}
-            >
-              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(20)} color={colors.headerText} />
-            </TouchableOpacity>
-          )}
+            {activeFiltersCount > 0 && (
+              <TouchableOpacity 
+                style={styles.clearFiltersHeaderButton}
+                onPress={clearFilters}
+                activeOpacity={0.7}
+              >
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(20)} color={colors.headerText} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
       
       <View style={[styles.searchContainer, { 
         height: searchBoxHeight,
@@ -1048,7 +1058,8 @@ export default function ExplorarScreen() {
         </TouchableOpacity>
       )}
     </React.Fragment>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -1074,7 +1085,10 @@ export default function ExplorarScreen() {
         keyExtractor={(item: any) => item.id}
         contentContainerStyle={[
           styles.listContent,
-          { marginTop: HEADER_MAX_HEIGHT },
+          { 
+            marginTop: HEADER_MAX_HEIGHT,
+            paddingBottom: getContentBottomPadding(100)
+          },
         ]}
         refreshControl={
           <RefreshControl 
@@ -1477,7 +1491,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 100,
+    // paddingBottom set dynamically via getContentBottomPadding()
   },
   loadingContainer: {
     flex: 1,

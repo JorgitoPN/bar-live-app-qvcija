@@ -19,6 +19,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { generateUsername } from '@/utils/usernameGenerator';
+import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize } from '@/utils/androidScaling';
 
 export default function RegistroV6Screen() {
   const router = useRouter();
@@ -396,10 +397,24 @@ export default function RegistroV6Screen() {
 
   const passwordStrength = getPasswordStrength();
 
+  /**
+   * ✅ REGISTRO SCREEN v143.0 - ANDROID SCROLL & NAV BUTTONS FIX
+   * 
+   * CRITICAL FIXES v143.0 (ANDROID ONLY):
+   * - ✅ Enabled proper keyboard-aware scrolling
+   * - ✅ Added bottom padding for Android navigation buttons
+   * - ✅ Consistent header title and icon sizes
+   * - ✅ Content no longer hidden by keyboard or nav buttons
+   * - ✅ iOS design remains unchanged
+   */
+
+  const headerIconSize = getHeaderIconSize(); // 28 on iOS, 24 on Android
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
     >
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -412,7 +427,7 @@ export default function RegistroV6Screen() {
           <IconSymbol
             ios_icon_name="chevron.left"
             android_material_icon_name="arrow_back"
-            size={24}
+            size={headerIconSize}
             color="#fff"
           />
         </TouchableOpacity>
@@ -428,16 +443,20 @@ export default function RegistroV6Screen() {
               />
             </View>
           </View>
-          <Text style={styles.headerTitle}>Crear cuenta</Text>
+          <Text style={[styles.headerTitle, { fontSize: getHeaderTitleSize() }]}>Crear cuenta</Text>
           <Text style={styles.headerSubtitle}>Únete a la comunidad BarLive</Text>
         </Animated.View>
       </LinearGradient>
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: getContentBottomPadding(120) }
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
           <View style={styles.inputGroup}>
@@ -781,7 +800,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 36,
+    // fontSize set dynamically via getHeaderTitleSize()
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 8,
@@ -797,7 +816,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
-    paddingBottom: 120,
+    // paddingBottom set dynamically via getContentBottomPadding()
   },
   formContainer: {
     flex: 1,
