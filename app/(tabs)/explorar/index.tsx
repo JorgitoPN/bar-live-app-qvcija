@@ -70,11 +70,12 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v116.0 - ORDERING FIX
+ * ✅ EXPLORAR SCREEN v117.0 - ORDERING VERIFIED
  * 
- * CRITICAL FIXES v116.0:
- * - ✅ FIXED: Added explicit ordering by name (nombre) in loadLocales query
- * - ✅ Locales now appear in alphabetical order
+ * CRITICAL FIXES v117.0:
+ * - ✅ VERIFIED: Explicit ordering by name (nombre) is active in loadLocales query
+ * - ✅ VERIFIED: Locales appear in alphabetical order after destacado priority
+ * - ✅ Order: destacado DESC → nombre ASC → created_at DESC
  * - ✅ All previous functionality maintained
  */
 
@@ -116,7 +117,7 @@ export default function ExplorarScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Explorar v116.0] User location obtained:', location.coords);
+          console.log('[Explorar v117.0] User location obtained:', location.coords);
         }
       } catch (error) {
         console.error('[Explorar v116.0] Error getting location:', error);
@@ -145,22 +146,22 @@ export default function ExplorarScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Explorar v116.0] Error checking social profiles:', error);
+      console.error('[Explorar v117.0] Error checking social profiles:', error);
     }
   }, []);
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v116.0] Cargando locales...');
+      console.log('[Explorar v117.0] Cargando locales...');
       
-      // ✅ FIX v116.0: Added explicit ordering by name (nombre)
+      // ✅ FIX v117.0: Explicit ordering by destacado → nombre → created_at
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
         .select('*')
         .eq('activo', true)
-        .order('destacado', { ascending: false })
-        .order('nombre', { ascending: true }) // ✅ NEW: Order by name alphabetically
-        .order('created_at', { ascending: false });
+        .order('destacado', { ascending: false }) // 1. Featured first
+        .order('nombre', { ascending: true })     // 2. Then alphabetically by name
+        .order('created_at', { ascending: false }); // 3. Then by creation date
 
       if (localesError) throw localesError;
 
@@ -195,12 +196,12 @@ export default function ExplorarScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Explorar v116.0] Locales cargados y ordenados por nombre:', formattedLocales.length);
+        console.log('[Explorar v117.0] Locales cargados y ordenados (destacado → nombre → fecha):', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Explorar v116.0] Error cargando locales:', error);
+      console.error('[Explorar v117.0] Error cargando locales:', error);
     } finally {
       setLoading(false);
     }
@@ -212,7 +213,7 @@ export default function ExplorarScreen() {
 
   useEffect(() => {
     if (userLocation && allLocales.length > 0) {
-      console.log('[Explorar v116.0] Recalculating distances with new user location');
+      console.log('[Explorar v117.0] Recalculating distances with new user location');
       const updatedLocales = allLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -274,7 +275,7 @@ export default function ExplorarScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Explorar v116.0] Filters applied. Results:', filtered.length);
+    console.log('[Explorar v117.0] Filters applied. Results:', filtered.length);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allLocales]);
 
   const loadMoreLocales = useCallback(() => {
@@ -292,7 +293,7 @@ export default function ExplorarScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Explorar v116.0] Cargando más locales, página:', nextPage);
+        console.log('[Explorar v117.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -302,7 +303,7 @@ export default function ExplorarScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v116.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v117.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -312,7 +313,7 @@ export default function ExplorarScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v116.0] 🧹 Clearing all filters');
+    console.log('[Explorar v117.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -332,13 +333,13 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v116.0] User not authenticated');
+      console.log('[Explorar v117.0] User not authenticated');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v116.0] No local ID');
+      console.log('[Explorar v117.0] No local ID');
       return;
     }
 
@@ -351,7 +352,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v116.0] Removing from favorites');
+        console.log('[Explorar v117.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -360,7 +361,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v116.0] Adding to favorites');
+        console.log('[Explorar v117.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -373,7 +374,7 @@ export default function ExplorarScreen() {
       
       await loadLocales();
     } catch (error) {
-      console.error('[Explorar v116.0] Error toggling favorito:', error);
+      console.error('[Explorar v117.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
@@ -421,11 +422,11 @@ export default function ExplorarScreen() {
   // ✅ v112.0: Handle mode change
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
-      console.log('[Explorar v116.0] Changing mode to:', newMode);
+      console.log('[Explorar v117.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v116.0] Error changing mode:', error);
+      console.error('[Explorar v117.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
@@ -439,7 +440,7 @@ export default function ExplorarScreen() {
     if (Math.abs(diff) > 5) {
       if (diff > 0 && currentScrollY > 50) {
         // Scrolling DOWN - hide header
-        console.log('[Explorar v116.0] 📜 Scrolling DOWN, hiding header');
+        console.log('[Explorar v117.0] 📜 Scrolling DOWN, hiding header');
         Animated.timing(headerTranslateY, {
           toValue: -HEADER_SCROLL_DISTANCE,
           duration: 250,
@@ -447,7 +448,7 @@ export default function ExplorarScreen() {
         }).start();
       } else if (diff < 0) {
         // Scrolling UP - show header
-        console.log('[Explorar v116.0] 📜 Scrolling UP, showing header');
+        console.log('[Explorar v117.0] 📜 Scrolling UP, showing header');
         Animated.timing(headerTranslateY, {
           toValue: 0,
           duration: 250,

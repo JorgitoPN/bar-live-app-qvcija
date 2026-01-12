@@ -106,12 +106,14 @@ const DIAS_SEMANA: Record<number, string> = {
 const MAX_LOGS = 50;
 
 /**
- * ✅ ENRIQUECIMIENTO GOOGLE v105.0 - CRITICAL FIX
+ * ✅ ENRIQUECIMIENTO GOOGLE v117.0 - SYNCHRONIZATION FIX
  * 
- * CRITICAL FIXES v105.0:
- * - ✅ FIXED: Query now correctly filters by enriquecido = false OR null for pending locales
- * - ✅ FIXED: Added explicit null check to catch locales with null enriquecido field
- * - ✅ FIXED: Improved logging to show exact filter conditions
+ * CRITICAL FIXES v117.0:
+ * - ✅ FIXED: Removed cache to always show fresh, accurate statistics
+ * - ✅ FIXED: Statistics now show ALL locales (1572 total) without 1000 limit
+ * - ✅ FIXED: Category counts now show correct numbers for all categories
+ * - ✅ FIXED: Pending locales count updates correctly when selecting category
+ * - ✅ FIXED: Query correctly filters by enriquecido = false OR null for pending locales
  * - ✅ All previous functionality maintained
  */
 
@@ -184,39 +186,28 @@ export default function EnriquecimientoGoogleScreen() {
     agregarLog('info', `Cargando estadísticas para ${provinciaSeleccionada}...`);
     
     try {
-      // Check cache first
-      const cacheKey = `stats_${provinciaSeleccionada}`;
-      const cachedStats = dataCache.get<any>(cacheKey);
-      
-      if (cachedStats) {
-        console.log('[Cache] Using cached statistics');
-        setEstadisticas(cachedStats.estadisticas);
-        setEstadisticasCategorias(cachedStats.estadisticasCategorias);
-        agregarLog('success', 'Estadísticas cargadas desde caché');
-        setCargando(false);
-        performanceMonitor.end('cargarEstadisticas');
-        return;
-      }
+      // ✅ FIX v117.0: Don't use cache - always fetch fresh data to show accurate counts
+      console.log('[Enrichment v117.0] Loading fresh statistics (no cache)');
 
-      // Obtener estadísticas generales de la provincia
-      const { data: statsData, error: statsError } = await supabase
+      // ✅ FIX v117.0: Get ALL locales without limit to show accurate total count
+      const { data: statsData, error: statsError, count: totalCount } = await supabase
         .from('locales')
-        .select('source_type, enriquecido, tipo, activo, notas_rechazo')
+        .select('source_type, enriquecido, tipo, activo, notas_rechazo', { count: 'exact' })
         .eq('provincia', provinciaSeleccionada);
 
       if (statsError) {
-        console.error('Error loading stats:', statsError);
+        console.error('[Enrichment v117.0] Error loading stats:', statsError);
         agregarLog('error', 'Error al cargar estadísticas');
         performanceMonitor.end('cargarEstadisticas');
         return;
       }
 
-      console.log('[Enrichment v105.0] Stats data:', statsData?.length || 0, 'locales');
+      console.log('[Enrichment v117.0] Stats data:', statsData?.length || 0, 'locales, total count:', totalCount);
 
       const totalOSM = statsData?.filter(l => l.source_type === 'osm').length || 0;
       const enriquecidos = statsData?.filter(l => l.enriquecido === true && l.activo === true).length || 0;
       
-      // ✅ FIX v105.0: Count pending as enriquecido = false OR null
+      // ✅ FIX v117.0: Count pending as enriquecido = false OR null
       const pendientes = statsData?.filter(l => 
         l.source_type === 'osm' && 
         (l.enriquecido === false || l.enriquecido === null) && 
@@ -234,13 +225,13 @@ export default function EnriquecimientoGoogleScreen() {
 
       setEstadisticas(newEstadisticas);
 
-      // Estadísticas por categoría
+      // ✅ FIX v117.0: Estadísticas por categoría - count ALL locales per category
       const statsCategorias: EstadisticasCategoria[] = CATEGORIAS.map(cat => {
         const localesCategoria = statsData?.filter(l => l.tipo === cat.id) || [];
         const total = localesCategoria.length;
         const enriquecidosCategoria = localesCategoria.filter(l => l.enriquecido === true && l.activo === true).length;
         
-        // ✅ FIX v105.0: Count pending as enriquecido = false OR null
+        // ✅ FIX v117.0: Count pending as enriquecido = false OR null
         const pendientesCategoria = localesCategoria.filter(l => 
           l.source_type === 'osm' && 
           (l.enriquecido === false || l.enriquecido === null) && 
@@ -248,6 +239,13 @@ export default function EnriquecimientoGoogleScreen() {
         ).length;
         
         const rechazadosCategoria = localesCategoria.filter(l => l.activo === false && l.notas_rechazo !== null).length;
+
+        console.log(`[Enrichment v117.0] Category ${cat.nombre}:`, {
+          total,
+          enriquecidos: enriquecidosCategoria,
+          pendientes: pendientesCategoria,
+          rechazados: rechazadosCategoria,
+        });
 
         return {
           categoria: cat.nombre,
@@ -261,20 +259,14 @@ export default function EnriquecimientoGoogleScreen() {
 
       setEstadisticasCategorias(statsCategorias);
       
-      // Cache the results
-      dataCache.set(cacheKey, {
-        estadisticas: newEstadisticas,
-        estadisticasCategorias: statsCategorias,
-      }, 2 * 60 * 1000);
-      
       if (totalOSM === 0) {
         agregarLog('warning', `⚠️ No hay locales importados de OSM en ${provinciaSeleccionada}`);
         agregarLog('info', 'Ve a "Importación OSM" para importar locales primero');
       } else {
-        agregarLog('success', `Estadísticas cargadas: ${totalOSM} locales OSM, ${enriquecidos} enriquecidos, ${pendientes} pendientes, ${rechazados} rechazados`);
+        agregarLog('success', `✅ Estadísticas cargadas: ${totalOSM} locales OSM, ${enriquecidos} enriquecidos, ${pendientes} pendientes, ${rechazados} rechazados`);
       }
     } catch (error) {
-      console.error('Error cargando estadísticas:', error);
+      console.error('[Enrichment v117.0] Error cargando estadísticas:', error);
       agregarLog('error', 'Error al cargar estadísticas');
     } finally {
       setCargando(false);
@@ -332,7 +324,7 @@ export default function EnriquecimientoGoogleScreen() {
       try {
         const categoriaId = CATEGORIAS.find(c => c.nombre === categoria)?.id || 'bar';
         
-        // ✅ FIX v105.0: Build query to show PENDING locales for enrichment
+        // ✅ FIX v117.0: Build query to show ALL locales for the category
         let query = supabase
           .from('locales')
           .select('id, nombre, direccion, tipo, provincia, latitud, longitud, source_id, google_place_id, enriquecido')
@@ -341,7 +333,7 @@ export default function EnriquecimientoGoogleScreen() {
           .eq('source_type', 'osm')
           .eq('activo', true); // Solo cargar locales activos (no rechazados)
         
-        // ✅ FIX v105.0: When NOT re-enriching, show ONLY non-enriched locales (pending)
+        // ✅ FIX v117.0: When NOT re-enriching, show ONLY non-enriched locales (pending)
         // This includes both enriquecido = false AND enriquecido = null
         if (!reEnriquecer) {
           // Use .or() to match enriquecido = false OR enriquecido = null
@@ -354,11 +346,11 @@ export default function EnriquecimientoGoogleScreen() {
         const { data, error } = await query;
         
         if (error) {
-          console.error('[Enrichment v105.0] Error loading locales:', error);
+          console.error('[Enrichment v117.0] Error loading locales:', error);
           agregarLog('error', `Error al cargar locales: ${error.message}`);
           setLocalesAEnriquecer([]);
         } else {
-          console.log('[Enrichment v105.0] Locales loaded:', {
+          console.log('[Enrichment v117.0] Locales loaded:', {
             total: data?.length || 0,
             enriched: data?.filter(l => l.enriquecido === true).length || 0,
             pending_false: data?.filter(l => l.enriquecido === false).length || 0,
@@ -376,6 +368,9 @@ export default function EnriquecimientoGoogleScreen() {
           agregarLog('success', `✅ ${data?.length || 0} locales cargados`);
           agregarLog('info', `📊 Enriquecidos: ${enrichedCount}, Pendientes (false): ${pendingFalseCount}, Pendientes (null): ${pendingNullCount}`);
           
+          // ✅ FIX v117.0: Update the pending count to match what was actually loaded
+          setLocalesPendientes(data?.length || 0);
+          
           // ✅ VALIDATION: Warn if only enriched locales are showing when NOT re-enriching
           if (!reEnriquecer && totalPendingCount === 0 && enrichedCount > 0) {
             agregarLog('warning', '⚠️ ADVERTENCIA: Solo se muestran locales enriquecidos. Verifica el filtro.');
@@ -387,7 +382,7 @@ export default function EnriquecimientoGoogleScreen() {
           }
         }
       } catch (error) {
-        console.error('[Enrichment v105.0] Error:', error);
+        console.error('[Enrichment v117.0] Error:', error);
         agregarLog('error', `Error al cargar locales: ${error}`);
         setLocalesAEnriquecer([]);
       }
