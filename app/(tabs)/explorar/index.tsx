@@ -42,7 +42,7 @@ import { getCategoryIcon } from '@/utils/categoryIcons';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ CRITICAL FIX v113.0: Reduced header height to minimize white space
+// ✅ CRITICAL FIX v123.0: Reduced header height to minimize white space
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 340 : 360;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
@@ -58,7 +58,7 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
-// ✅ CRITICAL FIX v112.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos)
+// ✅ CRITICAL FIX v123.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
@@ -70,19 +70,24 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v122.0 - SMART ORDERING APPLIED
+ * ✅ EXPLORAR SCREEN v123.0 - CORRECT SMART ORDERING APPLIED
  * 
- * CRITICAL FIXES v122.0 (APPLIED):
- * - ✅ FIXED: Smart ordering by multiple criteria (NOT alphabetically)
- * - ✅ FIXED: Order priority: destacados → closest → open → without schedule → with events → closed
- * - ✅ FIXED: Featured locales (destacado=true) appear FIRST
- * - ✅ FIXED: Then sorted by distance (closest first) when user location available
- * - ✅ FIXED: Then open locales (abierto=true) appear before closed
- * - ✅ FIXED: Then locales without schedule info appear before those with schedule
- * - ✅ FIXED: Then locales with events appear before those without
- * - ✅ FIXED: Finally closed locales (cerrado=false) appear last
- * - ✅ FIXED: Alphabetical sorting only as final tiebreaker
- * - ✅ FIXED: Added detailed logging with status indicators
+ * CRITICAL FIXES v123.0 (APPLIED):
+ * - ✅ FIXED: Correct ordering by user requirements
+ * - ✅ FIXED: Featured locales beyond 100km appear AFTER closer non-featured locales
+ * - ✅ FIXED: Distance is PRIMARY sorting criterion within each priority group
+ * - ✅ FIXED: Order priority groups:
+ *   1. Featured + Open (within 100km)
+ *   2. Open (not featured, within 100km)
+ *   3. With active events (within 100km)
+ *   4. Without schedule info (within 100km)
+ *   5. Closed (within 100km)
+ *   6. Featured + Open (beyond 100km)
+ *   7. Open (not featured, beyond 100km)
+ *   8. With active events (beyond 100km)
+ *   9. Without schedule info (beyond 100km)
+ *   10. Closed (beyond 100km)
+ * - ✅ Within each group: Sort by distance (closest first)
  * - ✅ All previous functionality maintained
  * 
  * 🔄 FORCE RELOAD: Restart Expo dev server with --clear to see changes
@@ -111,7 +116,7 @@ export default function ExplorarScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
 
-  // ✅ v112.0: Improved scroll tracking with refs
+  // ✅ v123.0: Improved scroll tracking with refs
   const scrollY = useRef(0);
   const lastScrollY = useRef(0);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
@@ -126,10 +131,10 @@ export default function ExplorarScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Explorar v117.0] User location obtained:', location.coords);
+          console.log('[Explorar v123.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Explorar v116.0] Error getting location:', error);
+        console.error('[Explorar v123.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -155,23 +160,127 @@ export default function ExplorarScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Explorar v117.0] Error checking social profiles:', error);
+      console.error('[Explorar v123.0] Error checking social profiles:', error);
     }
+  }, []);
+
+  /**
+   * ✅ CRITICAL FIX v123.0: Correct ordering logic
+   * 
+   * PRIORITY GROUPS (distance is PRIMARY within each group):
+   * 
+   * WITHIN 100KM:
+   * 1. Featured + Open (destacado=true, abierto=true) → sorted by distance
+   * 2. Open (not featured) (abierto=true, destacado=false) → sorted by distance
+   * 3. With active events (tieneEventos=true) → sorted by distance
+   * 4. Without schedule info (tieneHorarios=false) → sorted by distance
+   * 5. Closed (abierto=false) → sorted by distance
+   * 
+   * BEYOND 100KM:
+   * 6. Featured + Open (destacado=true, abierto=true) → sorted by distance
+   * 7. Open (not featured) (abierto=true, destacado=false) → sorted by distance
+   * 8. With active events (tieneEventos=true) → sorted by distance
+   * 9. Without schedule info (tieneHorarios=false) → sorted by distance
+   * 10. Closed (abierto=false) → sorted by distance
+   */
+  const sortLocalesByPriority = useCallback((locales: any[]) => {
+    console.log('[Explorar v123.0] 🔄 SORTING LOCALES WITH CORRECT PRIORITY LOGIC');
+    console.log('[Explorar v123.0] 📋 Total locales to sort:', locales.length);
+    
+    const sorted = locales.sort((a, b) => {
+      // Get distance for both locales
+      const distA = a.distancia !== null && a.distancia !== undefined ? a.distancia : 999999;
+      const distB = b.distancia !== null && b.distancia !== undefined ? b.distancia : 999999;
+      
+      // Determine if within 100km
+      const aWithin100km = distA <= 100;
+      const bWithin100km = distB <= 100;
+      
+      // Get status
+      const aDestacado = a.destacado === true;
+      const bDestacado = b.destacado === true;
+      const aAbierto = a.estaAbierto === true;
+      const bAbierto = b.estaAbierto === true;
+      const aTieneHorarios = a.tieneHorarios === true;
+      const bTieneHorarios = b.tieneHorarios === true;
+      const aTieneEventos = a.tieneEventos === true;
+      const bTieneEventos = b.tieneEventos === true;
+      const aCerrado = a.estaAbierto === false;
+      const bCerrado = b.estaAbierto === false;
+      
+      // Calculate priority (lower number = higher priority)
+      const getPriority = (local: any) => {
+        const dist = local.distancia !== null && local.distancia !== undefined ? local.distancia : 999999;
+        const within100km = dist <= 100;
+        const destacado = local.destacado === true;
+        const abierto = local.estaAbierto === true;
+        const tieneHorarios = local.tieneHorarios === true;
+        const tieneEventos = local.tieneEventos === true;
+        const cerrado = local.estaAbierto === false;
+        
+        if (within100km) {
+          // WITHIN 100KM
+          if (destacado && abierto) return 1; // Featured + Open
+          if (abierto && !destacado) return 2; // Open (not featured)
+          if (tieneEventos) return 3; // With events
+          if (!tieneHorarios) return 4; // Without schedule info
+          if (cerrado) return 5; // Closed
+          return 6; // Other
+        } else {
+          // BEYOND 100KM
+          if (destacado && abierto) return 7; // Featured + Open (far)
+          if (abierto && !destacado) return 8; // Open (not featured, far)
+          if (tieneEventos) return 9; // With events (far)
+          if (!tieneHorarios) return 10; // Without schedule info (far)
+          if (cerrado) return 11; // Closed (far)
+          return 12; // Other (far)
+        }
+      };
+      
+      const priorityA = getPriority(a);
+      const priorityB = getPriority(b);
+      
+      // 1. Sort by priority group
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+      
+      // 2. Within same priority group, sort by distance (closest first)
+      if (distA !== distB) {
+        return distA - distB;
+      }
+      
+      // 3. Finally, sort alphabetically by name
+      return a.nombre.localeCompare(b.nombre);
+    });
+    
+    console.log('[Explorar v123.0] 📋 First 15 locales after sorting:');
+    sorted.slice(0, 15).forEach((local: any, index: number) => {
+      const destacado = local.destacado === true ? '⭐' : '';
+      const distancia = local.distancia !== null ? `📍${local.distancia.toFixed(1)}km` : '📍N/A';
+      const abierto = local.estaAbierto === true ? '🟢' : local.estaAbierto === false ? '🔴' : '⚪';
+      const horarios = local.tieneHorarios ? '🕐' : '❌';
+      const eventos = local.tieneEventos ? '🎉' : '';
+      const within100km = (local.distancia !== null && local.distancia <= 100) ? '✅' : '❌';
+      console.log(`  ${index + 1}. ${destacado} ${local.nombre} ${distancia} ${within100km} ${abierto} ${horarios} ${eventos}`);
+    });
+    
+    return sorted;
   }, []);
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v122.0] 🔄 LOADING LOCALES WITH SMART ORDERING');
-      console.log('[Explorar v122.0] 📋 Order: destacado → distance → open status → has schedule → has events → closed');
+      console.log('[Explorar v123.0] 🔄 LOADING LOCALES WITH CORRECT ORDERING');
+      console.log('[Explorar v123.0] 📋 Order: distance-based priority groups');
       
-      // ✅ FIX v122.0: Load ALL locales without ordering (we'll sort in memory)
+      // ✅ FIX v123.0: Load ALL locales without ordering (we'll sort in memory)
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
         .select('*')
         .eq('activo', true);
       
-      console.log('[Explorar v122.0] ✅ Query executed');
-      console.log('[Explorar v122.0] 📊 Total locales loaded:', localesData?.length || 0);
+      console.log('[Explorar v123.0] ✅ Query executed');
+      console.log('[Explorar v123.0] 📊 Total locales loaded:', localesData?.length || 0);
 
       if (localesError) throw localesError;
 
@@ -204,53 +313,15 @@ export default function ExplorarScreen() {
           };
         });
         
-        // ✅ FIX v122.0: SMART ORDERING - Sort by multiple criteria
-        // Priority order:
-        // 1. Destacados (featured) first
-        // 2. Closest (by distance)
-        // 3. Open now
-        // 4. Without schedule info
-        // 5. With events
-        // 6. Closed
-        const sortedLocales = formattedLocales.sort((a, b) => {
-          // 1. Featured first (destacado = true)
-          if (a.destacado === true && b.destacado !== true) return -1;
-          if (a.destacado !== true && b.destacado === true) return 1;
-          
-          // 2. Sort by distance (closest first) - only if we have user location
-          if (userLocation && a.distancia !== null && b.distancia !== null) {
-            if (a.distancia < b.distancia) return -1;
-            if (a.distancia > b.distancia) return 1;
-          }
-          
-          // 3. Open now (abierto = true)
-          if (a.estaAbierto === true && b.estaAbierto !== true) return -1;
-          if (a.estaAbierto !== true && b.estaAbierto === true) return 1;
-          
-          // 4. Without schedule info (sin horarios = null)
-          if (!a.tieneHorarios && b.tieneHorarios) return -1;
-          if (a.tieneHorarios && !b.tieneHorarios) return 1;
-          
-          // 5. With events (con eventos = true)
-          if (a.tieneEventos && !b.tieneEventos) return -1;
-          if (!a.tieneEventos && b.tieneEventos) return 1;
-          
-          // 6. Closed (cerrado = false)
-          if (a.estaAbierto === false && b.estaAbierto !== false) return 1;
-          if (a.estaAbierto !== false && b.estaAbierto === false) return -1;
-          
-          // 7. Finally, sort alphabetically by name
-          return a.nombre.localeCompare(b.nombre);
-        });
+        // ✅ FIX v123.0: Apply correct sorting
+        const sortedLocales = sortLocalesByPriority(formattedLocales);
         
-        console.log('[Explorar v122.0] 📋 First 10 locales (to verify ordering):');
-        sortedLocales.slice(0, 10).forEach((local: any, index: number) => {
-          const destacado = local.destacado === true ? '⭐' : '';
-          const distancia = local.distancia !== null ? `📍${local.distancia.toFixed(1)}km` : '';
-          const abierto = local.estaAbierto === true ? '🟢' : local.estaAbierto === false ? '🔴' : '⚪';
-          const horarios = local.tieneHorarios ? '🕐' : '❌';
-          console.log(`  ${index + 1}. ${destacado} ${local.nombre} ${distancia} ${abierto} ${horarios}`);
-        });
+        console.log('[Explorar v123.0] ✅ Locales loaded and ordered with correct priority logic');
+        console.log('[Explorar v123.0] 📊 Total:', sortedLocales.length);
+        console.log('[Explorar v123.0] 📊 Featured:', sortedLocales.filter(l => l.destacado === true).length);
+        console.log('[Explorar v123.0] 📊 Open now:', sortedLocales.filter(l => l.estaAbierto === true).length);
+        console.log('[Explorar v123.0] 📊 Without schedule:', sortedLocales.filter(l => !l.tieneHorarios).length);
+        console.log('[Explorar v123.0] 📊 Within 100km:', sortedLocales.filter(l => l.distancia !== null && l.distancia <= 100).length);
         
         setAllLocales(sortedLocales);
         setFilteredLocales(sortedLocales);
@@ -260,20 +331,14 @@ export default function ExplorarScreen() {
         setCurrentPage(1);
         setHasMore(sortedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Explorar v122.0] ✅ Locales loaded and ordered with smart sorting');
-        console.log('[Explorar v122.0] 📊 Total:', sortedLocales.length);
-        console.log('[Explorar v122.0] 📊 Featured:', sortedLocales.filter(l => l.destacado === true).length);
-        console.log('[Explorar v122.0] 📊 Open now:', sortedLocales.filter(l => l.estaAbierto === true).length);
-        console.log('[Explorar v122.0] 📊 Without schedule:', sortedLocales.filter(l => !l.tieneHorarios).length);
-        
         checkSocialProfilesForLocales(sortedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Explorar v122.0] Error loading locales:', error);
+      console.error('[Explorar v123.0] Error loading locales:', error);
     } finally {
       setLoading(false);
     }
-  }, [userLocation, checkSocialProfilesForLocales]);
+  }, [userLocation, checkSocialProfilesForLocales, sortLocalesByPriority]);
 
   useEffect(() => {
     loadLocales();
@@ -281,7 +346,7 @@ export default function ExplorarScreen() {
 
   useEffect(() => {
     if (userLocation && allLocales.length > 0) {
-      console.log('[Explorar v117.0] Recalculating distances with new user location');
+      console.log('[Explorar v123.0] Recalculating distances with new user location');
       const updatedLocales = allLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -294,14 +359,17 @@ export default function ExplorarScreen() {
           distancia: distancia,
         };
       });
-      setAllLocales(updatedLocales);
-      setFilteredLocales(updatedLocales);
       
-      const firstPage = updatedLocales.slice(0, currentPage * ITEMS_PER_PAGE);
+      // Re-sort with new distances
+      const sortedLocales = sortLocalesByPriority(updatedLocales);
+      setAllLocales(sortedLocales);
+      setFilteredLocales(sortedLocales);
+      
+      const firstPage = sortedLocales.slice(0, currentPage * ITEMS_PER_PAGE);
       setDisplayedLocales(firstPage);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLocation, currentPage]);
+  }, [userLocation, currentPage, sortLocalesByPriority]);
 
   useEffect(() => {
     let filtered = [...allLocales];
@@ -337,14 +405,16 @@ export default function ExplorarScreen() {
       filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
     }
 
-    setFilteredLocales(filtered);
-    const firstPage = filtered.slice(0, ITEMS_PER_PAGE);
+    // Re-sort filtered results
+    const sortedFiltered = sortLocalesByPriority(filtered);
+    setFilteredLocales(sortedFiltered);
+    const firstPage = sortedFiltered.slice(0, ITEMS_PER_PAGE);
     setDisplayedLocales(firstPage);
     setCurrentPage(1);
-    setHasMore(filtered.length > ITEMS_PER_PAGE);
+    setHasMore(sortedFiltered.length > ITEMS_PER_PAGE);
     
-    console.log('[Explorar v117.0] Filters applied. Results:', filtered.length);
-  }, [searchQuery, selectedCategory, provinciaSeleccionada, allLocales]);
+    console.log('[Explorar v123.0] Filters applied. Results:', sortedFiltered.length);
+  }, [searchQuery, selectedCategory, provinciaSeleccionada, allLocales, sortLocalesByPriority]);
 
   const loadMoreLocales = useCallback(() => {
     if (loadingMore || !hasMore) return;
@@ -361,7 +431,7 @@ export default function ExplorarScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Explorar v117.0] Cargando más locales, página:', nextPage);
+        console.log('[Explorar v123.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -371,7 +441,7 @@ export default function ExplorarScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v117.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v123.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -381,7 +451,7 @@ export default function ExplorarScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v117.0] 🧹 Clearing all filters');
+    console.log('[Explorar v123.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -401,13 +471,13 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v117.0] User not authenticated');
+      console.log('[Explorar v123.0] User not authenticated');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v117.0] No local ID');
+      console.log('[Explorar v123.0] No local ID');
       return;
     }
 
@@ -420,7 +490,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v117.0] Removing from favorites');
+        console.log('[Explorar v123.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -429,7 +499,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v117.0] Adding to favorites');
+        console.log('[Explorar v123.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -442,7 +512,7 @@ export default function ExplorarScreen() {
       
       await loadLocales();
     } catch (error) {
-      console.error('[Explorar v117.0] Error toggling favorito:', error);
+      console.error('[Explorar v123.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
@@ -459,12 +529,12 @@ export default function ExplorarScreen() {
     router.push(`/perfil/local?localId=${localId}`);
   };
 
-  // ✅ v112.0: Navigate to map page
+  // ✅ v123.0: Navigate to map page
   const handleNavigateToMap = () => {
     router.push('/(tabs)/explorar/mapa');
   };
 
-  // ✅ v112.0: Navigate to claim/create local
+  // ✅ v123.0: Navigate to claim/create local
   const handleClaimOrCreateLocal = () => {
     if (!user) {
       setShowLoginModal(true);
@@ -473,33 +543,33 @@ export default function ExplorarScreen() {
     router.push('/auth/local-ownership-request');
   };
 
-  // ✅ v112.0: Get mode label for display
+  // ✅ v123.0: Get mode label for display
   const getModeLabel = () => {
     if (currentMode === 'admin') return 'Admin';
     if (currentMode === 'propietario') return 'Propietario';
     return 'Cliente';
   };
 
-  // ✅ v112.0: Get mode icon
+  // ✅ v123.0: Get mode icon
   const getModeIcon = () => {
     if (currentMode === 'admin') return { ios: 'shield.fill', android: 'admin_panel_settings' };
     if (currentMode === 'propietario') return { ios: 'building.2.fill', android: 'store' };
     return { ios: 'person.fill', android: 'person' };
   };
 
-  // ✅ v112.0: Handle mode change
+  // ✅ v123.0: Handle mode change
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
-      console.log('[Explorar v117.0] Changing mode to:', newMode);
+      console.log('[Explorar v123.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v117.0] Error changing mode:', error);
+      console.error('[Explorar v123.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
 
-  // ✅ v112.0: CRITICAL FIX - Improved scroll handler with proper direction detection
+  // ✅ v123.0: CRITICAL FIX - Improved scroll handler with proper direction detection
   const handleScroll = useCallback((event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const diff = currentScrollY - lastScrollY.current;
@@ -508,7 +578,6 @@ export default function ExplorarScreen() {
     if (Math.abs(diff) > 5) {
       if (diff > 0 && currentScrollY > 50) {
         // Scrolling DOWN - hide header
-        console.log('[Explorar v117.0] 📜 Scrolling DOWN, hiding header');
         Animated.timing(headerTranslateY, {
           toValue: -HEADER_SCROLL_DISTANCE,
           duration: 250,
@@ -516,7 +585,6 @@ export default function ExplorarScreen() {
         }).start();
       } else if (diff < 0) {
         // Scrolling UP - show header
-        console.log('[Explorar v117.0] 📜 Scrolling UP, showing header');
         Animated.timing(headerTranslateY, {
           toValue: 0,
           duration: 250,
@@ -825,11 +893,11 @@ export default function ExplorarScreen() {
 
   const HeaderContent = () => (
     <React.Fragment>
-      {/* ✅ FIXED v112.0: Header top with mode selector and map icon on the RIGHT */}
+      {/* ✅ FIXED v123.0: Header top with mode selector and map icon on the RIGHT */}
       <View style={styles.headerTop}>
         <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Explorar</Text>
         <View style={styles.headerActions}>
-          {/* ✅ FIXED v112.0: Mode selector FIRST (on the left) - shows role, not profile */}
+          {/* ✅ FIXED v123.0: Mode selector FIRST (on the left) - shows role, not profile */}
           {user && (
             <TouchableOpacity 
               style={styles.modeSelectorButton}
@@ -845,7 +913,7 @@ export default function ExplorarScreen() {
               <Text style={[styles.modeSelectorText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
                 {getModeLabel()}
               </Text>
-              {/* ✅ CRITICAL FIX v115.0: Correct Material Icons name for dropdown arrow */}
+              {/* ✅ CRITICAL FIX v123.0: Correct Material Icons name for dropdown arrow */}
               <IconSymbol 
                 ios_icon_name="chevron.down" 
                 android_material_icon_name="arrow_drop_down" 
@@ -855,7 +923,7 @@ export default function ExplorarScreen() {
             </TouchableOpacity>
           )}
 
-          {/* ✅ FIXED v112.0: Map icon SECOND (on the right) */}
+          {/* ✅ FIXED v123.0: Map icon SECOND (on the right) */}
           <TouchableOpacity 
             style={styles.mapButton}
             onPress={handleNavigateToMap}
@@ -924,7 +992,7 @@ export default function ExplorarScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ CRITICAL FIX v112.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos) */}
+      {/* ✅ CRITICAL FIX v123.0: Unified category filters with TEAL ICONS (matching Eventos & Favoritos) */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -969,7 +1037,7 @@ export default function ExplorarScreen() {
         ))}
       </ScrollView>
 
-      {/* ✅ FIXED v112.0: Banner moved BELOW category filters */}
+      {/* ✅ FIXED v123.0: Banner moved BELOW category filters */}
       {user && (
         <TouchableOpacity 
           style={styles.claimBanner}
@@ -1005,7 +1073,7 @@ export default function ExplorarScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅ ENABLED v112.0: Animated header that hides on scroll down, shows on scroll up */}
+      {/* ✅ ENABLED v123.0: Animated header that hides on scroll down, shows on scroll up */}
       <Animated.View
         style={[
           styles.headerContainer,
@@ -1048,7 +1116,7 @@ export default function ExplorarScreen() {
         scrollEventThrottle={16}
       />
 
-      {/* ✅ v112.0: Mode selector modal - shows Cliente/Propietario/Admin roles */}
+      {/* ✅ v123.0: Mode selector modal - shows Cliente/Propietario/Admin roles */}
       <Modal
         visible={showModeSelectorModal}
         animationType="slide"
