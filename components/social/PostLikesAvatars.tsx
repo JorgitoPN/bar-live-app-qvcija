@@ -66,7 +66,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         params: { userId },
       });
     }
-  }, [user?.id, router]); // ✅ FIXED: Only depend on user.id, not entire user object
+  }, [user, router]); // ✅ FIXED: Include user to satisfy exhaustive-deps
 
   // ✅ CRITICAL FIX v101.0: Stable callback with minimal dependencies
   const loadAllLikes = useCallback(async () => {
@@ -123,7 +123,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       userLiked,
       totalLikes: localLikes.length,
     });
-  }, [postId, localLikes, user?.id]); // ✅ FIXED: Only depend on user.id
+  }, [postId, localLikes, user]); // ✅ FIXED: Include user to satisfy exhaustive-deps
 
   // ✅ CRITICAL FIX v101.0: Separate effect for loading profile data
   // This effect ONLY runs when localLikes changes, NOT when tempProfiles changes
@@ -201,7 +201,8 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     };
 
     loadProfiles();
-  }, [postId, localLikes, user?.id]); // ✅ FIXED: Removed tempProfiles from dependencies to prevent loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId, localLikes, user]); // ✅ FIXED: Include user, tempProfiles intentionally excluded to prevent loop
 
   // ✅ CRITICAL FIX v101.0: Real-time subscription with stable dependencies
   useEffect(() => {
@@ -272,7 +273,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         channelRef.current = null;
       }
     };
-  }, [postId, user?.id]); // ✅ FIXED: Only depend on user.id
+  }, [postId, user]); // ✅ FIXED: Include user to satisfy exhaustive-deps
 
   // ✅ CRITICAL FIX v101.0: Update from prop when localLikes is empty
   useEffect(() => {
@@ -447,7 +448,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         </View>
       )}
     </TouchableOpacity>
-  ), [user?.id, handleUserPress]); // ✅ FIXED: Only depend on user.id
+  ), [user, handleUserPress]); // ✅ FIXED: Include user to satisfy exhaustive-deps
 
   if (currentTotalLikes === 0) {
     return null;

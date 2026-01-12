@@ -89,7 +89,7 @@ export default function ImageEditorV6({
   const [flipHorizontal, setFlipHorizontal] = useState(false);
   const [flipVertical, setFlipVertical] = useState(false);
   
-  // Gesture values
+  // Gesture values - MUST be declared unconditionally
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -108,13 +108,10 @@ export default function ImageEditorV6({
     }
   }, [visible, imageUri, onSave, onClose]);
 
-  // ✅ CRITICAL FIX v150.0: ANDROID ONLY - Return null to prevent editor from showing
-  if (Platform.OS === 'android') {
-    return null;
-  }
-
-  // iOS-only code below this point
+  // iOS-only image loading effect
   useEffect(() => {
+    if (Platform.OS === 'android') return; // Skip for Android
+    
     if (visible && imageUri) {
       console.log('[ImageEditorV6 v150.0] 🖼️ Loading image (iOS only):', imageUri);
       setImageLoaded(false);
@@ -148,7 +145,12 @@ export default function ImageEditorV6({
     }
   }, [visible, imageUri, savedScale, scale]);
 
+  // ✅ CRITICAL FIX v150.0: Animated style MUST be declared unconditionally
   const animatedStyle = useAnimatedStyle(() => {
+    if (Platform.OS === 'android') {
+      // Return default style for Android (won't be used but must be declared)
+      return {};
+    }
     return {
       transform: [
         { translateX: translateX.value },
@@ -159,7 +161,7 @@ export default function ImageEditorV6({
         { scaleY: flipVertical ? -1 : 1 },
       ],
     };
-  });
+  }, [rotation, flipHorizontal, flipVertical]); // ✅ Add dependencies
 
   const resetTransform = () => {
     console.log('[ImageEditorV6 v150.0] 🔄 Resetting all transformations');
@@ -271,6 +273,13 @@ export default function ImageEditorV6({
     }
   };
 
+  // ✅ CRITICAL FIX v150.0: ANDROID ONLY - Return null to prevent editor from showing
+  // This check MUST come AFTER all hooks are declared
+  if (Platform.OS === 'android') {
+    return null;
+  }
+
+  // iOS-only rendering below this point
   return (
     <Modal
       visible={visible}

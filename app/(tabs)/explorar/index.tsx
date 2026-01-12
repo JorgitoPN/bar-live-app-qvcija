@@ -338,7 +338,8 @@ export default function ExplorarScreen() {
       const firstPage = sortedLocales.slice(0, currentPage * ITEMS_PER_PAGE);
       setDisplayedLocales(firstPage);
     }
-  }, [userLocation, currentPage, sortLocalesByPriority]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation, currentPage, sortLocalesByPriority]); // allLocales intentionally excluded to prevent infinite loop
 
   useEffect(() => {
     let filtered = [...allLocales];

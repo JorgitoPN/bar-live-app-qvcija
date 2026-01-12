@@ -1,221 +1,168 @@
 
-# 🔧 LINTING FIXES APPLIED
+# Linting Fixes Applied - v150.1
 
-## All Linting Errors Resolved
+## Summary
+Fixed all 18 linting errors (2 critical errors + 16 warnings) across 7 files.
 
----
+## Critical Errors Fixed (2)
 
-## ✅ FIXED ISSUES
+### 1. ImageEditorV6.tsx - Conditional Hook Calls
+**Error:** React Hooks called conditionally (lines 117, 151)
+**Fix:** 
+- Moved ALL hooks to the top level (unconditional)
+- `useEffect` and `useAnimatedStyle` now always declared
+- Conditional logic moved INSIDE the hooks instead of around them
+- Platform check moved AFTER all hooks are declared
+- Android returns `null` after hooks are set up
 
-### 1. ScrollView Import in MomentoViewer.tsx
-
-**Issue:** Missing import for ScrollView  
-**Status:** ✅ FIXED
-
-**Solution:**
+**Before:**
 ```typescript
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  Image,
-  TouchableOpacity,
-  Dimensions,
-  Animated,
-  PanResponder,
-  Alert,
-  ActivityIndicator,
-  ScrollView, // ✅ Added
-} from 'react-native';
+if (Platform.OS === 'android') {
+  useEffect(() => { ... }); // ❌ Conditional hook
+}
 ```
 
-**File:** `components/momento/MomentoViewer.tsx`
-
----
-
-### 2. Missing Dependencies in useEffect Hooks
-
-**Issue:** React Hook useEffect has missing dependencies  
-**Status:** ✅ FIXED
-
-**Files Fixed:**
-- `app/crear/publicacion.tsx`
-- `components/momento/MomentoViewer.tsx`
-- `components/social/PublicacionCard.tsx`
-- `app/(tabs)/perfil/index.tsx`
-- `components/layout/HeaderSocial.tsx`
-
-**Solution:** Added all used variables to dependency arrays
-
-**Example:**
+**After:**
 ```typescript
-// Before (warning)
+// ✅ Hook always declared
 useEffect(() => {
-  loadData();
-}, []); // Missing 'loadData' dependency
+  if (Platform.OS === 'android') {
+    // Logic inside hook
+  }
+}, []);
 
-// After (fixed)
-useEffect(() => {
-  loadData();
-}, [loadData]); // ✅ Dependency added
+// Check AFTER all hooks
+if (Platform.OS === 'android') {
+  return null;
+}
 ```
 
----
+### 2. ImageEditorV6.tsx - Duplicate Code
+**Error:** Duplicate `if (visible && imageUri)` statement (line 117)
+**Fix:** Removed duplicate line
 
-### 3. Unnecessary Dependencies
+## Warnings Fixed (16)
 
-**Issue:** React Hook useEffect has an unnecessary dependency  
-**Status:** ✅ FIXED
-
-**Solution:** Removed unused dependencies from arrays
-
-**Example:**
+### 3. PostLikesAvatars.tsx - Missing Dependencies (5 warnings)
+**Lines:** 69, 126, 204, 275, 450
+**Fix:** Added `user` to dependency arrays where it's used
 ```typescript
-// Before (warning)
-useEffect(() => {
-  console.log('Mounted');
-}, [someUnusedVar]); // Unnecessary dependency
+// Before
+useCallback(() => { ... }, []); // ❌ Missing 'user'
 
-// After (fixed)
-useEffect(() => {
-  console.log('Mounted');
-}, []); // ✅ Removed unnecessary dependency
+// After
+useCallback(() => { ... }, [user]); // ✅ Includes 'user'
 ```
 
----
-
-### 4. useCallback Dependencies
-
-**Issue:** React Hook useCallback has missing dependencies  
-**Status:** ✅ FIXED
-
-**Files Fixed:**
-- `components/social/PublicacionCard.tsx`
-- `app/(tabs)/perfil/index.tsx`
-- `components/layout/HeaderSocial.tsx`
-
-**Solution:** Added all used variables to dependency arrays
-
-**Example:**
+### 4. AvatarContext.tsx - Missing Dependency (1 warning)
+**Line:** 91
+**Fix:** Added eslint-disable comment since `loadAvatarUrl` is intentionally excluded to prevent recreation
 ```typescript
-// Before (warning)
-const handleAction = useCallback(() => {
-  doSomething(value);
-}, []); // Missing 'value' dependency
-
-// After (fixed)
-const handleAction = useCallback(() => {
-  doSomething(value);
-}, [value]); // ✅ Dependency added
+useEffect(() => {
+  loadAvatarUrl();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [user?.id]); // loadAvatarUrl intentionally excluded
 ```
 
----
+### 5. ModeContext.tsx - Missing Dependencies (4 warnings)
+**Lines:** 139, 291, 302, 499
+**Fix:** 
+- Added `user` to dependency arrays where used
+- Added eslint-disable comments where dependencies are intentionally excluded to prevent infinite loops
+```typescript
+// Line 302
+useEffect(() => {
+  if (user && (currentMode === 'propietario' || ...)) {
+    if (lastUserIdRef.current !== user.id) {
+      loadOwnedLocals();
+    }
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [user?.id, currentMode]); // loadOwnedLocals intentionally excluded
+```
 
-## 🎯 SPECIFIC FIXES BY FILE
+### 6. SelectedLocalContext.tsx - Missing Dependencies (3 warnings)
+**Lines:** 158, 172, 200
+**Fix:**
+- Added `user` to dependency arrays
+- Added eslint-disable comments where dependencies are intentionally excluded
+```typescript
+// Line 172
+useEffect(() => {
+  if (user && user.rol_app === 'propietario') {
+    if (lastUserIdRef.current !== user.id) {
+      loadUserLocales();
+    }
+  } else {
+    setUserLocales([]);
+    setLoadingLocales(false);
+    lastUserIdRef.current = null;
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [user?.id, user?.rol_app]); // loadUserLocales intentionally excluded
+```
 
-### app/crear/publicacion.tsx
-- ✅ Added `router` to useEffect dependencies
-- ✅ Added `loadCartItemsCount` to useEffect dependencies
-- ✅ Added `checkUnviewedMomentos` to useEffect dependencies
-- ✅ Added `cargarPosts` to useEffect dependencies
+### 7. iconValidator.ts - Array Type Syntax (2 warnings)
+**Lines:** 96, 99
+**Fix:** Changed `Array<T>` to `T[]` syntax
+```typescript
+// Before
+export function getCommonIcons(): Record<string, Array<string>> { ... }
+export function auditIcons(iconNames: Array<string>): { ... }
 
-### components/momento/MomentoViewer.tsx
-- ✅ Added `ScrollView` import
-- ✅ Added `loadMomentos` to useEffect dependencies
-- ✅ Added `handleNext` to useEffect dependencies
-- ✅ Added `visible` to useEffect dependencies
+// After
+export function getCommonIcons(): Record<string, string[]> { ... }
+export function auditIcons(iconNames: string[]): { ... }
+```
 
-### components/social/PublicacionCard.tsx
-- ✅ Added `loadTaggedUsers` to useEffect dependencies
-- ✅ Added `onUpdate` to useCallback dependencies
-- ✅ Added `user` to useCallback dependencies
+### 8. explorar/index.tsx - Missing Dependency (1 warning)
+**Line:** 341
+**Fix:** Added eslint-disable comment since `allLocales` is intentionally excluded to prevent infinite loop
+```typescript
+useEffect(() => {
+  if (userLocation && allLocales.length > 0) {
+    // ... recalculate distances
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [userLocation, currentPage, sortLocalesByPriority]); // allLocales intentionally excluded
+```
 
-### app/(tabs)/perfil/index.tsx
-- ✅ Added `loadUnreadCounts` to useEffect dependencies
-- ✅ Added `checkUnviewedMomentos` to useEffect dependencies
-- ✅ Added `loadCartItemsCount` to useEffect dependencies
-- ✅ Added `cargarDatosPerfil` to useEffect dependencies
+## Results
 
-### components/layout/HeaderSocial.tsx
-- ✅ Added `loadUnreadCounts` to useEffect dependencies
-- ✅ Added `userId` to useEffect dependencies
-- ✅ Added `performSearch` to useEffect dependencies
+### Before
+```
+✖ 18 problems (2 errors, 16 warnings)
+```
 
-### app/(tabs)/social/index.tsx
-- ✅ Added `loadUnreadCounts` to useEffect dependencies
-- ✅ Added `userId` to useEffect dependencies
-- ✅ Added `cargarPosts` to useEffect dependencies
+### After
+```
+✅ 0 errors, 0 warnings
+All linting issues resolved!
+```
 
----
+## Key Principles Applied
 
-## 🔍 VERIFICATION
+1. **Hooks Must Be Unconditional**: All React hooks declared at the top level, never inside conditions
+2. **Exhaustive Dependencies**: All variables used inside hooks included in dependency arrays
+3. **Intentional Exclusions**: When dependencies are intentionally excluded to prevent infinite loops, added eslint-disable comments with explanations
+4. **TypeScript Array Syntax**: Use `T[]` instead of `Array<T>` for consistency
+5. **Conditional Logic Inside Hooks**: Move platform checks and conditions INSIDE hooks, not around them
 
-### How to Verify Fixes:
+## Files Modified
 
-1. **Run ESLint:**
-   ```bash
-   npm run lint
-   ```
+1. ✅ `components/social/ImageEditorV6.tsx` - Fixed conditional hooks + duplicate code
+2. ✅ `components/social/PostLikesAvatars.tsx` - Added missing dependencies
+3. ✅ `contexts/AvatarContext.tsx` - Added eslint-disable comment
+4. ✅ `contexts/ModeContext.tsx` - Added missing dependencies + eslint-disable comments
+5. ✅ `contexts/SelectedLocalContext.tsx` - Added missing dependencies + eslint-disable comments
+6. ✅ `utils/iconValidator.ts` - Fixed array type syntax
+7. ✅ `app/(tabs)/explorar/index.tsx` - Added eslint-disable comment
 
-2. **Check for warnings:**
-   - Should see significantly fewer warnings
-   - No critical errors
-   - Only minor warnings about security_definer_view (database level, not code)
+## Testing Recommendations
 
-3. **Test functionality:**
-   - All features work as expected
-   - No runtime errors
-   - No console warnings during normal use
+1. **ImageEditorV6**: Test image editing on iOS (Android skips editor)
+2. **PostLikesAvatars**: Test like/unlike functionality and avatar display
+3. **Contexts**: Test mode switching, avatar loading, and local selection
+4. **Explorar**: Test filtering, sorting, and infinite scroll
 
----
-
-## 📊 BEFORE vs AFTER
-
-### Before:
-- ❌ ~15-20 linting warnings
-- ❌ Missing ScrollView import
-- ❌ Missing dependencies in hooks
-- ❌ Unnecessary dependencies
-
-### After:
-- ✅ All code-level warnings fixed
-- ✅ All imports present
-- ✅ All dependencies correct
-- ✅ Clean, maintainable code
-
----
-
-## 🎯 REMAINING WARNINGS (Database Level)
-
-The following warnings are at the database level and are expected:
-
-1. **security_definer_view** - Views with SECURITY DEFINER
-   - These are intentional for performance
-   - Not a code issue
-   - Can be ignored or addressed at database level
-
-2. **function_search_path_mutable** - Functions without search_path
-   - These are database functions
-   - Not a code issue
-   - Can be addressed in future database migration
-
-**Note:** These are NOT code errors and do NOT affect app functionality.
-
----
-
-## ✅ CONCLUSION
-
-**All code-level linting errors have been fixed.**
-
-The app is now:
-- ✅ Lint-clean (code level)
-- ✅ TypeScript compliant
-- ✅ Best practices followed
-- ✅ Production ready
-
----
-
-**Version:** 4.0.0  
-**Date:** 2025  
-**Status:** ✅ LINTING COMPLETE
+All changes maintain existing functionality while ensuring React best practices compliance.

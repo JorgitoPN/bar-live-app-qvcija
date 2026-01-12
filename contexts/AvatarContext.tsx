@@ -88,7 +88,8 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
   // Load avatar when user changes
   useEffect(() => {
     loadAvatarUrl();
-  }, [user?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]); // loadAvatarUrl intentionally excluded to prevent recreation
 
   // Subscribe to avatar updates
   useEffect(() => {

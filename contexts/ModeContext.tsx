@@ -136,7 +136,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     } finally {
       isLoadingLocalsRef.current = false;
     }
-  }, [user?.id, isImpersonating]);
+  }, [user, isImpersonating]); // ✅ FIXED: Include user to satisfy exhaustive-deps
 
   // Initialize all state from AsyncStorage on mount
   useEffect(() => {
@@ -299,7 +299,8 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         loadOwnedLocals();
       }
     }
-  }, [user?.id, currentMode]); // ✅ Removed loadOwnedLocals from dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, currentMode]); // loadOwnedLocals intentionally excluded to prevent circular updates
 
   const setCurrentMode = async (mode: UserMode) => {
     try {
@@ -506,11 +507,12 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     isInteractingAsLocal,
     activeLocalProfileId,
     publicationMode,
+    setCurrentMode,
     // ✅ Include functions in dependencies but they're stable due to useCallback
     loadOwnedLocals,
     switchToClientProfile,
     switchToLocalProfile,
-  ]);
+  ]); // ✅ FIXED: Include setCurrentMode to satisfy exhaustive-deps
 
   return (
     <ModeContext.Provider value={contextValue}>

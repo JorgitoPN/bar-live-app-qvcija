@@ -93,10 +93,10 @@ export function getCommonIcons(): Record<string, string[]> {
  */
 export function auditIcons(iconNames: string[]): {
   valid: string[];
-  invalid: Array<{ name: string; suggestions: string[] }>;
+  invalid: { name: string; suggestions: string[] }[];
 } {
   const valid: string[] = [];
-  const invalid: Array<{ name: string; suggestions: string[] }> = [];
+  const invalid: { name: string; suggestions: string[] }[] = [];
 
   for (const iconName of iconNames) {
     if (isValidIcon(iconName)) {

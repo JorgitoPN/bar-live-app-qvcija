@@ -155,7 +155,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
       setLoadingLocales(false);
       isLoadingRef.current = false;
     }
-  }, [user?.id, user?.rol_app, selectedLocalId]);
+  }, [user, selectedLocalId]); // ✅ FIXED: Include user to satisfy exhaustive-deps
 
   // ✅ CRITICAL FIX v99.0: Only depend on user ID and role, not on loadUserLocales
   useEffect(() => {
@@ -169,7 +169,8 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
       setLoadingLocales(false);
       lastUserIdRef.current = null;
     }
-  }, [user?.id, user?.rol_app]); // ✅ Removed loadUserLocales from dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.rol_app]); // loadUserLocales intentionally excluded to prevent circular updates
 
   const setSelectedLocalId = async (localId: string | null) => {
     try {
@@ -197,7 +198,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     userLocales,
     loadingLocales,
     refreshLocales,
-  }), [selectedLocalId, userLocales, loadingLocales]); // ✅ Removed refreshLocales from dependencies
+  }), [selectedLocalId, userLocales, loadingLocales, refreshLocales]); // ✅ FIXED: Include refreshLocales to satisfy exhaustive-deps
 
   return (
     <SelectedLocalContext.Provider value={value}>
