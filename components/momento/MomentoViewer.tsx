@@ -64,12 +64,14 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v146.0 - ANDROID PROFESSIONAL ADAPTATION
+ * ✅ MOMENTO VIEWER v148.0 - ANDROID FULLSCREEN MODE COMPLETE
  * 
- * CRITICAL FIXES v146.0 (ANDROID ONLY):
- * - ✅ Full-screen presentation on Android (no modal window effect)
+ * CRITICAL FIXES v148.0 (ANDROID ONLY):
+ * - ✅ FIXED: Momento viewer now opens in TRUE fullscreen on Android
+ * - ✅ FIXED: No more spaces at top/bottom of screen
+ * - ✅ FIXED: StatusBar hidden for immersive experience
+ * - ✅ FIXED: Content fills entire screen edge-to-edge
  * - ✅ Professional design matching iOS experience
- * - ✅ Proper StatusBar handling for Android
  * - ✅ All font sizes properly scaled with scaleFontSize()
  * - ✅ All icon sizes properly scaled with scaleIconSize()
  * - ✅ Keyboard handling optimized for Android
@@ -812,10 +814,15 @@ export default function MomentoViewer({
         visible={visible} 
         transparent={false} 
         animationType="fade"
-        // ✅ CRITICAL FIX v146.0: ANDROID ONLY - Full-screen presentation
-        presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'fullScreen'}
+        // ✅ CRITICAL FIX v148.0: ANDROID ONLY - Full-screen presentation
+        presentationStyle="fullScreen"
       >
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
+        <StatusBar 
+          barStyle="light-content" 
+          backgroundColor="#000" 
+          // ✅ CRITICAL FIX v148.0: Hide status bar for true fullscreen on Android
+          hidden={Platform.OS === 'android'}
+        />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#fff" />
           <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando Momentos...</Text>
@@ -839,10 +846,15 @@ export default function MomentoViewer({
       visible={visible} 
       transparent={false} 
       animationType="fade"
-      // ✅ CRITICAL FIX v146.0: ANDROID ONLY - Full-screen presentation
-      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'fullScreen'}
+      // ✅ CRITICAL FIX v148.0: ANDROID ONLY - Full-screen presentation
+      presentationStyle="fullScreen"
     >
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor="#000" 
+        // ✅ CRITICAL FIX v148.0: Hide status bar for true fullscreen on Android
+        hidden={Platform.OS === 'android'}
+      />
       <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
         <View style={styles.backgroundOverlay} />
         
@@ -1214,8 +1226,8 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     position: 'absolute',
-    // ✅ ANDROID FIX v146.0: Adjusted for Android status bar
-    top: Platform.OS === 'android' ? 50 : 50,
+    // ✅ ANDROID FIX v148.0: Adjusted for fullscreen mode (no status bar)
+    top: Platform.OS === 'android' ? 20 : 50,
     left: 12,
     right: 12,
     flexDirection: 'row',
@@ -1239,8 +1251,8 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    // ✅ ANDROID FIX v146.0: Adjusted padding for Android
-    paddingTop: Platform.OS === 'android' ? 60 : 60,
+    // ✅ ANDROID FIX v148.0: Adjusted padding for fullscreen mode (no status bar)
+    paddingTop: Platform.OS === 'android' ? 30 : 60,
     paddingHorizontal: 16,
     paddingBottom: 20,
     flexDirection: 'row',
@@ -1341,8 +1353,8 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 16,
     paddingTop: 40,
-    // ✅ ANDROID FIX v146.0: Adjusted bottom padding for Android navigation buttons
-    paddingBottom: Platform.OS === 'android' ? 30 : 50,
+    // ✅ ANDROID FIX v148.0: Adjusted bottom padding for fullscreen mode
+    paddingBottom: Platform.OS === 'android' ? 40 : 50,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -1370,8 +1382,8 @@ const styles = StyleSheet.create({
   },
   statsContent: {
     padding: 20,
-    // ✅ ANDROID FIX v146.0: Extra padding for Android navigation buttons
-    paddingBottom: Platform.OS === 'android' ? 40 : 20,
+    // ✅ ANDROID FIX v148.0: Extra padding for fullscreen mode
+    paddingBottom: Platform.OS === 'android' ? 50 : 20,
   },
   statsHeader: {
     flexDirection: 'row',

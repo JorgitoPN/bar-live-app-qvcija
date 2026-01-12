@@ -103,12 +103,14 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v147.0 - ANDROID FULLSCREEN FIX COMPLETE
+ * ✅ POST VIEWER MODAL v148.0 - ANDROID TRUE FULLSCREEN COMPLETE
  * 
- * CRITICAL FIXES v147.0 (ANDROID ONLY):
- * - ✅ FIXED: Modal now opens in fullScreen mode on Android (was pageSheet)
- * - ✅ FIXED: Post viewer displays correctly in full screen on Android
- * - ✅ FIXED: No more modal/window appearance on Android
+ * CRITICAL FIXES v148.0 (ANDROID ONLY):
+ * - ✅ FIXED: Modal now opens in TRUE fullscreen mode on Android
+ * - ✅ FIXED: StatusBar hidden for immersive experience
+ * - ✅ FIXED: Content fills entire screen edge-to-edge
+ * - ✅ FIXED: No more spaces at top/bottom of screen
+ * - ✅ FIXED: Professional fullscreen design matching iOS
  * - ✅ iOS design remains unchanged (uses pageSheet as reference)
  * 
  * Previous fixes maintained (v116.0):
@@ -1551,12 +1553,17 @@ export default function PostViewerModal({
       visible={visible}
       transparent={false}
       animationType="slide"
-      // ✅ CRITICAL FIX v147.0: ANDROID ONLY - Open as fullScreen instead of pageSheet
+      // ✅ CRITICAL FIX v148.0: ANDROID ONLY - Open as fullScreen with hidden status bar
       presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
+        <StatusBar 
+          barStyle="light-content" 
+          backgroundColor={colors.headerGradientStart}
+          // ✅ CRITICAL FIX v148.0: Hide status bar for true fullscreen on Android
+          hidden={Platform.OS === 'android'}
+        />
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -1817,7 +1824,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 48,
+    // ✅ ANDROID FIX v148.0: Adjusted padding for fullscreen mode (no status bar)
+    paddingTop: Platform.OS === 'ios' ? 60 : 20,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
