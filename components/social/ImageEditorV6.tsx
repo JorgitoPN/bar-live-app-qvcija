@@ -1,10 +1,10 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 ANDROID-ONLY FIXES v154.0 - IMAGE EDITOR COMPLETELY DISABLED FOR ANDROID
+ * 🚨 ANDROID-ONLY FIXES v155.0 - IMAGE EDITOR COMPLETELY DISABLED FOR ANDROID
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * CAMBIOS IMPLEMENTADOS v154.0 (ANDROID EXCLUSIVO):
+ * CAMBIOS IMPLEMENTADOS v155.0 (ANDROID EXCLUSIVO):
  * - ❌ ELIMINADO: Editor de imágenes completamente deshabilitado para Android
  * - ✅ Las imágenes se guardan directamente sin edición en Android
  * - ✅ El componente retorna null inmediatamente en Android (sin pantalla de edición)
@@ -12,6 +12,7 @@
  * - ✅ Flujo simplificado para Android - sin pantalla de edición
  * - ✅ Todos los hooks declarados al inicio (cumple reglas de React)
  * - ✅ CONFIRMADO: No se muestra el editor al crear publicaciones o momentos en Android
+ * - ✅ Usa setTimeout para asegurar que el callback se ejecuta correctamente
  * 
  * ARCHIVOS MODIFICADOS:
  * - components/social/ImageEditorV6.tsx (este archivo)
@@ -54,15 +55,16 @@ interface ImageEditorV6Props {
 }
 
 /**
- * ✅ IMAGE EDITOR v154.0 - ANDROID EDITOR COMPLETELY DISABLED
+ * ✅ IMAGE EDITOR v155.0 - ANDROID EDITOR COMPLETELY DISABLED
  * 
- * CRITICAL CHANGES v154.0 (ANDROID ONLY):
+ * CRITICAL CHANGES v155.0 (ANDROID ONLY):
  * - ❌ DISABLED: Image editor completely disabled for Android
  * - ✅ Images are saved directly without editing on Android
  * - ✅ No editor screen shown on Android - component returns null
  * - ✅ Applies to ALL flows: creating posts, creating momentos, uploading images
  * - ✅ iOS keeps the full editor functionality (reference design)
  * - ✅ All hooks declared at the top (React rules compliant)
+ * - ✅ Uses setTimeout to ensure callbacks execute properly
  * 
  * iOS Features (unchanged):
  * - ✅ Pinch to zoom (0.5x to 5x)
@@ -98,14 +100,15 @@ export default function ImageEditorV6({
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
 
-  // ✅ CRITICAL FIX v154.0: ANDROID ONLY - Skip editor, save image directly
+  // ✅ CRITICAL FIX v155.0: ANDROID ONLY - Skip editor completely, save image directly
   useEffect(() => {
     if (visible && imageUri && Platform.OS === 'android') {
-      console.log('[ImageEditorV6 v154.0] 🤖 Android detected - skipping editor, saving directly');
+      console.log('[ImageEditorV6 v155.0] 🤖 Android detected - skipping editor, saving directly');
       // Save image immediately without showing editor
-      onSave(imageUri);
-      // Close the modal immediately
-      onClose();
+      setTimeout(() => {
+        onSave(imageUri);
+        onClose();
+      }, 0);
     }
   }, [visible, imageUri, onSave, onClose]);
 
@@ -274,10 +277,10 @@ export default function ImageEditorV6({
     }
   };
 
-  // ✅ CRITICAL FIX v154.0: ANDROID ONLY - Return null to prevent editor from showing
+  // ✅ CRITICAL FIX v155.0: ANDROID ONLY - Return null to prevent editor from showing
   // This check MUST come AFTER all hooks are declared
   if (Platform.OS === 'android') {
-    console.log('[ImageEditorV6 v154.0] 🤖 Android detected - returning null (no editor)');
+    console.log('[ImageEditorV6 v155.0] 🤖 Android detected - returning null (no editor)');
     return null;
   }
 

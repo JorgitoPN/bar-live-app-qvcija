@@ -1,19 +1,20 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 ANDROID-ONLY FIXES v153.0 - POST VIEWER FULLSCREEN PERFECTED
+ * 🚨 ANDROID-ONLY FIXES v155.0 - POST VIEWER FULLSCREEN PERFECTED
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * PROBLEMA RESUELTO:
  * - ❌ Al abrir una publicación, había espacios en la parte inferior en Android
  * - ❌ El modal no se mostraba en pantalla completa real
  * 
- * SOLUCIÓN IMPLEMENTADA v153.0:
+ * SOLUCIÓN IMPLEMENTADA v155.0:
  * - ✅ transparent={false} para modal de pantalla completa
  * - ✅ presentationStyle="fullScreen" aplicado a ambas plataformas
  * - ✅ StatusBar oculto en Android para experiencia inmersiva
  * - ✅ Publicaciones ahora se abren en pantalla completa real en Android
  * - ✅ Sin espacios/huecos en la parte inferior
+ * - ✅ Eliminado TODO el padding inferior en Android (postContainer, timeContainer, modales)
  * - ✅ iOS mantiene diseño original como referencia
  * 
  * ARCHIVOS MODIFICADOS:
@@ -104,11 +105,12 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v153.0 - ANDROID FULLSCREEN PERFECTED
+ * ✅ POST VIEWER MODAL v155.0 - ANDROID FULLSCREEN PERFECTED
  * 
- * CRITICAL FIXES v153.0 (ANDROID ONLY):
+ * CRITICAL FIXES v155.0 (ANDROID ONLY):
  * - ✅ FIXED: Modal uses presentationStyle="fullScreen" for both platforms
  * - ✅ FIXED: StatusBar properly hidden on Android for immersive experience
+ * - ✅ FIXED: Removed ALL bottom padding to eliminate gaps
  * - ✅ VERIFIED: Content fills entire screen edge-to-edge
  * - ✅ VERIFIED: No gaps at bottom of screen on Android
  * - ✅ iOS design remains unchanged (reference design)
@@ -1854,7 +1856,7 @@ const styles = StyleSheet.create({
   },
   postContainer: {
     backgroundColor: colors.cardBackground,
-    paddingBottom: 16,
+    paddingBottom: Platform.OS === 'android' ? 0 : 16,
   },
   postSeparator: {
     height: 16,
@@ -2016,7 +2018,7 @@ const styles = StyleSheet.create({
   timeContainer: {
     paddingHorizontal: 16,
     paddingTop: 4,
-    paddingBottom: 8,
+    paddingBottom: Platform.OS === 'android' ? 0 : 8,
   },
   timeText: {
     color: colors.textSecondary,
@@ -2034,7 +2036,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 0,
     maxHeight: '80%',
   },
   editModalHeader: {
@@ -2087,7 +2089,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 0,
     maxHeight: '80%',
   },
   tagManagementHeader: {

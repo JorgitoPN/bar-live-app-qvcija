@@ -64,13 +64,13 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v153.0 - ANDROID FULLSCREEN PERFECTED
+ * ✅ MOMENTO VIEWER v155.0 - ANDROID FULLSCREEN PERFECTED
  * 
- * CRITICAL FIXES v153.0 (ANDROID ONLY):
+ * CRITICAL FIXES v155.0 (ANDROID ONLY):
  * - ✅ FIXED: Modal uses presentationStyle="fullScreen" for both platforms
  * - ✅ FIXED: StatusBar properly hidden on Android for immersive experience
- * - ✅ FIXED: Reduced bottom padding from 20 to 10 in actions section
- * - ✅ FIXED: Reduced bottom padding from 20 to 10 in stats modal
+ * - ✅ FIXED: Removed ALL bottom padding in actions section (0 instead of 10)
+ * - ✅ FIXED: Removed ALL bottom padding in stats modal (0 instead of 10)
  * - ✅ VERIFIED: No gaps at bottom of screen on Android
  * - ✅ Content fills entire screen edge-to-edge
  * - ✅ All font sizes properly scaled with scaleFontSize()
@@ -1346,7 +1346,7 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 16,
     paddingTop: 40,
-    paddingBottom: Platform.OS === 'android' ? 10 : 50,
+    paddingBottom: Platform.OS === 'android' ? 0 : 50,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -1374,7 +1374,7 @@ const styles = StyleSheet.create({
   },
   statsContent: {
     padding: 20,
-    paddingBottom: Platform.OS === 'android' ? 10 : 20,
+    paddingBottom: Platform.OS === 'android' ? 0 : 20,
   },
   statsHeader: {
     flexDirection: 'row',
