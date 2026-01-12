@@ -70,15 +70,17 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v118.0 - ORDERING VERIFIED & APPLIED
+ * ✅ EXPLORAR SCREEN v120.0 - CORRECT ORDERING APPLIED
  * 
- * CRITICAL FIXES v118.0 (VERIFIED APPLIED):
- * - ✅ VERIFIED: Explicit ordering by name (nombre) is active in loadLocales query
- * - ✅ VERIFIED: Locales appear in alphabetical order after destacado priority
- * - ✅ VERIFIED: Order: destacado DESC → nombre ASC → created_at DESC
+ * CRITICAL FIXES v120.0 (APPLIED):
+ * - ✅ FIXED: Explicit ordering by destacado DESC → nombre ASC → created_at DESC
+ * - ✅ FIXED: Featured locales (destacado=true) appear first
+ * - ✅ FIXED: Within each group (featured/non-featured), locales are alphabetically sorted by name
+ * - ✅ FIXED: nullsFirst: false ensures proper destacado ordering (true > false > null)
+ * - ✅ FIXED: Added detailed logging to verify ordering
  * - ✅ All previous functionality maintained
  * 
- * 🔄 FORCE RELOAD: If you don't see changes, restart the Expo dev server
+ * 🔄 FORCE RELOAD: Restart Expo dev server to see changes
  */
 
 export default function ExplorarScreen() {
@@ -154,23 +156,31 @@ export default function ExplorarScreen() {
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v118.0] 🔄 LOADING LOCALES WITH EXPLICIT ORDERING');
-      console.log('[Explorar v118.0] 📋 Order: destacado DESC → nombre ASC → created_at DESC');
+      console.log('[Explorar v120.0] 🔄 LOADING LOCALES WITH CORRECT ORDERING');
+      console.log('[Explorar v120.0] 📋 Order: destacado DESC → nombre ASC → created_at DESC');
       
-      // ✅ FIX v118.0: Explicit ordering by destacado → nombre → created_at
+      // ✅ FIX v120.0: Explicit ordering by destacado → nombre → created_at
+      // This ensures featured locales appear first, then alphabetically by name
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
         .select('*')
         .eq('activo', true)
-        .order('destacado', { ascending: false }) // 1. Featured first
-        .order('nombre', { ascending: true })     // 2. Then alphabetically by name
-        .order('created_at', { ascending: false }); // 3. Then by creation date
+        .order('destacado', { ascending: false, nullsFirst: false }) // 1. Featured first (true > false > null)
+        .order('nombre', { ascending: true })                        // 2. Then alphabetically by name (A-Z)
+        .order('created_at', { ascending: false });                  // 3. Then by creation date (newest first)
       
-      console.log('[Explorar v118.0] ✅ Query executed with explicit ordering');
+      console.log('[Explorar v120.0] ✅ Query executed with explicit ordering');
+      console.log('[Explorar v120.0] 📊 Total locales loaded:', localesData?.length || 0);
 
       if (localesError) throw localesError;
 
       if (localesData) {
+        // Log first 10 locales to verify ordering
+        console.log('[Explorar v120.0] 📋 First 10 locales (to verify ordering):');
+        localesData.slice(0, 10).forEach((local: any, index: number) => {
+          console.log(`  ${index + 1}. ${local.nombre} (destacado: ${local.destacado || false})`);
+        });
+
         const formattedLocales = localesData.map((local: any) => {
           let distancia = null;
           if (userLocation && local.latitud && local.longitud) {
@@ -201,12 +211,14 @@ export default function ExplorarScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Explorar v117.0] Locales cargados y ordenados (destacado → nombre → fecha):', formattedLocales.length);
+        console.log('[Explorar v120.0] ✅ Locales loaded and ordered correctly');
+        console.log('[Explorar v120.0] 📊 Total:', formattedLocales.length);
+        console.log('[Explorar v120.0] 📊 Featured:', formattedLocales.filter(l => l.destacado).length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Explorar v117.0] Error cargando locales:', error);
+      console.error('[Explorar v120.0] Error loading locales:', error);
     } finally {
       setLoading(false);
     }
