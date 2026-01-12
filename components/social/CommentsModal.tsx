@@ -29,6 +29,7 @@ import MentionAutocomplete, { MentionSuggestion } from '@/components/social/Ment
 import { processCommentHashtags, processCommentMentions } from '@/utils/postHelpers';
 import ParsedText from '@/components/social/ParsedText';
 import ReportModal from './ReportModal';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -65,15 +66,6 @@ interface CommentsModalProps {
   onCommentAdded?: () => void;
 }
 
-/**
- * ✅ COMMENTS MODAL v2.1 - POST AUTHOR CAN DELETE ANY COMMENT
- * 
- * NEW FEATURES:
- * - ✅ Post authors can delete comments from other users
- * - ✅ Report functionality for all comments
- * - ✅ Integrated ReportModal component
- */
-
 export default function CommentsModal({
   visible,
   postId,
@@ -94,7 +86,6 @@ export default function CommentsModal({
   const [editingComment, setEditingComment] = useState<Comment | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // Report modal state
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
 
@@ -430,7 +421,6 @@ export default function CommentsModal({
     }
   };
 
-  // ✅ FIXED: Post authors can now delete any comment on their posts
   const handleDeleteComment = async (comment: Comment) => {
     const canDelete = user && (
       comment.autor_id === user.id || 
@@ -512,7 +502,6 @@ export default function CommentsModal({
     const options: string[] = [];
     const actions: (() => void)[] = [];
 
-    // Report option for non-owners
     if (!isOwner) {
       options.push('Reportar');
       actions.push(() => handleReportComment(comment));
@@ -529,7 +518,6 @@ export default function CommentsModal({
       actions.push(() => handleDeleteComment(comment));
     }
 
-    // ✅ FIXED: Post authors can delete any comment on their posts
     if (isPostOwner && !isOwner) {
       options.push('Eliminar comentario');
       actions.push(() => handleDeleteComment(comment));
@@ -578,6 +566,23 @@ export default function CommentsModal({
     return `${Math.floor(seconds / 604800)}sem`;
   };
 
+  // ✅ ANDROID SCALING: Icon sizes
+  const closeIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const emptyIconSize = Platform.OS === 'android' ? scaleIconSize(64) : 64;
+  const pinIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
+  const moreIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
+  const moreIconSizeReply = Platform.OS === 'android' ? scaleIconSize(14) : 14;
+  const cancelIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+  const avatarSize = Platform.OS === 'android' ? scaleIconSize(36) : 36;
+  const avatarRadius = avatarSize / 2;
+  const replyAvatarSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
+  const replyAvatarRadius = replyAvatarSize / 2;
+  const avatarTextSize = Platform.OS === 'android' ? scaleFontSize(14) : 14;
+  const replyAvatarTextSize = Platform.OS === 'android' ? scaleFontSize(12) : 12;
+  const inputAvatarSize = Platform.OS === 'android' ? scaleIconSize(32) : 32;
+  const inputAvatarRadius = inputAvatarSize / 2;
+  const inputAvatarTextSize = Platform.OS === 'android' ? scaleFontSize(14) : 14;
+
   const renderComment = ({ item }: { item: Comment }) => {
     const displayName = item.tipo === 'local' && item.local 
       ? item.local.nombre 
@@ -602,35 +607,35 @@ export default function CommentsModal({
             <IconSymbol
               ios_icon_name="pin.fill"
               android_material_icon_name="push_pin"
-              size={12}
+              size={pinIconSize}
               color={colors.primary}
             />
-            <Text style={styles.pinnedText}>Fijado</Text>
+            <Text style={[styles.pinnedText, { fontSize: scaleFontSize(12) }]}>Fijado</Text>
           </View>
         )}
         <View style={styles.commentItem}>
           {displayAvatar ? (
-            <Image source={{ uri: displayAvatar }} style={styles.commentAvatar} />
+            <Image source={{ uri: displayAvatar }} style={[styles.commentAvatar, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]} />
           ) : (
-            <View style={[styles.commentAvatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarText}>
+            <View style={[styles.commentAvatar, styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]}>
+              <Text style={[styles.avatarText, { fontSize: avatarTextSize }]}>
                 {displayName?.charAt(0).toUpperCase() || 'U'}
               </Text>
             </View>
           )}
           <View style={styles.commentContent}>
             <View style={styles.commentHeader}>
-              <Text style={styles.commentUsername}>{displayName}</Text>
-              <Text style={styles.commentTime}>{formatTimeAgo(item.created_at)}</Text>
+              <Text style={[styles.commentUsername, { fontSize: scaleFontSize(13) }]}>{displayName}</Text>
+              <Text style={[styles.commentTime, { fontSize: scaleFontSize(11) }]}>{formatTimeAgo(item.created_at)}</Text>
               <TouchableOpacity 
                 style={styles.commentOptionsButton}
                 onPress={() => showCommentOptions(item)}
                 activeOpacity={0.7}
               >
-                <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_horiz" size={16} color="rgba(0, 0, 0, 0.5)" />
+                <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_horiz" size={moreIconSize} color="rgba(0, 0, 0, 0.5)" />
               </TouchableOpacity>
             </View>
-            <ParsedText text={item.texto} style={styles.commentText} />
+            <ParsedText text={item.texto} style={[styles.commentText, { fontSize: scaleFontSize(14) }]} />
             <View style={styles.commentActions}>
               <TouchableOpacity 
                 style={styles.commentActionButton}
@@ -638,11 +643,11 @@ export default function CommentsModal({
                 activeOpacity={0.7}
               >
                 {item.likes_count && item.likes_count > 0 ? (
-                  <Text style={[styles.commentActionText, item.user_has_liked && { color: '#EF4444' }]}>
+                  <Text style={[styles.commentActionText, { fontSize: scaleFontSize(13) }, item.user_has_liked && { color: '#EF4444' }]}>
                     {item.likes_count} me gusta
                   </Text>
                 ) : (
-                  <Text style={styles.commentActionText}>Me gusta</Text>
+                  <Text style={[styles.commentActionText, { fontSize: scaleFontSize(13) }]}>Me gusta</Text>
                 )}
               </TouchableOpacity>
               <TouchableOpacity 
@@ -657,7 +662,7 @@ export default function CommentsModal({
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.commentActionText}>Responder</Text>
+                <Text style={[styles.commentActionText, { fontSize: scaleFontSize(13) }]}>Responder</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -685,27 +690,27 @@ export default function CommentsModal({
               return (
                 <View key={reply.id} style={styles.replyItem}>
                   {replyDisplayAvatar ? (
-                    <Image source={{ uri: replyDisplayAvatar }} style={styles.replyAvatar} />
+                    <Image source={{ uri: replyDisplayAvatar }} style={[styles.replyAvatar, { width: replyAvatarSize, height: replyAvatarSize, borderRadius: replyAvatarRadius }]} />
                   ) : (
-                    <View style={[styles.replyAvatar, styles.avatarPlaceholder]}>
-                      <Text style={[styles.avatarText, { fontSize: 12 }]}>
+                    <View style={[styles.replyAvatar, styles.avatarPlaceholder, { width: replyAvatarSize, height: replyAvatarSize, borderRadius: replyAvatarRadius }]}>
+                      <Text style={[styles.avatarText, { fontSize: replyAvatarTextSize }]}>
                         {replyDisplayName?.charAt(0).toUpperCase() || 'U'}
                       </Text>
                     </View>
                   )}
                   <View style={styles.commentContent}>
                     <View style={styles.commentHeader}>
-                      <Text style={styles.commentUsername}>{replyDisplayName}</Text>
-                      <Text style={styles.commentTime}>{formatTimeAgo(reply.created_at)}</Text>
+                      <Text style={[styles.commentUsername, { fontSize: scaleFontSize(13) }]}>{replyDisplayName}</Text>
+                      <Text style={[styles.commentTime, { fontSize: scaleFontSize(11) }]}>{formatTimeAgo(reply.created_at)}</Text>
                       <TouchableOpacity 
                         style={styles.commentOptionsButton}
                         onPress={() => showCommentOptions(reply)}
                         activeOpacity={0.7}
                       >
-                        <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_horiz" size={14} color="rgba(0, 0, 0, 0.5)" />
+                        <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_horiz" size={moreIconSizeReply} color="rgba(0, 0, 0, 0.5)" />
                       </TouchableOpacity>
                     </View>
-                    <ParsedText text={reply.texto} style={styles.commentText} />
+                    <ParsedText text={reply.texto} style={[styles.commentText, { fontSize: scaleFontSize(14) }]} />
                   </View>
                 </View>
               );
@@ -721,11 +726,11 @@ export default function CommentsModal({
       <IconSymbol
         ios_icon_name="bubble.left"
         android_material_icon_name="chat_bubble_outline"
-        size={64}
+        size={emptyIconSize}
         color={colors.textSecondary}
       />
-      <Text style={styles.emptyText}>No hay comentarios aún</Text>
-      <Text style={styles.emptySubtext}>Sé el primero en comentar</Text>
+      <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No hay comentarios aún</Text>
+      <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>Sé el primero en comentar</Text>
     </View>
   );
 
@@ -748,9 +753,9 @@ export default function CommentsModal({
           >
             <View style={styles.headerTop}>
               <View style={{ width: 40 }} />
-              <Text style={styles.headerTitle}>Comentarios</Text>
+              <Text style={[styles.headerTitle, { fontSize: scaleFontSize(18) }]}>Comentarios</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={closeIconSize} color={colors.headerText} />
               </TouchableOpacity>
             </View>
           </LinearGradient>
@@ -790,7 +795,7 @@ export default function CommentsModal({
               >
                 {(replyingTo || editingComment) && (
                   <View style={styles.replyingBanner}>
-                    <Text style={styles.replyingText}>
+                    <Text style={[styles.replyingText, { fontSize: scaleFontSize(13) }]}>
                       {editingComment 
                         ? 'Editando comentario' 
                         : `Respondiendo a ${replyingTo?.usuario?.username || replyingTo?.usuario?.nombre}`}
@@ -805,7 +810,7 @@ export default function CommentsModal({
                       <IconSymbol
                         ios_icon_name="xmark.circle.fill"
                         android_material_icon_name="cancel"
-                        size={20}
+                        size={cancelIconSize}
                         color="rgba(0, 0, 0, 0.5)"
                       />
                     </TouchableOpacity>
@@ -813,17 +818,17 @@ export default function CommentsModal({
                 )}
                 <View style={styles.inputRow}>
                   {user.avatar ? (
-                    <Image source={{ uri: user.avatar }} style={styles.inputAvatar} />
+                    <Image source={{ uri: user.avatar }} style={[styles.inputAvatar, { width: inputAvatarSize, height: inputAvatarSize, borderRadius: inputAvatarRadius }]} />
                   ) : (
-                    <View style={[styles.inputAvatar, styles.avatarPlaceholder]}>
-                      <Text style={[styles.avatarText, { fontSize: 14 }]}>
+                    <View style={[styles.inputAvatar, styles.avatarPlaceholder, { width: inputAvatarSize, height: inputAvatarSize, borderRadius: inputAvatarRadius }]}>
+                      <Text style={[styles.avatarText, { fontSize: inputAvatarTextSize }]}>
                         {user.nombre?.charAt(0).toUpperCase() || 'U'}
                       </Text>
                     </View>
                   )}
                   <TextInput
                     ref={textInputRef}
-                    style={styles.input}
+                    style={[styles.input, { fontSize: scaleFontSize(14) }]}
                     placeholder={replyingTo ? 'Añade una respuesta...' : 'Añade un comentario...'}
                     placeholderTextColor="rgba(0, 0, 0, 0.4)"
                     value={commentText}
@@ -849,7 +854,7 @@ export default function CommentsModal({
                     {sending ? (
                       <ActivityIndicator size="small" color={colors.primary} />
                     ) : (
-                      <Text style={[styles.sendButtonText, (!commentText.trim() || sending) && styles.sendButtonDisabled]}>
+                      <Text style={[styles.sendButtonText, { fontSize: scaleFontSize(15) }, (!commentText.trim() || sending) && styles.sendButtonDisabled]}>
                         Publicar
                       </Text>
                     )}
@@ -861,7 +866,6 @@ export default function CommentsModal({
         </View>
       </Modal>
 
-      {/* Report modal for comments */}
       {reportingCommentId && (
         <ReportModal
           visible={showReportModal}
@@ -899,7 +903,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
     fontWeight: '700',
     color: colors.headerText,
     flex: 1,
@@ -927,7 +930,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   pinnedText: {
-    fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -936,15 +938,9 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   commentAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
     marginRight: 10,
   },
   replyAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
     marginRight: 10,
   },
   avatarPlaceholder: {
@@ -953,7 +949,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 14,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -966,13 +961,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   commentUsername: {
-    fontSize: 13,
     fontWeight: '600',
     color: '#000',
     marginRight: 6,
   },
   commentTime: {
-    fontSize: 11,
     color: 'rgba(0, 0, 0, 0.5)',
   },
   commentOptionsButton: {
@@ -980,7 +973,6 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
   },
   commentText: {
-    fontSize: 14,
     color: '#000',
     lineHeight: 18,
     marginBottom: 4,
@@ -996,7 +988,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   commentActionText: {
-    fontSize: 13,
     color: 'rgba(0, 0, 0, 0.5)',
     fontWeight: '600',
   },
@@ -1016,13 +1007,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyText: {
-    fontSize: 18,
     fontWeight: '600',
     color: '#000',
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 14,
     color: 'rgba(0, 0, 0, 0.5)',
     marginTop: 8,
   },
@@ -1046,7 +1035,6 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E7EB',
   },
   replyingText: {
-    fontSize: 13,
     color: 'rgba(0, 0, 0, 0.6)',
     flex: 1,
   },
@@ -1059,14 +1047,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   inputAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
     marginBottom: 4,
   },
   input: {
     flex: 1,
-    fontSize: 14,
     color: '#000',
     maxHeight: 80,
     paddingVertical: 8,
@@ -1077,7 +1061,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sendButtonText: {
-    fontSize: 15,
     fontWeight: '700',
     color: colors.primary,
   },

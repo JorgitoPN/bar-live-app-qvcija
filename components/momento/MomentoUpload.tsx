@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -21,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -30,21 +32,19 @@ interface MomentoUploadProps {
   onSuccess?: () => void;
 }
 
-/**
- * ✅ MOMENTO UPLOAD v2.0 - LOCAL PROFILE SUPPORT
- * 
- * Features:
- * - ✅ Supports uploading momentos as user or local profile
- * - ✅ Automatically detects active profile type
- * - ✅ Verifies ownership for local profiles
- * - ✅ Proper RLS compliance with user_id in storage path
- */
-
 export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUploadProps) {
   const { user, ensureValidSession } = useAuth();
   const { activeProfileType, activeProfileId } = useMode();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // ✅ ANDROID SCALING: Icon sizes
+  const closeIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
+  const cameraIconSize = Platform.OS === 'android' ? scaleIconSize(48) : 48;
+  const photoIconSize = Platform.OS === 'android' ? scaleIconSize(48) : 48;
+  const infoIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+  const refreshIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const checkIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
 
   const pickImage = async () => {
     try {
@@ -292,11 +292,11 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
               <IconSymbol
                 ios_icon_name="xmark"
                 android_material_icon_name="close"
-                size={28}
+                size={closeIconSize}
                 color="#fff"
               />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Nuevo Momento</Text>
+            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(18) }]}>Nuevo Momento</Text>
             <View style={{ width: 28 }} />
           </View>
 
@@ -317,10 +317,10 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                     <IconSymbol
                       ios_icon_name="arrow.counterclockwise"
                       android_material_icon_name="refresh"
-                      size={24}
+                      size={refreshIconSize}
                       color="#fff"
                     />
-                    <Text style={styles.previewButtonText}>Cambiar</Text>
+                    <Text style={[styles.previewButtonText, { fontSize: scaleFontSize(16) }]}>Cambiar</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.previewButton, styles.uploadButton]}
@@ -334,10 +334,10 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                         <IconSymbol
                           ios_icon_name="checkmark.circle.fill"
                           android_material_icon_name="check_circle"
-                          size={24}
+                          size={checkIconSize}
                           color="#fff"
                         />
-                        <Text style={styles.previewButtonText}>Publicar</Text>
+                        <Text style={[styles.previewButtonText, { fontSize: scaleFontSize(16) }]}>Publicar</Text>
                       </React.Fragment>
                     )}
                   </TouchableOpacity>
@@ -345,8 +345,8 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
               </View>
             ) : (
               <View style={styles.optionsContainer}>
-                <Text style={styles.title}>Comparte un Momento</Text>
-                <Text style={styles.subtitle}>
+                <Text style={[styles.title, { fontSize: scaleFontSize(28) }]}>Comparte un Momento</Text>
+                <Text style={[styles.subtitle, { fontSize: scaleFontSize(16) }]}>
                   Las fotos desaparecen después de 24 horas
                 </Text>
 
@@ -365,10 +365,10 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                       <IconSymbol
                         ios_icon_name="camera.fill"
                         android_material_icon_name="camera_alt"
-                        size={48}
+                        size={cameraIconSize}
                         color="#fff"
                       />
-                      <Text style={styles.optionText}>Tomar Foto</Text>
+                      <Text style={[styles.optionText, { fontSize: scaleFontSize(16) }]}>Tomar Foto</Text>
                     </LinearGradient>
                   </TouchableOpacity>
 
@@ -386,10 +386,10 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                       <IconSymbol
                         ios_icon_name="photo.fill"
                         android_material_icon_name="photo_library"
-                        size={48}
+                        size={photoIconSize}
                         color="#fff"
                       />
-                      <Text style={styles.optionText}>Galería</Text>
+                      <Text style={[styles.optionText, { fontSize: scaleFontSize(16) }]}>Galería</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
@@ -398,10 +398,10 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                   <IconSymbol
                     ios_icon_name="info.circle.fill"
                     android_material_icon_name="info"
-                    size={20}
+                    size={infoIconSize}
                     color={colors.primary}
                   />
-                  <Text style={styles.infoText}>
+                  <Text style={[styles.infoText, { fontSize: scaleFontSize(13) }]}>
                     {activeProfileType === 'local' 
                       ? 'Los Momentos de tu local son visibles para tus seguidores durante 24 horas'
                       : 'Los Momentos son visibles para tus seguidores durante 24 horas'}
@@ -432,7 +432,6 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   headerTitle: {
-    fontSize: 18,
     fontWeight: '700',
     color: '#fff',
     fontFamily: 'System',
@@ -446,7 +445,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
     fontWeight: '700',
     color: '#fff',
     marginBottom: 12,
@@ -454,7 +452,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
     color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 40,
     fontFamily: 'System',
@@ -482,7 +479,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   optionText: {
-    fontSize: 16,
     fontWeight: '700',
     color: '#fff',
     fontFamily: 'System',
@@ -499,7 +495,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
     color: 'rgba(255, 255, 255, 0.8)',
     fontFamily: 'System',
     lineHeight: 18,
@@ -532,7 +527,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   previewButtonText: {
-    fontSize: 16,
     fontWeight: '700',
     color: '#fff',
     fontFamily: 'System',

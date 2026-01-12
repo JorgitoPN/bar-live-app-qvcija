@@ -26,18 +26,6 @@ interface MomentoAuthor {
   hasUnviewed: boolean;
 }
 
-/**
- * ✅ MOMENTO CAROUSEL v102.0 - ANDROID AVATAR SIZE FIX
- * 
- * CRITICAL FIXES v102.0 (ANDROID ONLY):
- * - ✅ Avatar size reduced to 80px on Android (was 100px)
- * - ✅ Properly scaled for consistency with other components
- * - ✅ Text uses scaleFontSize() for consistency
- * - ✅ Uses UnifiedMomentoAvatar for consistent neon border
- * - ✅ Real-time synchronization of momento status
- * - ✅ iOS design remains unchanged (100px)
- */
-
 export default function MomentoCarousel() {
   const router = useRouter();
   const { user, userId } = useEffectiveUser();
@@ -47,18 +35,18 @@ export default function MomentoCarousel() {
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [selectedAuthor, setSelectedAuthor] = useState<MomentoAuthor | null>(null);
 
-  // ✅ CRITICAL FIX v102.0: Reduced avatar size on Android
-  const AVATAR_SIZE = Platform.OS === 'android' ? 80 : 100;
+  // ✅ ANDROID SCALING: Avatar size reduced for consistency
+  const AVATAR_SIZE = Platform.OS === 'android' ? scaleIconSize(80) : 100;
 
   const loadMomentoAuthors = useCallback(async () => {
     if (!userId) {
-      console.log('[MomentoCarousel v102.0] No user ID, skipping load');
+      console.log('[MomentoCarousel] No user ID, skipping load');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('[MomentoCarousel v102.0] 🔄 Loading momento authors...');
+      console.log('[MomentoCarousel] 🔄 Loading momento authors...');
 
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
@@ -73,19 +61,19 @@ export default function MomentoCarousel() {
         .order('created_at', { ascending: false });
 
       if (momentosError) {
-        console.error('[MomentoCarousel v102.0] ❌ Error loading momentos:', momentosError);
+        console.error('[MomentoCarousel] ❌ Error loading momentos:', momentosError);
         setLoading(false);
         return;
       }
 
       if (!momentosData || momentosData.length === 0) {
-        console.log('[MomentoCarousel v102.0] ℹ️ No active momentos found');
+        console.log('[MomentoCarousel] ℹ️ No active momentos found');
         setAuthors([]);
         setLoading(false);
         return;
       }
 
-      console.log('[MomentoCarousel v102.0] ✅ Found momentos:', momentosData.length);
+      console.log('[MomentoCarousel] ✅ Found momentos:', momentosData.length);
 
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData } = await supabase
@@ -159,9 +147,9 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel v102.0] ✅ Loaded authors:', authorsArray.length);
+      console.log('[MomentoCarousel] ✅ Loaded authors:', authorsArray.length);
     } catch (error) {
-      console.error('[MomentoCarousel v102.0] ❌ Error loading authors:', error);
+      console.error('[MomentoCarousel] ❌ Error loading authors:', error);
     } finally {
       setLoading(false);
     }
@@ -173,7 +161,7 @@ export default function MomentoCarousel() {
     if (!userId) return;
 
     const momentosChannel = supabase
-      .channel('momento-carousel-updates-v102')
+      .channel('momento-carousel-updates')
       .on(
         'postgres_changes',
         {
@@ -182,7 +170,7 @@ export default function MomentoCarousel() {
           table: 'momentos',
         },
         (payload) => {
-          console.log('[MomentoCarousel v102.0] 🔄 Momento update detected:', payload);
+          console.log('[MomentoCarousel] 🔄 Momento update detected:', payload);
           loadMomentoAuthors();
         }
       )
@@ -195,7 +183,7 @@ export default function MomentoCarousel() {
           filter: `usuario_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('[MomentoCarousel v102.0] 🔄 View update detected:', payload);
+          console.log('[MomentoCarousel] 🔄 View update detected:', payload);
           loadMomentoAuthors();
         }
       )

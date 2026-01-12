@@ -9,6 +9,7 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +17,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 interface Seguido {
   id: string;
@@ -47,8 +49,6 @@ export default function SeguidosScreen() {
       console.log('[Seguidos] 📥 Loading ONLY FOLLOWED profiles (social network) for user:', userId);
       console.log('[Seguidos] ⚠️ EXCLUDING saved locals from "Locales favoritos"');
 
-      // ✅ CRITICAL FIX: Only get data from seguidores table (social network following)
-      // ❌ DO NOT include locales_guardados (favorites) - they are separate!
       const { data, error } = await supabase
         .from('seguidores')
         .select(`
@@ -72,13 +72,11 @@ export default function SeguidosScreen() {
 
       console.log('[Seguidos] Raw data from seguidores table:', data);
 
-      // ✅ Format the data - only users followed in the social network
       const formattedSeguidos: Seguido[] = [];
 
       if (data) {
         for (const item of data) {
           if (item.usuarios) {
-            // Check if this user is a local owner with an active payment plan
             const { data: ownedLocals } = await supabase
               .from('locales')
               .select('id, nombre, imagen_url')
@@ -92,7 +90,6 @@ export default function SeguidosScreen() {
               const localId = ownedLocals[0].id;
               localData = ownedLocals[0];
 
-              // Check if local has active payment plan
               const { data: subscription } = await supabase
                 .from('suscripciones_locales')
                 .select('id')
@@ -103,7 +100,6 @@ export default function SeguidosScreen() {
               hasPaymentPlan = !!subscription;
             }
 
-            // If user owns a local with payment plan, show as local profile
             if (hasPaymentPlan && localData) {
               formattedSeguidos.push({
                 id: localData.id,
@@ -116,7 +112,6 @@ export default function SeguidosScreen() {
                 hasPaymentPlan: true,
               });
             } else {
-              // Regular user profile
               formattedSeguidos.push({
                 id: item.usuarios.id,
                 nombre: item.usuarios.nombre,
@@ -158,15 +153,12 @@ export default function SeguidosScreen() {
     loadSeguidos();
   };
 
-  // ✅ CRITICAL FIX: Handle both user and local profile navigation
   const handleUserPress = (seguido: Seguido) => {
     try {
       if (seguido.tipo === 'local' && seguido.localId) {
-        // ✅ Navigate to local profile page
         console.log('[Seguidos] 🏪 Opening local profile:', seguido.nombre, seguido.localId);
         router.push(`/perfil/local?localId=${seguido.localId}`);
       } else {
-        // ✅ Navigate to user profile page
         console.log('[Seguidos] 👤 Opening user profile:', seguido.nombre);
         if (user && seguido.id === user.id) {
           router.push('/(tabs)/perfil');
@@ -188,6 +180,17 @@ export default function SeguidosScreen() {
     }
   };
 
+  // ✅ ANDROID SCALING: Icon sizes
+  const backIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const emptyIconSize = Platform.OS === 'android' ? scaleIconSize(64) : 64;
+  const avatarSize = Platform.OS === 'android' ? scaleIconSize(56) : 56;
+  const avatarRadius = avatarSize / 2;
+  const avatarTextSize = Platform.OS === 'android' ? scaleFontSize(20) : 20;
+  const storeIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const verifiedIconSize = Platform.OS === 'android' ? scaleIconSize(18) : 18;
+  const localBadgeIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
+  const chevronIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+
   const renderSeguido = ({ item }: { item: Seguido }) => (
     <TouchableOpacity
       style={styles.userItem}
@@ -195,13 +198,13 @@ export default function SeguidosScreen() {
       activeOpacity={0.7}
     >
       {item.avatar ? (
-        <Image source={{ uri: item.avatar }} style={styles.userAvatar} />
+        <Image source={{ uri: item.avatar }} style={[styles.userAvatar, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]} />
       ) : (
-        <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
+        <View style={[styles.userAvatar, styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]}>
           {item.tipo === 'local' ? (
-            <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={24} color={colors.primary} />
+            <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={storeIconSize} color={colors.primary} />
           ) : (
-            <Text style={styles.avatarText}>
+            <Text style={[styles.avatarText, { fontSize: avatarTextSize }]}>
               {item.nombre.charAt(0).toUpperCase()}
             </Text>
           )}
@@ -209,35 +212,34 @@ export default function SeguidosScreen() {
       )}
       <View style={styles.userInfo}>
         <View style={styles.userNameRow}>
-          <Text style={styles.userName}>{item.nombre}</Text>
-          {/* ✅ NEW: Show verified badge for local profiles with payment plan */}
+          <Text style={[styles.userName, { fontSize: scaleFontSize(16) }]}>{item.nombre}</Text>
           {item.tipo === 'local' && item.hasPaymentPlan && (
             <View style={styles.verifiedBadge}>
               <IconSymbol 
                 ios_icon_name="checkmark.seal.fill" 
                 android_material_icon_name="verified" 
-                size={18} 
+                size={verifiedIconSize} 
                 color={colors.primary} 
               />
             </View>
           )}
           {item.tipo === 'local' && (
             <View style={styles.localBadge}>
-              <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={12} color={colors.primary} />
-              <Text style={styles.localBadgeText}>Local</Text>
+              <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={localBadgeIconSize} color={colors.primary} />
+              <Text style={[styles.localBadgeText, { fontSize: scaleFontSize(11) }]}>Local</Text>
             </View>
           )}
         </View>
         {item.username && (
-          <Text style={styles.userUsername}>@{item.username}</Text>
+          <Text style={[styles.userUsername, { fontSize: scaleFontSize(14) }]}>@{item.username}</Text>
         )}
         {item.bio && (
-          <Text style={styles.userBio} numberOfLines={2}>
+          <Text style={[styles.userBio, { fontSize: scaleFontSize(13) }]} numberOfLines={2}>
             {item.bio}
           </Text>
         )}
       </View>
-      <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+      <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={chevronIconSize} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 
@@ -250,9 +252,9 @@ export default function SeguidosScreen() {
         style={styles.header}
       >
         <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={backIconSize} color={colors.headerText} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerTitle, { fontSize: scaleFontSize(20) }]}>
           {isOwnProfile ? 'Siguiendo' : 'Siguiendo'}
         </Text>
         <View style={{ width: 24 }} />
@@ -261,7 +263,7 @@ export default function SeguidosScreen() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando seguidos...</Text>
+          <Text style={[styles.loadingText, { fontSize: scaleFontSize(14) }]}>Cargando seguidos...</Text>
         </View>
       ) : (
         <FlatList
@@ -273,11 +275,11 @@ export default function SeguidosScreen() {
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={64} color={colors.textSecondary} />
-              <Text style={styles.emptyText}>
+              <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={emptyIconSize} color={colors.textSecondary} />
+              <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>
                 {isOwnProfile ? 'No sigues a nadie aún' : 'No sigue a nadie aún'}
               </Text>
-              <Text style={styles.emptySubtext}>
+              <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
                 Sigue a usuarios y perfiles de locales para ver su contenido aquí
               </Text>
             </View>
@@ -306,7 +308,6 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   headerTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -316,7 +317,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 12,
   },
@@ -331,9 +331,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   userAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
     marginRight: 12,
   },
   avatarPlaceholder: {
@@ -342,7 +339,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.primary,
   },
@@ -356,7 +352,6 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   userName: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
@@ -373,17 +368,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   localBadgeText: {
-    fontSize: 11,
     fontWeight: '600',
     color: colors.primary,
   },
   userUsername: {
-    fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 4,
   },
   userBio: {
-    fontSize: 13,
     color: colors.text,
     lineHeight: 18,
   },
@@ -395,14 +387,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyText: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginTop: 16,
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',

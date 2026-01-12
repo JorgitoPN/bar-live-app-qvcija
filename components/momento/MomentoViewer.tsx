@@ -26,6 +26,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 import { captureRef } from 'react-native-view-shot';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MOMENTO_DURATION = 6000;
@@ -78,7 +79,6 @@ export default function MomentoViewer({
   const [viewers, setViewers] = useState<any[]>([]);
   const [likers, setLikers] = useState<any[]>([]);
   
-  // ✅ NEW: Message input state
   const [showMessageInput, setShowMessageInput] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -90,6 +90,17 @@ export default function MomentoViewer({
   const progressAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
   const pauseTimeRef = useRef<number>(0);
   const progressStartTimeRef = useRef<number>(0);
+
+  // ✅ ANDROID SCALING: Icon sizes
+  const closeIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const authorAvatarIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+  const actionIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+  const messageInputCloseIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
+  const messageSendIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+  const statsCloseIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const statsAvatarIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
+  const likeOverlayIconSize = Platform.OS === 'android' ? scaleIconSize(14) : 14;
+  const emptyPhotoIconSize = Platform.OS === 'android' ? scaleIconSize(64) : 64;
 
   const markAsViewed = useCallback(async (momentoId: string) => {
     if (!user) return;
@@ -300,13 +311,11 @@ export default function MomentoViewer({
     }
   };
 
-  // ✅ FIXED: Open message input and pause momento
   const handleOpenMessageInput = () => {
     console.log('[MomentoViewer] 📝 Opening message input, pausing momento');
     setPaused(true);
     setShowMessageInput(true);
     
-    // Stop progress animation
     if (progressAnimationRef.current) {
       progressAnimationRef.current.stop();
       progressAnimationRef.current = null;
@@ -317,7 +326,6 @@ export default function MomentoViewer({
     }
   };
 
-  // ✅ FIXED: Close message input and resume momento
   const handleCloseMessageInput = () => {
     console.log('[MomentoViewer] ❌ Closing message input, resuming momento');
     setShowMessageInput(false);
@@ -325,7 +333,6 @@ export default function MomentoViewer({
     setPaused(false);
   };
 
-  // ✅ FIXED: Send message with automatic screenshot capture and text
   const handleSendMessage = async () => {
     if (!user || !author || momentos.length === 0 || !messageText.trim()) {
       if (!messageText.trim()) {
@@ -341,7 +348,6 @@ export default function MomentoViewer({
       setSendingMessage(true);
       console.log('[MomentoViewer] 📸 Starting momento message flow with text...');
       
-      // ✅ FIXED: Capture screenshot automatically
       const screenshotUri = await captureMomentoScreenshot();
       
       let screenshotUrl: string | null = null;
@@ -404,7 +410,6 @@ export default function MomentoViewer({
       }
 
       if (chatId) {
-        // ✅ FIXED: Send message with momento screenshot AND user text
         await supabase.from('mensajes').insert({
           chat_id: chatId,
           remitente_id: user.id,
@@ -417,12 +422,10 @@ export default function MomentoViewer({
 
         console.log('[MomentoViewer] ✅ Momento message sent with screenshot and text');
 
-        // Close input and resume
         setShowMessageInput(false);
         setMessageText('');
         setPaused(false);
 
-        // Navigate to chat
         router.push({
           pathname: '/chat/conversacion',
           params: {
@@ -445,11 +448,9 @@ export default function MomentoViewer({
     const currentMomento = momentos[currentIndex];
     if (!currentMomento) return;
 
-    // ✅ CRITICAL FIX: Pause momento when opening stats
     console.log('[MomentoViewer] 📊 Opening stats, pausing momento');
     setPaused(true);
     
-    // Stop progress animation
     if (progressAnimationRef.current) {
       progressAnimationRef.current.stop();
       progressAnimationRef.current = null;
@@ -497,7 +498,6 @@ export default function MomentoViewer({
     }
   };
 
-  // ✅ NEW: Report momento functionality
   const handleReport = () => {
     if (!user || momentos.length === 0) return;
 
@@ -746,7 +746,6 @@ export default function MomentoViewer({
     }
   }, [visible, authorId, authorType, fadeAnim, loadMomentos]);
 
-  // ✅ FIXED: Pause when message input or stats modal is open
   useEffect(() => {
     if (!paused && !showMessageInput && !showStats && momentos.length > 0 && !loading && visible) {
       console.log('[MomentoViewer] ▶️ Starting/resuming progress for momento', currentIndex);
@@ -798,7 +797,7 @@ export default function MomentoViewer({
       <Modal visible={visible} transparent animationType="fade">
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.loadingText}>Cargando Momentos...</Text>
+          <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando Momentos...</Text>
         </View>
       </Modal>
     );
@@ -820,9 +819,7 @@ export default function MomentoViewer({
         <View style={styles.backgroundOverlay} />
         
         <View style={styles.imageContainer} {...panResponder.panHandlers} ref={momentoViewRef} collapsable={false}>
-          {/* ✅ CRITICAL FIX: Left and right tap zones for navigation */}
           <View style={styles.imageTouchable}>
-            {/* Left tap zone - Previous momento */}
             <TouchableOpacity
               style={styles.leftTapZone}
               activeOpacity={1}
@@ -831,7 +828,6 @@ export default function MomentoViewer({
               onPressOut={handlePressOut}
             />
             
-            {/* Right tap zone - Next momento */}
             <TouchableOpacity
               style={styles.rightTapZone}
               activeOpacity={1}
@@ -841,7 +837,6 @@ export default function MomentoViewer({
             />
           </View>
           
-          {/* Image display */}
           <View style={styles.imageWrapper} pointerEvents="none">
             {currentMomento.imagen_url ? (
               <Image
@@ -854,7 +849,7 @@ export default function MomentoViewer({
                 <IconSymbol
                   ios_icon_name="photo"
                   android_material_icon_name="photo"
-                  size={64}
+                  size={emptyPhotoIconSize}
                   color="#fff"
                 />
               </View>
@@ -896,13 +891,13 @@ export default function MomentoViewer({
                 <IconSymbol
                   ios_icon_name={author?.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
                   android_material_icon_name={author?.tipo === 'local' ? 'store' : 'person'}
-                  size={20}
+                  size={authorAvatarIconSize}
                   color="#fff"
                 />
               </View>
             )}
-            <Text style={styles.authorName}>{author?.nombre}</Text>
-            <Text style={styles.timeAgo}>
+            <Text style={[styles.authorName, { fontSize: scaleFontSize(15) }]}>{author?.nombre}</Text>
+            <Text style={[styles.timeAgo, { fontSize: scaleFontSize(13) }]}>
               {getTimeAgo(currentMomento.created_at)}
             </Text>
           </View>
@@ -910,13 +905,12 @@ export default function MomentoViewer({
             <IconSymbol
               ios_icon_name="xmark"
               android_material_icon_name="close"
-              size={24}
+              size={closeIconSize}
               color="#fff"
             />
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* ✅ FIXED: Message input overlay */}
         {showMessageInput && (
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -930,14 +924,14 @@ export default function MomentoViewer({
                 <IconSymbol
                   ios_icon_name="xmark.circle.fill"
                   android_material_icon_name="cancel"
-                  size={28}
+                  size={messageInputCloseIconSize}
                   color="rgba(255, 255, 255, 0.8)"
                 />
               </TouchableOpacity>
               
               <View style={styles.messageInputBox}>
                 <TextInput
-                  style={styles.messageInput}
+                  style={[styles.messageInput, { fontSize: scaleFontSize(16) }]}
                   placeholder="Escribe un mensaje..."
                   placeholderTextColor="rgba(255, 255, 255, 0.5)"
                   value={messageText}
@@ -958,7 +952,7 @@ export default function MomentoViewer({
                     <IconSymbol
                       ios_icon_name="paperplane.fill"
                       android_material_icon_name="send"
-                      size={20}
+                      size={messageSendIconSize}
                       color="#fff"
                     />
                   )}
@@ -977,20 +971,20 @@ export default function MomentoViewer({
               <IconSymbol
                 ios_icon_name="paperplane.fill"
                 android_material_icon_name="send"
-                size={20}
+                size={actionIconSize}
                 color="rgba(255, 255, 255, 0.75)"
               />
-              <Text style={styles.actionLabel}>Mensaje</Text>
+              <Text style={[styles.actionLabel, { fontSize: scaleFontSize(10) }]}>Mensaje</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={handleLike} style={styles.actionButton}>
               <IconSymbol
                 ios_icon_name={currentMomento.user_has_liked ? 'heart.fill' : 'heart'}
                 android_material_icon_name={currentMomento.user_has_liked ? 'favorite' : 'favorite_border'}
-                size={20}
+                size={actionIconSize}
                 color={currentMomento.user_has_liked ? '#FF3B30' : 'rgba(255, 255, 255, 0.75)'}
               />
-              <Text style={styles.actionLabel}>
+              <Text style={[styles.actionLabel, { fontSize: scaleFontSize(10) }]}>
                 {currentMomento.likes_count > 0 ? currentMomento.likes_count : 'Me gusta'}
               </Text>
             </TouchableOpacity>
@@ -1000,10 +994,10 @@ export default function MomentoViewer({
                 <IconSymbol
                   ios_icon_name="eye.fill"
                   android_material_icon_name="visibility"
-                  size={20}
+                  size={actionIconSize}
                   color="rgba(255, 255, 255, 0.75)"
                 />
-                <Text style={styles.actionLabel}>{currentMomento.vistas_count}</Text>
+                <Text style={[styles.actionLabel, { fontSize: scaleFontSize(10) }]}>{currentMomento.vistas_count}</Text>
               </TouchableOpacity>
             )}
 
@@ -1012,20 +1006,20 @@ export default function MomentoViewer({
                 <IconSymbol
                   ios_icon_name="trash.fill"
                   android_material_icon_name="delete"
-                  size={20}
+                  size={actionIconSize}
                   color="rgba(255, 255, 255, 0.75)"
                 />
-                <Text style={styles.actionLabel}>Eliminar</Text>
+                <Text style={[styles.actionLabel, { fontSize: scaleFontSize(10) }]}>Eliminar</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity onPress={handleReport} style={styles.actionButton}>
                 <IconSymbol
                   ios_icon_name="exclamationmark.triangle.fill"
                   android_material_icon_name="report"
-                  size={20}
+                  size={actionIconSize}
                   color="rgba(255, 255, 255, 0.75)"
                 />
-                <Text style={styles.actionLabel}>Reportar</Text>
+                <Text style={[styles.actionLabel, { fontSize: scaleFontSize(10) }]}>Reportar</Text>
               </TouchableOpacity>
             )}
           </LinearGradient>
@@ -1035,7 +1029,7 @@ export default function MomentoViewer({
           <View style={styles.statsModal}>
             <View style={styles.statsContent}>
               <View style={styles.statsHeader}>
-                <Text style={styles.statsTitle}>Estadísticas</Text>
+                <Text style={[styles.statsTitle, { fontSize: scaleFontSize(20) }]}>Estadísticas</Text>
                 <TouchableOpacity onPress={() => {
                   setShowStats(false);
                   setPaused(false);
@@ -1043,33 +1037,28 @@ export default function MomentoViewer({
                   <IconSymbol
                     ios_icon_name="xmark"
                     android_material_icon_name="close"
-                    size={24}
+                    size={statsCloseIconSize}
                     color={colors.text}
                   />
                 </TouchableOpacity>
               </View>
 
-              {/* ✅ CRITICAL FIX: Unified list with likes prioritized */}
               <View style={styles.statsSection}>
-                <Text style={styles.statsSectionTitle}>
+                <Text style={[styles.statsSectionTitle, { fontSize: scaleFontSize(16) }]}>
                   Visualizaciones ({viewers.length})
                 </Text>
                 {(() => {
-                  // Create a map of user IDs who liked
                   const likerIds = new Set(likers.map((l: any) => l.usuario_id));
                   
-                  // Create unified list with like status
                   const unifiedList = viewers.map((viewer: any) => ({
                     ...viewer,
                     hasLiked: likerIds.has(viewer.usuario_id),
                   }));
                   
-                  // Sort: likers first, then by most recent view
                   unifiedList.sort((a, b) => {
                     if (a.hasLiked && !b.hasLiked) return -1;
                     if (!a.hasLiked && b.hasLiked) return 1;
                     
-                    // Within same group, sort by most recent
                     const dateA = new Date(a.viewed_at).getTime();
                     const dateB = new Date(b.viewed_at).getTime();
                     return dateB - dateA;
@@ -1088,24 +1077,23 @@ export default function MomentoViewer({
                             <IconSymbol
                               ios_icon_name="person.fill"
                               android_material_icon_name="person"
-                              size={16}
+                              size={statsAvatarIconSize}
                               color={colors.primary}
                             />
                           </View>
                         )}
-                        {/* ✅ Heart icon overlay for users who liked */}
                         {viewer.hasLiked && (
                           <View style={styles.likeIconOverlay}>
                             <IconSymbol
                               ios_icon_name="heart.fill"
                               android_material_icon_name="favorite"
-                              size={14}
+                              size={likeOverlayIconSize}
                               color="#FF3B30"
                             />
                           </View>
                         )}
                       </View>
-                      <Text style={styles.statsName}>{viewer.usuarios?.nombre}</Text>
+                      <Text style={[styles.statsName, { fontSize: scaleFontSize(14) }]}>{viewer.usuarios?.nombre}</Text>
                     </View>
                   ));
                 })()}
@@ -1147,7 +1135,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
     color: '#fff',
     fontFamily: 'System',
   },
@@ -1255,13 +1242,11 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   authorName: {
-    fontSize: 15,
     fontWeight: '700',
     color: '#fff',
     fontFamily: 'System',
   },
   timeAgo: {
-    fontSize: 13,
     color: 'rgba(255, 255, 255, 0.8)',
     fontFamily: 'System',
   },
@@ -1301,7 +1286,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    fontSize: 16,
     color: '#fff',
     maxHeight: 100,
     borderWidth: 1,
@@ -1337,7 +1321,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   actionLabel: {
-    fontSize: 10,
     color: 'rgba(255, 255, 255, 0.75)',
     fontFamily: 'System',
     fontWeight: '500',
@@ -1363,7 +1346,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statsTitle: {
-    fontSize: 20,
     fontWeight: '700',
     color: colors.text,
     fontFamily: 'System',
@@ -1372,7 +1354,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statsSectionTitle: {
-    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 12,
@@ -1421,7 +1402,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   statsName: {
-    fontSize: 14,
     color: colors.text,
     fontFamily: 'System',
   },

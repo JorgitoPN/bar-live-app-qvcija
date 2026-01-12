@@ -21,6 +21,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 interface Chat {
   id: string;
@@ -131,7 +132,6 @@ export default function ChatsScreen() {
             }
           }
 
-          // ✅ FIXED: Count unread messages from database (source of truth) - only messages without leido_at
           const { count } = await supabase
             .from('mensajes')
             .select('id', { count: 'exact', head: true })
@@ -169,13 +169,11 @@ export default function ChatsScreen() {
     loadChats();
   }, [loadChats]);
 
-  // ✅ FIXED: Real-time subscription for chat updates (new messages, read status)
   useEffect(() => {
     if (!user) return;
 
     console.log('[Chats] ⚡ Setting up real-time subscription for chat updates');
 
-    // Clean up previous channel
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
     }
@@ -191,7 +189,6 @@ export default function ChatsScreen() {
         },
         (payload) => {
           console.log('[Chats] ⚡ INSTANT new message received:', payload.new);
-          // Reload chats to update last message and unread count
           loadChats(true);
         }
       )
@@ -204,7 +201,6 @@ export default function ChatsScreen() {
         },
         (payload) => {
           console.log('[Chats] ⚡ Message updated (read status):', payload.new);
-          // Reload chats to update unread count
           loadChats(true);
         }
       )
@@ -217,7 +213,6 @@ export default function ChatsScreen() {
         },
         (payload) => {
           console.log('[Chats] ⚡ Chat updated:', payload.new);
-          // Reload chats to update last message
           loadChats(true);
         }
       )
@@ -230,7 +225,6 @@ export default function ChatsScreen() {
         },
         (payload) => {
           console.log('[Chats] ⚡ Chat deleted:', payload.old);
-          // Remove chat from list
           setChats(prev => prev.filter(c => c.id !== payload.old.id));
         }
       )
@@ -257,7 +251,6 @@ export default function ChatsScreen() {
 
     console.log('[Chats] 🔥 Opening chat:', { chatId, isLocalChat, localId });
 
-    // ✅ FIXED: Mark messages as read in database (source of truth) with leido_at timestamp
     try {
       const { error } = await supabase
         .from('mensajes')
@@ -271,7 +264,6 @@ export default function ChatsScreen() {
       } else {
         console.log('[Chats] ✅ Messages marked as read in database with timestamp');
         
-        // ✅ FIXED: Update local state immediately
         setChats(prevChats => 
           prevChats.map(chat => 
             chat.id === chatId 
@@ -466,6 +458,14 @@ export default function ChatsScreen() {
     chat.otro_usuario.username?.toLowerCase().includes(busqueda.toLowerCase())
   );
 
+  // ✅ ANDROID SCALING: Icon sizes
+  const backIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const actionIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const searchIconSize = Platform.OS === 'android' ? scaleIconSize(18) : 18;
+  const chatIconSize = Platform.OS === 'android' ? scaleIconSize(64) : 64;
+  const localBadgeIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
+  const checkIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
+
   if (!user) {
     return (
       <View style={commonStyles.container}>
@@ -477,20 +477,20 @@ export default function ChatsScreen() {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={backIconSize} color={colors.headerText} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Mensajes</Text>
+            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(24) }]}>Mensajes</Text>
             <View style={{ width: 40 }} />
           </View>
         </LinearGradient>
         <View style={styles.emptyState}>
-          <IconSymbol ios_icon_name="bubble.left.and.bubble.right" android_material_icon_name="chat" size={64} color={colors.textSecondary} />
-          <Text style={styles.emptyText}>Inicia sesión para ver tus mensajes</Text>
+          <IconSymbol ios_icon_name="bubble.left.and.bubble.right" android_material_icon_name="chat" size={chatIconSize} color={colors.textSecondary} />
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>Inicia sesión para ver tus mensajes</Text>
           <TouchableOpacity
             style={styles.loginButton}
             onPress={() => router.push('/auth/login-popup')}
           >
-            <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+            <Text style={[styles.loginButtonText, { fontSize: scaleFontSize(16) }]}>Iniciar Sesión</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -508,9 +508,9 @@ export default function ChatsScreen() {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={backIconSize} color={colors.headerText} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Mensajes</Text>
+            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(24) }]}>Mensajes</Text>
             <View style={{ width: 40 }} />
           </View>
         </LinearGradient>
@@ -532,14 +532,14 @@ export default function ChatsScreen() {
         <View style={styles.headerTop}>
           {selectionMode ? (
             <TouchableOpacity onPress={toggleSelectionMode} style={styles.backButton}>
-              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={backIconSize} color={colors.headerText} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={backIconSize} color={colors.headerText} />
             </TouchableOpacity>
           )}
-          <Text style={styles.headerTitle}>
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(24) }]}>
             {selectionMode ? `${selectedChats.size} seleccionado(s)` : 'Mensajes'}
           </Text>
           {selectionMode ? (
@@ -551,16 +551,16 @@ export default function ChatsScreen() {
               {deleting ? (
                 <ActivityIndicator size="small" color={colors.headerText} />
               ) : (
-                <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={24} color={colors.headerText} />
+                <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={actionIconSize} color={colors.headerText} />
               )}
             </TouchableOpacity>
           ) : (
             <View style={styles.headerActions}>
               <TouchableOpacity style={styles.headerActionButton} onPress={toggleSelectionMode}>
-                <IconSymbol ios_icon_name="checkmark.circle" android_material_icon_name="check_circle" size={24} color={colors.headerText} />
+                <IconSymbol ios_icon_name="checkmark.circle" android_material_icon_name="check_circle" size={actionIconSize} color={colors.headerText} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.headerActionButton} onPress={handleNewChat}>
-                <IconSymbol ios_icon_name="square.and.pencil" android_material_icon_name="edit" size={24} color={colors.headerText} />
+                <IconSymbol ios_icon_name="square.and.pencil" android_material_icon_name="edit" size={actionIconSize} color={colors.headerText} />
               </TouchableOpacity>
             </View>
           )}
@@ -568,9 +568,9 @@ export default function ChatsScreen() {
 
         {!selectionMode && (
           <View style={styles.searchContainer}>
-            <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={18} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={searchIconSize} color={colors.textSecondary} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
               placeholder="Buscar conversaciones..."
               placeholderTextColor={colors.textSecondary}
               value={busqueda}
@@ -593,6 +593,14 @@ export default function ChatsScreen() {
 
           const isSelected = selectedChats.has(chat.id);
 
+          // ✅ ANDROID SCALING: Avatar and badge sizes
+          const avatarSize = Platform.OS === 'android' ? scaleIconSize(56) : 56;
+          const avatarRadius = avatarSize / 2;
+          const avatarTextSize = Platform.OS === 'android' ? scaleFontSize(22) : 22;
+          const badgeSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+          const badgeRadius = badgeSize / 2;
+          const selectionCircleSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+
           return (
             <TouchableOpacity
               key={chat.id}
@@ -614,51 +622,51 @@ export default function ChatsScreen() {
               {selectionMode && (
                 <View style={styles.selectionIndicator}>
                   {isSelected ? (
-                    <View style={styles.selectedCircle}>
-                      <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={16} color={colors.headerText} />
+                    <View style={[styles.selectedCircle, { width: selectionCircleSize, height: selectionCircleSize, borderRadius: selectionCircleSize / 2 }]}>
+                      <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={checkIconSize} color={colors.headerText} />
                     </View>
                   ) : (
-                    <View style={styles.unselectedCircle} />
+                    <View style={[styles.unselectedCircle, { width: selectionCircleSize, height: selectionCircleSize, borderRadius: selectionCircleSize / 2 }]} />
                   )}
                 </View>
               )}
 
               <View style={styles.avatarContainer}>
                 {chat.otro_usuario.avatar ? (
-                  <Image source={{ uri: chat.otro_usuario.avatar }} style={styles.avatar} />
+                  <Image source={{ uri: chat.otro_usuario.avatar }} style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]} />
                 ) : (
-                  <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                    <Text style={styles.avatarText}>
+                  <View style={[styles.avatar, styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]}>
+                    <Text style={[styles.avatarText, { fontSize: avatarTextSize }]}>
                       {chat.otro_usuario.nombre.charAt(0).toUpperCase()}
                     </Text>
                   </View>
                 )}
                 {chat.local_id && (
-                  <View style={styles.localBadge}>
-                    <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={12} color={colors.white} />
+                  <View style={[styles.localBadge, { width: badgeSize, height: badgeSize, borderRadius: badgeRadius }]}>
+                    <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={localBadgeIconSize} color={colors.white} />
                   </View>
                 )}
               </View>
 
               <View style={styles.chatContent}>
                 <View style={styles.chatHeader}>
-                  <Text style={styles.chatNombre}>{displayName}</Text>
-                  <Text style={styles.chatHora}>{formatHora(chat.ultimo_mensaje_fecha)}</Text>
+                  <Text style={[styles.chatNombre, { fontSize: scaleFontSize(16) }]}>{displayName}</Text>
+                  <Text style={[styles.chatHora, { fontSize: scaleFontSize(12) }]}>{formatHora(chat.ultimo_mensaje_fecha)}</Text>
                 </View>
                 <View style={styles.chatFooter}>
                   <Text
                     style={[
                       styles.chatUltimoMensaje,
+                      { fontSize: scaleFontSize(14) },
                       chat.mensajes_no_leidos > 0 && styles.chatUltimoMensajeNoLeido,
                     ]}
                     numberOfLines={1}
                   >
                     {chat.ultimo_mensaje || 'Nuevo chat'}
                   </Text>
-                  {/* ✅ FIXED: Unread badge disappears permanently after reading */}
                   {chat.mensajes_no_leidos > 0 && (
                     <View style={styles.badge}>
-                      <Text style={styles.badgeText}>{chat.mensajes_no_leidos}</Text>
+                      <Text style={[styles.badgeText, { fontSize: scaleFontSize(12) }]}>{chat.mensajes_no_leidos}</Text>
                     </View>
                   )}
                 </View>
@@ -672,13 +680,13 @@ export default function ChatsScreen() {
             <IconSymbol
               ios_icon_name="bubble.left.and.bubble.right"
               android_material_icon_name="chat"
-              size={64}
+              size={chatIconSize}
               color={colors.textSecondary}
             />
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>
               {busqueda ? 'No se encontraron conversaciones' : 'No tienes mensajes'}
             </Text>
-            <Text style={styles.emptySubtext}>
+            <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
               Inicia una conversación con otros usuarios o locales
             </Text>
           </View>
@@ -713,7 +721,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: colors.headerText,
     flex: 1,
@@ -746,7 +753,6 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
     color: colors.text,
   },
   scrollView: {
@@ -775,17 +781,11 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   selectedCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   unselectedCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.cardBorder,
   },
@@ -793,9 +793,6 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
     backgroundColor: colors.cardBorder,
   },
   avatarPlaceholder: {
@@ -804,7 +801,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -812,9 +808,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -831,12 +824,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chatNombre: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
   chatHora: {
-    fontSize: 12,
     color: colors.textSecondary,
   },
   chatFooter: {
@@ -846,7 +837,6 @@ const styles = StyleSheet.create({
   },
   chatUltimoMensaje: {
     flex: 1,
-    fontSize: 14,
     color: colors.textSecondary,
   },
   chatUltimoMensajeNoLeido: {
@@ -864,7 +854,6 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: colors.badgeNuevoText,
-    fontSize: 12,
     fontWeight: 'bold',
   },
   emptyState: {
@@ -874,12 +863,10 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   emptyText: {
-    fontSize: 18,
     color: colors.textSecondary,
     fontWeight: '500',
   },
   emptySubtext: {
-    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
     paddingHorizontal: 40,
@@ -898,7 +885,6 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: colors.headerText,
-    fontSize: 16,
     fontWeight: '600',
   },
 });

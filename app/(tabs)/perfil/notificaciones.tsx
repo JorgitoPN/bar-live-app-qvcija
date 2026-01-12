@@ -12,6 +12,7 @@ import {
   arePushNotificationsAvailable,
   scheduleTestNotification,
 } from '@/utils/notifications';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 interface NotificationSettings {
   likes: boolean;
@@ -132,6 +133,13 @@ export default function Notificaciones() {
     }
   };
 
+  // ✅ ANDROID SCALING: Icon sizes
+  const backIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const infoIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const warningIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+  const chevronIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+  const checkIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+
   const NotificationToggle = ({
     icon,
     title,
@@ -162,13 +170,13 @@ export default function Notificaciones() {
         justifyContent: 'center',
         marginRight: 12,
       }}>
-        <Text style={{ fontSize: 20 }}>{icon}</Text>
+        <Text style={{ fontSize: scaleFontSize(20) }}>{icon}</Text>
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 4 }}>
+        <Text style={{ fontSize: scaleFontSize(16), fontWeight: '600', color: colors.text, marginBottom: 4 }}>
           {title}
         </Text>
-        <Text style={{ fontSize: 13, color: colors.textSecondary }}>
+        <Text style={{ fontSize: scaleFontSize(13), color: colors.textSecondary }}>
           {description}
         </Text>
       </View>
@@ -183,7 +191,6 @@ export default function Notificaciones() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* Header */}
       <View style={{
         flexDirection: 'row',
         alignItems: 'center',
@@ -201,11 +208,11 @@ export default function Notificaciones() {
           <IconSymbol
             ios_icon_name="chevron.left"
             android_material_icon_name="arrow_back"
-            size={24}
+            size={backIconSize}
             color={colors.text}
           />
         </TouchableOpacity>
-        <Text style={{ fontSize: 20, fontWeight: '600', color: colors.text, flex: 1 }}>
+        <Text style={{ fontSize: scaleFontSize(20), fontWeight: '600', color: colors.text, flex: 1 }}>
           Notificaciones
         </Text>
         <TouchableOpacity
@@ -214,14 +221,13 @@ export default function Notificaciones() {
           <IconSymbol
             ios_icon_name="info.circle"
             android_material_icon_name="info"
-            size={24}
+            size={infoIconSize}
             color={colors.primary}
           />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-        {/* Push Notifications Status */}
         {!pushAvailable && Platform.OS === 'android' && (
           <TouchableOpacity
             onPress={() => router.push('/perfil/notificaciones-info')}
@@ -238,11 +244,11 @@ export default function Notificaciones() {
               <IconSymbol
                 ios_icon_name="exclamationmark.triangle.fill"
                 android_material_icon_name="warning"
-                size={20}
+                size={warningIconSize}
                 color={colors.warning}
               />
               <Text style={{
-                fontSize: 14,
+                fontSize: scaleFontSize(14),
                 fontWeight: '600',
                 color: colors.text,
                 marginLeft: 8,
@@ -253,18 +259,17 @@ export default function Notificaciones() {
               <IconSymbol
                 ios_icon_name="chevron.right"
                 android_material_icon_name="chevron_right"
-                size={20}
+                size={chevronIconSize}
                 color={colors.textSecondary}
               />
             </View>
-            <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 18 }}>
+            <Text style={{ fontSize: scaleFontSize(13), color: colors.textSecondary, lineHeight: 18 }}>
               Las notificaciones push requieren un development build en Android. 
               Toca para más información.
             </Text>
           </TouchableOpacity>
         )}
 
-        {/* Test Notification Button */}
         <TouchableOpacity
           onPress={testNotification}
           style={{
@@ -275,14 +280,13 @@ export default function Notificaciones() {
             marginBottom: 24,
           }}
         >
-          <Text style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF' }}>
+          <Text style={{ fontSize: scaleFontSize(16), fontWeight: '600', color: '#FFFFFF' }}>
             🔔 Probar Notificación
           </Text>
         </TouchableOpacity>
 
-        {/* Notification Settings */}
         <Text style={{
-          fontSize: 18,
+          fontSize: scaleFontSize(18),
           fontWeight: '600',
           color: colors.text,
           marginBottom: 16,
@@ -346,7 +350,6 @@ export default function Notificaciones() {
           onValueChange={(value) => updateSetting('cheers', value)}
         />
 
-        {/* Status Info */}
         {pushToken && (
           <View style={{
             backgroundColor: colors.success + '20',
@@ -360,11 +363,11 @@ export default function Notificaciones() {
               <IconSymbol
                 ios_icon_name="checkmark.circle.fill"
                 android_material_icon_name="check_circle"
-                size={20}
+                size={checkIconSize}
                 color={colors.success}
               />
               <Text style={{
-                fontSize: 14,
+                fontSize: scaleFontSize(14),
                 fontWeight: '600',
                 color: colors.text,
                 marginLeft: 8,
