@@ -1,10 +1,11 @@
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 interface LoginPromptProps {
   title?: string;
@@ -14,13 +15,20 @@ interface LoginPromptProps {
 }
 
 /**
- * ✅ REUSABLE LOGIN PROMPT COMPONENT v1.0
+ * ✅ REUSABLE LOGIN PROMPT COMPONENT v2.0 - ANDROID SCALING FIX
+ * 
+ * CRITICAL FIXES v2.0 (ANDROID ONLY):
+ * - ✅ All font sizes now use scaleFontSize() for proper Android scaling
+ * - ✅ Icon sizes use scaleIconSize() for consistent proportions
+ * - ✅ Title, message, and button text properly scaled
+ * - ✅ iOS design remains unchanged (reference design)
  * 
  * Features:
  * - Consistent design across all pages
  * - Gradient background
  * - Customizable title and message
  * - Login and register buttons
+ * - Platform-specific responsive scaling
  */
 
 export default function LoginPrompt({
@@ -31,22 +39,32 @@ export default function LoginPrompt({
 }: LoginPromptProps) {
   const router = useRouter();
 
+  const iconSize = Platform.OS === 'android' ? scaleIconSize(64) : 64;
+  const iconContainerSize = Platform.OS === 'android' ? scaleIconSize(120) : 120;
+
   return (
     <View style={styles.container}>
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.iconContainer}
+        style={[
+          styles.iconContainer,
+          {
+            width: iconContainerSize,
+            height: iconContainerSize,
+            borderRadius: iconContainerSize / 2,
+          },
+        ]}
       >
         <IconSymbol 
           ios_icon_name={icon} 
           android_material_icon_name={androidIcon} 
-          size={64} 
+          size={iconSize} 
           color={colors.white} 
         />
       </LinearGradient>
       
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.message}>{message}</Text>
+      <Text style={[styles.title, { fontSize: scaleFontSize(24) }]}>{title}</Text>
+      <Text style={[styles.message, { fontSize: scaleFontSize(16) }]}>{message}</Text>
       
       <TouchableOpacity
         style={styles.loginButton}
@@ -56,7 +74,7 @@ export default function LoginPrompt({
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.loginButtonGradient}
         >
-          <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+          <Text style={[styles.loginButtonText, { fontSize: scaleFontSize(16) }]}>Iniciar Sesión</Text>
         </LinearGradient>
       </TouchableOpacity>
       
@@ -64,7 +82,7 @@ export default function LoginPrompt({
         style={styles.registerButton}
         onPress={() => router.push('/auth/registro-v6')}
       >
-        <Text style={styles.registerButtonText}>
+        <Text style={[styles.registerButtonText, { fontSize: scaleFontSize(14) }]}>
           ¿No tienes cuenta? <Text style={styles.registerButtonTextBold}>Regístrate</Text>
         </Text>
       </TouchableOpacity>
@@ -81,22 +99,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
   },
   title: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 12,
     textAlign: 'center',
   },
   message: {
-    fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 32,
@@ -113,7 +126,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loginButtonText: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.white,
   },
@@ -121,7 +133,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   registerButtonText: {
-    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
   },
