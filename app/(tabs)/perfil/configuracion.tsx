@@ -21,6 +21,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { isAdminUser } from '@/utils/adminAccess';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+
+/**
+ * ✅ CONFIGURACION SCREEN v141.0 - ANDROID SCALING COMPLETE
+ * 
+ * CRITICAL FIXES v141.0 (ANDROID ONLY):
+ * - ✅ All font sizes use scaleFontSize() for consistency
+ * - ✅ All icon sizes use scaleIconSize() for proper proportions
+ * - ✅ All text elements properly scaled
+ * - ✅ iOS design remains unchanged
+ */
 
 export default function ConfiguracionScreen() {
   const router = useRouter();
@@ -63,7 +74,7 @@ export default function ConfiguracionScreen() {
 
       await calculateCacheSize();
     } catch (error) {
-      console.error('[Configuracion] Error cargando configuración:', error);
+      console.error('[Configuracion v141.0] Error cargando configuración:', error);
     }
   }, [user]);
 
@@ -87,7 +98,7 @@ export default function ConfiguracionScreen() {
       
       setCacheSizeMB(Math.round(totalSize / (1024 * 1024) * 100) / 100);
     } catch (error) {
-      console.error('[Configuracion] Error calculando caché:', error);
+      console.error('[Configuracion v141.0] Error calculando caché:', error);
     }
   };
 
@@ -101,11 +112,11 @@ export default function ConfiguracionScreen() {
         .eq('id', user.id);
 
       if (error) {
-        console.error('[Configuracion] Error actualizando configuración:', error);
+        console.error('[Configuracion v141.0] Error actualizando configuración:', error);
         Alert.alert('Error', 'No se pudo actualizar la configuración');
       }
     } catch (error) {
-      console.error('[Configuracion] Error:', error);
+      console.error('[Configuracion v141.0] Error:', error);
     }
   };
 
@@ -120,12 +131,12 @@ export default function ConfiguracionScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Configuracion] 🚪 Cerrando sesión...');
+              console.log('[Configuracion v141.0] 🚪 Cerrando sesión...');
               await signOut();
-              console.log('[Configuracion] ✅ Sesión cerrada, redirigiendo...');
+              console.log('[Configuracion v141.0] ✅ Sesión cerrada, redirigiendo...');
               router.replace('/(tabs)/explorar');
             } catch (error) {
-              console.error('[Configuracion] ❌ Error cerrando sesión:', error);
+              console.error('[Configuracion v141.0] ❌ Error cerrando sesión:', error);
               Alert.alert('Error', 'No se pudo cerrar la sesión');
             }
           },
@@ -178,7 +189,7 @@ export default function ConfiguracionScreen() {
       if (!user) return;
 
       setDeletingAccount(true);
-      console.log('[Configuracion] 🗑️ Iniciando eliminación de cuenta...');
+      console.log('[Configuracion v141.0] 🗑️ Iniciando eliminación de cuenta...');
 
       // Get the current session token
       const { data: { session } } = await supabase.auth.getSession();
@@ -195,11 +206,11 @@ export default function ConfiguracionScreen() {
       });
 
       if (error) {
-        console.error('[Configuracion] ❌ Error eliminando cuenta:', error);
+        console.error('[Configuracion v141.0] ❌ Error eliminando cuenta:', error);
         throw error;
       }
 
-      console.log('[Configuracion] ✅ Cuenta eliminada exitosamente');
+      console.log('[Configuracion v141.0] ✅ Cuenta eliminada exitosamente');
 
       // Sign out the user
       await signOut();
@@ -221,7 +232,7 @@ export default function ConfiguracionScreen() {
         ]
       );
     } catch (error) {
-      console.error('[Configuracion] ❌ Error eliminando cuenta:', error);
+      console.error('[Configuracion v141.0] ❌ Error eliminando cuenta:', error);
       Alert.alert(
         'Error',
         'No se pudo eliminar la cuenta. Por favor, intenta nuevamente o contacta con soporte si el problema persiste.'
@@ -249,7 +260,7 @@ export default function ConfiguracionScreen() {
 
               Alert.alert('Correo enviado', 'Revisa tu correo para cambiar tu contraseña');
             } catch (error) {
-              console.error('[Configuracion] Error:', error);
+              console.error('[Configuracion v141.0] Error:', error);
               Alert.alert('Error', 'No se pudo enviar el correo');
             }
           },
@@ -272,7 +283,7 @@ export default function ConfiguracionScreen() {
               await calculateCacheSize();
               Alert.alert('Caché limpiada', 'Los datos temporales han sido eliminados');
             } catch (error) {
-              console.error('[Configuracion] Error limpiando caché:', error);
+              console.error('[Configuracion v141.0] Error limpiando caché:', error);
               Alert.alert('Error', 'No se pudo limpiar la caché');
             }
           },
@@ -338,9 +349,9 @@ export default function ConfiguracionScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={scaleIconSize(24)} color={colors.headerText} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Configuración</Text>
+        <Text style={[styles.headerTitle, { fontSize: scaleFontSize(20) }]}>Configuración</Text>
         <View style={{ width: 40 }} />
       </LinearGradient>
 
@@ -353,10 +364,10 @@ export default function ConfiguracionScreen() {
         {userIsAdmin && (
           <View style={styles.adminInfoBox}>
             <View style={styles.adminInfoHeader}>
-              <IconSymbol ios_icon_name="shield.checkered" android_material_icon_name="admin_panel_settings" size={20} color={colors.primary} />
-              <Text style={styles.adminInfoTitle}>Acceso de Administrador</Text>
+              <IconSymbol ios_icon_name="shield.checkered" android_material_icon_name="admin_panel_settings" size={scaleIconSize(20)} color={colors.primary} />
+              <Text style={[styles.adminInfoTitle, { fontSize: scaleFontSize(16) }]}>Acceso de Administrador</Text>
             </View>
-            <Text style={styles.adminInfoText}>
+            <Text style={[styles.adminInfoText, { fontSize: scaleFontSize(14) }]}>
               Tienes acceso completo al panel de administración. El modo admin solo está disponible para tu cuenta.
             </Text>
           </View>
@@ -364,12 +375,12 @@ export default function ConfiguracionScreen() {
 
         {/* Notificaciones section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notificaciones</Text>
+          <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Notificaciones</Text>
           
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Notificaciones Push</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Notificaciones Push</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Recibe notificaciones en tu dispositivo
               </Text>
             </View>
@@ -386,8 +397,8 @@ export default function ConfiguracionScreen() {
 
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Notificaciones por Email</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Notificaciones por Email</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Recibe actualizaciones por correo
               </Text>
             </View>
@@ -404,8 +415,8 @@ export default function ConfiguracionScreen() {
 
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Menciones</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Menciones</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Cuando alguien te menciona
               </Text>
             </View>
@@ -419,8 +430,8 @@ export default function ConfiguracionScreen() {
 
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Comentarios</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Comentarios</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Cuando alguien comenta tus publicaciones
               </Text>
             </View>
@@ -434,8 +445,8 @@ export default function ConfiguracionScreen() {
 
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Me gusta</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Me gusta</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Cuando alguien le da me gusta a tus publicaciones
               </Text>
             </View>
@@ -449,8 +460,8 @@ export default function ConfiguracionScreen() {
 
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Nuevos seguidores</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Nuevos seguidores</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Cuando alguien te empieza a seguir
               </Text>
             </View>
@@ -464,8 +475,8 @@ export default function ConfiguracionScreen() {
 
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Mensajes</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Mensajes</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Cuando recibes un mensaje nuevo
               </Text>
             </View>
@@ -479,8 +490,8 @@ export default function ConfiguracionScreen() {
 
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Eventos</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Eventos</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Recordatorios de eventos guardados
               </Text>
             </View>
@@ -495,31 +506,31 @@ export default function ConfiguracionScreen() {
 
         {/* Idioma section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Idioma y Región</Text>
+          <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Idioma y Región</Text>
           
           <TouchableOpacity style={styles.settingRow} onPress={() => setShowIdiomaModal(true)}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Idioma de la aplicación</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Idioma de la aplicación</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 {idioma === 'es' ? 'Español' : idioma === 'en' ? 'English' : 'Català'}
               </Text>
             </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(20)} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {/* Privacidad y Seguridad section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacidad y Seguridad</Text>
+          <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Privacidad y Seguridad</Text>
           
           <TouchableOpacity style={styles.settingRow} onPress={handleUsuariosBloqueados}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Usuarios bloqueados</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Usuarios bloqueados</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Gestiona los usuarios que has bloqueado
               </Text>
             </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(20)} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -527,125 +538,125 @@ export default function ConfiguracionScreen() {
             onPress={() => router.push('/perfil/solicitudes-acceso-mensajes')}
           >
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Solicitudes de acceso a mensajes</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Solicitudes de acceso a mensajes</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Gestiona el acceso de administradores a tus mensajes
               </Text>
             </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(20)} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow} onPress={handleCambiarContrasena}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Cambiar contraseña</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Cambiar contraseña</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Actualiza tu contraseña de acceso
               </Text>
             </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(20)} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow} onPress={handlePrivacidadCuenta}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Privacidad de cuenta</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Privacidad de cuenta</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Controla quién puede ver tu contenido
               </Text>
             </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(20)} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {/* Datos section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Datos y Almacenamiento</Text>
+          <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Datos y Almacenamiento</Text>
           
           <TouchableOpacity style={styles.settingRow} onPress={handleLimpiarCache}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Limpiar caché</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Limpiar caché</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 {cacheSizeMB} MB de datos temporales
               </Text>
             </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(20)} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {/* Soporte section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Soporte y Ayuda</Text>
+          <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Soporte y Ayuda</Text>
           
           <TouchableOpacity style={styles.settingRow} onPress={handleCentroAyuda}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Centro de ayuda</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Centro de ayuda</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Encuentra respuestas a tus preguntas
               </Text>
             </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(20)} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow} onPress={handleReportarProblema}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Reportar un problema</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Reportar un problema</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Ayúdanos a mejorar BarLive
               </Text>
             </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(20)} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow} onPress={() => Alert.alert('Contacto', 'Escríbenos a soporte@barlive.app')}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Contactar soporte</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Contactar soporte</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 soporte@barlive.app
               </Text>
             </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(20)} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {/* Legal section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Legal e Información</Text>
+          <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Legal e Información</Text>
           
           <TouchableOpacity style={styles.settingRow} onPress={handleTerminos}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Términos y condiciones</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Términos y condiciones</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Última actualización: Enero 2025
               </Text>
             </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(20)} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow} onPress={handlePrivacidad}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Política de privacidad</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Política de privacidad</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Última actualización: Enero 2025
               </Text>
             </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(20)} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow} onPress={handleAcercaDe}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Acerca de BarLive</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { fontSize: scaleFontSize(16) }]}>Acerca de BarLive</Text>
+              <Text style={[styles.settingDescription, { fontSize: scaleFontSize(14) }]}>
                 Versión 1.0.0 • Descubre la vida nocturna
               </Text>
             </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(20)} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <View style={styles.newsBox}>
             <View style={styles.newsHeader}>
-              <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color={colors.primary} />
-              <Text style={styles.newsTitle}>Novedades de BarLive</Text>
+              <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={scaleIconSize(20)} color={colors.primary} />
+              <Text style={[styles.newsTitle, { fontSize: scaleFontSize(16) }]}>Novedades de BarLive</Text>
             </View>
-            <Text style={styles.newsText}>
+            <Text style={[styles.newsText, { fontSize: scaleFontSize(14) }]}>
               {'\u2022'} Nueva red social integrada para conectar con otros usuarios{'\n'}
               {'\u2022'} Salas virtuales en tiempo real para interactuar{'\n'}
               {'\u2022'} Sistema de momentos para compartir experiencias{'\n'}
@@ -659,7 +670,7 @@ export default function ConfiguracionScreen() {
         {/* Account actions */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.dangerButton} onPress={handleCerrarSesion}>
-            <Text style={styles.dangerButtonText}>Cerrar Sesión</Text>
+            <Text style={[styles.dangerButtonText, { fontSize: scaleFontSize(16) }]}>Cerrar Sesión</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -670,10 +681,10 @@ export default function ConfiguracionScreen() {
             {deletingAccount ? (
               <View style={styles.deletingContainer}>
                 <ActivityIndicator color="#DC2626" size="small" />
-                <Text style={[styles.dangerButtonText, { marginLeft: 8 }]}>Eliminando cuenta...</Text>
+                <Text style={[styles.dangerButtonText, { marginLeft: 8, fontSize: scaleFontSize(16) }]}>Eliminando cuenta...</Text>
               </View>
             ) : (
-              <Text style={styles.dangerButtonText}>Eliminar Cuenta</Text>
+              <Text style={[styles.dangerButtonText, { fontSize: scaleFontSize(16) }]}>Eliminar Cuenta</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -691,7 +702,7 @@ export default function ConfiguracionScreen() {
       >
         <Pressable style={styles.modalOverlay} onPress={() => setShowIdiomaModal(false)}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Seleccionar Idioma</Text>
+            <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Seleccionar Idioma</Text>
             
             {[
               { code: 'es', name: 'Español', flag: '🇪🇸' },
@@ -705,10 +716,10 @@ export default function ConfiguracionScreen() {
               >
                 <View style={styles.modalOptionLeft}>
                   <Text style={styles.modalOptionFlag}>{lang.flag}</Text>
-                  <Text style={styles.modalOptionText}>{lang.name}</Text>
+                  <Text style={[styles.modalOptionText, { fontSize: scaleFontSize(16) }]}>{lang.name}</Text>
                 </View>
                 {idioma === lang.code && (
-                  <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
+                  <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={scaleIconSize(20)} color={colors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -741,7 +752,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -768,12 +778,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   adminInfoTitle: {
-    fontSize: 16,
     fontWeight: '700',
     color: colors.primary,
   },
   adminInfoText: {
-    fontSize: 14,
     color: colors.text,
     lineHeight: 20,
   },
@@ -783,7 +791,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   sectionTitle: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.textSecondary,
     textTransform: 'uppercase',
@@ -804,13 +811,11 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   settingLabel: {
-    fontSize: 16,
     fontWeight: '500',
     color: colors.text,
     marginBottom: 2,
   },
   settingDescription: {
-    fontSize: 14,
     color: colors.textSecondary,
   },
   newsBox: {
@@ -829,12 +834,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   newsTitle: {
-    fontSize: 16,
     fontWeight: '700',
     color: colors.primary,
   },
   newsText: {
-    fontSize: 14,
     color: colors.text,
     lineHeight: 22,
   },
@@ -850,7 +853,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   dangerButtonText: {
-    fontSize: 16,
     fontWeight: '600',
     color: '#DC2626',
   },
@@ -872,7 +874,6 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   modalTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 16,
@@ -894,7 +895,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   modalOptionText: {
-    fontSize: 16,
     color: colors.text,
   },
 });

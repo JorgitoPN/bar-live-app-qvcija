@@ -29,6 +29,7 @@ import * as Location from 'expo-location';
 import { calcularDistancia } from '@/utils/locationUtils';
 import { trackProfileView } from '@/utils/activityTracker';
 import { useMode } from '@/contexts/ModeContext';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -89,13 +90,16 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v55.0 - FIXED REVIEW RATING SYNC
+ * ✅ LOCAL DETAILS MODAL v141.0 - ANDROID SCALING COMPLETE
  * 
- * CRITICAL FIXES v55.0:
- * - ✅ Rating now synced with actual reviews from reviews_barlive table
- * - ✅ Calculates average rating from BarLive reviews
- * - ✅ Falls back to Google rating if no BarLive reviews
- * - ✅ Shows correct rating across all platform points (map popup, details page, etc.)
+ * CRITICAL FIXES v141.0 (ANDROID ONLY):
+ * - ✅ All font sizes use scaleFontSize() for consistency
+ * - ✅ All icon sizes use scaleIconSize() for proper proportions
+ * - ✅ All text elements properly scaled
+ * - ✅ iOS design remains unchanged
+ * 
+ * Previous fixes maintained (v55.0):
+ * - ✅ Rating synced with actual reviews from reviews_barlive table
  * - ✅ "Estoy en este local" and "Sala Virtual" buttons hidden in propietario mode
  * - ✅ Real-time rating updates
  */
@@ -128,13 +132,13 @@ export default function LocalDetailsModal({
       try {
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[LocalDetailsModal v55.0] ⚠️ Location services are disabled');
+          console.log('[LocalDetailsModal v141.0] ⚠️ Location services are disabled');
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[LocalDetailsModal v55.0] ⚠️ Location permission denied');
+          console.log('[LocalDetailsModal v141.0] ⚠️ Location permission denied');
           return;
         }
 
@@ -148,9 +152,9 @@ export default function LocalDetailsModal({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-        console.log('[LocalDetailsModal v55.0] 📍 User location obtained');
+        console.log('[LocalDetailsModal v141.0] 📍 User location obtained');
       } catch (error: any) {
-        console.error('[LocalDetailsModal v55.0] ❌ Error getting location:', error?.message);
+        console.error('[LocalDetailsModal v141.0] ❌ Error getting location:', error?.message);
         setUserLocation(null);
       }
     })();
@@ -171,7 +175,7 @@ export default function LocalDetailsModal({
         : `${distKm.toFixed(1)} km`;
 
       setDistance(dist);
-      console.log('[LocalDetailsModal v55.0] 📏 Distance calculated:', dist);
+      console.log('[LocalDetailsModal v141.0] 📏 Distance calculated:', dist);
     }
   }, [userLocation, local]);
 
@@ -186,7 +190,7 @@ export default function LocalDetailsModal({
 
       if (error) throw error;
       setLocal(data);
-      console.log('[LocalDetailsModal v55.0] ✅ Local loaded:', {
+      console.log('[LocalDetailsModal v141.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         plan_activo: data.plan_activo,
@@ -203,7 +207,7 @@ export default function LocalDetailsModal({
         const avgRating = reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length;
         setActualRating(avgRating);
         setReviewCount(reviewsData.length);
-        console.log('[LocalDetailsModal v55.0] ✅ Calculated rating from reviews:', {
+        console.log('[LocalDetailsModal v141.0] ✅ Calculated rating from reviews:', {
           avgRating: avgRating.toFixed(1),
           reviewCount: reviewsData.length,
         });
@@ -212,10 +216,10 @@ export default function LocalDetailsModal({
         const fallbackRating = data.rating || data.google_rating || 0;
         setActualRating(fallbackRating);
         setReviewCount(0);
-        console.log('[LocalDetailsModal v55.0] ℹ️ Using fallback rating:', fallbackRating);
+        console.log('[LocalDetailsModal v141.0] ℹ️ Using fallback rating:', fallbackRating);
       }
     } catch (error) {
-      console.error('[LocalDetailsModal v55.0] Error loading local:', error);
+      console.error('[LocalDetailsModal v141.0] Error loading local:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
     } finally {
       setLoading(false);
@@ -224,7 +228,7 @@ export default function LocalDetailsModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[LocalDetailsModal v55.0] 🚀 Opening modal for local:', localId);
+      console.log('[LocalDetailsModal v141.0] 🚀 Opening modal for local:', localId);
       loadLocalData();
     } else {
       setLocal(null);
@@ -237,7 +241,7 @@ export default function LocalDetailsModal({
   // ✅ NEW v55.0: Real-time rating updates
   useEffect(() => {
     if (visible && localId) {
-      console.log('[LocalDetailsModal v55.0] 🔄 Setting up real-time rating listener for:', localId);
+      console.log('[LocalDetailsModal v141.0] 🔄 Setting up real-time rating listener for:', localId);
       
       const subscription = supabase
         .channel(`reviews-${localId}`)
@@ -250,7 +254,7 @@ export default function LocalDetailsModal({
             filter: `local_id=eq.${localId}`,
           },
           async (payload) => {
-            console.log('[LocalDetailsModal v55.0] 🔔 Review updated:', payload);
+            console.log('[LocalDetailsModal v141.0] 🔔 Review updated:', payload);
             
             // Reload rating
             const { data: reviewsData, error: reviewsError } = await supabase
@@ -262,14 +266,14 @@ export default function LocalDetailsModal({
               const avgRating = reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length;
               setActualRating(avgRating);
               setReviewCount(reviewsData.length);
-              console.log('[LocalDetailsModal v55.0] ✅ Rating updated:', avgRating.toFixed(1));
+              console.log('[LocalDetailsModal v141.0] ✅ Rating updated:', avgRating.toFixed(1));
             }
           }
         )
         .subscribe();
 
       return () => {
-        console.log('[LocalDetailsModal v55.0] 🔌 Unsubscribing from rating updates');
+        console.log('[LocalDetailsModal v141.0] 🔌 Unsubscribing from rating updates');
         subscription.unsubscribe();
       };
     }
@@ -382,7 +386,7 @@ export default function LocalDetailsModal({
             {loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>Cargando local...</Text>
+                <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando local...</Text>
               </View>
             ) : local ? (
               <React.Fragment>
@@ -399,7 +403,7 @@ export default function LocalDetailsModal({
                       onPress={onClose}
                     >
                       <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
-                        <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={18} color="#fff" />
+                        <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(18)} color="#fff" />
                       </BlurView>
                     </TouchableOpacity>
                 
@@ -407,10 +411,10 @@ export default function LocalDetailsModal({
                     {displayRating > 0 && (
                       <View style={styles.ratingBadgeTopRight}>
                         <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
-                          <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
-                          <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
+                          <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={scaleIconSize(16)} color="#FFD700" />
+                          <Text style={[styles.ratingText, { fontSize: scaleFontSize(15) }]}>{displayRating.toFixed(1)}</Text>
                           {reviewCount > 0 && (
-                            <Text style={styles.reviewCountText}>({reviewCount})</Text>
+                            <Text style={[styles.reviewCountText, { fontSize: scaleFontSize(12) }]}>({reviewCount})</Text>
                           )}
                         </BlurView>
                       </View>
@@ -420,11 +424,11 @@ export default function LocalDetailsModal({
                       <View style={styles.statusBadgeTop}>
                         <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
                           <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
-                          <Text style={styles.statusText}>
+                          <Text style={[styles.statusText, { fontSize: scaleFontSize(14) }]}>
                             {estadoLocal.badge}
                           </Text>
                           {estadoLocal.tiempoRestante && (
-                            <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>
+                            <Text style={[styles.statusSubtext, { fontSize: scaleFontSize(12) }]}>• {estadoLocal.tiempoRestante}</Text>
                           )}
                         </BlurView>
                       </View>
@@ -433,8 +437,8 @@ export default function LocalDetailsModal({
                     {local.destacado && (
                       <View style={styles.destacadoBadgeTop}>
                         <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
-                          <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#F59E0B" />
-                          <Text style={styles.destacadoText}>Destacado</Text>
+                          <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={scaleIconSize(16)} color="#F59E0B" />
+                          <Text style={[styles.destacadoText, { fontSize: scaleFontSize(13) }]}>Destacado</Text>
                         </BlurView>
                       </View>
                     )}
@@ -451,7 +455,7 @@ export default function LocalDetailsModal({
                           <IconSymbol
                             ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
                             android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
-                            size={22}
+                            size={scaleIconSize(22)}
                             color={localIsFavorite ? "#EF4444" : "#FFFFFF"}
                           />
                         )}
@@ -470,10 +474,10 @@ export default function LocalDetailsModal({
                             <IconSymbol 
                               ios_icon_name={icon.ios} 
                               android_material_icon_name={icon.android} 
-                              size={18} 
+                              size={scaleIconSize(18)} 
                               color="#fff" 
                             />
-                            <Text style={styles.categoryChipText}>{categoria.toUpperCase()}</Text>
+                            <Text style={[styles.categoryChipText, { fontSize: scaleFontSize(13) }]}>{categoria.toUpperCase()}</Text>
                           </View>
                         );
                       })}
@@ -482,8 +486,8 @@ export default function LocalDetailsModal({
 
                   {local.direccion && (
                     <View style={styles.addressContainer}>
-                      <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
-                      <Text style={styles.addressText} numberOfLines={2}>
+                      <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={scaleIconSize(18)} color={colors.primary} />
+                      <Text style={[styles.addressText, { fontSize: scaleFontSize(14) }]} numberOfLines={2}>
                         {local.direccion}
                       </Text>
                     </View>
@@ -491,13 +495,13 @@ export default function LocalDetailsModal({
 
                   {distance && (
                     <View style={styles.distanceContainer}>
-                      <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={16} color={colors.primary} />
-                      <Text style={styles.distanceText}>A {distance} de tu ubicación</Text>
+                      <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={scaleIconSize(16)} color={colors.primary} />
+                      <Text style={[styles.distanceText, { fontSize: scaleFontSize(14) }]}>A {distance} de tu ubicación</Text>
                     </View>
                   )}
 
                   {(local.descripcion_google || local.descripcion) && (
-                    <Text style={styles.descriptionText} numberOfLines={3}>
+                    <Text style={[styles.descriptionText, { fontSize: scaleFontSize(15) }]} numberOfLines={3}>
                       {local.descripcion_google || local.descripcion}
                     </Text>
                   )}
@@ -514,8 +518,8 @@ export default function LocalDetailsModal({
                         end={{ x: 1, y: 1 }}
                         style={styles.checkInGradient}
                       >
-                        <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={20} color="#fff" />
-                        <Text style={styles.checkInText}>Estoy en este local</Text>
+                        <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={scaleIconSize(20)} color="#fff" />
+                        <Text style={[styles.checkInText, { fontSize: scaleFontSize(15) }]}>Estoy en este local</Text>
                       </LinearGradient>
                     </TouchableOpacity>
                   )}
@@ -529,8 +533,8 @@ export default function LocalDetailsModal({
                           end={{ x: 1, y: 1 }}
                           style={styles.actionBtnGradient}
                         >
-                          <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
-                          <Text style={styles.actionBtnText}>Llamar</Text>
+                          <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={scaleIconSize(20)} color="#fff" />
+                          <Text style={[styles.actionBtnText, { fontSize: scaleFontSize(14) }]}>Llamar</Text>
                         </LinearGradient>
                       </TouchableOpacity>
                     )}
@@ -544,10 +548,10 @@ export default function LocalDetailsModal({
                           style={styles.actionBtnGradient}
                         >
                           <View style={styles.actionBtnContent}>
-                            <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
-                            <Text style={styles.actionBtnText}>Cómo llegar</Text>
+                            <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={scaleIconSize(20)} color="#fff" />
+                            <Text style={[styles.actionBtnText, { fontSize: scaleFontSize(14) }]}>Cómo llegar</Text>
                             {distance && Platform.OS === 'android' && (
-                              <Text style={styles.actionBtnDistance}>({distance})</Text>
+                              <Text style={[styles.actionBtnDistance, { fontSize: scaleFontSize(12) }]}>({distance})</Text>
                             )}
                           </View>
                         </LinearGradient>
@@ -566,9 +570,9 @@ export default function LocalDetailsModal({
                         end={{ x: 1, y: 1 }}
                         style={styles.perfilSocialGradient}
                       >
-                        <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color="#fff" />
-                        <Text style={styles.perfilSocialText}>Ver Perfil Social</Text>
-                        <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={18} color="#fff" />
+                        <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={scaleIconSize(20)} color="#fff" />
+                        <Text style={[styles.perfilSocialText, { fontSize: scaleFontSize(15) }]}>Ver Perfil Social</Text>
+                        <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(18)} color="#fff" />
                       </LinearGradient>
                     </TouchableOpacity>
                   )}
@@ -576,8 +580,8 @@ export default function LocalDetailsModal({
               </React.Fragment>
             ) : (
               <View style={styles.errorContainer}>
-                <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="error" size={48} color={colors.badgeDestacado} />
-                <Text style={styles.errorText}>No se pudo cargar el local</Text>
+                <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="error" size={scaleIconSize(48)} color={colors.badgeDestacado} />
+                <Text style={[styles.errorText, { fontSize: scaleFontSize(16) }]}>No se pudo cargar el local</Text>
               </View>
             )}
           </ScrollView>
@@ -622,7 +626,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
     color: colors.textSecondary,
   },
   errorContainer: {
@@ -633,7 +636,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginTop: 16,
-    fontSize: 16,
     color: colors.text,
   },
   coverContainer: {
@@ -680,12 +682,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   ratingText: {
-    fontSize: 15,
     fontWeight: '800',
     color: '#fff',
   },
   reviewCountText: {
-    fontSize: 12,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.8)',
   },
@@ -718,12 +718,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444',
   },
   statusText: {
-    fontSize: 14,
     fontWeight: '700',
     color: '#fff',
   },
   statusSubtext: {
-    fontSize: 12,
     color: '#fff',
     fontWeight: '600',
   },
@@ -743,7 +741,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   destacadoText: {
-    fontSize: 13,
     fontWeight: '700',
     color: '#fff',
   },
@@ -787,7 +784,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   categoryChipText: {
-    fontSize: 13,
     fontWeight: '800',
     color: '#fff',
   },
@@ -803,7 +799,6 @@ const styles = StyleSheet.create({
   },
   addressText: {
     flex: 1,
-    fontSize: 14,
     color: colors.text,
     fontWeight: '600',
   },
@@ -820,12 +815,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary + '30',
   },
   distanceText: {
-    fontSize: 14,
     color: colors.primary,
     fontWeight: '700',
   },
   descriptionText: {
-    fontSize: 15,
     color: colors.text,
     lineHeight: 22,
     marginBottom: 16,
@@ -843,7 +836,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   checkInText: {
-    fontSize: 15,
     fontWeight: '700',
     color: '#fff',
   },
@@ -867,12 +859,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionBtnText: {
-    fontSize: 14,
     fontWeight: '700',
     color: '#fff',
   },
   actionBtnDistance: {
-    fontSize: 12,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
   },
@@ -889,7 +879,6 @@ const styles = StyleSheet.create({
   },
   perfilSocialText: {
     flex: 1,
-    fontSize: 15,
     fontWeight: '700',
     color: '#fff',
     marginLeft: 10,

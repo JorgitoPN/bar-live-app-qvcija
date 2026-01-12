@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -18,6 +19,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useSelectedLocal } from '@/contexts/SelectedLocalContext';
 import LocalSubscriptionCard from '@/components/gestion/LocalSubscriptionCard';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 interface LocalConSuscripcion {
   id: string;
@@ -52,6 +54,17 @@ interface LocalConSuscripcion {
   };
 }
 
+/**
+ * ✅ GESTION SCREEN v141.0 - ANDROID SCALING COMPLETE
+ * 
+ * CRITICAL FIXES v141.0 (ANDROID ONLY):
+ * - ✅ All font sizes use scaleFontSize() for consistency
+ * - ✅ All icon sizes use scaleIconSize() for proper proportions
+ * - ✅ Header title size standardized (24px on Android)
+ * - ✅ All text elements properly scaled
+ * - ✅ iOS design remains unchanged
+ */
+
 export default function GestionScreen() {
   const { user } = useAuth();
   const router = useRouter();
@@ -67,7 +80,7 @@ export default function GestionScreen() {
     }
 
     try {
-      console.log('[GestionScreen] Loading locales for user:', user.id);
+      console.log('[GestionScreen v141.0] Loading locales for user:', user.id);
       
       // Get user's locals
       const { data: localesData, error: localesError } = await supabase
@@ -77,19 +90,19 @@ export default function GestionScreen() {
         .eq('activo', true);
 
       if (localesError) {
-        console.error('[GestionScreen] Error loading locales:', localesError);
+        console.error('[GestionScreen v141.0] Error loading locales:', localesError);
         setLoading(false);
         return;
       }
 
       if (!localesData || localesData.length === 0) {
-        console.log('[GestionScreen] No locales found for user');
+        console.log('[GestionScreen v141.0] No locales found for user');
         setLocales([]);
         setLoading(false);
         return;
       }
 
-      console.log('[GestionScreen] Found', localesData.length, 'locales');
+      console.log('[GestionScreen v141.0] Found', localesData.length, 'locales');
 
       // Get subscriptions and active events for each local
       const localesConSuscripcion: LocalConSuscripcion[] = await Promise.all(
@@ -180,9 +193,9 @@ export default function GestionScreen() {
       );
 
       setLocales(localesConSuscripcion);
-      console.log('[GestionScreen] Locales loaded successfully');
+      console.log('[GestionScreen v141.0] Locales loaded successfully');
     } catch (error) {
-      console.error('[GestionScreen] Error:', error);
+      console.error('[GestionScreen v141.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -217,7 +230,7 @@ export default function GestionScreen() {
           end={{ x: 1, y: 0 }}
           style={commonStyles.headerGradient}
         >
-          <Text style={commonStyles.headerTitle}>Gestión</Text>
+          <Text style={[commonStyles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 32) }]}>Gestión</Text>
         </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -234,7 +247,7 @@ export default function GestionScreen() {
         end={{ x: 1, y: 0 }}
         style={commonStyles.headerGradient}
       >
-        <Text style={commonStyles.headerTitle}>Gestión de Locales</Text>
+        <Text style={[commonStyles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 32) }]}>Gestión de Locales</Text>
       </LinearGradient>
 
       <ScrollView
@@ -244,8 +257,8 @@ export default function GestionScreen() {
       >
         {/* Header Section */}
         <View style={styles.headerSection}>
-          <Text style={styles.sectionTitle}>Mis Locales</Text>
-          <Text style={styles.sectionSubtitle}>
+          <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(24) }]}>Mis Locales</Text>
+          <Text style={[styles.sectionSubtitle, { fontSize: scaleFontSize(14) }]}>
             Gestiona tus locales, planes y promociones
           </Text>
         </View>
@@ -260,8 +273,8 @@ export default function GestionScreen() {
               colors={['#F59E0B', '#D97706']}
               style={styles.quickActionGradient}
             >
-              <IconSymbol name="calendar" size={24} color="#FFFFFF" />
-              <Text style={styles.quickActionText}>Mis Eventos</Text>
+              <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={scaleIconSize(24)} color="#FFFFFF" />
+              <Text style={[styles.quickActionText, { fontSize: scaleFontSize(12) }]}>Mis Eventos</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -283,8 +296,8 @@ export default function GestionScreen() {
               colors={['#8B5CF6', '#7C3AED']}
               style={styles.quickActionGradient}
             >
-              <IconSymbol name="crown.fill" size={24} color="#FFFFFF" />
-              <Text style={styles.quickActionText}>Ver Planes</Text>
+              <IconSymbol ios_icon_name="crown.fill" android_material_icon_name="workspace_premium" size={scaleIconSize(24)} color="#FFFFFF" />
+              <Text style={[styles.quickActionText, { fontSize: scaleFontSize(12) }]}>Ver Planes</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -296,8 +309,8 @@ export default function GestionScreen() {
               colors={[colors.headerGradientStart, colors.headerGradientEnd]}
               style={styles.quickActionGradient}
             >
-              <IconSymbol name="plus.circle.fill" size={24} color="#FFFFFF" />
-              <Text style={styles.quickActionText}>Añadir Local</Text>
+              <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={scaleIconSize(24)} color="#FFFFFF" />
+              <Text style={[styles.quickActionText, { fontSize: scaleFontSize(12) }]}>Añadir Local</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -305,9 +318,9 @@ export default function GestionScreen() {
         {/* Locales List */}
         {locales.length === 0 ? (
           <View style={styles.emptyState}>
-            <IconSymbol name="building.2" size={64} color={colors.textSecondary} />
-            <Text style={styles.emptyStateText}>No tienes locales registrados</Text>
-            <Text style={styles.emptyStateSubtext}>
+            <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={scaleIconSize(64)} color={colors.textSecondary} />
+            <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(18) }]}>No tienes locales registrados</Text>
+            <Text style={[styles.emptyStateSubtext, { fontSize: scaleFontSize(14) }]}>
               Añade tu primer local para empezar a gestionar tu negocio
             </Text>
             <TouchableOpacity
@@ -318,7 +331,7 @@ export default function GestionScreen() {
                 colors={[colors.headerGradientStart, colors.headerGradientEnd]}
                 style={styles.emptyStateButtonGradient}
               >
-                <Text style={styles.emptyStateButtonText}>Añadir Local</Text>
+                <Text style={[styles.emptyStateButtonText, { fontSize: scaleFontSize(16) }]}>Añadir Local</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -358,14 +371,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
     textAlign: 'center',
   },
   sectionSubtitle: {
-    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -394,7 +405,6 @@ const styles = StyleSheet.create({
   },
   quickActionText: {
     color: '#FFFFFF',
-    fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -406,14 +416,12 @@ const styles = StyleSheet.create({
     marginTop: 60,
   },
   emptyStateText: {
-    fontSize: 18,
     fontWeight: '600',
     color: colors.text,
     marginTop: 16,
     textAlign: 'center',
   },
   emptyStateSubtext: {
-    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
@@ -432,7 +440,6 @@ const styles = StyleSheet.create({
   },
   emptyStateButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
   },

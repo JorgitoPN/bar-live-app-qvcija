@@ -19,6 +19,7 @@ import {
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 export interface TaggableUser {
   id: string;
@@ -36,7 +37,13 @@ interface TaggingModalV5Props {
 }
 
 /**
- * ✅ TAGGING MODAL v5.2 - SUPPORTS USERS AND LOCALS
+ * ✅ TAGGING MODAL v141.0 - ANDROID SCALING COMPLETE
+ * 
+ * CRITICAL FIXES v141.0 (ANDROID ONLY):
+ * - ✅ All font sizes use scaleFontSize() for consistency
+ * - ✅ All icon sizes use scaleIconSize() for proper proportions
+ * - ✅ All text elements properly scaled
+ * - ✅ iOS design remains unchanged
  * 
  * Features:
  * - Search both users and locals
@@ -62,7 +69,7 @@ export default function TaggingModalV5({
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[TaggingModalV5] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[TaggingModalV5 v141.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -70,7 +77,7 @@ export default function TaggingModalV5({
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[TaggingModalV5] ⌨️ Keyboard hidden');
+        console.log('[TaggingModalV5 v141.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
       }
     );
@@ -91,7 +98,7 @@ export default function TaggingModalV5({
 
     setLoading(true);
     try {
-      console.log('[TaggingModalV5] 🔍 Searching for users and locals with query:', cleanQuery);
+      console.log('[TaggingModalV5 v141.0] 🔍 Searching for users and locals with query:', cleanQuery);
       
       const results: TaggableUser[] = [];
 
@@ -119,7 +126,7 @@ export default function TaggingModalV5({
           })));
         }
       } catch (error) {
-        console.error('[TaggingModalV5] Error searching users:', error);
+        console.error('[TaggingModalV5 v141.0] Error searching users:', error);
       }
 
       // Search locals with active subscriptions
@@ -167,13 +174,13 @@ export default function TaggingModalV5({
           }
         }
       } catch (error) {
-        console.error('[TaggingModalV5] Error searching locals:', error);
+        console.error('[TaggingModalV5 v141.0] Error searching locals:', error);
       }
 
-      console.log('[TaggingModalV5] ✅ Found', results.length, 'results');
+      console.log('[TaggingModalV5 v141.0] ✅ Found', results.length, 'results');
       setSuggestions(results);
     } catch (error) {
-      console.error('[TaggingModalV5] Error in searchUsersAndLocals:', error);
+      console.error('[TaggingModalV5 v141.0] Error in searchUsersAndLocals:', error);
       setSuggestions([]);
     } finally {
       setLoading(false);
@@ -243,16 +250,16 @@ export default function TaggingModalV5({
                     <IconSymbol 
                       ios_icon_name="person.crop.circle.badge.plus" 
                       android_material_icon_name="person_add" 
-                      size={20} 
+                      size={scaleIconSize(20)} 
                       color={colors.primary} 
                     />
-                    <Text style={styles.modalTitle}>Busca personas o locales</Text>
+                    <Text style={[styles.modalTitle, { fontSize: scaleFontSize(18) }]}>Busca personas o locales</Text>
                   </View>
                   <TouchableOpacity onPress={handleClose} activeOpacity={0.7}>
                     <IconSymbol 
                       ios_icon_name="xmark.circle.fill" 
                       android_material_icon_name="cancel" 
-                      size={24} 
+                      size={scaleIconSize(24)} 
                       color={colors.textSecondary} 
                     />
                   </TouchableOpacity>
@@ -263,11 +270,11 @@ export default function TaggingModalV5({
                   <IconSymbol 
                     ios_icon_name="magnifyingglass" 
                     android_material_icon_name="search" 
-                    size={20} 
+                    size={scaleIconSize(20)} 
                     color={colors.textSecondary} 
                   />
                   <TextInput
-                    style={styles.searchInput}
+                    style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
                     placeholder="Escribe para ver resultados..."
                     placeholderTextColor={colors.textSecondary}
                     value={searchQuery}
@@ -287,7 +294,7 @@ export default function TaggingModalV5({
                       <IconSymbol 
                         ios_icon_name="xmark.circle.fill" 
                         android_material_icon_name="cancel" 
-                        size={20} 
+                        size={scaleIconSize(20)} 
                         color={colors.textSecondary} 
                       />
                     </TouchableOpacity>
@@ -304,7 +311,7 @@ export default function TaggingModalV5({
                   {loading ? (
                     <View style={styles.loadingContainer}>
                       <ActivityIndicator size="large" color={colors.primary} />
-                      <Text style={styles.loadingText}>Buscando...</Text>
+                      <Text style={[styles.loadingText, { fontSize: scaleFontSize(14) }]}>Buscando...</Text>
                     </View>
                   ) : suggestions.length > 0 ? (
                     <React.Fragment>
@@ -322,33 +329,33 @@ export default function TaggingModalV5({
                               <IconSymbol 
                                 ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
                                 android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
-                                size={20} 
+                                size={scaleIconSize(20)} 
                                 color={colors.textSecondary} 
                               />
                             </View>
                           )}
                           <View style={styles.resultInfo}>
-                            <Text style={styles.resultName}>{item.nombre}</Text>
+                            <Text style={[styles.resultName, { fontSize: scaleFontSize(16) }]}>{item.nombre}</Text>
                             <View style={styles.resultTypeContainer}>
                               {item.tipo === 'local' ? (
                                 <>
                                   <IconSymbol 
                                     ios_icon_name="building.2.fill" 
                                     android_material_icon_name="business" 
-                                    size={14} 
+                                    size={scaleIconSize(14)} 
                                     color="#F59E0B" 
                                   />
-                                  <Text style={[styles.resultType, { color: '#F59E0B' }]}>Local</Text>
+                                  <Text style={[styles.resultType, { fontSize: scaleFontSize(14), color: '#F59E0B' }]}>Local</Text>
                                 </>
                               ) : (
-                                <Text style={styles.resultType}>@{item.username}</Text>
+                                <Text style={[styles.resultType, { fontSize: scaleFontSize(14) }]}>@{item.username}</Text>
                               )}
                             </View>
                           </View>
                           <IconSymbol 
                             ios_icon_name="plus.circle.fill" 
                             android_material_icon_name="add_circle" 
-                            size={24} 
+                            size={scaleIconSize(24)} 
                             color={item.tipo === 'local' ? '#F59E0B' : colors.primary} 
                           />
                         </TouchableOpacity>
@@ -359,11 +366,11 @@ export default function TaggingModalV5({
                       <IconSymbol 
                         ios_icon_name="magnifyingglass" 
                         android_material_icon_name="search" 
-                        size={48} 
+                        size={scaleIconSize(48)} 
                         color={colors.textSecondary} 
                       />
-                      <Text style={styles.emptyText}>No se encontraron resultados</Text>
-                      <Text style={styles.emptySubtext}>
+                      <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>No se encontraron resultados</Text>
+                      <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
                         Intenta con otro nombre
                       </Text>
                     </View>
@@ -372,11 +379,11 @@ export default function TaggingModalV5({
                       <IconSymbol 
                         ios_icon_name="person.2.fill" 
                         android_material_icon_name="people" 
-                        size={48} 
+                        size={scaleIconSize(48)} 
                         color={colors.textSecondary} 
                       />
-                      <Text style={styles.emptyText}>Busca personas o locales</Text>
-                      <Text style={styles.emptySubtext}>
+                      <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>Busca personas o locales</Text>
+                      <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
                         Escribe para ver resultados
                       </Text>
                     </View>
@@ -430,7 +437,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalTitle: {
-    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
   },
@@ -448,7 +454,6 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
     color: colors.text,
   },
   resultsContainer: {
@@ -464,7 +469,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 14,
     color: colors.textSecondary,
   },
   resultItem: {
@@ -494,7 +498,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   resultName: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
@@ -505,7 +508,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   resultType: {
-    fontSize: 14,
     color: colors.textSecondary,
   },
   emptyState: {
@@ -514,13 +516,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
     paddingHorizontal: 40,
