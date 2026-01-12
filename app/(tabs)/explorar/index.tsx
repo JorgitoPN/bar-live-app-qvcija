@@ -1089,8 +1089,8 @@ export default function ExplorarScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            // ✅ CRITICAL FIX v145.0: Add extra padding to prevent first card from being hidden
-            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 16 : HEADER_MAX_HEIGHT,
+            // ✅ CRITICAL FIX v146.0: ANDROID ONLY - Increased margin to prevent first card from being hidden by header
+            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 32 : HEADER_MAX_HEIGHT,
             paddingBottom: getContentBottomPadding(100)
           },
         ]}

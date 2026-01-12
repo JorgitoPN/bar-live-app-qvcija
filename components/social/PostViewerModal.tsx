@@ -1523,7 +1523,8 @@ export default function PostViewerModal({
       visible={visible}
       transparent={false}
       animationType="slide"
-      presentationStyle="pageSheet"
+      // ✅ CRITICAL FIX v146.0: ANDROID ONLY - Open as fullScreen instead of pageSheet
+      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
       onRequestClose={onClose}
     >
       <View style={styles.container}>
