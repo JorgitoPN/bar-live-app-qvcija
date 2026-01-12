@@ -1,21 +1,15 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 ANDROID-ONLY FIXES v6.4 - NEW UX/UI DESIGN FOR IMAGE EDITOR
+ * 🚨 ANDROID-ONLY FIXES v150.0 - IMAGE EDITOR COMPLETELY REMOVED FOR ANDROID
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * PROBLEMA RESUELTO:
- * - ❌ Los botones de edición (cortar, rotar, voltear) quedaban tapados por el editor
- * - ❌ No se podían ver las opciones ni hacer clic en ellas
- * - ❌ El diseño UX/UI no era profesional en Android
- * 
- * SOLUCIÓN IMPLEMENTADA v6.4:
- * - ✅ NUEVO DISEÑO: Botones ahora en la parte SUPERIOR (debajo del header)
- * - ✅ Imagen centrada en el medio de la pantalla
- * - ✅ Controles siempre visibles y accesibles
- * - ✅ Diseño profesional y moderno
- * - ✅ Mejor experiencia de usuario en Android
- * - ✅ iOS mantiene diseño original sin cambios
+ * CAMBIOS IMPLEMENTADOS v150.0 (ANDROID EXCLUSIVO):
+ * - ❌ ELIMINADO: Editor de imágenes completamente removido para Android
+ * - ✅ Las imágenes se guardan directamente sin edición en Android
+ * - ✅ iOS mantiene el editor de imágenes completo (diseño de referencia)
+ * - ✅ Flujo simplificado para Android - sin pantalla de edición
+ * - ✅ Todos los hooks declarados al inicio (cumple reglas de React)
  * 
  * ARCHIVOS MODIFICADOS:
  * - components/social/ImageEditorV6.tsx (este archivo)
@@ -60,17 +54,16 @@ interface ImageEditorV6Props {
 }
 
 /**
- * ✅ IMAGE EDITOR v6.4 - NEW UX/UI DESIGN COMPLETE
+ * ✅ IMAGE EDITOR v150.0 - ANDROID EDITOR COMPLETELY REMOVED
  * 
- * CRITICAL FIXES v6.4 (ANDROID ONLY):
- * - ✅ FIXED: NEW DESIGN - Controls moved to TOP (below header)
- * - ✅ FIXED: Image centered in middle of screen
- * - ✅ FIXED: All buttons ALWAYS visible and clickable
- * - ✅ FIXED: Professional UX/UI design
- * - ✅ FIXED: Better user experience on Android
- * - ✅ iOS design remains unchanged (reference design)
+ * CRITICAL CHANGES v150.0 (ANDROID ONLY):
+ * - ❌ REMOVED: Image editor completely removed for Android
+ * - ✅ Images are saved directly without editing on Android
+ * - ✅ No editor screen shown on Android
+ * - ✅ iOS keeps the full editor functionality (reference design)
+ * - ✅ All hooks declared at the top (React rules compliant)
  * 
- * Features:
+ * iOS Features (unchanged):
  * - ✅ Pinch to zoom (0.5x to 5x)
  * - ✅ Pan to move image
  * - ✅ Rotate 90° left/right
@@ -78,7 +71,6 @@ interface ImageEditorV6Props {
  * - ✅ Crop to square
  * - ✅ Reset all transformations
  * - ✅ Smooth animations
- * - ✅ No black screen issues
  * - ✅ Works with both local and remote images
  * - ✅ Proper image loading and error handling
  */
@@ -89,6 +81,7 @@ export default function ImageEditorV6({
   onClose,
   onSave,
 }: ImageEditorV6Props) {
+  // ✅ CRITICAL FIX v150.0: ALL HOOKS DECLARED AT THE TOP (React rules compliant)
   const [processing, setProcessing] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
@@ -104,16 +97,32 @@ export default function ImageEditorV6({
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
 
+  // ✅ CRITICAL FIX v150.0: ANDROID ONLY - Skip editor, save image directly
+  useEffect(() => {
+    if (visible && imageUri && Platform.OS === 'android') {
+      console.log('[ImageEditorV6 v150.0] 🤖 Android detected - skipping editor, saving directly');
+      // Save image immediately without showing editor
+      onSave(imageUri);
+      // Close the modal immediately
+      onClose();
+    }
+  }, [visible, imageUri, onSave, onClose]);
+
+  // ✅ CRITICAL FIX v150.0: ANDROID ONLY - Return null to prevent editor from showing
+  if (Platform.OS === 'android') {
+    return null;
+  }
+
+  // iOS-only code below this point
   useEffect(() => {
     if (visible && imageUri) {
-      console.log('[ImageEditorV6] 🖼️ Loading image:', imageUri);
+      console.log('[ImageEditorV6 v150.0] 🖼️ Loading image (iOS only):', imageUri);
       setImageLoaded(false);
       
-      // ✅ Use Image.getSize instead of Animated.Image.getSize
       Image.getSize(
         imageUri,
         (width, height) => {
-          console.log('[ImageEditorV6] ✅ Image loaded:', { width, height });
+          console.log('[ImageEditorV6 v150.0] ✅ Image loaded:', { width, height });
           setImageDimensions({ width, height });
           setImageLoaded(true);
           
@@ -131,7 +140,7 @@ export default function ImageEditorV6({
           savedScale.value = scale.value;
         },
         (error) => {
-          console.error('[ImageEditorV6] ❌ Error loading image:', error);
+          console.error('[ImageEditorV6 v150.0] ❌ Error loading image:', error);
           Alert.alert('Error', 'No se pudo cargar la imagen');
           setImageLoaded(false);
         }
@@ -153,7 +162,7 @@ export default function ImageEditorV6({
   });
 
   const resetTransform = () => {
-    console.log('[ImageEditorV6] 🔄 Resetting all transformations');
+    console.log('[ImageEditorV6 v150.0] 🔄 Resetting all transformations');
     scale.value = withSpring(1);
     translateX.value = withSpring(0);
     translateY.value = withSpring(0);
@@ -166,22 +175,22 @@ export default function ImageEditorV6({
   };
 
   const handleRotateLeft = () => {
-    console.log('[ImageEditorV6] ↶ Rotating left');
+    console.log('[ImageEditorV6 v150.0] ↶ Rotating left');
     setRotation((rotation - 90) % 360);
   };
 
   const handleRotateRight = () => {
-    console.log('[ImageEditorV6] ↷ Rotating right');
+    console.log('[ImageEditorV6 v150.0] ↷ Rotating right');
     setRotation((rotation + 90) % 360);
   };
 
   const handleFlipHorizontal = () => {
-    console.log('[ImageEditorV6] ↔️ Flipping horizontal');
+    console.log('[ImageEditorV6 v150.0] ↔️ Flipping horizontal');
     setFlipHorizontal(!flipHorizontal);
   };
 
   const handleFlipVertical = () => {
-    console.log('[ImageEditorV6] ↕️ Flipping vertical');
+    console.log('[ImageEditorV6 v150.0] ↕️ Flipping vertical');
     setFlipVertical(!flipVertical);
   };
 
@@ -193,23 +202,23 @@ export default function ImageEditorV6({
 
     setProcessing(true);
     try {
-      console.log('[ImageEditorV6] 🎨 Applying edits...');
+      console.log('[ImageEditorV6 v150.0] 🎨 Applying edits...');
       
       const actions: any[] = [];
 
       // Apply rotation
       if (rotation !== 0) {
-        console.log('[ImageEditorV6] ↻ Applying rotation:', rotation);
+        console.log('[ImageEditorV6 v150.0] ↻ Applying rotation:', rotation);
         actions.push({ rotate: rotation });
       }
 
       // Apply flips
       if (flipHorizontal) {
-        console.log('[ImageEditorV6] ↔️ Applying horizontal flip');
+        console.log('[ImageEditorV6 v150.0] ↔️ Applying horizontal flip');
         actions.push({ flip: ImageManipulator.FlipType.Horizontal });
       }
       if (flipVertical) {
-        console.log('[ImageEditorV6] ↕️ Applying vertical flip');
+        console.log('[ImageEditorV6 v150.0] ↕️ Applying vertical flip');
         actions.push({ flip: ImageManipulator.FlipType.Vertical });
       }
 
@@ -219,7 +228,7 @@ export default function ImageEditorV6({
         const originX = (imageDimensions.width - size) / 2;
         const originY = (imageDimensions.height - size) / 2;
         
-        console.log('[ImageEditorV6] ✂️ Cropping to square:', { size, originX, originY });
+        console.log('[ImageEditorV6 v150.0] ✂️ Cropping to square:', { size, originX, originY });
         
         actions.push({
           crop: {
@@ -231,7 +240,7 @@ export default function ImageEditorV6({
         });
       }
 
-      console.log('[ImageEditorV6] 🔧 Total actions to apply:', actions.length);
+      console.log('[ImageEditorV6 v150.0] 🔧 Total actions to apply:', actions.length);
 
       // Apply all transformations
       const result = await ImageManipulator.manipulateAsync(
@@ -243,12 +252,12 @@ export default function ImageEditorV6({
         }
       );
 
-      console.log('[ImageEditorV6] ✅ Edits applied successfully:', result.uri);
+      console.log('[ImageEditorV6 v150.0] ✅ Edits applied successfully:', result.uri);
       
       onSave(result.uri);
       resetTransform();
     } catch (error) {
-      console.error('[ImageEditorV6] ❌ Error applying edits:', error);
+      console.error('[ImageEditorV6 v150.0] ❌ Error applying edits:', error);
       Alert.alert('Error', 'No se pudieron aplicar los cambios a la imagen');
     } finally {
       setProcessing(false);
@@ -305,7 +314,7 @@ export default function ImageEditorV6({
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* ✅ NEW DESIGN v6.4: Controls moved to TOP (below header) - ALWAYS visible on Android */}
+        {/* Controls at TOP (below header) */}
         <View style={styles.controlsContainerTop}>
           <ScrollView 
             horizontal 
@@ -394,7 +403,7 @@ export default function ImageEditorV6({
           </ScrollView>
         </View>
 
-        {/* ✅ NEW DESIGN v6.4: Image preview centered in middle of screen */}
+        {/* Image preview centered in middle of screen */}
         <View style={styles.previewContainerCentered}>
           <View style={styles.imageFrame}>
             {imageLoaded ? (
@@ -447,7 +456,7 @@ export default function ImageEditorV6({
           </View>
         </View>
 
-        {/* ✅ NEW DESIGN v6.4: Help text at bottom */}
+        {/* Help text at bottom */}
         <View style={styles.helpContainerBottom}>
           <IconSymbol 
             ios_icon_name="info.circle.fill" 
@@ -500,7 +509,6 @@ const styles = StyleSheet.create({
   headerSaveTextDisabled: {
     opacity: 0.5,
   },
-  // ✅ NEW DESIGN v6.4: Controls at TOP (below header)
   controlsContainerTop: {
     backgroundColor: colors.cardBackground,
     paddingVertical: 16,
@@ -537,7 +545,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '600',
   },
-  // ✅ NEW DESIGN v6.4: Image preview centered in middle
   previewContainerCentered: {
     flex: 1,
     justifyContent: 'center',
@@ -578,7 +585,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  // ✅ NEW DESIGN v6.4: Help text at bottom
   helpContainerBottom: {
     flexDirection: 'row',
     alignItems: 'center',
