@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { AvatarProvider } from '@/contexts/AvatarContext';
 import { ModeProvider } from '@/contexts/ModeContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
@@ -21,13 +22,22 @@ SplashScreen.preventAutoHideAsync().catch(() => {
   console.log('[RootLayout] Splash screen already hidden');
 });
 
+/**
+ * ROOT LAYOUT v140.0 - AVATAR CONTEXT INTEGRATION
+ * 
+ * CRITICAL FIX v140.0:
+ * - ✅ Added AvatarProvider for persistent miniavatar state
+ * - ✅ Avatar state now persists across all page navigations
+ * - ✅ Single source of truth for avatar URL
+ */
+
 export default function RootLayout() {
   useEffect(() => {
     // ✅ CRITICAL FIX v25.0: Initialize Android-specific behavior
     let cleanupAndroid: (() => void) | undefined;
     
     if (Platform.OS === 'android') {
-      console.log('[RootLayout v25.0] 🤖 Initializing Android native behavior...');
+      console.log('[RootLayout v140.0] 🤖 Initializing Android native behavior...');
       try {
         cleanupAndroid = initializeAndroidBehavior();
       } catch (error) {
@@ -58,47 +68,49 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <ImpersonationProvider>
-          <ModeProvider>
-            <SelectedLocalProvider>
-              <GlobalDataProvider>
-                <FavoritesProvider>
-                  <FilterProvider>
-                    <PostsProvider>
-                      <StatusBar style="light" />
-                      <Stack
-                        screenOptions={{
-                          headerShown: false,
-                          contentStyle: { backgroundColor: colors.background },
-                          animation: Platform.OS === 'android' ? 'slide_from_right' : 'default',
-                          gestureEnabled: true,
-                          gestureDirection: 'horizontal',
-                        }}
-                      >
-                        {/* Main app routes */}
-                        <Stack.Screen name="index" options={{ headerShown: false }} />
-                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                        <Stack.Screen name="auth" options={{ headerShown: false }} />
-                        <Stack.Screen name="crear" options={{ headerShown: false }} />
-                        <Stack.Screen name="detalle" options={{ headerShown: false }} />
-                        <Stack.Screen name="editar" options={{ headerShown: false }} />
-                        <Stack.Screen name="perfil" options={{ headerShown: false }} />
-                        <Stack.Screen name="social" options={{ headerShown: false }} />
-                        <Stack.Screen name="chat" options={{ headerShown: false }} />
-                        <Stack.Screen name="admin" options={{ headerShown: false }} />
-                        <Stack.Screen name="gestion" options={{ headerShown: false }} />
-                        <Stack.Screen name="empleo" options={{ headerShown: false }} />
-                        <Stack.Screen name="legal" options={{ headerShown: false }} />
-                        <Stack.Screen name="soporte" options={{ headerShown: false }} />
-                        <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
-                      </Stack>
-                    </PostsProvider>
-                  </FilterProvider>
-                </FavoritesProvider>
-              </GlobalDataProvider>
-            </SelectedLocalProvider>
-          </ModeProvider>
-        </ImpersonationProvider>
+        <AvatarProvider>
+          <ImpersonationProvider>
+            <ModeProvider>
+              <SelectedLocalProvider>
+                <GlobalDataProvider>
+                  <FavoritesProvider>
+                    <FilterProvider>
+                      <PostsProvider>
+                        <StatusBar style="light" />
+                        <Stack
+                          screenOptions={{
+                            headerShown: false,
+                            contentStyle: { backgroundColor: colors.background },
+                            animation: Platform.OS === 'android' ? 'slide_from_right' : 'default',
+                            gestureEnabled: true,
+                            gestureDirection: 'horizontal',
+                          }}
+                        >
+                          {/* Main app routes */}
+                          <Stack.Screen name="index" options={{ headerShown: false }} />
+                          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                          <Stack.Screen name="auth" options={{ headerShown: false }} />
+                          <Stack.Screen name="crear" options={{ headerShown: false }} />
+                          <Stack.Screen name="detalle" options={{ headerShown: false }} />
+                          <Stack.Screen name="editar" options={{ headerShown: false }} />
+                          <Stack.Screen name="perfil" options={{ headerShown: false }} />
+                          <Stack.Screen name="social" options={{ headerShown: false }} />
+                          <Stack.Screen name="chat" options={{ headerShown: false }} />
+                          <Stack.Screen name="admin" options={{ headerShown: false }} />
+                          <Stack.Screen name="gestion" options={{ headerShown: false }} />
+                          <Stack.Screen name="empleo" options={{ headerShown: false }} />
+                          <Stack.Screen name="legal" options={{ headerShown: false }} />
+                          <Stack.Screen name="soporte" options={{ headerShown: false }} />
+                          <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
+                        </Stack>
+                      </PostsProvider>
+                    </FilterProvider>
+                  </FavoritesProvider>
+                </GlobalDataProvider>
+              </SelectedLocalProvider>
+            </ModeProvider>
+          </ImpersonationProvider>
+        </AvatarProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   );

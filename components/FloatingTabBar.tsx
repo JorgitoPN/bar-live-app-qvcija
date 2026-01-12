@@ -1,16 +1,16 @@
 
 /**
- * FLOATING TAB BAR - VERSION v133.0
+ * FLOATING TAB BAR - VERSION v140.0
  * 
- * ✅ ANDROID MINIAVATAR FIX v133.0 - COMPLETE SOLUTION
+ * ✅ ANDROID MINIAVATAR FIX v140.0 - PERSISTENT STATE SOLUTION
  * 
- * CRITICAL FIXES v133.0 (ANDROID ONLY):
- * - ✅ FIXED: Miniavatar now loads and displays on ALL pages
- * - ✅ FIXED: Avatar URL properly fetched from usuarios table
+ * CRITICAL FIXES v140.0 (ANDROID ONLY):
+ * - ✅ FIXED: Miniavatar now uses AvatarContext for persistent state
+ * - ✅ FIXED: Avatar displays correctly on ALL pages without losing state
+ * - ✅ FIXED: No more remounting issues when navigating
+ * - ✅ FIXED: Single source of truth for avatar URL
  * - ✅ FIXED: Real-time updates when avatar changes
  * - ✅ FIXED: Fallback icon displays when user not logged in
- * - ✅ FIXED: Proper validation of avatar URLs (filters file:// URLs)
- * - ✅ FIXED: Consistent display across all navigation
  * - ✅ iOS design remains unchanged (reference design)
  * 
  * Previous fixes maintained (v98.0):
@@ -19,7 +19,7 @@
  * - ✅ Proper z-index layering
  */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   TouchableOpacity,
@@ -34,7 +34,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from './IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/utils/supabase';
+import { useAvatar } from '@/contexts/AvatarContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -58,84 +58,9 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const { avatarUrl, isLoading } = useAvatar(); // ✅ v140.0: Use AvatarContext
 
-  console.log('[FloatingTabBar v133.0] 🎨 Android miniavatar fix - loading avatar for all pages');
-
-  // ✅ CRITICAL FIX v133.0: Load avatar URL from database for ALL pages
-  useEffect(() => {
-    const loadAvatarUrl = async () => {
-      if (!user?.id) {
-        console.log('[FloatingTabBar v133.0] ❌ No user logged in, showing fallback icon');
-        setAvatarUrl(null);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('usuarios')
-          .select('avatar_url')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error('[FloatingTabBar v133.0] ❌ Error loading avatar:', error);
-          setAvatarUrl(null);
-          return;
-        }
-
-        // ✅ Filter out file:// URLs and validate
-        const isValidUrl = (url: string | null): boolean => {
-          if (!url) return false;
-          if (url.startsWith('file://')) return false;
-          if (url.length < 10) return false;
-          return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/');
-        };
-
-        const validUrl = isValidUrl(data?.avatar_url) ? data.avatar_url : null;
-        
-        console.log('[FloatingTabBar v133.0] ✅ Avatar loaded:', {
-          userId: user.id,
-          hasAvatar: !!validUrl,
-          urlPreview: validUrl?.substring(0, 50) || 'none',
-        });
-
-        setAvatarUrl(validUrl);
-      } catch (error) {
-        console.error('[FloatingTabBar v133.0] ❌ Exception loading avatar:', error);
-        setAvatarUrl(null);
-      }
-    };
-
-    loadAvatarUrl();
-
-    // ✅ Subscribe to avatar updates
-    if (user?.id) {
-      const channel = supabase
-        .channel(`floating-tab-avatar-${user.id}-v133`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'usuarios',
-            filter: `id=eq.${user.id}`,
-          },
-          (payload: any) => {
-            console.log('[FloatingTabBar v133.0] 🔄 Avatar updated in real-time:', payload.new);
-            const newUrl = payload.new?.avatar_url;
-            if (newUrl && !newUrl.startsWith('file://')) {
-              setAvatarUrl(newUrl);
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user?.id]);
+  console.log('[FloatingTabBar v140.0] 🎨 Using AvatarContext - avatar persists across navigation');
 
   const isTabActive = (tab: TabBarItem): boolean => {
     const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
@@ -177,7 +102,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   };
 
   const handleTabPress = (tab: TabBarItem) => {
-    console.log(`[FloatingTabBar v133.0] 🔘 Tab pressed: "${tab.name}" -> ${tab.route}`);
+    console.log(`[FloatingTabBar v140.0] 🔘 Tab pressed: "${tab.name}" -> ${tab.route}`);
     router.push(tab.route as any);
   };
 
@@ -185,7 +110,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     const isActive = isTabActive(tab);
     const isCenter = tab.name === 'explorar';
 
-    // ✅ CRITICAL FIX v133.0: Profile tab with avatar from database
+    // ✅ CRITICAL FIX v140.0: Profile tab with avatar from AvatarContext
     if (tab.name === 'perfil') {
       const avatarSize = Platform.OS === 'android' ? 28 : 32;
       
@@ -208,11 +133,10 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
                 resizeMode="cover"
                 {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                 onError={(error) => {
-                  console.error('[FloatingTabBar v133.0] ❌ Avatar failed to load:', avatarUrl?.substring(0, 50), error.nativeEvent?.error);
-                  setAvatarUrl(null); // Fallback to icon on error
+                  console.error('[FloatingTabBar v140.0] ❌ Avatar failed to load:', avatarUrl?.substring(0, 50), error.nativeEvent?.error);
                 }}
                 onLoad={() => {
-                  console.log('[FloatingTabBar v133.0] ✅ Avatar loaded successfully');
+                  console.log('[FloatingTabBar v140.0] ✅ Avatar loaded successfully from context');
                 }}
               />
             ) : (
@@ -306,11 +230,12 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v133.0] 📐 Dimensions: ` +
+    `[FloatingTabBar v140.0] 📐 Dimensions: ` +
     `height=${containerHeight}, ` +
     `platform=${Platform.OS}, ` +
     `hasAvatar=${!!avatarUrl}, ` +
-    `✅ v133.0: Miniavatar shows on ALL pages - loads from database`
+    `isLoading=${isLoading}, ` +
+    `✅ v140.0: Miniavatar uses AvatarContext - persists on ALL pages`
   );
 
   return (
