@@ -70,14 +70,15 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v124.0 - INFINITE SCROLL FIX
+ * ✅ EXPLORAR SCREEN v125.0 - INFINITE SCROLL FIX COMPLETE
  * 
- * CRITICAL FIXES v124.0 (APPLIED):
+ * CRITICAL FIXES v125.0 (APPLIED):
  * - ✅ FIXED: Infinite scroll flickering when reaching end of list
+ * - ✅ FIXED: Added ref-based loading check to prevent race conditions
+ * - ✅ FIXED: Increased debounce timeout to 500ms to prevent rapid calls
  * - ✅ FIXED: Proper hasMore detection to prevent loading loop
  * - ✅ FIXED: Added safety check to prevent loading when no more items
- * - ✅ FIXED: Improved loadMoreLocales logic with better state management
- * - ✅ All previous functionality maintained (v123.0 ordering)
+ * - ✅ All previous functionality maintained (v124.0 ordering)
  * 
  * 🔄 FORCE RELOAD: Restart Expo dev server with --clear to see changes
  */
@@ -412,23 +413,31 @@ export default function ExplorarScreen() {
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allLocales, sortLocalesByPriority]);
 
   /**
-   * ✅ CRITICAL FIX v124.0: Improved loadMoreLocales with proper state management
+   * ✅ CRITICAL FIX v125.0: Fixed infinite scroll flickering at end of list
    * 
    * FIXES:
-   * - Added safety check to prevent loading when already at end
-   * - Proper hasMore detection based on actual remaining items
+   * - Added debounce to prevent rapid repeated calls
+   * - Improved hasMore detection to stop loading when truly at end
+   * - Added ref to track if we're already loading to prevent race conditions
    * - Clear logging to track pagination state
    * - Prevents flickering by not triggering when no more items
    */
+  const isLoadingMoreRef = useRef(false);
+  
   const loadMoreLocales = useCallback(() => {
-    // ✅ FIX v124.0: Safety checks to prevent infinite loop
+    // ✅ FIX v125.0: Use ref to prevent race conditions
+    if (isLoadingMoreRef.current) {
+      console.log('[Explorar v125.0] ⏸️ Already loading more (ref check), skipping...');
+      return;
+    }
+    
     if (loadingMore) {
-      console.log('[Explorar v124.0] ⏸️ Already loading more, skipping...');
+      console.log('[Explorar v125.0] ⏸️ Already loading more (state check), skipping...');
       return;
     }
     
     if (!hasMore) {
-      console.log('[Explorar v124.0] ⏸️ No more items to load, skipping...');
+      console.log('[Explorar v125.0] ⏸️ No more items to load, skipping...');
       return;
     }
     
@@ -436,45 +445,49 @@ export default function ExplorarScreen() {
     const remainingItems = filteredLocales.length - startIndex;
     
     if (remainingItems <= 0) {
-      console.log('[Explorar v124.0] ⏸️ No remaining items, setting hasMore to false');
+      console.log('[Explorar v125.0] ⏸️ No remaining items, setting hasMore to false');
       setHasMore(false);
       return;
     }
 
-    console.log('[Explorar v124.0] 📥 Loading more locales...');
-    console.log('[Explorar v124.0] 📊 Current page:', currentPage);
-    console.log('[Explorar v124.0] 📊 Start index:', startIndex);
-    console.log('[Explorar v124.0] 📊 Remaining items:', remainingItems);
+    console.log('[Explorar v125.0] 📥 Loading more locales...');
+    console.log('[Explorar v125.0] 📊 Current page:', currentPage);
+    console.log('[Explorar v125.0] 📊 Start index:', startIndex);
+    console.log('[Explorar v125.0] 📊 Remaining items:', remainingItems);
     
+    // ✅ FIX v125.0: Set ref immediately to prevent race conditions
+    isLoadingMoreRef.current = true;
     setLoadingMore(true);
     
+    // ✅ FIX v125.0: Increased timeout to prevent rapid repeated calls
     setTimeout(() => {
       const nextPage = currentPage + 1;
       const endIndex = startIndex + ITEMS_PER_PAGE;
       const nextItems = filteredLocales.slice(startIndex, endIndex);
       
-      console.log('[Explorar v124.0] 📊 Next items to load:', nextItems.length);
+      console.log('[Explorar v125.0] 📊 Next items to load:', nextItems.length);
       
       if (nextItems.length > 0) {
         setDisplayedLocales(prev => {
           const newDisplayed = [...prev, ...nextItems];
-          console.log('[Explorar v124.0] 📊 Total displayed after load:', newDisplayed.length);
+          console.log('[Explorar v125.0] 📊 Total displayed after load:', newDisplayed.length);
           return newDisplayed;
         });
         setCurrentPage(nextPage);
         
-        // ✅ CRITICAL FIX v124.0: Check if there are MORE items after this batch
+        // ✅ CRITICAL FIX v125.0: Check if there are MORE items after this batch
         const stillHasMore = endIndex < filteredLocales.length;
         setHasMore(stillHasMore);
-        console.log('[Explorar v124.0] 📊 Still has more after this batch:', stillHasMore);
-        console.log('[Explorar v124.0] 📊 End index:', endIndex, 'Total filtered:', filteredLocales.length);
+        console.log('[Explorar v125.0] 📊 Still has more after this batch:', stillHasMore);
+        console.log('[Explorar v125.0] 📊 End index:', endIndex, 'Total filtered:', filteredLocales.length);
       } else {
-        console.log('[Explorar v124.0] ⏸️ No more items to load, setting hasMore to false');
+        console.log('[Explorar v125.0] ⏸️ No more items to load, setting hasMore to false');
         setHasMore(false);
       }
       
       setLoadingMore(false);
-    }, 300);
+      isLoadingMoreRef.current = false;
+    }, 500); // Increased from 300ms to 500ms to prevent rapid calls
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
