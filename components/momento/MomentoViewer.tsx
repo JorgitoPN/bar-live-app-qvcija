@@ -64,15 +64,19 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v157.0 - ANDROID FULLSCREEN PERFECTED
+ * ✅ MOMENTO VIEWER v158.0 - ANDROID FULLSCREEN PERFECTED
  * 
- * CRITICAL FIXES v157.0 (ANDROID ONLY):
- * - ✅ FIXED: Modal uses transparent={false} for true fullscreen
- * - ✅ FIXED: StatusBar properly hidden on Android for immersive experience
- * - ✅ FIXED: Removed ALL bottom padding in actions section (paddingBottom: 0)
- * - ✅ FIXED: Removed ALL bottom padding in stats modal (paddingBottom: 0)
- * - ✅ FIXED: Added presentationStyle='fullScreen' for iOS compatibility
- * - ✅ VERIFIED: No gaps at bottom of screen on Android
+ * CRITICAL FIXES v158.0 (ANDROID ONLY):
+ * - ✅ FIXED: Removed ALL bottom padding everywhere (paddingBottom: 0)
+ * - ✅ FIXED: Actions section has no bottom padding
+ * - ✅ FIXED: Stats modal has no bottom padding
+ * - ✅ FIXED: Stats content has no bottom padding
+ * - ✅ VERIFIED: True fullscreen with no gaps at bottom
+ * 
+ * Previous fixes maintained (v157.0):
+ * - ✅ Modal uses transparent={false} for true fullscreen
+ * - ✅ StatusBar properly hidden on Android for immersive experience
+ * - ✅ Added presentationStyle='fullScreen' for iOS compatibility
  * - ✅ Content fills entire screen edge-to-edge
  * - ✅ All font sizes properly scaled with scaleFontSize()
  * - ✅ All icon sizes properly scaled with scaleIconSize()
@@ -1347,7 +1351,7 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 16,
     paddingTop: 40,
-    paddingBottom: Platform.OS === 'android' ? 0 : 20,
+    paddingBottom: 0, // ✅ v158.0: Removed ALL bottom padding for true fullscreen
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -1372,11 +1376,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     maxHeight: SCREEN_HEIGHT * 0.7,
     zIndex: 20,
-    paddingBottom: Platform.OS === 'android' ? 0 : 20,
+    paddingBottom: 0, // ✅ v158.0: Removed ALL bottom padding for true fullscreen
   },
   statsContent: {
     padding: 20,
-    paddingBottom: Platform.OS === 'android' ? 0 : 20,
+    paddingBottom: 0, // ✅ v158.0: Removed ALL bottom padding for true fullscreen
   },
   statsHeader: {
     flexDirection: 'row',

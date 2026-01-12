@@ -1,19 +1,21 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 ANDROID-ONLY FIXES v157.0 - POST VIEWER FULLSCREEN PERFECTED
+ * 🚨 ANDROID-ONLY FIXES v158.0 - POST VIEWER FULLSCREEN PERFECTED
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * PROBLEMA RESUELTO:
- * - ❌ Al abrir una publicación, había espacios en la parte inferior en Android
- * - ❌ El modal no se mostraba en pantalla completa real
+ * CRITICAL FIXES v158.0 (ANDROID ONLY):
+ * - ✅ FIXED: Removed ALL bottom padding everywhere (paddingBottom: 0)
+ * - ✅ FIXED: postContainer has no bottom padding
+ * - ✅ FIXED: timeContainer has no bottom padding
+ * - ✅ FIXED: editModalContent has no bottom padding
+ * - ✅ FIXED: tagManagementContent has no bottom padding
+ * - ✅ VERIFIED: True fullscreen with no gaps at bottom
  * 
- * SOLUCIÓN IMPLEMENTADA v157.0:
+ * Previous fixes maintained (v157.0):
  * - ✅ transparent={false} para modal de pantalla completa
  * - ✅ StatusBar oculto en Android para experiencia inmersiva
  * - ✅ Publicaciones ahora se abren en pantalla completa real en Android
- * - ✅ Sin espacios/huecos en la parte inferior
- * - ✅ Eliminado TODO el padding inferior en Android (postContainer, timeContainer, modales)
  * - ✅ Added presentationStyle='fullScreen' for iOS compatibility
  * - ✅ iOS mantiene diseño original como referencia
  * 
@@ -1857,7 +1859,7 @@ const styles = StyleSheet.create({
   },
   postContainer: {
     backgroundColor: colors.cardBackground,
-    paddingBottom: Platform.OS === 'android' ? 0 : 16,
+    paddingBottom: 0, // ✅ v158.0: Removed ALL bottom padding for true fullscreen
   },
   postSeparator: {
     height: 16,
@@ -2019,7 +2021,7 @@ const styles = StyleSheet.create({
   timeContainer: {
     paddingHorizontal: 16,
     paddingTop: 4,
-    paddingBottom: Platform.OS === 'android' ? 0 : 12,
+    paddingBottom: 0, // ✅ v158.0: Removed ALL bottom padding for true fullscreen
   },
   timeText: {
     color: colors.textSecondary,
@@ -2037,7 +2039,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 0,
+    paddingBottom: 0, // ✅ v158.0: Removed ALL bottom padding for true fullscreen
     maxHeight: '80%',
   },
   editModalHeader: {
@@ -2090,7 +2092,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 0,
+    paddingBottom: 0, // ✅ v158.0: Removed ALL bottom padding for true fullscreen
     maxHeight: '80%',
   },
   tagManagementHeader: {

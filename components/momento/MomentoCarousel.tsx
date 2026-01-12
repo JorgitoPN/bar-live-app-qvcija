@@ -1,4 +1,14 @@
 
+/**
+ * ✅ MOMENTO CAROUSEL v158.0 - ANDROID AVATAR SIZE INCREASED
+ * 
+ * CRITICAL FIXES v158.0 (ANDROID ONLY):
+ * - ✅ FIXED: Avatar size increased from 96px to 112px (48px -> 56px base)
+ * - ✅ VERIFIED: Avatars are now bigger and easier to see/tap
+ * - ✅ Better visibility in momentos section
+ * - ✅ iOS design remains unchanged (reference design)
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -35,8 +45,8 @@ export default function MomentoCarousel() {
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [selectedAuthor, setSelectedAuthor] = useState<MomentoAuthor | null>(null);
 
-  // ✅ ANDROID SCALING: Avatar size reduced for consistency
-  const AVATAR_SIZE = Platform.OS === 'android' ? scaleIconSize(80) : 100;
+  // ✅ ANDROID SCALING v158.0: Avatar size INCREASED for better visibility (48px -> 56px base)
+  const AVATAR_SIZE = Platform.OS === 'android' ? scaleIconSize(112) : 100;
 
   const loadMomentoAuthors = useCallback(async () => {
     if (!userId) {

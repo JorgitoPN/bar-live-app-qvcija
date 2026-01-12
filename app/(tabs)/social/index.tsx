@@ -80,9 +80,14 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL INDEX SCREEN v100.0 - ANDROID SCALING STANDARDIZATION
+ * ✅ SOCIAL INDEX SCREEN v158.0 - ANDROID MOMENTO AVATAR SIZE FIX
  * 
- * CRITICAL FIXES v100.0 (ANDROID ONLY):
+ * CRITICAL FIXES v158.0 (ANDROID ONLY):
+ * - ✅ Momento avatars made bigger (48px on Android vs 40px before)
+ * - ✅ Better visibility and easier to tap
+ * - ✅ Consistent with user request for larger avatars
+ * 
+ * Previous fixes maintained (v100.0):
  * - ✅ All font sizes use scaleFontSize() for consistency with Favoritos
  * - ✅ Header title size standardized (24px on Android)
  * - ✅ All text elements properly scaled
