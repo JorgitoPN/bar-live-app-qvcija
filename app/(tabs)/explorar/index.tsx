@@ -70,15 +70,13 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v126.0 - INFINITE SCROLL LOOP FIXED
+ * ✅ EXPLORAR SCREEN v127.0 - NO SCHEDULE INFO TREATED AS OPEN
  * 
- * CRITICAL FIXES v126.0 (APPLIED):
- * - ✅ FIXED: Infinite scroll no longer loops at end of list
- * - ✅ FIXED: Proper end-of-list detection using displayedLocales.length
- * - ✅ FIXED: Clear hasMore state when reaching end
- * - ✅ FIXED: Prevent multiple simultaneous load calls
- * - ✅ FIXED: Better logging for debugging pagination
- * - ✅ All previous functionality maintained (v124.0 ordering)
+ * CRITICAL FIXES v127.0 (APPLIED):
+ * - ✅ FIXED: Locales without schedule info now treated as potentially open
+ * - ✅ FIXED: No schedule info locales ordered with open locales (not with closed)
+ * - ✅ FIXED: Priority groups updated to reflect new logic
+ * - ✅ All previous functionality maintained (v126.0 infinite scroll)
  * 
  * 🔄 FORCE RELOAD: Restart Expo dev server with --clear to see changes
  */
@@ -155,27 +153,29 @@ export default function ExplorarScreen() {
   }, []);
 
   /**
-   * ✅ CRITICAL FIX v124.0: Correct ordering logic
+   * ✅ CRITICAL FIX v127.0: Locales without schedule info treated as open
    * 
    * PRIORITY GROUPS (distance is PRIMARY within each group):
    * 
    * WITHIN 100KM:
    * 1. Featured + Open (destacado=true, abierto=true) → sorted by distance
-   * 2. Open (not featured) (abierto=true, destacado=false) → sorted by distance
-   * 3. With active events (tieneEventos=true) → sorted by distance
-   * 4. Without schedule info (tieneHorarios=false) → sorted by distance
-   * 5. Closed (abierto=false) → sorted by distance
+   * 2. Featured + No schedule info (destacado=true, !tieneHorarios) → sorted by distance
+   * 3. Open (not featured) (abierto=true, destacado=false) → sorted by distance
+   * 4. No schedule info (not featured) (!tieneHorarios, destacado=false) → sorted by distance
+   * 5. With active events (tieneEventos=true) → sorted by distance
+   * 6. Closed (abierto=false) → sorted by distance
    * 
    * BEYOND 100KM:
-   * 6. Featured + Open (destacado=true, abierto=true) → sorted by distance
-   * 7. Open (not featured) (abierto=true, destacado=false) → sorted by distance
-   * 8. With active events (tieneEventos=true) → sorted by distance
-   * 9. Without schedule info (tieneHorarios=false) → sorted by distance
-   * 10. Closed (abierto=false) → sorted by distance
+   * 7. Featured + Open (destacado=true, abierto=true) → sorted by distance
+   * 8. Featured + No schedule info (destacado=true, !tieneHorarios) → sorted by distance
+   * 9. Open (not featured) (abierto=true, destacado=false) → sorted by distance
+   * 10. No schedule info (not featured) (!tieneHorarios, destacado=false) → sorted by distance
+   * 11. With active events (tieneEventos=true) → sorted by distance
+   * 12. Closed (abierto=false) → sorted by distance
    */
   const sortLocalesByPriority = useCallback((locales: any[]) => {
-    console.log('[Explorar v124.0] 🔄 SORTING LOCALES WITH CORRECT PRIORITY LOGIC');
-    console.log('[Explorar v124.0] 📋 Total locales to sort:', locales.length);
+    console.log('[Explorar v127.0] 🔄 SORTING LOCALES - NO SCHEDULE INFO TREATED AS OPEN');
+    console.log('[Explorar v127.0] 📋 Total locales to sort:', locales.length);
     
     const sorted = locales.sort((a, b) => {
       // Get distance for both locales
@@ -198,6 +198,10 @@ export default function ExplorarScreen() {
       const aCerrado = a.estaAbierto === false;
       const bCerrado = b.estaAbierto === false;
       
+      // ✅ FIX v127.0: Locales without schedule info are treated as potentially open
+      const aSinInfo = !aTieneHorarios;
+      const bSinInfo = !bTieneHorarios;
+      
       // Calculate priority (lower number = higher priority)
       const getPriority = (local: any) => {
         const dist = local.distancia !== null && local.distancia !== undefined ? local.distancia : 999999;
@@ -207,23 +211,26 @@ export default function ExplorarScreen() {
         const tieneHorarios = local.tieneHorarios === true;
         const tieneEventos = local.tieneEventos === true;
         const cerrado = local.estaAbierto === false;
+        const sinInfo = !tieneHorarios;
         
         if (within100km) {
           // WITHIN 100KM
           if (destacado && abierto) return 1; // Featured + Open
-          if (abierto && !destacado) return 2; // Open (not featured)
-          if (tieneEventos) return 3; // With events
-          if (!tieneHorarios) return 4; // Without schedule info
-          if (cerrado) return 5; // Closed
-          return 6; // Other
+          if (destacado && sinInfo) return 2; // Featured + No schedule info (treated as open)
+          if (abierto && !destacado) return 3; // Open (not featured)
+          if (sinInfo && !destacado) return 4; // No schedule info (not featured, treated as open)
+          if (tieneEventos) return 5; // With events
+          if (cerrado) return 6; // Closed
+          return 7; // Other
         } else {
           // BEYOND 100KM
-          if (destacado && abierto) return 7; // Featured + Open (far)
-          if (abierto && !destacado) return 8; // Open (not featured, far)
-          if (tieneEventos) return 9; // With events (far)
-          if (!tieneHorarios) return 10; // Without schedule info (far)
-          if (cerrado) return 11; // Closed (far)
-          return 12; // Other (far)
+          if (destacado && abierto) return 8; // Featured + Open (far)
+          if (destacado && sinInfo) return 9; // Featured + No schedule info (far, treated as open)
+          if (abierto && !destacado) return 10; // Open (not featured, far)
+          if (sinInfo && !destacado) return 11; // No schedule info (not featured, far, treated as open)
+          if (tieneEventos) return 12; // With events (far)
+          if (cerrado) return 13; // Closed (far)
+          return 14; // Other (far)
         }
       };
       
@@ -244,12 +251,12 @@ export default function ExplorarScreen() {
       return a.nombre.localeCompare(b.nombre);
     });
     
-    console.log('[Explorar v124.0] 📋 First 15 locales after sorting:');
+    console.log('[Explorar v127.0] 📋 First 15 locales after sorting:');
     sorted.slice(0, 15).forEach((local: any, index: number) => {
       const destacado = local.destacado === true ? '⭐' : '';
       const distancia = local.distancia !== null ? `📍${local.distancia.toFixed(1)}km` : '📍N/A';
       const abierto = local.estaAbierto === true ? '🟢' : local.estaAbierto === false ? '🔴' : '⚪';
-      const horarios = local.tieneHorarios ? '🕐' : '❌';
+      const horarios = local.tieneHorarios ? '🕐' : '❓';
       const eventos = local.tieneEventos ? '🎉' : '';
       const within100km = (local.distancia !== null && local.distancia <= 100) ? '✅' : '❌';
       console.log(`  ${index + 1}. ${destacado} ${local.nombre} ${distancia} ${within100km} ${abierto} ${horarios} ${eventos}`);
