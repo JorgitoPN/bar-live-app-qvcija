@@ -1,16 +1,17 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 ANDROID-ONLY FIXES v151.0 - IMAGE EDITOR COMPLETELY REMOVED FOR ANDROID
+ * 🚨 ANDROID-ONLY FIXES v153.0 - IMAGE EDITOR COMPLETELY DISABLED FOR ANDROID
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * CAMBIOS IMPLEMENTADOS v151.0 (ANDROID EXCLUSIVO):
- * - ❌ ELIMINADO: Editor de imágenes completamente removido para Android
+ * CAMBIOS IMPLEMENTADOS v153.0 (ANDROID EXCLUSIVO):
+ * - ❌ ELIMINADO: Editor de imágenes completamente deshabilitado para Android
  * - ✅ Las imágenes se guardan directamente sin edición en Android
+ * - ✅ El componente retorna null inmediatamente en Android (sin pantalla de edición)
  * - ✅ iOS mantiene el editor de imágenes completo (diseño de referencia)
  * - ✅ Flujo simplificado para Android - sin pantalla de edición
  * - ✅ Todos los hooks declarados al inicio (cumple reglas de React)
- * - ✅ NUEVO: Componente retorna null inmediatamente en Android
+ * - ✅ CONFIRMADO: No se muestra el editor al crear publicaciones o momentos en Android
  * 
  * ARCHIVOS MODIFICADOS:
  * - components/social/ImageEditorV6.tsx (este archivo)
@@ -53,12 +54,13 @@ interface ImageEditorV6Props {
 }
 
 /**
- * ✅ IMAGE EDITOR v151.0 - ANDROID EDITOR COMPLETELY REMOVED
+ * ✅ IMAGE EDITOR v153.0 - ANDROID EDITOR COMPLETELY DISABLED
  * 
- * CRITICAL CHANGES v151.0 (ANDROID ONLY):
- * - ❌ REMOVED: Image editor completely removed for Android
+ * CRITICAL CHANGES v153.0 (ANDROID ONLY):
+ * - ❌ DISABLED: Image editor completely disabled for Android
  * - ✅ Images are saved directly without editing on Android
  * - ✅ No editor screen shown on Android - component returns null
+ * - ✅ Applies to ALL flows: creating posts, creating momentos, uploading images
  * - ✅ iOS keeps the full editor functionality (reference design)
  * - ✅ All hooks declared at the top (React rules compliant)
  * 
