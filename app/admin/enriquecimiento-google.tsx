@@ -105,18 +105,18 @@ const DIAS_SEMANA: Record<number, string> = {
 const MAX_LOGS = 50;
 
 /**
- * ✅ ENRIQUECIMIENTO GOOGLE v123.0 - INACTIVE LOCALES FULLY VISIBLE
+ * ✅ ENRIQUECIMIENTO GOOGLE v126.0 - CATEGORY STATS DISPLAY FIXED
  * 
- * CRITICAL FIXES v123.0 (APPLIED):
- * - ✅ FIXED: Category statistics now show ALL locales (active + inactive)
- * - ✅ FIXED: Step 2 category cards show total count including inactive locales
- * - ✅ FIXED: Step 3 locale selection shows ALL locales for enrichment
- * - ✅ FIXED: Removed .eq('activo', true) filter from ALL queries
- * - ✅ FIXED: Users can now select and enrich inactive locales
- * - ✅ FIXED: Added logging to show active vs inactive breakdown
- * - ✅ FIXED: Statistics accurate (showing total, active, inactive, enriched, pending)
- * - ✅ FIXED: Enrichment process will activate locales when successfully enriched
- * - ✅ All previous functionality maintained (v122.0 locale loading)
+ * CRITICAL FIXES v126.0 (APPLIED):
+ * - ✅ FIXED: Category cards now show enriched + pending counts clearly
+ * - ✅ FIXED: Each category card displays:
+ *   - Total OSM locales (active + inactive)
+ *   - Enriquecidos: count (green)
+ *   - Pendientes: count (orange)
+ *   - Rechazados: count (red, if any)
+ * - ✅ FIXED: Better visual layout with labeled rows
+ * - ✅ FIXED: Users can now see at a glance which categories need enrichment
+ * - ✅ All previous functionality maintained (v123.0 inactive locales visibility)
  * 
  * 🔄 FORCE RELOAD: Restart Expo dev server with --clear to see changes
  */
@@ -1269,7 +1269,7 @@ export default function EnriquecimientoGoogleScreen() {
         </View>
       )}
 
-      {/* ✅ FIX v123.0: Categorías - Now showing ALL locales (active + inactive) */}
+      {/* ✅ FIX v126.0: Categorías - Showing enriched + pending counts clearly */}
       <View style={styles.categoriasGrid}>
         {estadisticasCategorias.map(cat => (
           <TouchableOpacity
@@ -1280,18 +1280,30 @@ export default function EnriquecimientoGoogleScreen() {
           >
             <Text style={[styles.categoriaEmoji, { fontSize: scaleFontSize(32) }]}>{cat.emoji}</Text>
             <Text style={[styles.categoriaNombre, { fontSize: scaleFontSize(16) }]}>{cat.categoria}</Text>
-            <Text style={[styles.categoriaStats, { fontSize: scaleFontSize(11) }]}>Total OSM (activos + inactivos)</Text>
+            <Text style={[styles.categoriaStats, { fontSize: scaleFontSize(11) }]}>Total OSM</Text>
             <Text style={[styles.categoriaTotal, { fontSize: scaleFontSize(20) }]}>{cat.total}</Text>
             
-            <View style={styles.categoriaDetails}>
-              {cat.enriquecidos > 0 && (
-                <Text style={[styles.categoriaDetail, { fontSize: scaleFontSize(12) }]}>✨ {cat.enriquecidos}</Text>
-              )}
-              {cat.pendientes > 0 && (
-                <Text style={[styles.categoriaDetail, { color: '#F59E0B', fontSize: scaleFontSize(12) }]}>⏳ {cat.pendientes}</Text>
-              )}
+            {/* ✅ FIX v126.0: Show enriched and pending counts in category cards */}
+            <View style={styles.categoriaDetailsContainer}>
+              <View style={styles.categoriaDetailRow}>
+                <Text style={[styles.categoriaDetailLabel, { fontSize: scaleFontSize(10) }]}>Enriquecidos:</Text>
+                <Text style={[styles.categoriaDetailValue, { color: '#10B981', fontSize: scaleFontSize(12) }]}>
+                  {cat.enriquecidos}
+                </Text>
+              </View>
+              <View style={styles.categoriaDetailRow}>
+                <Text style={[styles.categoriaDetailLabel, { fontSize: scaleFontSize(10) }]}>Pendientes:</Text>
+                <Text style={[styles.categoriaDetailValue, { color: '#F59E0B', fontSize: scaleFontSize(12) }]}>
+                  {cat.pendientes}
+                </Text>
+              </View>
               {cat.rechazados > 0 && (
-                <Text style={[styles.categoriaDetail, { color: '#EF4444', fontSize: scaleFontSize(12) }]}>❌ {cat.rechazados}</Text>
+                <View style={styles.categoriaDetailRow}>
+                  <Text style={[styles.categoriaDetailLabel, { fontSize: scaleFontSize(10) }]}>Rechazados:</Text>
+                  <Text style={[styles.categoriaDetailValue, { color: '#EF4444', fontSize: scaleFontSize(12) }]}>
+                    {cat.rechazados}
+                  </Text>
+                </View>
               )}
             </View>
           </TouchableOpacity>
@@ -1846,6 +1858,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#10B981',
     marginHorizontal: 3,
+  },
+  categoriaDetailsContainer: {
+    width: '100%',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  categoriaDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  categoriaDetailLabel: {
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  categoriaDetailValue: {
+    fontWeight: '700',
   },
   infoBox: {
     backgroundColor: '#F3F4F6',
