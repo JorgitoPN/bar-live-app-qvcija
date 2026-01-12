@@ -105,19 +105,16 @@ const DIAS_SEMANA: Record<number, string> = {
 const MAX_LOGS = 50;
 
 /**
- * ✅ ENRIQUECIMIENTO GOOGLE v121.0 - COMPLETE DATABASE SYNCHRONIZATION
+ * ✅ ENRIQUECIMIENTO GOOGLE v122.0 - INACTIVE LOCALES NOW SELECTABLE
  * 
- * CRITICAL FIXES v121.0 (APPLIED):
- * - ✅ FIXED: Statistics now query ALL locales from province (no filters, no limits)
- * - ✅ FIXED: Shows REAL total count from database (1572 total, 486 active)
- * - ✅ FIXED: Category counts show ALL locales per category (including inactive)
- * - ✅ FIXED: Enriquecidos = activo=true + enriquecido=true
- * - ✅ FIXED: Pendientes = OSM + activo=true + (enriquecido=false OR null)
- * - ✅ FIXED: Rechazados = activo=false + notas_rechazo not null
- * - ✅ FIXED: Added validation checks for data consistency
- * - ✅ FIXED: Improved error handling and logging
- * - ✅ FIXED: Statistics now match actual database state
- * - ✅ All previous functionality maintained
+ * CRITICAL FIXES v122.0 (APPLIED):
+ * - ✅ FIXED: Step 2 now shows ALL locales (active AND inactive) for selection
+ * - ✅ FIXED: Removed .eq('activo', true) filter from locale loading query
+ * - ✅ FIXED: Users can now select and enrich inactive locales
+ * - ✅ FIXED: Added logging to show active vs inactive breakdown
+ * - ✅ FIXED: Statistics still accurate (showing total, active, inactive counts)
+ * - ✅ FIXED: Enrichment process will activate locales when successfully enriched
+ * - ✅ All previous functionality maintained (v121.0 statistics synchronization)
  * 
  * 🔄 FORCE RELOAD: Restart Expo dev server with --clear to see changes
  */
@@ -387,34 +384,39 @@ export default function EnriquecimientoGoogleScreen() {
       try {
         const categoriaId = CATEGORIAS.find(c => c.nombre === categoria)?.id || 'bar';
         
-        // ✅ FIX v118.0: Build query to show ALL locales for the category (NO LIMIT)
+        // ✅ FIX v122.0: Build query to show ALL locales for the category (including inactive)
+        // This allows users to select and enrich inactive locales
         let query = supabase
           .from('locales')
-          .select('id, nombre, direccion, tipo, provincia, latitud, longitud, source_id, google_place_id, enriquecido')
+          .select('id, nombre, direccion, tipo, provincia, latitud, longitud, source_id, google_place_id, enriquecido, activo')
           .eq('provincia', provinciaSeleccionada)
           .eq('tipo', categoriaId)
-          .eq('source_type', 'osm')
-          .eq('activo', true); // Solo cargar locales activos (no rechazados)
+          .eq('source_type', 'osm');
+        // ✅ REMOVED: .eq('activo', true) - Now we load ALL locales (active and inactive)
         
-        // ✅ FIX v118.0: When NOT re-enriching, show ONLY non-enriched locales (pending)
+        // ✅ FIX v122.0: When NOT re-enriching, show ONLY non-enriched locales (pending)
         // This includes both enriquecido = false AND enriquecido = null
         if (!reEnriquecer) {
           // Use .or() to match enriquecido = false OR enriquecido = null
           query = query.or('enriquecido.eq.false,enriquecido.is.null');
           agregarLog('info', '🔍 Filtrando: Solo locales NO enriquecidos (enriquecido = false O null)');
+          agregarLog('info', '📋 Incluyendo locales activos E inactivos');
         } else {
           agregarLog('info', '🔍 Mostrando: TODOS los locales (enriquecidos y pendientes)');
+          agregarLog('info', '📋 Incluyendo locales activos E inactivos');
         }
         
         const { data, error } = await query;
         
         if (error) {
-          console.error('[Enrichment v118.0] Error loading locales:', error);
+          console.error('[Enrichment v122.0] Error loading locales:', error);
           agregarLog('error', `Error al cargar locales: ${error.message}`);
           setLocalesAEnriquecer([]);
         } else {
-          console.log('[Enrichment v118.0] Locales loaded:', {
+          console.log('[Enrichment v122.0] Locales loaded:', {
             total: data?.length || 0,
+            active: data?.filter(l => l.activo === true).length || 0,
+            inactive: data?.filter(l => l.activo === false).length || 0,
             enriched: data?.filter(l => l.enriquecido === true).length || 0,
             pending_false: data?.filter(l => l.enriquecido === false).length || 0,
             pending_null: data?.filter(l => l.enriquecido === null).length || 0,
@@ -423,15 +425,18 @@ export default function EnriquecimientoGoogleScreen() {
           
           setLocalesAEnriquecer(data || []);
           
+          const activeCount = data?.filter(l => l.activo === true).length || 0;
+          const inactiveCount = data?.filter(l => l.activo === false).length || 0;
           const enrichedCount = data?.filter(l => l.enriquecido === true).length || 0;
           const pendingFalseCount = data?.filter(l => l.enriquecido === false).length || 0;
           const pendingNullCount = data?.filter(l => l.enriquecido === null).length || 0;
           const totalPendingCount = pendingFalseCount + pendingNullCount;
           
           agregarLog('success', `✅ ${data?.length || 0} locales cargados`);
+          agregarLog('info', `📊 Activos: ${activeCount}, Inactivos: ${inactiveCount}`);
           agregarLog('info', `📊 Enriquecidos: ${enrichedCount}, Pendientes (false): ${pendingFalseCount}, Pendientes (null): ${pendingNullCount}`);
           
-          // ✅ FIX v118.0: Update the pending count to match what was actually loaded
+          // ✅ FIX v122.0: Update the pending count to match what was actually loaded
           setLocalesPendientes(data?.length || 0);
           
           // ✅ VALIDATION: Warn if only enriched locales are showing when NOT re-enriching
@@ -443,9 +448,14 @@ export default function EnriquecimientoGoogleScreen() {
           if ((data?.length || 0) === 0) {
             agregarLog('warning', '⚠️ No hay locales disponibles para enriquecer en esta categoría');
           }
+          
+          // ✅ INFO: Show breakdown of active vs inactive
+          if (inactiveCount > 0) {
+            agregarLog('info', `📋 ${inactiveCount} locales inactivos disponibles para enriquecer`);
+          }
         }
       } catch (error) {
-        console.error('[Enrichment v118.0] Error:', error);
+        console.error('[Enrichment v122.0] Error:', error);
         agregarLog('error', `Error al cargar locales: ${error}`);
         setLocalesAEnriquecer([]);
       }

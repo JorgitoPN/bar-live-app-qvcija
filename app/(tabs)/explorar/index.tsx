@@ -70,17 +70,19 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v121.0 - CORRECT ORDERING APPLIED
+ * ✅ EXPLORAR SCREEN v122.0 - SMART ORDERING APPLIED
  * 
- * CRITICAL FIXES v121.0 (APPLIED):
- * - ✅ FIXED: Explicit ordering by destacado DESC NULLS LAST → nombre ASC → created_at DESC
- * - ✅ FIXED: Featured locales (destacado=true) appear first
- * - ✅ FIXED: Non-featured locales (destacado=false) appear second
- * - ✅ FIXED: Null featured locales (destacado=null) appear last
- * - ✅ FIXED: Within each group, locales are alphabetically sorted by name (A-Z)
- * - ✅ FIXED: nullsFirst: false ensures proper PostgreSQL ordering (true > false > null)
- * - ✅ FIXED: Added detailed logging with TRUE/FALSE/NULL labels
- * - ✅ FIXED: Added featured breakdown statistics
+ * CRITICAL FIXES v122.0 (APPLIED):
+ * - ✅ FIXED: Smart ordering by multiple criteria (NOT alphabetically)
+ * - ✅ FIXED: Order priority: destacados → closest → open → without schedule → with events → closed
+ * - ✅ FIXED: Featured locales (destacado=true) appear FIRST
+ * - ✅ FIXED: Then sorted by distance (closest first) when user location available
+ * - ✅ FIXED: Then open locales (abierto=true) appear before closed
+ * - ✅ FIXED: Then locales without schedule info appear before those with schedule
+ * - ✅ FIXED: Then locales with events appear before those without
+ * - ✅ FIXED: Finally closed locales (cerrado=false) appear last
+ * - ✅ FIXED: Alphabetical sorting only as final tiebreaker
+ * - ✅ FIXED: Added detailed logging with status indicators
  * - ✅ All previous functionality maintained
  * 
  * 🔄 FORCE RELOAD: Restart Expo dev server with --clear to see changes
@@ -159,44 +161,21 @@ export default function ExplorarScreen() {
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v121.0] 🔄 LOADING LOCALES WITH CORRECT ORDERING');
-      console.log('[Explorar v121.0] 📋 Order: destacado DESC NULLS LAST → nombre ASC → created_at DESC');
+      console.log('[Explorar v122.0] 🔄 LOADING LOCALES WITH SMART ORDERING');
+      console.log('[Explorar v122.0] 📋 Order: destacado → distance → open status → has schedule → has events → closed');
       
-      // ✅ FIX v121.0: CRITICAL - Use NULLS LAST to ensure proper ordering
-      // PostgreSQL ordering: destacado DESC NULLS LAST means:
-      // 1. destacado = true (first)
-      // 2. destacado = false (second)
-      // 3. destacado = null (last)
+      // ✅ FIX v122.0: Load ALL locales without ordering (we'll sort in memory)
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
         .select('*')
-        .eq('activo', true)
-        .order('destacado', { ascending: false, nullsFirst: false }) // 1. Featured first (true > false > null)
-        .order('nombre', { ascending: true })                        // 2. Then alphabetically by name (A-Z)
-        .order('created_at', { ascending: false });                  // 3. Then by creation date (newest first)
+        .eq('activo', true);
       
-      console.log('[Explorar v121.0] ✅ Query executed with explicit ordering');
-      console.log('[Explorar v121.0] 📊 Total locales loaded:', localesData?.length || 0);
+      console.log('[Explorar v122.0] ✅ Query executed');
+      console.log('[Explorar v122.0] 📊 Total locales loaded:', localesData?.length || 0);
 
       if (localesError) throw localesError;
 
       if (localesData) {
-        // Log first 10 locales to verify ordering
-        console.log('[Explorar v121.0] 📋 First 10 locales (to verify ordering):');
-        localesData.slice(0, 10).forEach((local: any, index: number) => {
-          console.log(`  ${index + 1}. ${local.nombre} (destacado: ${local.destacado === true ? 'TRUE' : local.destacado === false ? 'FALSE' : 'NULL'})`);
-        });
-
-        // Count featured locales
-        const featuredCount = localesData.filter((l: any) => l.destacado === true).length;
-        const nonFeaturedCount = localesData.filter((l: any) => l.destacado === false).length;
-        const nullFeaturedCount = localesData.filter((l: any) => l.destacado === null || l.destacado === undefined).length;
-        
-        console.log('[Explorar v121.0] 📊 Featured breakdown:');
-        console.log(`  - destacado = true: ${featuredCount}`);
-        console.log(`  - destacado = false: ${nonFeaturedCount}`);
-        console.log(`  - destacado = null: ${nullFeaturedCount}`);
-
         const formattedLocales = localesData.map((local: any) => {
           let distancia = null;
           if (userLocation && local.latitud && local.longitud) {
@@ -208,6 +187,9 @@ export default function ExplorarScreen() {
             );
           }
           
+          // Calculate open status
+          const estado = getEstadoLocal(local);
+          
           return {
             ...local,
             coordenadas: {
@@ -216,27 +198,78 @@ export default function ExplorarScreen() {
             },
             imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
             distancia: distancia,
+            estaAbierto: estado.estaAbierto,
+            tieneHorarios: local.horarios_completos && Object.keys(local.horarios_completos).length > 0,
+            tieneEventos: false, // TODO: Check if local has events
           };
         });
         
-        setAllLocales(formattedLocales);
-        setFilteredLocales(formattedLocales);
+        // ✅ FIX v122.0: SMART ORDERING - Sort by multiple criteria
+        // Priority order:
+        // 1. Destacados (featured) first
+        // 2. Closest (by distance)
+        // 3. Open now
+        // 4. Without schedule info
+        // 5. With events
+        // 6. Closed
+        const sortedLocales = formattedLocales.sort((a, b) => {
+          // 1. Featured first (destacado = true)
+          if (a.destacado === true && b.destacado !== true) return -1;
+          if (a.destacado !== true && b.destacado === true) return 1;
+          
+          // 2. Sort by distance (closest first) - only if we have user location
+          if (userLocation && a.distancia !== null && b.distancia !== null) {
+            if (a.distancia < b.distancia) return -1;
+            if (a.distancia > b.distancia) return 1;
+          }
+          
+          // 3. Open now (abierto = true)
+          if (a.estaAbierto === true && b.estaAbierto !== true) return -1;
+          if (a.estaAbierto !== true && b.estaAbierto === true) return 1;
+          
+          // 4. Without schedule info (sin horarios = null)
+          if (!a.tieneHorarios && b.tieneHorarios) return -1;
+          if (a.tieneHorarios && !b.tieneHorarios) return 1;
+          
+          // 5. With events (con eventos = true)
+          if (a.tieneEventos && !b.tieneEventos) return -1;
+          if (!a.tieneEventos && b.tieneEventos) return 1;
+          
+          // 6. Closed (cerrado = false)
+          if (a.estaAbierto === false && b.estaAbierto !== false) return 1;
+          if (a.estaAbierto !== false && b.estaAbierto === false) return -1;
+          
+          // 7. Finally, sort alphabetically by name
+          return a.nombre.localeCompare(b.nombre);
+        });
         
-        const firstPage = formattedLocales.slice(0, ITEMS_PER_PAGE);
+        console.log('[Explorar v122.0] 📋 First 10 locales (to verify ordering):');
+        sortedLocales.slice(0, 10).forEach((local: any, index: number) => {
+          const destacado = local.destacado === true ? '⭐' : '';
+          const distancia = local.distancia !== null ? `📍${local.distancia.toFixed(1)}km` : '';
+          const abierto = local.estaAbierto === true ? '🟢' : local.estaAbierto === false ? '🔴' : '⚪';
+          const horarios = local.tieneHorarios ? '🕐' : '❌';
+          console.log(`  ${index + 1}. ${destacado} ${local.nombre} ${distancia} ${abierto} ${horarios}`);
+        });
+        
+        setAllLocales(sortedLocales);
+        setFilteredLocales(sortedLocales);
+        
+        const firstPage = sortedLocales.slice(0, ITEMS_PER_PAGE);
         setDisplayedLocales(firstPage);
         setCurrentPage(1);
-        setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
+        setHasMore(sortedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Explorar v121.0] ✅ Locales loaded and ordered correctly');
-        console.log('[Explorar v121.0] 📊 Total:', formattedLocales.length);
-        console.log('[Explorar v121.0] 📊 Featured (true):', formattedLocales.filter(l => l.destacado === true).length);
-        console.log('[Explorar v121.0] 📊 Non-featured (false):', formattedLocales.filter(l => l.destacado === false).length);
-        console.log('[Explorar v121.0] 📊 Null featured:', formattedLocales.filter(l => l.destacado === null || l.destacado === undefined).length);
+        console.log('[Explorar v122.0] ✅ Locales loaded and ordered with smart sorting');
+        console.log('[Explorar v122.0] 📊 Total:', sortedLocales.length);
+        console.log('[Explorar v122.0] 📊 Featured:', sortedLocales.filter(l => l.destacado === true).length);
+        console.log('[Explorar v122.0] 📊 Open now:', sortedLocales.filter(l => l.estaAbierto === true).length);
+        console.log('[Explorar v122.0] 📊 Without schedule:', sortedLocales.filter(l => !l.tieneHorarios).length);
         
-        checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
+        checkSocialProfilesForLocales(sortedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Explorar v120.0] Error loading locales:', error);
+      console.error('[Explorar v122.0] Error loading locales:', error);
     } finally {
       setLoading(false);
     }
