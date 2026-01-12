@@ -1,10 +1,11 @@
 
 /**
- * FLOATING TAB BAR - VERSION v140.0
+ * FLOATING TAB BAR - VERSION v145.0
  * 
- * ✅ ANDROID MINIAVATAR FIX v140.0 - PERSISTENT STATE SOLUTION
+ * ✅ ANDROID MINIAVATAR FIX v145.0 - PERSISTENT STATE SOLUTION
  * 
- * CRITICAL FIXES v140.0 (ANDROID ONLY):
+ * CRITICAL FIXES v145.0 (ANDROID ONLY):
+ * - ✅ FIXED: Uses correct 'avatar' column from database
  * - ✅ FIXED: Miniavatar now uses AvatarContext for persistent state
  * - ✅ FIXED: Avatar displays correctly on ALL pages without losing state
  * - ✅ FIXED: No more remounting issues when navigating
@@ -58,9 +59,9 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { avatarUrl, isLoading } = useAvatar(); // ✅ v140.0: Use AvatarContext
+  const { avatarUrl, isLoading } = useAvatar(); // ✅ v145.0: Use AvatarContext
 
-  console.log('[FloatingTabBar v140.0] 🎨 Using AvatarContext - avatar persists across navigation');
+  console.log('[FloatingTabBar v145.0] 🎨 Using AvatarContext - avatar persists across navigation');
 
   const isTabActive = (tab: TabBarItem): boolean => {
     const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
@@ -110,7 +111,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     const isActive = isTabActive(tab);
     const isCenter = tab.name === 'explorar';
 
-    // ✅ CRITICAL FIX v140.0: Profile tab with avatar from AvatarContext
+    // ✅ CRITICAL FIX v145.0: Profile tab with avatar from AvatarContext
     if (tab.name === 'perfil') {
       const avatarSize = Platform.OS === 'android' ? 28 : 32;
       
@@ -133,10 +134,10 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
                 resizeMode="cover"
                 {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                 onError={(error) => {
-                  console.error('[FloatingTabBar v140.0] ❌ Avatar failed to load:', avatarUrl?.substring(0, 50), error.nativeEvent?.error);
+                  console.error('[FloatingTabBar v145.0] ❌ Avatar failed to load:', avatarUrl?.substring(0, 50), error.nativeEvent?.error);
                 }}
                 onLoad={() => {
-                  console.log('[FloatingTabBar v140.0] ✅ Avatar loaded successfully from context');
+                  console.log('[FloatingTabBar v145.0] ✅ Avatar loaded successfully from context');
                 }}
               />
             ) : (
@@ -230,12 +231,12 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v140.0] 📐 Dimensions: ` +
+    `[FloatingTabBar v145.0] 📐 Dimensions: ` +
     `height=${containerHeight}, ` +
     `platform=${Platform.OS}, ` +
     `hasAvatar=${!!avatarUrl}, ` +
     `isLoading=${isLoading}, ` +
-    `✅ v140.0: Miniavatar uses AvatarContext - persists on ALL pages`
+    `✅ v145.0: Miniavatar uses AvatarContext with correct 'avatar' column - persists on ALL pages`
   );
 
   return (

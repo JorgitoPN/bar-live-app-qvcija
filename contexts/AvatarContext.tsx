@@ -1,8 +1,9 @@
 
 /**
- * AVATAR CONTEXT v140.0 - PERSISTENT MINIAVATAR FIX
+ * AVATAR CONTEXT v145.0 - PERSISTENT MINIAVATAR FIX
  * 
- * CRITICAL FIX v140.0 (ANDROID ONLY):
+ * CRITICAL FIX v145.0 (ANDROID ONLY):
+ * - ✅ FIXED: Uses correct 'avatar' column instead of 'avatar_url'
  * - ✅ FIXED: Avatar URL persists across ALL page navigations
  * - ✅ FIXED: Real-time updates when avatar changes
  * - ✅ FIXED: Proper validation of avatar URLs (filters file:// URLs)
@@ -31,7 +32,7 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  console.log('[AvatarContext v140.0] 🎨 Provider initialized');
+  console.log('[AvatarContext v145.0] 🎨 Provider initialized');
 
   // Validate avatar URL
   const isValidUrl = (url: string | null): boolean => {
@@ -44,31 +45,32 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
   // Load avatar URL from database
   const loadAvatarUrl = async () => {
     if (!user?.id) {
-      console.log('[AvatarContext v140.0] ❌ No user logged in, clearing avatar');
+      console.log('[AvatarContext v145.0] ❌ No user logged in, clearing avatar');
       setAvatarUrl(null);
       setIsLoading(false);
       return;
     }
 
     try {
-      console.log('[AvatarContext v140.0] 🔄 Loading avatar for user:', user.id);
+      console.log('[AvatarContext v145.0] 🔄 Loading avatar for user:', user.id);
       
+      // ✅ CRITICAL FIX v145.0: Use 'avatar' column instead of 'avatar_url'
       const { data, error } = await supabase
         .from('usuarios')
-        .select('avatar_url')
+        .select('avatar')
         .eq('id', user.id)
         .single();
 
       if (error) {
-        console.error('[AvatarContext v140.0] ❌ Error loading avatar:', error);
+        console.error('[AvatarContext v145.0] ❌ Error loading avatar:', error);
         setAvatarUrl(null);
         setIsLoading(false);
         return;
       }
 
-      const validUrl = isValidUrl(data?.avatar_url) ? data.avatar_url : null;
+      const validUrl = isValidUrl(data?.avatar) ? data.avatar : null;
       
-      console.log('[AvatarContext v140.0] ✅ Avatar loaded:', {
+      console.log('[AvatarContext v145.0] ✅ Avatar loaded:', {
         userId: user.id,
         hasAvatar: !!validUrl,
         urlPreview: validUrl?.substring(0, 50) || 'none',
@@ -77,7 +79,7 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
       setAvatarUrl(validUrl);
       setIsLoading(false);
     } catch (error) {
-      console.error('[AvatarContext v140.0] ❌ Exception loading avatar:', error);
+      console.error('[AvatarContext v145.0] ❌ Exception loading avatar:', error);
       setAvatarUrl(null);
       setIsLoading(false);
     }
@@ -92,10 +94,10 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('[AvatarContext v140.0] 🔔 Setting up real-time subscription for user:', user.id);
+    console.log('[AvatarContext v145.0] 🔔 Setting up real-time subscription for user:', user.id);
 
     const channel = supabase
-      .channel(`avatar-context-${user.id}-v140`)
+      .channel(`avatar-context-${user.id}-v145`)
       .on(
         'postgres_changes',
         {
@@ -105,8 +107,9 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
           filter: `id=eq.${user.id}`,
         },
         (payload: any) => {
-          console.log('[AvatarContext v140.0] 🔄 Avatar updated in real-time:', payload.new);
-          const newUrl = payload.new?.avatar_url;
+          console.log('[AvatarContext v145.0] 🔄 Avatar updated in real-time:', payload.new);
+          // ✅ CRITICAL FIX v145.0: Use 'avatar' column instead of 'avatar_url'
+          const newUrl = payload.new?.avatar;
           if (newUrl && !newUrl.startsWith('file://')) {
             setAvatarUrl(newUrl);
           } else {
@@ -117,13 +120,13 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
       .subscribe();
 
     return () => {
-      console.log('[AvatarContext v140.0] 🔌 Unsubscribing from avatar updates');
+      console.log('[AvatarContext v145.0] 🔌 Unsubscribing from avatar updates');
       supabase.removeChannel(channel);
     };
   }, [user?.id]);
 
   const refreshAvatar = async () => {
-    console.log('[AvatarContext v140.0] 🔄 Manual refresh requested');
+    console.log('[AvatarContext v145.0] 🔄 Manual refresh requested');
     await loadAvatarUrl();
   };
 

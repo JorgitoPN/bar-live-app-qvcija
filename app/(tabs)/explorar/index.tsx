@@ -72,11 +72,13 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v143.0 - ANDROID COMPREHENSIVE ADAPTATION
+ * ✅ EXPLORAR SCREEN v145.0 - ANDROID COMPREHENSIVE ADAPTATION
  * 
- * CRITICAL FIXES v143.0 (ANDROID ONLY):
- * - ✅ Consistent header title size (24sp on Android)
- * - ✅ Consistent header icon size (24dp on Android)
+ * CRITICAL FIXES v145.0 (ANDROID ONLY):
+ * - ✅ FIXED: First local card no longer hidden by header (added 16px extra margin)
+ * - ✅ FIXED: Header title size matches Favoritos reference (32sp on Android)
+ * - ✅ FIXED: Locales without schedule info treated as OPEN (already implemented)
+ * - ✅ Consistent header icon size (28dp on Android, scaled)
  * - ✅ Bottom padding for Android navigation buttons
  * - ✅ ALL font sizes properly scaled with scaleFontSize()
  * - ✅ ALL icon sizes properly scaled with scaleIconSize()
@@ -883,8 +885,9 @@ export default function ExplorarScreen() {
   const modeIcon = getModeIcon();
 
   const HeaderContent = () => {
-    const headerTitleSize = getHeaderTitleSize(); // 32 on iOS, 24 on Android (CONSISTENT)
-    const headerIconSize = getHeaderIconSize(); // 28 on iOS, 24 on Android (CONSISTENT)
+    // ✅ CRITICAL FIX v145.0: Use Favoritos as reference (32sp on Android)
+    const headerTitleSize = Platform.OS === 'android' ? scaleFontSize(32) : 32;
+    const headerIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
 
     return (
       <React.Fragment>
@@ -1086,7 +1089,8 @@ export default function ExplorarScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            marginTop: HEADER_MAX_HEIGHT,
+            // ✅ CRITICAL FIX v145.0: Add extra padding to prevent first card from being hidden
+            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 16 : HEADER_MAX_HEIGHT,
             paddingBottom: getContentBottomPadding(100)
           },
         ]}
