@@ -64,19 +64,17 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v150.0 - ANDROID TRUE FULLSCREEN VERIFIED
+ * ✅ MOMENTO VIEWER v151.0 - ANDROID TRUE FULLSCREEN FIXED
  * 
- * CRITICAL FIXES v150.0 (ANDROID ONLY):
- * - ✅ VERIFIED: Momento viewer opens in TRUE fullscreen on Android
- * - ✅ VERIFIED: presentationStyle='fullScreen' for Android
- * - ✅ VERIFIED: StatusBar hidden for immersive experience
+ * CRITICAL FIXES v151.0 (ANDROID ONLY):
+ * - ✅ FIXED: Modal now uses transparent={false} for true fullscreen
+ * - ✅ FIXED: Removed presentationStyle (iOS-only prop causing issues)
+ * - ✅ FIXED: StatusBar properly hidden on Android
+ * - ✅ FIXED: Content fills entire screen edge-to-edge
  * - ✅ VERIFIED: No spaces at top/bottom of screen
- * - ✅ VERIFIED: Content fills entire screen edge-to-edge
- * - ✅ VERIFIED: Professional design matching iOS experience
  * - ✅ All font sizes properly scaled with scaleFontSize()
  * - ✅ All icon sizes properly scaled with scaleIconSize()
- * - ✅ Keyboard handling optimized for Android
- * - ✅ iOS design remains unchanged (reference design with pageSheet)
+ * - ✅ iOS design remains unchanged (reference design)
  */
 
 export default function MomentoViewer({
@@ -139,7 +137,7 @@ export default function MomentoViewer({
         )
       );
     } catch (error) {
-      console.error('[MomentoViewer v150.0] Error marking as viewed:', error);
+      console.error('[MomentoViewer v151.0] Error marking as viewed:', error);
     }
   }, [user]);
 
@@ -148,7 +146,7 @@ export default function MomentoViewer({
 
     try {
       setLoading(true);
-      console.log('[MomentoViewer v150.0] Loading momentos for:', { authorId, authorType });
+      console.log('[MomentoViewer v151.0] Loading momentos for:', { authorId, authorType });
 
       if (authorType === 'usuario') {
         const { data: userData } = await supabase
@@ -244,15 +242,15 @@ export default function MomentoViewer({
       }
       
       setCurrentIndex(startIndex);
-      console.log('[MomentoViewer v150.0] Starting at index:', startIndex, 'of', momentosWithStatus.length);
+      console.log('[MomentoViewer v151.0] Starting at index:', startIndex, 'of', momentosWithStatus.length);
 
       if (momentosWithStatus.length > 0 && !momentosWithStatus[startIndex].user_has_viewed) {
         markAsViewed(momentosWithStatus[startIndex].id);
       }
 
-      console.log('[MomentoViewer v150.0] ✅ Loaded momentos:', momentosWithStatus.length);
+      console.log('[MomentoViewer v151.0] ✅ Loaded momentos:', momentosWithStatus.length);
     } catch (error) {
-      console.error('[MomentoViewer v150.0] Error loading momentos:', error);
+      console.error('[MomentoViewer v151.0] Error loading momentos:', error);
       Alert.alert('Error', 'No se pudieron cargar los Momentos');
       onClose();
     } finally {
@@ -305,7 +303,7 @@ export default function MomentoViewer({
         );
       }
     } catch (error) {
-      console.error('[MomentoViewer v150.0] Error toggling like:', error);
+      console.error('[MomentoViewer v151.0] Error toggling like:', error);
     }
   };
 
@@ -313,23 +311,23 @@ export default function MomentoViewer({
     if (!momentoViewRef.current) return null;
 
     try {
-      console.log('[MomentoViewer v150.0] 📸 Capturing momento screenshot...');
+      console.log('[MomentoViewer v151.0] 📸 Capturing momento screenshot...');
       
       const uri = await captureRef(momentoViewRef, {
         format: 'jpg',
         quality: 0.8,
       });
 
-      console.log('[MomentoViewer v150.0] ✅ Screenshot captured:', uri);
+      console.log('[MomentoViewer v151.0] ✅ Screenshot captured:', uri);
       return uri;
     } catch (error) {
-      console.error('[MomentoViewer v150.0] Error capturing screenshot:', error);
+      console.error('[MomentoViewer v151.0] Error capturing screenshot:', error);
       return null;
     }
   };
 
   const handleOpenMessageInput = () => {
-    console.log('[MomentoViewer v150.0] 📝 Opening message input, pausing momento');
+    console.log('[MomentoViewer v151.0] 📝 Opening message input, pausing momento');
     setPaused(true);
     setShowMessageInput(true);
     
@@ -344,7 +342,7 @@ export default function MomentoViewer({
   };
 
   const handleCloseMessageInput = () => {
-    console.log('[MomentoViewer v150.0] ❌ Closing message input, resuming momento');
+    console.log('[MomentoViewer v151.0] ❌ Closing message input, resuming momento');
     setShowMessageInput(false);
     setMessageText('');
     setPaused(false);
@@ -363,7 +361,7 @@ export default function MomentoViewer({
 
     try {
       setSendingMessage(true);
-      console.log('[MomentoViewer v150.0] 📸 Starting momento message flow with text...');
+      console.log('[MomentoViewer v151.0] 📸 Starting momento message flow with text...');
       
       const screenshotUri = await captureMomentoScreenshot();
       
@@ -393,7 +391,7 @@ export default function MomentoViewer({
             .getPublicUrl(filePath);
           
           screenshotUrl = urlData.publicUrl;
-          console.log('[MomentoViewer v150.0] ✅ Screenshot uploaded:', screenshotUrl);
+          console.log('[MomentoViewer v151.0] ✅ Screenshot uploaded:', screenshotUrl);
         }
       }
 
@@ -437,7 +435,7 @@ export default function MomentoViewer({
           leido: false,
         });
 
-        console.log('[MomentoViewer v150.0] ✅ Momento message sent with screenshot and text');
+        console.log('[MomentoViewer v151.0] ✅ Momento message sent with screenshot and text');
 
         setShowMessageInput(false);
         setMessageText('');
@@ -452,7 +450,7 @@ export default function MomentoViewer({
         onClose();
       }
     } catch (error) {
-      console.error('[MomentoViewer v150.0] Error creating chat:', error);
+      console.error('[MomentoViewer v151.0] Error creating chat:', error);
       Alert.alert('Error', 'No se pudo crear la conversación');
     } finally {
       setSendingMessage(false);
@@ -465,7 +463,7 @@ export default function MomentoViewer({
     const currentMomento = momentos[currentIndex];
     if (!currentMomento) return;
 
-    console.log('[MomentoViewer v150.0] 📊 Opening stats, pausing momento');
+    console.log('[MomentoViewer v151.0] 📊 Opening stats, pausing momento');
     setPaused(true);
     
     if (progressAnimationRef.current) {
@@ -511,7 +509,7 @@ export default function MomentoViewer({
       setLikers(likersResult.data || []);
       setShowStats(true);
     } catch (error) {
-      console.error('[MomentoViewer v150.0] Error loading stats:', error);
+      console.error('[MomentoViewer v151.0] Error loading stats:', error);
     }
   };
 
@@ -577,7 +575,7 @@ export default function MomentoViewer({
 
       Alert.alert('✅ Reporte enviado', 'Gracias por ayudarnos a mantener la comunidad segura');
     } catch (error) {
-      console.error('[MomentoViewer v150.0] Error reporting momento:', error);
+      console.error('[MomentoViewer v151.0] Error reporting momento:', error);
       Alert.alert('Error', 'No se pudo enviar el reporte');
     }
   };
@@ -621,7 +619,7 @@ export default function MomentoViewer({
 
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (error) {
-              console.error('[MomentoViewer v150.0] Error deleting momento:', error);
+              console.error('[MomentoViewer v151.0] Error deleting momento:', error);
               Alert.alert('Error', 'No se pudo eliminar el Momento');
             }
           },
@@ -700,7 +698,7 @@ export default function MomentoViewer({
   };
 
   const handlePressIn = () => {
-    console.log('[MomentoViewer v150.0] 🛑 PAUSE - Touch detected');
+    console.log('[MomentoViewer v151.0] 🛑 PAUSE - Touch detected');
     
     setPaused(true);
     pauseTimeRef.current = Date.now();
@@ -719,7 +717,7 @@ export default function MomentoViewer({
   };
 
   const handlePressOut = () => {
-    console.log('[MomentoViewer v150.0] ▶️ RESUME - Touch released');
+    console.log('[MomentoViewer v151.0] ▶️ RESUME - Touch released');
     
     setPaused(false);
     
@@ -747,7 +745,7 @@ export default function MomentoViewer({
 
   useEffect(() => {
     if (visible && authorId) {
-      console.log('[MomentoViewer v150.0] Opening viewer for:', { authorId, authorType });
+      console.log('[MomentoViewer v151.0] Opening viewer for:', { authorId, authorType });
       loadMomentos();
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -765,7 +763,7 @@ export default function MomentoViewer({
 
   useEffect(() => {
     if (!paused && !showMessageInput && !showStats && momentos.length > 0 && !loading && visible) {
-      console.log('[MomentoViewer v150.0] ▶️ Starting/resuming progress for momento', currentIndex);
+      console.log('[MomentoViewer v151.0] ▶️ Starting/resuming progress for momento', currentIndex);
       
       if (progressTimerRef.current) {
         clearTimeout(progressTimerRef.current);
@@ -777,12 +775,12 @@ export default function MomentoViewer({
       const currentProgress = progressAnims[currentIndex]?.__getValue() || 0;
       const remainingDuration = MOMENTO_DURATION * (1 - currentProgress);
 
-      console.log('[MomentoViewer v150.0] Progress:', currentProgress.toFixed(3), '- Remaining:', remainingDuration.toFixed(0), 'ms');
+      console.log('[MomentoViewer v151.0] Progress:', currentProgress.toFixed(3), '- Remaining:', remainingDuration.toFixed(0), 'ms');
 
       progressStartTimeRef.current = Date.now();
 
       progressTimerRef.current = setTimeout(() => {
-        console.log('[MomentoViewer v150.0] ⏱️ Timer completed - moving to next');
+        console.log('[MomentoViewer v151.0] ⏱️ Timer completed - moving to next');
         handleNext();
       }, remainingDuration);
 
@@ -813,15 +811,12 @@ export default function MomentoViewer({
     return (
       <Modal 
         visible={visible} 
-        transparent={false} 
+        transparent={false}
         animationType="fade"
-        // ✅ CRITICAL FIX v150.0: ANDROID ONLY - Full-screen presentation (verified working)
-        presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
       >
         <StatusBar 
           barStyle="light-content" 
           backgroundColor="#000" 
-          // ✅ CRITICAL FIX v150.0: Hide status bar for true fullscreen on Android (verified working)
           hidden={Platform.OS === 'android'}
         />
         <View style={styles.loadingContainer}>
@@ -835,7 +830,7 @@ export default function MomentoViewer({
   const currentMomento = momentos[currentIndex];
   
   if (!currentMomento) {
-    console.error('[MomentoViewer v150.0] Current momento is undefined');
+    console.error('[MomentoViewer v151.0] Current momento is undefined');
     handleClose();
     return null;
   }
@@ -845,15 +840,12 @@ export default function MomentoViewer({
   return (
     <Modal 
       visible={visible} 
-      transparent={false} 
+      transparent={false}
       animationType="fade"
-      // ✅ CRITICAL FIX v150.0: ANDROID ONLY - Full-screen presentation (verified working)
-      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
     >
       <StatusBar 
         barStyle="light-content" 
         backgroundColor="#000" 
-        // ✅ CRITICAL FIX v150.0: Hide status bar for true fullscreen on Android (verified working)
         hidden={Platform.OS === 'android'}
       />
       <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
@@ -1227,7 +1219,6 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     position: 'absolute',
-    // ✅ ANDROID FIX v150.0: Adjusted for fullscreen mode (no status bar)
     top: Platform.OS === 'android' ? 20 : 50,
     left: 12,
     right: 12,
@@ -1252,7 +1243,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    // ✅ ANDROID FIX v150.0: Adjusted padding for fullscreen mode (no status bar)
     paddingTop: Platform.OS === 'android' ? 30 : 60,
     paddingHorizontal: 16,
     paddingBottom: 20,
@@ -1312,7 +1302,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     paddingHorizontal: 16,
     paddingTop: 16,
-    // ✅ ANDROID FIX v150.0: Adjusted bottom padding for Android
     paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
   messageInputClose: {
@@ -1354,7 +1343,6 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 16,
     paddingTop: 40,
-    // ✅ ANDROID FIX v150.0: Adjusted bottom padding for fullscreen mode
     paddingBottom: Platform.OS === 'android' ? 40 : 50,
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -1383,7 +1371,6 @@ const styles = StyleSheet.create({
   },
   statsContent: {
     padding: 20,
-    // ✅ ANDROID FIX v150.0: Extra padding for fullscreen mode
     paddingBottom: Platform.OS === 'android' ? 50 : 20,
   },
   statsHeader: {

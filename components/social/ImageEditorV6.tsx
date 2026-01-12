@@ -1,15 +1,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 ANDROID-ONLY FIXES v150.0 - IMAGE EDITOR COMPLETELY REMOVED FOR ANDROID
+ * 🚨 ANDROID-ONLY FIXES v151.0 - IMAGE EDITOR COMPLETELY REMOVED FOR ANDROID
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * CAMBIOS IMPLEMENTADOS v150.0 (ANDROID EXCLUSIVO):
+ * CAMBIOS IMPLEMENTADOS v151.0 (ANDROID EXCLUSIVO):
  * - ❌ ELIMINADO: Editor de imágenes completamente removido para Android
  * - ✅ Las imágenes se guardan directamente sin edición en Android
  * - ✅ iOS mantiene el editor de imágenes completo (diseño de referencia)
  * - ✅ Flujo simplificado para Android - sin pantalla de edición
  * - ✅ Todos los hooks declarados al inicio (cumple reglas de React)
+ * - ✅ NUEVO: Componente retorna null inmediatamente en Android
  * 
  * ARCHIVOS MODIFICADOS:
  * - components/social/ImageEditorV6.tsx (este archivo)
@@ -40,11 +41,9 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withDecay,
-  runOnJS,
 } from 'react-native-reanimated';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface ImageEditorV6Props {
   visible: boolean;
@@ -54,12 +53,12 @@ interface ImageEditorV6Props {
 }
 
 /**
- * ✅ IMAGE EDITOR v150.0 - ANDROID EDITOR COMPLETELY REMOVED
+ * ✅ IMAGE EDITOR v151.0 - ANDROID EDITOR COMPLETELY REMOVED
  * 
- * CRITICAL CHANGES v150.0 (ANDROID ONLY):
+ * CRITICAL CHANGES v151.0 (ANDROID ONLY):
  * - ❌ REMOVED: Image editor completely removed for Android
  * - ✅ Images are saved directly without editing on Android
- * - ✅ No editor screen shown on Android
+ * - ✅ No editor screen shown on Android - component returns null
  * - ✅ iOS keeps the full editor functionality (reference design)
  * - ✅ All hooks declared at the top (React rules compliant)
  * 
@@ -81,7 +80,7 @@ export default function ImageEditorV6({
   onClose,
   onSave,
 }: ImageEditorV6Props) {
-  // ✅ CRITICAL FIX v150.0: ALL HOOKS DECLARED AT THE TOP (React rules compliant)
+  // ✅ CRITICAL FIX v151.0: ALL HOOKS DECLARED AT THE TOP (React rules compliant)
   const [processing, setProcessing] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
@@ -97,10 +96,10 @@ export default function ImageEditorV6({
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
 
-  // ✅ CRITICAL FIX v150.0: ANDROID ONLY - Skip editor, save image directly
+  // ✅ CRITICAL FIX v151.0: ANDROID ONLY - Skip editor, save image directly
   useEffect(() => {
     if (visible && imageUri && Platform.OS === 'android') {
-      console.log('[ImageEditorV6 v150.0] 🤖 Android detected - skipping editor, saving directly');
+      console.log('[ImageEditorV6 v151.0] 🤖 Android detected - skipping editor, saving directly');
       // Save image immediately without showing editor
       onSave(imageUri);
       // Close the modal immediately
@@ -113,13 +112,13 @@ export default function ImageEditorV6({
     if (Platform.OS === 'android') return; // Skip for Android
     
     if (visible && imageUri) {
-      console.log('[ImageEditorV6 v150.0] 🖼️ Loading image (iOS only):', imageUri);
+      console.log('[ImageEditorV6 v151.0] 🖼️ Loading image (iOS only):', imageUri);
       setImageLoaded(false);
       
       Image.getSize(
         imageUri,
         (width, height) => {
-          console.log('[ImageEditorV6 v150.0] ✅ Image loaded:', { width, height });
+          console.log('[ImageEditorV6 v151.0] ✅ Image loaded:', { width, height });
           setImageDimensions({ width, height });
           setImageLoaded(true);
           
@@ -137,7 +136,7 @@ export default function ImageEditorV6({
           savedScale.value = scale.value;
         },
         (error) => {
-          console.error('[ImageEditorV6 v150.0] ❌ Error loading image:', error);
+          console.error('[ImageEditorV6 v151.0] ❌ Error loading image:', error);
           Alert.alert('Error', 'No se pudo cargar la imagen');
           setImageLoaded(false);
         }
@@ -145,7 +144,7 @@ export default function ImageEditorV6({
     }
   }, [visible, imageUri, savedScale, scale]);
 
-  // ✅ CRITICAL FIX v150.0: Animated style MUST be declared unconditionally
+  // ✅ CRITICAL FIX v151.0: Animated style MUST be declared unconditionally
   const animatedStyle = useAnimatedStyle(() => {
     if (Platform.OS === 'android') {
       // Return default style for Android (won't be used but must be declared)
@@ -161,10 +160,10 @@ export default function ImageEditorV6({
         { scaleY: flipVertical ? -1 : 1 },
       ],
     };
-  }, [rotation, flipHorizontal, flipVertical]); // ✅ Add dependencies
+  }, [rotation, flipHorizontal, flipVertical]);
 
   const resetTransform = () => {
-    console.log('[ImageEditorV6 v150.0] 🔄 Resetting all transformations');
+    console.log('[ImageEditorV6 v151.0] 🔄 Resetting all transformations');
     scale.value = withSpring(1);
     translateX.value = withSpring(0);
     translateY.value = withSpring(0);
@@ -177,22 +176,22 @@ export default function ImageEditorV6({
   };
 
   const handleRotateLeft = () => {
-    console.log('[ImageEditorV6 v150.0] ↶ Rotating left');
+    console.log('[ImageEditorV6 v151.0] ↶ Rotating left');
     setRotation((rotation - 90) % 360);
   };
 
   const handleRotateRight = () => {
-    console.log('[ImageEditorV6 v150.0] ↷ Rotating right');
+    console.log('[ImageEditorV6 v151.0] ↷ Rotating right');
     setRotation((rotation + 90) % 360);
   };
 
   const handleFlipHorizontal = () => {
-    console.log('[ImageEditorV6 v150.0] ↔️ Flipping horizontal');
+    console.log('[ImageEditorV6 v151.0] ↔️ Flipping horizontal');
     setFlipHorizontal(!flipHorizontal);
   };
 
   const handleFlipVertical = () => {
-    console.log('[ImageEditorV6 v150.0] ↕️ Flipping vertical');
+    console.log('[ImageEditorV6 v151.0] ↕️ Flipping vertical');
     setFlipVertical(!flipVertical);
   };
 
@@ -204,23 +203,23 @@ export default function ImageEditorV6({
 
     setProcessing(true);
     try {
-      console.log('[ImageEditorV6 v150.0] 🎨 Applying edits...');
+      console.log('[ImageEditorV6 v151.0] 🎨 Applying edits...');
       
       const actions: any[] = [];
 
       // Apply rotation
       if (rotation !== 0) {
-        console.log('[ImageEditorV6 v150.0] ↻ Applying rotation:', rotation);
+        console.log('[ImageEditorV6 v151.0] ↻ Applying rotation:', rotation);
         actions.push({ rotate: rotation });
       }
 
       // Apply flips
       if (flipHorizontal) {
-        console.log('[ImageEditorV6 v150.0] ↔️ Applying horizontal flip');
+        console.log('[ImageEditorV6 v151.0] ↔️ Applying horizontal flip');
         actions.push({ flip: ImageManipulator.FlipType.Horizontal });
       }
       if (flipVertical) {
-        console.log('[ImageEditorV6 v150.0] ↕️ Applying vertical flip');
+        console.log('[ImageEditorV6 v151.0] ↕️ Applying vertical flip');
         actions.push({ flip: ImageManipulator.FlipType.Vertical });
       }
 
@@ -230,7 +229,7 @@ export default function ImageEditorV6({
         const originX = (imageDimensions.width - size) / 2;
         const originY = (imageDimensions.height - size) / 2;
         
-        console.log('[ImageEditorV6 v150.0] ✂️ Cropping to square:', { size, originX, originY });
+        console.log('[ImageEditorV6 v151.0] ✂️ Cropping to square:', { size, originX, originY });
         
         actions.push({
           crop: {
@@ -242,7 +241,7 @@ export default function ImageEditorV6({
         });
       }
 
-      console.log('[ImageEditorV6 v150.0] 🔧 Total actions to apply:', actions.length);
+      console.log('[ImageEditorV6 v151.0] 🔧 Total actions to apply:', actions.length);
 
       // Apply all transformations
       const result = await ImageManipulator.manipulateAsync(
@@ -254,12 +253,12 @@ export default function ImageEditorV6({
         }
       );
 
-      console.log('[ImageEditorV6 v150.0] ✅ Edits applied successfully:', result.uri);
+      console.log('[ImageEditorV6 v151.0] ✅ Edits applied successfully:', result.uri);
       
       onSave(result.uri);
       resetTransform();
     } catch (error) {
-      console.error('[ImageEditorV6 v150.0] ❌ Error applying edits:', error);
+      console.error('[ImageEditorV6 v151.0] ❌ Error applying edits:', error);
       Alert.alert('Error', 'No se pudieron aplicar los cambios a la imagen');
     } finally {
       setProcessing(false);
@@ -273,9 +272,10 @@ export default function ImageEditorV6({
     }
   };
 
-  // ✅ CRITICAL FIX v150.0: ANDROID ONLY - Return null to prevent editor from showing
+  // ✅ CRITICAL FIX v151.0: ANDROID ONLY - Return null to prevent editor from showing
   // This check MUST come AFTER all hooks are declared
   if (Platform.OS === 'android') {
+    console.log('[ImageEditorV6 v151.0] 🤖 Android detected - returning null (no editor)');
     return null;
   }
 
