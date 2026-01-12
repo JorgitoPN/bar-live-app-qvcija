@@ -1345,7 +1345,7 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 16,
     paddingTop: 40,
-    paddingBottom: Platform.OS === 'android' ? 40 : 50,
+    paddingBottom: Platform.OS === 'android' ? 20 : 50,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -1373,7 +1373,7 @@ const styles = StyleSheet.create({
   },
   statsContent: {
     padding: 20,
-    paddingBottom: Platform.OS === 'android' ? 50 : 20,
+    paddingBottom: Platform.OS === 'android' ? 20 : 20,
   },
   statsHeader: {
     flexDirection: 'row',
