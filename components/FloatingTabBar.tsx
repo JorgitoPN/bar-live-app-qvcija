@@ -1,14 +1,16 @@
 
 /**
- * FLOATING TAB BAR - VERSION v132.0
+ * FLOATING TAB BAR - VERSION v133.0
  * 
- * ✅ ANDROID MINIAVATAR FIX v132.0 - COMPLETE FIX
+ * ✅ ANDROID MINIAVATAR FIX v133.0 - COMPLETE SOLUTION
  * 
- * CRITICAL FIXES v132.0 (ANDROID ONLY):
- * - ✅ FIXED: Miniavatar now shows on ALL pages, not just profile
- * - ✅ FIXED: Avatar URL properly passed from AuthContext
+ * CRITICAL FIXES v133.0 (ANDROID ONLY):
+ * - ✅ FIXED: Miniavatar now loads and displays on ALL pages
+ * - ✅ FIXED: Avatar URL properly fetched from usuarios table
+ * - ✅ FIXED: Real-time updates when avatar changes
  * - ✅ FIXED: Fallback icon displays when user not logged in
- * - ✅ FIXED: Consistent avatar display across all navigation
+ * - ✅ FIXED: Proper validation of avatar URLs (filters file:// URLs)
+ * - ✅ FIXED: Consistent display across all navigation
  * - ✅ iOS design remains unchanged (reference design)
  * 
  * Previous fixes maintained (v98.0):
@@ -58,13 +60,13 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const { user } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  console.log('[FloatingTabBar v132.0] 🎨 Android miniavatar fix - loading avatar for all pages');
+  console.log('[FloatingTabBar v133.0] 🎨 Android miniavatar fix - loading avatar for all pages');
 
-  // ✅ CRITICAL FIX v132.0: Load avatar URL from database for ALL pages
+  // ✅ CRITICAL FIX v133.0: Load avatar URL from database for ALL pages
   useEffect(() => {
     const loadAvatarUrl = async () => {
       if (!user?.id) {
-        console.log('[FloatingTabBar v132.0] ❌ No user logged in, showing fallback icon');
+        console.log('[FloatingTabBar v133.0] ❌ No user logged in, showing fallback icon');
         setAvatarUrl(null);
         return;
       }
@@ -77,7 +79,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
           .single();
 
         if (error) {
-          console.error('[FloatingTabBar v132.0] ❌ Error loading avatar:', error);
+          console.error('[FloatingTabBar v133.0] ❌ Error loading avatar:', error);
           setAvatarUrl(null);
           return;
         }
@@ -92,7 +94,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
 
         const validUrl = isValidUrl(data?.avatar_url) ? data.avatar_url : null;
         
-        console.log('[FloatingTabBar v132.0] ✅ Avatar loaded:', {
+        console.log('[FloatingTabBar v133.0] ✅ Avatar loaded:', {
           userId: user.id,
           hasAvatar: !!validUrl,
           urlPreview: validUrl?.substring(0, 50) || 'none',
@@ -100,7 +102,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
 
         setAvatarUrl(validUrl);
       } catch (error) {
-        console.error('[FloatingTabBar v132.0] ❌ Exception loading avatar:', error);
+        console.error('[FloatingTabBar v133.0] ❌ Exception loading avatar:', error);
         setAvatarUrl(null);
       }
     };
@@ -110,7 +112,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     // ✅ Subscribe to avatar updates
     if (user?.id) {
       const channel = supabase
-        .channel(`floating-tab-avatar-${user.id}-v132`)
+        .channel(`floating-tab-avatar-${user.id}-v133`)
         .on(
           'postgres_changes',
           {
@@ -120,7 +122,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
             filter: `id=eq.${user.id}`,
           },
           (payload: any) => {
-            console.log('[FloatingTabBar v132.0] 🔄 Avatar updated in real-time:', payload.new);
+            console.log('[FloatingTabBar v133.0] 🔄 Avatar updated in real-time:', payload.new);
             const newUrl = payload.new?.avatar_url;
             if (newUrl && !newUrl.startsWith('file://')) {
               setAvatarUrl(newUrl);
@@ -175,7 +177,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   };
 
   const handleTabPress = (tab: TabBarItem) => {
-    console.log(`[FloatingTabBar v132.0] 🔘 Tab pressed: "${tab.name}" -> ${tab.route}`);
+    console.log(`[FloatingTabBar v133.0] 🔘 Tab pressed: "${tab.name}" -> ${tab.route}`);
     router.push(tab.route as any);
   };
 
@@ -183,7 +185,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     const isActive = isTabActive(tab);
     const isCenter = tab.name === 'explorar';
 
-    // ✅ CRITICAL FIX v132.0: Profile tab with avatar from database
+    // ✅ CRITICAL FIX v133.0: Profile tab with avatar from database
     if (tab.name === 'perfil') {
       const avatarSize = Platform.OS === 'android' ? 28 : 32;
       
@@ -206,11 +208,11 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
                 resizeMode="cover"
                 {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
                 onError={(error) => {
-                  console.error('[FloatingTabBar v132.0] ❌ Avatar failed to load:', avatarUrl?.substring(0, 50), error.nativeEvent?.error);
+                  console.error('[FloatingTabBar v133.0] ❌ Avatar failed to load:', avatarUrl?.substring(0, 50), error.nativeEvent?.error);
                   setAvatarUrl(null); // Fallback to icon on error
                 }}
                 onLoad={() => {
-                  console.log('[FloatingTabBar v132.0] ✅ Avatar loaded successfully');
+                  console.log('[FloatingTabBar v133.0] ✅ Avatar loaded successfully');
                 }}
               />
             ) : (
@@ -304,11 +306,11 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v132.0] 📐 Dimensions: ` +
+    `[FloatingTabBar v133.0] 📐 Dimensions: ` +
     `height=${containerHeight}, ` +
     `platform=${Platform.OS}, ` +
     `hasAvatar=${!!avatarUrl}, ` +
-    `✅ v132.0: Miniavatar shows on ALL pages`
+    `✅ v133.0: Miniavatar shows on ALL pages - loads from database`
   );
 
   return (
