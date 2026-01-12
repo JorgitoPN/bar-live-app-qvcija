@@ -1,30 +1,20 @@
 
 /**
- * FLOATING TAB BAR - VERSION v158.0
+ * FLOATING TAB BAR - VERSION v159.0
  * 
- * ✅ ANDROID MINIAVATAR FIX v158.0 - ENHANCED IMAGE LOADING
+ * ✅ LINT FIXES v159.0 - REACT HOOKS COMPLIANCE
  * 
- * CRITICAL FIXES v158.0 (ANDROID ONLY):
- * - ✅ FIXED: Added key prop to Image for proper remounting
- * - ✅ FIXED: Enhanced error handling with fallback to placeholder
- * - ✅ FIXED: Better logging for debugging avatar issues
- * - ✅ FIXED: Proper cache control for Android
- * - ✅ VERIFIED: Avatar displays correctly on ALL pages
+ * CRITICAL FIXES v159.0:
+ * - ✅ FIXED: Moved React Hooks out of renderTab function into separate component
+ * - ✅ FIXED: ProfileTab component properly uses hooks at top level
+ * - ✅ FIXED: Removed unnecessary dependency from useEffect
+ * - ✅ COMPLIANT: All hooks now follow react-hooks/rules-of-hooks
  * 
- * Previous fixes maintained (v145.0):
- * - ✅ Uses correct 'avatar' column from database
- * - ✅ Miniavatar uses AvatarContext for persistent state
- * - ✅ Avatar displays correctly on ALL pages without losing state
- * - ✅ No more remounting issues when navigating
- * - ✅ Single source of truth for avatar URL
- * - ✅ Real-time updates when avatar changes
- * - ✅ Fallback icon displays when user not logged in
- * - ✅ iOS design remains unchanged (reference design)
- * 
- * Previous fixes maintained (v98.0):
- * - ✅ White strip above bottom menu eliminated
- * - ✅ Solid BarLive teal background throughout
- * - ✅ Proper z-index layering
+ * Previous fixes maintained (v158.0):
+ * - ✅ Enhanced image loading with key prop for proper remounting
+ * - ✅ Better error handling with fallback to placeholder
+ * - ✅ Proper cache control for Android
+ * - ✅ Avatar displays correctly on ALL pages
  */
 
 import React from 'react';
@@ -61,14 +51,98 @@ interface FloatingTabBarProps {
 // ✅ CRITICAL FIX v98.0: Explicitly define BarLive color
 const BARLIVE_COLOR = '#14B8A6';
 
+// ✅ CRITICAL FIX v159.0: Separate component for profile tab to properly use hooks
+interface ProfileTabProps {
+  isActive: boolean;
+  onPress: () => void;
+  avatarUrl: string | null;
+}
+
+function ProfileTab({ isActive, onPress, avatarUrl }: ProfileTabProps) {
+  const avatarSize = Platform.OS === 'android' ? 28 : 32;
+  const [imageError, setImageError] = React.useState(false);
+  const [imageLoaded, setImageLoaded] = React.useState(false);
+  
+  console.log('[FloatingTabBar v159.0] 🎨 Rendering profile tab:', {
+    hasAvatarUrl: !!avatarUrl,
+    avatarUrlPreview: avatarUrl?.substring(0, 50),
+    isActive,
+    imageError,
+    imageLoaded,
+  });
+  
+  // ✅ v159.0: Reset error state when URL changes
+  React.useEffect(() => {
+    setImageError(false);
+    setImageLoaded(false);
+  }, [avatarUrl]);
+  
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={styles.tab}
+      activeOpacity={0.7}
+    >
+      <View style={[
+        styles.avatarContainer,
+        { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 },
+        isActive && styles.avatarContainerActive
+      ]}>
+        {avatarUrl && !imageError ? (
+          <>
+            <Image
+              key={`avatar-${avatarUrl}`}
+              source={{ uri: avatarUrl }}
+              style={styles.avatar}
+              resizeMode="cover"
+              onError={(error) => {
+                console.error('[FloatingTabBar v159.0] ❌ Avatar failed to load:', {
+                  url: avatarUrl?.substring(0, 50),
+                  error: error.nativeEvent?.error,
+                });
+                setImageError(true);
+                setImageLoaded(false);
+              }}
+              onLoad={() => {
+                console.log('[FloatingTabBar v159.0] ✅ Avatar loaded successfully');
+                setImageError(false);
+                setImageLoaded(true);
+              }}
+            />
+            {!imageLoaded && (
+              <View style={[styles.avatar, styles.avatarPlaceholder, StyleSheet.absoluteFillObject]}>
+                <IconSymbol
+                  ios_icon_name="person.fill"
+                  android_material_icon_name="person"
+                  size={Platform.OS === 'android' ? 18 : 22}
+                  color={isActive ? colors.primary : 'rgba(255, 255, 255, 0.7)'}
+                />
+              </View>
+            )}
+          </>
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <IconSymbol
+              ios_icon_name="person.fill"
+              android_material_icon_name="person"
+              size={Platform.OS === 'android' ? 18 : 22}
+              color={isActive ? colors.primary : 'rgba(255, 255, 255, 0.7)'}
+            />
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: FloatingTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { avatarUrl, isLoading } = useAvatar(); // ✅ v145.0: Use AvatarContext
+  const { avatarUrl, isLoading } = useAvatar();
 
-  console.log('[FloatingTabBar v145.0] 🎨 Using AvatarContext - avatar persists across navigation');
+  console.log('[FloatingTabBar v159.0] 🎨 Using AvatarContext - avatar persists across navigation');
 
   const isTabActive = (tab: TabBarItem): boolean => {
     const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
@@ -110,91 +184,37 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   };
 
   const handleTabPress = (tab: TabBarItem) => {
-    console.log(`[FloatingTabBar v140.0] 🔘 Tab pressed: "${tab.name}" -> ${tab.route}`);
+    console.log(`[FloatingTabBar v159.0] 🔘 Tab pressed: "${tab.name}" -> ${tab.route}`);
     router.push(tab.route as any);
+  };
+
+  // Helper to convert iOS icon names to Android Material icons
+  const getAndroidIcon = (iosIcon: string): string => {
+    const iconMap: Record<string, string> = {
+      'calendar': 'event',
+      'heart.fill': 'favorite',
+      'sparkles': 'explore',
+      'person.2.fill': 'people',
+      'person.fill': 'person',
+      'briefcase.fill': 'work',
+      'gear': 'settings',
+    };
+    return iconMap[iosIcon] || iosIcon;
   };
 
   const renderTab = (tab: TabBarItem, index: number) => {
     const isActive = isTabActive(tab);
     const isCenter = tab.name === 'explorar';
 
-    // ✅ CRITICAL FIX v158.0: Profile tab with avatar from AvatarContext + enhanced error handling
+    // ✅ CRITICAL FIX v159.0: Use ProfileTab component for profile tab
     if (tab.name === 'perfil') {
-      const avatarSize = Platform.OS === 'android' ? 28 : 32;
-      const [imageError, setImageError] = React.useState(false);
-      const [imageLoaded, setImageLoaded] = React.useState(false);
-      
-      console.log('[FloatingTabBar v158.0] 🎨 Rendering profile tab:', {
-        hasAvatarUrl: !!avatarUrl,
-        avatarUrlPreview: avatarUrl?.substring(0, 50),
-        isActive,
-        imageError,
-        imageLoaded,
-      });
-      
-      // ✅ v158.0: Reset error state when URL changes
-      React.useEffect(() => {
-        setImageError(false);
-        setImageLoaded(false);
-      }, [avatarUrl]);
-      
       return (
-        <TouchableOpacity
+        <ProfileTab
           key={tab.name}
+          isActive={isActive}
           onPress={() => handleTabPress(tab)}
-          style={styles.tab}
-          activeOpacity={0.7}
-        >
-          <View style={[
-            styles.avatarContainer,
-            { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 },
-            isActive && styles.avatarContainerActive
-          ]}>
-            {avatarUrl && !imageError ? (
-              <>
-                <Image
-                  key={`avatar-${avatarUrl}`} // ✅ v158.0: Force remount when URL changes
-                  source={{ uri: avatarUrl }}
-                  style={styles.avatar}
-                  resizeMode="cover"
-                  onError={(error) => {
-                    console.error('[FloatingTabBar v158.0] ❌ Avatar failed to load:', {
-                      url: avatarUrl?.substring(0, 50),
-                      error: error.nativeEvent?.error,
-                    });
-                    setImageError(true); // ✅ v158.0: Show fallback on error
-                    setImageLoaded(false);
-                  }}
-                  onLoad={() => {
-                    console.log('[FloatingTabBar v158.0] ✅ Avatar loaded successfully');
-                    setImageError(false);
-                    setImageLoaded(true);
-                  }}
-                />
-                {/* ✅ v158.0: Show placeholder while loading */}
-                {!imageLoaded && (
-                  <View style={[styles.avatar, styles.avatarPlaceholder, StyleSheet.absoluteFillObject]}>
-                    <IconSymbol
-                      ios_icon_name="person.fill"
-                      android_material_icon_name="person"
-                      size={Platform.OS === 'android' ? 18 : 22}
-                      color={isActive ? colors.primary : 'rgba(255, 255, 255, 0.7)'}
-                    />
-                  </View>
-                )}
-              </>
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <IconSymbol
-                  ios_icon_name="person.fill"
-                  android_material_icon_name="person"
-                  size={Platform.OS === 'android' ? 18 : 22}
-                  color={isActive ? colors.primary : 'rgba(255, 255, 255, 0.7)'}
-                />
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
+          avatarUrl={avatarUrl}
+        />
       );
     }
 
@@ -254,32 +274,18 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     );
   };
 
-  // Helper to convert iOS icon names to Android Material icons
-  const getAndroidIcon = (iosIcon: string): string => {
-    const iconMap: Record<string, string> = {
-      'calendar': 'event',
-      'heart.fill': 'favorite',
-      'sparkles': 'explore',
-      'person.2.fill': 'people',
-      'person.fill': 'person',
-      'briefcase.fill': 'work',
-      'gear': 'settings',
-    };
-    return iconMap[iosIcon] || iosIcon;
-  };
-
   // Calculate dimensions
   const bottomNavHeight = Platform.OS === 'android' ? 60 : 70;
   const tabBarPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 8) : Math.max(insets.bottom, 12);
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v145.0] 📐 Dimensions: ` +
+    `[FloatingTabBar v159.0] 📐 Dimensions: ` +
     `height=${containerHeight}, ` +
     `platform=${Platform.OS}, ` +
     `hasAvatar=${!!avatarUrl}, ` +
     `isLoading=${isLoading}, ` +
-    `✅ v145.0: Miniavatar uses AvatarContext with correct 'avatar' column - persists on ALL pages`
+    `✅ v159.0: Hooks compliance fixed - ProfileTab component`
   );
 
   return (
