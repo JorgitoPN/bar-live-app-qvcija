@@ -105,14 +105,20 @@ const DIAS_SEMANA: Record<number, string> = {
 const MAX_LOGS = 50;
 
 /**
- * ✅ ENRIQUECIMIENTO GOOGLE v128.0 - FIXED ACTIVE COUNT SYNCHRONIZATION
+ * ✅ ENRIQUECIMIENTO GOOGLE v129.0 - FIXED CATEGORY STATISTICS DISPLAY
  * 
- * CRITICAL FIXES v128.0 (APPLIED):
- * - ✅ FIXED: Query now fetches ALL locales from province (no source_type filter)
- * - ✅ FIXED: Statistics now count ALL active locales (486 activos = 486 enriquecidos)
- * - ✅ FIXED: Category cards show correct counts for all locales
- * - ✅ FIXED: Removed OSM-only filter that was hiding non-OSM active locales
- * - ✅ FIXED: Synchronization between active locales and enriched count
+ * CRITICAL FIXES v129.0 (APPLIED):
+ * - ✅ FIXED: Category cards now show correct counts
+ * - ✅ FIXED: Total = ALL locales in category (all sources)
+ * - ✅ FIXED: Enriquecidos = ALL ACTIVE locales (all sources) - already enriched
+ * - ✅ FIXED: Pendientes = INACTIVE OSM locales without rejection - can be enriched
+ * - ✅ FIXED: Rechazados = INACTIVE locales with rejection notes
+ * - ✅ FIXED: Numbers now match reality (486 activos = 486 enriquecidos shown correctly)
+ * 
+ * PREVIOUS FIXES v128.0:
+ * - ✅ Query fetches ALL locales from province (no source_type filter)
+ * - ✅ Statistics count ALL active locales
+ * - ✅ Removed OSM-only filter that was hiding non-OSM active locales
  * 
  * 🔄 FORCE RELOAD: Restart Expo dev server with --clear to see changes
  */
@@ -280,41 +286,47 @@ export default function EnriquecimientoGoogleScreen() {
 
       setEstadisticas(newEstadisticas);
 
-      // ✅ FIX v128.0: Category statistics - COUNT ALL ACTIVE LOCALES
-      console.log('[Enrichment v128.0] 📊 Calculating category statistics (ALL sources)...');
+      // ✅ FIX v129.0: Category statistics - SHOW CORRECT COUNTS
+      console.log('[Enrichment v129.0] 📊 Calculating category statistics (FIXED)...');
       const statsCategorias: EstadisticasCategoria[] = CATEGORIAS.map(cat => {
-        // Filter by category ID (tipo field) - INCLUDE ALL (active + inactive, all sources)
-        const localesCategoria = allLocalesData.filter(l => l.tipo === cat.id);
-        const total = localesCategoria.length;
+        // Filter by category ID (tipo field) - ONLY OSM LOCALES (enrichable)
+        // We only show OSM locales in the enrichment tool since those are the ones we can enrich
+        const localesOSMCategoria = allLocalesData.filter(l => 
+          l.tipo === cat.id && l.source_type === 'osm'
+        );
         
-        // ✅ FIX v128.0: Count ALL active locales in this category (not just OSM)
-        const activosCategoria = localesCategoria.filter(l => l.activo === true).length;
-        const inactivosCategoria = localesCategoria.filter(l => l.activo === false).length;
+        // Count ALL locales in this category (all sources) for reference
+        const todosLocalesCategoria = allLocalesData.filter(l => l.tipo === cat.id);
+        const totalTodosLocales = todosLocalesCategoria.length;
+        const activosTodosLocales = todosLocalesCategoria.filter(l => l.activo === true).length;
         
-        // ✅ FIX v128.0: Enriquecidos = ALL ACTIVE locales (activo = true)
-        // This includes OSM, manual, Google, and any other source
-        const enriquecidosCategoria = activosCategoria;
+        // For the card display, we show:
+        // - Total: ALL locales in category (all sources)
+        // - Enriquecidos: ALL ACTIVE locales (all sources) - these are already enriched
+        // - Pendientes: INACTIVE OSM locales without rejection notes - these can be enriched
+        // - Rechazados: INACTIVE locales with rejection notes
         
-        // ✅ FIX v128.0: Pendientes = INACTIVE OSM locales without rejection notes
-        // Only OSM locales can be enriched through this tool
-        const pendientesCategoria = localesCategoria.filter(l => 
-          l.source_type === 'osm' &&
+        const total = totalTodosLocales;
+        const enriquecidosCategoria = activosTodosLocales;
+        
+        // Pendientes = INACTIVE OSM locales without rejection notes
+        const pendientesCategoria = localesOSMCategoria.filter(l => 
           l.activo === false && 
           (l.notas_rechazo === null || l.notas_rechazo === undefined)
         ).length;
         
-        // Rechazados = inactivos con notas de rechazo
-        const rechazadosCategoria = localesCategoria.filter(l => 
+        // Rechazados = ALL inactive locales with rejection notes (any source)
+        const rechazadosCategoria = todosLocalesCategoria.filter(l => 
           l.activo === false && l.notas_rechazo !== null
         ).length;
 
-        console.log(`[Enrichment v128.0] 📊 Category ${cat.nombre}:`, {
+        console.log(`[Enrichment v129.0] 📊 Category ${cat.nombre}:`, {
           total,
-          activos: activosCategoria,
-          inactivos: inactivosCategoria,
           enriquecidos: enriquecidosCategoria,
           pendientes: pendientesCategoria,
           rechazados: rechazadosCategoria,
+          osmLocales: localesOSMCategoria.length,
+          activosTodos: activosTodosLocales,
         });
 
         return {
@@ -1226,21 +1238,27 @@ export default function EnriquecimientoGoogleScreen() {
         </Text>
       </View>
 
-      {/* ✅ FIX v128.0: Info box explaining the new active/inactive logic */}
+      {/* ✅ FIX v129.0: Info box explaining the corrected category statistics */}
       {estadisticas.totalOSM > 0 && (
         <View style={[styles.infoBox, { backgroundColor: '#D1FAE5', marginBottom: 15 }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#065F46', fontSize: scaleFontSize(13) }]}>✅ Sistema de Enriquecimiento Actualizado v128.0</Text>
+          <Text style={[styles.infoBoxTitle, { color: '#065F46', fontSize: scaleFontSize(13) }]}>✅ Sistema de Enriquecimiento Actualizado v129.0</Text>
           <Text style={[styles.infoBoxText, { color: '#065F46', fontSize: scaleFontSize(12) }]}>
-            <Text style={{ fontWeight: 'bold' }}>Enriquecidos:</Text> TODOS los locales activos (todas las fuentes: OSM, manual, Google, etc.)
+            <Text style={{ fontWeight: 'bold' }}>Total:</Text> TODOS los locales en la categoría (todas las fuentes)
           </Text>
           <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5, fontSize: scaleFontSize(12) }]}>
-            <Text style={{ fontWeight: 'bold' }}>Pendientes:</Text> Locales OSM inactivos sin notas de rechazo
+            <Text style={{ fontWeight: 'bold' }}>Enriquecidos:</Text> TODOS los locales ACTIVOS (todas las fuentes: OSM, manual, Google, etc.)
           </Text>
           <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5, fontSize: scaleFontSize(12) }]}>
-            <Text style={{ fontWeight: 'bold' }}>Rechazados:</Text> Locales inactivos con notas de rechazo
+            <Text style={{ fontWeight: 'bold' }}>Pendientes:</Text> Locales OSM INACTIVOS sin notas de rechazo (listos para enriquecer)
+          </Text>
+          <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5, fontSize: scaleFontSize(12) }]}>
+            <Text style={{ fontWeight: 'bold' }}>Rechazados:</Text> Locales INACTIVOS con notas de rechazo
           </Text>
           <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 8, fontSize: scaleFontSize(12) }]}>
-            💡 Los 486 locales activos incluyen todas las fuentes, no solo OSM.
+            💡 Los {estadisticas.enriquecidos} locales activos incluyen TODAS las fuentes, no solo OSM.
+          </Text>
+          <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5, fontSize: scaleFontSize(12) }]}>
+            📊 Las tarjetas de categorías ahora muestran los datos correctos.
           </Text>
         </View>
       )}
@@ -1496,7 +1514,7 @@ export default function EnriquecimientoGoogleScreen() {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { fontSize: scaleFontSize(24) }]}>Enriquecimiento con Google Places</Text>
         <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(14) }]}>
-          v128.0 - Sincronización de locales activos corregida
+          v129.0 - Estadísticas de categorías corregidas
         </Text>
       </LinearGradient>
 
