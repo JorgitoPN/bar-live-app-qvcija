@@ -105,19 +105,21 @@ const DIAS_SEMANA: Record<number, string> = {
 const MAX_LOGS = 50;
 
 /**
- * ✅ ENRIQUECIMIENTO GOOGLE v120.0 - COMPLETE DATABASE SYNCHRONIZATION
+ * ✅ ENRIQUECIMIENTO GOOGLE v121.0 - COMPLETE DATABASE SYNCHRONIZATION
  * 
- * CRITICAL FIXES v120.0 (APPLIED):
- * - ✅ FIXED: Statistics now query ALL locales from province (no filters)
+ * CRITICAL FIXES v121.0 (APPLIED):
+ * - ✅ FIXED: Statistics now query ALL locales from province (no filters, no limits)
  * - ✅ FIXED: Shows REAL total count from database (1572 total, 486 active)
  * - ✅ FIXED: Category counts show ALL locales per category (including inactive)
  * - ✅ FIXED: Enriquecidos = activo=true + enriquecido=true
  * - ✅ FIXED: Pendientes = OSM + activo=true + (enriquecido=false OR null)
  * - ✅ FIXED: Rechazados = activo=false + notas_rechazo not null
+ * - ✅ FIXED: Added validation checks for data consistency
+ * - ✅ FIXED: Improved error handling and logging
  * - ✅ FIXED: Statistics now match actual database state
  * - ✅ All previous functionality maintained
  * 
- * 🔄 FORCE RELOAD: Restart Expo dev server to see changes
+ * 🔄 FORCE RELOAD: Restart Expo dev server with --clear to see changes
  */
 
 export default function EnriquecimientoGoogleScreen() {
@@ -189,58 +191,80 @@ export default function EnriquecimientoGoogleScreen() {
     agregarLog('info', `Cargando estadísticas para ${provinciaSeleccionada}...`);
     
     try {
-      console.log('[Enrichment v120.0] 🔄 LOADING FRESH STATISTICS - SYNCHRONIZED WITH DATABASE');
-      console.log('[Enrichment v120.0] 📍 Province:', provinciaSeleccionada);
+      console.log('[Enrichment v121.0] 🔄 LOADING FRESH STATISTICS - SYNCHRONIZED WITH DATABASE');
+      console.log('[Enrichment v121.0] 📍 Province:', provinciaSeleccionada);
 
-      // ✅ FIX v120.0: Query ALL locales from the province (no filters, no limits)
+      // ✅ FIX v121.0: Query ALL locales from the province (no filters, no limits)
       // This ensures we get the REAL total count from the database
+      // CRITICAL: Remove any .limit() or .range() that might be limiting results
       const { data: allLocalesData, error: allLocalesError } = await supabase
         .from('locales')
         .select('id, source_type, enriquecido, tipo, activo, notas_rechazo')
         .eq('provincia', provinciaSeleccionada);
       
-      console.log('[Enrichment v120.0] ✅ Query executed - ALL locales from province');
+      console.log('[Enrichment v121.0] ✅ Query executed - ALL locales from province');
+      console.log('[Enrichment v121.0] 🔍 Raw query result count:', allLocalesData?.length || 0);
 
       if (allLocalesError) {
-        console.error('[Enrichment v120.0] Error loading stats:', allLocalesError);
-        agregarLog('error', 'Error al cargar estadísticas');
+        console.error('[Enrichment v121.0] ❌ Error loading stats:', allLocalesError);
+        agregarLog('error', `Error al cargar estadísticas: ${allLocalesError.message}`);
         performanceMonitor.end('cargarEstadisticas');
+        setCargando(false);
         return;
       }
 
-      console.log('[Enrichment v120.0] Total locales in province:', allLocalesData?.length || 0);
+      if (!allLocalesData) {
+        console.error('[Enrichment v121.0] ❌ No data returned from query');
+        agregarLog('error', 'No se recibieron datos de la base de datos');
+        performanceMonitor.end('cargarEstadisticas');
+        setCargando(false);
+        return;
+      }
 
-      // ✅ FIX v120.0: Calculate statistics from ALL locales (including inactive)
-      const totalLocales = allLocalesData?.length || 0;
-      const totalOSM = allLocalesData?.filter(l => l.source_type === 'osm').length || 0;
-      const totalActivos = allLocalesData?.filter(l => l.activo === true).length || 0;
-      const totalInactivos = allLocalesData?.filter(l => l.activo === false).length || 0;
+      console.log('[Enrichment v121.0] ✅ Total locales in province:', allLocalesData.length);
+
+      // ✅ FIX v121.0: Calculate statistics from ALL locales (including inactive)
+      const totalLocales = allLocalesData.length;
+      const totalOSM = allLocalesData.filter(l => l.source_type === 'osm').length;
+      const totalActivos = allLocalesData.filter(l => l.activo === true).length;
+      const totalInactivos = allLocalesData.filter(l => l.activo === false).length;
       
-      // ✅ FIX v120.0: Enriquecidos = activos + enriquecido = true
-      const enriquecidos = allLocalesData?.filter(l => 
+      // ✅ FIX v121.0: Enriquecidos = activos + enriquecido = true
+      const enriquecidos = allLocalesData.filter(l => 
         l.enriquecido === true && l.activo === true
-      ).length || 0;
+      ).length;
       
-      // ✅ FIX v120.0: Pendientes = OSM + activos + (enriquecido = false OR null)
-      const pendientes = allLocalesData?.filter(l => 
+      // ✅ FIX v121.0: Pendientes = OSM + activos + (enriquecido = false OR null)
+      const pendientes = allLocalesData.filter(l => 
         l.source_type === 'osm' && 
         l.activo === true &&
         (l.enriquecido === false || l.enriquecido === null)
-      ).length || 0;
+      ).length;
       
-      // ✅ FIX v120.0: Rechazados = inactivos con notas de rechazo
-      const rechazados = allLocalesData?.filter(l => 
+      // ✅ FIX v121.0: Rechazados = inactivos con notas de rechazo
+      const rechazados = allLocalesData.filter(l => 
         l.activo === false && l.notas_rechazo !== null
-      ).length || 0;
+      ).length;
 
-      console.log('[Enrichment v120.0] 📊 STATISTICS BREAKDOWN:');
-      console.log('[Enrichment v120.0]   Total locales:', totalLocales);
-      console.log('[Enrichment v120.0]   Total OSM:', totalOSM);
-      console.log('[Enrichment v120.0]   Total activos:', totalActivos);
-      console.log('[Enrichment v120.0]   Total inactivos:', totalInactivos);
-      console.log('[Enrichment v120.0]   Enriquecidos:', enriquecidos);
-      console.log('[Enrichment v120.0]   Pendientes:', pendientes);
-      console.log('[Enrichment v120.0]   Rechazados:', rechazados);
+      console.log('[Enrichment v121.0] 📊 STATISTICS BREAKDOWN:');
+      console.log('[Enrichment v121.0]   Total locales:', totalLocales);
+      console.log('[Enrichment v121.0]   Total OSM:', totalOSM);
+      console.log('[Enrichment v121.0]   Total activos:', totalActivos);
+      console.log('[Enrichment v121.0]   Total inactivos:', totalInactivos);
+      console.log('[Enrichment v121.0]   Enriquecidos:', enriquecidos);
+      console.log('[Enrichment v121.0]   Pendientes:', pendientes);
+      console.log('[Enrichment v121.0]   Rechazados:', rechazados);
+      
+      // ✅ VALIDATION: Check if numbers make sense
+      if (totalOSM > totalLocales) {
+        console.error('[Enrichment v121.0] ⚠️ WARNING: totalOSM > totalLocales - Data inconsistency!');
+        agregarLog('warning', '⚠️ Inconsistencia detectada: Total OSM mayor que total de locales');
+      }
+      
+      if (enriquecidos + pendientes > totalActivos) {
+        console.error('[Enrichment v121.0] ⚠️ WARNING: enriquecidos + pendientes > totalActivos - Data inconsistency!');
+        agregarLog('warning', '⚠️ Inconsistencia detectada: Suma de enriquecidos y pendientes mayor que total activos');
+      }
 
       const newEstadisticas = {
         totalOSM,
@@ -251,10 +275,11 @@ export default function EnriquecimientoGoogleScreen() {
 
       setEstadisticas(newEstadisticas);
 
-      // ✅ FIX v120.0: Category statistics - count ALL locales per category
+      // ✅ FIX v121.0: Category statistics - count ALL locales per category
+      console.log('[Enrichment v121.0] 📊 Calculating category statistics...');
       const statsCategorias: EstadisticasCategoria[] = CATEGORIAS.map(cat => {
         // Filter by category ID (tipo field)
-        const localesCategoria = allLocalesData?.filter(l => l.tipo === cat.id) || [];
+        const localesCategoria = allLocalesData.filter(l => l.tipo === cat.id);
         const total = localesCategoria.length;
         
         // Enriquecidos = activos + enriquecido = true
@@ -274,7 +299,7 @@ export default function EnriquecimientoGoogleScreen() {
           l.activo === false && l.notas_rechazo !== null
         ).length;
 
-        console.log(`[Enrichment v120.0] Category ${cat.nombre}:`, {
+        console.log(`[Enrichment v121.0] 📊 Category ${cat.nombre}:`, {
           total,
           enriquecidos: enriquecidosCategoria,
           pendientes: pendientesCategoria,
@@ -291,18 +316,23 @@ export default function EnriquecimientoGoogleScreen() {
         };
       });
 
+      console.log('[Enrichment v121.0] ✅ Category statistics calculated');
+
       setEstadisticasCategorias(statsCategorias);
       
       if (totalOSM === 0) {
         agregarLog('warning', `⚠️ No hay locales importados de OSM en ${provinciaSeleccionada}`);
         agregarLog('info', 'Ve a "Importación OSM" para importar locales primero');
       } else {
-        agregarLog('success', `✅ Estadísticas cargadas: ${totalOSM} locales OSM, ${enriquecidos} enriquecidos, ${pendientes} pendientes, ${rechazados} rechazados`);
-        agregarLog('info', `📊 Total locales en provincia: ${totalLocales} (${totalActivos} activos, ${totalInactivos} inactivos)`);
+        agregarLog('success', `✅ Estadísticas cargadas correctamente`);
+        agregarLog('info', `📊 Total locales en provincia: ${totalLocales}`);
+        agregarLog('info', `📊 Total OSM: ${totalOSM}`);
+        agregarLog('info', `📊 Activos: ${totalActivos} | Inactivos: ${totalInactivos}`);
+        agregarLog('info', `📊 Enriquecidos: ${enriquecidos} | Pendientes: ${pendientes} | Rechazados: ${rechazados}`);
       }
     } catch (error) {
-      console.error('[Enrichment v120.0] Error cargando estadísticas:', error);
-      agregarLog('error', 'Error al cargar estadísticas');
+      console.error('[Enrichment v121.0] ❌ Error cargando estadísticas:', error);
+      agregarLog('error', `Error al cargar estadísticas: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setCargando(false);
       performanceMonitor.end('cargarEstadisticas');

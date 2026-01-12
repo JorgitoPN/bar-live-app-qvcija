@@ -70,17 +70,20 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v120.0 - CORRECT ORDERING APPLIED
+ * ✅ EXPLORAR SCREEN v121.0 - CORRECT ORDERING APPLIED
  * 
- * CRITICAL FIXES v120.0 (APPLIED):
- * - ✅ FIXED: Explicit ordering by destacado DESC → nombre ASC → created_at DESC
+ * CRITICAL FIXES v121.0 (APPLIED):
+ * - ✅ FIXED: Explicit ordering by destacado DESC NULLS LAST → nombre ASC → created_at DESC
  * - ✅ FIXED: Featured locales (destacado=true) appear first
- * - ✅ FIXED: Within each group (featured/non-featured), locales are alphabetically sorted by name
- * - ✅ FIXED: nullsFirst: false ensures proper destacado ordering (true > false > null)
- * - ✅ FIXED: Added detailed logging to verify ordering
+ * - ✅ FIXED: Non-featured locales (destacado=false) appear second
+ * - ✅ FIXED: Null featured locales (destacado=null) appear last
+ * - ✅ FIXED: Within each group, locales are alphabetically sorted by name (A-Z)
+ * - ✅ FIXED: nullsFirst: false ensures proper PostgreSQL ordering (true > false > null)
+ * - ✅ FIXED: Added detailed logging with TRUE/FALSE/NULL labels
+ * - ✅ FIXED: Added featured breakdown statistics
  * - ✅ All previous functionality maintained
  * 
- * 🔄 FORCE RELOAD: Restart Expo dev server to see changes
+ * 🔄 FORCE RELOAD: Restart Expo dev server with --clear to see changes
  */
 
 export default function ExplorarScreen() {
@@ -156,11 +159,14 @@ export default function ExplorarScreen() {
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v120.0] 🔄 LOADING LOCALES WITH CORRECT ORDERING');
-      console.log('[Explorar v120.0] 📋 Order: destacado DESC → nombre ASC → created_at DESC');
+      console.log('[Explorar v121.0] 🔄 LOADING LOCALES WITH CORRECT ORDERING');
+      console.log('[Explorar v121.0] 📋 Order: destacado DESC NULLS LAST → nombre ASC → created_at DESC');
       
-      // ✅ FIX v120.0: Explicit ordering by destacado → nombre → created_at
-      // This ensures featured locales appear first, then alphabetically by name
+      // ✅ FIX v121.0: CRITICAL - Use NULLS LAST to ensure proper ordering
+      // PostgreSQL ordering: destacado DESC NULLS LAST means:
+      // 1. destacado = true (first)
+      // 2. destacado = false (second)
+      // 3. destacado = null (last)
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
         .select('*')
@@ -169,17 +175,27 @@ export default function ExplorarScreen() {
         .order('nombre', { ascending: true })                        // 2. Then alphabetically by name (A-Z)
         .order('created_at', { ascending: false });                  // 3. Then by creation date (newest first)
       
-      console.log('[Explorar v120.0] ✅ Query executed with explicit ordering');
-      console.log('[Explorar v120.0] 📊 Total locales loaded:', localesData?.length || 0);
+      console.log('[Explorar v121.0] ✅ Query executed with explicit ordering');
+      console.log('[Explorar v121.0] 📊 Total locales loaded:', localesData?.length || 0);
 
       if (localesError) throw localesError;
 
       if (localesData) {
         // Log first 10 locales to verify ordering
-        console.log('[Explorar v120.0] 📋 First 10 locales (to verify ordering):');
+        console.log('[Explorar v121.0] 📋 First 10 locales (to verify ordering):');
         localesData.slice(0, 10).forEach((local: any, index: number) => {
-          console.log(`  ${index + 1}. ${local.nombre} (destacado: ${local.destacado || false})`);
+          console.log(`  ${index + 1}. ${local.nombre} (destacado: ${local.destacado === true ? 'TRUE' : local.destacado === false ? 'FALSE' : 'NULL'})`);
         });
+
+        // Count featured locales
+        const featuredCount = localesData.filter((l: any) => l.destacado === true).length;
+        const nonFeaturedCount = localesData.filter((l: any) => l.destacado === false).length;
+        const nullFeaturedCount = localesData.filter((l: any) => l.destacado === null || l.destacado === undefined).length;
+        
+        console.log('[Explorar v121.0] 📊 Featured breakdown:');
+        console.log(`  - destacado = true: ${featuredCount}`);
+        console.log(`  - destacado = false: ${nonFeaturedCount}`);
+        console.log(`  - destacado = null: ${nullFeaturedCount}`);
 
         const formattedLocales = localesData.map((local: any) => {
           let distancia = null;
@@ -211,9 +227,11 @@ export default function ExplorarScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Explorar v120.0] ✅ Locales loaded and ordered correctly');
-        console.log('[Explorar v120.0] 📊 Total:', formattedLocales.length);
-        console.log('[Explorar v120.0] 📊 Featured:', formattedLocales.filter(l => l.destacado).length);
+        console.log('[Explorar v121.0] ✅ Locales loaded and ordered correctly');
+        console.log('[Explorar v121.0] 📊 Total:', formattedLocales.length);
+        console.log('[Explorar v121.0] 📊 Featured (true):', formattedLocales.filter(l => l.destacado === true).length);
+        console.log('[Explorar v121.0] 📊 Non-featured (false):', formattedLocales.filter(l => l.destacado === false).length);
+        console.log('[Explorar v121.0] 📊 Null featured:', formattedLocales.filter(l => l.destacado === null || l.destacado === undefined).length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
