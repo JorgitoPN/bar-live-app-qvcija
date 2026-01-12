@@ -45,7 +45,7 @@ import { getCategoryIcon } from '@/utils/categoryIcons';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ CRITICAL FIX v140.0: ANDROID ONLY - Optimized header height
+// ✅ CRITICAL FIX v146.0: ANDROID ONLY - Optimized header height
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 260 : 360;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
@@ -72,12 +72,12 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v145.0 - ANDROID COMPREHENSIVE ADAPTATION
+ * ✅ EXPLORAR SCREEN v146.0 - ANDROID CRITICAL FIX: FIRST LOCAL NO LONGER HIDDEN
  * 
- * CRITICAL FIXES v145.0 (ANDROID ONLY):
- * - ✅ FIXED: First local card no longer hidden by header (added 16px extra margin)
- * - ✅ FIXED: Header title size matches Favoritos reference (32sp on Android)
- * - ✅ FIXED: Locales without schedule info treated as OPEN (already implemented)
+ * CRITICAL FIXES v146.0 (ANDROID ONLY):
+ * - ✅ FIXED: First local card no longer hidden by header (increased marginTop from HEADER_MAX_HEIGHT to HEADER_MAX_HEIGHT + 32)
+ * - ✅ Header title size matches Favoritos reference (32sp on Android)
+ * - ✅ Locales without schedule info treated as OPEN (already implemented)
  * - ✅ Consistent header icon size (28dp on Android, scaled)
  * - ✅ Bottom padding for Android navigation buttons
  * - ✅ ALL font sizes properly scaled with scaleFontSize()
@@ -124,10 +124,10 @@ export default function ExplorarScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Explorar v140.0] User location obtained:', location.coords);
+          console.log('[Explorar v146.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Explorar v140.0] Error getting location:', error);
+        console.error('[Explorar v146.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -153,13 +153,13 @@ export default function ExplorarScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Explorar v140.0] Error checking social profiles:', error);
+      console.error('[Explorar v146.0] Error checking social profiles:', error);
     }
   }, []);
 
   const sortLocalesByPriority = useCallback((locales: any[]) => {
-    console.log('[Explorar v140.0] 🔄 SORTING LOCALES - NO SCHEDULE INFO TREATED AS OPEN');
-    console.log('[Explorar v140.0] 📋 Total locales to sort:', locales.length);
+    console.log('[Explorar v146.0] 🔄 SORTING LOCALES - NO SCHEDULE INFO TREATED AS OPEN');
+    console.log('[Explorar v146.0] 📋 Total locales to sort:', locales.length);
     
     const sorted = locales.sort((a, b) => {
       const distA = a.distancia !== null && a.distancia !== undefined ? a.distancia : 999999;
@@ -225,7 +225,7 @@ export default function ExplorarScreen() {
       return a.nombre.localeCompare(b.nombre);
     });
     
-    console.log('[Explorar v140.0] 📋 First 15 locales after sorting:');
+    console.log('[Explorar v146.0] 📋 First 15 locales after sorting:');
     sorted.slice(0, 15).forEach((local: any, index: number) => {
       const destacado = local.destacado === true ? '⭐' : '';
       const distancia = local.distancia !== null ? `📍${local.distancia.toFixed(1)}km` : '📍N/A';
@@ -241,16 +241,16 @@ export default function ExplorarScreen() {
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v140.0] 🔄 LOADING LOCALES WITH CORRECT ORDERING');
-      console.log('[Explorar v140.0] 📋 Order: distance-based priority groups');
+      console.log('[Explorar v146.0] 🔄 LOADING LOCALES WITH CORRECT ORDERING');
+      console.log('[Explorar v146.0] 📋 Order: distance-based priority groups');
       
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
         .select('*')
         .eq('activo', true);
       
-      console.log('[Explorar v140.0] ✅ Query executed');
-      console.log('[Explorar v140.0] 📊 Total locales loaded:', localesData?.length || 0);
+      console.log('[Explorar v146.0] ✅ Query executed');
+      console.log('[Explorar v146.0] 📊 Total locales loaded:', localesData?.length || 0);
 
       if (localesError) throw localesError;
 
@@ -284,12 +284,12 @@ export default function ExplorarScreen() {
         
         const sortedLocales = sortLocalesByPriority(formattedLocales);
         
-        console.log('[Explorar v140.0] ✅ Locales loaded and ordered with correct priority logic');
-        console.log('[Explorar v140.0] 📊 Total:', sortedLocales.length);
-        console.log('[Explorar v140.0] 📊 Featured:', sortedLocales.filter(l => l.destacado === true).length);
-        console.log('[Explorar v140.0] 📊 Open now:', sortedLocales.filter(l => l.estaAbierto === true).length);
-        console.log('[Explorar v140.0] 📊 Without schedule:', sortedLocales.filter(l => !l.tieneHorarios).length);
-        console.log('[Explorar v140.0] 📊 Within 100km:', sortedLocales.filter(l => l.distancia !== null && l.distancia <= 100).length);
+        console.log('[Explorar v146.0] ✅ Locales loaded and ordered with correct priority logic');
+        console.log('[Explorar v146.0] 📊 Total:', sortedLocales.length);
+        console.log('[Explorar v146.0] 📊 Featured:', sortedLocales.filter(l => l.destacado === true).length);
+        console.log('[Explorar v146.0] 📊 Open now:', sortedLocales.filter(l => l.estaAbierto === true).length);
+        console.log('[Explorar v146.0] 📊 Without schedule:', sortedLocales.filter(l => !l.tieneHorarios).length);
+        console.log('[Explorar v146.0] 📊 Within 100km:', sortedLocales.filter(l => l.distancia !== null && l.distancia <= 100).length);
         
         setAllLocales(sortedLocales);
         setFilteredLocales(sortedLocales);
@@ -300,12 +300,12 @@ export default function ExplorarScreen() {
         
         const hasMoreItems = sortedLocales.length > ITEMS_PER_PAGE;
         setHasMore(hasMoreItems);
-        console.log('[Explorar v140.0] 📊 Has more items:', hasMoreItems, `(${sortedLocales.length} total, ${ITEMS_PER_PAGE} per page)`);
+        console.log('[Explorar v146.0] 📊 Has more items:', hasMoreItems, `(${sortedLocales.length} total, ${ITEMS_PER_PAGE} per page)`);
         
         checkSocialProfilesForLocales(sortedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Explorar v140.0] Error loading locales:', error);
+      console.error('[Explorar v146.0] Error loading locales:', error);
     } finally {
       setLoading(false);
     }
@@ -317,7 +317,7 @@ export default function ExplorarScreen() {
 
   useEffect(() => {
     if (userLocation && allLocales.length > 0) {
-      console.log('[Explorar v140.0] Recalculating distances with new user location');
+      console.log('[Explorar v146.0] Recalculating distances with new user location');
       const updatedLocales = allLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -382,19 +382,19 @@ export default function ExplorarScreen() {
     
     const hasMoreItems = sortedFiltered.length > ITEMS_PER_PAGE;
     setHasMore(hasMoreItems);
-    console.log('[Explorar v140.0] Filters applied. Results:', sortedFiltered.length, 'Has more:', hasMoreItems);
+    console.log('[Explorar v146.0] Filters applied. Results:', sortedFiltered.length, 'Has more:', hasMoreItems);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allLocales, sortLocalesByPriority]);
 
   const isLoadingMoreRef = useRef(false);
   
   const loadMoreLocales = useCallback(() => {
     if (isLoadingMoreRef.current || loadingMore) {
-      console.log('[Explorar v140.0] ⏸️ Already loading, skipping...');
+      console.log('[Explorar v146.0] ⏸️ Already loading, skipping...');
       return;
     }
     
     if (!hasMore) {
-      console.log('[Explorar v140.0] ⏸️ No more items, skipping...');
+      console.log('[Explorar v146.0] ⏸️ No more items, skipping...');
       return;
     }
     
@@ -402,15 +402,15 @@ export default function ExplorarScreen() {
     const remainingItems = filteredLocales.length - startIndex;
     
     if (remainingItems <= 0) {
-      console.log('[Explorar v140.0] ⏸️ Reached end of list, setting hasMore to false');
+      console.log('[Explorar v146.0] ⏸️ Reached end of list, setting hasMore to false');
       setHasMore(false);
       return;
     }
 
-    console.log('[Explorar v140.0] 📥 Loading more locales...');
-    console.log('[Explorar v140.0] 📊 Currently displayed:', startIndex);
-    console.log('[Explorar v140.0] 📊 Total available:', filteredLocales.length);
-    console.log('[Explorar v140.0] 📊 Remaining:', remainingItems);
+    console.log('[Explorar v146.0] 📥 Loading more locales...');
+    console.log('[Explorar v146.0] 📊 Currently displayed:', startIndex);
+    console.log('[Explorar v146.0] 📊 Total available:', filteredLocales.length);
+    console.log('[Explorar v146.0] 📊 Remaining:', remainingItems);
     
     isLoadingMoreRef.current = true;
     setLoadingMore(true);
@@ -419,7 +419,7 @@ export default function ExplorarScreen() {
       const endIndex = startIndex + ITEMS_PER_PAGE;
       const nextItems = filteredLocales.slice(startIndex, endIndex);
       
-      console.log('[Explorar v140.0] 📊 Loading items:', nextItems.length);
+      console.log('[Explorar v146.0] 📊 Loading items:', nextItems.length);
       
       if (nextItems.length > 0) {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
@@ -427,12 +427,12 @@ export default function ExplorarScreen() {
         const newDisplayedCount = startIndex + nextItems.length;
         const stillHasMore = newDisplayedCount < filteredLocales.length;
         
-        console.log('[Explorar v140.0] 📊 New displayed count:', newDisplayedCount);
-        console.log('[Explorar v140.0] 📊 Still has more:', stillHasMore);
+        console.log('[Explorar v146.0] 📊 New displayed count:', newDisplayedCount);
+        console.log('[Explorar v146.0] 📊 Still has more:', stillHasMore);
         
         setHasMore(stillHasMore);
       } else {
-        console.log('[Explorar v140.0] ⏸️ No items loaded, setting hasMore to false');
+        console.log('[Explorar v146.0] ⏸️ No items loaded, setting hasMore to false');
         setHasMore(false);
       }
       
@@ -442,7 +442,7 @@ export default function ExplorarScreen() {
   }, [displayedLocales, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v140.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v146.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -452,7 +452,7 @@ export default function ExplorarScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v140.0] 🧹 Clearing all filters');
+    console.log('[Explorar v146.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -472,13 +472,13 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v140.0] User not authenticated');
+      console.log('[Explorar v146.0] User not authenticated');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v140.0] No local ID');
+      console.log('[Explorar v146.0] No local ID');
       return;
     }
 
@@ -491,7 +491,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v140.0] Removing from favorites');
+        console.log('[Explorar v146.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -500,7 +500,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v140.0] Adding to favorites');
+        console.log('[Explorar v146.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -513,7 +513,7 @@ export default function ExplorarScreen() {
       
       await loadLocales();
     } catch (error) {
-      console.error('[Explorar v140.0] Error toggling favorito:', error);
+      console.error('[Explorar v146.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
@@ -556,11 +556,11 @@ export default function ExplorarScreen() {
 
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
-      console.log('[Explorar v140.0] Changing mode to:', newMode);
+      console.log('[Explorar v146.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v140.0] Error changing mode:', error);
+      console.error('[Explorar v146.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
@@ -662,7 +662,7 @@ export default function ExplorarScreen() {
 
     const displayRating = getRating();
 
-    // ✅ v140.0: ANDROID ONLY - Properly scaled icon sizes
+    // ✅ v146.0: ANDROID ONLY - Properly scaled icon sizes
     const iconSize = Platform.OS === 'android' ? scaleIconSize(14) : 14;
     const starIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
     const heartIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
@@ -885,7 +885,7 @@ export default function ExplorarScreen() {
   const modeIcon = getModeIcon();
 
   const HeaderContent = () => {
-    // ✅ CRITICAL FIX v145.0: Use Favoritos as reference (32sp on Android)
+    // ✅ CRITICAL FIX v146.0: Use Favoritos as reference (32sp on Android)
     const headerTitleSize = Platform.OS === 'android' ? scaleFontSize(32) : 32;
     const headerIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
 
@@ -1090,7 +1090,7 @@ export default function ExplorarScreen() {
           styles.listContent,
           { 
             // ✅ CRITICAL FIX v146.0: ANDROID ONLY - Increased margin to prevent first card from being hidden by header
-            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 32 : HEADER_MAX_HEIGHT,
+            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 48 : HEADER_MAX_HEIGHT,
             paddingBottom: getContentBottomPadding(100)
           },
         ]}

@@ -90,13 +90,15 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v141.0 - ANDROID SCALING COMPLETE
+ * ✅ LOCAL DETAILS MODAL v146.0 - ANDROID PROFESSIONAL ADAPTATION
  * 
- * CRITICAL FIXES v141.0 (ANDROID ONLY):
- * - ✅ All font sizes use scaleFontSize() for consistency
- * - ✅ All icon sizes use scaleIconSize() for proper proportions
- * - ✅ All text elements properly scaled
- * - ✅ iOS design remains unchanged
+ * CRITICAL FIXES v146.0 (ANDROID ONLY):
+ * - ✅ Full-screen presentation on Android (no modal window effect)
+ * - ✅ Professional design matching iOS experience
+ * - ✅ Proper StatusBar handling for Android
+ * - ✅ All font sizes properly scaled with scaleFontSize()
+ * - ✅ All icon sizes properly scaled with scaleIconSize()
+ * - ✅ iOS design remains unchanged (reference design)
  * 
  * Previous fixes maintained (v55.0):
  * - ✅ Rating synced with actual reviews from reviews_barlive table
@@ -132,13 +134,13 @@ export default function LocalDetailsModal({
       try {
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[LocalDetailsModal v141.0] ⚠️ Location services are disabled');
+          console.log('[LocalDetailsModal v146.0] ⚠️ Location services are disabled');
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[LocalDetailsModal v141.0] ⚠️ Location permission denied');
+          console.log('[LocalDetailsModal v146.0] ⚠️ Location permission denied');
           return;
         }
 
@@ -152,9 +154,9 @@ export default function LocalDetailsModal({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-        console.log('[LocalDetailsModal v141.0] 📍 User location obtained');
+        console.log('[LocalDetailsModal v146.0] 📍 User location obtained');
       } catch (error: any) {
-        console.error('[LocalDetailsModal v141.0] ❌ Error getting location:', error?.message);
+        console.error('[LocalDetailsModal v146.0] ❌ Error getting location:', error?.message);
         setUserLocation(null);
       }
     })();
@@ -175,7 +177,7 @@ export default function LocalDetailsModal({
         : `${distKm.toFixed(1)} km`;
 
       setDistance(dist);
-      console.log('[LocalDetailsModal v141.0] 📏 Distance calculated:', dist);
+      console.log('[LocalDetailsModal v146.0] 📏 Distance calculated:', dist);
     }
   }, [userLocation, local]);
 
@@ -190,7 +192,7 @@ export default function LocalDetailsModal({
 
       if (error) throw error;
       setLocal(data);
-      console.log('[LocalDetailsModal v141.0] ✅ Local loaded:', {
+      console.log('[LocalDetailsModal v146.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         plan_activo: data.plan_activo,
@@ -207,7 +209,7 @@ export default function LocalDetailsModal({
         const avgRating = reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length;
         setActualRating(avgRating);
         setReviewCount(reviewsData.length);
-        console.log('[LocalDetailsModal v141.0] ✅ Calculated rating from reviews:', {
+        console.log('[LocalDetailsModal v146.0] ✅ Calculated rating from reviews:', {
           avgRating: avgRating.toFixed(1),
           reviewCount: reviewsData.length,
         });
@@ -216,10 +218,10 @@ export default function LocalDetailsModal({
         const fallbackRating = data.rating || data.google_rating || 0;
         setActualRating(fallbackRating);
         setReviewCount(0);
-        console.log('[LocalDetailsModal v141.0] ℹ️ Using fallback rating:', fallbackRating);
+        console.log('[LocalDetailsModal v146.0] ℹ️ Using fallback rating:', fallbackRating);
       }
     } catch (error) {
-      console.error('[LocalDetailsModal v141.0] Error loading local:', error);
+      console.error('[LocalDetailsModal v146.0] Error loading local:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
     } finally {
       setLoading(false);
@@ -228,7 +230,7 @@ export default function LocalDetailsModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[LocalDetailsModal v141.0] 🚀 Opening modal for local:', localId);
+      console.log('[LocalDetailsModal v146.0] 🚀 Opening modal for local:', localId);
       loadLocalData();
     } else {
       setLocal(null);
@@ -241,7 +243,7 @@ export default function LocalDetailsModal({
   // ✅ NEW v55.0: Real-time rating updates
   useEffect(() => {
     if (visible && localId) {
-      console.log('[LocalDetailsModal v141.0] 🔄 Setting up real-time rating listener for:', localId);
+      console.log('[LocalDetailsModal v146.0] 🔄 Setting up real-time rating listener for:', localId);
       
       const subscription = supabase
         .channel(`reviews-${localId}`)
@@ -254,7 +256,7 @@ export default function LocalDetailsModal({
             filter: `local_id=eq.${localId}`,
           },
           async (payload) => {
-            console.log('[LocalDetailsModal v141.0] 🔔 Review updated:', payload);
+            console.log('[LocalDetailsModal v146.0] 🔔 Review updated:', payload);
             
             // Reload rating
             const { data: reviewsData, error: reviewsError } = await supabase
@@ -266,14 +268,14 @@ export default function LocalDetailsModal({
               const avgRating = reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length;
               setActualRating(avgRating);
               setReviewCount(reviewsData.length);
-              console.log('[LocalDetailsModal v141.0] ✅ Rating updated:', avgRating.toFixed(1));
+              console.log('[LocalDetailsModal v146.0] ✅ Rating updated:', avgRating.toFixed(1));
             }
           }
         )
         .subscribe();
 
       return () => {
-        console.log('[LocalDetailsModal v141.0] 🔌 Unsubscribing from rating updates');
+        console.log('[LocalDetailsModal v146.0] 🔌 Unsubscribing from rating updates');
         subscription.unsubscribe();
       };
     }
@@ -358,23 +360,22 @@ export default function LocalDetailsModal({
   return (
     <Modal
       visible={visible}
-      transparent
+      transparent={Platform.OS === 'ios'}
       animationType="fade"
       onRequestClose={onClose}
       statusBarTranslucent
+      // ✅ CRITICAL FIX v146.0: ANDROID ONLY - Full-screen presentation
+      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : undefined}
     >
-      <StatusBar barStyle="light-content" backgroundColor="rgba(0, 0, 0, 0.7)" translucent />
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor={Platform.OS === 'android' ? colors.background : 'rgba(0, 0, 0, 0.7)'} 
+        translucent 
+      />
       
-      <TouchableOpacity 
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <TouchableOpacity 
-          style={styles.modalContainer}
-          activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
-        >
+      {Platform.OS === 'android' ? (
+        // ✅ ANDROID: Full-screen modal without overlay
+        <View style={styles.androidFullScreenContainer}>
           <ScrollView 
             style={styles.contentContainer}
             contentContainerStyle={styles.contentContainerInner}
@@ -585,13 +586,243 @@ export default function LocalDetailsModal({
               </View>
             )}
           </ScrollView>
+        </View>
+      ) : (
+        // ✅ iOS: Modal with overlay (original design)
+        <TouchableOpacity 
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={onClose}
+        >
+          <TouchableOpacity 
+            style={styles.modalContainer}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <ScrollView 
+              style={styles.contentContainer}
+              contentContainerStyle={styles.contentContainerInner}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+              nestedScrollEnabled={true}
+              scrollEnabled={true}
+            >
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando local...</Text>
+                </View>
+              ) : local ? (
+                <React.Fragment>
+                  {allImages.length > 0 && (
+                    <View style={styles.coverContainer}>
+                      <OptimizedImage
+                        source={{ uri: allImages[currentImageIndex] }}
+                        style={styles.coverImage}
+                        resizeMode="cover"
+                      />
+
+                      <TouchableOpacity 
+                        style={[styles.closeButtonFixed, { top: closeButtonTop }]} 
+                        onPress={onClose}
+                      >
+                        <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+                          <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(18)} color="#fff" />
+                        </BlurView>
+                      </TouchableOpacity>
+                  
+                      {/* ✅ CRITICAL FIX v55.0: Show actual rating with review count */}
+                      {displayRating > 0 && (
+                        <View style={styles.ratingBadgeTopRight}>
+                          <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
+                            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={scaleIconSize(16)} color="#FFD700" />
+                            <Text style={[styles.ratingText, { fontSize: scaleFontSize(15) }]}>{displayRating.toFixed(1)}</Text>
+                            {reviewCount > 0 && (
+                              <Text style={[styles.reviewCountText, { fontSize: scaleFontSize(12) }]}>({reviewCount})</Text>
+                            )}
+                          </BlurView>
+                        </View>
+                      )}
+                  
+                      {estadoLocal && (
+                        <View style={styles.statusBadgeTop}>
+                          <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
+                            <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
+                            <Text style={[styles.statusText, { fontSize: scaleFontSize(14) }]}>
+                              {estadoLocal.badge}
+                            </Text>
+                            {estadoLocal.tiempoRestante && (
+                              <Text style={[styles.statusSubtext, { fontSize: scaleFontSize(12) }]}>• {estadoLocal.tiempoRestante}</Text>
+                            )}
+                          </BlurView>
+                        </View>
+                      )}
+
+                      {local.destacado && (
+                        <View style={styles.destacadoBadgeTop}>
+                          <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
+                            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={scaleIconSize(16)} color="#F59E0B" />
+                            <Text style={[styles.destacadoText, { fontSize: scaleFontSize(13) }]}>Destacado</Text>
+                          </BlurView>
+                        </View>
+                      )}
+                  
+                      <TouchableOpacity
+                        style={styles.favoritoButton}
+                        onPress={handleToggleFavorito}
+                        disabled={loadingFavorite}
+                      >
+                        <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
+                          {loadingFavorite ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                          ) : (
+                            <IconSymbol
+                              ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
+                              android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
+                              size={scaleIconSize(22)}
+                              color={localIsFavorite ? "#EF4444" : "#FFFFFF"}
+                            />
+                          )}
+                        </BlurView>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  <View style={styles.contentCard}>
+                    {allCategories.length > 0 && (
+                      <View style={styles.categoriesRow}>
+                        {allCategories.map((categoria, index) => {
+                          const icon = getCategoryIcon(categoria);
+                          return (
+                            <View key={index} style={[styles.categoryChip, { backgroundColor: icon.color }]}>
+                              <IconSymbol 
+                                ios_icon_name={icon.ios} 
+                                android_material_icon_name={icon.android} 
+                                size={scaleIconSize(18)} 
+                                color="#fff" 
+                              />
+                              <Text style={[styles.categoryChipText, { fontSize: scaleFontSize(13) }]}>{categoria.toUpperCase()}</Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
+
+                    {local.direccion && (
+                      <View style={styles.addressContainer}>
+                        <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={scaleIconSize(18)} color={colors.primary} />
+                        <Text style={[styles.addressText, { fontSize: scaleFontSize(14) }]} numberOfLines={2}>
+                          {local.direccion}
+                        </Text>
+                      </View>
+                    )}
+
+                    {distance && (
+                      <View style={styles.distanceContainer}>
+                        <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={scaleIconSize(16)} color={colors.primary} />
+                        <Text style={[styles.distanceText, { fontSize: scaleFontSize(14) }]}>A {distance} de tu ubicación</Text>
+                      </View>
+                    )}
+
+                    {(local.descripcion_google || local.descripcion) && (
+                      <Text style={[styles.descriptionText, { fontSize: scaleFontSize(15) }]} numberOfLines={3}>
+                        {local.descripcion_google || local.descripcion}
+                      </Text>
+                    )}
+                    
+                    {/* ✅ CRITICAL FIX v55.0: Hide "Estoy en este local" button in propietario mode */}
+                    {!isInPropietarioMode && (
+                      <TouchableOpacity 
+                        style={styles.checkInButton}
+                        onPress={handleViewFullDetails}
+                      >
+                        <LinearGradient
+                          colors={[colors.primary, colors.secondary]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.checkInGradient}
+                        >
+                          <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={scaleIconSize(20)} color="#fff" />
+                          <Text style={[styles.checkInText, { fontSize: scaleFontSize(15) }]}>Estoy en este local</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    )}
+                    
+                    <View style={styles.actionsRow}>
+                      {local.telefono && (
+                        <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
+                          <LinearGradient
+                            colors={['#10B981', '#059669']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.actionBtnGradient}
+                          >
+                            <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={scaleIconSize(20)} color="#fff" />
+                            <Text style={[styles.actionBtnText, { fontSize: scaleFontSize(14) }]}>Llamar</Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      )}
+                  
+                      {local.latitud && local.longitud && (
+                        <TouchableOpacity style={styles.actionBtn} onPress={handleDirections}>
+                          <LinearGradient
+                            colors={[colors.primary, colors.secondary]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.actionBtnGradient}
+                          >
+                            <View style={styles.actionBtnContent}>
+                              <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={scaleIconSize(20)} color="#fff" />
+                              <Text style={[styles.actionBtnText, { fontSize: scaleFontSize(14) }]}>Cómo llegar</Text>
+                              {distance && Platform.OS === 'android' && (
+                                <Text style={[styles.actionBtnDistance, { fontSize: scaleFontSize(12) }]}>({distance})</Text>
+                              )}
+                            </View>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {hasSocialProfile && (
+                      <TouchableOpacity 
+                        style={styles.perfilSocialButton} 
+                        onPress={handlePerfilSocial}
+                      >
+                        <LinearGradient
+                          colors={[colors.primary, colors.secondary]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.perfilSocialGradient}
+                        >
+                          <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={scaleIconSize(20)} color="#fff" />
+                          <Text style={[styles.perfilSocialText, { fontSize: scaleFontSize(15) }]}>Ver Perfil Social</Text>
+                          <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={scaleIconSize(18)} color="#fff" />
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </React.Fragment>
+              ) : (
+                <View style={styles.errorContainer}>
+                  <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="error" size={scaleIconSize(48)} color={colors.badgeDestacado} />
+                  <Text style={[styles.errorText, { fontSize: scaleFontSize(16) }]}>No se pudo cargar el local</Text>
+                </View>
+              )}
+            </ScrollView>
+          </TouchableOpacity>
         </TouchableOpacity>
-      </TouchableOpacity>
+      )}
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  // ✅ ANDROID: Full-screen container
+  androidFullScreenContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  // ✅ iOS: Overlay with centered modal
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
