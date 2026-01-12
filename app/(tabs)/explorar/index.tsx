@@ -42,8 +42,8 @@ import { getCategoryIcon } from '@/utils/categoryIcons';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ CRITICAL FIX v124.0: Reduced header height to minimize white space
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 340 : 360;
+// ✅ CRITICAL FIX v131.0: ANDROID ONLY - Significantly reduced header height to minimize white space
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 360;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -70,15 +70,15 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v127.0 - NO SCHEDULE INFO TREATED AS OPEN
+ * ✅ EXPLORAR SCREEN v131.0 - ANDROID ONLY FIXES
  * 
- * CRITICAL FIXES v127.0 (APPLIED):
- * - ✅ FIXED: Locales without schedule info now treated as potentially open
- * - ✅ FIXED: No schedule info locales ordered with open locales (not with closed)
- * - ✅ FIXED: Priority groups updated to reflect new logic
- * - ✅ All previous functionality maintained (v126.0 infinite scroll)
+ * CRITICAL FIXES v131.0 (ANDROID ONLY):
+ * - ✅ FIXED: Reduced header height from 340px to 280px (60px reduction)
+ * - ✅ FIXED: Minimized white space between header and first local
+ * - ✅ FIXED: Improved scaling and responsiveness on Android
+ * - ✅ iOS design remains unchanged (reference design)
  * 
- * 🔄 FORCE RELOAD: Restart Expo dev server with --clear to see changes
+ * All previous functionality maintained (v127.0 ordering logic)
  */
 
 export default function ExplorarScreen() {
@@ -119,10 +119,10 @@ export default function ExplorarScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Explorar v124.0] User location obtained:', location.coords);
+          console.log('[Explorar v131.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Explorar v124.0] Error getting location:', error);
+        console.error('[Explorar v131.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -148,7 +148,7 @@ export default function ExplorarScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Explorar v124.0] Error checking social profiles:', error);
+      console.error('[Explorar v131.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -174,8 +174,8 @@ export default function ExplorarScreen() {
    * 12. Closed (abierto=false) → sorted by distance
    */
   const sortLocalesByPriority = useCallback((locales: any[]) => {
-    console.log('[Explorar v127.0] 🔄 SORTING LOCALES - NO SCHEDULE INFO TREATED AS OPEN');
-    console.log('[Explorar v127.0] 📋 Total locales to sort:', locales.length);
+    console.log('[Explorar v131.0] 🔄 SORTING LOCALES - NO SCHEDULE INFO TREATED AS OPEN');
+    console.log('[Explorar v131.0] 📋 Total locales to sort:', locales.length);
     
     const sorted = locales.sort((a, b) => {
       // Get distance for both locales
@@ -251,7 +251,7 @@ export default function ExplorarScreen() {
       return a.nombre.localeCompare(b.nombre);
     });
     
-    console.log('[Explorar v127.0] 📋 First 15 locales after sorting:');
+    console.log('[Explorar v131.0] 📋 First 15 locales after sorting:');
     sorted.slice(0, 15).forEach((local: any, index: number) => {
       const destacado = local.destacado === true ? '⭐' : '';
       const distancia = local.distancia !== null ? `📍${local.distancia.toFixed(1)}km` : '📍N/A';
@@ -267,8 +267,8 @@ export default function ExplorarScreen() {
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v124.0] 🔄 LOADING LOCALES WITH CORRECT ORDERING');
-      console.log('[Explorar v124.0] 📋 Order: distance-based priority groups');
+      console.log('[Explorar v131.0] 🔄 LOADING LOCALES WITH CORRECT ORDERING');
+      console.log('[Explorar v131.0] 📋 Order: distance-based priority groups');
       
       // ✅ FIX v124.0: Load ALL locales without ordering (we'll sort in memory)
       const { data: localesData, error: localesError } = await supabase
@@ -276,8 +276,8 @@ export default function ExplorarScreen() {
         .select('*')
         .eq('activo', true);
       
-      console.log('[Explorar v124.0] ✅ Query executed');
-      console.log('[Explorar v124.0] 📊 Total locales loaded:', localesData?.length || 0);
+      console.log('[Explorar v131.0] ✅ Query executed');
+      console.log('[Explorar v131.0] 📊 Total locales loaded:', localesData?.length || 0);
 
       if (localesError) throw localesError;
 
@@ -313,12 +313,12 @@ export default function ExplorarScreen() {
         // ✅ FIX v124.0: Apply correct sorting
         const sortedLocales = sortLocalesByPriority(formattedLocales);
         
-        console.log('[Explorar v124.0] ✅ Locales loaded and ordered with correct priority logic');
-        console.log('[Explorar v124.0] 📊 Total:', sortedLocales.length);
-        console.log('[Explorar v124.0] 📊 Featured:', sortedLocales.filter(l => l.destacado === true).length);
-        console.log('[Explorar v124.0] 📊 Open now:', sortedLocales.filter(l => l.estaAbierto === true).length);
-        console.log('[Explorar v124.0] 📊 Without schedule:', sortedLocales.filter(l => !l.tieneHorarios).length);
-        console.log('[Explorar v124.0] 📊 Within 100km:', sortedLocales.filter(l => l.distancia !== null && l.distancia <= 100).length);
+        console.log('[Explorar v131.0] ✅ Locales loaded and ordered with correct priority logic');
+        console.log('[Explorar v131.0] 📊 Total:', sortedLocales.length);
+        console.log('[Explorar v131.0] 📊 Featured:', sortedLocales.filter(l => l.destacado === true).length);
+        console.log('[Explorar v131.0] 📊 Open now:', sortedLocales.filter(l => l.estaAbierto === true).length);
+        console.log('[Explorar v131.0] 📊 Without schedule:', sortedLocales.filter(l => !l.tieneHorarios).length);
+        console.log('[Explorar v131.0] 📊 Within 100km:', sortedLocales.filter(l => l.distancia !== null && l.distancia <= 100).length);
         
         setAllLocales(sortedLocales);
         setFilteredLocales(sortedLocales);
@@ -330,12 +330,12 @@ export default function ExplorarScreen() {
         // ✅ CRITICAL FIX v124.0: Proper hasMore detection
         const hasMoreItems = sortedLocales.length > ITEMS_PER_PAGE;
         setHasMore(hasMoreItems);
-        console.log('[Explorar v124.0] 📊 Has more items:', hasMoreItems, `(${sortedLocales.length} total, ${ITEMS_PER_PAGE} per page)`);
+        console.log('[Explorar v131.0] 📊 Has more items:', hasMoreItems, `(${sortedLocales.length} total, ${ITEMS_PER_PAGE} per page)`);
         
         checkSocialProfilesForLocales(sortedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Explorar v124.0] Error loading locales:', error);
+      console.error('[Explorar v131.0] Error loading locales:', error);
     } finally {
       setLoading(false);
     }
@@ -347,7 +347,7 @@ export default function ExplorarScreen() {
 
   useEffect(() => {
     if (userLocation && allLocales.length > 0) {
-      console.log('[Explorar v124.0] Recalculating distances with new user location');
+      console.log('[Explorar v131.0] Recalculating distances with new user location');
       const updatedLocales = allLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -416,7 +416,7 @@ export default function ExplorarScreen() {
     // ✅ CRITICAL FIX v124.0: Proper hasMore detection after filtering
     const hasMoreItems = sortedFiltered.length > ITEMS_PER_PAGE;
     setHasMore(hasMoreItems);
-    console.log('[Explorar v124.0] Filters applied. Results:', sortedFiltered.length, 'Has more:', hasMoreItems);
+    console.log('[Explorar v131.0] Filters applied. Results:', sortedFiltered.length, 'Has more:', hasMoreItems);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allLocales, sortLocalesByPriority]);
 
   /**
@@ -433,13 +433,13 @@ export default function ExplorarScreen() {
   const loadMoreLocales = useCallback(() => {
     // ✅ FIX v126.0: Check if already loading (prevent duplicate calls)
     if (isLoadingMoreRef.current || loadingMore) {
-      console.log('[Explorar v126.0] ⏸️ Already loading, skipping...');
+      console.log('[Explorar v131.0] ⏸️ Already loading, skipping...');
       return;
     }
     
     // ✅ FIX v126.0: Check if we have more items to load
     if (!hasMore) {
-      console.log('[Explorar v126.0] ⏸️ No more items, skipping...');
+      console.log('[Explorar v131.0] ⏸️ No more items, skipping...');
       return;
     }
     
@@ -448,15 +448,15 @@ export default function ExplorarScreen() {
     
     // ✅ CRITICAL FIX v126.0: If no remaining items, stop immediately
     if (remainingItems <= 0) {
-      console.log('[Explorar v126.0] ⏸️ Reached end of list, setting hasMore to false');
+      console.log('[Explorar v131.0] ⏸️ Reached end of list, setting hasMore to false');
       setHasMore(false);
       return;
     }
 
-    console.log('[Explorar v126.0] 📥 Loading more locales...');
-    console.log('[Explorar v126.0] 📊 Currently displayed:', startIndex);
-    console.log('[Explorar v126.0] 📊 Total available:', filteredLocales.length);
-    console.log('[Explorar v126.0] 📊 Remaining:', remainingItems);
+    console.log('[Explorar v131.0] 📥 Loading more locales...');
+    console.log('[Explorar v131.0] 📊 Currently displayed:', startIndex);
+    console.log('[Explorar v131.0] 📊 Total available:', filteredLocales.length);
+    console.log('[Explorar v131.0] 📊 Remaining:', remainingItems);
     
     // ✅ FIX v126.0: Set loading flags
     isLoadingMoreRef.current = true;
@@ -467,7 +467,7 @@ export default function ExplorarScreen() {
       const endIndex = startIndex + ITEMS_PER_PAGE;
       const nextItems = filteredLocales.slice(startIndex, endIndex);
       
-      console.log('[Explorar v126.0] 📊 Loading items:', nextItems.length);
+      console.log('[Explorar v131.0] 📊 Loading items:', nextItems.length);
       
       if (nextItems.length > 0) {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
@@ -476,12 +476,12 @@ export default function ExplorarScreen() {
         const newDisplayedCount = startIndex + nextItems.length;
         const stillHasMore = newDisplayedCount < filteredLocales.length;
         
-        console.log('[Explorar v126.0] 📊 New displayed count:', newDisplayedCount);
-        console.log('[Explorar v126.0] 📊 Still has more:', stillHasMore);
+        console.log('[Explorar v131.0] 📊 New displayed count:', newDisplayedCount);
+        console.log('[Explorar v131.0] 📊 Still has more:', stillHasMore);
         
         setHasMore(stillHasMore);
       } else {
-        console.log('[Explorar v126.0] ⏸️ No items loaded, setting hasMore to false');
+        console.log('[Explorar v131.0] ⏸️ No items loaded, setting hasMore to false');
         setHasMore(false);
       }
       
@@ -491,7 +491,7 @@ export default function ExplorarScreen() {
   }, [displayedLocales, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v124.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v131.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -501,7 +501,7 @@ export default function ExplorarScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v124.0] 🧹 Clearing all filters');
+    console.log('[Explorar v131.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -521,13 +521,13 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v124.0] User not authenticated');
+      console.log('[Explorar v131.0] User not authenticated');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v124.0] No local ID');
+      console.log('[Explorar v131.0] No local ID');
       return;
     }
 
@@ -540,7 +540,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v124.0] Removing from favorites');
+        console.log('[Explorar v131.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -549,7 +549,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v124.0] Adding to favorites');
+        console.log('[Explorar v131.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -562,7 +562,7 @@ export default function ExplorarScreen() {
       
       await loadLocales();
     } catch (error) {
-      console.error('[Explorar v124.0] Error toggling favorito:', error);
+      console.error('[Explorar v131.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
@@ -610,11 +610,11 @@ export default function ExplorarScreen() {
   // ✅ v124.0: Handle mode change
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
-      console.log('[Explorar v124.0] Changing mode to:', newMode);
+      console.log('[Explorar v131.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v124.0] Error changing mode:', error);
+      console.error('[Explorar v131.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
