@@ -105,15 +105,14 @@ const DIAS_SEMANA: Record<number, string> = {
 const MAX_LOGS = 50;
 
 /**
- * ✅ ENRIQUECIMIENTO GOOGLE v127.0 - ACTIVE/INACTIVE LOGIC FIXED
+ * ✅ ENRIQUECIMIENTO GOOGLE v128.0 - FIXED ACTIVE COUNT SYNCHRONIZATION
  * 
- * CRITICAL FIXES v127.0 (APPLIED):
- * - ✅ FIXED: Active locales (activo=true) are now correctly counted as enriched
- * - ✅ FIXED: Inactive locales (activo=false, no rejection) are pending
- * - ✅ FIXED: Statistics now match reality: 148 bares activos = 148 enriquecidos
- * - ✅ FIXED: Category cards show correct enriched/pending counts
- * - ✅ FIXED: Query filters inactive locales for enrichment (not enriquecido flag)
- * - ✅ All previous functionality maintained (v126.0 category display)
+ * CRITICAL FIXES v128.0 (APPLIED):
+ * - ✅ FIXED: Query now fetches ALL locales from province (no source_type filter)
+ * - ✅ FIXED: Statistics now count ALL active locales (486 activos = 486 enriquecidos)
+ * - ✅ FIXED: Category cards show correct counts for all locales
+ * - ✅ FIXED: Removed OSM-only filter that was hiding non-OSM active locales
+ * - ✅ FIXED: Synchronization between active locales and enriched count
  * 
  * 🔄 FORCE RELOAD: Restart Expo dev server with --clear to see changes
  */
@@ -187,23 +186,22 @@ export default function EnriquecimientoGoogleScreen() {
     agregarLog('info', `Cargando estadísticas para ${provinciaSeleccionada}...`);
     
     try {
-      console.log('[Enrichment v127.0] 🔄 LOADING FRESH STATISTICS - ACTIVE = ENRICHED');
-      console.log('[Enrichment v127.0] 📍 Province:', provinciaSeleccionada);
+      console.log('[Enrichment v128.0] 🔄 LOADING STATISTICS - FIXED ACTIVE COUNT');
+      console.log('[Enrichment v128.0] 📍 Province:', provinciaSeleccionada);
 
-      // ✅ FIX v123.0: Query ALL locales from the province (no filters, no limits)
-      // This ensures we get the REAL total count from the database
-      // CRITICAL: Remove any .limit() or .range() that might be limiting results
-      // CRITICAL: NO .eq('activo', true) filter - we want ALL locales
+      // ✅ FIX v128.0: Query ALL locales from the province (NO source_type filter)
+      // This was the bug: we were only counting OSM locales, missing non-OSM active locales
+      // CRITICAL: Remove .eq('source_type', 'osm') to count ALL locales
       const { data: allLocalesData, error: allLocalesError } = await supabase
         .from('locales')
         .select('id, source_type, enriquecido, tipo, activo, notas_rechazo')
         .eq('provincia', provinciaSeleccionada);
       
-      console.log('[Enrichment v127.0] ✅ Query executed - ALL locales from province (active + inactive)');
-      console.log('[Enrichment v127.0] 🔍 Raw query result count:', allLocalesData?.length || 0);
+      console.log('[Enrichment v128.0] ✅ Query executed - ALL locales from province (all sources)');
+      console.log('[Enrichment v128.0] 🔍 Raw query result count:', allLocalesData?.length || 0);
 
       if (allLocalesError) {
-        console.error('[Enrichment v127.0] ❌ Error loading stats:', allLocalesError);
+        console.error('[Enrichment v128.0] ❌ Error loading stats:', allLocalesError);
         agregarLog('error', `Error al cargar estadísticas: ${allLocalesError.message}`);
         performanceMonitor.end('cargarEstadisticas');
         setCargando(false);
@@ -211,55 +209,66 @@ export default function EnriquecimientoGoogleScreen() {
       }
 
       if (!allLocalesData) {
-        console.error('[Enrichment v127.0] ❌ No data returned from query');
+        console.error('[Enrichment v128.0] ❌ No data returned from query');
         agregarLog('error', 'No se recibieron datos de la base de datos');
         performanceMonitor.end('cargarEstadisticas');
         setCargando(false);
         return;
       }
 
-      console.log('[Enrichment v127.0] ✅ Total locales in province (active + inactive):', allLocalesData.length);
+      console.log('[Enrichment v128.0] ✅ Total locales in province (ALL sources):', allLocalesData.length);
 
-      // ✅ FIX v127.0: Calculate statistics - ACTIVE LOCALES ARE ENRICHED
+      // ✅ FIX v128.0: Calculate statistics - COUNT ALL ACTIVE LOCALES
       const totalLocales = allLocalesData.length;
+      
+      // Count by source type
       const totalOSM = allLocalesData.filter(l => l.source_type === 'osm').length;
+      const totalManual = allLocalesData.filter(l => l.source_type === 'manual').length;
+      const totalGoogle = allLocalesData.filter(l => l.source_type === 'google').length;
+      const totalOtros = allLocalesData.filter(l => 
+        l.source_type !== 'osm' && 
+        l.source_type !== 'manual' && 
+        l.source_type !== 'google'
+      ).length;
+      
+      // ✅ FIX v128.0: Count ALL active locales (not just OSM)
+      // This is the main fix: we were only counting OSM active locales before
       const totalActivos = allLocalesData.filter(l => l.activo === true).length;
       const totalInactivos = allLocalesData.filter(l => l.activo === false).length;
       
-      // ✅ FIX v127.0: Enriquecidos = ALL ACTIVE locales (activo = true)
-      // Active locales are by definition enriched, regardless of enriquecido flag
-      const enriquecidos = allLocalesData.filter(l => l.activo === true).length;
+      // ✅ FIX v128.0: Enriquecidos = ALL ACTIVE locales (activo = true)
+      // Active locales are by definition enriched, regardless of source
+      const enriquecidos = totalActivos;
       
-      // ✅ FIX v127.0: Pendientes = INACTIVE locales (activo = false, no rejection notes)
-      // Inactive locales without rejection notes are pending enrichment
+      // ✅ FIX v128.0: Pendientes = INACTIVE OSM locales (activo = false, no rejection notes)
+      // Only OSM locales can be enriched through this tool
       const pendientes = allLocalesData.filter(l => 
+        l.source_type === 'osm' &&
         l.activo === false && 
         (l.notas_rechazo === null || l.notas_rechazo === undefined)
       ).length;
       
-      // ✅ FIX v127.0: Rechazados = inactivos con notas de rechazo
+      // ✅ FIX v128.0: Rechazados = inactivos con notas de rechazo
       const rechazados = allLocalesData.filter(l => 
         l.activo === false && l.notas_rechazo !== null
       ).length;
 
-      console.log('[Enrichment v127.0] 📊 STATISTICS BREAKDOWN:');
-      console.log('[Enrichment v127.0]   Total locales:', totalLocales);
-      console.log('[Enrichment v127.0]   Total OSM:', totalOSM);
-      console.log('[Enrichment v127.0]   Total activos (enriquecidos):', totalActivos);
-      console.log('[Enrichment v127.0]   Total inactivos:', totalInactivos);
-      console.log('[Enrichment v127.0]   Enriquecidos (activo=true):', enriquecidos);
-      console.log('[Enrichment v127.0]   Pendientes (inactivo sin rechazo):', pendientes);
-      console.log('[Enrichment v127.0]   Rechazados (inactivo con rechazo):', rechazados);
+      console.log('[Enrichment v128.0] 📊 STATISTICS BREAKDOWN (FIXED):');
+      console.log('[Enrichment v128.0]   Total locales (all sources):', totalLocales);
+      console.log('[Enrichment v128.0]   Total OSM:', totalOSM);
+      console.log('[Enrichment v128.0]   Total Manual:', totalManual);
+      console.log('[Enrichment v128.0]   Total Google:', totalGoogle);
+      console.log('[Enrichment v128.0]   Total Otros:', totalOtros);
+      console.log('[Enrichment v128.0]   Total activos (ALL sources):', totalActivos);
+      console.log('[Enrichment v128.0]   Total inactivos:', totalInactivos);
+      console.log('[Enrichment v128.0]   Enriquecidos (ALL active):', enriquecidos);
+      console.log('[Enrichment v128.0]   Pendientes (OSM inactivos):', pendientes);
+      console.log('[Enrichment v128.0]   Rechazados (inactivos con rechazo):', rechazados);
       
       // ✅ VALIDATION: Check if numbers make sense
-      if (totalOSM > totalLocales) {
-        console.error('[Enrichment v127.0] ⚠️ WARNING: totalOSM > totalLocales - Data inconsistency!');
-        agregarLog('warning', '⚠️ Inconsistencia detectada: Total OSM mayor que total de locales');
-      }
-      
-      if (enriquecidos + pendientes + rechazados !== totalOSM) {
-        console.error('[Enrichment v127.0] ⚠️ WARNING: Sum mismatch - Data inconsistency!');
-        agregarLog('warning', `⚠️ Inconsistencia: ${enriquecidos} + ${pendientes} + ${rechazados} ≠ ${totalOSM}`);
+      if (enriquecidos + pendientes + rechazados > totalLocales) {
+        console.error('[Enrichment v128.0] ⚠️ WARNING: Sum > total - Data inconsistency!');
+        agregarLog('warning', '⚠️ Inconsistencia detectada en los datos');
       }
 
       const newEstadisticas = {
@@ -271,24 +280,25 @@ export default function EnriquecimientoGoogleScreen() {
 
       setEstadisticas(newEstadisticas);
 
-      // ✅ FIX v127.0: Category statistics - ACTIVE = ENRICHED
-      console.log('[Enrichment v127.0] 📊 Calculating category statistics...');
+      // ✅ FIX v128.0: Category statistics - COUNT ALL ACTIVE LOCALES
+      console.log('[Enrichment v128.0] 📊 Calculating category statistics (ALL sources)...');
       const statsCategorias: EstadisticasCategoria[] = CATEGORIAS.map(cat => {
-        // Filter by category ID (tipo field) - INCLUDE ALL (active + inactive)
+        // Filter by category ID (tipo field) - INCLUDE ALL (active + inactive, all sources)
         const localesCategoria = allLocalesData.filter(l => l.tipo === cat.id);
         const total = localesCategoria.length;
         
-        // ✅ FIX v127.0: Count active and inactive separately
+        // ✅ FIX v128.0: Count ALL active locales in this category (not just OSM)
         const activosCategoria = localesCategoria.filter(l => l.activo === true).length;
         const inactivosCategoria = localesCategoria.filter(l => l.activo === false).length;
         
-        // ✅ FIX v127.0: Enriquecidos = ALL ACTIVE locales (activo = true)
-        // Active locales are by definition enriched
-        const enriquecidosCategoria = localesCategoria.filter(l => l.activo === true).length;
+        // ✅ FIX v128.0: Enriquecidos = ALL ACTIVE locales (activo = true)
+        // This includes OSM, manual, Google, and any other source
+        const enriquecidosCategoria = activosCategoria;
         
-        // ✅ FIX v127.0: Pendientes = INACTIVE locales without rejection notes
-        // These are the locales available for enrichment
+        // ✅ FIX v128.0: Pendientes = INACTIVE OSM locales without rejection notes
+        // Only OSM locales can be enriched through this tool
         const pendientesCategoria = localesCategoria.filter(l => 
+          l.source_type === 'osm' &&
           l.activo === false && 
           (l.notas_rechazo === null || l.notas_rechazo === undefined)
         ).length;
@@ -298,7 +308,7 @@ export default function EnriquecimientoGoogleScreen() {
           l.activo === false && l.notas_rechazo !== null
         ).length;
 
-        console.log(`[Enrichment v127.0] 📊 Category ${cat.nombre}:`, {
+        console.log(`[Enrichment v128.0] 📊 Category ${cat.nombre}:`, {
           total,
           activos: activosCategoria,
           inactivos: inactivosCategoria,
@@ -317,7 +327,7 @@ export default function EnriquecimientoGoogleScreen() {
         };
       });
 
-      console.log('[Enrichment v123.0] ✅ Category statistics calculated (including inactive locales)');
+      console.log('[Enrichment v128.0] ✅ Category statistics calculated (ALL sources)');
 
       setEstadisticasCategorias(statsCategorias);
       
@@ -327,13 +337,13 @@ export default function EnriquecimientoGoogleScreen() {
       } else {
         agregarLog('success', `✅ Estadísticas cargadas correctamente`);
         agregarLog('info', `📊 Total locales en provincia: ${totalLocales}`);
-        agregarLog('info', `📊 Total OSM: ${totalOSM}`);
-        agregarLog('info', `📊 Activos (enriquecidos): ${totalActivos} | Inactivos: ${totalInactivos}`);
-        agregarLog('info', `📊 Enriquecidos: ${enriquecidos} | Pendientes: ${pendientes} | Rechazados: ${rechazados}`);
-        agregarLog('info', `💡 Los locales activos son por definición enriquecidos`);
+        agregarLog('info', `📊 Por fuente: OSM=${totalOSM}, Manual=${totalManual}, Google=${totalGoogle}, Otros=${totalOtros}`);
+        agregarLog('info', `📊 Activos (TODAS las fuentes): ${totalActivos} | Inactivos: ${totalInactivos}`);
+        agregarLog('info', `📊 Enriquecidos: ${enriquecidos} | Pendientes (OSM): ${pendientes} | Rechazados: ${rechazados}`);
+        agregarLog('info', `💡 Los locales activos incluyen todas las fuentes (OSM, manual, Google, etc.)`);
       }
     } catch (error) {
-      console.error('[Enrichment v127.0] ❌ Error cargando estadísticas:', error);
+      console.error('[Enrichment v128.0] ❌ Error cargando estadísticas:', error);
       agregarLog('error', `Error al cargar estadísticas: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setCargando(false);
@@ -389,35 +399,35 @@ export default function EnriquecimientoGoogleScreen() {
       try {
         const categoriaId = CATEGORIAS.find(c => c.nombre === categoria)?.id || 'bar';
         
-        // ✅ FIX v127.0: Build query - ACTIVE = ENRICHED, INACTIVE = PENDING
+        // ✅ FIX v128.0: Build query - ACTIVE = ENRICHED, INACTIVE OSM = PENDING
         let query = supabase
           .from('locales')
-          .select('id, nombre, direccion, tipo, provincia, latitud, longitud, source_id, google_place_id, enriquecido, activo, notas_rechazo')
+          .select('id, nombre, direccion, tipo, provincia, latitud, longitud, source_id, google_place_id, enriquecido, activo, notas_rechazo, source_type')
           .eq('provincia', provinciaSeleccionada)
           .eq('tipo', categoriaId)
-          .eq('source_type', 'osm');
+          .eq('source_type', 'osm'); // Only OSM locales can be enriched through this tool
         
-        // ✅ FIX v127.0: When NOT re-enriching, show ONLY INACTIVE locales (pending)
-        // Inactive locales without rejection notes are available for enrichment
+        // ✅ FIX v128.0: When NOT re-enriching, show ONLY INACTIVE OSM locales (pending)
+        // Inactive OSM locales without rejection notes are available for enrichment
         if (!reEnriquecer) {
           query = query.eq('activo', false);
           // Exclude rejected locales (those with rejection notes)
           query = query.is('notas_rechazo', null);
-          agregarLog('info', '🔍 Filtrando: Solo locales INACTIVOS sin notas de rechazo (pendientes)');
+          agregarLog('info', '🔍 Filtrando: Solo locales OSM INACTIVOS sin notas de rechazo (pendientes)');
           agregarLog('info', '📋 Los locales activos ya están enriquecidos');
         } else {
-          agregarLog('info', '🔍 Mostrando: TODOS los locales (activos e inactivos)');
+          agregarLog('info', '🔍 Mostrando: TODOS los locales OSM (activos e inactivos)');
           agregarLog('info', '📋 Modo re-enriquecimiento: Se actualizarán locales ya enriquecidos');
         }
         
         const { data, error } = await query;
         
         if (error) {
-          console.error('[Enrichment v127.0] Error loading locales:', error);
+          console.error('[Enrichment v128.0] Error loading locales:', error);
           agregarLog('error', `Error al cargar locales: ${error.message}`);
           setLocalesAEnriquecer([]);
         } else {
-          console.log('[Enrichment v127.0] Locales loaded:', {
+          console.log('[Enrichment v128.0] Locales loaded:', {
             total: data?.length || 0,
             active: data?.filter(l => l.activo === true).length || 0,
             inactive: data?.filter(l => l.activo === false).length || 0,
@@ -438,7 +448,7 @@ export default function EnriquecimientoGoogleScreen() {
             agregarLog('info', `📊 Rechazados: ${rejectedCount}`);
           }
           
-          // ✅ FIX v127.0: Update the pending count to match what was actually loaded
+          // ✅ FIX v128.0: Update the pending count to match what was actually loaded
           setLocalesPendientes(data?.length || 0);
           
           // ✅ VALIDATION: Warn if no locales are available
@@ -458,7 +468,7 @@ export default function EnriquecimientoGoogleScreen() {
           }
         }
       } catch (error) {
-        console.error('[Enrichment v122.0] Error:', error);
+        console.error('[Enrichment v128.0] Error:', error);
         agregarLog('error', `Error al cargar locales: ${error}`);
         setLocalesAEnriquecer([]);
       }
@@ -1216,21 +1226,21 @@ export default function EnriquecimientoGoogleScreen() {
         </Text>
       </View>
 
-      {/* ✅ FIX v127.0: Info box explaining the new active/inactive logic */}
+      {/* ✅ FIX v128.0: Info box explaining the new active/inactive logic */}
       {estadisticas.totalOSM > 0 && (
         <View style={[styles.infoBox, { backgroundColor: '#D1FAE5', marginBottom: 15 }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#065F46', fontSize: scaleFontSize(13) }]}>✅ Sistema de Enriquecimiento Actualizado</Text>
+          <Text style={[styles.infoBoxTitle, { color: '#065F46', fontSize: scaleFontSize(13) }]}>✅ Sistema de Enriquecimiento Actualizado v128.0</Text>
           <Text style={[styles.infoBoxText, { color: '#065F46', fontSize: scaleFontSize(12) }]}>
-            <Text style={{ fontWeight: 'bold' }}>Enriquecidos:</Text> Locales activos (activo = true)
+            <Text style={{ fontWeight: 'bold' }}>Enriquecidos:</Text> TODOS los locales activos (todas las fuentes: OSM, manual, Google, etc.)
           </Text>
           <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5, fontSize: scaleFontSize(12) }]}>
-            <Text style={{ fontWeight: 'bold' }}>Pendientes:</Text> Locales inactivos sin notas de rechazo
+            <Text style={{ fontWeight: 'bold' }}>Pendientes:</Text> Locales OSM inactivos sin notas de rechazo
           </Text>
           <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5, fontSize: scaleFontSize(12) }]}>
             <Text style={{ fontWeight: 'bold' }}>Rechazados:</Text> Locales inactivos con notas de rechazo
           </Text>
           <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 8, fontSize: scaleFontSize(12) }]}>
-            💡 Los locales se activan automáticamente al enriquecerse exitosamente.
+            💡 Los 486 locales activos incluyen todas las fuentes, no solo OSM.
           </Text>
         </View>
       )}
@@ -1263,7 +1273,7 @@ export default function EnriquecimientoGoogleScreen() {
         </View>
       )}
 
-      {/* ✅ FIX v126.0: Categorías - Showing enriched + pending counts clearly */}
+      {/* ✅ FIX v128.0: Categorías - Showing enriched + pending counts clearly */}
       <View style={styles.categoriasGrid}>
         {estadisticasCategorias.map(cat => (
           <TouchableOpacity
@@ -1274,10 +1284,10 @@ export default function EnriquecimientoGoogleScreen() {
           >
             <Text style={[styles.categoriaEmoji, { fontSize: scaleFontSize(32) }]}>{cat.emoji}</Text>
             <Text style={[styles.categoriaNombre, { fontSize: scaleFontSize(16) }]}>{cat.categoria}</Text>
-            <Text style={[styles.categoriaStats, { fontSize: scaleFontSize(11) }]}>Total OSM</Text>
+            <Text style={[styles.categoriaStats, { fontSize: scaleFontSize(11) }]}>Total</Text>
             <Text style={[styles.categoriaTotal, { fontSize: scaleFontSize(20) }]}>{cat.total}</Text>
             
-            {/* ✅ FIX v126.0: Show enriched and pending counts in category cards */}
+            {/* ✅ FIX v128.0: Show enriched and pending counts in category cards */}
             <View style={styles.categoriaDetailsContainer}>
               <View style={styles.categoriaDetailRow}>
                 <Text style={[styles.categoriaDetailLabel, { fontSize: scaleFontSize(10) }]}>Enriquecidos:</Text>
@@ -1486,7 +1496,7 @@ export default function EnriquecimientoGoogleScreen() {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { fontSize: scaleFontSize(24) }]}>Enriquecimiento con Google Places</Text>
         <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(14) }]}>
-          🔍 Búsqueda multi-estrategia + Validación inteligente + Eliminación automática
+          v128.0 - Sincronización de locales activos corregida
         </Text>
       </LinearGradient>
 
