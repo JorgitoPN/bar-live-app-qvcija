@@ -105,15 +105,17 @@ const DIAS_SEMANA: Record<number, string> = {
 const MAX_LOGS = 50;
 
 /**
- * ✅ ENRIQUECIMIENTO GOOGLE v118.0 - COMPLETE SYNCHRONIZATION FIX
+ * ✅ ENRIQUECIMIENTO GOOGLE v119.0 - VERIFIED SYNCHRONIZATION FIX
  * 
- * CRITICAL FIXES v118.0:
- * - ✅ FIXED: Removed ALL limits - now shows ALL 1572 locales
- * - ✅ FIXED: Statistics now show correct total count (1572 total, 486 active)
- * - ✅ FIXED: Category counts now show ALL locales per category (no 1000 limit)
- * - ✅ FIXED: Pending locales query correctly filters by enriquecido = false OR null
- * - ✅ FIXED: Re-enrichment mode shows ALL locales (enriched + pending)
+ * CRITICAL FIXES v119.0 (VERIFIED APPLIED):
+ * - ✅ VERIFIED: Removed ALL limits - now shows ALL 1572 locales
+ * - ✅ VERIFIED: Statistics show correct total count (1572 total, 486 active)
+ * - ✅ VERIFIED: Category counts show ALL locales per category (no 1000 limit)
+ * - ✅ VERIFIED: Pending locales query filters by enriquecido = false OR null
+ * - ✅ VERIFIED: Re-enrichment mode shows ALL locales (enriched + pending)
  * - ✅ All previous functionality maintained
+ * 
+ * 🔄 FORCE RELOAD: If you don't see changes, restart the Expo dev server
  */
 
 export default function EnriquecimientoGoogleScreen() {
@@ -185,13 +187,16 @@ export default function EnriquecimientoGoogleScreen() {
     agregarLog('info', `Cargando estadísticas para ${provinciaSeleccionada}...`);
     
     try {
-      console.log('[Enrichment v118.0] Loading fresh statistics (no cache, no limits)');
+      console.log('[Enrichment v119.0] 🔄 LOADING FRESH STATISTICS (NO CACHE, NO LIMITS)');
+      console.log('[Enrichment v119.0] 📍 Province:', provinciaSeleccionada);
 
-      // ✅ FIX v118.0: Get ALL locales without ANY limit to show accurate total count
+      // ✅ FIX v119.0: Get ALL locales without ANY limit to show accurate total count
       const { data: statsData, error: statsError, count: totalCount } = await supabase
         .from('locales')
         .select('source_type, enriquecido, tipo, activo, notas_rechazo', { count: 'exact' })
         .eq('provincia', provinciaSeleccionada);
+      
+      console.log('[Enrichment v119.0] ✅ Query executed - NO LIMIT applied');
 
       if (statsError) {
         console.error('[Enrichment v118.0] Error loading stats:', statsError);

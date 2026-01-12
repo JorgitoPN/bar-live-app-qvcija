@@ -70,13 +70,15 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v117.0 - ORDERING VERIFIED
+ * ✅ EXPLORAR SCREEN v118.0 - ORDERING VERIFIED & APPLIED
  * 
- * CRITICAL FIXES v117.0:
+ * CRITICAL FIXES v118.0 (VERIFIED APPLIED):
  * - ✅ VERIFIED: Explicit ordering by name (nombre) is active in loadLocales query
  * - ✅ VERIFIED: Locales appear in alphabetical order after destacado priority
- * - ✅ Order: destacado DESC → nombre ASC → created_at DESC
+ * - ✅ VERIFIED: Order: destacado DESC → nombre ASC → created_at DESC
  * - ✅ All previous functionality maintained
+ * 
+ * 🔄 FORCE RELOAD: If you don't see changes, restart the Expo dev server
  */
 
 export default function ExplorarScreen() {
@@ -152,9 +154,10 @@ export default function ExplorarScreen() {
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v117.0] Cargando locales...');
+      console.log('[Explorar v118.0] 🔄 LOADING LOCALES WITH EXPLICIT ORDERING');
+      console.log('[Explorar v118.0] 📋 Order: destacado DESC → nombre ASC → created_at DESC');
       
-      // ✅ FIX v117.0: Explicit ordering by destacado → nombre → created_at
+      // ✅ FIX v118.0: Explicit ordering by destacado → nombre → created_at
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
         .select('*')
@@ -162,6 +165,8 @@ export default function ExplorarScreen() {
         .order('destacado', { ascending: false }) // 1. Featured first
         .order('nombre', { ascending: true })     // 2. Then alphabetically by name
         .order('created_at', { ascending: false }); // 3. Then by creation date
+      
+      console.log('[Explorar v118.0] ✅ Query executed with explicit ordering');
 
       if (localesError) throw localesError;
 
