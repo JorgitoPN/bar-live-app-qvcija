@@ -19,6 +19,20 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize, scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+
+/**
+ * ✅ LOGIN V6 SCREEN v144.0 - ANDROID SCROLL & SCALING FIX
+ * 
+ * CRITICAL FIXES v144.0 (ANDROID ONLY):
+ * - ✅ Enabled proper keyboard-aware scrolling (INCLUDES HEADER)
+ * - ✅ Added bottom padding for Android navigation buttons
+ * - ✅ Consistent header title and icon sizes
+ * - ✅ ALL text uses scaleFontSize() for consistency
+ * - ✅ ALL icons use scaleIconSize() for consistency
+ * - ✅ Content no longer hidden by keyboard or nav buttons
+ * - ✅ iOS design remains unchanged
+ */
 
 export default function LoginV6Screen() {
   const router = useRouter();
@@ -108,16 +122,12 @@ export default function LoginV6Screen() {
 
       console.log('[Login v6.5 - Fixed] 🔐 Attempting login:', normalizedEmail);
 
-      // ✅ FIX 1: Check if user is a Google user WITHOUT a password configured
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('provider, email_verified, password_hash')
         .eq('email', normalizedEmail)
         .maybeSingle();
 
-      // Only show Google password setup if:
-      // 1. User was created with Google (provider = 'google')
-      // 2. AND they don't have a password set yet (password_hash is null)
       if (userData?.provider === 'google' && !userData.password_hash) {
         console.log('[Login v6.5 - Fixed] 🔍 Google user without password detected');
         setLoading(false);
@@ -144,14 +154,12 @@ export default function LoginV6Screen() {
         return;
       }
 
-      // Attempt to sign in
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password: password,
       });
 
       if (authError) {
-        // ✅ FIX: Handle "Email not confirmed" error gracefully without showing error logs
         if (authError.message.includes('Email not confirmed')) {
           console.log('[Login v6.5 - Fixed] ⚠️ Email no verificado, redirigiendo a verificación con token');
           
@@ -166,7 +174,6 @@ export default function LoginV6Screen() {
                 onPress: async () => {
                   setLoading(true);
                   try {
-                    // Send verification token
                     const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
                     
                     const response = await fetch(`${supabaseUrl}/functions/v1/request-verification-token`, {
@@ -237,15 +244,12 @@ export default function LoginV6Screen() {
       console.log('[Login v6.5 - Fixed] ✅ Login successful:', authData.user.id);
       console.log('[Login v6.5 - Fixed] ✅ Session obtained:', authData.session.access_token ? 'Yes' : 'No');
       
-      // ✅ FIX 2: Immediately update AuthContext with the new session
       console.log('[Login v6.5 - Fixed] 📝 Updating AuthContext with session...');
       setSessionManually(authData.session);
       
-      // ✅ FIX 3: Wait for session to be fully persisted in storage
       console.log('[Login v6.5 - Fixed] ⏳ Waiting for session to persist in storage...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // ✅ FIX 4: Verify session is still valid after wait
       const { data: { session: verifiedSession } } = await supabase.auth.getSession();
       
       if (!verifiedSession) {
@@ -258,7 +262,6 @@ export default function LoginV6Screen() {
       console.log('[Login v6.5 - Fixed] ✅ Session verified and persisted');
       console.log('[Login v6.5 - Fixed] 🚀 Redirigiendo a lista de locales...');
       
-      // ✅ FIX 5: Use replace to ensure clean navigation
       router.replace('/(tabs)/explorar');
     } catch (error: any) {
       console.error('[Login v6.5 - Fixed] ❌ Error in handleLogin:', error);
@@ -268,219 +271,227 @@ export default function LoginV6Screen() {
     }
   };
 
+  const headerIconSize = getHeaderIconSize();
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
     >
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <IconSymbol
-            ios_icon_name="chevron.left"
-            android_material_icon_name="arrow_back"
-            size={24}
-            color="#fff"
-          />
-        </TouchableOpacity>
-        
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoCircle}>
-              <IconSymbol
-                ios_icon_name="person.fill"
-                android_material_icon_name="person"
-                size={48}
-                color="#fff"
-              />
-            </View>
-          </View>
-          <Text style={styles.headerTitle}>Bienvenido</Text>
-          <Text style={styles.headerSubtitle}>Inicia sesión para continuar</Text>
-        </Animated.View>
-      </LinearGradient>
-
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { paddingBottom: getContentBottomPadding(120) }
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Correo electrónico</Text>
-            <Animated.View
-              style={[
-                styles.inputContainer,
-                emailFocused && styles.inputContainerFocused,
-                emailError && styles.inputContainerError,
-                { transform: [{ translateX: emailShakeAnim }] },
-              ]}
-            >
-              <IconSymbol
-                ios_icon_name="envelope.fill"
-                android_material_icon_name="email"
-                size={20}
-                color={emailError ? '#ef4444' : emailFocused ? colors.primary : colors.textSecondary}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="correo@ejemplo.com"
-                placeholderTextColor={colors.textSecondary}
-                value={email}
-                onChangeText={handleEmailChange}
-                onFocus={() => setEmailFocused(true)}
-                onBlur={handleEmailBlur}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!loading}
-              />
-              {email && !emailError ? (
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.header}
+        >
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <IconSymbol
+              ios_icon_name="chevron.left"
+              android_material_icon_name="arrow_back"
+              size={headerIconSize}
+              color="#fff"
+            />
+          </TouchableOpacity>
+          
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoCircle}>
                 <IconSymbol
-                  ios_icon_name="checkmark.circle.fill"
-                  android_material_icon_name="check_circle"
-                  size={20}
-                  color="#10b981"
+                  ios_icon_name="person.fill"
+                  android_material_icon_name="person"
+                  size={scaleIconSize(48)}
+                  color="#fff"
                 />
-              ) : null}
-            </Animated.View>
-            {emailError ? (
-              <View style={styles.errorContainer}>
-                <IconSymbol
-                  ios_icon_name="exclamationmark.circle.fill"
-                  android_material_icon_name="error"
-                  size={14}
-                  color="#ef4444"
-                />
-                <Text style={styles.errorText}>{emailError}</Text>
               </View>
-            ) : null}
-          </View>
+            </View>
+            <Text style={[styles.headerTitle, { fontSize: getHeaderTitleSize() }]}>Bienvenido</Text>
+            <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(16) }]}>Inicia sesión para continuar</Text>
+          </Animated.View>
+        </LinearGradient>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Contraseña</Text>
-            <Animated.View
-              style={[
-                styles.inputContainer,
-                passwordFocused && styles.inputContainerFocused,
-                passwordError && styles.inputContainerError,
-                { transform: [{ translateX: passwordShakeAnim }] },
-              ]}
-            >
-              <IconSymbol
-                ios_icon_name="lock.fill"
-                android_material_icon_name="lock"
-                size={20}
-                color={passwordError ? '#ef4444' : passwordFocused ? colors.primary : colors.textSecondary}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="••••••••"
-                placeholderTextColor={colors.textSecondary}
-                value={password}
-                onChangeText={handlePasswordChange}
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                editable={!loading}
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        <View style={styles.content}>
+          <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Correo electrónico</Text>
+              <Animated.View
+                style={[
+                  styles.inputContainer,
+                  emailFocused && styles.inputContainerFocused,
+                  emailError && styles.inputContainerError,
+                  { transform: [{ translateX: emailShakeAnim }] },
+                ]}
               >
                 <IconSymbol
-                  ios_icon_name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
-                  android_material_icon_name={showPassword ? 'visibility_off' : 'visibility'}
-                  size={20}
-                  color={colors.textSecondary}
+                  ios_icon_name="envelope.fill"
+                  android_material_icon_name="email"
+                  size={scaleIconSize(20)}
+                  color={emailError ? '#ef4444' : emailFocused ? colors.primary : colors.textSecondary}
                 />
-              </TouchableOpacity>
-            </Animated.View>
-            {passwordError ? (
-              <View style={styles.errorContainer}>
-                <IconSymbol
-                  ios_icon_name="exclamationmark.circle.fill"
-                  android_material_icon_name="error"
-                  size={14}
-                  color="#ef4444"
+                <TextInput
+                  style={[styles.input, { fontSize: scaleFontSize(16) }]}
+                  placeholder="correo@ejemplo.com"
+                  placeholderTextColor={colors.textSecondary}
+                  value={email}
+                  onChangeText={handleEmailChange}
+                  onFocus={() => setEmailFocused(true)}
+                  onBlur={handleEmailBlur}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
                 />
-                <Text style={styles.errorText}>{passwordError}</Text>
-              </View>
-            ) : null}
-          </View>
-
-          <TouchableOpacity
-            style={styles.forgotButton}
-            onPress={() => router.push('/auth/recuperar-password-token')}
-            disabled={loading}
-          >
-            <Text style={styles.forgotButtonText}>¿Olvidaste tu contraseña?</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.buttonGradient}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <React.Fragment>
+                {email && !emailError ? (
                   <IconSymbol
-                    ios_icon_name="arrow.right.circle.fill"
-                    android_material_icon_name="login"
-                    size={20}
-                    color="#fff"
-                    style={styles.buttonIcon}
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check_circle"
+                    size={scaleIconSize(20)}
+                    color="#10b981"
                   />
-                  <Text style={styles.buttonText}>Iniciar sesión</Text>
-                </React.Fragment>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+                ) : null}
+              </Animated.View>
+              {emailError ? (
+                <View style={styles.errorContainer}>
+                  <IconSymbol
+                    ios_icon_name="exclamationmark.circle.fill"
+                    android_material_icon_name="error"
+                    size={scaleIconSize(14)}
+                    color="#ef4444"
+                  />
+                  <Text style={[styles.errorText, { fontSize: scaleFontSize(12) }]}>{emailError}</Text>
+                </View>
+              ) : null}
+            </View>
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>o</Text>
-            <View style={styles.dividerLine} />
-          </View>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Contraseña</Text>
+              <Animated.View
+                style={[
+                  styles.inputContainer,
+                  passwordFocused && styles.inputContainerFocused,
+                  passwordError && styles.inputContainerError,
+                  { transform: [{ translateX: passwordShakeAnim }] },
+                ]}
+              >
+                <IconSymbol
+                  ios_icon_name="lock.fill"
+                  android_material_icon_name="lock"
+                  size={scaleIconSize(20)}
+                  color={passwordError ? '#ef4444' : passwordFocused ? colors.primary : colors.textSecondary}
+                />
+                <TextInput
+                  style={[styles.input, { fontSize: scaleFontSize(16) }]}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.textSecondary}
+                  value={password}
+                  onChangeText={handlePasswordChange}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <IconSymbol
+                    ios_icon_name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
+                    android_material_icon_name={showPassword ? 'visibility_off' : 'visibility'}
+                    size={scaleIconSize(20)}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </Animated.View>
+              {passwordError ? (
+                <View style={styles.errorContainer}>
+                  <IconSymbol
+                    ios_icon_name="exclamationmark.circle.fill"
+                    android_material_icon_name="error"
+                    size={scaleIconSize(14)}
+                    color="#ef4444"
+                  />
+                  <Text style={[styles.errorText, { fontSize: scaleFontSize(12) }]}>{passwordError}</Text>
+                </View>
+              ) : null}
+            </View>
 
-          <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>¿No tienes cuenta? </Text>
             <TouchableOpacity
-              onPress={() => router.replace('/auth/registro-v6')}
+              style={styles.forgotButton}
+              onPress={() => router.push('/auth/recuperar-password-token')}
               disabled={loading}
             >
-              <Text style={styles.registerLink}>Regístrate gratis</Text>
+              <Text style={[styles.forgotButtonText, { fontSize: scaleFontSize(14) }]}>¿Olvidaste tu contraseña?</Text>
             </TouchableOpacity>
-          </View>
 
-          <View style={styles.securityNote}>
-            <IconSymbol
-              ios_icon_name="lock.shield.fill"
-              android_material_icon_name="security"
-              size={16}
-              color={colors.textSecondary}
-            />
-            <Text style={styles.securityText}>
-              Tu información está protegida con encriptación de extremo a extremo
-            </Text>
-          </View>
-        </Animated.View>
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.buttonGradient}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <React.Fragment>
+                    <IconSymbol
+                      ios_icon_name="arrow.right.circle.fill"
+                      android_material_icon_name="login"
+                      size={scaleIconSize(20)}
+                      color="#fff"
+                      style={styles.buttonIcon}
+                    />
+                    <Text style={[styles.buttonText, { fontSize: scaleFontSize(16) }]}>Iniciar sesión</Text>
+                  </React.Fragment>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={[styles.dividerText, { fontSize: scaleFontSize(14) }]}>o</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.registerContainer}>
+              <Text style={[styles.registerText, { fontSize: scaleFontSize(14) }]}>¿No tienes cuenta? </Text>
+              <TouchableOpacity
+                onPress={() => router.replace('/auth/registro-v6')}
+                disabled={loading}
+              >
+                <Text style={[styles.registerLink, { fontSize: scaleFontSize(14) }]}>Regístrate gratis</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.securityNote}>
+              <IconSymbol
+                ios_icon_name="lock.shield.fill"
+                android_material_icon_name="security"
+                size={scaleIconSize(16)}
+                color={colors.textSecondary}
+              />
+              <Text style={[styles.securityText, { fontSize: scaleFontSize(11) }]}>
+                Tu información está protegida con encriptación de extremo a extremo
+              </Text>
+            </View>
+          </Animated.View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -490,6 +501,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    // paddingBottom set dynamically via getContentBottomPadding()
   },
   header: {
     paddingTop: Platform.OS === 'android' ? 60 : 80,
@@ -518,23 +533,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 36,
+    // fontSize set dynamically via getHeaderTitleSize()
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 8,
     textAlign: 'center',
   },
   headerSubtitle: {
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
   },
   content: {
     flex: 1,
-  },
-  scrollContent: {
     padding: 24,
-    paddingBottom: 120,
   },
   formContainer: {
     flex: 1,
@@ -543,7 +555,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   label: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
@@ -590,7 +602,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     padding: 12,
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.text,
   },
   errorContainer: {
@@ -600,7 +612,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   errorText: {
-    fontSize: 12,
+    // fontSize set dynamically via scaleFontSize()
     color: '#ef4444',
     marginLeft: 4,
   },
@@ -610,7 +622,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   forgotButtonText: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.primary,
     fontWeight: '600',
   },
@@ -633,7 +645,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
   },
   divider: {
@@ -648,7 +660,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     marginHorizontal: 16,
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     fontWeight: '500',
   },
@@ -659,11 +671,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   registerText: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
   },
   registerLink: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.primary,
   },
@@ -674,7 +686,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   securityText: {
-    fontSize: 11,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     marginLeft: 6,
     textAlign: 'center',

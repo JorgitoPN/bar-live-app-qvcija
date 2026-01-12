@@ -16,6 +16,20 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
+import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize, scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+
+/**
+ * ✅ RECUPERAR PASSWORD SCREEN v144.0 - ANDROID SCROLL & SCALING FIX
+ * 
+ * CRITICAL FIXES v144.0 (ANDROID ONLY):
+ * - ✅ Enabled proper keyboard-aware scrolling (INCLUDES HEADER)
+ * - ✅ Added bottom padding for Android navigation buttons
+ * - ✅ Consistent header title and icon sizes
+ * - ✅ ALL text uses scaleFontSize() for consistency
+ * - ✅ ALL icons use scaleIconSize() for consistency
+ * - ✅ Content no longer hidden by keyboard or nav buttons
+ * - ✅ iOS design remains unchanged
+ */
 
 export default function RecuperarPasswordV7Screen() {
   const router = useRouter();
@@ -39,113 +53,121 @@ export default function RecuperarPasswordV7Screen() {
       return;
     }
 
-    // Redirect to the token-based password recovery flow
     router.push('/auth/recuperar-password-token');
   };
+
+  const headerIconSize = getHeaderIconSize();
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
     >
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <IconSymbol
-            ios_icon_name="chevron.left"
-            android_material_icon_name="arrow_back"
-            size={24}
-            color="#fff"
-          />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Recuperar contraseña</Text>
-        <Text style={styles.headerSubtitle}>Te ayudaremos a recuperar tu cuenta</Text>
-      </LinearGradient>
-
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { paddingBottom: getContentBottomPadding(120) }
+        ]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <View style={styles.formContainer}>
-          <View style={styles.infoBox}>
-            <IconSymbol
-              ios_icon_name="envelope.badge.shield.half.filled"
-              android_material_icon_name="mark_email_unread"
-              size={80}
-              color={colors.primary}
-            />
-            <Text style={styles.infoTitle}>Recupera tu cuenta</Text>
-            <Text style={styles.infoText}>
-              Ingresa tu correo electrónico y te enviaremos un código de 6 dígitos para restablecer tu contraseña.
-            </Text>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Correo electrónico</Text>
-            <View style={styles.inputWrapper}>
-              <IconSymbol
-                ios_icon_name="envelope.fill"
-                android_material_icon_name="email"
-                size={20}
-                color={colors.textSecondary}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="correo@ejemplo.com"
-                placeholderTextColor={colors.textSecondary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!loading}
-              />
-            </View>
-          </View>
-
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.header}
+        >
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSendToken}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <React.Fragment>
-                <IconSymbol
-                  ios_icon_name="paperplane.fill"
-                  android_material_icon_name="send"
-                  size={20}
-                  color="#fff"
-                  style={styles.buttonIcon}
-                />
-                <Text style={styles.buttonText}>Continuar</Text>
-              </React.Fragment>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.backToLoginButton}
-            onPress={() => router.replace('/auth/login-v6')}
+            style={styles.backButton}
+            onPress={() => router.back()}
           >
             <IconSymbol
-              ios_icon_name="arrow.left"
+              ios_icon_name="chevron.left"
               android_material_icon_name="arrow_back"
-              size={16}
-              color={colors.primary}
-              style={styles.backToLoginIcon}
+              size={headerIconSize}
+              color="#fff"
             />
-            <Text style={styles.backToLoginText}>
-              Volver a <Text style={styles.backToLoginTextBold}>Iniciar sesión</Text>
-            </Text>
           </TouchableOpacity>
+          <Text style={[styles.headerTitle, { fontSize: getHeaderTitleSize() }]}>Recuperar contraseña</Text>
+          <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(16) }]}>Te ayudaremos a recuperar tu cuenta</Text>
+        </LinearGradient>
+
+        <View style={styles.content}>
+          <View style={styles.formContainer}>
+            <View style={styles.infoBox}>
+              <IconSymbol
+                ios_icon_name="envelope.badge.shield.half.filled"
+                android_material_icon_name="mark_email_unread"
+                size={scaleIconSize(80)}
+                color={colors.primary}
+              />
+              <Text style={[styles.infoTitle, { fontSize: scaleFontSize(26) }]}>Recupera tu cuenta</Text>
+              <Text style={[styles.infoText, { fontSize: scaleFontSize(15) }]}>
+                Ingresa tu correo electrónico y te enviaremos un código de 6 dígitos para restablecer tu contraseña.
+              </Text>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { fontSize: scaleFontSize(15) }]}>Correo electrónico</Text>
+              <View style={styles.inputWrapper}>
+                <IconSymbol
+                  ios_icon_name="envelope.fill"
+                  android_material_icon_name="email"
+                  size={scaleIconSize(20)}
+                  color={colors.textSecondary}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[styles.input, { fontSize: scaleFontSize(16) }]}
+                  placeholder="correo@ejemplo.com"
+                  placeholderTextColor={colors.textSecondary}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleSendToken}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <React.Fragment>
+                  <IconSymbol
+                    ios_icon_name="paperplane.fill"
+                    android_material_icon_name="send"
+                    size={scaleIconSize(20)}
+                    color="#fff"
+                    style={styles.buttonIcon}
+                  />
+                  <Text style={[styles.buttonText, { fontSize: scaleFontSize(16) }]}>Continuar</Text>
+                </React.Fragment>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.backToLoginButton}
+              onPress={() => router.replace('/auth/login-v6')}
+            >
+              <IconSymbol
+                ios_icon_name="arrow.left"
+                android_material_icon_name="arrow_back"
+                size={scaleIconSize(16)}
+                color={colors.primary}
+                style={styles.backToLoginIcon}
+              />
+              <Text style={[styles.backToLoginText, { fontSize: scaleFontSize(15) }]}>
+                Volver a <Text style={styles.backToLoginTextBold}>Iniciar sesión</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -157,8 +179,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollContainer: {
+    flexGrow: 1,
+    // paddingBottom set dynamically via getContentBottomPadding()
+  },
   header: {
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'android' ? 60 : 60,
     paddingBottom: 32,
     paddingHorizontal: 24,
   },
@@ -172,21 +198,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 32,
+    // fontSize set dynamically via getHeaderTitleSize()
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 8,
   },
   headerSubtitle: {
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     color: 'rgba(255, 255, 255, 0.9)',
   },
   content: {
     flex: 1,
-  },
-  scrollContent: {
     padding: 24,
-    paddingBottom: 120,
   },
   formContainer: {
     flex: 1,
@@ -210,14 +233,14 @@ const styles = StyleSheet.create({
     }),
   },
   infoTitle: {
-    fontSize: 26,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 20,
     marginBottom: 12,
   },
   infoText: {
-    fontSize: 15,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
@@ -226,7 +249,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   label: {
-    fontSize: 15,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 12,
@@ -246,7 +269,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     padding: 16,
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.text,
   },
   button: {
@@ -277,7 +300,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
   },
   backToLoginButton: {
@@ -290,7 +313,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   backToLoginText: {
-    fontSize: 15,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
   },
   backToLoginTextBold: {

@@ -18,6 +18,19 @@ import {
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+import { getContentBottomPadding, scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+
+/**
+ * ✅ LOGIN POPUP SCREEN v144.0 - ANDROID SCROLL & SCALING FIX
+ * 
+ * CRITICAL FIXES v144.0 (ANDROID ONLY):
+ * - ✅ Enabled proper keyboard-aware scrolling (INCLUDES HEADER)
+ * - ✅ Added bottom padding for Android navigation buttons
+ * - ✅ ALL text uses scaleFontSize() for consistency
+ * - ✅ ALL icons use scaleIconSize() for consistency
+ * - ✅ Content no longer hidden by keyboard or nav buttons
+ * - ✅ iOS design remains unchanged
+ */
 
 export default function LoginPopupScreen() {
   const router = useRouter();
@@ -27,7 +40,6 @@ export default function LoginPopupScreen() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // If user is already logged in, redirect
     if (user) {
       console.log('[LoginPopup] ✅ Usuario ya autenticado, cerrando modal');
       router.back();
@@ -55,7 +67,6 @@ export default function LoginPopupScreen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      // Check if user exists
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('id, email_verified, provider, rol_app')
@@ -75,7 +86,6 @@ export default function LoginPopupScreen() {
         return;
       }
 
-      // Check if user was registered with Google and needs to set password
       if (userData.provider === 'google') {
         Alert.alert(
           'Configuración requerida',
@@ -118,7 +128,6 @@ export default function LoginPopupScreen() {
         return;
       }
 
-      // Sign in with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password: password,
@@ -145,11 +154,9 @@ export default function LoginPopupScreen() {
 
       console.log('[LoginPopup] ✅ Login successful:', authData.user.id);
       
-      // Wait for auth context to update
       await new Promise(resolve => setTimeout(resolve, 500));
       await refreshUser();
       
-      // Close modal
       router.back();
     } catch (error: any) {
       console.error('[LoginPopup] ❌ Error in handleLogin:', error);
@@ -186,34 +193,40 @@ export default function LoginPopupScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
     >
-      <TouchableOpacity 
-        style={styles.closeButton} 
-        onPress={handleClose}
-        disabled={loading}
-      >
-        <IconSymbol 
-          ios_icon_name="xmark" 
-          android_material_icon_name="close"
-          size={20} 
-          color={colors.text} 
-        />
-      </TouchableOpacity>
-
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: getContentBottomPadding(120) }
+        ]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
+        <TouchableOpacity 
+          style={styles.closeButton} 
+          onPress={handleClose}
+          disabled={loading}
+        >
+          <IconSymbol 
+            ios_icon_name="xmark" 
+            android_material_icon_name="close"
+            size={scaleIconSize(20)} 
+            color={colors.text} 
+          />
+        </TouchableOpacity>
+
         <View style={styles.header}>
-          <Text style={styles.title}>Iniciar Sesión</Text>
-          <Text style={styles.subtitle}>Bienvenido de nuevo a BarLive</Text>
+          <Text style={[styles.title, { fontSize: scaleFontSize(28) }]}>Iniciar Sesión</Text>
+          <Text style={[styles.subtitle, { fontSize: scaleFontSize(16) }]}>Bienvenido de nuevo a BarLive</Text>
         </View>
 
         <View style={styles.form}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Correo electrónico</Text>
+            <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Correo electrónico</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { fontSize: scaleFontSize(16) }]}
               placeholder="correo@ejemplo.com"
               placeholderTextColor={colors.textSecondary}
               value={email}
@@ -226,9 +239,9 @@ export default function LoginPopupScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Contraseña</Text>
+            <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Contraseña</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { fontSize: scaleFontSize(16) }]}
               placeholder="••••••••"
               placeholderTextColor={colors.textSecondary}
               value={password}
@@ -244,7 +257,7 @@ export default function LoginPopupScreen() {
             disabled={loading}
             style={styles.forgotButton}
           >
-            <Text style={styles.link}>
+            <Text style={[styles.link, { fontSize: scaleFontSize(14) }]}>
               ¿Olvidaste tu contraseña?
             </Text>
           </TouchableOpacity>
@@ -258,7 +271,7 @@ export default function LoginPopupScreen() {
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={[styles.buttonText, styles.buttonTextPrimary]}>
+            <Text style={[styles.buttonText, styles.buttonTextPrimary, { fontSize: scaleFontSize(16) }]}>
               Iniciar Sesión
             </Text>
           )}
@@ -266,17 +279,17 @@ export default function LoginPopupScreen() {
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>o</Text>
+          <Text style={[styles.dividerText, { fontSize: scaleFontSize(14) }]}>o</Text>
           <View style={styles.dividerLine} />
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>¿No tienes cuenta?</Text>
+          <Text style={[styles.footerText, { fontSize: scaleFontSize(14) }]}>¿No tienes cuenta?</Text>
           <TouchableOpacity 
             onPress={() => router.push('/auth/registro-email')} 
             disabled={loading}
           >
-            <Text style={styles.link}>Crear cuenta</Text>
+            <Text style={[styles.link, { fontSize: scaleFontSize(14) }]}>Crear cuenta</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -293,20 +306,20 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
-    paddingBottom: 120,
+    // paddingBottom set dynamically via getContentBottomPadding()
   },
   header: {
     alignItems: 'center',
     marginBottom: 32,
   },
   title: {
-    fontSize: 28,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -317,7 +330,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
@@ -326,7 +339,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -348,7 +361,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
   },
@@ -367,19 +380,19 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     marginHorizontal: 16,
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
   },
   footer: {
     alignItems: 'center',
   },
   footerText: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     marginBottom: 8,
   },
   link: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.primary,
     fontWeight: '600',
   },

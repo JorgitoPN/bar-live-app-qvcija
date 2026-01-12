@@ -17,6 +17,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize, scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+
+/**
+ * ✅ VALIDAR TOKEN PASSWORD SCREEN v144.0 - ANDROID SCROLL & SCALING FIX
+ * 
+ * CRITICAL FIXES v144.0 (ANDROID ONLY):
+ * - ✅ Enabled proper keyboard-aware scrolling (INCLUDES HEADER)
+ * - ✅ Added bottom padding for Android navigation buttons
+ * - ✅ Consistent header title and icon sizes
+ * - ✅ ALL text uses scaleFontSize() for consistency
+ * - ✅ ALL icons use scaleIconSize() for consistency
+ * - ✅ Content no longer hidden by keyboard or nav buttons
+ * - ✅ iOS design remains unchanged
+ */
 
 export default function ValidarTokenPasswordScreen() {
   const router = useRouter();
@@ -134,7 +148,6 @@ export default function ValidarTokenPasswordScreen() {
 
       console.log('[ValidarTokenPassword] ✅ Contraseña actualizada exitosamente');
 
-      // ✅ CRITICAL FIX: Update provider field in usuarios table for Google users
       if (isGoogleUser) {
         console.log('[ValidarTokenPassword] 🔄 Updating provider field for Google user...');
         
@@ -148,7 +161,6 @@ export default function ValidarTokenPasswordScreen() {
 
         if (updateError) {
           console.error('[ValidarTokenPassword] ⚠️ Error updating provider:', updateError);
-          // Don't fail the whole operation, just log the error
         } else {
           console.log('[ValidarTokenPassword] ✅ Provider updated to email');
         }
@@ -179,191 +191,203 @@ export default function ValidarTokenPasswordScreen() {
     }
   };
 
+  const headerIconSize = getHeaderIconSize();
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
     >
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <IconSymbol
-            ios_icon_name="chevron.left"
-            android_material_icon_name="arrow_back"
-            size={24}
-            color="#fff"
-          />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {tokenValidated ? 'Nueva contraseña' : 'Verificar código'}
-        </Text>
-        <Text style={styles.headerSubtitle}>
-          {tokenValidated ? 'Configura tu contraseña' : 'Ingresa el código de 6 dígitos'}
-        </Text>
-      </LinearGradient>
-
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { paddingBottom: getContentBottomPadding(120) }
+        ]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <View style={styles.formContainer}>
-          {!tokenValidated ? (
-            <>
-              <View style={styles.infoBox}>
-                <IconSymbol
-                  ios_icon_name="envelope.fill"
-                  android_material_icon_name="email"
-                  size={48}
-                  color={colors.primary}
-                />
-                <Text style={styles.infoTitle}>Revisa tu correo</Text>
-                <Text style={styles.infoText}>
-                  Hemos enviado un código de verificación de 6 dígitos a:
-                </Text>
-                <Text style={styles.emailText}>{email}</Text>
-              </View>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.header}
+        >
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <IconSymbol
+              ios_icon_name="chevron.left"
+              android_material_icon_name="arrow_back"
+              size={headerIconSize}
+              color="#fff"
+            />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { fontSize: getHeaderTitleSize() }]}>
+            {tokenValidated ? 'Nueva contraseña' : 'Verificar código'}
+          </Text>
+          <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(16) }]}>
+            {tokenValidated ? 'Configura tu contraseña' : 'Ingresa el código de 6 dígitos'}
+          </Text>
+        </LinearGradient>
 
-              <Text style={styles.label}>Código de verificación</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="000000"
-                placeholderTextColor={colors.textSecondary}
-                value={token}
-                onChangeText={setToken}
-                keyboardType="number-pad"
-                maxLength={6}
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!loading}
-              />
+        <View style={styles.content}>
+          <View style={styles.formContainer}>
+            {!tokenValidated ? (
+              <React.Fragment>
+                <View style={styles.infoBox}>
+                  <IconSymbol
+                    ios_icon_name="envelope.fill"
+                    android_material_icon_name="email"
+                    size={scaleIconSize(48)}
+                    color={colors.primary}
+                  />
+                  <Text style={[styles.infoTitle, { fontSize: scaleFontSize(24) }]}>Revisa tu correo</Text>
+                  <Text style={[styles.infoText, { fontSize: scaleFontSize(14) }]}>
+                    Hemos enviado un código de verificación de 6 dígitos a:
+                  </Text>
+                  <Text style={[styles.emailText, { fontSize: scaleFontSize(16) }]}>{email}</Text>
+                </View>
 
-              <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={validateToken}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>Verificar código</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.resendButton}
-                onPress={() => router.back()}
-              >
-                <Text style={styles.resendButtonText}>
-                  ¿No recibiste el código? <Text style={styles.resendButtonTextBold}>Reenviar</Text>
-                </Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <View style={styles.successBox}>
-                <IconSymbol
-                  ios_icon_name="checkmark.circle.fill"
-                  android_material_icon_name="check_circle"
-                  size={64}
-                  color="#10b981"
-                />
-                <Text style={styles.successTitle}>Código verificado</Text>
-                <Text style={styles.successText}>
-                  Ahora puedes configurar tu nueva contraseña
-                </Text>
-              </View>
-
-              <Text style={styles.label}>Nueva contraseña</Text>
-              <View style={styles.passwordContainer}>
+                <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Código de verificación</Text>
                 <TextInput
-                  style={styles.passwordInput}
-                  placeholder="Mínimo 8 caracteres"
+                  style={[styles.input, { fontSize: scaleFontSize(24) }]}
+                  placeholder="000000"
                   placeholderTextColor={colors.textSecondary}
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  secureTextEntry={!showPassword}
+                  value={token.join('')}
+                  onChangeText={(text) => {
+                    const digits = text.split('').slice(0, 6);
+                    setToken([...digits, ...Array(6 - digits.length).fill('')]);
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={6}
                   autoCapitalize="none"
+                  autoCorrect={false}
                   editable={!loading}
                 />
+
                 <TouchableOpacity
-                  style={styles.eyeButton}
-                  onPress={() => setShowPassword(!showPassword)}
+                  style={[styles.button, loading && styles.buttonDisabled]}
+                  onPress={validateToken}
+                  disabled={loading}
                 >
-                  <IconSymbol
-                    ios_icon_name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
-                    android_material_icon_name={showPassword ? 'visibility_off' : 'visibility'}
-                    size={20}
-                    color={colors.textSecondary}
-                  />
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={[styles.buttonText, { fontSize: scaleFontSize(16) }]}>Verificar código</Text>
+                  )}
                 </TouchableOpacity>
-              </View>
 
-              <Text style={styles.label}>Confirmar contraseña</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={styles.passwordInput}
-                  placeholder="Repite tu contraseña"
-                  placeholderTextColor={colors.textSecondary}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry={!showConfirmPassword}
-                  autoCapitalize="none"
-                  editable={!loading}
-                />
                 <TouchableOpacity
-                  style={styles.eyeButton}
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={styles.resendButton}
+                  onPress={() => router.back()}
                 >
-                  <IconSymbol
-                    ios_icon_name={showConfirmPassword ? 'eye.slash.fill' : 'eye.fill'}
-                    android_material_icon_name={showConfirmPassword ? 'visibility_off' : 'visibility'}
-                    size={20}
-                    color={colors.textSecondary}
-                  />
+                  <Text style={[styles.resendButtonText, { fontSize: scaleFontSize(14) }]}>
+                    ¿No recibiste el código? <Text style={styles.resendButtonTextBold}>Reenviar</Text>
+                  </Text>
                 </TouchableOpacity>
-              </View>
-
-              <View style={styles.requirementsBox}>
-                <Text style={styles.requirementsTitle}>Requisitos de la contraseña:</Text>
-                <View style={styles.requirementItem}>
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <View style={styles.successBox}>
                   <IconSymbol
-                    ios_icon_name={newPassword.length >= 8 ? 'checkmark.circle.fill' : 'circle'}
-                    android_material_icon_name={newPassword.length >= 8 ? 'check_circle' : 'radio_button_unchecked'}
-                    size={16}
-                    color={newPassword.length >= 8 ? '#10b981' : colors.textSecondary}
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check_circle"
+                    size={scaleIconSize(64)}
+                    color="#10b981"
                   />
-                  <Text style={styles.requirementText}>Mínimo 8 caracteres</Text>
+                  <Text style={[styles.successTitle, { fontSize: scaleFontSize(24) }]}>Código verificado</Text>
+                  <Text style={[styles.successText, { fontSize: scaleFontSize(14) }]}>
+                    Ahora puedes configurar tu nueva contraseña
+                  </Text>
                 </View>
-                <View style={styles.requirementItem}>
-                  <IconSymbol
-                    ios_icon_name={newPassword === confirmPassword && newPassword.length > 0 ? 'checkmark.circle.fill' : 'circle'}
-                    android_material_icon_name={newPassword === confirmPassword && newPassword.length > 0 ? 'check_circle' : 'radio_button_unchecked'}
-                    size={16}
-                    color={newPassword === confirmPassword && newPassword.length > 0 ? '#10b981' : colors.textSecondary}
-                  />
-                  <Text style={styles.requirementText}>Las contraseñas coinciden</Text>
-                </View>
-              </View>
 
-              <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={handleUpdatePassword}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>Configurar contraseña</Text>
-                )}
-              </TouchableOpacity>
-            </>
-          )}
+                <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Nueva contraseña</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={[styles.passwordInput, { fontSize: scaleFontSize(16) }]}
+                    placeholder="Mínimo 8 caracteres"
+                    placeholderTextColor={colors.textSecondary}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <IconSymbol
+                      ios_icon_name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
+                      android_material_icon_name={showPassword ? 'visibility_off' : 'visibility'}
+                      size={scaleIconSize(20)}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Confirmar contraseña</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={[styles.passwordInput, { fontSize: scaleFontSize(16) }]}
+                    placeholder="Repite tu contraseña"
+                    placeholderTextColor={colors.textSecondary}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    <IconSymbol
+                      ios_icon_name={showConfirmPassword ? 'eye.slash.fill' : 'eye.fill'}
+                      android_material_icon_name={showConfirmPassword ? 'visibility_off' : 'visibility'}
+                      size={scaleIconSize(20)}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.requirementsBox}>
+                  <Text style={[styles.requirementsTitle, { fontSize: scaleFontSize(14) }]}>Requisitos de la contraseña:</Text>
+                  <View style={styles.requirementItem}>
+                    <IconSymbol
+                      ios_icon_name={newPassword.length >= 8 ? 'checkmark.circle.fill' : 'circle'}
+                      android_material_icon_name={newPassword.length >= 8 ? 'check_circle' : 'radio_button_unchecked'}
+                      size={scaleIconSize(16)}
+                      color={newPassword.length >= 8 ? '#10b981' : colors.textSecondary}
+                    />
+                    <Text style={[styles.requirementText, { fontSize: scaleFontSize(14) }]}>Mínimo 8 caracteres</Text>
+                  </View>
+                  <View style={styles.requirementItem}>
+                    <IconSymbol
+                      ios_icon_name={newPassword === confirmPassword && newPassword.length > 0 ? 'checkmark.circle.fill' : 'circle'}
+                      android_material_icon_name={newPassword === confirmPassword && newPassword.length > 0 ? 'check_circle' : 'radio_button_unchecked'}
+                      size={scaleIconSize(16)}
+                      color={newPassword === confirmPassword && newPassword.length > 0 ? '#10b981' : colors.textSecondary}
+                    />
+                    <Text style={[styles.requirementText, { fontSize: scaleFontSize(14) }]}>Las contraseñas coinciden</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.button, loading && styles.buttonDisabled]}
+                  onPress={handleUpdatePassword}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={[styles.buttonText, { fontSize: scaleFontSize(16) }]}>Configurar contraseña</Text>
+                  )}
+                </TouchableOpacity>
+              </React.Fragment>
+            )}
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -375,8 +399,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollContainer: {
+    flexGrow: 1,
+    // paddingBottom set dynamically via getContentBottomPadding()
+  },
   header: {
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'android' ? 60 : 60,
     paddingBottom: 24,
     paddingHorizontal: 24,
   },
@@ -384,21 +412,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 28,
+    // fontSize set dynamically via getHeaderTitleSize()
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 8,
   },
   headerSubtitle: {
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     color: 'rgba(255, 255, 255, 0.9)',
   },
   content: {
     flex: 1,
-  },
-  scrollContent: {
     padding: 24,
-    paddingBottom: 120,
   },
   formContainer: {
     flex: 1,
@@ -411,21 +436,21 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   infoTitle: {
-    fontSize: 24,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 16,
     marginBottom: 12,
   },
   infoText: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 12,
     lineHeight: 20,
   },
   emailText: {
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.primary,
     textAlign: 'center',
@@ -439,20 +464,20 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   successTitle: {
-    fontSize: 24,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 16,
     marginBottom: 12,
   },
   successText: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },
   label: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
@@ -463,7 +488,7 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
     borderRadius: 12,
     padding: 16,
-    fontSize: 24,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.text,
     marginBottom: 24,
     textAlign: 'center',
@@ -481,7 +506,7 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
     padding: 16,
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.text,
   },
   eyeButton: {
@@ -494,7 +519,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   requirementsTitle: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 12,
@@ -506,7 +531,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   requirementText: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
   },
   button: {
@@ -521,14 +546,14 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
   },
   resendButton: {
     alignItems: 'center',
   },
   resendButtonText: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
   },
   resendButtonTextBold: {

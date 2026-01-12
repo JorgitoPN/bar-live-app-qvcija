@@ -14,7 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/commonStyles';
-import { getContentBottomPadding } from '@/utils/androidScaling';
+import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize, scaleFontSize } from '@/utils/androidScaling';
 
 const { width, height } = Dimensions.get('window');
 
@@ -40,12 +40,13 @@ const onboardingData = [
 ];
 
 /**
- * ✅ BIENVENIDA SCREEN v143.0 - ANDROID SCROLL FIX
+ * ✅ BIENVENIDA SCREEN v144.0 - ANDROID SCROLL & SCALING FIX
  * 
- * CRITICAL FIXES v143.0 (ANDROID ONLY):
- * - ✅ Enabled ScrollView for keyboard handling
+ * CRITICAL FIXES v144.0 (ANDROID ONLY):
+ * - ✅ Enabled ScrollView for keyboard handling (INCLUDES HEADER)
  * - ✅ Added KeyboardAvoidingView for proper keyboard behavior
  * - ✅ Added bottom padding for Android navigation buttons
+ * - ✅ ALL text uses scaleFontSize() for consistency
  * - ✅ Content no longer hidden by keyboard or nav buttons
  * - ✅ iOS design remains unchanged
  */
@@ -78,10 +79,6 @@ export default function BienvenidaScreen() {
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.gradient}
       >
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <Text style={styles.skipText}>Saltar</Text>
-        </TouchableOpacity>
-
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
@@ -91,12 +88,16 @@ export default function BienvenidaScreen() {
           keyboardShouldPersistTaps="handled"
           bounces={false}
         >
+          <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+            <Text style={[styles.skipText, { fontSize: scaleFontSize(16) }]}>Saltar</Text>
+          </TouchableOpacity>
+
           <View style={styles.content}>
             <Image source={{ uri: currentSlide.image }} style={styles.image} />
             
             <View style={styles.textContainer}>
-              <Text style={styles.title}>{currentSlide.title}</Text>
-              <Text style={styles.description}>{currentSlide.description}</Text>
+              <Text style={[styles.title, { fontSize: scaleFontSize(28) }]}>{currentSlide.title}</Text>
+              <Text style={[styles.description, { fontSize: scaleFontSize(16) }]}>{currentSlide.description}</Text>
             </View>
 
             <View style={styles.pagination}>
@@ -112,7 +113,7 @@ export default function BienvenidaScreen() {
             </View>
 
             <TouchableOpacity style={styles.button} onPress={handleNext}>
-              <Text style={styles.buttonText}>
+              <Text style={[styles.buttonText, { fontSize: scaleFontSize(18) }]}>
                 {currentIndex === onboardingData.length - 1 ? 'Comenzar' : 'Siguiente'}
               </Text>
             </TouchableOpacity>
@@ -139,7 +140,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     color: colors.headerText,
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
   },
   scrollContent: {
@@ -164,14 +165,14 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   title: {
-    fontSize: 28,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 12,
     textAlign: 'center',
   },
   description: {
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.headerText,
     textAlign: 'center',
     opacity: 0.9,
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: colors.primary,
-    fontSize: 18,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
   },
 });

@@ -17,6 +17,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize, scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+
+/**
+ * ✅ RECUPERAR PASSWORD TOKEN SCREEN v144.0 - ANDROID SCROLL & SCALING FIX
+ * 
+ * CRITICAL FIXES v144.0 (ANDROID ONLY):
+ * - ✅ Enabled proper keyboard-aware scrolling (INCLUDES HEADER)
+ * - ✅ Added bottom padding for Android navigation buttons
+ * - ✅ Consistent header title and icon sizes
+ * - ✅ ALL text uses scaleFontSize() for consistency
+ * - ✅ ALL icons use scaleIconSize() for consistency
+ * - ✅ Content no longer hidden by keyboard or nav buttons
+ * - ✅ iOS design remains unchanged
+ */
 
 export default function RecuperarPasswordTokenScreen() {
   const router = useRouter();
@@ -29,7 +43,6 @@ export default function RecuperarPasswordTokenScreen() {
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
-    // Focus first token input when email is sent
     if (emailSent && inputRefs.current[0]) {
       setTimeout(() => {
         inputRefs.current[0]?.focus();
@@ -64,11 +77,9 @@ export default function RecuperarPasswordTokenScreen() {
       console.log('[RecuperarPasswordToken] 📧 Email:', normalizedEmail);
       console.log('[RecuperarPasswordToken] ⏰ Timestamp:', new Date().toISOString());
 
-      // Get the project URL
       const { data: { project_url } } = await supabase.functions.getProjectUrl();
       const functionsUrl = project_url || 'https://embntaqwlwmgazvrglaf.supabase.co';
 
-      // Call the Edge Function to request password token
       const response = await fetch(`${functionsUrl}/functions/v1/request-password-token`, {
         method: 'POST',
         headers: {
@@ -89,7 +100,6 @@ export default function RecuperarPasswordTokenScreen() {
       setEmailSent(true);
     } catch (error: any) {
       console.error('[RecuperarPasswordToken] ❌ Error:', error);
-      // Always show success to avoid revealing email existence
       setEmailSent(true);
     } finally {
       setLoading(false);
@@ -99,7 +109,6 @@ export default function RecuperarPasswordTokenScreen() {
   };
 
   const handleTokenChange = (value: string, index: number) => {
-    // Only allow numbers
     if (value && !/^\d$/.test(value)) {
       return;
     }
@@ -108,7 +117,6 @@ export default function RecuperarPasswordTokenScreen() {
     newToken[index] = value;
     setToken(newToken);
 
-    // Auto-focus next input
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -137,11 +145,9 @@ export default function RecuperarPasswordTokenScreen() {
       console.log('[RecuperarPasswordToken] 📧 Email:', email);
       console.log('[RecuperarPasswordToken] 🔢 Token:', fullToken);
 
-      // Get the project URL
       const { data: { project_url } } = await supabase.functions.getProjectUrl();
       const functionsUrl = project_url || 'https://embntaqwlwmgazvrglaf.supabase.co';
 
-      // Call the Edge Function to validate token
       const response = await fetch(`${functionsUrl}/functions/v1/validate-password-token`, {
         method: 'POST',
         headers: {
@@ -180,7 +186,6 @@ export default function RecuperarPasswordTokenScreen() {
 
       console.log('[RecuperarPasswordToken] ✅ Token válido');
 
-      // Navigate to new password screen
       router.push({
         pathname: '/auth/nueva-password-token',
         params: { email, token: fullToken },
@@ -198,274 +203,283 @@ export default function RecuperarPasswordTokenScreen() {
     }
   };
 
+  const headerIconSize = getHeaderIconSize();
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
     >
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <IconSymbol
-            ios_icon_name="chevron.left"
-            android_material_icon_name="arrow_back"
-            size={24}
-            color="#fff"
-          />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>¿Olvidaste tu contraseña?</Text>
-        <Text style={styles.headerSubtitle}>
-          {!emailSent ? 'No te preocupes, te ayudaremos' : 'Introduce el código recibido'}
-        </Text>
-      </LinearGradient>
-
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { paddingBottom: getContentBottomPadding(120) }
+        ]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <View style={styles.formContainer}>
-          {!emailSent ? (
-            <>
-              <View style={styles.infoBox}>
-                <IconSymbol
-                  ios_icon_name="envelope.badge.shield.half.filled"
-                  android_material_icon_name="mark_email_unread"
-                  size={80}
-                  color={colors.primary}
-                />
-                <Text style={styles.infoTitle}>Recupera tu cuenta</Text>
-                <Text style={styles.infoText}>
-                  Ingresa tu correo electrónico y te enviaremos un código de 6 dígitos para restablecer tu contraseña.
-                </Text>
-              </View>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.header}
+        >
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <IconSymbol
+              ios_icon_name="chevron.left"
+              android_material_icon_name="arrow_back"
+              size={headerIconSize}
+              color="#fff"
+            />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { fontSize: getHeaderTitleSize() }]}>¿Olvidaste tu contraseña?</Text>
+          <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(16) }]}>
+            {!emailSent ? 'No te preocupes, te ayudaremos' : 'Introduce el código recibido'}
+          </Text>
+        </LinearGradient>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Correo electrónico</Text>
-                <View style={styles.inputWrapper}>
+        <View style={styles.content}>
+          <View style={styles.formContainer}>
+            {!emailSent ? (
+              <React.Fragment>
+                <View style={styles.infoBox}>
                   <IconSymbol
-                    ios_icon_name="envelope.fill"
-                    android_material_icon_name="email"
-                    size={20}
-                    color={colors.textSecondary}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="correo@ejemplo.com"
-                    placeholderTextColor={colors.textSecondary}
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!loading}
-                  />
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={handleSendToken}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <IconSymbol
-                      ios_icon_name="paperplane.fill"
-                      android_material_icon_name="send"
-                      size={20}
-                      color="#fff"
-                      style={styles.buttonIcon}
-                    />
-                    <Text style={styles.buttonText}>Enviar código de recuperación</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <View style={styles.securityNote}>
-                <IconSymbol
-                  ios_icon_name="lock.shield.fill"
-                  android_material_icon_name="security"
-                  size={24}
-                  color={colors.primary}
-                />
-                <Text style={styles.securityText}>
-                  Por seguridad, no revelaremos si este correo está registrado en nuestro sistema.
-                </Text>
-              </View>
-            </>
-          ) : (
-            <>
-              <View style={styles.successBox}>
-                <IconSymbol
-                  ios_icon_name="checkmark.seal.fill"
-                  android_material_icon_name="verified"
-                  size={80}
-                  color="#10b981"
-                />
-                <Text style={styles.successTitle}>¡Correo enviado!</Text>
-                <Text style={styles.successText}>
-                  Si existe una cuenta asociada a:
-                </Text>
-                <View style={styles.emailBadge}>
-                  <IconSymbol
-                    ios_icon_name="envelope.fill"
-                    android_material_icon_name="email"
-                    size={16}
+                    ios_icon_name="envelope.badge.shield.half.filled"
+                    android_material_icon_name="mark_email_unread"
+                    size={scaleIconSize(80)}
                     color={colors.primary}
                   />
-                  <Text style={styles.emailText}>{email}</Text>
-                </View>
-                <Text style={styles.successSubtext}>
-                  Recibirás un correo con un código de 6 dígitos para restablecer tu contraseña.
-                </Text>
-              </View>
-
-              <View style={styles.instructionsBox}>
-                <Text style={styles.instructionsTitle}>📋 Próximos pasos:</Text>
-                
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>1</Text>
-                  </View>
-                  <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Revisa tu correo</Text>
-                    <Text style={styles.stepText}>Busca el correo de Barlive en tu bandeja de entrada</Text>
-                  </View>
+                  <Text style={[styles.infoTitle, { fontSize: scaleFontSize(26) }]}>Recupera tu cuenta</Text>
+                  <Text style={[styles.infoText, { fontSize: scaleFontSize(15) }]}>
+                    Ingresa tu correo electrónico y te enviaremos un código de 6 dígitos para restablecer tu contraseña.
+                  </Text>
                 </View>
 
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>2</Text>
-                  </View>
-                  <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Copia el código</Text>
-                    <Text style={styles.stepText}>Copia el código de 6 dígitos del correo</Text>
-                  </View>
-                </View>
-
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>3</Text>
-                  </View>
-                  <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Introduce el código aquí abajo</Text>
-                    <Text style={styles.stepText}>Pega o escribe el código en los campos de abajo</Text>
-                  </View>
-                </View>
-
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>4</Text>
-                  </View>
-                  <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Crea tu nueva contraseña</Text>
-                    <Text style={styles.stepText}>Ingresa una contraseña segura y confírmala</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.tokenSection}>
-                <Text style={styles.tokenSectionTitle}>Introduce el código aquí:</Text>
-                <Text style={styles.tokenLabel}>Código de verificación (6 dígitos)</Text>
-                <View style={styles.tokenContainer}>
-                  {token.map((digit, index) => (
-                    <TextInput
-                      key={index}
-                      ref={(ref) => (inputRefs.current[index] = ref)}
-                      style={[
-                        styles.tokenInput,
-                        digit && styles.tokenInputFilled,
-                      ]}
-                      value={digit}
-                      onChangeText={(value) => handleTokenChange(value, index)}
-                      onKeyPress={(e) => handleKeyPress(e, index)}
-                      keyboardType="number-pad"
-                      maxLength={1}
-                      selectTextOnFocus
-                      editable={!validatingToken}
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { fontSize: scaleFontSize(15) }]}>Correo electrónico</Text>
+                  <View style={styles.inputWrapper}>
+                    <IconSymbol
+                      ios_icon_name="envelope.fill"
+                      android_material_icon_name="email"
+                      size={scaleIconSize(20)}
+                      color={colors.textSecondary}
+                      style={styles.inputIcon}
                     />
-                  ))}
+                    <TextInput
+                      style={[styles.input, { fontSize: scaleFontSize(16) }]}
+                      placeholder="correo@ejemplo.com"
+                      placeholderTextColor={colors.textSecondary}
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      editable={!loading}
+                    />
+                  </View>
                 </View>
 
                 <TouchableOpacity
-                  style={[styles.button, validatingToken && styles.buttonDisabled]}
-                  onPress={handleValidateToken}
-                  disabled={validatingToken}
+                  style={[styles.button, loading && styles.buttonDisabled]}
+                  onPress={handleSendToken}
+                  disabled={loading}
                 >
-                  {validatingToken ? (
+                  {loading ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <>
+                    <React.Fragment>
                       <IconSymbol
-                        ios_icon_name="checkmark.circle.fill"
-                        android_material_icon_name="check_circle"
-                        size={20}
+                        ios_icon_name="paperplane.fill"
+                        android_material_icon_name="send"
+                        size={scaleIconSize(20)}
                         color="#fff"
                         style={styles.buttonIcon}
                       />
-                      <Text style={styles.buttonText}>Validar código y continuar</Text>
-                    </>
+                      <Text style={[styles.buttonText, { fontSize: scaleFontSize(16) }]}>Enviar código de recuperación</Text>
+                    </React.Fragment>
                   )}
                 </TouchableOpacity>
-              </View>
 
-              <View style={styles.tipsBox}>
-                <Text style={styles.tipsTitle}>💡 Consejos:</Text>
-                <Text style={styles.tipText}>• Revisa tu carpeta de spam si no ves el correo</Text>
-                <Text style={styles.tipText}>• El código expira en 1 hora</Text>
-                <Text style={styles.tipText}>• Puedes solicitar un nuevo código si es necesario</Text>
-              </View>
-
-              <TouchableOpacity
-                style={[styles.resendButton, loading && styles.resendButtonDisabled]}
-                onPress={() => {
-                  setToken(['', '', '', '', '', '']);
-                  handleSendToken();
-                }}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color={colors.primary} />
-                ) : (
-                  <>
+                <View style={styles.securityNote}>
+                  <IconSymbol
+                    ios_icon_name="lock.shield.fill"
+                    android_material_icon_name="security"
+                    size={scaleIconSize(24)}
+                    color={colors.primary}
+                  />
+                  <Text style={[styles.securityText, { fontSize: scaleFontSize(13) }]}>
+                    Por seguridad, no revelaremos si este correo está registrado en nuestro sistema.
+                  </Text>
+                </View>
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <View style={styles.successBox}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.seal.fill"
+                    android_material_icon_name="verified"
+                    size={scaleIconSize(80)}
+                    color="#10b981"
+                  />
+                  <Text style={[styles.successTitle, { fontSize: scaleFontSize(26) }]}>¡Correo enviado!</Text>
+                  <Text style={[styles.successText, { fontSize: scaleFontSize(15) }]}>
+                    Si existe una cuenta asociada a:
+                  </Text>
+                  <View style={styles.emailBadge}>
                     <IconSymbol
-                      ios_icon_name="arrow.clockwise"
-                      android_material_icon_name="refresh"
-                      size={20}
+                      ios_icon_name="envelope.fill"
+                      android_material_icon_name="email"
+                      size={scaleIconSize(16)}
                       color={colors.primary}
-                      style={styles.buttonIcon}
                     />
-                    <Text style={styles.resendButtonText}>Reenviar código</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </>
-          )}
+                    <Text style={[styles.emailText, { fontSize: scaleFontSize(16) }]}>{email}</Text>
+                  </View>
+                  <Text style={[styles.successSubtext, { fontSize: scaleFontSize(14) }]}>
+                    Recibirás un correo con un código de 6 dígitos para restablecer tu contraseña.
+                  </Text>
+                </View>
 
-          <TouchableOpacity
-            style={styles.backToLoginButton}
-            onPress={() => router.replace('/auth/login')}
-          >
-            <IconSymbol
-              ios_icon_name="arrow.left"
-              android_material_icon_name="arrow_back"
-              size={16}
-              color={colors.primary}
-              style={styles.backToLoginIcon}
-            />
-            <Text style={styles.backToLoginText}>
-              Volver a <Text style={styles.backToLoginTextBold}>Iniciar sesión</Text>
-            </Text>
-          </TouchableOpacity>
+                <View style={styles.instructionsBox}>
+                  <Text style={[styles.instructionsTitle, { fontSize: scaleFontSize(18) }]}>📋 Próximos pasos:</Text>
+                  
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepNumber}>
+                      <Text style={[styles.stepNumberText, { fontSize: scaleFontSize(16) }]}>1</Text>
+                    </View>
+                    <View style={styles.stepContent}>
+                      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(15) }]}>Revisa tu correo</Text>
+                      <Text style={[styles.stepText, { fontSize: scaleFontSize(13) }]}>Busca el correo de Barlive en tu bandeja de entrada</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepNumber}>
+                      <Text style={[styles.stepNumberText, { fontSize: scaleFontSize(16) }]}>2</Text>
+                    </View>
+                    <View style={styles.stepContent}>
+                      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(15) }]}>Copia el código</Text>
+                      <Text style={[styles.stepText, { fontSize: scaleFontSize(13) }]}>Copia el código de 6 dígitos del correo</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepNumber}>
+                      <Text style={[styles.stepNumberText, { fontSize: scaleFontSize(16) }]}>3</Text>
+                    </View>
+                    <View style={styles.stepContent}>
+                      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(15) }]}>Introduce el código aquí abajo</Text>
+                      <Text style={[styles.stepText, { fontSize: scaleFontSize(13) }]}>Pega o escribe el código en los campos de abajo</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepNumber}>
+                      <Text style={[styles.stepNumberText, { fontSize: scaleFontSize(16) }]}>4</Text>
+                    </View>
+                    <View style={styles.stepContent}>
+                      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(15) }]}>Crea tu nueva contraseña</Text>
+                      <Text style={[styles.stepText, { fontSize: scaleFontSize(13) }]}>Ingresa una contraseña segura y confírmala</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.tokenSection}>
+                  <Text style={[styles.tokenSectionTitle, { fontSize: scaleFontSize(20) }]}>Introduce el código aquí:</Text>
+                  <Text style={[styles.tokenLabel, { fontSize: scaleFontSize(15) }]}>Código de verificación (6 dígitos)</Text>
+                  <View style={styles.tokenContainer}>
+                    {token.map((digit, index) => (
+                      <TextInput
+                        key={index}
+                        ref={(ref) => (inputRefs.current[index] = ref)}
+                        style={[
+                          styles.tokenInput,
+                          digit && styles.tokenInputFilled,
+                        ]}
+                        value={digit}
+                        onChangeText={(value) => handleTokenChange(value, index)}
+                        onKeyPress={(e) => handleKeyPress(e, index)}
+                        keyboardType="number-pad"
+                        maxLength={1}
+                        selectTextOnFocus
+                        editable={!validatingToken}
+                      />
+                    ))}
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.button, validatingToken && styles.buttonDisabled]}
+                    onPress={handleValidateToken}
+                    disabled={validatingToken}
+                  >
+                    {validatingToken ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <React.Fragment>
+                        <IconSymbol
+                          ios_icon_name="checkmark.circle.fill"
+                          android_material_icon_name="check_circle"
+                          size={scaleIconSize(20)}
+                          color="#fff"
+                          style={styles.buttonIcon}
+                        />
+                        <Text style={[styles.buttonText, { fontSize: scaleFontSize(16) }]}>Validar código y continuar</Text>
+                      </React.Fragment>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.tipsBox}>
+                  <Text style={[styles.tipsTitle, { fontSize: scaleFontSize(15) }]}>💡 Consejos:</Text>
+                  <Text style={[styles.tipText, { fontSize: scaleFontSize(13) }]}>• Revisa tu carpeta de spam si no ves el correo</Text>
+                  <Text style={[styles.tipText, { fontSize: scaleFontSize(13) }]}>• El código expira en 1 hora</Text>
+                  <Text style={[styles.tipText, { fontSize: scaleFontSize(13) }]}>• Puedes solicitar un nuevo código si es necesario</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.resendButton, loading && styles.resendButtonDisabled]}
+                  onPress={() => {
+                    setToken(['', '', '', '', '', '']);
+                    handleSendToken();
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={colors.primary} />
+                  ) : (
+                    <React.Fragment>
+                      <IconSymbol
+                        ios_icon_name="arrow.clockwise"
+                        android_material_icon_name="refresh"
+                        size={scaleIconSize(20)}
+                        color={colors.primary}
+                        style={styles.buttonIcon}
+                      />
+                      <Text style={[styles.resendButtonText, { fontSize: scaleFontSize(16) }]}>Reenviar código</Text>
+                    </React.Fragment>
+                  )}
+                </TouchableOpacity>
+              </React.Fragment>
+            )}
+
+            <TouchableOpacity
+              style={styles.backToLoginButton}
+              onPress={() => router.replace('/auth/login')}
+            >
+              <IconSymbol
+                ios_icon_name="arrow.left"
+                android_material_icon_name="arrow_back"
+                size={scaleIconSize(16)}
+                color={colors.primary}
+                style={styles.backToLoginIcon}
+              />
+              <Text style={[styles.backToLoginText, { fontSize: scaleFontSize(15) }]}>
+                Volver a <Text style={styles.backToLoginTextBold}>Iniciar sesión</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -477,8 +491,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollContainer: {
+    flexGrow: 1,
+    // paddingBottom set dynamically via getContentBottomPadding()
+  },
   header: {
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'android' ? 60 : 60,
     paddingBottom: 32,
     paddingHorizontal: 24,
   },
@@ -492,21 +510,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 32,
+    // fontSize set dynamically via getHeaderTitleSize()
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 8,
   },
   headerSubtitle: {
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     color: 'rgba(255, 255, 255, 0.9)',
   },
   content: {
     flex: 1,
-  },
-  scrollContent: {
     padding: 24,
-    paddingBottom: 120,
   },
   formContainer: {
     flex: 1,
@@ -530,14 +545,14 @@ const styles = StyleSheet.create({
     }),
   },
   infoTitle: {
-    fontSize: 26,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 20,
     marginBottom: 12,
   },
   infoText: {
-    fontSize: 15,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
@@ -546,7 +561,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   label: {
-    fontSize: 15,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 12,
@@ -566,7 +581,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     padding: 16,
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.text,
   },
   button: {
@@ -597,7 +612,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
   },
   securityNote: {
@@ -611,7 +626,7 @@ const styles = StyleSheet.create({
   },
   securityText: {
     flex: 1,
-    fontSize: 13,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     marginLeft: 12,
     lineHeight: 18,
@@ -635,14 +650,14 @@ const styles = StyleSheet.create({
     }),
   },
   successTitle: {
-    fontSize: 26,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 20,
     marginBottom: 12,
   },
   successText: {
-    fontSize: 15,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
@@ -657,13 +672,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   emailText: {
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.primary,
     marginLeft: 8,
   },
   successSubtext: {
-    fontSize: 14,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
@@ -675,7 +690,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   instructionsTitle: {
-    fontSize: 18,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 20,
@@ -694,7 +709,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   stepNumberText: {
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: '#fff',
   },
@@ -702,13 +717,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stepTitle: {
-    fontSize: 15,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
   },
   stepText: {
-    fontSize: 13,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     lineHeight: 18,
   },
@@ -732,14 +747,14 @@ const styles = StyleSheet.create({
     }),
   },
   tokenSectionTitle: {
-    fontSize: 20,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 16,
     textAlign: 'center',
   },
   tokenLabel: {
-    fontSize: 15,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 16,
@@ -785,13 +800,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   tipsTitle: {
-    fontSize: 15,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 12,
   },
   tipText: {
-    fontSize: 13,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     marginBottom: 6,
     lineHeight: 18,
@@ -812,7 +827,7 @@ const styles = StyleSheet.create({
   },
   resendButtonText: {
     color: colors.primary,
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
   },
   backToLoginButton: {
@@ -825,7 +840,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   backToLoginText: {
-    fontSize: 15,
+    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
   },
   backToLoginTextBold: {
