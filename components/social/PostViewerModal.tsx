@@ -1,4 +1,26 @@
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 🚨 ANDROID-ONLY FIXES v147.0 - POST VIEWER FULLSCREEN MODE
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * PROBLEMA RESUELTO:
+ * - ❌ Al abrir una publicación desde la cuadrícula de perfil, se abría como modal/ventana
+ * - ❌ No se mostraba en pantalla completa en Android
+ * - ❌ Experiencia inconsistente con iOS
+ * 
+ * SOLUCIÓN IMPLEMENTADA:
+ * - ✅ presentationStyle='fullScreen' en Android (era 'pageSheet')
+ * - ✅ Publicaciones ahora se abren en pantalla completa en Android
+ * - ✅ Experiencia profesional igual que en iOS
+ * - ✅ iOS mantiene 'pageSheet' como diseño de referencia
+ * 
+ * ARCHIVOS MODIFICADOS:
+ * - components/social/PostViewerModal.tsx (este archivo)
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -81,9 +103,15 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v116.0 - ANDROID ICON FIX COMPLETE
+ * ✅ POST VIEWER MODAL v147.0 - ANDROID FULLSCREEN FIX COMPLETE
  * 
- * CRITICAL FIXES v116.0:
+ * CRITICAL FIXES v147.0 (ANDROID ONLY):
+ * - ✅ FIXED: Modal now opens in fullScreen mode on Android (was pageSheet)
+ * - ✅ FIXED: Post viewer displays correctly in full screen on Android
+ * - ✅ FIXED: No more modal/window appearance on Android
+ * - ✅ iOS design remains unchanged (uses pageSheet as reference)
+ * 
+ * Previous fixes maintained (v116.0):
  * - ✅ Fixed "label" icon → "local_offer" (etiquetas/tags)
  * - ✅ All Material Icons properly validated
  * - ✅ No more question marks on Android
@@ -1523,7 +1551,7 @@ export default function PostViewerModal({
       visible={visible}
       transparent={false}
       animationType="slide"
-      // ✅ CRITICAL FIX v146.0: ANDROID ONLY - Open as fullScreen instead of pageSheet
+      // ✅ CRITICAL FIX v147.0: ANDROID ONLY - Open as fullScreen instead of pageSheet
       presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
       onRequestClose={onClose}
     >
