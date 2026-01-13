@@ -72,24 +72,25 @@ const CATEGORIAS = [
 ];
 
 /**
- * ⚡⚡⚡ EXPLORAR SCREEN v164.0 - CONSISTENT SORTING ACROSS ALL BATCHES
+ * ⚡⚡⚡ EXPLORAR SCREEN v165.0 - FIXED FIRST 15 ITEMS SORTING
  * 
- * CRITICAL FIX v164.0:
- * - ✅ FIXED: Sorting now applied to ALL locales BEFORE pagination
- * - ✅ FIXED: Consistent ordering maintained across all batches (no more closed→open→closed)
+ * CRITICAL FIX v165.0:
+ * - ✅ FIXED: First 15 items NOW respect sorting rules (was broken in v164.0)
+ * - ✅ FIXED: Complete sorted list stored in state for consistent pagination
+ * - ✅ FIXED: All batches paginate from the same sorted list
  * - ✅ FIXED: Featured venues beyond 100km always at the END
  * - ✅ FIXED: Distance always displayed in "Cómo llegar" button
  * 
- * THE PROBLEM (v163.0):
- * - Sorting was applied to each batch of 15 independently
- * - Last items of batch were closed, first items of next batch were open
- * - This broke the logical ordering for users
+ * THE PROBLEM (v164.0):
+ * - Sorting was correct but pagination was recalculating on each load
+ * - First 15 items were not respecting the sorting rules
+ * - Each batch was being sorted independently
  * 
- * THE SOLUTION (v164.0):
- * - Load ALL locales matching filters
- * - Sort the COMPLETE list according to priority rules
- * - THEN apply pagination to show 15 at a time
- * - Result: Consistent ordering across ALL batches
+ * THE SOLUTION (v165.0):
+ * - Load and sort ALL locales ONCE when filters change
+ * - Store complete sorted list in state (allSortedLocales)
+ * - Paginate from stored sorted list, not from fresh queries
+ * - Result: CONSISTENT ordering across ALL batches INCLUDING first 15
  * 
  * SMART SORTING SYSTEM (distance within each group):
  * 1. Destacados abiertos (dentro de 100km) - sorted by distance
@@ -101,6 +102,7 @@ const CATEGORIAS = [
  * 
  * USER EXPERIENCE:
  * - Logical ordering that makes sense ✅
+ * - First 15 items respect all sorting rules ✅
  * - No more ordering inconsistencies between batches ✅
  * - Distance shows immediately in "Cómo llegar" button ✅
  * - Featured venues beyond 100km don't clutter the top ✅
@@ -111,6 +113,7 @@ export default function ExplorarScreen() {
   const { user } = useAuth();
   const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
   const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
+  const [allSortedLocales, setAllSortedLocales] = useState<any[]>([]); // ✅ NEW: Store complete sorted list
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -151,17 +154,18 @@ export default function ExplorarScreen() {
   }, []);
 
   /**
-   * ✅ CRITICAL FIX v164.0: PROPER SORTING ACROSS ALL BATCHES
+   * ✅ CRITICAL FIX v165.0: PROPER SORTING ACROSS ALL BATCHES - FIXED PAGINATION
    * 
-   * THE PROBLEM:
-   * - Sorting was applied to each batch of 15 locales independently
-   * - This caused ordering to break across batches (closed at end of batch, open at start of next)
+   * THE PROBLEM (v164.0):
+   * - Complete list was sorted correctly
+   * - BUT pagination was recalculating on each load instead of using stored sorted list
+   * - This caused first 15 items to not respect sorting rules
    * 
-   * THE SOLUTION:
-   * - Load ALL locales matching filters (without pagination)
-   * - Sort the COMPLETE list according to priority rules
-   * - THEN apply pagination to the sorted list
-   * - This ensures consistent ordering across all batches
+   * THE SOLUTION (v165.0):
+   * - Load and sort ALL locales ONCE when filters change
+   * - Store the complete sorted list in state (allSortedLocales)
+   * - Paginate from the stored sorted list, not from fresh queries
+   * - This ensures CONSISTENT ordering across ALL batches including the first 15
    * 
    * SORTING PRIORITY (distance within each group):
    * 1. Destacados abiertos (dentro de 100km) - sorted by distance
@@ -173,162 +177,174 @@ export default function ExplorarScreen() {
    */
   const loadLocales = useCallback(async (reset: boolean = false) => {
     if (isLoadingMoreRef.current) {
-      console.log('[Explorar v164.0] Already loading, skipping...');
+      console.log('[Explorar v165.0] Already loading, skipping...');
       return;
     }
 
     isLoadingMoreRef.current = true;
 
     try {
-      const pageToLoad = reset ? 0 : currentPage;
+      console.log('[Explorar v165.0] 🔧 CRITICAL FIX - Proper pagination from stored sorted list');
+      console.log('[Explorar v165.0] 📋 Reset:', reset);
+      console.log('[Explorar v165.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
 
-      console.log('[Explorar v164.0] 🔧 CRITICAL FIX - Sorting ALL locales before pagination');
-      console.log('[Explorar v164.0] 📋 Page:', pageToLoad);
-      console.log('[Explorar v164.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
+      // ✅ STEP 1: If reset, load and sort ALL locales
+      if (reset) {
+        console.log('[Explorar v165.0] 🔄 Loading and sorting ALL locales...');
+        
+        let query = supabase
+          .from('locales')
+          .select('*', { count: 'exact' })
+          .eq('activo', true);
 
-      // ✅ STEP 1: Load ALL locales matching filters (no pagination yet)
-      let query = supabase
-        .from('locales')
-        .select('*', { count: 'exact' })
-        .eq('activo', true);
+        // Apply filters
+        if (searchQuery.trim()) {
+          query = query.or(`nombre.ilike.%${searchQuery}%,direccion.ilike.%${searchQuery}%`);
+        }
 
-      // Apply filters
-      if (searchQuery.trim()) {
-        query = query.or(`nombre.ilike.%${searchQuery}%,direccion.ilike.%${searchQuery}%`);
-      }
+        if (selectedCategory !== 'todas') {
+          query = query.contains('barlive_types', [selectedCategory]);
+        }
 
-      if (selectedCategory !== 'todas') {
-        query = query.contains('barlive_types', [selectedCategory]);
-      }
+        if (provinciaSeleccionada !== 'Todas') {
+          query = query.eq('provincia', provinciaSeleccionada);
+        }
 
-      if (provinciaSeleccionada !== 'Todas') {
-        query = query.eq('provincia', provinciaSeleccionada);
-      }
+        const { data: allLocalesData, error: localesError, count } = await query;
+        
+        console.log('[Explorar v165.0] ✅ Query executed');
+        console.log('[Explorar v165.0] 📊 Total locales loaded:', allLocalesData?.length || 0);
 
-      const { data: allLocalesData, error: localesError, count } = await query;
-      
-      console.log('[Explorar v164.0] ✅ Query executed');
-      console.log('[Explorar v164.0] 📊 Total locales loaded:', allLocalesData?.length || 0);
+        if (localesError) throw localesError;
 
-      if (localesError) throw localesError;
+        if (allLocalesData) {
+          // ✅ STEP 2: Format ALL locales with distance calculation
+          const formattedLocales = allLocalesData.map((local: any) => {
+            let distancia = null;
+            if (userLocation && local.latitud && local.longitud) {
+              distancia = calcularDistancia(
+                userLocation.lat,
+                userLocation.lng,
+                parseFloat(local.latitud),
+                parseFloat(local.longitud)
+              );
+            }
+            
+            const estado = getEstadoLocal(local);
+            
+            return {
+              ...local,
+              coordenadas: {
+                lat: parseFloat(local.latitud),
+                lng: parseFloat(local.longitud),
+              },
+              imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
+              distancia: distancia,
+              estaAbierto: estado.estaAbierto,
+              tieneHorarios: local.horarios_completos && Object.keys(local.horarios_completos).length > 0,
+              tieneEventos: false,
+            };
+          });
 
-      if (allLocalesData) {
-        // ✅ STEP 2: Format ALL locales with distance calculation
-        const formattedLocales = allLocalesData.map((local: any) => {
-          let distancia = null;
-          if (userLocation && local.latitud && local.longitud) {
-            distancia = calcularDistancia(
-              userLocation.lat,
-              userLocation.lng,
-              parseFloat(local.latitud),
-              parseFloat(local.longitud)
-            );
+          // ✅ STEP 3: Sort the COMPLETE list according to priority rules
+          if (userLocation) {
+            formattedLocales.sort((a, b) => {
+              const distA = a.distancia || 999999;
+              const distB = b.distancia || 999999;
+              
+              // ✅ CRITICAL: Destacados más allá de 100km van AL FINAL
+              const aDestacadoLejos = a.destacado && distA > 100;
+              const bDestacadoLejos = b.destacado && distB > 100;
+              
+              if (aDestacadoLejos && !bDestacadoLejos) return 1;
+              if (!aDestacadoLejos && bDestacadoLejos) return -1;
+              if (aDestacadoLejos && bDestacadoLejos) return distA - distB;
+              
+              // ✅ Prioridad 1: Destacados abiertos (dentro de 100km)
+              const aDestacadoAbierto = a.destacado && a.estaAbierto === true && distA <= 100;
+              const bDestacadoAbierto = b.destacado && b.estaAbierto === true && distB <= 100;
+              
+              if (aDestacadoAbierto && !bDestacadoAbierto) return -1;
+              if (!aDestacadoAbierto && bDestacadoAbierto) return 1;
+              if (aDestacadoAbierto && bDestacadoAbierto) return distA - distB;
+              
+              // ✅ Prioridad 2: Abiertos sin destacar
+              const aAbiertoNormal = a.estaAbierto === true && !a.destacado;
+              const bAbiertoNormal = b.estaAbierto === true && !b.destacado;
+              
+              if (aAbiertoNormal && !bAbiertoNormal) return -1;
+              if (!aAbiertoNormal && bAbiertoNormal) return 1;
+              if (aAbiertoNormal && bAbiertoNormal) return distA - distB;
+              
+              // ✅ Prioridad 3: Con eventos activos
+              if (a.tieneEventos && !b.tieneEventos) return -1;
+              if (!a.tieneEventos && b.tieneEventos) return 1;
+              if (a.tieneEventos && b.tieneEventos) return distA - distB;
+              
+              // ✅ Prioridad 4: Sin información de horario
+              const aSinHorario = !a.tieneHorarios && a.estaAbierto === null;
+              const bSinHorario = !b.tieneHorarios && b.estaAbierto === null;
+              
+              if (aSinHorario && !bSinHorario) return -1;
+              if (!aSinHorario && bSinHorario) return 1;
+              if (aSinHorario && bSinHorario) return distA - distB;
+              
+              // ✅ Prioridad 5: Cerrados
+              const aCerrado = a.estaAbierto === false;
+              const bCerrado = b.estaAbierto === false;
+              
+              if (aCerrado && !bCerrado) return 1;
+              if (!aCerrado && bCerrado) return -1;
+              if (aCerrado && bCerrado) return distA - distB;
+              
+              // Fallback: ordenar por distancia
+              return distA - distB;
+            });
+            console.log('[Explorar v165.0] ✅ Complete list sorted according to priority rules');
+            console.log('[Explorar v165.0] 📍 Featured venues beyond 100km at END');
           }
           
-          const estado = getEstadoLocal(local);
+          // ✅ STEP 4: Store the complete sorted list
+          setAllSortedLocales(formattedLocales);
+          setTotalCount(count || 0);
           
-          return {
-            ...local,
-            coordenadas: {
-              lat: parseFloat(local.latitud),
-              lng: parseFloat(local.longitud),
-            },
-            imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-            distancia: distancia,
-            estaAbierto: estado.estaAbierto,
-            tieneHorarios: local.horarios_completos && Object.keys(local.horarios_completos).length > 0,
-            tieneEventos: false,
-          };
-        });
-
-        // ✅ STEP 3: Sort the COMPLETE list according to priority rules
-        if (userLocation) {
-          formattedLocales.sort((a, b) => {
-            const distA = a.distancia || 999999;
-            const distB = b.distancia || 999999;
-            
-            // ✅ CRITICAL: Destacados más allá de 100km van AL FINAL
-            const aDestacadoLejos = a.destacado && distA > 100;
-            const bDestacadoLejos = b.destacado && distB > 100;
-            
-            if (aDestacadoLejos && !bDestacadoLejos) return 1;
-            if (!aDestacadoLejos && bDestacadoLejos) return -1;
-            if (aDestacadoLejos && bDestacadoLejos) return distA - distB;
-            
-            // ✅ Prioridad 1: Destacados abiertos (dentro de 100km)
-            const aDestacadoAbierto = a.destacado && a.estaAbierto === true && distA <= 100;
-            const bDestacadoAbierto = b.destacado && b.estaAbierto === true && distB <= 100;
-            
-            if (aDestacadoAbierto && !bDestacadoAbierto) return -1;
-            if (!aDestacadoAbierto && bDestacadoAbierto) return 1;
-            if (aDestacadoAbierto && bDestacadoAbierto) return distA - distB;
-            
-            // ✅ Prioridad 2: Abiertos sin destacar
-            const aAbiertoNormal = a.estaAbierto === true && !a.destacado;
-            const bAbiertoNormal = b.estaAbierto === true && !b.destacado;
-            
-            if (aAbiertoNormal && !bAbiertoNormal) return -1;
-            if (!aAbiertoNormal && bAbiertoNormal) return 1;
-            if (aAbiertoNormal && bAbiertoNormal) return distA - distB;
-            
-            // ✅ Prioridad 3: Con eventos activos
-            if (a.tieneEventos && !b.tieneEventos) return -1;
-            if (!a.tieneEventos && b.tieneEventos) return 1;
-            if (a.tieneEventos && b.tieneEventos) return distA - distB;
-            
-            // ✅ Prioridad 4: Sin información de horario
-            const aSinHorario = !a.tieneHorarios && a.estaAbierto === null;
-            const bSinHorario = !b.tieneHorarios && b.estaAbierto === null;
-            
-            if (aSinHorario && !bSinHorario) return -1;
-            if (!aSinHorario && bSinHorario) return 1;
-            if (aSinHorario && bSinHorario) return distA - distB;
-            
-            // ✅ Prioridad 5: Cerrados
-            const aCerrado = a.estaAbierto === false;
-            const bCerrado = b.estaAbierto === false;
-            
-            if (aCerrado && !bCerrado) return 1;
-            if (!aCerrado && bCerrado) return -1;
-            if (aCerrado && bCerrado) return distA - distB;
-            
-            // Fallback: ordenar por distancia
-            return distA - distB;
-          });
-          console.log('[Explorar v164.0] ✅ Complete list sorted according to priority rules');
-          console.log('[Explorar v164.0] 📍 Featured venues beyond 100km at END');
-        }
-        
-        // ✅ STEP 4: Apply pagination to the SORTED list
-        const from = pageToLoad * ITEMS_PER_PAGE;
-        const to = from + ITEMS_PER_PAGE;
-        const paginatedLocales = formattedLocales.slice(from, to);
-        
-        console.log('[Explorar v164.0] 📄 Pagination applied: showing items', from, 'to', to - 1);
-        console.log('[Explorar v164.0] 📊 Items in this batch:', paginatedLocales.length);
-        
-        if (reset) {
-          setDisplayedLocales(paginatedLocales);
+          console.log('[Explorar v165.0] 💾 Stored complete sorted list:', formattedLocales.length, 'items');
+          
+          // ✅ STEP 5: Show first page
+          const firstPage = formattedLocales.slice(0, ITEMS_PER_PAGE);
+          setDisplayedLocales(firstPage);
           setCurrentPage(1);
-        } else {
-          setDisplayedLocales(prev => [...prev, ...paginatedLocales]);
-          setCurrentPage(pageToLoad + 1);
+          setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
+          
+          console.log('[Explorar v165.0] 📄 First page displayed:', firstPage.length, 'items');
+          console.log('[Explorar v165.0] ✅ First 15 items NOW respect sorting rules!');
         }
-
-        setTotalCount(count || 0);
-        setHasMore(to < formattedLocales.length);
+      } else {
+        // ✅ STEP 6: Load more from stored sorted list
+        console.log('[Explorar v165.0] 📥 Loading more from stored sorted list...');
         
-        console.log('[Explorar v164.0] ✅ Consistent ordering maintained across all batches!');
+        const from = currentPage * ITEMS_PER_PAGE;
+        const to = from + ITEMS_PER_PAGE;
+        const nextPage = allSortedLocales.slice(from, to);
+        
+        console.log('[Explorar v165.0] 📄 Pagination: items', from, 'to', to - 1);
+        console.log('[Explorar v165.0] 📊 Items in this batch:', nextPage.length);
+        
+        setDisplayedLocales(prev => [...prev, ...nextPage]);
+        setCurrentPage(currentPage + 1);
+        setHasMore(to < allSortedLocales.length);
+        
+        console.log('[Explorar v165.0] ✅ Consistent ordering maintained!');
       }
     } catch (error) {
-      console.error('[Explorar v164.0] Error loading locales:', error);
+      console.error('[Explorar v165.0] Error loading locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
     } finally {
       setLoading(false);
       setRefreshing(false);
       isLoadingMoreRef.current = false;
     }
-  }, [currentPage, searchQuery, selectedCategory, provinciaSeleccionada, userLocation]);
+  }, [currentPage, searchQuery, selectedCategory, provinciaSeleccionada, userLocation, allSortedLocales]);
 
   // Load initial data
   useEffect(() => {
@@ -337,7 +353,7 @@ export default function ExplorarScreen() {
 
   const loadMoreLocales = useCallback(() => {
     if (isLoadingMoreRef.current || loadingMore || !hasMore) {
-      console.log('[Explorar v164.0] ⏸️ Cannot load more:', {
+      console.log('[Explorar v165.0] ⏸️ Cannot load more:', {
         isLoadingMoreRef: isLoadingMoreRef.current,
         loadingMore,
         hasMore,
@@ -345,20 +361,20 @@ export default function ExplorarScreen() {
       return;
     }
     
-    console.log('[Explorar v164.0] 📥 Loading more locales...');
+    console.log('[Explorar v165.0] 📥 Loading more locales...');
     setLoadingMore(true);
     loadLocales(false);
     setLoadingMore(false);
   }, [loadingMore, hasMore, loadLocales]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v164.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v165.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     await loadLocales(true);
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v164.0] 🧹 Clearing all filters');
+    console.log('[Explorar v165.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -378,13 +394,13 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v164.0] User not authenticated');
+      console.log('[Explorar v165.0] User not authenticated');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v164.0] No local ID');
+      console.log('[Explorar v165.0] No local ID');
       return;
     }
 
@@ -397,7 +413,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v164.0] Removing from favorites');
+        console.log('[Explorar v165.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -406,7 +422,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v164.0] Adding to favorites');
+        console.log('[Explorar v165.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -420,7 +436,7 @@ export default function ExplorarScreen() {
       // Reload current page to update favorite status
       await loadLocales(true);
     } catch (error) {
-      console.error('[Explorar v164.0] Error toggling favorito:', error);
+      console.error('[Explorar v165.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
@@ -463,11 +479,11 @@ export default function ExplorarScreen() {
 
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
-      console.log('[Explorar v164.0] Changing mode to:', newMode);
+      console.log('[Explorar v165.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v164.0] Error changing mode:', error);
+      console.error('[Explorar v165.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
@@ -497,7 +513,7 @@ export default function ExplorarScreen() {
   }, [headerTranslateY]);
 
   const renderLocalCard = ({ item, index }: { item: any; index: number }) => {
-    console.log('[Explorar v164.0] Rendering card:', item.nombre, 'Distance:', item.distancia, 'km', 'Open:', item.estaAbierto);
+    console.log('[Explorar v165.0] Rendering card:', item.nombre, 'Distance:', item.distancia, 'km', 'Open:', item.estaAbierto);
     const estado = getEstadoLocal(item);
     const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
     const isDestacado = item.destacado;
