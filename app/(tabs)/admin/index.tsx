@@ -291,14 +291,6 @@ export default function AdminIndexScreen() {
       description: 'Enriquece datos con Google Places',
     },
     {
-      title: 'Gestionar Locales Inactivos',
-      icon: 'bolt.slash.fill' as const,
-      androidIcon: 'power_settings_new' as const,
-      color: '#F59E0B',
-      route: '/admin/gestionar-locales-inactivos',
-      description: 'Optimiza rendimiento gestionando locales inactivos',
-    },
-    {
       title: 'Sistema de Limpieza',
       icon: 'trash.circle.fill' as const,
       androidIcon: 'cleaning_services' as const,

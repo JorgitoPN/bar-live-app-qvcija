@@ -650,13 +650,10 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
 
 /**
  * Get the complete status of a local (main entry point)
- * 
- * ✅ CRITICAL FIX v168.0: Use google_business_status instead of estado_negocio
  */
 export function getEstadoLocal(local: any, ahora: Date = new Date()): EstadoLocal {
-  // ✅ CRITICAL FIX v168.0: Use google_business_status instead of estado_negocio
   // CASE: Permanently closed
-  if (local.google_business_status === 'CLOSED_PERMANENTLY') {
+  if (local.estado_negocio === 'CLOSED_PERMANENTLY') {
     return { 
       badge: 'Cerrado permanentemente', 
       estaAbierto: false,
@@ -667,9 +664,8 @@ export function getEstadoLocal(local: any, ahora: Date = new Date()): EstadoLoca
     };
   }
   
-  // ✅ CRITICAL FIX v168.0: Use google_business_status instead of estado_negocio
   // CASE: Temporarily closed
-  if (local.google_business_status === 'CLOSED_TEMPORARILY') {
+  if (local.estado_negocio === 'CLOSED_TEMPORARILY') {
     return { 
       badge: 'Cerrado temporalmente', 
       estaAbierto: false,

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Linking, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Local } from '@/types';
@@ -16,7 +16,6 @@ import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
 import { addPubCategoryIfNeeded } from '@/utils/categorizeLocal';
 import { scaleFontSize } from '@/utils/androidScaling';
-import { calcularDistancia } from '@/utils/locationUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -35,14 +34,12 @@ interface CheckedInUser {
 }
 
 /**
- * ✅ TARJETA LOCAL v162.0 - INSTANT DISTANCE DISPLAY
+ * ✅ TARJETA LOCAL v100.0 - ANDROID SCALING STANDARDIZATION
  * 
- * CRITICAL FIXES v162.0:
- * - ✅ FIXED: Distance calculation with proper import
- * - ⚡ Distance calculated INSTANTLY on render (no delays)
- * - ⚡ Distance shown immediately in "Cómo llegar" button
- * - ⚡ No loading states for distance (instant display)
- * - ✅ All font sizes use scaleFontSize() for consistency
+ * CRITICAL FIXES v100.0 (ANDROID ONLY):
+ * - ✅ All font sizes use scaleFontSize() for consistency with Favoritos
+ * - ✅ All text elements properly scaled
+ * - ✅ iOS design remains unchanged
  */
 export default function TarjetaLocal({ local, destacado, userLocation, onVisible }: TarjetaLocalProps) {
   const router = useRouter();
@@ -61,17 +58,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
   const isDestacado = destacado || local.destacado;
   const localIsFavorite = isFavorite(local.id);
-
-  // ⚡ INSTANT DISTANCE CALCULATION - No delays, no loading states
-  const distancia = React.useMemo(() => {
-    if (!userLocation || !local.coordenadas) return null;
-    return calcularDistancia(
-      userLocation.lat,
-      userLocation.lng,
-      local.coordenadas.lat,
-      local.coordenadas.lng
-    );
-  }, [userLocation, local.coordenadas]);
 
   useEffect(() => {
     if (!hasPreloaded && local.id) {
@@ -502,12 +488,11 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
                 <Text style={[styles.comoLlegarText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Cómo llegar</Text>
               </View>
               
-              {/* ⚡ INSTANT DISTANCE DISPLAY - No loading, no delays */}
-              {distancia !== null && distancia !== undefined && (
+              {local.distancia !== null && local.distancia !== undefined && (
                 <View style={styles.distanciaInButton}>
                   <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={14} color={colors.headerText} />
                   <Text style={[styles.distanciaInButtonText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
-                    {distancia.toFixed(1)} km
+                    {local.distancia.toFixed(1)} km
                   </Text>
                 </View>
               )}

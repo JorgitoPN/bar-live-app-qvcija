@@ -29,27 +29,7 @@ import { addPubCategoryIfNeeded, getPrimaryIconForVenue } from '@/utils/categori
 
 const { width } = Dimensions.get('window');
 
-/**
- * ⚡⚡⚡ MAP SCREEN v175.0 - ULTRA-FAST LOADING (<2 SECONDS)
- * 
- * CRITICAL FIXES v175.0:
- * ✅ LIMIT TO 150 MARKERS: Show only 150 closest venues (not all)
- * ✅ PROGRESSIVE LOADING: Load markers in batches of 30 for smooth UX
- * ✅ CANVAS RENDERING: Use Leaflet canvas for 10x faster performance
- * ✅ SMART CLUSTERING: Group nearby markers automatically
- * ✅ OPTIMIZED QUERIES: Load only essential fields
- * ✅ LAZY LOADING: Generate map HTML only when data is ready
- * 
- * PERFORMANCE OPTIMIZATIONS:
- * - Reduced marker limit from 200 to 150
- * - Smaller batch size (30 instead of 50) for smoother loading
- * - Faster tile provider (CartoDB Voyager)
- * - Optimized marker icons (smaller, simpler)
- * - Reduced popup complexity
- * 
- * RESULT: Map loads in <2 seconds with smooth performance ⚡⚡⚡
- */
-
+// ✅ CRITICAL FIX v111.0: Unified category filters with TEAL ICONS (matching Explorar, Eventos & Favoritos)
 const CATEGORIAS_LOCALES = [
   { id: 'todos', label: 'Todos', icon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', label: 'Cafés', icon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
@@ -151,10 +131,20 @@ interface LocalWithEvent extends Local {
   plan?: string | null;
 }
 
+/**
+ * ✅ MAP SCREEN v111.0 - UNIFIED TEAL CATEGORY ICONS
+ * 
+ * CRITICAL FIXES v111.0:
+ * - ✅ Category filters now use TEAL ICONS matching Explorar, Eventos & Favoritos
+ * - ✅ Same icon design and behavior across all pages
+ * - ✅ Consistent visual experience throughout the app
+ */
+
 export default function MapaScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { filtros: globalFiltros } = useFilters();
+  const { locales: globalLocales, refreshData } = useGlobalData();
   
   const webViewRef = useRef<WebView>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todos');
@@ -167,115 +157,121 @@ export default function MapaScreen() {
   const previousFiltersRef = useRef<string>('');
   const [isMapReady, setIsMapReady] = useState(false);
   const [isLoadingMarkers, setIsLoadingMarkers] = useState(true);
-  const [markersLoadProgress, setMarkersLoadProgress] = useState(0);
 
-  // ⚡⚡⚡ CRITICAL FIX v175.0: Get location with 1s timeout
   useEffect(() => {
     (async () => {
       try {
-        console.log('[MAP v175.0] ⚡ Getting location with 1s timeout...');
+        console.log('[MAP v111.0] 🔍 Requesting location permissions...');
         
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[MAP v175.0] ⚠️ Location services disabled, using Madrid');
+          console.log('[MAP v111.0] ⚠️ Location services are disabled, using default location (Madrid)');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[MAP v175.0] ⚠️ Location permission denied, using Madrid');
+          console.log('[MAP v111.0] ⚠️ Location permission denied, using default location (Madrid)');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
-        const locationPromise = Location.getCurrentPositionAsync({
+        console.log('[MAP v111.0] ✅ Location permission granted, getting position...');
+        
+        const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
+          timeInterval: 5000,
+          distanceInterval: 0,
         });
         
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Location timeout')), 1000)
-        );
-        
-        try {
-          const location = await Promise.race([locationPromise, timeoutPromise]) as any;
-          setUserLocation({
-            lat: location.coords.latitude,
-            lng: location.coords.longitude,
-          });
-          console.log('[MAP v175.0] ⚡ Location obtained');
-        } catch (timeoutError) {
-          console.log('[MAP v175.0] ⚠️ Location timeout, using Madrid');
-          setUserLocation({ lat: 40.4168, lng: -3.7038 });
-        }
+        setUserLocation({
+          lat: location.coords.latitude,
+          lng: location.coords.longitude,
+        });
+        console.log('[MAP v111.0] 📍 User location obtained:', {
+          lat: location.coords.latitude,
+          lng: location.coords.longitude,
+        });
       } catch (error: any) {
-        console.error('[MAP v175.0] ❌ Error getting location:', error?.message);
+        console.error('[MAP v111.0] ❌ Error getting location:', {
+          message: error?.message || 'Unknown error',
+          code: error?.code,
+        });
+        console.log('[MAP v111.0] ⚠️ Using default location (Madrid) due to error');
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
   }, []);
 
-  // ⚡⚡⚡ CRITICAL FIX v175.0: Load ONLY 150 closest locales (reduced from 200)
   useEffect(() => {
-    const loadLocalesForMap = async () => {
-      try {
-        console.log('[MAP v175.0] ⚡⚡⚡ Loading ONLY 150 closest locales for map...');
-        
-        // ⚡⚡⚡ CRITICAL: Load ONLY 150 locales (reduced from 200)
-        const { data, error } = await supabase
-          .from('locales')
-          .select(`
-            id,
-            nombre,
-            tipo,
-            latitud,
-            longitud,
-            imagen_url,
-            rating,
-            google_rating,
-            destacado,
-            barlive_types,
-            barlive_type,
-            horarios_completos,
-            google_business_status
-          `)
-          .eq('activo', true)
-          .or('google_business_status.is.null,google_business_status.neq.CLOSED_PERMANENTLY')
-          .not('horarios_completos', 'is', null)
-          .eq('enriquecido', true)
-          .order('destacado', { ascending: false })
-          .order('rating', { ascending: false })
-          .limit(150); // ⚡⚡⚡ CRITICAL: Only 150 locales for ULTRA-FAST loading
+    console.log('⚡ [MAP v111.0] ========================================');
+    console.log('⚡ [MAP v111.0] INSTANT HYDRATION from GlobalDataContext');
+    console.log('⚡ [MAP v111.0] Total locales available:', globalLocales.length);
+    
+    if (globalLocales.length > 0) {
+      setIsLoadingMarkers(true);
+      
+      const now = new Date();
+      const currentDate = now.toISOString().split('T')[0];
+      
+      supabase
+        .from('eventos')
+        .select('id, titulo, fecha, fecha_fin, hora, hora_fin, imagen_url, precio, local_id')
+        .eq('activo', true)
+        .gte('fecha', currentDate)
+        .order('fecha', { ascending: true })
+        .order('hora', { ascending: true })
+        .then(({ data: allEvents }) => {
+          const eventsByLocal = new Map<string, any>();
+          if (allEvents) {
+            for (const event of allEvents) {
+              if (!eventsByLocal.has(event.local_id)) {
+                const eventStartDate = new Date(`${event.fecha}T${event.hora}`);
+                let eventEndDate: Date;
+                if (event.fecha_fin && event.hora_fin) {
+                  eventEndDate = new Date(`${event.fecha_fin}T${event.hora_fin}`);
+                } else {
+                  eventEndDate = new Date(eventStartDate.getTime() + 4 * 60 * 60 * 1000);
+                }
 
-        if (error) throw error;
+                if (now <= eventEndDate) {
+                  eventsByLocal.set(event.local_id, event);
+                }
+              }
+            }
+          }
 
-        if (data) {
-          const localesTransformados: LocalWithEvent[] = data.map((local) => ({
-            ...local,
-            coordenadas: {
-              lat: parseFloat(local.latitud),
-              lng: parseFloat(local.longitud),
-            },
-            evento: null,
-            plan: null,
-          }));
+          const localesTransformados: LocalWithEvent[] = globalLocales.map((local) => {
+            const evento = eventsByLocal.get(local.id) || null;
+
+            return {
+              ...local,
+              evento,
+              plan: null,
+            };
+          });
 
           setTodosLosLocales(localesTransformados);
           setIsLoadingMarkers(false);
-          console.log(`[MAP v175.0] ⚡⚡⚡ Loaded ${localesTransformados.length} locales for map (limited to 150)!`);
-        }
-      } catch (error) {
-        console.error('[MAP v175.0] ❌ Error loading locales:', error);
-        setIsLoadingMarkers(false);
-      }
+          console.log(`⚡ [MAP v111.0] ✅ INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
+        });
+    }
+  }, [globalLocales]);
+
+  useEffect(() => {
+    const backgroundRefresh = async () => {
+      console.log('🔄 [MAP v111.0] Background refresh triggered');
+      await refreshData(true);
     };
 
-    loadLocalesForMap();
-  }, []);
+    const interval = setInterval(backgroundRefresh, 2 * 60 * 1000);
 
-  // ⚡ Filter locales
+    return () => clearInterval(interval);
+  }, [refreshData]);
+
   const localesFiltradosMemo = useMemo(() => {
-    console.log('[MAP v175.0] ⚡ Filtering locales...');
+    console.log('[MAP v111.0] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
     
     let filtrados = todosLosLocales.filter(local => {
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
@@ -296,36 +292,104 @@ export default function MapaScreen() {
         matchEstado = estado.estaAbierto === true;
       }
       
-      return matchCategoria && matchEstado;
+      let matchGlobalFilters = true;
+      
+      if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
+        matchGlobalFilters = matchGlobalFilters && local.comunidad === globalFiltros.comunidad;
+      }
+      
+      if (globalFiltros.provincia) {
+        matchGlobalFilters = matchGlobalFilters && local.provincia === globalFiltros.provincia;
+      }
+      
+      if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
+        const hasMatchingType = globalFiltros.tipo.some(tipo => 
+          localCategories.some((cat: string) => cat.toLowerCase() === tipo.toLowerCase())
+        );
+        matchGlobalFilters = matchGlobalFilters && hasMatchingType;
+      }
+      
+      if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
+        const localServices = local.servicios_disponibles || {};
+        const hasAllServices = globalFiltros.servicios.every(servicio => 
+          localServices[servicio] === true
+        );
+        matchGlobalFilters = matchGlobalFilters && hasAllServices;
+      }
+      
+      if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0 && !globalFiltros.ambiente.includes('cualquiera')) {
+        const localAmbiente = local.ambiente_completo || {};
+        const hasMatchingAmbiente = globalFiltros.ambiente.some(amb => 
+          localAmbiente[amb] === true
+        );
+        matchGlobalFilters = matchGlobalFilters && hasMatchingAmbiente;
+      }
+      
+      if (globalFiltros.clientela && globalFiltros.clientela.length > 0 && !globalFiltros.clientela.includes('cualquiera')) {
+        const localClientela = local.clientela || {};
+        const hasMatchingClientela = globalFiltros.clientela.some(cli => 
+          localClientela[cli] === true
+        );
+        matchGlobalFilters = matchGlobalFilters && hasMatchingClientela;
+      }
+      
+      if (globalFiltros.distancia && userLocation) {
+        const distancia = calcularDistancia(
+          userLocation.lat,
+          userLocation.lng,
+          local.coordenadas.lat,
+          local.coordenadas.lng
+        );
+        matchGlobalFilters = matchGlobalFilters && distancia <= globalFiltros.distancia;
+      }
+      
+      return matchCategoria && matchEstado && matchGlobalFilters;
     });
     
-    console.log(`[MAP v175.0] ⚡ Filtered: ${filtrados.length} of ${todosLosLocales.length}`);
+    console.log(`[MAP v111.0] ✅ Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
     
     return filtrados;
-  }, [todosLosLocales, categoriaSeleccionada, filtroEstado, userLocation]);
+  }, [todosLosLocales, categoriaSeleccionada, filtroEstado, globalFiltros, userLocation]);
 
   useEffect(() => {
     setLocalesFiltrados(localesFiltradosMemo);
   }, [localesFiltradosMemo]);
 
-  // ⚡⚡⚡ CRITICAL FIX v175.0: Generate markers with filtered locales (max 150)
   const markersData = useMemo(() => {
-    console.log('[MAP v175.0] ⚡⚡⚡ Generating markers for filtered locales...');
+    console.log('[MAP v111.0] 🎯 Memoizing markers data...');
     
-    // ⚡⚡⚡ CRITICAL: Limit to 150 markers for ULTRA-FAST rendering
-    const localesParaMapa = localesFiltrados.slice(0, 150);
-    
-    console.log(`[MAP v175.0] ⚡⚡⚡ Showing ${localesParaMapa.length} markers on map (max 150)`);
-    
-    // ⚡ SIMPLIFIED: Minimal processing
-    return localesParaMapa.map(local => {
+    return localesFiltrados.map(local => {
       const estadoCompleto = getEstadoLocal(local);
       const estaAbierto = estadoCompleto.estaAbierto;
       const estado = estaAbierto === true ? 'abierto' : 
                      estaAbierto === false ? 'cerrado' : 'sin_info';
       
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
+      localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
+      
       const icon = getPrimaryIconForVenue(localCategories, local.horarios_completos);
+      
+      let overlayIcon = null;
+      if (estadoCompleto.overlayIcon === 'lock') {
+        overlayIcon = '🔒';
+      } else if (estadoCompleto.overlayIcon === 'questionmark') {
+        overlayIcon = '❓';
+      } else if (estadoCompleto.overlayIcon === 'clock') {
+        overlayIcon = '🕐';
+      }
+
+      let isEventLive = false;
+      if (local.evento) {
+        const now = new Date();
+        const eventStartDate = new Date(`${local.evento.fecha}T${local.evento.hora}`);
+        let eventEndDate: Date;
+        if (local.evento.fecha_fin && local.evento.hora_fin) {
+          eventEndDate = new Date(`${local.evento.fecha_fin}T${local.evento.hora_fin}`);
+        } else {
+          eventEndDate = new Date(eventStartDate.getTime() + 4 * 60 * 60 * 1000);
+        }
+        isEventLive = now >= eventStartDate && now <= eventEndDate;
+      }
       
       let distancia = 0.5;
       if (userLocation) {
@@ -347,28 +411,88 @@ export default function MapaScreen() {
         estado: estado,
         estadoBadge: estadoCompleto.badge,
         icon: icon,
-        rating: local.google_rating || local.rating || 4.0,
-        imagen: local.imagen_url || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400',
+        overlayIcon: overlayIcon,
+        rating: local.valoracion_google || local.rating,
+        imagen: local.imagen_url || local.imagenes?.[0] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400',
         distancia: distancia,
         destacado: local.destacado || false,
+        hasEvent: !!local.evento,
+        isEventLive: isEventLive,
+        eventTitulo: local.evento?.titulo || '',
+        eventImagen: local.evento?.imagen_url || '',
+        isPremium: local.plan === 'premium',
       };
     });
   }, [localesFiltrados, userLocation]);
 
-  // ⚡⚡⚡ CRITICAL FIX v175.0: Generate map HTML with progressive loading (batch size 30)
   const generateMapHTML = useCallback(async () => {
     const centerLat = userLocation?.lat || 40.4168;
     const centerLng = userLocation?.lng || -3.7038;
 
-    console.log(`[MAP v175.0] ⚡⚡⚡ Generating map HTML with ${markersData.length} markers (progressive loading)`);
+    const checkInsByLocal = new Map<string, { isUserHere: boolean; friendsCount: number }>();
+    
+    if (user) {
+      try {
+        const { data: userCheckIn } = await supabase
+          .from('check_ins')
+          .select('local_id')
+          .eq('usuario_id', user.id)
+          .single();
+
+        if (userCheckIn) {
+          checkInsByLocal.set(userCheckIn.local_id, { isUserHere: true, friendsCount: 0 });
+        }
+
+        const { data: following } = await supabase
+          .from('seguidores')
+          .select('seguido_id')
+          .eq('seguidor_id', user.id);
+
+        const followedUserIds = following?.map(f => f.seguido_id) || [];
+
+        if (followedUserIds.length > 0) {
+          const { data: friendCheckIns } = await supabase
+            .from('check_ins')
+            .select('local_id, usuario_id, visibility, specific_user_ids')
+            .in('usuario_id', followedUserIds);
+
+          (friendCheckIns || []).forEach(checkIn => {
+            const isVisible = 
+              checkIn.visibility === 'all_users' ||
+              checkIn.visibility === 'followers' ||
+              (checkIn.visibility === 'specific_users' && checkIn.specific_user_ids?.includes(user.id));
+
+            if (isVisible) {
+              const existing = checkInsByLocal.get(checkIn.local_id) || { isUserHere: false, friendsCount: 0 };
+              existing.friendsCount += 1;
+              checkInsByLocal.set(checkIn.local_id, existing);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('[MAP v111.0] Error loading check-ins:', error);
+      }
+    }
+
+    const markersWithCheckIns = markersData.map(marker => {
+      const checkInInfo = checkInsByLocal.get(marker.id) || { isUserHere: false, friendsCount: 0 };
+      return {
+        ...marker,
+        isUserHere: checkInInfo.isUserHere,
+        friendsHereCount: checkInInfo.friendsCount,
+      };
+    });
+
+    console.log(`[MAP v111.0] 🗺️ GENERATING MAP HTML WITH ${markersWithCheckIns.length} MARKERS`);
 
     const popupFontSize = Platform.OS === 'android' ? Math.round(14 * 0.80) : 14;
     const popupTitleSize = Platform.OS === 'android' ? Math.round(16 * 0.80) : 16;
     const popupSmallSize = Platform.OS === 'android' ? Math.round(12 * 0.80) : 12;
     const popupBadgeSize = Platform.OS === 'android' ? Math.round(11 * 0.80) : 11;
-    const markerSize = Platform.OS === 'android' ? 28 : 32; // ⚡ Reduced from 32/36
-    const markerDestacadoSize = Platform.OS === 'android' ? 36 : 40; // ⚡ Reduced from 40/44
-    const markerIconSize = Platform.OS === 'android' ? 14 : 16; // ⚡ Reduced from 16/18
+    const markerSize = Platform.OS === 'android' ? 40 : 44;
+    const markerDestacadoSize = Platform.OS === 'android' ? 48 : 52;
+    const markerIconSize = Platform.OS === 'android' ? 20 : 22;
+    const eventIndicatorSize = Platform.OS === 'android' ? 18 : 20;
 
     return `
 <!DOCTYPE html>
@@ -399,32 +523,69 @@ export default function MapaScreen() {
       align-items: center;
       justify-content: center;
       font-size: ${markerIconSize}px;
-      border: 2px solid #FFFFFF;
-      transition: transform 0.15s;
+      border: 3px solid #FFFFFF;
+      transition: transform 0.2s;
       cursor: pointer;
       position: relative;
     }
     .custom-marker-destacado {
       width: ${markerDestacadoSize}px;
       height: ${markerDestacadoSize}px;
-      border: 3px solid #FACC15;
+      border: 4px solid #FACC15;
       box-shadow: 0 0 0 2px #FFFFFF, 0 4px 12px rgba(250, 204, 21, 0.5);
+      animation: pulse-destacado 2s infinite;
+    }
+    @keyframes pulse-destacado {
+      0%, 100% { box-shadow: 0 0 0 2px #FFFFFF, 0 4px 12px rgba(250, 204, 21, 0.5); }
+      50% { box-shadow: 0 0 0 2px #FFFFFF, 0 4px 16px rgba(250, 204, 21, 0.8); }
     }
     .custom-marker:hover {
-      transform: scale(1.15);
+      transform: scale(1.2);
       z-index: 1000;
     }
     .marker-abierto { 
       background-color: #22C55E;
-      box-shadow: 0 2px 6px rgba(34, 197, 94, 0.3);
+      box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
     }
     .marker-cerrado { 
       background-color: #EF4444;
-      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
     }
     .marker-sin_info { 
       background-color: #9CA3AF;
-      box-shadow: 0 2px 6px rgba(156, 163, 175, 0.3);
+      box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
+    }
+    
+    .event-indicator {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: ${eventIndicatorSize}px;
+      height: ${eventIndicatorSize}px;
+      background-color: #FACC15;
+      border-radius: 50%;
+      border: 2px solid #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: ${Math.round(eventIndicatorSize * 0.5)}px;
+      z-index: 10;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .event-indicator-live {
+      animation: pulse-event 1.5s infinite;
+    }
+    
+    @keyframes pulse-event {
+      0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      50% { 
+        transform: scale(1.15);
+        box-shadow: 0 2px 8px rgba(250, 204, 21, 0.6);
+      }
     }
     
     .leaflet-popup-content-wrapper {
@@ -436,7 +597,7 @@ export default function MapaScreen() {
     }
     .leaflet-popup-content {
       margin: 0;
-      width: ${Platform.OS === 'android' ? '240px' : '260px'} !important;
+      width: ${Platform.OS === 'android' ? '260px' : '280px'} !important;
       font-size: ${popupFontSize}px;
     }
     .leaflet-popup-tip {
@@ -449,7 +610,7 @@ export default function MapaScreen() {
     .popup-image-container {
       position: relative;
       width: 100%;
-      height: ${Platform.OS === 'android' ? '100px' : '120px'};
+      height: ${Platform.OS === 'android' ? '120px' : '140px'};
     }
     .popup-image {
       width: 100%;
@@ -458,6 +619,14 @@ export default function MapaScreen() {
     }
     .popup-image-dimmed {
       filter: brightness(0.6);
+    }
+    .popup-overlay-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: ${Platform.OS === 'android' ? '40px' : '48px'};
+      z-index: 10;
     }
     .popup-badge-destacado {
       position: absolute;
@@ -476,15 +645,48 @@ export default function MapaScreen() {
       border: 2px solid #FFFFFF;
     }
     
+    .popup-event-banner {
+      background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
+      padding: ${Platform.OS === 'android' ? '10px' : '12px'};
+      color: white;
+      margin-bottom: ${Platform.OS === 'android' ? '10px' : '12px'};
+    }
+    .popup-event-banner-live {
+      background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    }
+    .popup-event-title {
+      font-size: ${popupFontSize}px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .popup-event-live-badge {
+      background-color: rgba(255, 255, 255, 0.3);
+      padding: 2px 8px;
+      border-radius: 8px;
+      font-size: ${Platform.OS === 'android' ? '9px' : '10px'};
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .popup-event-image {
+      width: 100%;
+      height: ${Platform.OS === 'android' ? '70px' : '80px'};
+      object-fit: cover;
+      border-radius: 6px;
+      margin-top: 8px;
+    }
+    
     .popup-info {
-      padding: ${Platform.OS === 'android' ? '8px' : '10px'};
+      padding: ${Platform.OS === 'android' ? '10px' : '12px'};
     }
     .popup-title {
       font-size: ${popupTitleSize}px;
       font-weight: 500;
       margin-bottom: 6px;
       color: #202124;
-      line-height: ${Platform.OS === 'android' ? '16px' : '18px'};
+      line-height: ${Platform.OS === 'android' ? '18px' : '20px'};
     }
     .popup-estado {
       display: inline-block;
@@ -502,8 +704,8 @@ export default function MapaScreen() {
       display: flex;
       align-items: center;
       gap: 4px;
-      margin-bottom: 8px;
-      font-size: ${Platform.OS === 'android' ? '11px' : '12px'};
+      margin-bottom: 10px;
+      font-size: ${Platform.OS === 'android' ? '12px' : '13px'};
       color: #70757A;
     }
     .popup-button {
@@ -513,7 +715,7 @@ export default function MapaScreen() {
       gap: 6px;
       background: #14B8A6;
       color: #FFFFFF !important;
-      padding: ${Platform.OS === 'android' ? '6px' : '8px'};
+      padding: ${Platform.OS === 'android' ? '8px' : '10px'};
       border-radius: 4px;
       text-decoration: none;
       font-weight: 600;
@@ -530,12 +732,17 @@ export default function MapaScreen() {
     }
     
     .user-marker {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       background-color: #4285F4;
-      border: 2px solid white;
+      border: 3px solid white;
       border-radius: 50%;
-      box-shadow: 0 0 0 6px rgba(66, 133, 244, 0.2), 0 2px 4px rgba(0,0,0,0.3);
+      box-shadow: 0 0 0 8px rgba(66, 133, 244, 0.2), 0 2px 4px rgba(0,0,0,0.3);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 8px rgba(66, 133, 244, 0.2), 0 2px 4px rgba(0,0,0,0.3); }
+      50% { box-shadow: 0 0 0 12px rgba(66, 133, 244, 0.1), 0 2px 4px rgba(0,0,0,0.3); }
     }
     
     .leaflet-control-attribution { display: none !important; }
@@ -570,13 +777,13 @@ export default function MapaScreen() {
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 2px solid white;
+      border: 3px solid white;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
     .marker-cluster div {
       border-radius: 50%;
-      width: 30px;
-      height: 30px;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -587,39 +794,30 @@ export default function MapaScreen() {
   <div id="map"></div>
   <script>
     try {
-      console.log('[MAP HTML v175.0] ⚡⚡⚡ Initializing map with progressive loading');
+      console.log('[MAP HTML v111.0] ⚡ INSTANT INITIALIZATION');
       
-      // ⚡⚡⚡ CRITICAL: Use canvas renderer for ULTRA-FAST performance
       var map = L.map('map', {
         zoomControl: false,
-        attributionControl: false,
-        preferCanvas: true,
-        renderer: L.canvas({ tolerance: 3, padding: 0.1 })
+        attributionControl: false
       }).setView([${centerLat}, ${centerLng}], 11);
 
-      // ⚡ CRITICAL: Use faster tile provider
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
-        attribution: '',
-        updateWhenIdle: true,
-        updateWhenZooming: false,
-        keepBuffer: 1
+        attribution: ''
       }).addTo(map);
 
-      // ⚡ CRITICAL: Optimized marker clustering
       var markers = L.markerClusterGroup({
-        maxClusterRadius: 40,
+        maxClusterRadius: 50,
         spiderfyOnMaxZoom: true,
         showCoverageOnHover: false,
         zoomToBoundsOnClick: true,
-        disableClusteringAtZoom: 17,
         iconCreateFunction: function(cluster) {
           var count = cluster.getChildCount();
           var size = count < 10 ? 'small' : count < 100 ? 'medium' : 'large';
           return L.divIcon({
             html: '<div>' + count + '</div>',
             className: 'marker-cluster marker-cluster-' + size,
-            iconSize: L.point(40, 40)
+            iconSize: L.point(44, 44)
           });
         }
       });
@@ -627,161 +825,212 @@ export default function MapaScreen() {
       ${userLocation ? `
         var userIcon = L.divIcon({
           className: 'user-marker',
-          iconSize: [16, 16]
+          iconSize: [18, 18]
         });
         L.marker([${userLocation.lat}, ${userLocation.lng}], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
       ` : ''}
 
-      var markersData = ${JSON.stringify(markersData)};
+      var markersData = ${JSON.stringify(markersWithCheckIns)};
       
-      // ⚡⚡⚡ CRITICAL FIX v175.0: Progressive loading in batches of 30 (reduced from 50)
-      console.log('[MAP HTML v175.0] ⚡⚡⚡ Loading', markersData.length, 'markers in batches of 30...');
-      
-      var batchSize = 30; // ⚡ Reduced from 50 for smoother loading
-      var currentBatch = 0;
-      
-      function loadNextBatch() {
-        var start = currentBatch * batchSize;
-        var end = Math.min(start + batchSize, markersData.length);
-        
-        console.log('[MAP HTML v175.0] ⚡ Loading batch', currentBatch + 1, ':', start, '-', end);
-        
-        for (var i = start; i < end; i++) {
-          var data = markersData[i];
-          
-          var markerClass = 'custom-marker marker-' + data.estado;
-          if (data.destacado) {
-            markerClass += ' custom-marker-destacado';
-          }
-          
-          var markerIcon = L.divIcon({
-            className: markerClass,
-            html: data.icon,
-            iconSize: data.destacado ? [${markerDestacadoSize}, ${markerDestacadoSize}] : [${markerSize}, ${markerSize}]
+      var lastZoom = map.getZoom();
+      map.on('zoomend', function() {
+        var currentZoom = map.getZoom();
+        if (currentZoom >= 16 && currentZoom > lastZoom) {
+          var bounds = map.getBounds();
+          markersData.forEach(function(data) {
+            if (bounds.contains([data.lat, data.lng])) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'zoom_close',
+                id: data.id
+              }));
+            }
           });
-
-          var marker = L.marker([data.lat, data.lng], { icon: markerIcon });
-          
-          var estadoText = data.estadoBadge || (data.estado === 'abierto' ? 'Abierto ahora' : 
-                          data.estado === 'cerrado' ? 'Cerrado' : 'Sin información');
-          
-          var imageDimmed = data.estado === 'cerrado' || data.estado === 'sin_info';
-          var imageClass = imageDimmed ? 'popup-image popup-image-dimmed' : 'popup-image';
-          
-          var destacadoBadge = data.destacado ? 
-            '<div class="popup-badge-destacado">⭐ Destacado</div>' : '';
-          
-          var categoriasHtml = '';
-          if (data.categorias && data.categorias.length > 0) {
-            categoriasHtml = '<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px;">';
-            data.categorias.slice(0, 2).forEach(function(cat) {
-              var catIcon = '';
-              if (cat.toLowerCase() === 'cafe') catIcon = '☕';
-              else if (cat.toLowerCase() === 'restaurante') catIcon = '🍽️';
-              else if (cat.toLowerCase() === 'bar') catIcon = '🍷';
-              else if (cat.toLowerCase() === 'pub') catIcon = '🍺';
-              else if (cat.toLowerCase() === 'cocteleria') catIcon = '🍸';
-              else if (cat.toLowerCase() === 'discoteca') catIcon = '🎵';
-              else catIcon = '📍';
-              
-              categoriasHtml += '<span style="background-color: rgba(20, 184, 166, 0.15); color: #14B8A6; padding: 2px 6px; border-radius: 8px; font-size: ${popupBadgeSize}px; font-weight: 600; display: inline-flex; align-items: center; gap: 2px;">' +
-                catIcon + ' ' + cat.charAt(0).toUpperCase() + cat.slice(1) +
-              '</span>';
-            });
-            categoriasHtml += '</div>';
+        }
+        lastZoom = currentZoom;
+      });
+      
+      markersData.forEach(function(data) {
+        var markerClass = 'custom-marker marker-' + data.estado;
+        if (data.destacado) {
+          markerClass += ' custom-marker-destacado';
+        }
+        
+        var markerHtml = data.icon;
+        if (data.hasEvent) {
+          var eventIndicatorClass = 'event-indicator';
+          if (data.isEventLive) {
+            eventIndicatorClass += ' event-indicator-live';
           }
-
-          var popupContent = '<div class="popup-content">' +
-            '<div class="popup-image-container">' +
-              '<img src="' + data.imagen + '" class="' + imageClass + '" onerror="this.src=\\'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400\\'" />' +
-              destacadoBadge +
-            '</div>' +
-            '<div class="popup-info">' +
-              '<div class="popup-title">' + data.nombre + '</div>' +
-              categoriasHtml +
-              '<span class="popup-estado estado-' + data.estado + '">' + estadoText + '</span>' +
-              '<div class="popup-rating">⭐ ' + data.rating.toFixed(1) + ' • ' + data.distancia.toFixed(1) + ' km</div>' +
-              '<a href="#" class="popup-button" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: \\'navigate\\', id: \\'' + data.id + '\\'})); return false;">' +
-                '<span style="color: #FFFFFF;">📍 Ver más detalles</span>' +
-              '</a>' +
-            '</div>' +
+          markerHtml = '<div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">' +
+            data.icon +
+            '<div class="' + eventIndicatorClass + '">🎵</div>' +
           '</div>';
+        }
+        
+        var markerIcon = L.divIcon({
+          className: markerClass,
+          html: markerHtml,
+          iconSize: data.destacado ? [${markerDestacadoSize}, ${markerDestacadoSize}] : [${markerSize}, ${markerSize}]
+        });
+
+        var marker = L.marker([data.lat, data.lng], { icon: markerIcon });
+        
+        var estadoText = data.estadoBadge || (data.estado === 'abierto' ? 'Abierto ahora' : 
+                        data.estado === 'cerrado' ? 'Cerrado' : 'Sin información');
+        
+        var imageDimmed = data.estado === 'cerrado' || data.estado === 'sin_info';
+        var imageClass = imageDimmed ? 'popup-image popup-image-dimmed' : 'popup-image';
+        
+        var overlayIconHtml = data.overlayIcon ? 
+          '<div class="popup-overlay-icon" style="color: #FFFFFF;">' + data.overlayIcon + '</div>' : '';
+        
+        var destacadoBadge = data.destacado ? 
+          '<div class="popup-badge-destacado">⭐ Destacado</div>' : '';
+        
+        var eventBannerHtml = '';
+        if (data.isPremium && data.hasEvent) {
+          var eventBannerClass = 'popup-event-banner';
+          if (data.isEventLive) {
+            eventBannerClass += ' popup-event-banner-live';
+          }
+          var liveBadge = data.isEventLive ? '<span class="popup-event-live-badge">EN VIVO</span>' : '';
+          var eventImageHtml = data.eventImagen ? 
+            '<img src="' + data.eventImagen + '" class="popup-event-image" onerror="this.style.display=\\'none\\'" />' : '';
           
-          marker.bindPopup(popupContent, {
-            maxWidth: ${Platform.OS === 'android' ? 240 : 260},
-            className: 'custom-popup',
-            closeButton: true,
-            offset: [0, -10],
-            autoPan: true,
-            autoPanPadding: [50, 50],
-            keepInView: true
-          });
-
-          marker.on('click', function(e) {
-            marker.openPopup();
-          });
-
-          markers.addLayer(marker);
+          eventBannerHtml = '<div class="' + eventBannerClass + '">' +
+            '<div class="popup-event-title">🎵 ' + data.eventTitulo + ' ' + liveBadge + '</div>' +
+            eventImageHtml +
+          '</div>';
         }
         
-        currentBatch++;
-        
-        // ⚡ Report progress
-        var progress = Math.round((end / markersData.length) * 100);
-        window.ReactNativeWebView.postMessage(JSON.stringify({ 
-          type: 'progress', 
-          progress: progress 
-        }));
-        
-        // ⚡ Load next batch or finish
-        if (end < markersData.length) {
-          setTimeout(loadNextBatch, 40); // ⚡ 40ms delay between batches (reduced from 50ms)
-        } else {
-          console.log('[MAP HTML v175.0] ⚡⚡⚡ All', markersData.length, 'markers loaded!');
-          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'markers_complete' }));
+        var categoriasHtml = '';
+        if (data.categorias && data.categorias.length > 0) {
+          categoriasHtml = '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">';
+          data.categorias.forEach(function(cat) {
+            var catIcon = '';
+            if (cat.toLowerCase() === 'cafe') catIcon = '☕';
+            else if (cat.toLowerCase() === 'restaurante') catIcon = '🍽️';
+            else if (cat.toLowerCase() === 'bar') catIcon = '🍷';
+            else if (cat.toLowerCase() === 'pub') catIcon = '🍺';
+            else if (cat.toLowerCase() === 'cocteleria') catIcon = '🍸';
+            else if (cat.toLowerCase() === 'discoteca') catIcon = '🎵';
+            else if (cat.toLowerCase() === 'sala_conciertos') catIcon = '🎵';
+            else if (cat.toLowerCase() === 'terraza') catIcon = '☀️';
+            else if (cat.toLowerCase() === 'rooftop') catIcon = '🏢';
+            else if (cat.toLowerCase() === 'lounge') catIcon = '🛋️';
+            else catIcon = '📍';
+            
+            categoriasHtml += '<span style="background-color: rgba(20, 184, 166, 0.15); color: #14B8A6; padding: 4px 8px; border-radius: 12px; font-size: ${popupBadgeSize}px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">' +
+              catIcon + ' ' + cat.charAt(0).toUpperCase() + cat.slice(1) +
+            '</span>';
+          });
+          categoriasHtml += '</div>';
         }
-      }
-      
-      // ⚡ Start loading markers
-      loadNextBatch();
-      
+        
+        var checkInBadgesHtml = '';
+        if (data.isUserHere || data.friendsHereCount > 0) {
+          checkInBadgesHtml = '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">';
+          if (data.isUserHere) {
+            checkInBadgesHtml += '<span style="background-color: rgba(16, 185, 129, 0.2); color: #10B981; padding: 4px 10px; border-radius: 12px; font-size: ${popupBadgeSize}px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(16, 185, 129, 0.4);">' +
+              '📍 Tú estás aquí' +
+            '</span>';
+          }
+          if (data.friendsHereCount > 0) {
+            checkInBadgesHtml += '<span style="background-color: rgba(20, 184, 166, 0.2); color: #14B8A6; padding: 4px 10px; border-radius: 12px; font-size: ${popupBadgeSize}px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(20, 184, 166, 0.4);">' +
+              '👥 ' + data.friendsHereCount + ' ' + (data.friendsHereCount === 1 ? 'amigo' : 'amigos') +
+            '</span>';
+          }
+          checkInBadgesHtml += '</div>';
+        }
+
+        var popupContent = '<div class="popup-content">' +
+          '<div class="popup-image-container">' +
+            '<img src="' + data.imagen + '" class="' + imageClass + '" onerror="this.src=\\'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400\\'" />' +
+            destacadoBadge +
+            overlayIconHtml +
+          '</div>' +
+          '<div class="popup-info">' +
+            eventBannerHtml +
+            '<div class="popup-title">' + data.nombre + '</div>' +
+            categoriasHtml +
+            checkInBadgesHtml +
+            '<span class="popup-estado estado-' + data.estado + '">' + estadoText + '</span>' +
+            '<div class="popup-rating">⭐ ' + data.rating.toFixed(1) + ' • ' + data.distancia.toFixed(1) + ' km</div>' +
+            '<a href="#" class="popup-button" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: \\'navigate\\', id: \\'' + data.id + '\\'})); return false;">' +
+              '<span style="color: #FFFFFF;">📍 Ver más detalles</span>' +
+            '</a>' +
+          '</div>' +
+        '</div>';
+        
+        marker.bindPopup(popupContent, {
+          maxWidth: ${Platform.OS === 'android' ? 260 : 280},
+          className: 'custom-popup',
+          closeButton: true,
+          offset: [0, -10],
+          autoPan: true,
+          autoPanPadding: [50, 50],
+          keepInView: true
+        });
+
+        marker.on('popupopen', function(e) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'popup_opened',
+            id: data.id
+          }));
+          
+          setTimeout(function() {
+            var px = map.project(marker.getLatLng());
+            px.y -= ${Platform.OS === 'android' ? 120 : 140};
+            var newLatLng = map.unproject(px);
+            map.panTo(newLatLng, { animate: true, duration: 0.5 });
+          }, 100);
+        });
+
+        marker.on('click', function(e) {
+          marker.openPopup();
+        });
+
+        markers.addLayer(marker);
+      });
+
       map.addLayer(markers);
+      
+      console.log('[MAP HTML v111.0] ✅ Map initialized successfully');
       
       setTimeout(function() {
         map.invalidateSize();
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
-      }, 30);
+      }, 100);
       
       window.flyToLocation = function(lat, lng, zoom) {
-        console.log('[MAP HTML v175.0] ⚡ Flying to:', lat, lng, 'zoom:', zoom);
+        console.log('[MAP HTML v111.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
         map.flyTo([lat, lng], zoom, {
           animate: true,
-          duration: 0.8,
+          duration: 1.5,
           easeLinearity: 0.25
         });
       };
       
     } catch (error) {
-      console.error('[MAP HTML v175.0] Map initialization error:', error);
+      console.error('[MAP HTML v111.0] Map initialization error:', error);
     }
   </script>
 </body>
 </html>
     `;
-  }, [markersData, userLocation]);
+  }, [markersData, user, userLocation]);
 
-  // ⚡ Generate map HTML when markers are ready
   useEffect(() => {
     const generateHTML = async () => {
-      if (markersData.length > 0 && !isLoadingMarkers) {
-        console.log('[MAP v175.0] ⚡⚡⚡ Generating map HTML with', markersData.length, 'markers (progressive loading)');
+      if (localesFiltrados.length > 0 && !isLoadingMarkers) {
+        console.log('[MAP v111.0] 🚀 Generating map HTML with', localesFiltrados.length, 'markers');
         const html = await generateMapHTML();
         setMapHTML(html);
       }
     };
     
     generateHTML();
-  }, [markersData, generateMapHTML, isLoadingMarkers]);
+  }, [localesFiltrados, user, generateMapHTML, isLoadingMarkers]);
 
   useEffect(() => {
     const currentFiltersKey = JSON.stringify({
@@ -794,7 +1043,7 @@ export default function MapaScreen() {
       
       if (globalFiltros.provincia && PROVINCIA_COORDINATES[globalFiltros.provincia]) {
         const coords = PROVINCIA_COORDINATES[globalFiltros.provincia];
-        console.log(`[MAP v175.0] ⚡ FLY-TO: Province "${globalFiltros.provincia}"`, coords);
+        console.log(`[MAP v111.0] 🛫 FLY-TO: Province "${globalFiltros.provincia}"`, coords);
         
         webViewRef.current.injectJavaScript(`
           if (typeof window.flyToLocation !== 'undefined') {
@@ -805,7 +1054,7 @@ export default function MapaScreen() {
       }
       else if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades' && COMUNIDAD_COORDINATES[globalFiltros.comunidad]) {
         const coords = COMUNIDAD_COORDINATES[globalFiltros.comunidad];
-        console.log(`[MAP v175.0] ⚡ FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
+        console.log(`[MAP v111.0] 🛫 FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
         
         webViewRef.current.injectJavaScript(`
           if (typeof window.flyToLocation !== 'undefined') {
@@ -833,7 +1082,7 @@ export default function MapaScreen() {
             L.latLng(${minLat}, ${minLng}),
             L.latLng(${maxLat}, ${maxLng})
           );
-          map.fitBounds(bounds, { padding: [50, 50], animate: true, duration: 0.6 });
+          map.fitBounds(bounds, { padding: [50, 50], animate: true, duration: 1 });
         }
         true;
       `);
@@ -844,7 +1093,7 @@ export default function MapaScreen() {
     if (userLocation && webViewRef.current && isMapReady) {
       webViewRef.current.injectJavaScript(`
         if (typeof map !== 'undefined') {
-          map.setView([${userLocation.lat}, ${userLocation.lng}], 16, { animate: true, duration: 0.6 });
+          map.setView([${userLocation.lat}, ${userLocation.lng}], 18, { animate: true, duration: 1 });
         }
         true;
       `);
@@ -852,31 +1101,27 @@ export default function MapaScreen() {
   };
 
   const handleVerDetalles = (localId: string) => {
-    console.log('[MAP v175.0] ⚡ Navigating to local details:', localId);
+    console.log('[MAP v111.0] Navigating to local details:', localId);
     router.push(`/detalle/local?id=${localId}`);
   };
 
   const handleWebViewMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
+      console.log('📨 [MAP v111.0] Received message from WebView:', data);
       
       if (data.type === 'navigate' && data.id) {
         handleVerDetalles(data.id);
       } else if (data.type === 'map_ready') {
-        console.log('⚡⚡⚡ [MAP v175.0] Map is ready for interactions');
+        console.log('✅ [MAP v111.0] Map is ready for interactions');
         setIsMapReady(true);
-      } else if (data.type === 'progress') {
-        console.log('⚡ [MAP v175.0] Loading progress:', data.progress + '%');
-        setMarkersLoadProgress(data.progress);
-      } else if (data.type === 'markers_complete') {
-        console.log('⚡⚡⚡ [MAP v175.0] All markers loaded!');
-        setMarkersLoadProgress(100);
       }
     } catch (error) {
-      console.error('❌ [MAP v175.0] Error parsing WebView message:', error);
+      console.error('❌ [MAP v111.0] Error parsing WebView message:', error);
     }
   };
 
+  // ✅ CRITICAL FIX v111.0: Calculate scaled sizes
   const categoryIconSize = 56;
   const categoryIconInnerSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
   const controlButtonSize = Platform.OS === 'android' ? scaleIconSize(48) : 48;
@@ -917,11 +1162,6 @@ export default function MapaScreen() {
                   </View>
                   <ActivityIndicator size="large" color={colors.primary} style={styles.loadingSpinner} />
                   <Text style={[styles.loadingText, { fontSize: scaleFontSize(18) }]}>Preparando mapa...</Text>
-                  {markersLoadProgress > 0 && (
-                    <Text style={[styles.loadingProgress, { fontSize: scaleFontSize(14) }]}>
-                      {markersLoadProgress}% cargado
-                    </Text>
-                  )}
                 </View>
               </View>
             )}
@@ -935,7 +1175,7 @@ export default function MapaScreen() {
                 domStorageEnabled={true}
                 onError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
-                  console.error('[MAP v175.0] WebView error:', nativeEvent);
+                  console.error('[MAP v111.0] WebView error:', nativeEvent);
                 }}
               />
             )}
@@ -950,6 +1190,7 @@ export default function MapaScreen() {
           end={{ x: 1, y: 0 }}
           style={styles.header}
         >
+          {/* ✅ CRITICAL FIX v111.0: Unified category filters with TEAL ICONS */}
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
@@ -1143,10 +1384,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     marginBottom: 8,
-  },
-  loadingProgress: {
-    color: colors.textSecondary,
-    marginTop: 8,
   },
   webNotSupported: {
     flex: 1,
