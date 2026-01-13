@@ -1,4 +1,3 @@
-
 // Global error logging for runtime errors
 // Captures console.log/warn/error and sends to Natively server for AI debugging
 
@@ -78,11 +77,6 @@ const getLogServerUrl = (): string | null => {
 // Track if we've logged fetch errors to avoid spam
 let fetchErrorLogged = false;
 
-// Store original console methods globally to avoid recursion
-let originalConsoleLog: typeof console.log;
-let originalConsoleWarn: typeof console.warn;
-let originalConsoleError: typeof console.error;
-
 // Flush the log queue to server
 const flushLogs = async () => {
   if (logQueue.length === 0) return;
@@ -105,13 +99,11 @@ const flushLogs = async () => {
         body: JSON.stringify(log),
       }).catch((e) => {
         // Log fetch errors only once to avoid spam
-        if (!fetchErrorLogged && originalConsoleLog) {
+        if (!fetchErrorLogged) {
           fetchErrorLogged = true;
-          // Use the original console.log method directly to avoid recursion
-          try {
-            originalConsoleLog('[Natively] Fetch error (will not repeat):', e?.message || e);
-          } catch (logError) {
-            // If even this fails, silently ignore
+          // Use a different method to avoid recursion - write directly without going through our intercept
+          if (typeof window !== 'undefined' && window.console) {
+            (window.console as any).__proto__.log.call(console, '[Natively] Fetch error (will not repeat):', e.message || e);
           }
         }
       });
@@ -270,9 +262,9 @@ const stringifyArgs = (args: any[]): string => {
 
 export const setupErrorLogging = () => {
   // Store original console methods BEFORE any modifications
-  originalConsoleLog = console.log;
-  originalConsoleWarn = console.warn;
-  originalConsoleError = console.error;
+  const originalConsoleLog = console.log;
+  const originalConsoleWarn = console.warn;
+  const originalConsoleError = console.error;
 
   // Log initialization info using original console (not intercepted)
   const logServerUrl = getLogServerUrl();
