@@ -230,7 +230,7 @@ export default function ExplorarScreen() {
         // 4. Sin información de horario
         // 5. Cerrados
         // 6. Destacados fuera de 100km (al final)
-        if (userLocation && reset) {
+        if (userLocation) {
           formattedLocales.sort((a, b) => {
             const distA = a.distancia || 999999;
             const distB = b.distancia || 999999;
@@ -500,6 +500,7 @@ export default function ExplorarScreen() {
   }, [headerTranslateY]);
 
   const renderLocalCard = ({ item }: { item: any }) => {
+    console.log('[Explorar v162.0] Rendering card for:', item.nombre, 'Distance:', item.distancia);
     const estado = getEstadoLocal(item);
     const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
     const isDestacado = item.destacado;
