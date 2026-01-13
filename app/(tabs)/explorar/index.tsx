@@ -72,14 +72,14 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v176.0 - CRITICAL PERFORMANCE OPTIMIZATION
+ * ✅ EXPLORAR SCREEN v177.0 - CRITICAL BUG FIX
  * 
- * CRITICAL PERFORMANCE FIXES v176.0:
- * - ✅ OSM LOCALES EXCLUDED: OSM-imported locales are NOT loaded until enrichment process needs them
- * - ✅ PROGRESSIVE LOADING: Anticipatory loading starts at 80% scroll (increased from 50%)
+ * CRITICAL BUG FIXES v177.0:
+ * - ✅ FIXED: "No hay locales disponibles" message resolved
+ * - ✅ FIXED: Venue list now displays all active locales correctly
+ * - ✅ FIXED: Removed OSM exclusion filter that was causing empty results
+ * - ✅ PROGRESSIVE LOADING: Anticipatory loading starts at 80% scroll
  * - ✅ SMOOTH EXPERIENCE: Reduced loading delay from 300ms to 100ms for seamless scroll
- * - ✅ NO FORCED PAUSES: User never perceives waiting time when scrolling
- * - ✅ INSTANT PERFORMANCE: App behaves as if OSM locales don't exist until activated
  * 
  * PREVIOUS FIXES v146.0 (ANDROID ONLY):
  * - ✅ FIXED: First local card no longer hidden by header (increased marginTop from HEADER_MAX_HEIGHT to HEADER_MAX_HEIGHT + 32)
@@ -248,20 +248,18 @@ export default function ExplorarScreen() {
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v176.0] 🔄 LOADING LOCALES - EXCLUDING OSM UNTIL ENRICHED');
-      console.log('[Explorar v176.0] 📋 OSM locales will NOT be processed until enrichment requires them');
+      console.log('[Explorar v177.0] 🔄 LOADING LOCALES - ALL ACTIVE LOCALES');
+      console.log('[Explorar v177.0] 📋 Loading all active locales including OSM');
       
-      // ✅ CRITICAL PERFORMANCE FIX v176.0: Exclude OSM locales from initial load
-      // OSM locales should ONLY be loaded when enrichment process explicitly needs them
-      // This prevents unnecessary processing and improves app performance dramatically
+      // ✅ CRITICAL FIX v177.0: Load ALL active locales (OSM filter removed)
+      // OSM locales should be visible to users
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
         .select('*')
-        .eq('activo', true)
-        .or('source_type.is.null,source_type.neq.osm'); // Exclude OSM locales
+        .eq('activo', true);
       
-      console.log('[Explorar v176.0] ✅ Query executed (OSM locales excluded)');
-      console.log('[Explorar v176.0] 📊 Active locales loaded (OSM excluded):', localesData?.length || 0);
+      console.log('[Explorar v177.0] ✅ Query executed');
+      console.log('[Explorar v177.0] 📊 Active locales loaded:', localesData?.length || 0);
 
       if (localesError) throw localesError;
 

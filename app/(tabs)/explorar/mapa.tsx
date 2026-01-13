@@ -132,12 +132,13 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v176.0 - CRITICAL PERFORMANCE OPTIMIZATION
+ * ✅ MAP SCREEN v177.0 - CRITICAL BUG FIX
  * 
- * CRITICAL PERFORMANCE FIXES v176.0:
- * - ✅ OSM LOCALES EXCLUDED: OSM-imported locales are NOT loaded on map until enrichment needs them
- * - ✅ INSTANT PERFORMANCE: Map loads only active, enriched locales
- * - ✅ NO UNNECESSARY PROCESSING: OSM locales remain isolated from app flow
+ * CRITICAL BUG FIXES v177.0:
+ * - ✅ FIXED: Map no longer stuck on "Preparando mapa..." loading screen
+ * - ✅ FIXED: Map now displays all active locales correctly
+ * - ✅ FIXED: Removed OSM exclusion filter that was causing empty results
+ * - ✅ IMPROVED: Better error handling for events loading
  * 
  * PREVIOUS FIXES v111.0:
  * - ✅ Category filters now use TEAL ICONS matching Explorar, Eventos & Favoritos
@@ -214,54 +215,71 @@ export default function MapaScreen() {
     console.log('⚡ [MAP v176.0] INSTANT HYDRATION from GlobalDataContext (OSM EXCLUDED)');
     console.log('⚡ [MAP v176.0] Total locales available:', globalLocales.length);
     
-    if (globalLocales.length > 0) {
-      setIsLoadingMarkers(true);
-      
-      const now = new Date();
-      const currentDate = now.toISOString().split('T')[0];
-      
-      supabase
-        .from('eventos')
-        .select('id, titulo, fecha, fecha_fin, hora, hora_fin, imagen_url, precio, local_id')
-        .eq('activo', true)
-        .gte('fecha', currentDate)
-        .order('fecha', { ascending: true })
-        .order('hora', { ascending: true })
-        .then(({ data: allEvents }) => {
-          const eventsByLocal = new Map<string, any>();
-          if (allEvents) {
-            for (const event of allEvents) {
-              if (!eventsByLocal.has(event.local_id)) {
-                const eventStartDate = new Date(`${event.fecha}T${event.hora}`);
-                let eventEndDate: Date;
-                if (event.fecha_fin && event.hora_fin) {
-                  eventEndDate = new Date(`${event.fecha_fin}T${event.hora_fin}`);
-                } else {
-                  eventEndDate = new Date(eventStartDate.getTime() + 4 * 60 * 60 * 1000);
-                }
+    // ✅ CRITICAL FIX: Always set loading to false, even if no locales
+    setIsLoadingMarkers(true);
+    
+    if (globalLocales.length === 0) {
+      console.log('⚠️ [MAP v176.0] No locales available, setting empty state');
+      setTodosLosLocales([]);
+      setIsLoadingMarkers(false);
+      return;
+    }
+    
+    const now = new Date();
+    const currentDate = now.toISOString().split('T')[0];
+    
+    supabase
+      .from('eventos')
+      .select('id, titulo, fecha, fecha_fin, hora, hora_fin, imagen_url, precio, local_id')
+      .eq('activo', true)
+      .gte('fecha', currentDate)
+      .order('fecha', { ascending: true })
+      .order('hora', { ascending: true })
+      .then(({ data: allEvents }) => {
+        const eventsByLocal = new Map<string, any>();
+        if (allEvents) {
+          for (const event of allEvents) {
+            if (!eventsByLocal.has(event.local_id)) {
+              const eventStartDate = new Date(`${event.fecha}T${event.hora}`);
+              let eventEndDate: Date;
+              if (event.fecha_fin && event.hora_fin) {
+                eventEndDate = new Date(`${event.fecha_fin}T${event.hora_fin}`);
+              } else {
+                eventEndDate = new Date(eventStartDate.getTime() + 4 * 60 * 60 * 1000);
+              }
 
-                if (now <= eventEndDate) {
-                  eventsByLocal.set(event.local_id, event);
-                }
+              if (now <= eventEndDate) {
+                eventsByLocal.set(event.local_id, event);
               }
             }
           }
+        }
 
-          const localesTransformados: LocalWithEvent[] = globalLocales.map((local) => {
-            const evento = eventsByLocal.get(local.id) || null;
+        const localesTransformados: LocalWithEvent[] = globalLocales.map((local) => {
+          const evento = eventsByLocal.get(local.id) || null;
 
-            return {
-              ...local,
-              evento,
-              plan: null,
-            };
-          });
-
-          setTodosLosLocales(localesTransformados);
-          setIsLoadingMarkers(false);
-          console.log(`⚡ [MAP v111.0] ✅ INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
+          return {
+            ...local,
+            evento,
+            plan: null,
+          };
         });
-    }
+
+        setTodosLosLocales(localesTransformados);
+        setIsLoadingMarkers(false);
+        console.log(`⚡ [MAP v176.0] ✅ INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
+      })
+      .catch((error) => {
+        console.error('❌ [MAP v176.0] Error loading events:', error);
+        // Still set locales even if events fail
+        const localesTransformados: LocalWithEvent[] = globalLocales.map((local) => ({
+          ...local,
+          evento: null,
+          plan: null,
+        }));
+        setTodosLosLocales(localesTransformados);
+        setIsLoadingMarkers(false);
+      });
   }, [globalLocales]);
 
   useEffect(() => {
