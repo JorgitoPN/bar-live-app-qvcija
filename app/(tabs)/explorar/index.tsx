@@ -1031,36 +1031,34 @@ export default function ExplorarScreen() {
         ))}
       </ScrollView>
 
-      {user && (
-        <TouchableOpacity 
-          style={styles.claimBanner}
-          onPress={handleClaimOrCreateLocal}
-          activeOpacity={0.8}
-        >
-          <View style={styles.claimBannerContent}>
-            <IconSymbol 
-              ios_icon_name="building.2.fill" 
-              android_material_icon_name="store" 
-              size={scaleIconSize(24)} 
-              color={colors.headerText} 
-            />
-            <View style={styles.claimBannerTextContainer}>
-              <Text style={[styles.claimBannerTitle, { fontSize: scaleFontSize(15) }]}>
-                ¿Tienes un local?
-              </Text>
-              <Text style={[styles.claimBannerSubtitle, { fontSize: scaleFontSize(13) }]}>
-                Reclámalo o crea uno nuevo
-              </Text>
-            </View>
-            <IconSymbol 
-              ios_icon_name="chevron.right" 
-              android_material_icon_name="chevron_right" 
-              size={scaleIconSize(20)} 
-              color={colors.headerText} 
-            />
+      <TouchableOpacity 
+        style={styles.claimBanner}
+        onPress={handleClaimOrCreateLocal}
+        activeOpacity={0.8}
+      >
+        <View style={styles.claimBannerContent}>
+          <IconSymbol 
+            ios_icon_name="building.2.fill" 
+            android_material_icon_name="store" 
+            size={scaleIconSize(24)} 
+            color={colors.headerText} 
+          />
+          <View style={styles.claimBannerTextContainer}>
+            <Text style={[styles.claimBannerTitle, { fontSize: scaleFontSize(15) }]}>
+              ¿Tienes un local?
+            </Text>
+            <Text style={[styles.claimBannerSubtitle, { fontSize: scaleFontSize(13) }]}>
+              Reclámalo o crea uno nuevo
+            </Text>
           </View>
-        </TouchableOpacity>
-      )}
+          <IconSymbol 
+            ios_icon_name="chevron.right" 
+            android_material_icon_name="chevron_right" 
+            size={scaleIconSize(20)} 
+            color={colors.headerText} 
+          />
+        </View>
+      </TouchableOpacity>
     </React.Fragment>
     );
   };
