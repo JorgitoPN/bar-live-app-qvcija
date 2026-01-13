@@ -43,7 +43,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 
-// ⚡ PERFORMANCE FIX v166.0: Optimized items per page for instant display
+// ⚡ PERFORMANCE FIX v168.0: Optimized items per page for instant display
 const ITEMS_PER_PAGE = 15; // Perfect balance: fast loading + smooth scrolling
 
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 260 : 360;
@@ -72,26 +72,18 @@ const CATEGORIAS = [
 ];
 
 /**
- * ⚡⚡⚡ EXPLORAR SCREEN v167.0 - ULTRA-FAST PERFORMANCE: INTELLIGENT LOADING
+ * ⚡⚡⚡ EXPLORAR SCREEN v168.0 - CRITICAL FIX: Column name correction
  * 
- * PROBLEMA IDENTIFICADO (v166.0):
- * - Locales inactivos de OSM ralentizan la carga inicial
- * - Estos datos ya están en BD y no deberían afectar el rendimiento
- * - La app carga locales sin horarios, cerrados permanentemente, etc.
- * - Experiencia de usuario: LENTA ❌
+ * PROBLEMA IDENTIFICADO (v168.0):
+ * ❌ Error: column "locales.estado_negocio" does not exist
+ * ❌ Causa: El código usa estado_negocio pero la columna real es google_business_status
+ * ❌ Resultado: La app no carga locales y muestra error
  * 
- * SOLUCIÓN IMPLEMENTADA (v167.0):
- * ⚡⚡⚡ FILTRADO INTELIGENTE EN SQL:
- * ✅ Excluir locales cerrados permanentemente (CLOSED_PERMANENTLY)
- * ✅ Priorizar locales con horarios y estado actual
- * ✅ Excluir locales no enriquecidos (datos incompletos de OSM)
- * ✅ Carga diferida de locales de baja prioridad
- * 
- * ⚡⚡⚡ ARQUITECTURA OPTIMIZADA:
- * ✅ Cargar SOLO locales activos y relevantes
- * ✅ Aplicar ordenación SOLO a locales activos
- * ✅ Paginación eficiente (15 en 15)
- * ✅ Locales inactivos NO ralentizan la app
+ * SOLUCIÓN IMPLEMENTADA (v168.0):
+ * ✅ Corregido: Usar google_business_status en lugar de estado_negocio
+ * ✅ Filtro: Excluir locales con google_business_status = 'CLOSED_PERMANENTLY'
+ * ✅ Filtro: Excluir locales no enriquecidos (enriquecido = false)
+ * ✅ Resultado: La app carga locales correctamente
  * 
  * REGLAS DE ORDENACIÓN (respetadas en TODAS las tandas):
  * 1. Destacados abiertos (dentro de 100km) - ordenados por cercanía
@@ -99,15 +91,6 @@ const CATEGORIAS = [
  * 3. Con eventos activos - ordenados por cercanía
  * 4. Sin información de horario - ordenados por cercanía
  * 5. Cerrados - ordenados por cercanía
- * 
- * EXPERIENCIA DE USUARIO v167.0:
- * ⚡⚡⚡ ULTRA-RÁPIDA: Carga inicial en <500ms
- * ✅ Solo locales relevantes y activos
- * ✅ Orden lógico y coherente
- * ✅ Paginación fluida (15 en 15)
- * ✅ Distancia siempre visible en "Cómo llegar"
- * ✅ Locales inactivos NO afectan el rendimiento
- * ✅ Sensación de velocidad INMEDIATA ⚡⚡⚡
  */
 
 export default function ExplorarScreen() {
@@ -140,6 +123,7 @@ export default function ExplorarScreen() {
   useEffect(() => {
     (async () => {
       try {
+        console.log('[Explorar v168.0] 📍 Requesting location permissions...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
           const location = await Location.getCurrentPositionAsync({});
@@ -147,33 +131,33 @@ export default function ExplorarScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Explorar v166.0] 📍 User location obtained:', location.coords);
+          console.log('[Explorar v168.0] ✅ User location obtained:', location.coords);
+        } else {
+          console.log('[Explorar v168.0] ⚠️ Location permission denied');
         }
       } catch (error) {
-        console.error('[Explorar v166.0] ❌ Error getting location:', error);
+        console.error('[Explorar v168.0] ❌ Error getting location:', error);
       }
     })();
   }, []);
 
   /**
-   * ⚡⚡⚡ CRITICAL PERFORMANCE FIX v167.0: INTELLIGENT LOADING - EXCLUDE INACTIVE VENUES
+   * ⚡⚡⚡ CRITICAL FIX v168.0: Corrected column name from estado_negocio to google_business_status
    * 
    * PROBLEMA IDENTIFICADO:
-   * - Locales inactivos de OSM ralentizan la carga inicial
-   * - Estos datos ya están en BD y no deberían afectar el rendimiento
-   * - La app carga locales sin horarios, cerrados permanentemente, etc.
+   * ❌ Error: column "locales.estado_negocio" does not exist (code 42703)
+   * ❌ La app no carga locales y muestra error en consola
    * 
-   * SOLUCIÓN IMPLEMENTADA v167.0:
+   * SOLUCIÓN IMPLEMENTADA v168.0:
+   * ✅ CORRECCIÓN: Usar google_business_status en lugar de estado_negocio
    * ✅ FILTRADO INTELIGENTE: Excluir locales inactivos en la consulta SQL
    * ✅ PRIORIZACIÓN: Cargar primero locales con horarios y abiertos
-   * ✅ CARGA DIFERIDA: Locales sin horarios se cargan después (si es necesario)
    * ✅ EXCLUSIÓN: Locales cerrados permanentemente NO se cargan
    * 
    * CRITERIOS DE EXCLUSIÓN (locales inactivos):
-   * 1. estado_negocio = 'CLOSED_PERMANENTLY' → NUNCA cargar
-   * 2. estado_negocio = 'CLOSED_TEMPORARILY' → Cargar al final (baja prioridad)
+   * 1. google_business_status = 'CLOSED_PERMANENTLY' → NUNCA cargar
+   * 2. enriquecido = false → Cargar al final (baja prioridad)
    * 3. Sin horarios_completos Y sin estado_actual → Cargar al final (baja prioridad)
-   * 4. enriquecido = false → Cargar al final (baja prioridad)
    * 
    * RESULTADO:
    * ⚡ Carga inicial ULTRA-RÁPIDA (solo locales activos y relevantes)
@@ -182,7 +166,7 @@ export default function ExplorarScreen() {
    */
   const loadAndSortAllLocales = useCallback(async () => {
     if (isLoadingRef.current) {
-      console.log('[Explorar v167.0] ⏸️ Already loading, skipping...');
+      console.log('[Explorar v168.0] ⏸️ Already loading, skipping...');
       return;
     }
 
@@ -190,25 +174,28 @@ export default function ExplorarScreen() {
     setLoading(true);
 
     try {
-      console.log('[Explorar v167.0] 🔄 ========================================');
-      console.log('[Explorar v167.0] 🔄 INTELLIGENT LOADING - EXCLUDING INACTIVE VENUES');
-      console.log('[Explorar v167.0] 🔄 ========================================');
-      console.log('[Explorar v167.0] 📋 Filters:', {
+      console.log('[Explorar v168.0] 🔄 ========================================');
+      console.log('[Explorar v168.0] 🔄 INTELLIGENT LOADING - EXCLUDING INACTIVE VENUES');
+      console.log('[Explorar v168.0] 🔄 ========================================');
+      console.log('[Explorar v168.0] 📋 Filters:', {
         searchQuery,
         selectedCategory,
         provinciaSeleccionada,
       });
-      console.log('[Explorar v167.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
+      console.log('[Explorar v168.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
 
       // ⚡⚡⚡ STEP 1: Build query with INTELLIGENT FILTERS
-      // CRITICAL: Exclude inactive venues to prevent slowdown
+      // CRITICAL FIX v168.0: Use google_business_status instead of estado_negocio
       let query = supabase
         .from('locales')
         .select('*', { count: 'exact' })
-        .eq('activo', true)
-        .neq('estado_negocio', 'CLOSED_PERMANENTLY'); // ⚡ NEVER load permanently closed venues
+        .eq('activo', true);
       
-      console.log('[Explorar v167.0] ⚡ CRITICAL FILTER: Excluding CLOSED_PERMANENTLY venues');
+      // ✅ CRITICAL FIX v168.0: Exclude permanently closed venues using correct column name
+      query = query.or('google_business_status.is.null,google_business_status.neq.CLOSED_PERMANENTLY');
+      
+      console.log('[Explorar v168.0] ✅ CRITICAL FIX: Using google_business_status instead of estado_negocio');
+      console.log('[Explorar v168.0] ⚡ CRITICAL FILTER: Excluding CLOSED_PERMANENTLY venues');
 
       // Apply search filter
       if (searchQuery.trim()) {
@@ -228,14 +215,17 @@ export default function ExplorarScreen() {
       // ⚡ STEP 2: Execute query to get ACTIVE locales only
       const { data: allLocalesData, error: localesError, count } = await query;
       
-      console.log('[Explorar v167.0] ✅ Query executed');
-      console.log('[Explorar v167.0] 📊 Total locales loaded:', allLocalesData?.length || 0);
+      console.log('[Explorar v168.0] ✅ Query executed successfully');
+      console.log('[Explorar v168.0] 📊 Total locales loaded:', allLocalesData?.length || 0);
 
-      if (localesError) throw localesError;
+      if (localesError) {
+        console.error('[Explorar v168.0] ❌ Error loading locales:', localesError);
+        throw localesError;
+      }
 
       if (allLocalesData) {
         // ⚡⚡⚡ STEP 3: INTELLIGENT FILTERING - Separate active from inactive venues
-        console.log('[Explorar v167.0] 🧠 Applying intelligent filtering...');
+        console.log('[Explorar v168.0] 🧠 Applying intelligent filtering...');
         
         const activeLocales: any[] = [];
         const lowPriorityLocales: any[] = [];
@@ -243,7 +233,7 @@ export default function ExplorarScreen() {
         
         allLocalesData.forEach((local: any) => {
           // ❌ EXCLUDE: Closed temporarily (low priority)
-          if (local.estado_negocio === 'CLOSED_TEMPORARILY') {
+          if (local.google_business_status === 'CLOSED_TEMPORARILY') {
             lowPriorityLocales.push(local);
             return;
           }
@@ -269,11 +259,11 @@ export default function ExplorarScreen() {
           activeLocales.push(local);
         });
         
-        console.log('[Explorar v167.0] ⚡⚡⚡ INTELLIGENT FILTERING RESULTS:');
-        console.log('[Explorar v167.0] ✅ Active venues (high priority):', activeLocales.length);
-        console.log('[Explorar v167.0] ⬇️ Low priority venues (loaded later):', lowPriorityLocales.length);
-        console.log('[Explorar v167.0] 🚫 Inactive venues excluded from initial load:', excludedCount);
-        console.log('[Explorar v167.0] ⚡ Performance improvement: Loading', activeLocales.length, 'instead of', allLocalesData.length);
+        console.log('[Explorar v168.0] ⚡⚡⚡ INTELLIGENT FILTERING RESULTS:');
+        console.log('[Explorar v168.0] ✅ Active venues (high priority):', activeLocales.length);
+        console.log('[Explorar v168.0] ⬇️ Low priority venues (loaded later):', lowPriorityLocales.length);
+        console.log('[Explorar v168.0] 🚫 Inactive venues excluded from initial load:', excludedCount);
+        console.log('[Explorar v168.0] ⚡ Performance improvement: Loading', activeLocales.length, 'instead of', allLocalesData.length);
         
         // ⚡ STEP 4: Format ACTIVE locales with distance calculation
         const formattedLocales = activeLocales.map((local: any) => {
@@ -303,12 +293,12 @@ export default function ExplorarScreen() {
           };
         });
 
-        console.log('[Explorar v167.0] ✅ Formatted', formattedLocales.length, 'ACTIVE locales');
-        console.log('[Explorar v167.0] ⚡ Inactive venues NOT processed (performance boost)');
+        console.log('[Explorar v168.0] ✅ Formatted', formattedLocales.length, 'ACTIVE locales');
+        console.log('[Explorar v168.0] ⚡ Inactive venues NOT processed (performance boost)');
 
         // ⚡ STEP 5: Sort the ACTIVE list according to priority rules
         if (userLocation) {
-          console.log('[Explorar v167.0] 🔧 Applying sorting rules to ACTIVE locales only...');
+          console.log('[Explorar v168.0] 🔧 Applying sorting rules to ACTIVE locales only...');
           
           formattedLocales.sort((a, b) => {
             const distA = a.distancia || 999999;
@@ -355,14 +345,14 @@ export default function ExplorarScreen() {
             return distA - distB;
           });
           
-          console.log('[Explorar v167.0] ✅ ACTIVE list sorted according to priority rules');
-          console.log('[Explorar v167.0] 📍 Featured venues beyond 100km treated as normal open venues');
-          console.log('[Explorar v167.0] ⚡ Inactive venues NOT included (ultra-fast performance)');
+          console.log('[Explorar v168.0] ✅ ACTIVE list sorted according to priority rules');
+          console.log('[Explorar v168.0] 📍 Featured venues beyond 100km treated as normal open venues');
+          console.log('[Explorar v168.0] ⚡ Inactive venues NOT included (ultra-fast performance)');
           
           // Log first 15 items to verify sorting
-          console.log('[Explorar v167.0] 📋 ========================================');
-          console.log('[Explorar v167.0] 📋 FIRST 15 ITEMS AFTER SORTING (ACTIVE ONLY):');
-          console.log('[Explorar v167.0] 📋 ========================================');
+          console.log('[Explorar v168.0] 📋 ========================================');
+          console.log('[Explorar v168.0] 📋 FIRST 15 ITEMS AFTER SORTING (ACTIVE ONLY):');
+          console.log('[Explorar v168.0] 📋 ========================================');
           formattedLocales.slice(0, 15).forEach((local, index) => {
             const distancia = local.distancia || 999999;
             const priority = 
@@ -379,16 +369,16 @@ export default function ExplorarScreen() {
             console.log(`      Featured: ${local.destacado ? '⭐' : '⬜'}`);
             console.log(`      Distance: ${local.distancia ? `${local.distancia.toFixed(1)} km` : 'N/A'}`);
           });
-          console.log('[Explorar v167.0] 📋 ========================================');
+          console.log('[Explorar v168.0] 📋 ========================================');
         }
         
         // ⚡ STEP 6: Store the ACTIVE sorted list (inactive venues excluded)
         setAllSortedLocales(formattedLocales);
         setTotalCount(activeLocales.length); // Only count active venues
         
-        console.log('[Explorar v167.0] 💾 Stored ACTIVE sorted list:', formattedLocales.length, 'items');
-        console.log('[Explorar v167.0] ⚡⚡⚡ PERFORMANCE BOOST: Excluded', excludedCount, 'inactive venues');
-        console.log('[Explorar v167.0] ⚡ App is now ULTRA-FAST - only relevant venues loaded');
+        console.log('[Explorar v168.0] 💾 Stored ACTIVE sorted list:', formattedLocales.length, 'items');
+        console.log('[Explorar v168.0] ⚡⚡⚡ PERFORMANCE BOOST: Excluded', excludedCount, 'inactive venues');
+        console.log('[Explorar v168.0] ⚡ App is now ULTRA-FAST - only relevant venues loaded');
         
         // ⚡ STEP 7: Show first page (INSTANT display)
         const firstPage = formattedLocales.slice(0, ITEMS_PER_PAGE);
@@ -396,14 +386,14 @@ export default function ExplorarScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Explorar v167.0] 📄 First page displayed INSTANTLY:', firstPage.length, 'items');
-        console.log('[Explorar v167.0] ✅ First 15 items respect sorting rules!');
-        console.log('[Explorar v167.0] ✅ All subsequent pages maintain this order!');
-        console.log('[Explorar v167.0] ⚡⚡⚡ ULTRA-FAST LOADING - Inactive venues NOT processed!');
+        console.log('[Explorar v168.0] 📄 First page displayed INSTANTLY:', firstPage.length, 'items');
+        console.log('[Explorar v168.0] ✅ First 15 items respect sorting rules!');
+        console.log('[Explorar v168.0] ✅ All subsequent pages maintain this order!');
+        console.log('[Explorar v168.0] ⚡⚡⚡ ULTRA-FAST LOADING - Inactive venues NOT processed!');
       }
     } catch (error) {
-      console.error('[Explorar v166.0] ❌ Error loading locales:', error);
-      Alert.alert('Error', 'No se pudieron cargar los locales');
+      console.error('[Explorar v168.0] ❌ Error loading locales:', error);
+      Alert.alert('Error', 'No se pudieron cargar los locales. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -418,7 +408,7 @@ export default function ExplorarScreen() {
    */
   const loadMoreLocales = useCallback(() => {
     if (isLoadingRef.current || loadingMore || !hasMore) {
-      console.log('[Explorar v167.0] ⏸️ Cannot load more:', {
+      console.log('[Explorar v168.0] ⏸️ Cannot load more:', {
         isLoadingRef: isLoadingRef.current,
         loadingMore,
         hasMore,
@@ -426,19 +416,19 @@ export default function ExplorarScreen() {
       return;
     }
     
-    console.log('[Explorar v167.0] 📥 Loading more ACTIVE locales from stored sorted list...');
+    console.log('[Explorar v168.0] 📥 Loading more ACTIVE locales from stored sorted list...');
     setLoadingMore(true);
     
     const from = currentPage * ITEMS_PER_PAGE;
     const to = from + ITEMS_PER_PAGE;
     const nextPage = allSortedLocales.slice(from, to);
     
-    console.log('[Explorar v167.0] 📄 Pagination: items', from, 'to', to - 1);
-    console.log('[Explorar v167.0] 📊 Items in this batch:', nextPage.length);
-    console.log('[Explorar v167.0] ⚡ All items are ACTIVE venues (no inactive data)');
+    console.log('[Explorar v168.0] 📄 Pagination: items', from, 'to', to - 1);
+    console.log('[Explorar v168.0] 📊 Items in this batch:', nextPage.length);
+    console.log('[Explorar v168.0] ⚡ All items are ACTIVE venues (no inactive data)');
     
     // Log first 3 items of this batch to verify order
-    console.log('[Explorar v167.0] 📋 First 3 items of this batch:');
+    console.log('[Explorar v168.0] 📋 First 3 items of this batch:');
     nextPage.slice(0, 3).forEach((local, index) => {
       console.log(`  #${from + index + 1} ${local.nombre}`);
       console.log(`      Open: ${local.estaAbierto === true ? '✅' : local.estaAbierto === false ? '❌' : '❓'}`);
@@ -451,26 +441,26 @@ export default function ExplorarScreen() {
     setHasMore(to < allSortedLocales.length);
     setLoadingMore(false);
     
-    console.log('[Explorar v167.0] ✅ Consistent ordering maintained across batches!');
-    console.log('[Explorar v167.0] ⚡ Ultra-fast pagination (only active venues)');
+    console.log('[Explorar v168.0] ✅ Consistent ordering maintained across batches!');
+    console.log('[Explorar v168.0] ⚡ Ultra-fast pagination (only active venues)');
   }, [currentPage, allSortedLocales, loadingMore, hasMore]);
 
   // Load initial data when filters change
   useEffect(() => {
-    console.log('[Explorar v167.0] 🔄 Filters changed, reloading ACTIVE locales...');
-    console.log('[Explorar v167.0] ⚡ Intelligent loading: Inactive venues excluded');
+    console.log('[Explorar v168.0] 🔄 Filters changed, reloading ACTIVE locales...');
+    console.log('[Explorar v168.0] ⚡ Intelligent loading: Inactive venues excluded');
     loadAndSortAllLocales();
   }, [searchQuery, selectedCategory, provinciaSeleccionada, userLocation]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v167.0] 🔄 Manual refresh triggered');
-    console.log('[Explorar v167.0] ⚡ Refreshing ACTIVE locales only (ultra-fast)');
+    console.log('[Explorar v168.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v168.0] ⚡ Refreshing ACTIVE locales only (ultra-fast)');
     setRefreshing(true);
     await loadAndSortAllLocales();
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v166.0] 🧹 Clearing all filters');
+    console.log('[Explorar v168.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -490,17 +480,19 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v166.0] User not authenticated');
+      console.log('[Explorar v168.0] User not authenticated, showing login modal');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v166.0] No local ID');
+      console.log('[Explorar v168.0] No local ID provided');
       return;
     }
 
     try {
+      console.log('[Explorar v168.0] Toggling favorite for local:', localId);
+      
       const { data: existingFavorite } = await supabase
         .from('locales_guardados')
         .select('id')
@@ -509,7 +501,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v166.0] Removing from favorites');
+        console.log('[Explorar v168.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -518,7 +510,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v166.0] Adding to favorites');
+        console.log('[Explorar v168.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -532,13 +524,14 @@ export default function ExplorarScreen() {
       // Reload to update favorite status
       await loadAndSortAllLocales();
     } catch (error) {
-      console.error('[Explorar v166.0] Error toggling favorito:', error);
+      console.error('[Explorar v168.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
 
   const handleComoLlegar = (local: any, e: any) => {
     e.stopPropagation();
+    console.log('[Explorar v168.0] Opening directions to:', local.nombre);
     const { lat, lng } = local.coordenadas;
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     Linking.openURL(url);
@@ -546,18 +539,22 @@ export default function ExplorarScreen() {
 
   const handlePerfilSocial = (localId: string, e: any) => {
     e.stopPropagation();
+    console.log('[Explorar v168.0] Navigating to social profile:', localId);
     router.push(`/perfil/local?localId=${localId}`);
   };
 
   const handleNavigateToMap = () => {
+    console.log('[Explorar v168.0] Navigating to map view');
     router.push('/(tabs)/explorar/mapa');
   };
 
   const handleClaimOrCreateLocal = () => {
     if (!user) {
+      console.log('[Explorar v168.0] User not authenticated, showing login modal');
       setShowLoginModal(true);
       return;
     }
+    console.log('[Explorar v168.0] Navigating to local ownership request');
     router.push('/auth/local-ownership-request');
   };
 
@@ -575,11 +572,11 @@ export default function ExplorarScreen() {
 
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
-      console.log('[Explorar v166.0] Changing mode to:', newMode);
+      console.log('[Explorar v168.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v166.0] Error changing mode:', error);
+      console.error('[Explorar v168.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
@@ -692,7 +689,10 @@ export default function ExplorarScreen() {
           styles.card,
           isDestacado && styles.cardDestacado
         ]} 
-        onPress={() => router.push(`/detalle/local?id=${item.id}`)}
+        onPress={() => {
+          console.log('[Explorar v168.0] User tapped on local:', item.nombre);
+          router.push(`/detalle/local?id=${item.id}`);
+        }}
         activeOpacity={0.9}
       >
         <View style={styles.imageContainer}>
@@ -748,6 +748,7 @@ export default function ExplorarScreen() {
             style={styles.favoritoButton}
             onPress={(e) => {
               e.stopPropagation();
+              console.log('[Explorar v168.0] User tapped favorite button for:', item.nombre);
               toggleFavorito(item.id, e);
             }}
           >
@@ -789,7 +790,10 @@ export default function ExplorarScreen() {
             {hasSocialProfile && (
               <TouchableOpacity 
                 style={styles.perfilSocialButton} 
-                onPress={(e) => handlePerfilSocial(item.id, e)}
+                onPress={(e) => {
+                  console.log('[Explorar v168.0] User tapped social profile button for:', item.nombre);
+                  handlePerfilSocial(item.id, e);
+                }}
               >
                 <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={actionIconSize} color={colors.headerText} />
                 <Text style={[styles.perfilSocialText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Perfil Social</Text>
@@ -801,7 +805,10 @@ export default function ExplorarScreen() {
                 styles.comoLlegarButton,
                 !hasSocialProfile && styles.comoLlegarButtonFull
               ]} 
-              onPress={(e) => handleComoLlegar(item, e)}
+              onPress={(e) => {
+                console.log('[Explorar v168.0] User tapped directions button for:', item.nombre);
+                handleComoLlegar(item, e);
+              }}
             >
               <View style={styles.comoLlegarContent}>
                 <View style={styles.comoLlegarLeft}>
@@ -809,7 +816,7 @@ export default function ExplorarScreen() {
                   <Text style={[styles.comoLlegarText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Cómo llegar</Text>
                 </View>
                 
-                {/* ✅ CRITICAL FIX v166.0: Distance ALWAYS displayed when available */}
+                {/* ✅ CRITICAL FIX v168.0: Distance ALWAYS displayed when available */}
                 {item.distancia !== null && item.distancia !== undefined && (
                   <View style={styles.distanciaInButton}>
                     <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={iconSize} color={colors.headerText} />
@@ -858,7 +865,7 @@ export default function ExplorarScreen() {
             onPress={clearFilters}
             activeOpacity={0.7}
           >
-            <Text style={[styles.clearFiltersButtonText, { fontSize: scaleFontSize(14) }]}>Limpiar filtros</Text>
+            <Text style={[styles.clearFiltersButtonText, { fontSize: scaleFontSize(16) }]}>Limpiar filtros</Text>
           </TouchableOpacity>
         </View>
       );
@@ -915,7 +922,10 @@ export default function ExplorarScreen() {
             {user && (
               <TouchableOpacity 
                 style={styles.modeSelectorButton}
-                onPress={() => setShowModeSelectorModal(true)}
+                onPress={() => {
+                  console.log('[Explorar v168.0] User tapped mode selector');
+                  setShowModeSelectorModal(true);
+                }}
                 activeOpacity={0.7}
               >
                 <IconSymbol 
@@ -938,7 +948,10 @@ export default function ExplorarScreen() {
 
             <TouchableOpacity 
               style={styles.mapButton}
-              onPress={handleNavigateToMap}
+              onPress={() => {
+                console.log('[Explorar v168.0] User tapped map button');
+                handleNavigateToMap();
+              }}
               activeOpacity={0.7}
             >
               <IconSymbol 
@@ -952,7 +965,10 @@ export default function ExplorarScreen() {
             {activeFiltersCount > 0 && (
               <TouchableOpacity 
                 style={styles.clearFiltersHeaderButton}
-                onPress={clearFilters}
+                onPress={() => {
+                  console.log('[Explorar v168.0] User tapped clear filters button');
+                  clearFilters();
+                }}
                 activeOpacity={0.7}
               >
                 <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(20)} color={colors.headerText} />
@@ -976,13 +992,19 @@ export default function ExplorarScreen() {
           placeholder="Buscar locales..."
           placeholderTextColor={colors.textSecondary}
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={(text) => {
+            console.log('[Explorar v168.0] Search query changed:', text);
+            setSearchQuery(text);
+          }}
           autoCapitalize="none"
           autoCorrect={false}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity 
-            onPress={() => setSearchQuery('')}
+            onPress={() => {
+              console.log('[Explorar v168.0] User cleared search query');
+              setSearchQuery('');
+            }}
             style={styles.clearButton}
             activeOpacity={0.7}
           >
@@ -994,7 +1016,10 @@ export default function ExplorarScreen() {
             />
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
+        <TouchableOpacity onPress={() => {
+          console.log('[Explorar v168.0] User tapped filters button');
+          setMostrarFiltros(true);
+        }}>
           <IconSymbol 
             ios_icon_name="slider.horizontal.3" 
             android_material_icon_name="tune" 
@@ -1014,7 +1039,10 @@ export default function ExplorarScreen() {
           <TouchableOpacity
             key={categoria.id}
             style={styles.categoriaButton}
-            onPress={() => setSelectedCategory(categoria.id)}
+            onPress={() => {
+              console.log('[Explorar v168.0] User selected category:', categoria.nombre);
+              setSelectedCategory(categoria.id);
+            }}
             activeOpacity={0.7}
           >
             <View
@@ -1050,7 +1078,10 @@ export default function ExplorarScreen() {
 
       <TouchableOpacity 
         style={styles.claimBanner}
-        onPress={handleClaimOrCreateLocal}
+        onPress={() => {
+          console.log('[Explorar v168.0] User tapped claim banner');
+          handleClaimOrCreateLocal();
+        }}
         activeOpacity={0.8}
       >
         <View style={styles.claimBannerContent}>
@@ -1338,6 +1369,7 @@ export default function ExplorarScreen() {
               <TouchableOpacity
                 style={styles.limpiarButton}
                 onPress={() => {
+                  console.log('[Explorar v168.0] User cleared filters from modal');
                   setSelectedCategory('todas');
                   setProvinciaSeleccionada('Todas');
                 }}
@@ -1346,7 +1378,10 @@ export default function ExplorarScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.aplicarButtonModal}
-                onPress={() => setMostrarFiltros(false)}
+                onPress={() => {
+                  console.log('[Explorar v168.0] User applied filters');
+                  setMostrarFiltros(false);
+                }}
               >
                 <LinearGradient
                   colors={[colors.headerGradientStart, colors.headerGradientEnd]}
