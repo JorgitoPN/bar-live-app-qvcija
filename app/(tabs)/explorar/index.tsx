@@ -72,21 +72,26 @@ const CATEGORIAS = [
 ];
 
 /**
- * ⚡⚡⚡ EXPLORAR SCREEN v161.0 - ULTRA-FAST PERFORMANCE FOR 4000+ LOCALES
+ * ⚡⚡⚡ EXPLORAR SCREEN v162.0 - ULTRA-FAST PERFORMANCE + SMART SORTING
  * 
- * CRITICAL PERFORMANCE FIXES v161.0:
- * - ⚡ LOCATION-BASED SORTING: Nearest locales appear FIRST (instant perceived speed)
- * - ⚡ INSTANT DISTANCE: Distance calculated and displayed immediately (no delays)
- * - ⚡ DATABASE PAGINATION: Load only 15 items at a time from DB
- * - ⚡ SMART SORTING: Destacados first, then by distance, then by rating
- * - ⚡ REMOVED CLUTTER: No "Mostrando X de Y" text (cleaner UI)
- * - ⚡ LAZY LOADING: Load more only when user scrolls
+ * CRITICAL FIXES v162.0:
+ * - ✅ FIXED: Duplicate keys error (using unique key: `${id}-${index}`)
+ * - ✅ FIXED: Smart sorting system with proper priorities
+ * - ✅ FIXED: Distance display in "Cómo llegar" button
+ * 
+ * SMART SORTING SYSTEM (respecting distance within each group):
+ * 1. Destacados abiertos (dentro de 100km) - sorted by distance
+ * 2. Abiertos sin destacar - sorted by distance
+ * 3. Con eventos activos - sorted by distance
+ * 4. Sin información de horario - sorted by distance
+ * 5. Cerrados - sorted by distance
+ * 6. Destacados fuera de 100km - sorted by distance (at the end)
  * 
  * USER EXPERIENCE:
  * - Feels INSTANT ⚡⚡⚡ (nearest locales load first)
  * - Distance shows immediately in "Cómo llegar" button
- * - No waiting, no delays, no loading states
- * - Smooth scrolling with efficient rendering
+ * - Logical ordering that makes sense to users
+ * - No duplicate key warnings
  */
 
 export default function ExplorarScreen() {
@@ -217,24 +222,92 @@ export default function ExplorarScreen() {
           };
         });
 
-        // ✅ CRITICAL: Sort by distance FIRST when location available
+        // ✅ CRITICAL: SMART SORTING SYSTEM v162.0
+        // Priority order (respecting distance within each group):
+        // 1. Destacados abiertos (dentro de 100km)
+        // 2. Abiertos sin destacar
+        // 3. Con eventos activos
+        // 4. Sin información de horario
+        // 5. Cerrados
+        // 6. Destacados fuera de 100km (al final)
         if (userLocation && reset) {
           formattedLocales.sort((a, b) => {
-            // Destacados always first
-            if (a.destacado && !b.destacado) return -1;
-            if (!a.destacado && b.destacado) return 1;
+            const distA = a.distancia || 999999;
+            const distB = b.distancia || 999999;
             
-            // Then by distance (nearest first)
-            if (a.distancia !== null && b.distancia !== null) {
-              return a.distancia - b.distancia;
+            // Destacados más allá de 100km van al final
+            const aDestacadoLejos = a.destacado && distA > 100;
+            const bDestacadoLejos = b.destacado && distB > 100;
+            
+            if (aDestacadoLejos && !bDestacadoLejos) return 1;
+            if (!aDestacadoLejos && bDestacadoLejos) return -1;
+            
+            // Si ambos son destacados lejanos, ordenar por distancia
+            if (aDestacadoLejos && bDestacadoLejos) {
+              return distA - distB;
             }
-            if (a.distancia !== null) return -1;
-            if (b.distancia !== null) return 1;
             
-            // Finally by rating
-            return (b.rating || 0) - (a.rating || 0);
+            // Prioridad 1: Destacados abiertos (dentro de 100km)
+            const aDestacadoAbierto = a.destacado && a.estaAbierto === true && distA <= 100;
+            const bDestacadoAbierto = b.destacado && b.estaAbierto === true && distB <= 100;
+            
+            if (aDestacadoAbierto && !bDestacadoAbierto) return -1;
+            if (!aDestacadoAbierto && bDestacadoAbierto) return 1;
+            
+            // Si ambos son destacados abiertos, ordenar por distancia
+            if (aDestacadoAbierto && bDestacadoAbierto) {
+              return distA - distB;
+            }
+            
+            // Prioridad 2: Abiertos sin destacar
+            const aAbiertoNormal = a.estaAbierto === true && !a.destacado;
+            const bAbiertoNormal = b.estaAbierto === true && !b.destacado;
+            
+            if (aAbiertoNormal && !bAbiertoNormal) return -1;
+            if (!aAbiertoNormal && bAbiertoNormal) return 1;
+            
+            // Si ambos son abiertos normales, ordenar por distancia
+            if (aAbiertoNormal && bAbiertoNormal) {
+              return distA - distB;
+            }
+            
+            // Prioridad 3: Con eventos activos
+            if (a.tieneEventos && !b.tieneEventos) return -1;
+            if (!a.tieneEventos && b.tieneEventos) return 1;
+            
+            // Si ambos tienen eventos, ordenar por distancia
+            if (a.tieneEventos && b.tieneEventos) {
+              return distA - distB;
+            }
+            
+            // Prioridad 4: Sin información de horario
+            const aSinHorario = !a.tieneHorarios && a.estaAbierto === null;
+            const bSinHorario = !b.tieneHorarios && b.estaAbierto === null;
+            
+            if (aSinHorario && !bSinHorario) return -1;
+            if (!aSinHorario && bSinHorario) return 1;
+            
+            // Si ambos sin horario, ordenar por distancia
+            if (aSinHorario && bSinHorario) {
+              return distA - distB;
+            }
+            
+            // Prioridad 5: Cerrados
+            const aCerrado = a.estaAbierto === false;
+            const bCerrado = b.estaAbierto === false;
+            
+            if (aCerrado && !bCerrado) return 1;
+            if (!aCerrado && bCerrado) return -1;
+            
+            // Si ambos cerrados, ordenar por distancia
+            if (aCerrado && bCerrado) {
+              return distA - distB;
+            }
+            
+            // Fallback: ordenar por distancia
+            return distA - distB;
           });
-          console.log('[Explorar v161.0] ⚡ Sorted by distance - nearest first!');
+          console.log('[Explorar v162.0] ⚡ Smart sorting applied - prioritizing nearby open venues!');
         }
         
         if (reset) {
@@ -920,7 +993,7 @@ export default function ExplorarScreen() {
       <FlatList
         data={displayedLocales}
         renderItem={renderLocalCard}
-        keyExtractor={(item: any) => item.id}
+        keyExtractor={(item: any, index: number) => `${item.id}-${index}`}
         contentContainerStyle={[
           styles.listContent,
           { 

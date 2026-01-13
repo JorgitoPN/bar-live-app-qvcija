@@ -16,6 +16,7 @@ import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
 import { addPubCategoryIfNeeded } from '@/utils/categorizeLocal';
 import { scaleFontSize } from '@/utils/androidScaling';
+import { calcularDistancia } from '@/utils/locationUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -34,9 +35,10 @@ interface CheckedInUser {
 }
 
 /**
- * ✅ TARJETA LOCAL v161.0 - INSTANT DISTANCE DISPLAY
+ * ✅ TARJETA LOCAL v162.0 - INSTANT DISTANCE DISPLAY
  * 
- * CRITICAL PERFORMANCE FIXES v161.0:
+ * CRITICAL FIXES v162.0:
+ * - ✅ FIXED: Distance calculation with proper import
  * - ⚡ Distance calculated INSTANTLY on render (no delays)
  * - ⚡ Distance shown immediately in "Cómo llegar" button
  * - ⚡ No loading states for distance (instant display)
