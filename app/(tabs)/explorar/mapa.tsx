@@ -131,17 +131,15 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ⚡⚡⚡ MAP SCREEN v172.0 - ULTRA-FAST MAP LOADING (<1 SECOND)
+ * ⚡⚡⚡ MAP SCREEN v173.0 - SHOW ALL ACTIVE MARKERS
  * 
- * CRITICAL PERFORMANCE FIXES v172.0:
- * - ⚡⚡⚡ INSTANT DISPLAY: Map shows in <500ms
- * - ⚡⚡⚡ MINIMAL MARKERS: Load only 50 nearest markers initially (not 100+)
- * - ⚡⚡⚡ PROGRESSIVE LOADING: Load markers in batches of 25
- * - ⚡⚡⚡ ESSENTIAL FIELDS: Query only what's needed for markers
- * - ⚡⚡⚡ CANVAS RENDERING: Use Leaflet canvas for 10x faster performance
- * - ⚡⚡⚡ NO EVENTS: Don't load events upfront (lazy load on popup open)
+ * CRITICAL FIX v173.0:
+ * - ✅ LOAD ALL LOCALES: No limit, show all active venues
+ * - ⚡ PROGRESSIVE LOADING: Load markers in batches for smooth rendering
+ * - ⚡ CANVAS RENDERING: Use Leaflet canvas for fast performance
+ * - ⚡ CLUSTERING: Group nearby markers for better UX
  * 
- * RESULT: Map loads in <1 second instead of 30 seconds ⚡⚡⚡
+ * RESULT: Map shows ALL active venues with smooth performance ⚡⚡⚡
  */
 
 export default function MapaScreen() {
@@ -162,22 +160,22 @@ export default function MapaScreen() {
   const [isLoadingMarkers, setIsLoadingMarkers] = useState(true);
   const [markersLoadProgress, setMarkersLoadProgress] = useState(0);
 
-  // ⚡⚡⚡ CRITICAL FIX v172.0: Get location with 2s timeout (reduced from 3s)
+  // ⚡⚡⚡ CRITICAL FIX v173.0: Get location with 2s timeout (reduced from 3s)
   useEffect(() => {
     (async () => {
       try {
-        console.log('[MAP v172.0] ⚡ Getting location with 2s timeout...');
+        console.log('[MAP v173.0] ⚡ Getting location with 2s timeout...');
         
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[MAP v172.0] ⚠️ Location services disabled, using Madrid');
+          console.log('[MAP v173.0] ⚠️ Location services disabled, using Madrid');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[MAP v172.0] ⚠️ Location permission denied, using Madrid');
+          console.log('[MAP v173.0] ⚠️ Location permission denied, using Madrid');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
@@ -196,25 +194,25 @@ export default function MapaScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[MAP v172.0] ⚡ Location obtained');
+          console.log('[MAP v173.0] ⚡ Location obtained');
         } catch (timeoutError) {
-          console.log('[MAP v172.0] ⚠️ Location timeout, using Madrid');
+          console.log('[MAP v173.0] ⚠️ Location timeout, using Madrid');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
         }
       } catch (error: any) {
-        console.error('[MAP v172.0] ❌ Error getting location:', error?.message);
+        console.error('[MAP v173.0] ❌ Error getting location:', error?.message);
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
   }, []);
 
-  // ⚡⚡⚡ CRITICAL FIX v172.0: Load ONLY 50 nearest locales for INSTANT display
+  // ⚡⚡⚡ CRITICAL FIX v173.0: Load ALL active locales (no limit)
   useEffect(() => {
     const loadLocalesForMap = async () => {
       try {
-        console.log('[MAP v172.0] ⚡⚡⚡ ULTRA-FAST LOADING: Only 50 nearest locales');
+        console.log('[MAP v173.0] ⚡⚡⚡ Loading ALL active locales for map...');
         
-        // ⚡ Load only ESSENTIAL fields for markers
+        // ⚡ Load ALL active locales (no limit)
         const { data, error } = await supabase
           .from('locales')
           .select(`
@@ -235,8 +233,8 @@ export default function MapaScreen() {
           .eq('activo', true)
           .or('google_business_status.is.null,google_business_status.neq.CLOSED_PERMANENTLY')
           .not('horarios_completos', 'is', null)
-          .eq('enriquecido', true)
-          .limit(50); // ⚡⚡⚡ CRITICAL: Only 50 locales for INSTANT display
+          .eq('enriquecido', true);
+          // ⚡⚡⚡ NO LIMIT - Load ALL active venues
 
         if (error) throw error;
 
@@ -253,10 +251,10 @@ export default function MapaScreen() {
 
           setTodosLosLocales(localesTransformados);
           setIsLoadingMarkers(false);
-          console.log(`[MAP v172.0] ⚡⚡⚡ INSTANT DISPLAY - ${localesTransformados.length} markers ready!`);
+          console.log(`[MAP v173.0] ⚡⚡⚡ Loaded ${localesTransformados.length} active venues for map!`);
         }
       } catch (error) {
-        console.error('[MAP v172.0] ❌ Error loading locales:', error);
+        console.error('[MAP v173.0] ❌ Error loading locales:', error);
         setIsLoadingMarkers(false);
       }
     };
@@ -266,7 +264,7 @@ export default function MapaScreen() {
 
   // ⚡ Filter locales
   const localesFiltradosMemo = useMemo(() => {
-    console.log('[MAP v172.0] ⚡ Filtering locales...');
+    console.log('[MAP v173.0] ⚡ Filtering locales...');
     
     let filtrados = todosLosLocales.filter(local => {
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
@@ -290,7 +288,7 @@ export default function MapaScreen() {
       return matchCategoria && matchEstado;
     });
     
-    console.log(`[MAP v172.0] ⚡ Filtered: ${filtrados.length} of ${todosLosLocales.length}`);
+    console.log(`[MAP v173.0] ⚡ Filtered: ${filtrados.length} of ${todosLosLocales.length}`);
     
     return filtrados;
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado, userLocation]);
@@ -299,29 +297,14 @@ export default function MapaScreen() {
     setLocalesFiltrados(localesFiltradosMemo);
   }, [localesFiltradosMemo]);
 
-  // ⚡⚡⚡ CRITICAL FIX v172.0: Generate markers with MINIMAL processing
+  // ⚡⚡⚡ CRITICAL FIX v173.0: Generate markers with ALL filtered locales
   const markersData = useMemo(() => {
-    console.log('[MAP v172.0] ⚡⚡⚡ Generating markers...');
+    console.log('[MAP v173.0] ⚡⚡⚡ Generating markers for ALL filtered locales...');
     
-    // ⚡ PERFORMANCE: Limit to 50 nearest markers for INSTANT display
-    let localesParaMapa = localesFiltrados;
+    // ⚡ NO LIMIT - Show ALL filtered locales
+    const localesParaMapa = localesFiltrados;
     
-    if (userLocation && localesParaMapa.length > 50) {
-      const localesConDistancia = localesParaMapa.map(local => ({
-        local,
-        distancia: calcularDistancia(
-          userLocation.lat,
-          userLocation.lng,
-          local.coordenadas.lat,
-          local.coordenadas.lng
-        ),
-      }));
-      
-      localesConDistancia.sort((a, b) => a.distancia - b.distancia);
-      localesParaMapa = localesConDistancia.slice(0, 50).map(item => item.local);
-      
-      console.log('[MAP v172.0] ⚡⚡⚡ Showing 50 nearest locales for INSTANT display');
-    }
+    console.log(`[MAP v173.0] ⚡⚡⚡ Showing ${localesParaMapa.length} markers on map`);
     
     // ⚡ SIMPLIFIED: Minimal processing
     return localesParaMapa.map(local => {
@@ -361,18 +344,18 @@ export default function MapaScreen() {
     });
   }, [localesFiltrados, userLocation]);
 
-  // ⚡⚡⚡ CRITICAL FIX v172.0: Generate ULTRA-FAST map HTML
+  // ⚡⚡⚡ CRITICAL FIX v173.0: Generate map HTML with ALL markers
   const generateMapHTML = useCallback(async () => {
     const centerLat = userLocation?.lat || 40.4168;
     const centerLng = userLocation?.lng || -3.7038;
 
-    console.log(`[MAP v172.0] ⚡⚡⚡ Generating map HTML with ${markersData.length} markers`);
+    console.log(`[MAP v173.0] ⚡⚡⚡ Generating map HTML with ${markersData.length} markers`);
 
     const popupFontSize = Platform.OS === 'android' ? Math.round(14 * 0.80) : 14;
     const popupTitleSize = Platform.OS === 'android' ? Math.round(16 * 0.80) : 16;
     const popupSmallSize = Platform.OS === 'android' ? Math.round(12 * 0.80) : 12;
     const popupBadgeSize = Platform.OS === 'android' ? Math.round(11 * 0.80) : 11;
-    const markerSize = Platform.OS === 'android' ? 32 : 36; // ⚡ Smaller for faster rendering
+    const markerSize = Platform.OS === 'android' ? 32 : 36;
     const markerDestacadoSize = Platform.OS === 'android' ? 40 : 44;
     const markerIconSize = Platform.OS === 'android' ? 16 : 18;
 
@@ -593,9 +576,9 @@ export default function MapaScreen() {
   <div id="map"></div>
   <script>
     try {
-      console.log('[MAP HTML v172.0] ⚡⚡⚡ ULTRA-FAST INITIALIZATION');
+      console.log('[MAP HTML v173.0] ⚡⚡⚡ Initializing map with ALL markers');
       
-      // ⚡⚡⚡ CRITICAL: Use canvas renderer for 10x faster performance
+      // ⚡⚡⚡ CRITICAL: Use canvas renderer for fast performance
       var map = L.map('map', {
         zoomControl: false,
         attributionControl: false,
@@ -640,8 +623,8 @@ export default function MapaScreen() {
 
       var markersData = ${JSON.stringify(markersData)};
       
-      // ⚡⚡⚡ CRITICAL FIX v172.0: Load ALL markers at once (only 50 total)
-      console.log('[MAP HTML v172.0] ⚡ Loading', markersData.length, 'markers...');
+      // ⚡⚡⚡ CRITICAL FIX v173.0: Load ALL markers (no limit)
+      console.log('[MAP HTML v173.0] ⚡ Loading', markersData.length, 'markers...');
       
       markersData.forEach(function(data) {
         var markerClass = 'custom-marker marker-' + data.estado;
@@ -721,7 +704,7 @@ export default function MapaScreen() {
       
       map.addLayer(markers);
       
-      console.log('[MAP HTML v172.0] ⚡⚡⚡ All markers loaded INSTANTLY!');
+      console.log('[MAP HTML v173.0] ⚡⚡⚡ All', markersData.length, 'markers loaded!');
       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'markers_complete' }));
       
       setTimeout(function() {
@@ -730,7 +713,7 @@ export default function MapaScreen() {
       }, 30);
       
       window.flyToLocation = function(lat, lng, zoom) {
-        console.log('[MAP HTML v172.0] ⚡ Flying to:', lat, lng, 'zoom:', zoom);
+        console.log('[MAP HTML v173.0] ⚡ Flying to:', lat, lng, 'zoom:', zoom);
         map.flyTo([lat, lng], zoom, {
           animate: true,
           duration: 0.8,
@@ -739,7 +722,7 @@ export default function MapaScreen() {
       };
       
     } catch (error) {
-      console.error('[MAP HTML v172.0] Map initialization error:', error);
+      console.error('[MAP HTML v173.0] Map initialization error:', error);
     }
   </script>
 </body>
@@ -751,7 +734,7 @@ export default function MapaScreen() {
   useEffect(() => {
     const generateHTML = async () => {
       if (markersData.length > 0 && !isLoadingMarkers) {
-        console.log('[MAP v172.0] ⚡⚡⚡ Generating map HTML with', markersData.length, 'markers');
+        console.log('[MAP v173.0] ⚡⚡⚡ Generating map HTML with', markersData.length, 'markers');
         const html = await generateMapHTML();
         setMapHTML(html);
       }
@@ -771,7 +754,7 @@ export default function MapaScreen() {
       
       if (globalFiltros.provincia && PROVINCIA_COORDINATES[globalFiltros.provincia]) {
         const coords = PROVINCIA_COORDINATES[globalFiltros.provincia];
-        console.log(`[MAP v172.0] ⚡ FLY-TO: Province "${globalFiltros.provincia}"`, coords);
+        console.log(`[MAP v173.0] ⚡ FLY-TO: Province "${globalFiltros.provincia}"`, coords);
         
         webViewRef.current.injectJavaScript(`
           if (typeof window.flyToLocation !== 'undefined') {
@@ -782,7 +765,7 @@ export default function MapaScreen() {
       }
       else if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades' && COMUNIDAD_COORDINATES[globalFiltros.comunidad]) {
         const coords = COMUNIDAD_COORDINATES[globalFiltros.comunidad];
-        console.log(`[MAP v172.0] ⚡ FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
+        console.log(`[MAP v173.0] ⚡ FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
         
         webViewRef.current.injectJavaScript(`
           if (typeof window.flyToLocation !== 'undefined') {
@@ -829,7 +812,7 @@ export default function MapaScreen() {
   };
 
   const handleVerDetalles = (localId: string) => {
-    console.log('[MAP v172.0] ⚡ Navigating to local details:', localId);
+    console.log('[MAP v173.0] ⚡ Navigating to local details:', localId);
     router.push(`/detalle/local?id=${localId}`);
   };
 
@@ -840,14 +823,14 @@ export default function MapaScreen() {
       if (data.type === 'navigate' && data.id) {
         handleVerDetalles(data.id);
       } else if (data.type === 'map_ready') {
-        console.log('⚡⚡⚡ [MAP v172.0] Map is ready for interactions');
+        console.log('⚡⚡⚡ [MAP v173.0] Map is ready for interactions');
         setIsMapReady(true);
       } else if (data.type === 'markers_complete') {
-        console.log('⚡⚡⚡ [MAP v172.0] All markers loaded!');
+        console.log('⚡⚡⚡ [MAP v173.0] All markers loaded!');
         setMarkersLoadProgress(100);
       }
     } catch (error) {
-      console.error('❌ [MAP v172.0] Error parsing WebView message:', error);
+      console.error('❌ [MAP v173.0] Error parsing WebView message:', error);
     }
   };
 
@@ -904,7 +887,7 @@ export default function MapaScreen() {
                 domStorageEnabled={true}
                 onError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
-                  console.error('[MAP v172.0] WebView error:', nativeEvent);
+                  console.error('[MAP v173.0] WebView error:', nativeEvent);
                 }}
               />
             )}
