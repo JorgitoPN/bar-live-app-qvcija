@@ -403,15 +403,16 @@ export default function ExplorarScreen() {
   }, [searchQuery, selectedCategory, provinciaSeleccionada, userLocation]);
 
   /**
-   * ⚡⚡⚡ PAGINATION v169.0: PREFETCH NEXT BATCH EARLY
-   * - Load next batch when user reaches 80% of current list (not 100%)
+   * ⚡⚡⚡ PAGINATION v170.0: EARLY PREFETCH FOR SEAMLESS SCROLLING
+   * - Load next batch when user reaches 70% of current list (EARLIER than before)
    * - NO reordering happens here - just cutting the list
    * - ONLY active venues are paginated (ultra-fast)
-   * - User never waits for loading - data is already there!
+   * - User NEVER waits for loading - data is already there!
+   * - CRITICAL FIX: Prevent multiple simultaneous loads with ref lock
    */
   const loadMoreLocales = useCallback(() => {
     if (isLoadingRef.current || loadingMore || !hasMore) {
-      console.log('[Explorar v169.0] ⏸️ Cannot load more:', {
+      console.log('[Explorar v170.0] ⏸️ Cannot load more:', {
         isLoadingRef: isLoadingRef.current,
         loadingMore,
         hasMore,
@@ -419,19 +420,20 @@ export default function ExplorarScreen() {
       return;
     }
     
-    console.log('[Explorar v169.0] 📥 Loading more ACTIVE locales from stored sorted list...');
+    console.log('[Explorar v170.0] 📥 ⚡ EARLY PREFETCH - Loading more ACTIVE locales...');
+    isLoadingRef.current = true; // ✅ Lock to prevent duplicate loads
     setLoadingMore(true);
     
     const from = currentPage * ITEMS_PER_PAGE;
     const to = from + ITEMS_PER_PAGE;
     const nextPage = allSortedLocales.slice(from, to);
     
-    console.log('[Explorar v169.0] 📄 Pagination: items', from, 'to', to - 1);
-    console.log('[Explorar v169.0] 📊 Items in this batch:', nextPage.length);
-    console.log('[Explorar v169.0] ⚡ All items are ACTIVE venues (no inactive data)');
+    console.log('[Explorar v170.0] 📄 Pagination: items', from, 'to', to - 1);
+    console.log('[Explorar v170.0] 📊 Items in this batch:', nextPage.length);
+    console.log('[Explorar v170.0] ⚡ All items are ACTIVE venues (no inactive data)');
     
     // Log first 3 items of this batch to verify order
-    console.log('[Explorar v169.0] 📋 First 3 items of this batch:');
+    console.log('[Explorar v170.0] 📋 First 3 items of this batch:');
     nextPage.slice(0, 3).forEach((local, index) => {
       console.log(`  #${from + index + 1} ${local.nombre}`);
       console.log(`      Open: ${local.estaAbierto === true ? '✅' : local.estaAbierto === false ? '❌' : '❓'}`);
@@ -442,10 +444,15 @@ export default function ExplorarScreen() {
     setDisplayedLocales(prev => [...prev, ...nextPage]);
     setCurrentPage(currentPage + 1);
     setHasMore(to < allSortedLocales.length);
-    setLoadingMore(false);
     
-    console.log('[Explorar v169.0] ✅ Consistent ordering maintained across batches!');
-    console.log('[Explorar v169.0] ⚡ Ultra-fast pagination (only active venues)');
+    // ✅ Release lock after state updates
+    setTimeout(() => {
+      setLoadingMore(false);
+      isLoadingRef.current = false;
+    }, 100);
+    
+    console.log('[Explorar v170.0] ✅ Consistent ordering maintained across batches!');
+    console.log('[Explorar v170.0] ⚡⚡⚡ EARLY PREFETCH - User never waits!');
   }, [currentPage, allSortedLocales, loadingMore, hasMore]);
 
   // Load initial data when filters change
@@ -1153,7 +1160,7 @@ export default function ExplorarScreen() {
           />
         }
         onEndReached={loadMoreLocales}
-        onEndReachedThreshold={0.2}
+        onEndReachedThreshold={0.3}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
         initialNumToRender={8}
