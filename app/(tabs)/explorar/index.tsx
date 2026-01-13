@@ -72,22 +72,26 @@ const CATEGORIAS = [
 ];
 
 /**
- * ⚡⚡⚡ EXPLORAR SCREEN v170.0 - CRITICAL SORTING FIX
+ * ⚡⚡⚡ EXPLORAR SCREEN v171.0 - CRITICAL SORTING FIX (CORRECTED)
  * 
- * 🔥 CORRECCIONES CRÍTICAS v170.0:
- * ✅ ORDENACIÓN CORREGIDA: Distancia es la prioridad principal (no estado de apertura)
+ * 🔥 CORRECCIONES CRÍTICAS v171.0:
+ * ✅ ORDENACIÓN CORREGIDA: Abiertos SIEMPRE antes que cerrados
+ * ✅ DENTRO DE CADA GRUPO: Ordenados por distancia
+ * ✅ DESTACADOS+ABIERTOS+CERCA: Máxima prioridad
  * ✅ PREFETCH MEJORADO: onEndReachedThreshold=0.5 (carga al 50% del scroll)
  * ✅ DISTANCIA GARANTIZADA: Siempre se muestra la distancia en el botón
  * ✅ CARGA ANTICIPADA: Los siguientes locales se cargan ANTES de llegar al final
  * ✅ RENDIMIENTO: Carga inicial ultra-rápida con paginación fluida
  * 
- * NUEVA LÓGICA DE ORDENACIÓN (v170.0):
+ * NUEVA LÓGICA DE ORDENACIÓN (v171.0 - CORREGIDA):
  * 1. Destacados abiertos cercanos (<100km) → ordenados por DISTANCIA
- * 2. Todos los demás → ordenados por DISTANCIA (sin importar si están abiertos)
+ * 2. Abiertos (no destacados o lejanos) → ordenados por DISTANCIA
+ * 3. Cerrados → ordenados por DISTANCIA
  * 
  * RESULTADO:
- * - Los locales más cercanos aparecen primero
- * - Los destacados abiertos tienen prioridad solo si están cerca
+ * - Los locales abiertos SIEMPRE aparecen antes que los cerrados
+ * - Los locales más cercanos aparecen primero dentro de cada grupo
+ * - Los destacados abiertos cercanos tienen prioridad máxima
  * - La experiencia es fluida y predecible
  */
 
@@ -118,11 +122,11 @@ export default function ExplorarScreen() {
   const headerTranslateY = useRef(new Animated.Value(0)).current;
   const isLoadingRef = useRef(false);
 
-  // ⚡ CRITICAL FIX v170.0: Get user location IMMEDIATELY on mount
+  // ⚡ CRITICAL FIX v171.0: Get user location IMMEDIATELY on mount
   useEffect(() => {
     (async () => {
       try {
-        console.log('[Explorar v170.0] 📍 Requesting location permissions...');
+        console.log('[Explorar v171.0] 📍 Requesting location permissions...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
           const location = await Location.getCurrentPositionAsync({
@@ -132,45 +136,48 @@ export default function ExplorarScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Explorar v170.0] ✅ User location obtained:', {
+          console.log('[Explorar v171.0] ✅ User location obtained:', {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
         } else {
-          console.log('[Explorar v170.0] ⚠️ Location permission denied');
+          console.log('[Explorar v171.0] ⚠️ Location permission denied');
         }
       } catch (error) {
-        console.error('[Explorar v170.0] ❌ Error getting location:', error);
+        console.error('[Explorar v171.0] ❌ Error getting location:', error);
       }
     })();
   }, []);
 
   /**
-   * ⚡⚡⚡ CRITICAL FIX v170.0: CORRECTED SORTING LOGIC
+   * ⚡⚡⚡ CRITICAL FIX v171.0: CORRECTED SORTING LOGIC (FINAL VERSION)
    * 
-   * PROBLEMA IDENTIFICADO:
+   * PROBLEMA IDENTIFICADO v170.0:
    * ❌ "Pub Momo" aparece primero porque está abierto, aunque no sea el más cercano
    * ❌ El sistema priorizaba "abierto" sobre "distancia" para locales NO destacados
-   * ❌ Esto causaba que locales lejanos pero abiertos aparecieran antes que cercanos cerrados
+   * ❌ Pero luego ordenaba TODOS por distancia sin considerar estado de apertura
+   * ❌ Esto causaba que locales cerrados cercanos aparecieran antes que abiertos lejanos
    * 
-   * SOLUCIÓN IMPLEMENTADA v170.0:
-   * ✅ DISTANCIA ES LA PRIORIDAD PRINCIPAL (no estado de apertura)
-   * ✅ Solo los destacados abiertos cercanos (<100km) tienen prioridad especial
-   * ✅ Todos los demás se ordenan por distancia, sin importar si están abiertos
-   * ✅ Resultado: Los locales más cercanos siempre aparecen primero
+   * SOLUCIÓN IMPLEMENTADA v171.0:
+   * ✅ PRIORIDAD 1: Destacados + Abiertos + Cerca (<100km) → ordenados por DISTANCIA
+   * ✅ PRIORIDAD 2: Abiertos (sin importar si destacados o lejanos) → ordenados por DISTANCIA
+   * ✅ PRIORIDAD 3: Cerrados → ordenados por DISTANCIA
+   * ✅ Resultado: Los locales abiertos SIEMPRE aparecen antes que los cerrados
    * 
    * NUEVA LÓGICA DE ORDENACIÓN:
    * 1. Destacados abiertos cercanos (<100km) → ordenados por DISTANCIA
-   * 2. Todos los demás → ordenados por DISTANCIA
+   * 2. Abiertos (no destacados o lejanos) → ordenados por DISTANCIA
+   * 3. Cerrados → ordenados por DISTANCIA
    * 
    * EJEMPLO:
-   * - Local A: 0.5 km, cerrado → Aparece ANTES
-   * - Local B: 2 km, abierto → Aparece DESPUÉS
-   * - Local C: 0.3 km, destacado y abierto → Aparece PRIMERO (prioridad especial)
+   * - Local A: 0.5 km, cerrado → Aparece en PRIORIDAD 3
+   * - Local B: 2 km, abierto → Aparece en PRIORIDAD 2 (ANTES que A)
+   * - Local C: 0.3 km, destacado y abierto → Aparece en PRIORIDAD 1 (PRIMERO)
+   * - Local D: 0.4 km, abierto → Aparece en PRIORIDAD 2 (ANTES que A, DESPUÉS que C)
    */
   const loadAndSortAllLocales = useCallback(async () => {
     if (isLoadingRef.current) {
-      console.log('[Explorar v170.0] ⏸️ Already loading, skipping...');
+      console.log('[Explorar v171.0] ⏸️ Already loading, skipping...');
       return;
     }
 
@@ -178,15 +185,15 @@ export default function ExplorarScreen() {
     setLoading(true);
 
     try {
-      console.log('[Explorar v170.0] 🔄 ========================================');
-      console.log('[Explorar v170.0] 🔄 LOADING WITH CORRECTED SORTING LOGIC');
-      console.log('[Explorar v170.0] 🔄 ========================================');
-      console.log('[Explorar v170.0] 📋 Filters:', {
+      console.log('[Explorar v171.0] 🔄 ========================================');
+      console.log('[Explorar v171.0] 🔄 LOADING WITH CORRECTED SORTING LOGIC v171.0');
+      console.log('[Explorar v171.0] 🔄 ========================================');
+      console.log('[Explorar v171.0] 📋 Filters:', {
         searchQuery,
         selectedCategory,
         provinciaSeleccionada,
       });
-      console.log('[Explorar v170.0] 📍 User location:', userLocation ? `${userLocation.lat}, ${userLocation.lng}` : 'Not available');
+      console.log('[Explorar v171.0] 📍 User location:', userLocation ? `${userLocation.lat}, ${userLocation.lng}` : 'Not available');
 
       // ⚡ STEP 1: Build query with INTELLIGENT FILTERS
       let query = supabase
@@ -197,7 +204,7 @@ export default function ExplorarScreen() {
       // ✅ Exclude permanently closed venues
       query = query.or('google_business_status.is.null,google_business_status.neq.CLOSED_PERMANENTLY');
       
-      console.log('[Explorar v170.0] ⚡ FILTER: Excluding CLOSED_PERMANENTLY venues');
+      console.log('[Explorar v171.0] ⚡ FILTER: Excluding CLOSED_PERMANENTLY venues');
 
       // Apply search filter
       if (searchQuery.trim()) {
@@ -217,11 +224,11 @@ export default function ExplorarScreen() {
       // ⚡ STEP 2: Execute query to get ACTIVE locales only
       const { data: allLocalesData, error: localesError, count } = await query;
       
-      console.log('[Explorar v170.0] ✅ Query executed successfully');
-      console.log('[Explorar v170.0] 📊 Total locales loaded:', allLocalesData?.length || 0);
+      console.log('[Explorar v171.0] ✅ Query executed successfully');
+      console.log('[Explorar v171.0] 📊 Total locales loaded:', allLocalesData?.length || 0);
 
       if (localesError) {
-        console.error('[Explorar v170.0] ❌ Error loading locales:', localesError);
+        console.error('[Explorar v171.0] ❌ Error loading locales:', localesError);
         throw localesError;
       }
 
@@ -254,76 +261,99 @@ export default function ExplorarScreen() {
           };
         });
 
-        console.log('[Explorar v170.0] ✅ Formatted', formattedLocales.length, 'locales with distances');
+        console.log('[Explorar v171.0] ✅ Formatted', formattedLocales.length, 'locales with distances');
 
-        // ⚡⚡⚡ STEP 4: CORRECTED SORTING LOGIC v170.0
+        // ⚡⚡⚡ STEP 4: CORRECTED SORTING LOGIC v171.0
         if (userLocation) {
-          console.log('[Explorar v170.0] 🔧 ========================================');
-          console.log('[Explorar v170.0] 🔧 APPLYING CORRECTED SORTING LOGIC v170.0');
-          console.log('[Explorar v170.0] 🔧 ========================================');
-          console.log('[Explorar v170.0] 🔧 RULE: Distance is PRIMARY priority');
-          console.log('[Explorar v170.0] 🔧 RULE: Only featured+open+near get special priority');
-          console.log('[Explorar v170.0] 🔧 ========================================');
+          console.log('[Explorar v171.0] 🔧 ========================================');
+          console.log('[Explorar v171.0] 🔧 APPLYING CORRECTED SORTING LOGIC v171.0');
+          console.log('[Explorar v171.0] 🔧 ========================================');
+          console.log('[Explorar v171.0] 🔧 RULE 1: Destacados+Abiertos+Cerca (<100km) → FIRST');
+          console.log('[Explorar v171.0] 🔧 RULE 2: Abiertos (otros) → SECOND');
+          console.log('[Explorar v171.0] 🔧 RULE 3: Cerrados → LAST');
+          console.log('[Explorar v171.0] 🔧 WITHIN EACH GROUP: Sort by DISTANCE');
+          console.log('[Explorar v171.0] 🔧 ========================================');
           
           formattedLocales.sort((a, b) => {
             const distA = a.distancia || 999999;
             const distB = b.distancia || 999999;
             
             // ✅ PRIORIDAD 1: Destacados abiertos cercanos (<100km)
-            // Estos son los ÚNICOS que tienen prioridad especial
             const aDestacadoAbiertoNear = a.destacado && a.estaAbierto === true && distA <= 100;
             const bDestacadoAbiertoNear = b.destacado && b.estaAbierto === true && distB <= 100;
             
             if (aDestacadoAbiertoNear && !bDestacadoAbiertoNear) {
-              console.log(`[Explorar v170.0] 🔧 ${a.nombre} (destacado+abierto+cerca) > ${b.nombre}`);
+              console.log(`[Explorar v171.0] 🔧 PRIORITY 1: ${a.nombre} (destacado+abierto+cerca) > ${b.nombre}`);
               return -1;
             }
             if (!aDestacadoAbiertoNear && bDestacadoAbiertoNear) {
-              console.log(`[Explorar v170.0] 🔧 ${b.nombre} (destacado+abierto+cerca) > ${a.nombre}`);
+              console.log(`[Explorar v171.0] 🔧 PRIORITY 1: ${b.nombre} (destacado+abierto+cerca) > ${a.nombre}`);
               return 1;
             }
             if (aDestacadoAbiertoNear && bDestacadoAbiertoNear) {
-              console.log(`[Explorar v170.0] 🔧 Ambos destacados+abiertos+cerca, ordenar por distancia`);
+              console.log(`[Explorar v171.0] 🔧 PRIORITY 1: Both destacados+abiertos+cerca, sort by distance`);
               return distA - distB;
             }
             
-            // ✅ PRIORIDAD 2: TODOS LOS DEMÁS → ORDENAR POR DISTANCIA
-            // ⚡ CRITICAL FIX: No importa si están abiertos o cerrados
-            // ⚡ CRITICAL FIX: No importa si tienen eventos o no
-            // ⚡ CRITICAL FIX: Solo importa la DISTANCIA
-            console.log(`[Explorar v170.0] 🔧 ${a.nombre} (${distA.toFixed(1)}km) vs ${b.nombre} (${distB.toFixed(1)}km) → ordenar por distancia`);
+            // ✅ PRIORIDAD 2: Abiertos (sin importar si destacados o lejanos)
+            // ⚡ CRITICAL FIX v171.0: Abiertos SIEMPRE antes que cerrados
+            const aAbierto = a.estaAbierto === true;
+            const bAbierto = b.estaAbierto === true;
+            
+            if (aAbierto && !bAbierto) {
+              console.log(`[Explorar v171.0] 🔧 PRIORITY 2: ${a.nombre} (abierto, ${distA.toFixed(1)}km) > ${b.nombre} (cerrado, ${distB.toFixed(1)}km)`);
+              return -1;
+            }
+            if (!aAbierto && bAbierto) {
+              console.log(`[Explorar v171.0] 🔧 PRIORITY 2: ${b.nombre} (abierto, ${distB.toFixed(1)}km) > ${a.nombre} (cerrado, ${distA.toFixed(1)}km)`);
+              return 1;
+            }
+            
+            // ✅ PRIORIDAD 3: Dentro del mismo grupo (ambos abiertos o ambos cerrados)
+            // Ordenar por DISTANCIA
+            if (aAbierto && bAbierto) {
+              console.log(`[Explorar v171.0] 🔧 PRIORITY 2: Both abiertos, sort by distance: ${a.nombre} (${distA.toFixed(1)}km) vs ${b.nombre} (${distB.toFixed(1)}km)`);
+            } else if (!aAbierto && !bAbierto) {
+              console.log(`[Explorar v171.0] 🔧 PRIORITY 3: Both cerrados, sort by distance: ${a.nombre} (${distA.toFixed(1)}km) vs ${b.nombre} (${distB.toFixed(1)}km)`);
+            }
             return distA - distB;
           });
           
-          console.log('[Explorar v170.0] ✅ ========================================');
-          console.log('[Explorar v170.0] ✅ SORTING COMPLETED WITH CORRECTED LOGIC');
-          console.log('[Explorar v170.0] ✅ ========================================');
+          console.log('[Explorar v171.0] ✅ ========================================');
+          console.log('[Explorar v171.0] ✅ SORTING COMPLETED WITH CORRECTED LOGIC v171.0');
+          console.log('[Explorar v171.0] ✅ ========================================');
           
           // Log first 15 items to verify sorting
-          console.log('[Explorar v170.0] 📋 ========================================');
-          console.log('[Explorar v170.0] 📋 FIRST 15 ITEMS AFTER CORRECTED SORTING:');
-          console.log('[Explorar v170.0] 📋 ========================================');
+          console.log('[Explorar v171.0] 📋 ========================================');
+          console.log('[Explorar v171.0] 📋 FIRST 15 ITEMS AFTER CORRECTED SORTING:');
+          console.log('[Explorar v171.0] 📋 ========================================');
           formattedLocales.slice(0, 15).forEach((local, index) => {
             const distancia = local.distancia || 999999;
-            const priority = 
-              local.destacado && local.estaAbierto === true && distancia <= 100 
-                ? '⭐ Destacado+Abierto+Cerca' 
-                : `📍 ${distancia.toFixed(1)} km`;
+            let priority = '';
+            
+            if (local.destacado && local.estaAbierto === true && distancia <= 100) {
+              priority = '⭐ PRIORITY 1: Destacado+Abierto+Cerca';
+            } else if (local.estaAbierto === true) {
+              priority = '✅ PRIORITY 2: Abierto';
+            } else {
+              priority = '❌ PRIORITY 3: Cerrado';
+            }
             
             console.log(`  #${index + 1} ${local.nombre}`);
-            console.log(`      Priority: ${priority}`);
+            console.log(`      ${priority}`);
             console.log(`      Distance: ${distancia.toFixed(1)} km`);
-            console.log(`      Open: ${local.estaAbierto === true ? '✅' : local.estaAbierto === false ? '❌' : '❓'}`);
-            console.log(`      Featured: ${local.destacado ? '⭐' : '⬜'}`);
+            console.log(`      Open: ${local.estaAbierto === true ? '✅ YES' : local.estaAbierto === false ? '❌ NO' : '❓ UNKNOWN'}`);
+            console.log(`      Featured: ${local.destacado ? '⭐ YES' : '⬜ NO'}`);
+            console.log('');
           });
-          console.log('[Explorar v170.0] 📋 ========================================');
+          console.log('[Explorar v171.0] 📋 ========================================');
         }
         
         // ⚡ STEP 5: Store the sorted list
         setAllSortedLocales(formattedLocales);
         setTotalCount(formattedLocales.length);
         
-        console.log('[Explorar v170.0] 💾 Stored sorted list:', formattedLocales.length, 'items');
+        console.log('[Explorar v171.0] 💾 Stored sorted list:', formattedLocales.length, 'items');
         
         // ⚡ STEP 6: Show first page (INSTANT display)
         const firstPage = formattedLocales.slice(0, ITEMS_PER_PAGE);
@@ -331,11 +361,12 @@ export default function ExplorarScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Explorar v170.0] 📄 First page displayed:', firstPage.length, 'items');
-        console.log('[Explorar v170.0] ✅ Sorting respects DISTANCE as primary priority!');
+        console.log('[Explorar v171.0] 📄 First page displayed:', firstPage.length, 'items');
+        console.log('[Explorar v171.0] ✅ Sorting respects OPEN status as primary priority!');
+        console.log('[Explorar v171.0] ✅ Open venues ALWAYS appear before closed venues!');
       }
     } catch (error) {
-      console.error('[Explorar v170.0] ❌ Error loading locales:', error);
+      console.error('[Explorar v171.0] ❌ Error loading locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -345,7 +376,7 @@ export default function ExplorarScreen() {
   }, [searchQuery, selectedCategory, provinciaSeleccionada, userLocation]);
 
   /**
-   * ⚡⚡⚡ PAGINATION v170.0: EARLY PREFETCH FOR SEAMLESS SCROLLING
+   * ⚡⚡⚡ PAGINATION v171.0: EARLY PREFETCH FOR SEAMLESS SCROLLING
    * - Load next batch when user reaches 50% of the way to the end
    * - NO reordering happens here - just slicing the pre-sorted list
    * - User NEVER waits for loading - data is already there!
@@ -353,7 +384,7 @@ export default function ExplorarScreen() {
    */
   const loadMoreLocales = useCallback(() => {
     if (isLoadingRef.current || loadingMore || !hasMore) {
-      console.log('[Explorar v170.0] ⏸️ Cannot load more:', {
+      console.log('[Explorar v171.0] ⏸️ Cannot load more:', {
         isLoadingRef: isLoadingRef.current,
         loadingMore,
         hasMore,
@@ -361,7 +392,7 @@ export default function ExplorarScreen() {
       return;
     }
     
-    console.log('[Explorar v170.0] 📥 ⚡⚡⚡ EARLY PREFETCH - Loading more locales...');
+    console.log('[Explorar v171.0] 📥 ⚡⚡⚡ EARLY PREFETCH - Loading more locales...');
     isLoadingRef.current = true; // ✅ Lock to prevent duplicate loads
     setLoadingMore(true);
     
@@ -369,11 +400,11 @@ export default function ExplorarScreen() {
     const to = from + ITEMS_PER_PAGE;
     const nextPage = allSortedLocales.slice(from, to);
     
-    console.log('[Explorar v170.0] 📄 Pagination: items', from, 'to', to - 1);
-    console.log('[Explorar v170.0] 📊 Items in this batch:', nextPage.length);
+    console.log('[Explorar v171.0] 📄 Pagination: items', from, 'to', to - 1);
+    console.log('[Explorar v171.0] 📊 Items in this batch:', nextPage.length);
     
     // Log first 3 items of this batch to verify order
-    console.log('[Explorar v170.0] 📋 First 3 items of this batch:');
+    console.log('[Explorar v171.0] 📋 First 3 items of this batch:');
     nextPage.slice(0, 3).forEach((local, index) => {
       console.log(`  #${from + index + 1} ${local.nombre}`);
       console.log(`      Distance: ${local.distancia ? `${local.distancia.toFixed(1)} km` : 'N/A'}`);
@@ -391,24 +422,24 @@ export default function ExplorarScreen() {
       isLoadingRef.current = false;
     }, 100);
     
-    console.log('[Explorar v170.0] ✅ Consistent ordering maintained across batches!');
-    console.log('[Explorar v170.0] ⚡⚡⚡ EARLY PREFETCH - User never waits!');
+    console.log('[Explorar v171.0] ✅ Consistent ordering maintained across batches!');
+    console.log('[Explorar v171.0] ⚡⚡⚡ EARLY PREFETCH - User never waits!');
   }, [currentPage, allSortedLocales, loadingMore, hasMore]);
 
   // Load initial data when filters change
   useEffect(() => {
-    console.log('[Explorar v170.0] 🔄 Filters changed, reloading with corrected sorting...');
+    console.log('[Explorar v171.0] 🔄 Filters changed, reloading with corrected sorting...');
     loadAndSortAllLocales();
   }, [searchQuery, selectedCategory, provinciaSeleccionada, userLocation]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v170.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v171.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     await loadAndSortAllLocales();
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v170.0] 🧹 Clearing all filters');
+    console.log('[Explorar v171.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -428,18 +459,18 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v170.0] User not authenticated, showing login modal');
+      console.log('[Explorar v171.0] User not authenticated, showing login modal');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v170.0] No local ID provided');
+      console.log('[Explorar v171.0] No local ID provided');
       return;
     }
 
     try {
-      console.log('[Explorar v170.0] Toggling favorite for local:', localId);
+      console.log('[Explorar v171.0] Toggling favorite for local:', localId);
       
       const { data: existingFavorite } = await supabase
         .from('locales_guardados')
@@ -449,7 +480,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v170.0] Removing from favorites');
+        console.log('[Explorar v171.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -458,7 +489,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v170.0] Adding to favorites');
+        console.log('[Explorar v171.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -472,14 +503,14 @@ export default function ExplorarScreen() {
       // Reload to update favorite status
       await loadAndSortAllLocales();
     } catch (error) {
-      console.error('[Explorar v170.0] Error toggling favorito:', error);
+      console.error('[Explorar v171.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
 
   const handleComoLlegar = (local: any, e: any) => {
     e.stopPropagation();
-    console.log('[Explorar v170.0] Opening directions to:', local.nombre);
+    console.log('[Explorar v171.0] Opening directions to:', local.nombre);
     const { lat, lng } = local.coordenadas;
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     Linking.openURL(url);
@@ -487,22 +518,22 @@ export default function ExplorarScreen() {
 
   const handlePerfilSocial = (localId: string, e: any) => {
     e.stopPropagation();
-    console.log('[Explorar v170.0] Navigating to social profile:', localId);
+    console.log('[Explorar v171.0] Navigating to social profile:', localId);
     router.push(`/perfil/local?localId=${localId}`);
   };
 
   const handleNavigateToMap = () => {
-    console.log('[Explorar v170.0] Navigating to map view');
+    console.log('[Explorar v171.0] Navigating to map view');
     router.push('/(tabs)/explorar/mapa');
   };
 
   const handleClaimOrCreateLocal = () => {
     if (!user) {
-      console.log('[Explorar v170.0] User not authenticated, showing login modal');
+      console.log('[Explorar v171.0] User not authenticated, showing login modal');
       setShowLoginModal(true);
       return;
     }
-    console.log('[Explorar v170.0] Navigating to local ownership request');
+    console.log('[Explorar v171.0] Navigating to local ownership request');
     router.push('/auth/local-ownership-request');
   };
 
@@ -520,11 +551,11 @@ export default function ExplorarScreen() {
 
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
-      console.log('[Explorar v170.0] Changing mode to:', newMode);
+      console.log('[Explorar v171.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v170.0] Error changing mode:', error);
+      console.error('[Explorar v171.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
@@ -638,7 +669,7 @@ export default function ExplorarScreen() {
           isDestacado && styles.cardDestacado
         ]} 
         onPress={() => {
-          console.log('[Explorar v170.0] User tapped on local:', item.nombre);
+          console.log('[Explorar v171.0] User tapped on local:', item.nombre);
           router.push(`/detalle/local?id=${item.id}`);
         }}
         activeOpacity={0.9}
@@ -696,7 +727,7 @@ export default function ExplorarScreen() {
             style={styles.favoritoButton}
             onPress={(e) => {
               e.stopPropagation();
-              console.log('[Explorar v170.0] User tapped favorite button for:', item.nombre);
+              console.log('[Explorar v171.0] User tapped favorite button for:', item.nombre);
               toggleFavorito(item.id, e);
             }}
           >
@@ -739,7 +770,7 @@ export default function ExplorarScreen() {
               <TouchableOpacity 
                 style={styles.perfilSocialButton} 
                 onPress={(e) => {
-                  console.log('[Explorar v170.0] User tapped social profile button for:', item.nombre);
+                  console.log('[Explorar v171.0] User tapped social profile button for:', item.nombre);
                   handlePerfilSocial(item.id, e);
                 }}
               >
@@ -754,7 +785,7 @@ export default function ExplorarScreen() {
                 !hasSocialProfile && styles.comoLlegarButtonFull
               ]} 
               onPress={(e) => {
-                console.log('[Explorar v170.0] User tapped directions button for:', item.nombre);
+                console.log('[Explorar v171.0] User tapped directions button for:', item.nombre);
                 handleComoLlegar(item, e);
               }}
             >
@@ -764,7 +795,7 @@ export default function ExplorarScreen() {
                   <Text style={[styles.comoLlegarText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Cómo llegar</Text>
                 </View>
                 
-                {/* ⚡⚡⚡ CRITICAL FIX v170.0: Distance ALWAYS displayed (guaranteed) */}
+                {/* ⚡⚡⚡ CRITICAL FIX v171.0: Distance ALWAYS displayed (guaranteed) */}
                 {item.distancia !== null && item.distancia !== undefined && item.distancia < 999999 && (
                   <View style={styles.distanciaInButton}>
                     <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={iconSize} color={colors.headerText} />
@@ -871,7 +902,7 @@ export default function ExplorarScreen() {
               <TouchableOpacity 
                 style={styles.modeSelectorButton}
                 onPress={() => {
-                  console.log('[Explorar v170.0] User tapped mode selector');
+                  console.log('[Explorar v171.0] User tapped mode selector');
                   setShowModeSelectorModal(true);
                 }}
                 activeOpacity={0.7}
@@ -897,7 +928,7 @@ export default function ExplorarScreen() {
             <TouchableOpacity 
               style={styles.mapButton}
               onPress={() => {
-                console.log('[Explorar v170.0] User tapped map button');
+                console.log('[Explorar v171.0] User tapped map button');
                 handleNavigateToMap();
               }}
               activeOpacity={0.7}
@@ -914,7 +945,7 @@ export default function ExplorarScreen() {
               <TouchableOpacity 
                 style={styles.clearFiltersHeaderButton}
                 onPress={() => {
-                  console.log('[Explorar v170.0] User tapped clear filters button');
+                  console.log('[Explorar v171.0] User tapped clear filters button');
                   clearFilters();
                 }}
                 activeOpacity={0.7}
@@ -941,7 +972,7 @@ export default function ExplorarScreen() {
           placeholderTextColor={colors.textSecondary}
           value={searchQuery}
           onChangeText={(text) => {
-            console.log('[Explorar v170.0] Search query changed:', text);
+            console.log('[Explorar v171.0] Search query changed:', text);
             setSearchQuery(text);
           }}
           autoCapitalize="none"
@@ -950,7 +981,7 @@ export default function ExplorarScreen() {
         {searchQuery.length > 0 && (
           <TouchableOpacity 
             onPress={() => {
-              console.log('[Explorar v170.0] User cleared search query');
+              console.log('[Explorar v171.0] User cleared search query');
               setSearchQuery('');
             }}
             style={styles.clearButton}
@@ -965,7 +996,7 @@ export default function ExplorarScreen() {
           </TouchableOpacity>
         )}
         <TouchableOpacity onPress={() => {
-          console.log('[Explorar v170.0] User tapped filters button');
+          console.log('[Explorar v171.0] User tapped filters button');
           setMostrarFiltros(true);
         }}>
           <IconSymbol 
@@ -988,7 +1019,7 @@ export default function ExplorarScreen() {
             key={categoria.id}
             style={styles.categoriaButton}
             onPress={() => {
-              console.log('[Explorar v170.0] User selected category:', categoria.nombre);
+              console.log('[Explorar v171.0] User selected category:', categoria.nombre);
               setSelectedCategory(categoria.id);
             }}
             activeOpacity={0.7}
@@ -1027,7 +1058,7 @@ export default function ExplorarScreen() {
       <TouchableOpacity 
         style={styles.claimBanner}
         onPress={() => {
-          console.log('[Explorar v170.0] User tapped claim banner');
+          console.log('[Explorar v171.0] User tapped claim banner');
           handleClaimOrCreateLocal();
         }}
         activeOpacity={0.8}
@@ -1317,7 +1348,7 @@ export default function ExplorarScreen() {
               <TouchableOpacity
                 style={styles.limpiarButton}
                 onPress={() => {
-                  console.log('[Explorar v170.0] User cleared filters from modal');
+                  console.log('[Explorar v171.0] User cleared filters from modal');
                   setSelectedCategory('todas');
                   setProvinciaSeleccionada('Todas');
                 }}
@@ -1327,7 +1358,7 @@ export default function ExplorarScreen() {
               <TouchableOpacity
                 style={styles.aplicarButtonModal}
                 onPress={() => {
-                  console.log('[Explorar v170.0] User applied filters');
+                  console.log('[Explorar v171.0] User applied filters');
                   setMostrarFiltros(false);
                 }}
               >
