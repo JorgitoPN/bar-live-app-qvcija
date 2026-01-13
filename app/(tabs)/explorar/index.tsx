@@ -171,6 +171,7 @@ export default function ExplorarScreen() {
         searchQuery,
         selectedCategory,
         provinciaSeleccionada,
+        hasUserLocation: !!userLocation,
       });
 
       // ⚡⚡⚡ CRITICAL: Load ONLY essential fields for INSTANT display
@@ -257,10 +258,17 @@ export default function ExplorarScreen() {
           };
         });
 
+        console.log('[Explorar v172.0] ⚡ Distance calculation:', {
+          hasUserLocation: !!userLocation,
+          firstLocalDistance: formattedLocales[0]?.distancia,
+          firstLocalName: formattedLocales[0]?.nombre,
+        });
+
         console.log('[Explorar v172.0] ⚡ Formatted', formattedLocales.length, 'locales');
 
         // ⚡⚡⚡ STEP 2: FAST SORTING (only 100 items, not 4000+)
         if (userLocation) {
+          console.log('[Explorar v172.0] ⚡ Sorting with user location');
           formattedLocales.sort((a, b) => {
             const distA = a.distancia || 999999;
             const distB = b.distancia || 999999;
@@ -283,6 +291,17 @@ export default function ExplorarScreen() {
             // Priority 3: Sort by distance within same group
             return distA - distB;
           });
+          
+          console.log('[Explorar v172.0] ⚡ After sorting, first 3 locales:', 
+            formattedLocales.slice(0, 3).map(l => ({
+              nombre: l.nombre,
+              distancia: l.distancia?.toFixed(1),
+              destacado: l.destacado,
+              estaAbierto: l.estaAbierto,
+            }))
+          );
+        } else {
+          console.log('[Explorar v172.0] ⚠️ Sorting WITHOUT user location - order may be incorrect');
         }
         
         // ⚡ STEP 3: Store sorted list
@@ -336,7 +355,19 @@ export default function ExplorarScreen() {
   }, [currentPage, allSortedLocales, loadingMore, hasMore]);
 
   // Load initial data when filters change
+  // ⚡⚡⚡ CRITICAL FIX: Only reload when filters change OR when location becomes available for the first time
+  const hasLoadedWithLocation = useRef(false);
+  
   useEffect(() => {
+    // If we have location and haven't loaded with it yet, mark as loaded
+    if (userLocation && !hasLoadedWithLocation.current) {
+      console.log('[Explorar v172.0] 🔄 Location obtained, reloading with distance sorting...');
+      hasLoadedWithLocation.current = true;
+      loadAndSortAllLocales();
+      return;
+    }
+    
+    // If filters changed, reload
     console.log('[Explorar v172.0] 🔄 Filters changed, reloading...');
     loadAndSortAllLocales();
   }, [searchQuery, selectedCategory, provinciaSeleccionada, userLocation]);
