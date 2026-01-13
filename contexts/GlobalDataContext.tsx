@@ -299,7 +299,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
   const loadFromSupabase = useCallback(async () => {
     try {
-      console.log('[GlobalData v95.0] 🌐 Loading from Supabase...');
+      console.log('[GlobalData v176.0] 🌐 Loading from Supabase - EXCLUDING OSM LOCALES');
 
       const [
         localesResult,
@@ -311,6 +311,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           .from('locales')
           .select('*')
           .eq('activo', true)
+          .or('source_type.is.null,source_type.neq.osm') // ✅ v176.0: Exclude OSM locales
           .order('destacado', { ascending: false })
           .order('rating', { ascending: false })
           .limit(500), // ✅ FIX v95.0: Limit query results
@@ -346,7 +347,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       if (!localesResult.error && localesResult.data) {
         const transformedLocales = localesResult.data.map(transformarLocal);
         setLocales(transformedLocales);
-        console.log('[GlobalData v95.0] ✅ Locales loaded:', transformedLocales.length);
+        console.log('[GlobalData v176.0] ✅ Locales loaded (OSM excluded):', transformedLocales.length);
       }
 
       if (!postsResult.error && postsResult.data) {

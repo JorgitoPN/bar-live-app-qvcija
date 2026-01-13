@@ -132,9 +132,14 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v111.0 - UNIFIED TEAL CATEGORY ICONS
+ * ✅ MAP SCREEN v176.0 - CRITICAL PERFORMANCE OPTIMIZATION
  * 
- * CRITICAL FIXES v111.0:
+ * CRITICAL PERFORMANCE FIXES v176.0:
+ * - ✅ OSM LOCALES EXCLUDED: OSM-imported locales are NOT loaded on map until enrichment needs them
+ * - ✅ INSTANT PERFORMANCE: Map loads only active, enriched locales
+ * - ✅ NO UNNECESSARY PROCESSING: OSM locales remain isolated from app flow
+ * 
+ * PREVIOUS FIXES v111.0:
  * - ✅ Category filters now use TEAL ICONS matching Explorar, Eventos & Favoritos
  * - ✅ Same icon design and behavior across all pages
  * - ✅ Consistent visual experience throughout the app
@@ -205,9 +210,9 @@ export default function MapaScreen() {
   }, []);
 
   useEffect(() => {
-    console.log('⚡ [MAP v111.0] ========================================');
-    console.log('⚡ [MAP v111.0] INSTANT HYDRATION from GlobalDataContext');
-    console.log('⚡ [MAP v111.0] Total locales available:', globalLocales.length);
+    console.log('⚡ [MAP v176.0] ========================================');
+    console.log('⚡ [MAP v176.0] INSTANT HYDRATION from GlobalDataContext (OSM EXCLUDED)');
+    console.log('⚡ [MAP v176.0] Total locales available:', globalLocales.length);
     
     if (globalLocales.length > 0) {
       setIsLoadingMarkers(true);

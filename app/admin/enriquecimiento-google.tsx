@@ -105,7 +105,15 @@ const DIAS_SEMANA: Record<number, string> = {
 const MAX_LOGS = 50;
 
 /**
- * ✅ ENRIQUECIMIENTO GOOGLE v130.0 - AUTO-DELETE DUPLICATES AND REJECTED LOCALES
+ * ✅ ENRIQUECIMIENTO GOOGLE v176.0 - OSM LOCALES ISOLATION
+ * 
+ * 🎯 CRITICAL ARCHITECTURE v176.0:
+ * - ✅ OSM LOCALES ARE EXCLUSIVELY FOR ENRICHMENT DATABASE
+ * - ✅ OSM locales do NOT participate in queries, calculations, rendering, or initial loading
+ * - ✅ OSM locales remain COMPLETELY INACTIVE and ISOLATED from app flow
+ * - ✅ OSM locales are ONLY processed when enrichment explicitly requires them
+ * - ✅ App behaves as if OSM locales don't exist until enriched and activated
+ * - ✅ This is the ONLY place where OSM locales should be loaded and processed
  * 
  * CRITICAL FIXES v130.0 (APPLIED):
  * - ✅ FIXED: Locales that fail with P0001 (duplicate) are now automatically deleted

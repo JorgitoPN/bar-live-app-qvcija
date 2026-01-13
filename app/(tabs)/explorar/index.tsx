@@ -72,9 +72,16 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v146.0 - ANDROID CRITICAL FIX: FIRST LOCAL NO LONGER HIDDEN
+ * ✅ EXPLORAR SCREEN v176.0 - CRITICAL PERFORMANCE OPTIMIZATION
  * 
- * CRITICAL FIXES v146.0 (ANDROID ONLY):
+ * CRITICAL PERFORMANCE FIXES v176.0:
+ * - ✅ OSM LOCALES EXCLUDED: OSM-imported locales are NOT loaded until enrichment process needs them
+ * - ✅ PROGRESSIVE LOADING: Anticipatory loading starts at 80% scroll (increased from 50%)
+ * - ✅ SMOOTH EXPERIENCE: Reduced loading delay from 300ms to 100ms for seamless scroll
+ * - ✅ NO FORCED PAUSES: User never perceives waiting time when scrolling
+ * - ✅ INSTANT PERFORMANCE: App behaves as if OSM locales don't exist until activated
+ * 
+ * PREVIOUS FIXES v146.0 (ANDROID ONLY):
  * - ✅ FIXED: First local card no longer hidden by header (increased marginTop from HEADER_MAX_HEIGHT to HEADER_MAX_HEIGHT + 32)
  * - ✅ Header title size matches Favoritos reference (32sp on Android)
  * - ✅ Locales without schedule info treated as OPEN (already implemented)
@@ -241,16 +248,20 @@ export default function ExplorarScreen() {
 
   const loadLocales = useCallback(async () => {
     try {
-      console.log('[Explorar v146.0] 🔄 LOADING LOCALES WITH CORRECT ORDERING');
-      console.log('[Explorar v146.0] 📋 Order: distance-based priority groups');
+      console.log('[Explorar v176.0] 🔄 LOADING LOCALES - EXCLUDING OSM UNTIL ENRICHED');
+      console.log('[Explorar v176.0] 📋 OSM locales will NOT be processed until enrichment requires them');
       
+      // ✅ CRITICAL PERFORMANCE FIX v176.0: Exclude OSM locales from initial load
+      // OSM locales should ONLY be loaded when enrichment process explicitly needs them
+      // This prevents unnecessary processing and improves app performance dramatically
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
         .select('*')
-        .eq('activo', true);
+        .eq('activo', true)
+        .or('source_type.is.null,source_type.neq.osm'); // Exclude OSM locales
       
-      console.log('[Explorar v146.0] ✅ Query executed');
-      console.log('[Explorar v146.0] 📊 Total locales loaded:', localesData?.length || 0);
+      console.log('[Explorar v176.0] ✅ Query executed (OSM locales excluded)');
+      console.log('[Explorar v176.0] 📊 Active locales loaded (OSM excluded):', localesData?.length || 0);
 
       if (localesError) throw localesError;
 
@@ -390,12 +401,12 @@ export default function ExplorarScreen() {
   
   const loadMoreLocales = useCallback(() => {
     if (isLoadingMoreRef.current || loadingMore) {
-      console.log('[Explorar v146.0] ⏸️ Already loading, skipping...');
+      console.log('[Explorar v176.0] ⏸️ Already loading, skipping...');
       return;
     }
     
     if (!hasMore) {
-      console.log('[Explorar v146.0] ⏸️ No more items, skipping...');
+      console.log('[Explorar v176.0] ⏸️ No more items, skipping...');
       return;
     }
     
@@ -403,24 +414,26 @@ export default function ExplorarScreen() {
     const remainingItems = filteredLocales.length - startIndex;
     
     if (remainingItems <= 0) {
-      console.log('[Explorar v146.0] ⏸️ Reached end of list, setting hasMore to false');
+      console.log('[Explorar v176.0] ⏸️ Reached end of list, setting hasMore to false');
       setHasMore(false);
       return;
     }
 
-    console.log('[Explorar v146.0] 📥 Loading more locales...');
-    console.log('[Explorar v146.0] 📊 Currently displayed:', startIndex);
-    console.log('[Explorar v146.0] 📊 Total available:', filteredLocales.length);
-    console.log('[Explorar v146.0] 📊 Remaining:', remainingItems);
+    console.log('[Explorar v176.0] 📥 PROGRESSIVE LOADING - Loading next batch...');
+    console.log('[Explorar v176.0] 📊 Currently displayed:', startIndex);
+    console.log('[Explorar v176.0] 📊 Total available:', filteredLocales.length);
+    console.log('[Explorar v176.0] 📊 Remaining:', remainingItems);
     
     isLoadingMoreRef.current = true;
     setLoadingMore(true);
     
+    // ✅ CRITICAL UX FIX v176.0: Reduced delay for smoother progressive loading
+    // User should never perceive waiting time - load starts BEFORE reaching the end
     setTimeout(() => {
       const endIndex = startIndex + ITEMS_PER_PAGE;
       const nextItems = filteredLocales.slice(startIndex, endIndex);
       
-      console.log('[Explorar v146.0] 📊 Loading items:', nextItems.length);
+      console.log('[Explorar v176.0] 📊 Loading items:', nextItems.length);
       
       if (nextItems.length > 0) {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
@@ -428,18 +441,18 @@ export default function ExplorarScreen() {
         const newDisplayedCount = startIndex + nextItems.length;
         const stillHasMore = newDisplayedCount < filteredLocales.length;
         
-        console.log('[Explorar v146.0] 📊 New displayed count:', newDisplayedCount);
-        console.log('[Explorar v146.0] 📊 Still has more:', stillHasMore);
+        console.log('[Explorar v176.0] 📊 New displayed count:', newDisplayedCount);
+        console.log('[Explorar v176.0] 📊 Still has more:', stillHasMore);
         
         setHasMore(stillHasMore);
       } else {
-        console.log('[Explorar v146.0] ⏸️ No items loaded, setting hasMore to false');
+        console.log('[Explorar v176.0] ⏸️ No items loaded, setting hasMore to false');
         setHasMore(false);
       }
       
       setLoadingMore(false);
       isLoadingMoreRef.current = false;
-    }, 300);
+    }, 100); // Reduced from 300ms to 100ms for smoother experience
   }, [displayedLocales, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
@@ -1101,7 +1114,7 @@ export default function ExplorarScreen() {
           />
         }
         onEndReached={loadMoreLocales}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.8} // ✅ v176.0: Increased from 0.5 to 0.8 for anticipatory loading
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
         initialNumToRender={10}

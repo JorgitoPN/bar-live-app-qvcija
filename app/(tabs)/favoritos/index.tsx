@@ -69,9 +69,14 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v107.0 - UNIFIED TEAL ICON DESIGN
+ * ✅ FAVORITOS SCREEN v176.0 - CRITICAL PERFORMANCE OPTIMIZATION
  * 
- * CRITICAL FIXES v107.0:
+ * CRITICAL PERFORMANCE FIXES v176.0:
+ * - ✅ OSM LOCALES EXCLUDED: OSM-imported locales are NOT loaded in favorites until enriched
+ * - ✅ INSTANT PERFORMANCE: Only active, enriched locales appear in favorites
+ * - ✅ NO UNNECESSARY PROCESSING: OSM locales remain isolated from app flow
+ * 
+ * PREVIOUS FIXES v107.0:
  * - ✅ Category filters now use TEAL-COLORED ICONS (matching Eventos)
  * - ✅ Icons use colors.primary (teal #14B8A6)
  * - ✅ Active state: white background with teal icon
@@ -159,12 +164,12 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v107.0] Cargando locales guardados...');
+      console.log('[Favoritos v176.0] Cargando locales guardados (OSM EXCLUDED)...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
           local_id,
-          locales (
+          locales!inner (
             id,
             nombre,
             direccion,
@@ -182,10 +187,12 @@ export default function FavoritosScreen() {
             estado_actual,
             destacado,
             nuevo,
-            google_rating
+            google_rating,
+            source_type
           )
         `)
         .eq('usuario_id', user.id)
+        .or('locales.source_type.is.null,locales.source_type.neq.osm') // ✅ v176.0: Exclude OSM locales
         .order('created_at', { ascending: false });
 
       if (localesError) throw localesError;
@@ -225,7 +232,7 @@ export default function FavoritosScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Favoritos v107.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v176.0] Locales guardados cargados (OSM excluded):', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
