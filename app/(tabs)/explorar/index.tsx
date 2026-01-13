@@ -90,11 +90,10 @@ const CATEGORIAS = [
  * 
  * REGLAS DE ORDENACIÓN (respetadas en TODAS las tandas):
  * 1. Destacados abiertos (dentro de 100km) - ordenados por cercanía
- * 2. Abiertos sin destacar - ordenados por cercanía
+ * 2. Abiertos (sin destacar O destacados fuera de 100km) - ordenados por cercanía
  * 3. Con eventos activos - ordenados por cercanía
  * 4. Sin información de horario - ordenados por cercanía
  * 5. Cerrados - ordenados por cercanía
- * 6. Destacados fuera de 100km - ordenados por cercanía (AL FINAL)
  * 
  * EXPERIENCIA DE USUARIO:
  * ✅ Orden lógico y coherente
@@ -245,25 +244,17 @@ export default function ExplorarScreen() {
             const distA = a.distancia || 999999;
             const distB = b.distancia || 999999;
             
-            // ✅ CRITICAL: Destacados más allá de 100km van AL FINAL
-            const aDestacadoLejos = a.destacado && distA > 100;
-            const bDestacadoLejos = b.destacado && distB > 100;
-            
-            if (aDestacadoLejos && !bDestacadoLejos) return 1;
-            if (!aDestacadoLejos && bDestacadoLejos) return -1;
-            if (aDestacadoLejos && bDestacadoLejos) return distA - distB;
-            
             // ✅ Prioridad 1: Destacados abiertos (dentro de 100km)
-            const aDestacadoAbierto = a.destacado && a.estaAbierto === true && distA <= 100;
-            const bDestacadoAbierto = b.destacado && b.estaAbierto === true && distB <= 100;
+            const aDestacadoAbiertoNear = a.destacado && a.estaAbierto === true && distA <= 100;
+            const bDestacadoAbiertoNear = b.destacado && b.estaAbierto === true && distB <= 100;
             
-            if (aDestacadoAbierto && !bDestacadoAbierto) return -1;
-            if (!aDestacadoAbierto && bDestacadoAbierto) return 1;
-            if (aDestacadoAbierto && bDestacadoAbierto) return distA - distB;
+            if (aDestacadoAbiertoNear && !bDestacadoAbiertoNear) return -1;
+            if (!aDestacadoAbiertoNear && bDestacadoAbiertoNear) return 1;
+            if (aDestacadoAbiertoNear && bDestacadoAbiertoNear) return distA - distB;
             
-            // ✅ Prioridad 2: Abiertos sin destacar
-            const aAbiertoNormal = a.estaAbierto === true && !a.destacado;
-            const bAbiertoNormal = b.estaAbierto === true && !b.destacado;
+            // ✅ Prioridad 2: Abiertos sin destacar (o destacados fuera de 100km pero abiertos)
+            const aAbiertoNormal = a.estaAbierto === true && !aDestacadoAbiertoNear;
+            const bAbiertoNormal = b.estaAbierto === true && !bDestacadoAbiertoNear;
             
             if (aAbiertoNormal && !bAbiertoNormal) return -1;
             if (!aAbiertoNormal && bAbiertoNormal) return 1;
@@ -295,20 +286,20 @@ export default function ExplorarScreen() {
           });
           
           console.log('[Explorar v166.0] ✅ Complete list sorted according to priority rules');
-          console.log('[Explorar v166.0] 📍 Featured venues beyond 100km at END');
+          console.log('[Explorar v166.0] 📍 Featured venues beyond 100km treated as normal open venues');
           
           // Log first 15 items to verify sorting
           console.log('[Explorar v166.0] 📋 ========================================');
           console.log('[Explorar v166.0] 📋 FIRST 15 ITEMS AFTER SORTING:');
           console.log('[Explorar v166.0] 📋 ========================================');
           formattedLocales.slice(0, 15).forEach((local, index) => {
+            const distancia = local.distancia || 999999;
             const priority = 
-              local.destacado && local.estaAbierto === true && (local.distancia || 999999) <= 100 ? '1️⃣ Destacado abierto <100km' :
-              local.estaAbierto === true && !local.destacado ? '2️⃣ Abierto normal' :
+              local.destacado && local.estaAbierto === true && distancia <= 100 ? '1️⃣ Destacado abierto <100km' :
+              local.estaAbierto === true ? '2️⃣ Abierto' :
               local.tieneEventos ? '3️⃣ Con eventos' :
               !local.tieneHorarios && local.estaAbierto === null ? '4️⃣ Sin horario' :
               local.estaAbierto === false ? '5️⃣ Cerrado' :
-              local.destacado && (local.distancia || 999999) > 100 ? '6️⃣ Destacado >100km' :
               '❓ Otro';
             
             console.log(`  #${index + 1} ${local.nombre}`);
