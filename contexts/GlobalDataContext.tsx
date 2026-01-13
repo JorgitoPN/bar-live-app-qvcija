@@ -354,7 +354,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         supabase
           .from('posts')
           .select(`
-            id, autor_id, contenido, imagen, imagenes, likes, comentarios, created_at, tipo, local_id,
+            id, autor_id, contenido, imagen, imagenes, likes, created_at, tipo, local_id,
             autor:usuarios!posts_autor_id_fkey(nombre, avatar, username),
             local:locales!posts_local_id_fkey(nombre, imagen_url)
           `)
@@ -372,7 +372,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         supabase
           .from('ofertas_trabajo')
           .select(`
-            id, titulo, descripcion, tipo_contrato, salario_min, salario_max, provincia, local_id, created_by_usuario_id, activa, created_at,
+            id, titulo, descripcion, tipo_contrato, salario_min, salario_max, local_id, created_by_usuario_id, activa, created_at,
             locales(nombre, imagen_url)
           `)
           .eq('activa', true)
