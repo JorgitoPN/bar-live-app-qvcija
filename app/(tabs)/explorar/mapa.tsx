@@ -133,12 +133,12 @@ export default function MapaScreen() {
     return Math.max(1, Math.min(18, zoom)); // Clamp between 1-18
   }, []);
 
-  // ✅ v181.0: Load map data with open/closed filter
+  // ✅ v179.0: Load map data using RPC function - NO LOADING OVERLAY
   const loadMapData = useCallback(async (region: any) => {
     if (!region) return;
 
     try {
-      console.log('[MAP v181.0] 🗺️ Loading map data (silent)');
+      console.log('[MAP v179.0] 🗺️ Loading map data (silent)');
 
       const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
       
@@ -151,10 +151,9 @@ export default function MapaScreen() {
       // Calculate zoom level
       const zoom_level = calculateZoomLevel(latitudeDelta);
       
-      console.log('[MAP v181.0] 📦 Bounding Box:', { min_lat, max_lat, min_lng, max_lng, zoom_level });
-      console.log('[MAP v181.0] 🔍 Filter:', filtroEstado);
+      console.log('[MAP v179.0] 📦 Bounding Box:', { min_lat, max_lat, min_lng, max_lng, zoom_level });
 
-      // ✅ v181.0: NO setIsLoadingMarkers - silent background update
+      // ✅ v179.0: NO setIsLoadingMarkers - silent background update
 
       // Call RPC function with bounding box
       const { data, error } = await supabase.rpc('get_map_data', {
@@ -166,39 +165,30 @@ export default function MapaScreen() {
       });
 
       if (error) {
-        console.error('[MAP v181.0] ❌ RPC Error:', error);
+        console.error('[MAP v179.0] ❌ RPC Error:', error);
         return;
       }
 
-      console.log('[MAP v181.0] ✅ RPC returned', data?.length || 0, 'markers');
+      console.log('[MAP v179.0] ✅ RPC returned', data?.length || 0, 'markers');
 
       // Transform RPC data to marker format with full venue info
-      let markers = (data || []).map((item: any) => {
+      const markers = (data || []).map((item: any) => {
         const isCluster = item.is_cluster === true;
         const count = item.count || 1;
 
-        // ✅ v181.0: Calculate open/closed status
-        const estado = getEstadoLocal(item);
-        const estaAbierto = estado.estaAbierto;
-        const tieneHorarios = item.horarios_completos && Object.keys(item.horarios_completos).length > 0;
-        
+        // Get venue details for popup
+        const estado = item.estado_actual || 'Sin información';
         const rating = item.rating || item.google_rating || 0;
         const categoria = item.barlive_type || item.tipo || 'Local';
         const imagen = item.imagen_url || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400';
-
-        // ✅ v181.0: Determine marker background color
-        let markerColor = '#9CA3AF'; // Gray - no schedule info
-        if (tieneHorarios) {
-          markerColor = estaAbierto ? '#22C55E' : '#EF4444'; // Green if open, Red if closed
-        }
 
         return {
           id: item.id,
           lat: item.lat,
           lng: item.lng,
           nombre: item.nombre || 'Cluster',
-          estado: estado.badge || 'Sin información',
-          estadoBadge: isCluster ? `${count} locales` : estado.badge,
+          estado: estado,
+          estadoBadge: isCluster ? `${count} locales` : estado,
           icon: isCluster ? '📍' : '🍷',
           overlayIcon: null,
           rating: rating,
@@ -213,32 +203,20 @@ export default function MapaScreen() {
           isPremium: false,
           isCluster,
           count,
-          estaAbierto,
-          tieneHorarios,
-          markerColor,
         };
       });
 
-      // ✅ v181.0: Filter by open/closed status
-      if (filtroEstado === 'abiertos') {
-        markers = markers.filter((marker: any) => {
-          if (marker.isCluster) return true; // Always show clusters
-          return marker.estaAbierto === true || !marker.tieneHorarios; // Show open or no schedule info
-        });
-        console.log('[MAP v181.0] 🔍 Filtered to', markers.length, 'open/no-info markers');
-      }
-
       setMarkersData(markers);
-      // ✅ v181.0: Only hide loading on FIRST load
+      // ✅ v179.0: Only hide loading on FIRST load
       if (isLoadingMarkers) {
         setIsLoadingMarkers(false);
       }
 
-      console.log('[MAP v181.0] 🎯 Markers ready for display');
+      console.log('[MAP v179.0] 🎯 Markers ready for display');
     } catch (error) {
-      console.error('[MAP v181.0] ❌ Error loading map data:', error);
+      console.error('[MAP v179.0] ❌ Error loading map data:', error);
     }
-  }, [calculateZoomLevel, isLoadingMarkers, filtroEstado]);
+  }, [calculateZoomLevel, isLoadingMarkers]);
 
   // ✅ v179.0: Generate map HTML with enhanced popup
   const generateMapHTML = useCallback(async () => {
@@ -276,25 +254,14 @@ export default function MapaScreen() {
       border: 3px solid #FFFFFF;
       transition: transform 0.2s;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      background-color: #14B8A6;
+      box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
     }
     
     .custom-marker-cluster {
       background-color: #F59E0B;
       border-color: #FFFFFF;
       box-shadow: 0 2px 8px rgba(245, 158, 11, 0.5);
-    }
-    
-    .custom-marker-open {
-      background-color: #22C55E;
-    }
-    
-    .custom-marker-closed {
-      background-color: #EF4444;
-    }
-    
-    .custom-marker-unknown {
-      background-color: #9CA3AF;
     }
     
     .custom-marker:hover {
@@ -337,118 +304,77 @@ export default function MapaScreen() {
     .leaflet-control-attribution { display: none !important; }
     .leaflet-control-zoom { display: none !important; }
     
-    /* ✅ v181.0: Enhanced popup styles with better design */
+    /* ✅ v179.0: Enhanced popup styles */
     .venue-popup {
-      min-width: 300px;
-      max-width: 340px;
+      min-width: 280px;
+      max-width: 320px;
     }
     
     .venue-popup-image {
       width: 100%;
-      height: 180px;
+      height: 160px;
       object-fit: cover;
-      border-radius: 12px 12px 0 0;
+      border-radius: 8px 8px 0 0;
+      margin-bottom: 12px;
     }
     
     .venue-popup-content {
-      padding: 16px;
-      background: white;
-      border-radius: 0 0 12px 12px;
+      padding: 12px;
     }
     
     .venue-popup-title {
       font-size: ${popupTitleSize}px;
-      font-weight: 700;
-      margin-bottom: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
       color: #1F2937;
-      line-height: 1.3;
     }
     
     .venue-popup-info {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin-bottom: 16px;
+      gap: 6px;
+      margin-bottom: 12px;
     }
     
     .venue-popup-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       font-size: ${popupFontSize}px;
-      color: #4B5563;
-      padding: 8px;
-      background: #F9FAFB;
-      border-radius: 8px;
-    }
-    
-    .venue-popup-icon {
-      font-size: 18px;
-      width: 24px;
-      text-align: center;
+      color: #6B7280;
     }
     
     .venue-popup-rating {
       color: #FACC15;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    
-    .venue-popup-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
       font-weight: 600;
     }
     
-    .venue-popup-status-open {
-      color: #22C55E;
-    }
-    
-    .venue-popup-status-closed {
-      color: #EF4444;
-    }
-    
-    .venue-popup-status-unknown {
-      color: #9CA3AF;
-    }
-    
     .venue-popup-category {
-      background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
+      background-color: #14B8A6;
       color: white;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 700;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      box-shadow: 0 2px 4px rgba(20, 184, 166, 0.3);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-block;
     }
     
     .venue-popup-button {
       display: block;
       width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
+      padding: 10px;
+      background: #14B8A6;
       color: white;
       text-align: center;
-      border-radius: 10px;
+      border-radius: 8px;
       text-decoration: none;
-      font-weight: 700;
+      font-weight: 600;
       font-size: ${popupFontSize}px;
-      transition: all 0.2s;
-      box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
-      border: none;
-      cursor: pointer;
+      transition: background 0.2s;
     }
     
     .venue-popup-button:hover {
-      background: linear-gradient(135deg, #0F9488 0%, #0D9488 100%);
-      box-shadow: 0 6px 16px rgba(20, 184, 166, 0.4);
-      transform: translateY(-2px);
+      background: #0F9488;
     }
   </style>
 </head>
@@ -504,9 +430,9 @@ export default function MapaScreen() {
         }));
       });
       
-      // ✅ v181.0: Function to update markers with enhanced popups and colors
+      // ✅ v179.0: Function to update markers with enhanced popups
       window.updateMarkers = function(markersData) {
-        console.log('[MAP HTML v181.0] 🎯 Updating markers:', markersData.length);
+        console.log('[MAP HTML v179.0] 🎯 Updating markers:', markersData.length);
         
         // Clear existing markers
         markers.forEach(function(marker) {
@@ -516,18 +442,7 @@ export default function MapaScreen() {
         
         // Add new markers
         markersData.forEach(function(data) {
-          var markerClass = 'custom-marker';
-          
-          if (data.isCluster) {
-            markerClass += ' custom-marker-cluster';
-          } else {
-            // ✅ v181.0: Apply color based on open/closed status
-            if (data.tieneHorarios) {
-              markerClass += data.estaAbierto ? ' custom-marker-open' : ' custom-marker-closed';
-            } else {
-              markerClass += ' custom-marker-unknown';
-            }
-          }
+          var markerClass = data.isCluster ? 'custom-marker custom-marker-cluster' : 'custom-marker';
           
           var markerHtml = data.icon;
           if (data.isCluster) {
@@ -546,47 +461,24 @@ export default function MapaScreen() {
           var marker = L.marker([data.lat, data.lng], { icon: markerIcon });
           
           if (!data.isCluster) {
-            // ✅ v181.0: Enhanced popup with clock icon and better design
-            var statusClass = 'venue-popup-status-unknown';
-            var statusIcon = '🕐'; // Clock icon
-            var statusText = data.estadoBadge || 'Sin información';
-            
-            if (data.tieneHorarios) {
-              if (data.estaAbierto) {
-                statusClass = 'venue-popup-status-open';
-                statusText = data.estadoBadge || 'Abierto ahora';
-              } else {
-                statusClass = 'venue-popup-status-closed';
-                statusText = data.estadoBadge || 'Cerrado';
-              }
-            }
-            
+            // ✅ v179.0: RESTORED POPUP with full venue info
             var popupContent = '<div class="venue-popup">' +
               '<img src="' + data.imagen + '" class="venue-popup-image" onerror="this.style.display=\\'none\\'" />' +
               '<div class="venue-popup-content">' +
                 '<div class="venue-popup-title">' + data.nombre + '</div>' +
                 '<div class="venue-popup-info">' +
-                  (data.rating > 0 ? '<div class="venue-popup-row"><span class="venue-popup-icon">⭐</span><span class="venue-popup-rating">' + data.rating.toFixed(1) + ' / 5.0</span></div>' : '') +
-                  '<div class="venue-popup-row"><span class="venue-popup-icon">🏷️</span><span class="venue-popup-category">' + data.categoria + '</span></div>' +
-                  '<div class="venue-popup-row venue-popup-status ' + statusClass + '"><span class="venue-popup-icon">' + statusIcon + '</span><span>' + statusText + '</span></div>' +
+                  (data.rating > 0 ? '<div class="venue-popup-row"><span class="venue-popup-rating">⭐ ' + data.rating.toFixed(1) + '</span></div>' : '') +
+                  '<div class="venue-popup-row"><span class="venue-popup-category">' + data.categoria + '</span></div>' +
+                  '<div class="venue-popup-row">📍 ' + data.estadoBadge + '</div>' +
                 '</div>' +
-                '<button class="venue-popup-button" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: \\'navigate\\', id: \\'' + data.id + '\\'})); return false;">Ver detalles</button>' +
+                '<a href="#" class="venue-popup-button" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: \\'navigate\\', id: \\'' + data.id + '\\'})); return false;">Ver detalles</a>' +
               '</div>' +
             '</div>';
             
             marker.bindPopup(popupContent, {
-              maxWidth: 340,
+              maxWidth: 320,
               closeButton: true,
               className: 'venue-popup-container'
-            });
-            
-            // ✅ v181.0: Center map on popup open
-            marker.on('popupopen', function() {
-              console.log('[MAP HTML v181.0] 📍 Centering on popup');
-              map.panTo([data.lat, data.lng], {
-                animate: true,
-                duration: 0.5
-              });
             });
           } else {
             // Cluster click: zoom in
@@ -648,25 +540,23 @@ export default function MapaScreen() {
     }
   }, [markersData, isMapReady]);
 
-  // ✅ v181.0: Load initial data when map is ready or filter changes
+  // ✅ v179.0: Load initial data when map is ready
   useEffect(() => {
     if (isMapReady && userLocation) {
-      console.log('[MAP v181.0] 🚀 Map ready or filter changed, loading data');
+      console.log('[MAP v179.0] 🚀 Map ready, loading initial data');
       
-      // Use current region if available, otherwise initial region
-      const region = currentRegion || {
+      // Initial region
+      const initialRegion = {
         latitude: userLocation.lat,
         longitude: userLocation.lng,
         latitudeDelta: 0.1, // ~11km
         longitudeDelta: 0.1,
       };
       
-      if (!currentRegion) {
-        setCurrentRegion(region);
-      }
-      loadMapData(region);
+      setCurrentRegion(initialRegion);
+      loadMapData(initialRegion);
     }
-  }, [isMapReady, userLocation, loadMapData, filtroEstado]);
+  }, [isMapReady, userLocation, loadMapData]);
 
   const centerOnUser = () => {
     if (userLocation && webViewRef.current && isMapReady) {
