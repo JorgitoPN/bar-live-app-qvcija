@@ -106,14 +106,14 @@ const DIAS_SEMANA: Record<number, string> = {
 const MAX_LOGS = 50;
 
 /**
- * ✅ ENRIQUECIMIENTO GOOGLE v131.0 - AUTO-CLEANUP ENRICHED OSM LOCALES
+ * ✅ ENRIQUECIMIENTO GOOGLE v2.0 - CATALOG MIGRATION SYSTEM
  * 
- * NEW IN v131.0:
- * - ✅ NEW: Automatic cleanup of enriched OSM locales after activation
- * - ✅ NEW: OSM locales are deleted after being enriched and published
- * - ✅ NEW: Configurable auto-cleanup system (can be enabled/disabled)
- * - ✅ NEW: Frees up space and improves app performance
- * - ✅ NEW: Locales remain visible in "Explorar" and "Mapa" (Google Places data)
+ * NEW IN v2.0 (REDESIGNED AFTER CRITICAL INCIDENT):
+ * - ✅ NEW: Automatic catalog migration (OSM → Google Places)
+ * - ✅ NEW: Changes source_type instead of deleting records
+ * - ✅ NEW: Maintains data integrity and foreign key references
+ * - ✅ NEW: Separates OSM catalog (pending) from Google catalog (enriched)
+ * - ✅ NEW: 100% safe - no data loss
  * 
  * CRITICAL FIXES v130.0:
  * - ✅ FIXED: Locales that fail with P0001 (duplicate) are now automatically deleted
@@ -1087,16 +1087,16 @@ export default function EnriquecimientoGoogleScreen() {
             agregarLog('success', `✅ ${local.nombre} ${rating} ${reviews} ${status} ${price} ${photos} [${types}]`);
             exitosos++;
             
-            // 🗑️ v131.0: LIMPIEZA AUTOMÁTICA DE OSM ENRIQUECIDOS
-            // Verificar si la limpieza automática está habilitada
+            // 🔄 v2.0: MIGRACIÓN AUTOMÁTICA DE CATÁLOGO OSM A GOOGLE
+            // Verificar si la migración automática está habilitada
             const autoCleanupEnabled = await estaLimpiezaAutomaticaHabilitada();
             if (autoCleanupEnabled) {
-              agregarLog('info', `🗑️ Limpieza automática: Eliminando ${local.nombre} del catálogo OSM...`);
-              const deleted = await limpiarLocalOSMSiEnriquecido(local.id);
-              if (deleted) {
-                agregarLog('success', `✅ ${local.nombre} eliminado del catálogo OSM (ya está publicado con Google Places)`);
+              agregarLog('info', `🔄 Migración automática: Moviendo ${local.nombre} al catálogo Google Places...`);
+              const migrated = await limpiarLocalOSMSiEnriquecido(local.id);
+              if (migrated) {
+                agregarLog('success', `✅ ${local.nombre} migrado al catálogo Google Places (source_type: osm → google)`);
               } else {
-                agregarLog('warning', `⚠️ No se pudo eliminar ${local.nombre} del catálogo OSM`);
+                agregarLog('warning', `⚠️ No se pudo migrar ${local.nombre} al catálogo Google`);
               }
             }
           }
@@ -1118,16 +1118,16 @@ export default function EnriquecimientoGoogleScreen() {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      // 🗑️ v131.0: MOSTRAR INFORMACIÓN SOBRE LIMPIEZA AUTOMÁTICA
+      // 🔄 v2.0: MOSTRAR INFORMACIÓN SOBRE MIGRACIÓN AUTOMÁTICA
       const autoCleanupEnabled = await estaLimpiezaAutomaticaHabilitada();
       const cleanupMessage = autoCleanupEnabled
-        ? '\n\n🗑️ Limpieza automática: Los locales OSM enriquecidos han sido eliminados del catálogo'
-        : '\n\n💡 Tip: Activa la limpieza automática en "Limpieza OSM Enriquecidos" para liberar espacio';
+        ? '\n\n🔄 Migración automática: Los locales OSM enriquecidos han sido movidos al catálogo Google Places'
+        : '\n\n💡 Tip: Activa la migración automática en "Separación de Catálogos" para mantener los catálogos organizados';
       
       agregarLog('success', `🎉 Completado: ${exitosos} exitosos, ${fallidos} fallidos, ${rechazados} rechazados y eliminados`);
       
       if (autoCleanupEnabled) {
-        agregarLog('info', `🗑️ Limpieza automática: ${exitosos} locales OSM eliminados del catálogo`);
+        agregarLog('info', `🔄 Migración automática: ${exitosos} locales movidos de catálogo OSM a Google Places`);
         agregarLog('info', '✅ Los locales siguen visibles en "Explorar" y "Mapa" con datos de Google Places');
       }
       
@@ -1389,19 +1389,19 @@ export default function EnriquecimientoGoogleScreen() {
         </Text>
       </View>
 
-      {/* NEW v131.0: OSM Cleanup Info */}
+      {/* NEW v2.0: Catalog Migration Info */}
       <View style={[styles.infoBox, { backgroundColor: '#D1FAE5', marginBottom: 15 }]}>
-        <Text style={[styles.infoBoxTitle, { color: '#065F46', fontSize: scaleFontSize(13) }]}>🗑️ Limpieza OSM Enriquecidos v131.0</Text>
+        <Text style={[styles.infoBoxTitle, { color: '#065F46', fontSize: scaleFontSize(13) }]}>🔄 Separación de Catálogos v2.0</Text>
         <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5, fontSize: scaleFontSize(12) }]}>
           Los locales OSM enriquecidos exitosamente serán:
           {'\n\n'}
-          ✅ Eliminados del catálogo OSM (si limpieza automática está activada)
+          ✅ Migrados al catálogo Google Places (source_type: osm → google)
           {'\n'}
-          ✅ Mantenidos visibles en "Explorar" y "Mapa" con datos de Google Places
+          ✅ Mantenidos visibles en "Explorar" y "Mapa" con todos sus datos
           {'\n'}
-          ✅ Liberan espacio y mejoran el rendimiento
+          ✅ Separados del catálogo OSM para mejor organización
           {'\n\n'}
-          💡 Configura la limpieza automática en "Limpieza OSM Enriquecidos"
+          💡 Configura la migración automática en "Separación de Catálogos"
         </Text>
       </View>
 

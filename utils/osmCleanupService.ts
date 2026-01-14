@@ -2,23 +2,29 @@
 import { supabase } from './supabase';
 
 /**
- * 🗑️ SERVICIO DE LIMPIEZA DE LOCALES OSM ENRIQUECIDOS
+ * 🗑️ SERVICIO DE LIMPIEZA DE LOCALES OSM ENRIQUECIDOS v2.0
  * 
- * Este módulo proporciona funciones para limpiar locales OSM que ya han sido
- * enriquecidos con Google Places y están activos en la aplicación.
+ * IMPORTANTE: Este módulo ha sido REDISEÑADO después del incidente crítico v1.0
  * 
- * OBJETIVO: Liberar espacio y mejorar rendimiento eliminando datos redundantes.
+ * NUEVA LÓGICA v2.0:
+ * - Los locales OSM enriquecidos NO se eliminan de la base de datos
+ * - En su lugar, se cambia su source_type de 'osm' a 'google'
+ * - Esto indica que el local ahora pertenece al catálogo de Google Places
+ * - El local sigue visible en "Explorar" y "Mapa" (sin pérdida de datos)
+ * - Se mantiene la integridad referencial (foreign keys, likes, posts, etc.)
+ * 
+ * OBJETIVO: Separar claramente el catálogo OSM del catálogo enriquecido
  * 
  * LÓGICA:
- * - Los locales OSM solo son útiles DURANTE el proceso de enriquecimiento
- * - Una vez enriquecidos con Google Places y activados, ya no se necesitan
- * - Los locales enriquecidos están publicados en "Explorar" y "Mapa"
- * - Eliminar OSM enriquecidos NO afecta la visibilidad en la app
+ * - Los locales OSM (source_type='osm') son locales pendientes de enriquecer
+ * - Los locales Google (source_type='google') son locales enriquecidos y activos
+ * - Una vez enriquecido, el local cambia de catálogo (osm → google)
+ * - Esto evita confusión y mantiene los catálogos separados
  */
 
 export interface OSMCleanupResult {
   success: boolean;
-  localesEliminados: number;
+  localesMovidos: number;
   espacioLiberadoMB: number;
   detalles: Array<{
     id: string;
@@ -29,15 +35,17 @@ export interface OSMCleanupResult {
 }
 
 /**
- * Limpia locales OSM que han sido enriquecidos y están activos
+ * Mueve locales OSM enriquecidos al catálogo de Google Places
+ * Cambia source_type de 'osm' a 'google' para indicar que pertenecen al catálogo enriquecido
  */
 export async function limpiarOSMEnriquecidos(dryRun: boolean = false): Promise<OSMCleanupResult> {
-  console.log('[OSM Cleanup Service] 🗑️ Starting cleanup...');
-  console.log('[OSM Cleanup Service] Dry run:', dryRun);
+  console.log('[OSM Cleanup Service v2.0] 🔄 Starting catalog migration...');
+  console.log('[OSM Cleanup Service v2.0] Dry run:', dryRun);
+  console.log('[OSM Cleanup Service v2.0] Action: Change source_type from osm to google');
   
   try {
     // Find OSM locales that are enriched and active
-    const { data: localesAEliminar, error: fetchError } = await supabase
+    const { data: localesAMover, error: fetchError } = await supabase
       .from('locales')
       .select('id, nombre, provincia')
       .eq('source_type', 'osm')
@@ -45,30 +53,30 @@ export async function limpiarOSMEnriquecidos(dryRun: boolean = false): Promise<O
       .eq('activo', true);
 
     if (fetchError) {
-      console.error('[OSM Cleanup Service] ❌ Error fetching locales:', fetchError);
+      console.error('[OSM Cleanup Service v2.0] ❌ Error fetching locales:', fetchError);
       throw fetchError;
     }
 
-    console.log('[OSM Cleanup Service] Found locales to delete:', localesAEliminar?.length || 0);
+    console.log('[OSM Cleanup Service v2.0] Found locales to migrate:', localesAMover?.length || 0);
 
-    if (!localesAEliminar || localesAEliminar.length === 0) {
-      console.log('[OSM Cleanup Service] ✅ No locales to delete');
+    if (!localesAMover || localesAMover.length === 0) {
+      console.log('[OSM Cleanup Service v2.0] ✅ No locales to migrate');
       return {
         success: true,
-        localesEliminados: 0,
+        localesMovidos: 0,
         espacioLiberadoMB: 0,
         detalles: [],
       };
     }
 
     if (dryRun) {
-      // Simulation: Just return what would be deleted
-      console.log('[OSM Cleanup Service] 📊 Simulation mode - no changes made');
+      // Simulation: Just return what would be migrated
+      console.log('[OSM Cleanup Service v2.0] 📊 Simulation mode - no changes made');
       return {
         success: true,
-        localesEliminados: localesAEliminar.length,
-        espacioLiberadoMB: Math.round((localesAEliminar.length * 5) / 1024),
-        detalles: localesAEliminar.slice(0, 10).map(l => ({
+        localesMovidos: localesAMover.length,
+        espacioLiberadoMB: Math.round((localesAMover.length * 5) / 1024),
+        detalles: localesAMover.slice(0, 10).map(l => ({
           id: l.id,
           nombre: l.nombre,
           provincia: l.provincia,
@@ -76,28 +84,31 @@ export async function limpiarOSMEnriquecidos(dryRun: boolean = false): Promise<O
       };
     }
 
-    // Real cleanup: Delete in batches
+    // Real migration: Change source_type from 'osm' to 'google' in batches
     const batchSize = 100;
-    let totalDeleted = 0;
+    let totalMigrated = 0;
     const detalles: Array<{ id: string; nombre: string; provincia: string }> = [];
     
-    for (let i = 0; i < localesAEliminar.length; i += batchSize) {
-      const batch = localesAEliminar.slice(i, i + batchSize);
+    for (let i = 0; i < localesAMover.length; i += batchSize) {
+      const batch = localesAMover.slice(i, i + batchSize);
       const ids = batch.map(l => l.id);
       
-      console.log(`[OSM Cleanup Service] Deleting batch ${i / batchSize + 1}:`, ids.length, 'locales');
+      console.log(`[OSM Cleanup Service v2.0] Migrating batch ${i / batchSize + 1}:`, ids.length, 'locales');
       
-      const { error: deleteError } = await supabase
+      const { error: updateError } = await supabase
         .from('locales')
-        .delete()
+        .update({ 
+          source_type: 'google',
+          fecha_actualizacion: new Date().toISOString(),
+        })
         .in('id', ids);
 
-      if (deleteError) {
-        console.error('[OSM Cleanup Service] ❌ Error deleting batch:', deleteError);
-        throw deleteError;
+      if (updateError) {
+        console.error('[OSM Cleanup Service v2.0] ❌ Error migrating batch:', updateError);
+        throw updateError;
       }
 
-      totalDeleted += ids.length;
+      totalMigrated += ids.length;
       
       // Store first 10 for details
       if (detalles.length < 10) {
@@ -108,27 +119,27 @@ export async function limpiarOSMEnriquecidos(dryRun: boolean = false): Promise<O
         })));
       }
       
-      console.log(`[OSM Cleanup Service] ✅ Deleted ${totalDeleted}/${localesAEliminar.length} locales`);
+      console.log(`[OSM Cleanup Service v2.0] ✅ Migrated ${totalMigrated}/${localesAMover.length} locales`);
     }
 
     // Calculate space freed (rough estimate: 5KB per local)
-    const espacioLiberadoMB = Math.round((totalDeleted * 5) / 1024);
+    const espacioLiberadoMB = Math.round((totalMigrated * 5) / 1024);
 
-    console.log('[OSM Cleanup Service] ✅ Cleanup completed');
-    console.log('[OSM Cleanup Service] Total deleted:', totalDeleted);
-    console.log('[OSM Cleanup Service] Space freed:', espacioLiberadoMB, 'MB');
+    console.log('[OSM Cleanup Service v2.0] ✅ Migration completed');
+    console.log('[OSM Cleanup Service v2.0] Total migrated:', totalMigrated);
+    console.log('[OSM Cleanup Service v2.0] Catalog separation complete');
 
     return {
       success: true,
-      localesEliminados: totalDeleted,
+      localesMovidos: totalMigrated,
       espacioLiberadoMB,
       detalles,
     };
   } catch (error) {
-    console.error('[OSM Cleanup Service] ❌ Error:', error);
+    console.error('[OSM Cleanup Service v2.0] ❌ Error:', error);
     return {
       success: false,
-      localesEliminados: 0,
+      localesMovidos: 0,
       espacioLiberadoMB: 0,
       detalles: [],
       error: error instanceof Error ? error.message : 'Error desconocido',
@@ -137,11 +148,12 @@ export async function limpiarOSMEnriquecidos(dryRun: boolean = false): Promise<O
 }
 
 /**
- * Limpia un local OSM específico si está enriquecido y activo
+ * Mueve un local OSM específico al catálogo de Google Places si está enriquecido y activo
+ * Cambia source_type de 'osm' a 'google'
  */
 export async function limpiarLocalOSMSiEnriquecido(localId: string): Promise<boolean> {
   try {
-    console.log(`[OSM Cleanup Service] Checking local ${localId}...`);
+    console.log(`[OSM Cleanup Service v2.0] Checking local ${localId}...`);
     
     // Check if local is OSM, enriched, and active
     const { data: local, error: fetchError } = await supabase
@@ -151,13 +163,13 @@ export async function limpiarLocalOSMSiEnriquecido(localId: string): Promise<boo
       .single();
 
     if (fetchError || !local) {
-      console.error('[OSM Cleanup Service] Local not found:', fetchError);
+      console.error('[OSM Cleanup Service v2.0] Local not found:', fetchError);
       return false;
     }
 
-    // Only delete if it's OSM, enriched, and active
+    // Only migrate if it's OSM, enriched, and active
     if (local.source_type !== 'osm' || !local.enriquecido || !local.activo) {
-      console.log('[OSM Cleanup Service] Local does not meet cleanup criteria:', {
+      console.log('[OSM Cleanup Service v2.0] Local does not meet migration criteria:', {
         source_type: local.source_type,
         enriquecido: local.enriquecido,
         activo: local.activo,
@@ -165,23 +177,26 @@ export async function limpiarLocalOSMSiEnriquecido(localId: string): Promise<boo
       return false;
     }
 
-    console.log(`[OSM Cleanup Service] Deleting enriched OSM local: ${local.nombre}`);
+    console.log(`[OSM Cleanup Service v2.0] Migrating enriched OSM local to Google catalog: ${local.nombre}`);
 
-    // Delete the local
-    const { error: deleteError } = await supabase
+    // Change source_type from 'osm' to 'google'
+    const { error: updateError } = await supabase
       .from('locales')
-      .delete()
+      .update({ 
+        source_type: 'google',
+        fecha_actualizacion: new Date().toISOString(),
+      })
       .eq('id', localId);
 
-    if (deleteError) {
-      console.error('[OSM Cleanup Service] ❌ Error deleting local:', deleteError);
+    if (updateError) {
+      console.error('[OSM Cleanup Service v2.0] ❌ Error migrating local:', updateError);
       return false;
     }
 
-    console.log('[OSM Cleanup Service] ✅ Local deleted successfully');
+    console.log('[OSM Cleanup Service v2.0] ✅ Local migrated to Google catalog successfully');
     return true;
   } catch (error) {
-    console.error('[OSM Cleanup Service] ❌ Error:', error);
+    console.error('[OSM Cleanup Service v2.0] ❌ Error:', error);
     return false;
   }
 }
@@ -218,7 +233,7 @@ export async function obtenerEstadisticasOSMEnriquecidos(): Promise<{
       espacioEstimadoMB,
     };
   } catch (error) {
-    console.error('[OSM Cleanup Service] Error getting statistics:', error);
+    console.error('[OSM Cleanup Service v2.0] Error getting statistics:', error);
     return {
       totalOSM: 0,
       osmEnriquecidos: 0,
@@ -230,7 +245,7 @@ export async function obtenerEstadisticasOSMEnriquecidos(): Promise<{
 }
 
 /**
- * Verifica si la limpieza automática está habilitada
+ * Verifica si la migración automática está habilitada
  */
 export async function estaLimpiezaAutomaticaHabilitada(): Promise<boolean> {
   try {
@@ -241,22 +256,25 @@ export async function estaLimpiezaAutomaticaHabilitada(): Promise<boolean> {
       .single();
 
     if (error || !data) {
-      return false;
+      // Por defecto, la migración automática está ACTIVADA
+      return true;
     }
 
-    return data.value?.enabled === true;
+    // Si existe la configuración, respetar el valor
+    return data.value?.enabled !== false;
   } catch (error) {
-    console.error('[OSM Cleanup Service] Error checking auto-cleanup status:', error);
-    return false;
+    console.error('[OSM Cleanup Service v2.0] Error checking auto-cleanup status:', error);
+    // Por defecto, activada
+    return true;
   }
 }
 
 /**
- * Activa o desactiva la limpieza automática
+ * Activa o desactiva la migración automática
  */
 export async function configurarLimpiezaAutomatica(enabled: boolean): Promise<boolean> {
   try {
-    console.log('[OSM Cleanup Service] Setting auto-cleanup:', enabled);
+    console.log('[OSM Cleanup Service v2.0] Setting auto-migration:', enabled);
 
     const { error } = await supabase
       .from('app_config')
@@ -267,14 +285,14 @@ export async function configurarLimpiezaAutomatica(enabled: boolean): Promise<bo
       });
 
     if (error) {
-      console.error('[OSM Cleanup Service] Error setting auto-cleanup:', error);
+      console.error('[OSM Cleanup Service v2.0] Error setting auto-migration:', error);
       return false;
     }
 
-    console.log('[OSM Cleanup Service] ✅ Auto-cleanup configured successfully');
+    console.log('[OSM Cleanup Service v2.0] ✅ Auto-migration configured successfully');
     return true;
   } catch (error) {
-    console.error('[OSM Cleanup Service] Error:', error);
+    console.error('[OSM Cleanup Service v2.0] Error:', error);
     return false;
   }
 }
