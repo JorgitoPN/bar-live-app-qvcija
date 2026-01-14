@@ -69,17 +69,14 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v178.0 - CRITICAL BUG FIX
+ * ✅ FAVORITOS SCREEN v107.0 - UNIFIED TEAL ICON DESIGN
  * 
- * CRITICAL BUG FIXES v178.0:
- * - ✅ FIXED: SQL query error causing "PGRST100" error
- * - ✅ FIXED: Corrected .or() filter syntax for excluding OSM locales
- * - ✅ IMPROVED: Better error handling and logging
- * 
- * PREVIOUS FIXES v176.0:
- * - ✅ OSM LOCALES EXCLUDED: OSM-imported locales are NOT loaded in favorites until enriched
- * - ✅ INSTANT PERFORMANCE: Only active, enriched locales appear in favorites
- * - ✅ NO UNNECESSARY PROCESSING: OSM locales remain isolated from app flow
+ * CRITICAL FIXES v107.0:
+ * - ✅ Category filters now use TEAL-COLORED ICONS (matching Eventos)
+ * - ✅ Icons use colors.primary (teal #14B8A6)
+ * - ✅ Active state: white background with teal icon
+ * - ✅ Inactive state: teal background with white icon
+ * - ✅ Consistent design across Eventos, Favoritos, Explorar, and Mapa
  */
 
 export default function FavoritosScreen() {
@@ -122,10 +119,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v178.0] User location obtained:', location.coords);
+          console.log('[Favoritos v107.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v178.0] Error getting location:', error);
+        console.error('[Favoritos v107.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -151,7 +148,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v178.0] Error checking social profiles:', error);
+      console.error('[Favoritos v107.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -162,15 +159,12 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v178.0] Cargando locales guardados (OSM EXCLUDED)...');
-      
-      // ✅ CRITICAL FIX v178.0: Corrected SQL query syntax
-      // First, get all saved locales for the user
+      console.log('[Favoritos v107.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
           local_id,
-          locales!inner (
+          locales (
             id,
             nombre,
             direccion,
@@ -188,50 +182,40 @@ export default function FavoritosScreen() {
             estado_actual,
             destacado,
             nuevo,
-            google_rating,
-            source_type
+            google_rating
           )
         `)
         .eq('usuario_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (localesError) {
-        console.error('[Favoritos v178.0] Error loading saved locales:', localesError);
-        throw localesError;
-      }
+      if (localesError) throw localesError;
 
       if (savedLocalesData) {
-        // ✅ Filter out OSM locales in JavaScript instead of SQL
-        const filteredData = savedLocalesData.filter(sl => {
-          if (!sl.locales) return false;
-          const sourceType = sl.locales.source_type;
-          // Exclude OSM locales (only show null or non-OSM source types)
-          return !sourceType || sourceType !== 'osm';
-        });
-
-        const formattedLocales = filteredData.map((sl: any) => {
-          const local = sl.locales;
-          
-          let distancia = null;
-          if (userLocation && local.latitud && local.longitud) {
-            distancia = calcularDistancia(
-              userLocation.lat,
-              userLocation.lng,
-              parseFloat(local.latitud),
-              parseFloat(local.longitud)
-            );
-          }
-          
-          return {
-            ...local,
-            coordenadas: {
-              lat: parseFloat(local.latitud),
-              lng: parseFloat(local.longitud),
-            },
-            imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-            distancia: distancia,
-          };
-        });
+        const formattedLocales = savedLocalesData
+          .filter(sl => sl.locales)
+          .map((sl: any) => {
+            const local = sl.locales;
+            
+            let distancia = null;
+            if (userLocation && local.latitud && local.longitud) {
+              distancia = calcularDistancia(
+                userLocation.lat,
+                userLocation.lng,
+                parseFloat(local.latitud),
+                parseFloat(local.longitud)
+              );
+            }
+            
+            return {
+              ...local,
+              coordenadas: {
+                lat: parseFloat(local.latitud),
+                lng: parseFloat(local.longitud),
+              },
+              imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
+              distancia: distancia,
+            };
+          });
         
         setAllSavedLocales(formattedLocales);
         setFilteredLocales(formattedLocales);
@@ -241,13 +225,12 @@ export default function FavoritosScreen() {
         setCurrentPage(1);
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
-        console.log('[Favoritos v178.0] Locales guardados cargados (OSM excluded):', formattedLocales.length);
+        console.log('[Favoritos v107.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v178.0] Error cargando locales guardados:', error);
-      Alert.alert('Error', 'No se pudieron cargar los locales guardados. Por favor, intenta de nuevo.');
+      console.error('[Favoritos v107.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -268,7 +251,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v178.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v107.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -282,7 +265,7 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v178.0] Recalculating distances with new user location');
+      console.log('[Favoritos v107.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -344,7 +327,7 @@ export default function FavoritosScreen() {
     setCurrentPage(1);
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
-    console.log('[Favoritos v178.0] Filters applied. Results:', filtered.length);
+    console.log('[Favoritos v107.0] Filters applied. Results:', filtered.length);
   }, [searchQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
   const loadMoreLocales = useCallback(() => {
@@ -362,7 +345,7 @@ export default function FavoritosScreen() {
         setDisplayedLocales(prev => [...prev, ...nextItems]);
         setCurrentPage(nextPage);
         setHasMore(endIndex < filteredLocales.length);
-        console.log('[Favoritos v178.0] Cargando más locales, página:', nextPage);
+        console.log('[Favoritos v107.0] Cargando más locales, página:', nextPage);
       } else {
         setHasMore(false);
       }
@@ -372,7 +355,7 @@ export default function FavoritosScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v178.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v107.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -382,7 +365,7 @@ export default function FavoritosScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v178.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v107.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -402,18 +385,18 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v178.0] User not authenticated');
+      console.log('[Favoritos v107.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v178.0] No local ID');
+      console.log('[Favoritos v107.0] No local ID');
       return;
     }
 
     try {
-      console.log('[Favoritos v178.0] Removing from favorites. User:', user.id, 'Local:', localId);
+      console.log('[Favoritos v107.0] Removing from favorites. User:', user.id, 'Local:', localId);
       
       const { error } = await supabase
         .from('locales_guardados')
@@ -422,16 +405,16 @@ export default function FavoritosScreen() {
         .eq('local_id', localId);
 
       if (error) {
-        console.error('[Favoritos v178.0] Error removing favorite:', error);
+        console.error('[Favoritos v107.0] Error removing favorite:', error);
         Alert.alert('Error', 'No se pudo quitar de favoritos');
         return;
       }
       
-      console.log('[Favoritos v178.0] ✅ Removed from favorites');
+      console.log('[Favoritos v107.0] ✅ Removed from favorites');
       
       await loadSavedLocales();
     } catch (error) {
-      console.error('[Favoritos v178.0] Error removing favorito:', error);
+      console.error('[Favoritos v107.0] Error removing favorito:', error);
       Alert.alert('Error', 'No se pudo eliminar de favoritos');
     }
   };

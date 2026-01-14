@@ -1,54 +1,4 @@
 
-/**
- * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 EXPLORAR SCREEN v193.0 - INFINITE SCROLL & PRIORITY FIX
- * ═══════════════════════════════════════════════════════════════════════════
- * 
- * 📊 CRITICAL FIXES v193.0:
- * 
- * 1. ♾️ INFINITE SCROLL PAGINATION
- *    - Load ALL venues in batches of 15
- *    - Auto-load next batch before reaching end
- *    - Seamless infinite scrolling experience
- *    - Result: All venues accessible via scroll
- * 
- * 2. 🎯 STRICT PRIORITY ORDERING
- *    - Featured & Open venues FIRST (within 100km)
- *    - Open venues SECOND
- *    - Venues with events THIRD
- *    - No schedule info FOURTH
- *    - Closed venues LAST
- *    - Distance is primary sort within each group
- *    - Result: Closed venues NEVER appear first
- * 
- * 3. ⚡ OPTIMIZED LOADING
- *    - Load 15 items per page
- *    - Pre-fetch next page in background
- *    - Intelligent request deduplication
- *    - Result: < 1 second loads
- * 
- * 4. 📱 SMART PAGINATION
- *    - Backend handles ALL sorting logic
- *    - Frontend only displays results
- *    - No order recalculation between pages
- *    - Result: Consistent ordering throughout list
- * 
- * 5. 🔄 BACKGROUND REFRESH
- *    - Silent cache updates every 5 minutes
- *    - User never sees loading states
- *    - Always shows latest data
- *    - Result: Fresh data without interruption
- * 
- * 📈 EXPECTED RESULTS:
- * - Initial load: 15 venues
- * - Scroll pagination: Automatic, seamless
- * - Priority order: ALWAYS correct (open first, closed last)
- * - Total venues: ALL available (not limited to 15)
- * - Performance: Optimized with caching
- * 
- * ═══════════════════════════════════════════════════════════════════════════
- */
-
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useMode } from '@/contexts/ModeContext';
@@ -56,6 +6,7 @@ import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
@@ -87,19 +38,15 @@ import { getEstadoLocal } from '@/utils/timeUtils';
 import { IconSymbol } from '@/components/IconSymbol';
 import LoginPrompt from '@/components/common/LoginPrompt';
 import * as Location from 'expo-location';
+import { calcularDistancia } from '@/utils/locationUtils';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
-import { FlashList } from '@shopify/flash-list';
-import { dataCache } from '@/utils/dataCache';
 
-// ✅ v192.0: OPTIMIZED for performance and correct pagination
-const ITEMS_PER_PAGE = 15; // Optimal balance for performance and UX
-const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes cache for better performance
-const BACKGROUND_REFRESH_INTERVAL = 5 * 60 * 1000; // Refresh cache every 5 minutes
+const ITEMS_PER_PAGE = 20;
 
-// ✅ v188.0: INCREASED header height to prevent card overlap
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 380;
+// ✅ CRITICAL FIX v146.0: ANDROID ONLY - Optimized header height
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 260 : 360;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -124,19 +71,38 @@ const CATEGORIAS = [
   { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
 ];
 
+/**
+ * ✅ EXPLORAR SCREEN v146.0 - ANDROID CRITICAL FIX: FIRST LOCAL NO LONGER HIDDEN
+ * 
+ * CRITICAL FIXES v146.0 (ANDROID ONLY):
+ * - ✅ FIXED: First local card no longer hidden by header (increased marginTop from HEADER_MAX_HEIGHT to HEADER_MAX_HEIGHT + 32)
+ * - ✅ Header title size matches Favoritos reference (32sp on Android)
+ * - ✅ Locales without schedule info treated as OPEN (already implemented)
+ * - ✅ Consistent header icon size (28dp on Android, scaled)
+ * - ✅ Bottom padding for Android navigation buttons
+ * - ✅ ALL font sizes properly scaled with scaleFontSize()
+ * - ✅ ALL icon sizes properly scaled with scaleIconSize()
+ * - ✅ Consistent padding and margins throughout
+ * - ✅ Professional appearance on all Android devices
+ * - ✅ iOS design remains unchanged (reference design)
+ */
+
 export default function ExplorarScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
+  const [allLocales, setAllLocales] = useState<any[]>([]);
   const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
+  const [filteredLocales, setFilteredLocales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentOffset, setCurrentOffset] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [checkingSocialProfiles, setCheckingSocialProfiles] = useState<Set<string>>(new Set());
   const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
   const [showModeSelectorModal, setShowModeSelectorModal] = useState(false);
   
@@ -144,394 +110,380 @@ export default function ExplorarScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
 
-  // ✅ v192.0: Enhanced cache system with background refresh
-  const [cachedLocales, setCachedLocales] = useState<any[]>([]);
-  const [lastLoadTime, setLastLoadTime] = useState<number>(0);
-  const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
-  const backgroundRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
-
   const scrollY = useRef(0);
   const lastScrollY = useRef(0);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
-  const isLoadingMoreRef = useRef(false);
-  const isMountedRef = useRef(true);
-  
-  // ✅ v191.0: Request deduplication
-  const activeRequestRef = useRef<Promise<any> | null>(null);
-  const lastRequestTimeRef = useRef<number>(0);
-
-  // ✅ v192.0: Cleanup on unmount with background refresh timer
-  useEffect(() => {
-    isMountedRef.current = true;
-    console.log('[Explorar v192.0] 🚀 Component mounted');
-    
-    return () => {
-      isMountedRef.current = false;
-      activeRequestRef.current = null;
-      if (backgroundRefreshTimerRef.current) {
-        clearInterval(backgroundRefreshTimerRef.current);
-      }
-      console.log('[Explorar v192.0] 🛑 Component unmounted');
-    };
-  }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        console.log('[Explorar v192.0] 🔍 Requesting location permissions...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
           const location = await Location.getCurrentPositionAsync({});
-          if (isMountedRef.current) {
-            setUserLocation({
-              lat: location.coords.latitude,
-              lng: location.coords.longitude,
-            });
-            console.log('[Explorar v192.0] 📍 User location:', location.coords);
-          }
-        } else {
-          if (isMountedRef.current) {
-            setUserLocation({ lat: 40.4168, lng: -3.7038 });
-          }
-        }
-      } catch (error) {
-        console.error('[Explorar v192.0] ❌ Error getting location:', error);
-        if (isMountedRef.current) {
-          setUserLocation({ lat: 40.4168, lng: -3.7038 });
-        }
-      }
-    })();
-  }, []);
-
-  /**
-   * ✅ v192.0: Optimized open status check
-   */
-  const isLocalOpen = useCallback((local: any): boolean => {
-    try {
-      if (!local) return false;
-      const estado = getEstadoLocal(local);
-      return estado.estaAbierto === true;
-    } catch (error) {
-      console.error('[Explorar v192.0] Error checking if local is open:', error);
-      return false;
-    }
-  }, []);
-
-  /**
-   * ✅ v193.0: INFINITE SCROLL with strict priority ordering
-   */
-  const loadLocales = useCallback(async (offset: number = 0, append: boolean = false) => {
-    if (!userLocation) {
-      console.log('[Explorar v193.0] ⏳ Waiting for user location...');
-      return;
-    }
-
-    // ✅ v193.0: Prevent duplicate requests within 500ms
-    const now = Date.now();
-    if (now - lastRequestTimeRef.current < 500) {
-      console.log('[Explorar v193.0] 🚫 Request throttled (too soon)');
-      return;
-    }
-
-    // ✅ v193.0: Request deduplication
-    if (activeRequestRef.current) {
-      console.log('[Explorar v193.0] 🚫 Request already in progress, waiting...');
-      return activeRequestRef.current;
-    }
-
-    if (isLoadingMoreRef.current) {
-      console.log('[Explorar v193.0] ⏸️ Already loading, skipping...');
-      return;
-    }
-
-    // ✅ v193.0: Cache check - but allow pagination to continue
-    if (!append && cachedLocales.length > 0 && (now - lastLoadTime) < CACHE_DURATION) {
-      const cacheAge = Math.round((now - lastLoadTime) / 1000);
-      console.log('[Explorar v193.0] 💾 Using cached data (age:', cacheAge, 'seconds)');
-      
-      // ✅ v193.0: Display first page from cache
-      const limitedLocales = cachedLocales.slice(0, ITEMS_PER_PAGE);
-      setDisplayedLocales(limitedLocales);
-      setCurrentOffset(limitedLocales.length);
-      setHasMore(true); // Always allow loading more
-      setLoading(false);
-      return;
-    }
-
-    lastRequestTimeRef.current = now;
-
-    const requestPromise = (async () => {
-      try {
-        console.log('[Explorar v193.0] 🚀 LOADING LOCALES - INFINITE SCROLL');
-        console.log('[Explorar v193.0] 📍 Location:', userLocation.lat.toFixed(4), userLocation.lng.toFixed(4));
-        console.log('[Explorar v193.0] 📊 Offset:', offset, 'Limit:', ITEMS_PER_PAGE);
-        console.log('[Explorar v193.0] 📄 Append mode:', append);
-
-        isLoadingMoreRef.current = true;
-        if (append) {
-          setLoadingMore(true);
-        } else {
-          setLoading(true);
-        }
-
-        const startTime = Date.now();
-
-        // ✅ v193.0: Load data - backend handles ALL sorting with strict priorities
-        const { data, error } = await supabase.rpc('get_locales_paginados', {
-          user_lat: userLocation.lat,
-          user_lng: userLocation.lng,
-          p_limit: ITEMS_PER_PAGE,
-          p_offset: offset,
-        });
-
-        const loadTime = Date.now() - startTime;
-        console.log('[Explorar v193.0] ⚡ RPC completed in', loadTime, 'ms');
-
-        if (error) {
-          console.error('[Explorar v193.0] ❌ RPC Error:', error);
-          if (isMountedRef.current) {
-            setLoading(false);
-            setLoadingMore(false);
-            isLoadingMoreRef.current = false;
-          }
-          return;
-        }
-
-        if (!isMountedRef.current) return;
-
-        console.log('[Explorar v193.0] ✅ Received', data?.length || 0, 'venues (pre-sorted by backend)');
-
-        const locales = data || [];
-
-        // ✅ v192.0: Minimal transformation - NO SORTING
-        const transformStartTime = Date.now();
-        const transformedLocales = locales.map((local: any) => {
-          try {
-            const estado = getEstadoLocal(local);
-            
-            return {
-              ...local,
-              coordenadas: {
-                lat: parseFloat(local.latitud) || 0,
-                lng: parseFloat(local.longitud) || 0,
-              },
-              imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-              distancia: local.distancia_metros ? local.distancia_metros / 1000 : null,
-              estaAbierto: estado.estaAbierto,
-              tieneHorarios: local.horarios_completos && Object.keys(local.horarios_completos).length > 0,
-              // ✅ v192.0: Keep backend priority_group for debugging
-              priority_group: local.priority_group,
-            };
-          } catch (error) {
-            console.error('[Explorar v192.0] Error transforming venue:', error);
-            return null;
-          }
-        }).filter(Boolean);
-
-        const transformTime = Date.now() - transformStartTime;
-        console.log('[Explorar v193.0] ⚡ Transformation completed in', transformTime, 'ms');
-
-        // ✅ v193.0: Cache first page only
-        if (!append && offset === 0) {
-          setCachedLocales(transformedLocales);
-          setLastLoadTime(now);
-          console.log('[Explorar v193.0] 💾 Cached first page:', transformedLocales.length, 'venues (TTL: 15min)');
-        }
-
-        // ✅ v193.0: Append or replace venues
-        if (append) {
-          setDisplayedLocales(prev => {
-            const newLocales = [...prev, ...transformedLocales];
-            console.log('[Explorar v193.0] 📊 Total venues after append:', newLocales.length);
-            return newLocales;
+          setUserLocation({
+            lat: location.coords.latitude,
+            lng: location.coords.longitude,
           });
-          setCurrentOffset(offset + transformedLocales.length);
-        } else {
-          setDisplayedLocales(transformedLocales);
-          setCurrentOffset(transformedLocales.length);
+          console.log('[Explorar v146.0] User location obtained:', location.coords);
         }
-
-        // ✅ v193.0: Always allow loading more if we got a full page
-        const hasMoreData = transformedLocales.length === ITEMS_PER_PAGE;
-        setHasMore(hasMoreData);
-        console.log('[Explorar v193.0] 📊 Has more data:', hasMoreData);
-
-        console.log('[Explorar v193.0] 📊 Current batch:', transformedLocales.length, 'venues');
-        console.log('[Explorar v193.0] 🔝 Top 3 of this batch:', transformedLocales.slice(0, 3).map((l: any) => ({
-          nombre: l.nombre,
-          priority_group: l.priority_group,
-          isOpen: l.estaAbierto,
-          distancia: (l.distancia || 0).toFixed(1) + 'km'
-        })));
-
-        // ✅ v192.0: Lazy load social profiles (non-blocking)
-        setTimeout(() => {
-          if (!isMountedRef.current) return;
-          
-          const localIds = transformedLocales.slice(0, ITEMS_PER_PAGE).map((l: any) => l.id);
-          if (localIds.length > 0) {
-            supabase
-              .from('posts')
-              .select('local_id')
-              .eq('tipo', 'local')
-              .in('local_id', localIds)
-              .then(({ data: posts }) => {
-                if (isMountedRef.current) {
-                  const newSocialProfiles = new Map();
-                  const localsWithPosts = new Set(posts?.map(p => p.local_id) || []);
-                  
-                  localIds.forEach(localId => {
-                    newSocialProfiles.set(localId, localsWithPosts.has(localId));
-                  });
-                  
-                  setSocialProfiles(prev => new Map([...prev, ...newSocialProfiles]));
-                  console.log('[Explorar v192.0] 📱 Social profiles loaded');
-                }
-              })
-              .catch(error => {
-                console.error('[Explorar v192.0] Error loading social profiles:', error);
-              });
-          }
-        }, 200);
-
-        const totalTime = Date.now() - startTime;
-        console.log('[Explorar v193.0] 🎉 TOTAL LOAD TIME:', totalTime, 'ms');
-        console.log('[Explorar v193.0] 📊 Total displayed venues:', append ? displayedLocales.length + transformedLocales.length : transformedLocales.length);
-
       } catch (error) {
-        console.error('[Explorar v193.0] ❌ Critical error:', error);
-      } finally {
-        if (isMountedRef.current) {
-          setLoading(false);
-          setLoadingMore(false);
-          isLoadingMoreRef.current = false;
-        }
-        activeRequestRef.current = null;
+        console.error('[Explorar v146.0] Error getting location:', error);
       }
     })();
+  }, []);
 
-    activeRequestRef.current = requestPromise;
-    return requestPromise;
-  }, [userLocation, cachedLocales, lastLoadTime, displayedLocales.length]);
+  const checkSocialProfilesForLocales = useCallback(async (localIds: string[]) => {
+    if (localIds.length === 0) return;
 
-  /**
-   * ✅ v192.0: REMOVED - Backend handles all sorting
-   * Frontend now trusts backend priority_group ordering
-   * This prevents pagination order breaks
-   */
+    try {
+      const { data: posts, error: postsError } = await supabase
+        .from('posts')
+        .select('local_id')
+        .eq('tipo', 'local')
+        .in('local_id', localIds);
+
+      if (postsError) throw postsError;
+
+      const newSocialProfiles = new Map();
+      const localsWithPosts = new Set(posts?.map(p => p.local_id) || []);
+      
+      localIds.forEach(localId => {
+        newSocialProfiles.set(localId, localsWithPosts.has(localId));
+      });
+      
+      setSocialProfiles(newSocialProfiles);
+    } catch (error) {
+      console.error('[Explorar v146.0] Error checking social profiles:', error);
+    }
+  }, []);
+
+  const sortLocalesByPriority = useCallback((locales: any[]) => {
+    console.log('[Explorar v146.0] 🔄 SORTING LOCALES - NO SCHEDULE INFO TREATED AS OPEN');
+    console.log('[Explorar v146.0] 📋 Total locales to sort:', locales.length);
+    
+    const sorted = locales.sort((a, b) => {
+      const distA = a.distancia !== null && a.distancia !== undefined ? a.distancia : 999999;
+      const distB = b.distancia !== null && b.distancia !== undefined ? b.distancia : 999999;
+      
+      const aWithin100km = distA <= 100;
+      const bWithin100km = distB <= 100;
+      
+      const aDestacado = a.destacado === true;
+      const bDestacado = b.destacado === true;
+      const aAbierto = a.estaAbierto === true;
+      const bAbierto = b.estaAbierto === true;
+      const aTieneHorarios = a.tieneHorarios === true;
+      const bTieneHorarios = b.tieneHorarios === true;
+      const aTieneEventos = a.tieneEventos === true;
+      const bTieneEventos = b.tieneEventos === true;
+      const aCerrado = a.estaAbierto === false;
+      const bCerrado = b.estaAbierto === false;
+      
+      const aSinInfo = !aTieneHorarios;
+      const bSinInfo = !bTieneHorarios;
+      
+      const getPriority = (local: any) => {
+        const dist = local.distancia !== null && local.distancia !== undefined ? local.distancia : 999999;
+        const within100km = dist <= 100;
+        const destacado = local.destacado === true;
+        const abierto = local.estaAbierto === true;
+        const tieneHorarios = local.tieneHorarios === true;
+        const tieneEventos = local.tieneEventos === true;
+        const cerrado = local.estaAbierto === false;
+        const sinInfo = !tieneHorarios;
+        
+        if (within100km) {
+          if (destacado && abierto) return 1;
+          if (destacado && sinInfo) return 2;
+          if (abierto && !destacado) return 3;
+          if (sinInfo && !destacado) return 4;
+          if (tieneEventos) return 5;
+          if (cerrado) return 6;
+          return 7;
+        } else {
+          if (destacado && abierto) return 8;
+          if (destacado && sinInfo) return 9;
+          if (abierto && !destacado) return 10;
+          if (sinInfo && !destacado) return 11;
+          if (tieneEventos) return 12;
+          if (cerrado) return 13;
+          return 14;
+        }
+      };
+      
+      const priorityA = getPriority(a);
+      const priorityB = getPriority(b);
+      
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+      
+      if (distA !== distB) {
+        return distA - distB;
+      }
+      
+      return a.nombre.localeCompare(b.nombre);
+    });
+    
+    console.log('[Explorar v146.0] 📋 First 15 locales after sorting:');
+    sorted.slice(0, 15).forEach((local: any, index: number) => {
+      const destacado = local.destacado === true ? '⭐' : '';
+      const distancia = local.distancia !== null ? `📍${local.distancia.toFixed(1)}km` : '📍N/A';
+      const abierto = local.estaAbierto === true ? '🟢' : local.estaAbierto === false ? '🔴' : '⚪';
+      const horarios = local.tieneHorarios ? '🕐' : '❓';
+      const eventos = local.tieneEventos ? '🎉' : '';
+      const within100km = (local.distancia !== null && local.distancia <= 100) ? '✅' : '❌';
+      console.log(`  ${index + 1}. ${destacado} ${local.nombre} ${distancia} ${within100km} ${abierto} ${horarios} ${eventos}`);
+    });
+    
+    return sorted;
+  }, []);
+
+  const loadLocales = useCallback(async () => {
+    try {
+      console.log('[Explorar v146.0] 🔄 LOADING LOCALES WITH CORRECT ORDERING');
+      console.log('[Explorar v146.0] 📋 Order: distance-based priority groups');
+      
+      const { data: localesData, error: localesError } = await supabase
+        .from('locales')
+        .select('*')
+        .eq('activo', true);
+      
+      console.log('[Explorar v146.0] ✅ Query executed');
+      console.log('[Explorar v146.0] 📊 Total locales loaded:', localesData?.length || 0);
+
+      if (localesError) throw localesError;
+
+      if (localesData) {
+        const formattedLocales = localesData.map((local: any) => {
+          let distancia = null;
+          if (userLocation && local.latitud && local.longitud) {
+            distancia = calcularDistancia(
+              userLocation.lat,
+              userLocation.lng,
+              parseFloat(local.latitud),
+              parseFloat(local.longitud)
+            );
+          }
+          
+          const estado = getEstadoLocal(local);
+          
+          return {
+            ...local,
+            coordenadas: {
+              lat: parseFloat(local.latitud),
+              lng: parseFloat(local.longitud),
+            },
+            imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
+            distancia: distancia,
+            estaAbierto: estado.estaAbierto,
+            tieneHorarios: local.horarios_completos && Object.keys(local.horarios_completos).length > 0,
+            tieneEventos: false,
+          };
+        });
+        
+        const sortedLocales = sortLocalesByPriority(formattedLocales);
+        
+        console.log('[Explorar v146.0] ✅ Locales loaded and ordered with correct priority logic');
+        console.log('[Explorar v146.0] 📊 Total:', sortedLocales.length);
+        console.log('[Explorar v146.0] 📊 Featured:', sortedLocales.filter(l => l.destacado === true).length);
+        console.log('[Explorar v146.0] 📊 Open now:', sortedLocales.filter(l => l.estaAbierto === true).length);
+        console.log('[Explorar v146.0] 📊 Without schedule:', sortedLocales.filter(l => !l.tieneHorarios).length);
+        console.log('[Explorar v146.0] 📊 Within 100km:', sortedLocales.filter(l => l.distancia !== null && l.distancia <= 100).length);
+        
+        setAllLocales(sortedLocales);
+        setFilteredLocales(sortedLocales);
+        
+        const firstPage = sortedLocales.slice(0, ITEMS_PER_PAGE);
+        setDisplayedLocales(firstPage);
+        setCurrentPage(1);
+        
+        const hasMoreItems = sortedLocales.length > ITEMS_PER_PAGE;
+        setHasMore(hasMoreItems);
+        console.log('[Explorar v146.0] 📊 Has more items:', hasMoreItems, `(${sortedLocales.length} total, ${ITEMS_PER_PAGE} per page)`);
+        
+        checkSocialProfilesForLocales(sortedLocales.map(l => l.id));
+      }
+    } catch (error) {
+      console.error('[Explorar v146.0] Error loading locales:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userLocation, checkSocialProfilesForLocales, sortLocalesByPriority]);
 
   useEffect(() => {
-    if (userLocation) {
-      loadLocales(0, false);
+    loadLocales();
+  }, [loadLocales]);
+
+  useEffect(() => {
+    if (userLocation && allLocales.length > 0) {
+      console.log('[Explorar v146.0] Recalculating distances with new user location');
+      const updatedLocales = allLocales.map(local => {
+        const distancia = calcularDistancia(
+          userLocation.lat,
+          userLocation.lng,
+          local.coordenadas.lat,
+          local.coordenadas.lng
+        );
+        return {
+          ...local,
+          distancia: distancia,
+        };
+      });
       
-      // ✅ v192.0: Setup background refresh timer
-      if (backgroundRefreshTimerRef.current) {
-        clearInterval(backgroundRefreshTimerRef.current);
-      }
+      const sortedLocales = sortLocalesByPriority(updatedLocales);
+      setAllLocales(sortedLocales);
+      setFilteredLocales(sortedLocales);
       
-      backgroundRefreshTimerRef.current = setInterval(() => {
-        if (isMountedRef.current && !isLoadingMoreRef.current && !activeRequestRef.current) {
-          console.log('[Explorar v192.0] 🔄 Background refresh triggered');
-          setIsBackgroundRefreshing(true);
-          
-          // Silent refresh - update cache without showing loading
-          supabase.rpc('get_locales_paginados', {
-            user_lat: userLocation.lat,
-            user_lng: userLocation.lng,
-            p_limit: ITEMS_PER_PAGE,
-            p_offset: 0,
-          }).then(({ data, error }) => {
-            if (!error && data && isMountedRef.current) {
-              const transformedLocales = data.map((local: any) => {
-                const estado = getEstadoLocal(local);
-                return {
-                  ...local,
-                  coordenadas: {
-                    lat: parseFloat(local.latitud) || 0,
-                    lng: parseFloat(local.longitud) || 0,
-                  },
-                  imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-                  distancia: local.distancia_metros ? local.distancia_metros / 1000 : null,
-                  estaAbierto: estado.estaAbierto,
-                  tieneHorarios: local.horarios_completos && Object.keys(local.horarios_completos).length > 0,
-                  priority_group: local.priority_group,
-                };
-              }).filter(Boolean);
-              
-              setCachedLocales(transformedLocales);
-              setLastLoadTime(Date.now());
-              console.log('[Explorar v192.0] ✅ Background refresh completed');
-            }
-            setIsBackgroundRefreshing(false);
-          }).catch(error => {
-            console.error('[Explorar v192.0] ❌ Background refresh error:', error);
-            setIsBackgroundRefreshing(false);
-          });
+      const firstPage = sortedLocales.slice(0, currentPage * ITEMS_PER_PAGE);
+      setDisplayedLocales(firstPage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation, currentPage, sortLocalesByPriority]); // allLocales intentionally excluded to prevent infinite loop
+
+  useEffect(() => {
+    let filtered = [...allLocales];
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(local => {
+        const nombre = local.nombre?.toLowerCase() || '';
+        const direccion = local.direccion?.toLowerCase() || '';
+        const provincia = local.provincia?.toLowerCase() || '';
+        const tipo = local.tipo?.toLowerCase() || '';
+        
+        return nombre.includes(query) || 
+               direccion.includes(query) || 
+               provincia.includes(query) ||
+               tipo.includes(query);
+      });
+    }
+
+    if (selectedCategory !== 'todas') {
+      filtered = filtered.filter(local => {
+        const barliveTypes = local.barlive_types || [];
+        
+        if (selectedCategory === 'discoteca') {
+          return barliveTypes.includes('discoteca') || barliveTypes.includes('sala_conciertos');
         }
-      }, BACKGROUND_REFRESH_INTERVAL);
+        
+        return barliveTypes.includes(selectedCategory);
+      });
+    }
+
+    if (provinciaSeleccionada !== 'Todas') {
+      filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
+    }
+
+    const sortedFiltered = sortLocalesByPriority(filtered);
+    setFilteredLocales(sortedFiltered);
+    const firstPage = sortedFiltered.slice(0, ITEMS_PER_PAGE);
+    setDisplayedLocales(firstPage);
+    setCurrentPage(1);
+    
+    const hasMoreItems = sortedFiltered.length > ITEMS_PER_PAGE;
+    setHasMore(hasMoreItems);
+    console.log('[Explorar v146.0] Filters applied. Results:', sortedFiltered.length, 'Has more:', hasMoreItems);
+  }, [searchQuery, selectedCategory, provinciaSeleccionada, allLocales, sortLocalesByPriority]);
+
+  const isLoadingMoreRef = useRef(false);
+  
+  const loadMoreLocales = useCallback(() => {
+    if (isLoadingMoreRef.current || loadingMore) {
+      console.log('[Explorar v146.0] ⏸️ Already loading, skipping...');
+      return;
     }
     
-    return () => {
-      if (backgroundRefreshTimerRef.current) {
-        clearInterval(backgroundRefreshTimerRef.current);
-      }
-    };
-  }, [userLocation, loadLocales]);
-
-  // ✅ v193.0: Infinite scroll - load more before reaching end
-  const loadMoreLocales = useCallback(() => {
-    if (isLoadingMoreRef.current || loadingMore || !hasMore || activeRequestRef.current) {
-      console.log('[Explorar v193.0] ⏸️ Cannot load more:', { 
-        isLoading: isLoadingMoreRef.current, 
-        loadingMore, 
-        hasMore,
-        activeRequest: !!activeRequestRef.current 
-      });
+    if (!hasMore) {
+      console.log('[Explorar v146.0] ⏸️ No more items, skipping...');
+      return;
+    }
+    
+    const startIndex = displayedLocales.length;
+    const remainingItems = filteredLocales.length - startIndex;
+    
+    if (remainingItems <= 0) {
+      console.log('[Explorar v146.0] ⏸️ Reached end of list, setting hasMore to false');
+      setHasMore(false);
       return;
     }
 
-    console.log('[Explorar v193.0] 📥 Loading more venues... (offset:', currentOffset, ')');
-    loadLocales(currentOffset, true);
-  }, [currentOffset, hasMore, loadingMore, loadLocales]);
+    console.log('[Explorar v146.0] 📥 Loading more locales...');
+    console.log('[Explorar v146.0] 📊 Currently displayed:', startIndex);
+    console.log('[Explorar v146.0] 📊 Total available:', filteredLocales.length);
+    console.log('[Explorar v146.0] 📊 Remaining:', remainingItems);
+    
+    isLoadingMoreRef.current = true;
+    setLoadingMore(true);
+    
+    setTimeout(() => {
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const nextItems = filteredLocales.slice(startIndex, endIndex);
+      
+      console.log('[Explorar v146.0] 📊 Loading items:', nextItems.length);
+      
+      if (nextItems.length > 0) {
+        setDisplayedLocales(prev => [...prev, ...nextItems]);
+        
+        const newDisplayedCount = startIndex + nextItems.length;
+        const stillHasMore = newDisplayedCount < filteredLocales.length;
+        
+        console.log('[Explorar v146.0] 📊 New displayed count:', newDisplayedCount);
+        console.log('[Explorar v146.0] 📊 Still has more:', stillHasMore);
+        
+        setHasMore(stillHasMore);
+      } else {
+        console.log('[Explorar v146.0] ⏸️ No items loaded, setting hasMore to false');
+        setHasMore(false);
+      }
+      
+      setLoadingMore(false);
+      isLoadingMoreRef.current = false;
+    }, 300);
+  }, [displayedLocales, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v193.0] 🔄 Manual refresh - clearing cache and resetting pagination');
-    console.log('[Explorar v193.0] 📊 Cache stats before clear:', dataCache.getStats());
+    console.log('[Explorar v146.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
-    setCurrentOffset(0);
-    setDisplayedLocales([]); // Clear displayed venues
-    setCachedLocales([]);
-    setLastLoadTime(0);
-    setHasMore(true); // Reset pagination
-    activeRequestRef.current = null;
-    lastRequestTimeRef.current = 0;
-    dataCache.clear('explorar_locales');
-    await loadLocales(0, false);
+    await loadLocales();
     setRefreshing(false);
   };
 
-  // ✅ v191.0: Optimistic UI update
+  const clearFilters = useCallback(() => {
+    console.log('[Explorar v146.0] 🧹 Clearing all filters');
+    setSearchQuery('');
+    setSelectedCategory('todas');
+    setProvinciaSeleccionada('Todas');
+  }, []);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery.trim()) count++;
+    if (selectedCategory !== 'todas') count++;
+    if (provinciaSeleccionada !== 'Todas') count++;
+    return count;
+  }, [searchQuery, selectedCategory, provinciaSeleccionada]);
+
   const toggleFavorito = async (localId: string, e?: any) => {
     if (e) {
       e.stopPropagation();
     }
     
     if (!user) {
+      console.log('[Explorar v146.0] User not authenticated');
       setShowLoginModal(true);
       return;
     }
 
-    try {
-      // Optimistic update
-      setDisplayedLocales(prev => prev.map(local => 
-        local.id === localId 
-          ? { ...local, is_favorite: !local.is_favorite }
-          : local
-      ));
+    if (!localId) {
+      console.log('[Explorar v146.0] No local ID');
+      return;
+    }
 
+    try {
       const { data: existingFavorite } = await supabase
         .from('locales_guardados')
         .select('id')
@@ -540,29 +492,29 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        await supabase
+        console.log('[Explorar v146.0] Removing from favorites');
+        const { error } = await supabase
           .from('locales_guardados')
           .delete()
           .eq('usuario_id', user.id)
           .eq('local_id', localId);
+
+        if (error) throw error;
       } else {
-        await supabase
+        console.log('[Explorar v146.0] Adding to favorites');
+        const { error } = await supabase
           .from('locales_guardados')
           .insert({
             usuario_id: user.id,
             local_id: localId,
           });
+
+        if (error) throw error;
       }
       
-      console.log('[Explorar v192.0] ❤️ Favorite toggled successfully');
+      await loadLocales();
     } catch (error) {
-      console.error('[Explorar v192.0] Error toggling favorito:', error);
-      // Revert optimistic update
-      setDisplayedLocales(prev => prev.map(local => 
-        local.id === localId 
-          ? { ...local, is_favorite: !local.is_favorite }
-          : local
-      ));
+      console.error('[Explorar v146.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
@@ -605,10 +557,11 @@ export default function ExplorarScreen() {
 
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
+      console.log('[Explorar v146.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v192.0] Error changing mode:', error);
+      console.error('[Explorar v146.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
@@ -638,211 +591,221 @@ export default function ExplorarScreen() {
   }, [headerTranslateY]);
 
   const renderLocalCard = ({ item }: { item: any }) => {
-    try {
-      const estado = getEstadoLocal(item);
-      const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
-      const isDestacado = item.destacado;
-      const hasSocialProfile = socialProfiles.get(item.id) || false;
-      const isFavorite = user ? item.is_favorite : false;
+    const estado = getEstadoLocal(item);
+    const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
+    const isDestacado = item.destacado;
+    const hasSocialProfile = socialProfiles.get(item.id) || false;
+    const isFavorite = user ? item.is_favorite : false;
 
-      const getBadgeColor = () => {
-        if (estado.estaAbierto === true) {
-          return '#22C55E';
+    const getBadgeColor = () => {
+      if (estado.badge === 'Abierto ahora' || estado.badge === 'Abierto 24h') {
+        return '#22C55E';
+      }
+      if (estado.badge === 'Cierra pronto') {
+        return '#F97316';
+      }
+      if (estado.badge === 'Abre pronto') {
+        return '#EAB308';
+      }
+      if (estado.estaAbierto === false) {
+        return '#EF4444';
+      }
+      return '#9CA3AF';
+    };
+
+    const getBadgeText = () => {
+      if (estado.badge === 'Abierto 24h') {
+        return 'Abierto 24h';
+      }
+      
+      if (estado.tiempoRestante) {
+        if (estado.badge === 'Abierto ahora') {
+          return `Abierto ahora • Cierra en ${estado.tiempoRestante}`;
         }
-        if (estado.estaAbierto === false) {
-          return '#EF4444';
+        if (estado.badge === 'Cierra pronto') {
+          return `Cierra en ${estado.tiempoRestante}`;
         }
-        return '#9CA3AF';
-      };
-
-      const getBadgeText = () => {
-        if (estado.badge === 'Abierto 24h') {
-          return 'Abierto 24h';
+        if (estado.badge === 'Abre pronto') {
+          return `Abre en ${estado.tiempoRestante}`;
         }
-        
-        if (estado.tiempoRestante) {
-          if (estado.badge === 'Abierto ahora') {
-            return `Abierto ahora • Cierra en ${estado.tiempoRestante}`;
-          }
-          if (estado.badge === 'Cierra pronto') {
-            return `Cierra en ${estado.tiempoRestante}`;
-          }
-          if (estado.badge === 'Abre pronto') {
-            return `Abre en ${estado.tiempoRestante}`;
-          }
-          return `${estado.badge} • ${estado.tiempoRestante}`;
-        }
-        return estado.badge;
-      };
+        return `${estado.badge} • ${estado.tiempoRestante}`;
+      }
+      return estado.badge;
+    };
 
-      const shouldDimImage = () => {
-        return estado.estaAbierto === false || estado.estaAbierto === null;
-      };
+    const shouldDimImage = () => {
+      return estado.estaAbierto === false || estado.estaAbierto === null;
+    };
 
-      const formatCategories = () => {
-        const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
-        let categories = item.barlive_types || [];
-        if (categories.length === 0 && item.barlive_type) {
-          categories = [item.barlive_type];
-        }
-        
-        return categories.filter((cat: string) => 
-          !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
-        );
-      };
+    const formatCategories = () => {
+      const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
+      let categories = item.barlive_types || [];
+      if (categories.length === 0 && item.barlive_type) {
+        categories = [item.barlive_type];
+      }
+      
+      return categories.filter((cat: string) => 
+        !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
+      );
+    };
 
-      const categoriasAMostrar = formatCategories();
+    const categoriasAMostrar = formatCategories();
 
-      const getRating = () => {
-        if (item.rating && item.rating > 0) {
-          return item.rating;
-        }
-        if (item.google_rating && item.google_rating > 0) {
-          return item.google_rating;
-        }
-        return 0;
-      };
+    const getRating = () => {
+      if (item.rating && item.rating > 0) {
+        return item.rating;
+      }
+      if (item.google_rating && item.google_rating > 0) {
+        return item.google_rating;
+      }
+      return 0;
+    };
 
-      const displayRating = getRating();
+    const displayRating = getRating();
 
-      const iconSize = Platform.OS === 'android' ? scaleIconSize(14) : 14;
-      const starIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
-      const heartIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
-      const actionIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
+    // ✅ v146.0: ANDROID ONLY - Properly scaled icon sizes
+    const iconSize = Platform.OS === 'android' ? scaleIconSize(14) : 14;
+    const starIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
+    const heartIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+    const actionIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
 
-      return (
-        <TouchableOpacity 
-          style={[
-            styles.card,
-            isDestacado && styles.cardDestacado
-          ]} 
-          onPress={() => router.push(`/detalle/local?id=${item.id}`)}
-          activeOpacity={0.9}
-        >
-          <View style={styles.imageContainer}>
-            {imagenPrincipal ? (
-              <Image
-                source={{ uri: imagenPrincipal }}
-                style={styles.image}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={[styles.image, styles.placeholderImage]}>
-                <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={48} color={colors.textSecondary} />
-              </View>
-            )}
-
-            {shouldDimImage() && (
-              <View style={styles.dimmedOverlay} />
-            )}
-
-            <View style={styles.imageOverlay} />
-
-            {isDestacado && (
-              <View style={styles.badgeDestacadoHeader}>
-                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={starIconSize} color="#92400E" />
-                <Text style={[styles.badgeDestacadoHeaderText, { fontSize: scaleFontSize(12) }]}>Destacado</Text>
-              </View>
-            )}
-
-            <View style={[
-              styles.badgeEstadoSuperior, 
-              { backgroundColor: getBadgeColor() + 'E6' },
-              isDestacado && styles.badgeEstadoSuperiorConDestacado
-            ]}>
-              <Text style={[styles.badgeEstadoSuperiorText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{getBadgeText()}</Text>
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.card,
+          isDestacado && styles.cardDestacado
+        ]} 
+        onPress={() => router.push(`/detalle/local?id=${item.id}`)}
+        activeOpacity={0.9}
+      >
+        <View style={styles.imageContainer}>
+          {imagenPrincipal ? (
+            <Image
+              source={{ uri: imagenPrincipal }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.image, styles.placeholderImage]}>
+              <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={48} color={colors.textSecondary} />
             </View>
+          )}
 
-            {displayRating > 0 && (
-              <View style={styles.ratingBadge}>
-                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={starIconSize} color="#FACC15" />
-                <Text style={[styles.ratingBadgeText, { fontSize: scaleFontSize(12) }]}>{displayRating.toFixed(1)}</Text>
+          {shouldDimImage() && (
+            <View style={styles.dimmedOverlay} />
+          )}
+
+          <View style={styles.imageOverlay} />
+
+          {isDestacado && (
+            <View style={styles.badgeDestacadoHeader}>
+              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={starIconSize} color="#92400E" />
+              <Text style={[styles.badgeDestacadoHeaderText, { fontSize: scaleFontSize(12) }]}>Destacado</Text>
+            </View>
+          )}
+
+          <View style={[
+            styles.badgeEstadoSuperior, 
+            { backgroundColor: getBadgeColor() + 'E6' },
+            isDestacado && styles.badgeEstadoSuperiorConDestacado
+          ]}>
+            <Text style={[styles.badgeEstadoSuperiorText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{getBadgeText()}</Text>
+          </View>
+
+          {displayRating > 0 && (
+            <View style={styles.ratingBadge}>
+              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={starIconSize} color="#FACC15" />
+              <Text style={[styles.ratingBadgeText, { fontSize: scaleFontSize(12) }]}>{displayRating.toFixed(1)}</Text>
+            </View>
+          )}
+
+          {item.nuevo && (
+            <View style={styles.badgeNuevoContainer}>
+              <View style={styles.badgeNuevo}>
+                <Text style={[styles.badgeNuevoText, { fontSize: scaleFontSize(12) }]}>Nuevo</Text>
               </View>
-            )}
+            </View>
+          )}
 
-            <TouchableOpacity
-              style={styles.favoritoButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                toggleFavorito(item.id, e);
-              }}
+          <TouchableOpacity
+            style={styles.favoritoButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              toggleFavorito(item.id, e);
+            }}
+          >
+            <IconSymbol
+              ios_icon_name={isFavorite ? "heart.fill" : "heart"}
+              android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
+              size={heartIconSize}
+              color={isFavorite ? "#EF4444" : "#FFFFFF"}
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={[styles.nombre, { fontSize: scaleFontSize(18) }]} numberOfLines={1}>
+              {item.nombre}
+            </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={iconSize} color={colors.textSecondary} />
+            <Text style={[styles.infoText, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
+              {item.direccion}
+            </Text>
+          </View>
+
+          {categoriasAMostrar.length > 0 && (
+            <View style={styles.categoriasContainer}>
+              {categoriasAMostrar.map((categoria: string, index: number) => (
+                <View key={index} style={styles.categoriaBadge}>
+                  <Text style={[styles.categoriaIcon, { fontSize: scaleFontSize(12) }]}>{getCategoryIcon(categoria)}</Text>
+                  <Text style={[styles.categoriaText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{categoria}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.actionButtonsContainer}>
+            {hasSocialProfile && (
+              <TouchableOpacity 
+                style={styles.perfilSocialButton} 
+                onPress={(e) => handlePerfilSocial(item.id, e)}
+              >
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={actionIconSize} color={colors.headerText} />
+                <Text style={[styles.perfilSocialText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Perfil Social</Text>
+              </TouchableOpacity>
+            )}
+            
+            <TouchableOpacity 
+              style={[
+                styles.comoLlegarButton,
+                !hasSocialProfile && styles.comoLlegarButtonFull
+              ]} 
+              onPress={(e) => handleComoLlegar(item, e)}
             >
-              <IconSymbol
-                ios_icon_name={isFavorite ? "heart.fill" : "heart"}
-                android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
-                size={heartIconSize}
-                color={isFavorite ? "#EF4444" : "#FFFFFF"}
-              />
+              <View style={styles.comoLlegarContent}>
+                <View style={styles.comoLlegarLeft}>
+                  <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={actionIconSize} color={colors.headerText} />
+                  <Text style={[styles.comoLlegarText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Cómo llegar</Text>
+                </View>
+                
+                {item.distancia !== null && item.distancia !== undefined && (
+                  <View style={styles.distanciaInButton}>
+                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={iconSize} color={colors.headerText} />
+                    <Text style={[styles.distanciaInButtonText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
+                      {item.distancia.toFixed(1)} km
+                    </Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.content}>
-            <View style={styles.header}>
-              <Text style={[styles.nombre, { fontSize: scaleFontSize(18) }]} numberOfLines={1}>
-                {item.nombre}
-              </Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={iconSize} color={colors.textSecondary} />
-              <Text style={[styles.infoText, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
-                {item.direccion}
-              </Text>
-            </View>
-
-            {categoriasAMostrar.length > 0 && (
-              <View style={styles.categoriasContainer}>
-                {categoriasAMostrar.map((categoria: string, index: number) => (
-                  <View key={index} style={styles.categoriaBadge}>
-                    <Text style={[styles.categoriaIcon, { fontSize: scaleFontSize(12) }]}>{getCategoryIcon(categoria)}</Text>
-                    <Text style={[styles.categoriaText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{categoria}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            <View style={styles.actionButtonsContainer}>
-              {hasSocialProfile && (
-                <TouchableOpacity 
-                  style={styles.perfilSocialButton} 
-                  onPress={(e) => handlePerfilSocial(item.id, e)}
-                >
-                  <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={actionIconSize} color={colors.headerText} />
-                  <Text style={[styles.perfilSocialText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Perfil Social</Text>
-                </TouchableOpacity>
-              )}
-              
-              <TouchableOpacity 
-                style={[
-                  styles.comoLlegarButton,
-                  !hasSocialProfile && styles.comoLlegarButtonFull
-                ]} 
-                onPress={(e) => handleComoLlegar(item, e)}
-              >
-                <View style={styles.comoLlegarContent}>
-                  <View style={styles.comoLlegarLeft}>
-                    <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={actionIconSize} color={colors.headerText} />
-                    <Text style={[styles.comoLlegarText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Cómo llegar</Text>
-                  </View>
-                  
-                  {item.distancia !== null && item.distancia !== undefined && (
-                    <View style={styles.distanciaInButton}>
-                      <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={iconSize} color={colors.headerText} />
-                      <Text style={[styles.distanciaInButtonText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
-                        {item.distancia.toFixed(1)} km
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      );
-    } catch (error) {
-      console.error('[Explorar v192.0] Error rendering card:', error);
-      return null;
-    }
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   const renderFooter = () => {
@@ -859,6 +822,30 @@ export default function ExplorarScreen() {
   const renderEmpty = () => {
     if (loading) return null;
     
+    if (activeFiltersCount > 0 && filteredLocales.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <IconSymbol
+            ios_icon_name="magnifyingglass"
+            android_material_icon_name="search"
+            size={64}
+            color={colors.textSecondary}
+          />
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No se encontraron resultados</Text>
+          <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
+            Intenta con otros filtros de búsqueda
+          </Text>
+          <TouchableOpacity 
+            style={styles.clearFiltersButton}
+            onPress={clearFilters}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.clearFiltersButtonText, { fontSize: scaleFontSize(14) }]}>Limpiar filtros</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    
     return (
       <View style={styles.emptyState}>
         <IconSymbol
@@ -869,13 +856,13 @@ export default function ExplorarScreen() {
         />
         <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No hay locales disponibles</Text>
         <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
-          Intenta buscar en otra ubicación o ajusta los filtros
+          Intenta buscar en otra ubicación
         </Text>
       </View>
     );
   };
 
-  if (loading && displayedLocales.length === 0) {
+  if (loading) {
     return (
       <View style={styles.container}>
         <LinearGradient
@@ -887,8 +874,7 @@ export default function ExplorarScreen() {
 
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando locales cercanos...</Text>
-          <Text style={[styles.loadingSubtext, { fontSize: scaleFontSize(14) }]}>Esto solo tomará un momento</Text>
+          <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando locales...</Text>
         </View>
       </View>
     );
@@ -900,6 +886,7 @@ export default function ExplorarScreen() {
   const modeIcon = getModeIcon();
 
   const HeaderContent = () => {
+    // ✅ CRITICAL FIX v146.0: Use Favoritos as reference (32sp on Android)
     const headerTitleSize = Platform.OS === 'android' ? scaleFontSize(32) : 32;
     const headerIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
 
@@ -944,6 +931,16 @@ export default function ExplorarScreen() {
                 color={colors.headerText} 
               />
             </TouchableOpacity>
+
+            {activeFiltersCount > 0 && (
+              <TouchableOpacity 
+                style={styles.clearFiltersHeaderButton}
+                onPress={clearFilters}
+                activeOpacity={0.7}
+              >
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(20)} color={colors.headerText} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       
@@ -989,8 +986,6 @@ export default function ExplorarScreen() {
           />
         </TouchableOpacity>
       </View>
-
-
 
       <ScrollView
         horizontal
@@ -1086,16 +1081,18 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      <FlashList
+      <FlatList
         data={displayedLocales}
         renderItem={renderLocalCard}
         keyExtractor={(item: any) => item.id}
-        estimatedItemSize={400}
-        contentContainerStyle={{
-          paddingTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 48 : HEADER_MAX_HEIGHT,
-          paddingBottom: getContentBottomPadding(100),
-          paddingHorizontal: 16,
-        }}
+        contentContainerStyle={[
+          styles.listContent,
+          { 
+            // ✅ CRITICAL FIX v146.0: ANDROID ONLY - Increased margin to prevent first card from being hidden by header
+            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 48 : HEADER_MAX_HEIGHT,
+            paddingBottom: getContentBottomPadding(100)
+          },
+        ]}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
@@ -1107,13 +1104,11 @@ export default function ExplorarScreen() {
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={5}
-        updateCellsBatchingPeriod={100}
-        initialNumToRender={8}
-        windowSize={10}
       />
 
       <Modal
@@ -1236,6 +1231,116 @@ export default function ExplorarScreen() {
         </Pressable>
       </Modal>
 
+      <Modal
+        visible={mostrarFiltros}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setMostrarFiltros(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setMostrarFiltros(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Filtros</Text>
+              <TouchableOpacity onPress={() => setMostrarFiltros(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(24)} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView 
+              style={styles.modalScrollView}
+              showsVerticalScrollIndicator={true}
+              bounces={false}
+            >
+              <View style={styles.filterSection}>
+                <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Categoría de Local</Text>
+                <View style={styles.categoriesGrid}>
+                  {CATEGORIAS.map((categoria) => (
+                    <TouchableOpacity
+                      key={categoria.id}
+                      style={[
+                        styles.categoryFilterItem,
+                        selectedCategory === categoria.id && styles.categoryFilterItemActive,
+                      ]}
+                      onPress={() => setSelectedCategory(categoria.id)}
+                    >
+                      <IconSymbol
+                        ios_icon_name={categoria.iosIcon}
+                        android_material_icon_name={categoria.androidIcon}
+                        size={categoryIconInnerSize}
+                        color={selectedCategory === categoria.id ? colors.white : colors.primary}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryFilterText,
+                          { fontSize: scaleFontSize(14) },
+                          selectedCategory === categoria.id && styles.categoryFilterTextActive,
+                        ]}
+                      >
+                        {categoria.nombre}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.filterSection}>
+                <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Provincia</Text>
+                <View style={styles.provinciasListContainer}>
+                  {PROVINCIAS.map((provincia) => (
+                    <TouchableOpacity
+                      key={provincia}
+                      style={[
+                        styles.provinciaItem,
+                        provinciaSeleccionada === provincia && styles.provinciaItemActive,
+                      ]}
+                      onPress={() => setProvinciaSeleccionada(provincia)}
+                    >
+                      <Text
+                        style={[
+                          styles.provinciaText,
+                          { fontSize: scaleFontSize(15) },
+                          provinciaSeleccionada === provincia && styles.provinciaTextActive,
+                        ]}
+                      >
+                        {provincia}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={{ height: 40 }} />
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.limpiarButton}
+                onPress={() => {
+                  setSelectedCategory('todas');
+                  setProvinciaSeleccionada('Todas');
+                }}
+              >
+                <Text style={[styles.limpiarButtonText, { fontSize: scaleFontSize(16) }]}>Limpiar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.aplicarButtonModal}
+                onPress={() => setMostrarFiltros(false)}
+              >
+                <LinearGradient
+                  colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                  style={styles.aplicarButtonGradient}
+                >
+                  <Text style={[styles.aplicarButtonText, { fontSize: scaleFontSize(16) }]}>Aplicar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       <LoginRequiredModal
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
@@ -1301,6 +1406,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  clearFiltersHeaderButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1319,7 +1432,6 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
-
   categoriesScroll: {
     marginBottom: Platform.OS === 'android' ? 10 : 12,
     marginRight: -16,
@@ -1380,6 +1492,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: 'rgba(255, 255, 255, 0.8)',
   },
+  listContent: {
+    padding: 16,
+    // paddingBottom set dynamically via getContentBottomPadding()
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1388,11 +1504,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  loadingSubtext: {
-    marginTop: 8,
     color: colors.textSecondary,
   },
   footerLoader: {
@@ -1423,6 +1534,17 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  clearFiltersButton: {
+    marginTop: 20,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  clearFiltersButtonText: {
+    fontWeight: '600',
+    color: colors.headerText,
   },
   card: {
     backgroundColor: colors.cardBackground,
@@ -1552,6 +1674,22 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     letterSpacing: 0.3,
   },
+  badgeNuevoContainer: {
+    position: 'absolute',
+    top: 56,
+    right: 12,
+    zIndex: 9,
+  },
+  badgeNuevo: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  badgeNuevoText: {
+    fontWeight: '700',
+    color: colors.headerText,
+  },
   favoritoButton: {
     position: 'absolute',
     bottom: 12,
@@ -1678,6 +1816,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  modalContent: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
   modeSelectorModal: {
     backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 20,
@@ -1723,5 +1867,100 @@ const styles = StyleSheet.create({
   modeOptionTextActive: {
     color: colors.primary,
     fontWeight: '700',
+  },
+  modalScrollView: {
+    maxHeight: '100%',
+    paddingHorizontal: 20,
+  },
+  filterSection: {
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  filterTitle: {
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  categoryFilterItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    minWidth: '47%',
+  },
+  categoryFilterItemActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  categoryFilterText: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  categoryFilterTextActive: {
+    color: colors.white,
+  },
+  provinciasListContainer: {
+    gap: 8,
+  },
+  provinciaItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: colors.background,
+  },
+  provinciaItemActive: {
+    backgroundColor: colors.primary,
+  },
+  provinciaText: {
+    color: colors.text,
+  },
+  provinciaTextActive: {
+    color: colors.white,
+    fontWeight: '600',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+  },
+  limpiarButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  limpiarButtonText: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  aplicarButtonModal: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  aplicarButtonGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  aplicarButtonText: {
+    fontWeight: '600',
+    color: colors.white,
   },
 });

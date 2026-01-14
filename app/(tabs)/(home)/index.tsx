@@ -63,14 +63,9 @@ interface Filtro {
 }
 
 /**
- * ✅ HOME SCREEN v176.0 - CRITICAL PERFORMANCE OPTIMIZATION
+ * ✅ HOME SCREEN v101.0 - ANDROID SCALING + BANNER WHITE BACKGROUND FIX
  * 
- * CRITICAL PERFORMANCE FIXES v176.0:
- * - ✅ OSM LOCALES EXCLUDED: OSM-imported locales are NOT loaded on home screen
- * - ✅ INSTANT PERFORMANCE: Only active, enriched locales appear
- * - ✅ NO UNNECESSARY PROCESSING: OSM locales remain isolated from app flow
- * 
- * PREVIOUS FIXES v101.0 (ANDROID ONLY):
+ * CRITICAL FIXES v101.0 (ANDROID ONLY):
  * - ✅ All text uses scaleFontSize() for consistency
  * - ✅ Banner white background removed on Android
  * - ✅ Header properly scaled
@@ -182,14 +177,12 @@ export default function HomeScreen() {
 
   const cargarLocales = useCallback(async () => {
     try {
-      console.log(`[Home v176.0] 🔄 Cargando locales (OSM EXCLUDED) para usuario ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'})`);
+      console.log(`[Home v101.0] 🔄 Cargando locales para usuario ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'})`);
       
-      // ✅ CRITICAL PERFORMANCE FIX v176.0: Exclude OSM locales from home screen
       let query = supabase
         .from('locales')
         .select('*')
         .eq('activo', true)
-        .or('source_type.is.null,source_type.neq.osm') // ✅ v176.0: Exclude OSM locales
         .limit(200);
 
       if (filtros.tipo !== 'todos') {
@@ -306,7 +299,7 @@ export default function HomeScreen() {
         localesConDistancia = [...localesAbiertos, ...localesCerrados];
       }
 
-      console.log('[Home v176.0] ✅ Locales cargados (OSM excluded):', localesConDistancia.length);
+      console.log('[Home v101.0] ✅ Locales cargados:', localesConDistancia.length);
       setLocales(localesConDistancia);
     } catch (error) {
       console.error('[Home v101.0] ❌ Error cargando locales:', error);
