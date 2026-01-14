@@ -60,9 +60,16 @@ const COMUNIDAD_COORDINATES: Record<string, { lat: number; lng: number; zoom: nu
 };
 
 /**
- * ✅ MAP SCREEN v179.0 - OPTIMIZED ZOOM & POPUP RESTORATION
+ * ✅ MAP SCREEN v184.0 - ENHANCED POPUP & MARKER VISIBILITY
  * 
- * CRITICAL IMPROVEMENTS v179.0:
+ * CRITICAL IMPROVEMENTS v184.0:
+ * - ✅ POPUP CENTERING: Popup now centers properly below header
+ * - ✅ ENHANCED POPUP DESIGN: Better styling, icons, gradient buttons
+ * - ✅ IMPROVED MARKER VISIBILITY: Markers visible at lower zoom levels (minZoom: 5)
+ * - ✅ BUTTON COLOR FIX: "Ver detalles" button now uses white text (not blue)
+ * - ✅ MORE INFO: Popup shows rating, category icon, and status with icons
+ * 
+ * PREVIOUS IMPROVEMENTS v179.0:
  * - ✅ LOWER ZOOM THRESHOLD: Markers appear at zoom 11+ (was 13+)
  * - ✅ NO LOADING OVERLAY: Removed loading screen during zoom/pan
  * - ✅ RESTORED POPUP: Full venue info with photo, rating, category
@@ -138,8 +145,8 @@ export default function MapaScreen() {
     if (!region) return;
 
     try {
-      console.log('[MAP v179.0] 🗺️ Loading map data (silent)');
-      console.log('[MAP v179.0] 🔍 Filter estado:', filtroEstado);
+      console.log('[MAP v184.0] 🗺️ Loading map data (silent)');
+      console.log('[MAP v184.0] 🔍 Filter estado:', filtroEstado);
 
       const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
       
@@ -152,9 +159,9 @@ export default function MapaScreen() {
       // Calculate zoom level
       const zoom_level = calculateZoomLevel(latitudeDelta);
       
-      console.log('[MAP v179.0] 📦 Bounding Box:', { min_lat, max_lat, min_lng, max_lng, zoom_level });
+      console.log('[MAP v184.0] 📦 Bounding Box:', { min_lat, max_lat, min_lng, max_lng, zoom_level });
 
-      // ✅ v179.0: NO setIsLoadingMarkers - silent background update
+      // ✅ v184.0: NO setIsLoadingMarkers - silent background update
 
       // Call RPC function with bounding box
       const { data, error } = await supabase.rpc('get_map_data', {
@@ -166,11 +173,11 @@ export default function MapaScreen() {
       });
 
       if (error) {
-        console.error('[MAP v179.0] ❌ RPC Error:', error);
+        console.error('[MAP v184.0] ❌ RPC Error:', error);
         return;
       }
 
-      console.log('[MAP v179.0] ✅ RPC returned', data?.length || 0, 'markers');
+      console.log('[MAP v184.0] ✅ RPC returned', data?.length || 0, 'markers');
 
       // Transform RPC data to marker format with full venue info
       const markers = (data || []).map((item: any) => {
@@ -226,12 +233,12 @@ export default function MapaScreen() {
       }).filter((marker: any) => marker.shouldInclude); // ✅ Filter markers based on estado
 
       setMarkersData(markers);
-      // ✅ v179.0: Only hide loading on FIRST load
+      // ✅ v184.0: Only hide loading on FIRST load
       if (isLoadingMarkers) {
         setIsLoadingMarkers(false);
       }
 
-      console.log('[MAP v179.0] 🎯 Markers ready for display');
+      console.log('[MAP v184.0] 🎯 Markers ready for display');
     } catch (error) {
       console.error('[MAP v179.0] ❌ Error loading map data:', error);
     }
@@ -242,7 +249,7 @@ export default function MapaScreen() {
     const centerLat = userLocation?.lat || 40.4168;
     const centerLng = userLocation?.lng || -3.7038;
 
-    console.log('[MAP v179.0] 🗺️ GENERATING MAP HTML');
+    console.log('[MAP v184.0] 🗺️ GENERATING MAP HTML');
 
     const popupFontSize = Platform.OS === 'android' ? Math.round(14 * 0.80) : 14;
     const popupTitleSize = Platform.OS === 'android' ? Math.round(16 * 0.80) : 16;
@@ -322,7 +329,7 @@ export default function MapaScreen() {
     .leaflet-control-attribution { display: none !important; }
     .leaflet-control-zoom { display: none !important; }
     
-    /* ✅ v179.0: Enhanced popup styles */
+    /* ✅ v184: Enhanced popup styles with better design */
     .venue-popup {
       min-width: 280px;
       max-width: 320px;
@@ -332,67 +339,104 @@ export default function MapaScreen() {
       width: 100%;
       height: 160px;
       object-fit: cover;
-      border-radius: 8px 8px 0 0;
-      margin-bottom: 12px;
+      border-radius: 12px 12px 0 0;
+      margin-bottom: 0;
     }
     
     .venue-popup-content {
-      padding: 12px;
+      padding: 16px;
+      background: linear-gradient(to bottom, #FFFFFF, #F9FAFB);
     }
     
     .venue-popup-title {
       font-size: ${popupTitleSize}px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #1F2937;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #111827;
+      line-height: 1.3;
     }
     
     .venue-popup-info {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      margin-bottom: 12px;
+      gap: 10px;
+      margin-bottom: 16px;
     }
     
     .venue-popup-row {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       font-size: ${popupFontSize}px;
-      color: #6B7280;
+      color: #4B5563;
+      padding: 6px 0;
+    }
+    
+    .venue-popup-icon {
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
     }
     
     .venue-popup-rating {
       color: #FACC15;
-      font-weight: 600;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
     
     .venue-popup-category {
-      background-color: #14B8A6;
+      background: linear-gradient(135deg, #14B8A6, #0D9488);
       color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
+      padding: 6px 12px;
+      border-radius: 6px;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       display: inline-block;
+      box-shadow: 0 2px 4px rgba(20, 184, 166, 0.3);
+    }
+    
+    .venue-popup-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
     }
     
     .venue-popup-button {
       display: block;
       width: 100%;
-      padding: 10px;
-      background: #14B8A6;
+      padding: 12px;
+      background: linear-gradient(135deg, #14B8A6, #0D9488);
       color: white;
       text-align: center;
-      border-radius: 8px;
+      border-radius: 10px;
       text-decoration: none;
-      font-weight: 600;
+      font-weight: 700;
       font-size: ${popupFontSize}px;
-      transition: background 0.2s;
+      transition: all 0.2s;
+      box-shadow: 0 4px 6px rgba(20, 184, 166, 0.3);
+      border: none;
+      cursor: pointer;
     }
     
     .venue-popup-button:hover {
-      background: #0F9488;
+      background: linear-gradient(135deg, #0D9488, #0F766E);
+      box-shadow: 0 6px 8px rgba(20, 184, 166, 0.4);
+      transform: translateY(-1px);
+    }
+    
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      padding: 0;
+    }
+    
+    .leaflet-popup-content {
+      margin: 0;
+      width: 100% !important;
     }
   </style>
 </head>
@@ -400,7 +444,7 @@ export default function MapaScreen() {
   <div id="map"></div>
   <script>
     try {
-      console.log('[MAP HTML v179.0] ⚡ INITIALIZING OPTIMIZED MAP');
+      console.log('[MAP HTML v184.0] ⚡ INITIALIZING OPTIMIZED MAP');
       
       var map = L.map('map', {
         zoomControl: false,
@@ -409,6 +453,7 @@ export default function MapaScreen() {
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
+        minZoom: 5, // ✅ v184: Allow zooming out further to see more markers
         attribution: ''
       }).addTo(map);
 
@@ -434,7 +479,7 @@ export default function MapaScreen() {
         var latitudeDelta = ne.lat - sw.lat;
         var longitudeDelta = ne.lng - sw.lng;
         
-        console.log('[MAP HTML v179.0] 📍 Region changed (silent update)');
+        console.log('[MAP HTML v184.0] 📍 Region changed (silent update)');
         
         // Send region to React Native
         window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -448,9 +493,9 @@ export default function MapaScreen() {
         }));
       });
       
-      // ✅ v179.0: Function to update markers with enhanced popups
+      // ✅ v184.0: Function to update markers with enhanced popups
       window.updateMarkers = function(markersData) {
-        console.log('[MAP HTML v179.0] 🎯 Updating markers:', markersData.length);
+        console.log('[MAP HTML v184.0] 🎯 Updating markers:', markersData.length);
         
         // Clear existing markers
         markers.forEach(function(marker) {
@@ -482,29 +527,43 @@ export default function MapaScreen() {
           var marker = L.marker([data.lat, data.lng], { icon: markerIcon });
           
           if (!data.isCluster) {
-            // ✅ v179.0: RESTORED POPUP with full venue info
+            // ✅ v184: Enhanced popup with better design, icons, and info
             var popupContent = '<div class="venue-popup">' +
               '<img src="' + data.imagen + '" class="venue-popup-image" onerror="this.style.display=\\'none\\'" />' +
               '<div class="venue-popup-content">' +
                 '<div class="venue-popup-title">' + data.nombre + '</div>' +
                 '<div class="venue-popup-info">' +
-                  (data.rating > 0 ? '<div class="venue-popup-row"><span class="venue-popup-rating">⭐ ' + data.rating.toFixed(1) + '</span></div>' : '') +
-                  '<div class="venue-popup-row"><span class="venue-popup-category">' + data.categoria + '</span></div>' +
-                  '<div class="venue-popup-row">📍 ' + data.estadoBadge + '</div>' +
+                  (data.rating > 0 ? '<div class="venue-popup-row"><span class="venue-popup-icon">⭐</span><span class="venue-popup-rating">' + data.rating.toFixed(1) + ' / 5.0</span></div>' : '') +
+                  '<div class="venue-popup-row"><span class="venue-popup-icon">' + data.icon + '</span><span class="venue-popup-category">' + data.categoria + '</span></div>' +
+                  '<div class="venue-popup-row venue-popup-status"><span class="venue-popup-icon">📍</span><span>' + data.estadoBadge + '</span></div>' +
                 '</div>' +
-                '<a href="#" class="venue-popup-button" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: \\'navigate\\', id: \\'' + data.id + '\\'})); return false;">Ver detalles</a>' +
+                '<button class="venue-popup-button" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: \\'navigate\\', id: \\'' + data.id + '\\'})); return false;">Ver detalles del local</button>' +
               '</div>' +
             '</div>';
             
             marker.bindPopup(popupContent, {
               maxWidth: 320,
               closeButton: true,
-              className: 'venue-popup-container'
+              className: 'venue-popup-container',
+              offset: [0, -10] // ✅ v184: Slight offset to better position popup
             });
             
-            // ✅ Center popup when opened
+            // ✅ v184: Center popup in screen center (accounting for header)
             marker.on('popupopen', function() {
-              map.setView([data.lat, data.lng], map.getZoom(), { animate: true });
+              // Get map container dimensions
+              var mapSize = map.getSize();
+              var headerHeight = 180; // Approximate header height in pixels
+              
+              // Calculate offset to center popup below header
+              var offsetY = headerHeight / 2;
+              
+              // Convert pixel offset to lat/lng offset
+              var point = map.project([data.lat, data.lng], map.getZoom());
+              point.y -= offsetY;
+              var newCenter = map.unproject(point, map.getZoom());
+              
+              // Pan to new center with animation
+              map.panTo(newCenter, { animate: true, duration: 0.5 });
             });
           } else {
             // Cluster click: zoom in
@@ -518,7 +577,7 @@ export default function MapaScreen() {
         });
       };
       
-      console.log('[MAP HTML v179.0] ✅ Map initialized');
+      console.log('[MAP HTML v184.0] ✅ Map initialized');
       
       setTimeout(function() {
         map.invalidateSize();
@@ -526,7 +585,7 @@ export default function MapaScreen() {
       }, 100);
       
       window.flyToLocation = function(lat, lng, zoom) {
-        console.log('[MAP HTML v179.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
+        console.log('[MAP HTML v184.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
         map.flyTo([lat, lng], zoom, {
           animate: true,
           duration: 1.5,
@@ -534,7 +593,7 @@ export default function MapaScreen() {
       };
       
     } catch (error) {
-      console.error('[MAP HTML v179.0] Map error:', error);
+      console.error('[MAP HTML v184.0] Map error:', error);
     }
   </script>
 </body>
@@ -551,10 +610,10 @@ export default function MapaScreen() {
     initMap();
   }, [generateMapHTML]);
 
-  // ✅ v179.0: Update markers when data changes
+  // ✅ v184.0: Update markers when data changes
   useEffect(() => {
     if (isMapReady && webViewRef.current && markersData.length >= 0) {
-      console.log('[MAP v179.0] 📤 Sending', markersData.length, 'markers to WebView');
+      console.log('[MAP v184.0] 📤 Sending', markersData.length, 'markers to WebView');
       
       const markersJSON = JSON.stringify(markersData);
       webViewRef.current.injectJavaScript(`
@@ -566,10 +625,10 @@ export default function MapaScreen() {
     }
   }, [markersData, isMapReady]);
 
-  // ✅ v179.0: Load initial data when map is ready
+  // ✅ v184.0: Load initial data when map is ready
   useEffect(() => {
     if (isMapReady && userLocation) {
-      console.log('[MAP v179.0] 🚀 Map ready, loading initial data');
+      console.log('[MAP v184.0] 🚀 Map ready, loading initial data');
       
       // Initial region
       const initialRegion = {
@@ -587,7 +646,7 @@ export default function MapaScreen() {
   // ✅ Reload markers when filter changes
   useEffect(() => {
     if (currentRegion) {
-      console.log('[MAP v179.0] 🔄 Filter changed, reloading markers');
+      console.log('[MAP v184.0] 🔄 Filter changed, reloading markers');
       loadMapData(currentRegion);
     }
   }, [filtroEstado]);
@@ -604,28 +663,28 @@ export default function MapaScreen() {
   };
 
   const handleVerDetalles = (localId: string) => {
-    console.log('[MAP v179.0] Navigating to local:', localId);
+    console.log('[MAP v184.0] Navigating to local:', localId);
     router.push(`/detalle/local?id=${localId}`);
   };
 
   const handleWebViewMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      console.log('📨 [MAP v179.0] Message from WebView:', data.type);
+      console.log('📨 [MAP v184.0] Message from WebView:', data.type);
       
       if (data.type === 'navigate' && data.id) {
         handleVerDetalles(data.id);
       } else if (data.type === 'map_ready') {
-        console.log('✅ [MAP v179.0] Map is ready');
+        console.log('✅ [MAP v184.0] Map is ready');
         setIsMapReady(true);
       } else if (data.type === 'region_change' && data.region) {
-        // ✅ v179.0: Region changed - load new data silently
-        console.log('🗺️ [MAP v179.0] Region changed, loading new data (silent)');
+        // ✅ v184.0: Region changed - load new data silently
+        console.log('🗺️ [MAP v184.0] Region changed, loading new data (silent)');
         setCurrentRegion(data.region);
         loadMapData(data.region);
       }
     } catch (error) {
-      console.error('❌ [MAP v179.0] Error parsing message:', error);
+      console.error('❌ [MAP v184.0] Error parsing message:', error);
     }
   };
 
@@ -656,7 +715,7 @@ export default function MapaScreen() {
           </View>
         ) : (
           <>
-            {/* ✅ v179.0: ONLY show loading on FIRST load, not during zoom/pan */}
+            {/* ✅ v184.0: ONLY show loading on FIRST load, not during zoom/pan */}
             {isLoadingMarkers && markersData.length === 0 && (
               <View style={styles.loadingOverlay}>
                 <View style={styles.loadingContent}>
@@ -683,7 +742,7 @@ export default function MapaScreen() {
                 domStorageEnabled={true}
                 onError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
-                  console.error('[MAP v179.0] WebView error:', nativeEvent);
+                  console.error('[MAP v184.0] WebView error:', nativeEvent);
                 }}
               />
             )}
