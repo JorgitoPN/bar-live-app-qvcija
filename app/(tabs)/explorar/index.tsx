@@ -908,14 +908,6 @@ export default function ExplorarScreen() {
           />
         </View>
       </TouchableOpacity>
-
-      {displayedLocales.length > 0 && (
-        <View style={styles.resultsCounter}>
-          <Text style={[styles.resultsCounterText, { fontSize: scaleFontSize(13) }]}>
-            📍 {displayedLocales.length} locales cargados
-          </Text>
-        </View>
-      )}
     </React.Fragment>
     );
   };
@@ -1349,18 +1341,6 @@ const styles = StyleSheet.create({
   claimBannerSubtitle: {
     fontWeight: '500',
     color: 'rgba(255, 255, 255, 0.8)',
-  },
-  resultsCounter: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  resultsCounterText: {
-    fontWeight: '600',
-    color: colors.headerText,
   },
   listContent: {
     padding: 16,
