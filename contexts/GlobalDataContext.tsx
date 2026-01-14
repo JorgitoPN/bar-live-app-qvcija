@@ -36,15 +36,16 @@ const CACHE_KEYS = {
   TIMESTAMP: 'global_cache_timestamp',
 };
 
+// ✅ CRITICAL PERFORMANCE FIX v197.0: Optimized cache settings
 const CACHE_DURATION = 30 * 60 * 1000;
-const BACKGROUND_REFRESH_INTERVAL = 5 * 60 * 1000;
+const BACKGROUND_REFRESH_INTERVAL = 10 * 60 * 1000; // Increased to 10 minutes
 
-// ✅ FIX v95.0: Limit cache size to prevent "Row too big" error
+// ✅ FIX v197.0: Further reduced cache size for better performance
 const MAX_CACHE_ITEMS = {
-  LOCALES: 200,  // Limit locales in cache
-  POSTS: 50,     // Limit posts in cache (reduced from 100)
-  EVENTOS: 30,   // Limit eventos in cache
-  OFERTAS: 30,   // Limit ofertas in cache
+  LOCALES: 150,  // Reduced from 200
+  POSTS: 30,     // Reduced from 50
+  EVENTOS: 20,   // Reduced from 30
+  OFERTAS: 20,   // Reduced from 30
 };
 
 export function GlobalDataProvider({ children }: { children: ReactNode }) {
@@ -61,39 +62,44 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
   const isLoadingRef = useRef(false);
   const backgroundRefreshTimer = useRef<NodeJS.Timeout | null>(null);
   const preloadedImagesRef = useRef<Set<string>>(new Set());
+  
+  // ✅ CRITICAL PERFORMANCE FIX v197.0: Track mount state to prevent memory leaks
+  const isMountedRef = useRef(true);
 
+  // ✅ CRITICAL PERFORMANCE FIX v197.0: Reduced image preloading to prevent memory issues
   const preloadImages = useCallback(async (posts: any[]) => {
     const imagesToPreload: string[] = [];
     
-    posts.slice(0, 20).forEach(post => {
+    // ✅ Only preload first 10 posts (reduced from 20)
+    posts.slice(0, 10).forEach(post => {
       if (post.imagen && !preloadedImagesRef.current.has(post.imagen)) {
         imagesToPreload.push(post.imagen);
         preloadedImagesRef.current.add(post.imagen);
       }
-      if (post.imagenes && Array.isArray(post.imagenes)) {
-        post.imagenes.slice(0, 1).forEach((img: string) => {
-          if (!preloadedImagesRef.current.has(img)) {
-            imagesToPreload.push(img);
-            preloadedImagesRef.current.add(img);
-          }
-        });
-      }
+      // ✅ Skip preloading multiple images per post
       if (post.autor?.avatar && !preloadedImagesRef.current.has(post.autor.avatar)) {
         imagesToPreload.push(post.autor.avatar);
         preloadedImagesRef.current.add(post.autor.avatar);
       }
     });
     
-    if (imagesToPreload.length > 0) {
-      console.log('[GlobalData v95.0] 🚀 Preloading', imagesToPreload.length, 'images...');
+    // ✅ Limit total preloaded images to 15
+    const limitedImages = imagesToPreload.slice(0, 15);
+    
+    if (limitedImages.length > 0 && isMountedRef.current) {
+      console.log('[GlobalData v197.0] 🚀 Preloading', limitedImages.length, 'images...');
       
       Promise.allSettled(
-        imagesToPreload.map(uri => Image.prefetch(uri))
+        limitedImages.map(uri => Image.prefetch(uri))
       ).then(results => {
-        const successCount = results.filter(r => r.status === 'fulfilled').length;
-        console.log('[GlobalData v95.0] ✅ Preloaded', successCount, '/', imagesToPreload.length, 'images');
+        if (isMountedRef.current) {
+          const successCount = results.filter(r => r.status === 'fulfilled').length;
+          console.log('[GlobalData v197.0] ✅ Preloaded', successCount, '/', limitedImages.length, 'images');
+        }
       }).catch(() => {
-        console.log('[GlobalData v95.0] ⚠️ Some images failed to preload');
+        if (isMountedRef.current) {
+          console.log('[GlobalData v197.0] ⚠️ Some images failed to preload');
+        }
       });
     }
   }, []);
@@ -127,7 +133,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
   const loadFromCache = useCallback(async (): Promise<boolean> => {
     try {
-      console.log('[GlobalData v95.0] 📦 Loading from cache...');
+      console.log('[GlobalData v197.0] 📦 Loading from cache...');
       
       const [
         cachedLocales,
@@ -150,10 +156,10 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         try {
           const parsedLocales = JSON.parse(cachedLocales);
           setLocales(parsedLocales);
-          console.log('[GlobalData v95.0] ⚡ INSTANT locales from cache:', parsedLocales.length);
+          console.log('[GlobalData v197.0] ⚡ INSTANT locales from cache:', parsedLocales.length);
           hasData = true;
         } catch (parseError) {
-          console.error('[GlobalData v95.0] Error parsing cached locales:', parseError);
+          console.error('[GlobalData v197.0] Error parsing cached locales:', parseError);
           await AsyncStorage.removeItem(CACHE_KEYS.LOCALES);
         }
       }
@@ -162,11 +168,11 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         try {
           const parsedPosts = JSON.parse(cachedPosts);
           setPosts(parsedPosts);
-          console.log('[GlobalData v95.0] ⚡ INSTANT posts from cache:', parsedPosts.length);
+          console.log('[GlobalData v197.0] ⚡ INSTANT posts from cache:', parsedPosts.length);
           preloadImages(parsedPosts);
           hasData = true;
         } catch (parseError) {
-          console.error('[GlobalData v95.0] Error parsing cached posts:', parseError);
+          console.error('[GlobalData v197.0] Error parsing cached posts:', parseError);
           await AsyncStorage.removeItem(CACHE_KEYS.POSTS);
         }
       }
@@ -175,10 +181,10 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         try {
           const parsedEventos = JSON.parse(cachedEventos);
           setEventos(parsedEventos);
-          console.log('[GlobalData v95.0] ⚡ INSTANT eventos from cache:', parsedEventos.length);
+          console.log('[GlobalData v197.0] ⚡ INSTANT eventos from cache:', parsedEventos.length);
           hasData = true;
         } catch (parseError) {
-          console.error('[GlobalData v95.0] Error parsing cached eventos:', parseError);
+          console.error('[GlobalData v197.0] Error parsing cached eventos:', parseError);
           await AsyncStorage.removeItem(CACHE_KEYS.EVENTOS);
         }
       }
@@ -187,10 +193,10 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         try {
           const parsedOfertas = JSON.parse(cachedOfertas);
           setOfertas(parsedOfertas);
-          console.log('[GlobalData v95.0] ⚡ INSTANT ofertas from cache:', parsedOfertas.length);
+          console.log('[GlobalData v197.0] ⚡ INSTANT ofertas from cache:', parsedOfertas.length);
           hasData = true;
         } catch (parseError) {
-          console.error('[GlobalData v95.0] Error parsing cached ofertas:', parseError);
+          console.error('[GlobalData v197.0] Error parsing cached ofertas:', parseError);
           await AsyncStorage.removeItem(CACHE_KEYS.OFERTAS);
         }
       }
@@ -202,7 +208,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
       return hasData;
     } catch (error) {
-      console.error('[GlobalData v95.0] Error loading from cache:', error);
+      console.error('[GlobalData v197.0] Error loading from cache:', error);
       // Clear corrupted cache
       try {
         await AsyncStorage.multiRemove([
@@ -214,7 +220,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         ]);
         console.log('[GlobalData v95.0] 🧹 Cleared corrupted cache');
       } catch (clearError) {
-        console.error('[GlobalData v95.0] Error clearing cache:', clearError);
+        console.error('[GlobalData v197.0] Error clearing cache:', clearError);
       }
       return false;
     }
@@ -236,31 +242,31 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       if (data.locales) {
         const sanitized = sanitizeForCache(data.locales, 'locales');
         promises.push(AsyncStorage.setItem(CACHE_KEYS.LOCALES, JSON.stringify(sanitized)));
-        console.log('[GlobalData v95.0] 💾 Caching', sanitized.length, 'locales (limited from', data.locales.length, ')');
+        console.log('[GlobalData v197.0] 💾 Caching', sanitized.length, 'locales (limited from', data.locales.length, ')');
       }
       if (data.posts) {
         const sanitized = sanitizeForCache(data.posts, 'posts');
         promises.push(AsyncStorage.setItem(CACHE_KEYS.POSTS, JSON.stringify(sanitized)));
-        console.log('[GlobalData v95.0] 💾 Caching', sanitized.length, 'posts (limited from', data.posts.length, ')');
+        console.log('[GlobalData v197.0] 💾 Caching', sanitized.length, 'posts (limited from', data.posts.length, ')');
       }
       if (data.eventos) {
         const sanitized = sanitizeForCache(data.eventos, 'eventos');
         promises.push(AsyncStorage.setItem(CACHE_KEYS.EVENTOS, JSON.stringify(sanitized)));
-        console.log('[GlobalData v95.0] 💾 Caching', sanitized.length, 'eventos (limited from', data.eventos.length, ')');
+        console.log('[GlobalData v197.0] 💾 Caching', sanitized.length, 'eventos (limited from', data.eventos.length, ')');
       }
       if (data.ofertas) {
         const sanitized = sanitizeForCache(data.ofertas, 'ofertas');
         promises.push(AsyncStorage.setItem(CACHE_KEYS.OFERTAS, JSON.stringify(sanitized)));
-        console.log('[GlobalData v95.0] 💾 Caching', sanitized.length, 'ofertas (limited from', data.ofertas.length, ')');
+        console.log('[GlobalData v197.0] 💾 Caching', sanitized.length, 'ofertas (limited from', data.ofertas.length, ')');
       }
 
       await Promise.all(promises);
-      console.log('[GlobalData v95.0] ✅ Data saved to cache');
+      console.log('[GlobalData v197.0] ✅ Data saved to cache');
     } catch (error: any) {
-      console.error('[GlobalData v95.0] Error saving to cache:', error.message);
+      console.error('[GlobalData v197.0] Error saving to cache:', error.message);
       // If cache is full, clear it
       if (error.message?.includes('QuotaExceededError') || error.message?.includes('too big')) {
-        console.log('[GlobalData v95.0] 🧹 Cache quota exceeded, clearing...');
+        console.log('[GlobalData v197.0] 🧹 Cache quota exceeded, clearing...');
         try {
           await AsyncStorage.multiRemove([
             CACHE_KEYS.LOCALES,
@@ -270,7 +276,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           ]);
           console.log('[GlobalData v95.0] ✅ Cache cleared');
         } catch (clearError) {
-          console.error('[GlobalData v95.0] Error clearing cache:', clearError);
+          console.error('[GlobalData v197.0] Error clearing cache:', clearError);
         }
       }
     }
@@ -299,8 +305,9 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
   const loadFromSupabase = useCallback(async () => {
     try {
-      console.log('[GlobalData v95.0] 🌐 Loading from Supabase...');
+      console.log('[GlobalData v197.0] 🌐 Loading from Supabase...');
 
+      // ✅ CRITICAL PERFORMANCE FIX v197.0: Reduced query limits and optimized fields
       const [
         localesResult,
         postsResult,
@@ -309,44 +316,44 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       ] = await Promise.all([
         supabase
           .from('locales')
-          .select('*')
+          .select('id, nombre, tipo, direccion, provincia, latitud, longitud, imagen_url, destacado, horarios_completos, barlive_types, barlive_type, rating, google_rating, activo, comunidad')
           .eq('activo', true)
           .order('destacado', { ascending: false })
           .order('rating', { ascending: false })
-          .limit(500), // ✅ FIX v95.0: Limit query results
+          .limit(300), // ✅ Reduced from 500 to 300
         
         supabase
           .from('posts')
           .select(`
-            *,
+            id, autor_id, contenido, imagen, imagenes, likes, comentarios, created_at, tipo, local_id,
             autor:usuarios!posts_autor_id_fkey(nombre, avatar, username),
             local:locales!posts_local_id_fkey(nombre, imagen_url)
           `)
           .order('created_at', { ascending: false })
-          .limit(100),
+          .limit(50), // ✅ Reduced from 100 to 50
         
         supabase
           .from('eventos')
-          .select('*')
+          .select('id, titulo, descripcion, fecha, fecha_fin, hora, hora_fin, imagen_url, precio, local_id, activo')
           .gte('fecha', new Date().toISOString())
           .order('fecha', { ascending: true })
-          .limit(50),
+          .limit(30), // ✅ Reduced from 50 to 30
         
         supabase
           .from('ofertas_trabajo')
           .select(`
-            *,
+            id, titulo, descripcion, tipo, salario, provincia, local_id, propietario_id, activo, created_at,
             local:locales(nombre),
             propietario:usuarios(nombre)
           `)
           .order('created_at', { ascending: false })
-          .limit(50),
+          .limit(30), // ✅ Reduced from 50 to 30
       ]);
 
       if (!localesResult.error && localesResult.data) {
         const transformedLocales = localesResult.data.map(transformarLocal);
         setLocales(transformedLocales);
-        console.log('[GlobalData v95.0] ✅ Locales loaded:', transformedLocales.length);
+        console.log('[GlobalData v197.0] ✅ Locales loaded:', transformedLocales.length);
       }
 
       if (!postsResult.error && postsResult.data) {
@@ -361,18 +368,18 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
             : post.autor,
         }));
         setPosts(mappedPosts);
-        console.log('[GlobalData v95.0] ✅ Posts loaded:', mappedPosts.length);
+        console.log('[GlobalData v197.0] ✅ Posts loaded:', mappedPosts.length);
         preloadImages(mappedPosts);
       }
 
       if (!eventosResult.error && eventosResult.data) {
         setEventos(eventosResult.data);
-        console.log('[GlobalData v95.0] ✅ Eventos loaded:', eventosResult.data.length);
+        console.log('[GlobalData v197.0] ✅ Eventos loaded:', eventosResult.data.length);
       }
 
       if (!ofertasResult.error && ofertasResult.data) {
         setOfertas(ofertasResult.data);
-        console.log('[GlobalData v95.0] ✅ Ofertas loaded:', ofertasResult.data.length);
+        console.log('[GlobalData v197.0] ✅ Ofertas loaded:', ofertasResult.data.length);
       }
 
       await saveToCache({
@@ -393,15 +400,15 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
       setLastUpdate(Date.now());
       setHasLoadedOnce(true);
-      console.log('[GlobalData v95.0] ✅ All data loaded and cached');
+      console.log('[GlobalData v197.0] ✅ All data loaded and cached');
     } catch (error) {
-      console.error('[GlobalData v95.0] Error loading from Supabase:', error);
+      console.error('[GlobalData v197.0] Error loading from Supabase:', error);
     }
   }, [transformarLocal, saveToCache, preloadImages]);
 
   const refreshData = useCallback(async (silent: boolean = false) => {
     if (isLoadingRef.current) {
-      console.log('[GlobalData v95.0] Already loading, skipping...');
+      console.log('[GlobalData v197.0] Already loading, skipping...');
       return;
     }
 
@@ -435,20 +442,20 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initialize = async () => {
-      console.log('[GlobalData v95.0] 🚀 Initializing...');
+      console.log('[GlobalData v197.0] 🚀 Initializing...');
       
       const hasCache = await loadFromCache();
       
       if (hasCache) {
-        console.log('[GlobalData v95.0] ⚡⚡⚡ INSTANT START with cached data');
+        console.log('[GlobalData v197.0] ⚡⚡⚡ INSTANT START with cached data');
         setHasLoadedOnce(true);
         
         setTimeout(() => {
-          console.log('[GlobalData v95.0] 🔄 Background refresh...');
+          console.log('[GlobalData v197.0] 🔄 Background refresh...');
           refreshData(true);
         }, 10);
       } else {
-        console.log('[GlobalData v95.0] 📡 No cache, loading from Supabase...');
+        console.log('[GlobalData v197.0] 📡 No cache, loading from Supabase...');
         await loadFromSupabase();
       }
     };
@@ -456,11 +463,12 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     initialize();
 
     backgroundRefreshTimer.current = setInterval(() => {
-      console.log('[GlobalData v95.0] ⏰ Background refresh triggered');
+      console.log('[GlobalData v197.0] ⏰ Background refresh triggered');
       refreshData(true);
     }, BACKGROUND_REFRESH_INTERVAL);
 
     return () => {
+      isMountedRef.current = false;
       if (backgroundRefreshTimer.current) {
         clearInterval(backgroundRefreshTimer.current);
       }
@@ -468,7 +476,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
   }, [loadFromCache, loadFromSupabase, refreshData]);
 
   useEffect(() => {
-    console.log('[GlobalData v95.0] 📡 Setting up real-time subscriptions...');
+    console.log('[GlobalData v197.0] 📡 Setting up real-time subscriptions...');
 
     const localesChannel = supabase
       .channel('global-locales-changes')
@@ -480,7 +488,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           table: 'locales',
         },
         () => {
-          console.log('[GlobalData v95.0] 🔄 Locales changed, refreshing...');
+          console.log('[GlobalData v197.0] 🔄 Locales changed, refreshing...');
           refreshData(true);
         }
       )
@@ -496,7 +504,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           table: 'posts',
         },
         () => {
-          console.log('[GlobalData v95.0] 🔄 Posts changed, refreshing...');
+          console.log('[GlobalData v197.0] 🔄 Posts changed, refreshing...');
           refreshData(true);
         }
       )
@@ -512,7 +520,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           table: 'likes',
         },
         () => {
-          console.log('[GlobalData v95.0] 🔄 Likes changed, refreshing posts...');
+          console.log('[GlobalData v197.0] 🔄 Likes changed, refreshing posts...');
           refreshData(true);
         }
       )
