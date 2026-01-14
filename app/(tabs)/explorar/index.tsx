@@ -117,7 +117,8 @@ export default function ExplorarScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const { mode } = useMode();
-  const { globalLocales, refreshGlobalData, isLoadingGlobal } = useGlobalData();
+  // ✅ FIX: Use 'locales' instead of 'globalLocales' to match the context export
+  const { locales: globalLocales, refreshData: refreshGlobalData, isRefreshing: isLoadingGlobal } = useGlobalData();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('todas');
@@ -164,6 +165,12 @@ export default function ExplorarScreen() {
   const filteredAndSortedLocales = useMemo(() => {
     console.log('Filtering locales - Category:', selectedCategory, 'Province:', provinciaSeleccionada, 'Search:', searchQuery);
     
+    // ✅ FIX: Add safety check to ensure globalLocales is defined and is an array
+    if (!globalLocales || !Array.isArray(globalLocales)) {
+      console.log('globalLocales is not available yet, returning empty array');
+      return [];
+    }
+
     let filtered = globalLocales.filter((local) => {
       // Filtro de búsqueda
       if (searchQuery) {
