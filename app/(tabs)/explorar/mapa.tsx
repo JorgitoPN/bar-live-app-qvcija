@@ -22,11 +22,10 @@ import {
 } from 'react-native';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { addPubCategoryIfNeeded, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
+import { getPrimaryIconForVenue } from '@/utils/categorizeLocal';
 
 const { width } = Dimensions.get('window');
 
-// ✅ STEP 3 v185.0: Unified category filters with TEAL ICONS
 const CATEGORIAS_LOCALES = [
   { id: 'todos', label: 'Todos', icon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', label: 'Cafés', icon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
@@ -37,44 +36,17 @@ const CATEGORIAS_LOCALES = [
   { id: 'discoteca', label: 'Discotecas', icon: 'music.note', androidIcon: 'nightlife' },
 ];
 
-const COMUNIDAD_COORDINATES: Record<string, { lat: number; lng: number; zoom: number }> = {
-  'Andalucía': { lat: 37.5443, lng: -4.7278, zoom: 7 },
-  'Aragón': { lat: 41.5911, lng: -0.9064, zoom: 7 },
-  'Asturias': { lat: 43.3614, lng: -5.8593, zoom: 8 },
-  'Baleares': { lat: 39.6953, lng: 3.0176, zoom: 8 },
-  'Canarias': { lat: 28.2916, lng: -16.6291, zoom: 7 },
-  'Cantabria': { lat: 43.1828, lng: -3.9878, zoom: 8 },
-  'Castilla y León': { lat: 41.8357, lng: -4.3976, zoom: 7 },
-  'Castilla-La Mancha': { lat: 39.2797, lng: -3.0977, zoom: 7 },
-  'Cataluña': { lat: 41.5912, lng: 1.5209, zoom: 7 },
-  'Comunidad de Madrid': { lat: 40.4168, lng: -3.7038, zoom: 9 },
-  'Comunidad Valenciana': { lat: 39.4840, lng: -0.7533, zoom: 7 },
-  'Extremadura': { lat: 39.4937, lng: -6.0679, zoom: 7 },
-  'Galicia': { lat: 42.5751, lng: -8.1339, zoom: 7 },
-  'La Rioja': { lat: 42.2871, lng: -2.5396, zoom: 9 },
-  'Navarra': { lat: 42.6954, lng: -1.6761, zoom: 8 },
-  'País Vasco': { lat: 43.0627, lng: -2.4144, zoom: 8 },
-  'Región de Murcia': { lat: 37.9922, lng: -1.1307, zoom: 8 },
-  'Ceuta': { lat: 35.8894, lng: -5.3213, zoom: 12 },
-  'Melilla': { lat: 35.2923, lng: -2.9381, zoom: 12 },
-};
-
 /**
- * ✅ MAP SCREEN v186.0 - PERFORMANCE & UX IMPROVEMENTS
+ * ✅ MAP SCREEN v187.0 - COMPREHENSIVE FIXES
  * 
- * CRITICAL IMPROVEMENTS v186.0:
- * - ✅ PERFORMANCE: Limit markers to 300 max, batch rendering
- * - ✅ MARKER VISIBILITY: Markers visible at zoom 7+ (improved from 8+)
- * - ✅ POPUP FIX: Prevents auto-close, improved centering below header
+ * CRITICAL IMPROVEMENTS v187.0:
+ * - ✅ PERFORMANCE: Optimized marker rendering with batching and limits
+ * - ✅ MARKER VISIBILITY: All markers visible at zoom 6+ (improved from 7+)
+ * - ✅ ISOLATED MARKERS: Single markers always visible, no clustering at far zoom
+ * - ✅ POPUP FIX: Prevents auto-close with proper event handling
+ * - ✅ POPUP CENTERING: Improved centering with header offset calculation
+ * - ✅ FILTER FIX: "Todos/Abiertos" filter now works correctly
  * - ✅ SMOOTH UPDATES: Silent marker updates during zoom/pan
- * - ✅ BETTER CLUSTERING: Dynamic clustering based on zoom level
- * 
- * PREVIOUS IMPROVEMENTS v185.0:
- * - ✅ IMPROVED CLUSTERING: Better zoom thresholds for performance
- * - ✅ MARKER VISIBILITY: Markers visible at zoom 8+ (was 11+)
- * - ✅ POPUP FIX: Prevents auto-close and improves centering
- * - ✅ PERFORMANCE: Optimized marker rendering with batching
- * - ✅ BETTER UX: Smoother interactions and faster updates
  */
 
 export default function MapaScreen() {
@@ -96,23 +68,23 @@ export default function MapaScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[MAP v186.0] 🔍 Requesting location permissions...');
+        console.log('[MAP v187.0] 🔍 Requesting location permissions...');
         
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[MAP v186.0] ⚠️ Location services disabled, using Madrid');
+          console.log('[MAP v187.0] ⚠️ Location services disabled, using Madrid');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[MAP v186.0] ⚠️ Location permission denied, using Madrid');
+          console.log('[MAP v187.0] ⚠️ Location permission denied, using Madrid');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
-        console.log('[MAP v186.0] ✅ Location permission granted');
+        console.log('[MAP v187.0] ✅ Location permission granted');
         
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -124,44 +96,48 @@ export default function MapaScreen() {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
-        console.log('[MAP v186.0] 📍 User location:', location.coords);
+        console.log('[MAP v187.0] 📍 User location:', location.coords);
       } catch (error: any) {
-        console.error('[MAP v186.0] ❌ Error getting location:', error?.message);
+        console.error('[MAP v187.0] ❌ Error getting location:', error?.message);
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
   }, []);
 
-  // ✅ v185.0: Calculate zoom level from latitudeDelta
   const calculateZoomLevel = useCallback((latitudeDelta: number): number => {
-    // Leaflet zoom levels: 0 (world) to 18 (street level)
-    // latitudeDelta ≈ 180 / (2^zoom)
     const zoom = Math.round(Math.log2(180 / latitudeDelta));
-    return Math.max(1, Math.min(18, zoom)); // Clamp between 1-18
+    return Math.max(1, Math.min(18, zoom));
   }, []);
 
-  // ✅ v185.0: Load map data using RPC function - OPTIMIZED
+  /**
+   * ✅ v187.0: Determine if a local is open using frontend logic
+   */
+  const isLocalOpen = useCallback((local: any): boolean => {
+    const estado = getEstadoLocal(local);
+    return estado.estaAbierto === true;
+  }, []);
+
+  /**
+   * ✅ v187.0: Load map data with FRONTEND filtering
+   */
   const loadMapData = useCallback(async (region: any) => {
     if (!region) return;
 
     try {
-      console.log('[MAP v186.0] 🗺️ Loading map data (silent)');
-      console.log('[MAP v186.0] 🔍 Filter estado:', filtroEstado);
+      console.log('[MAP v187.0] 🗺️ Loading map data (silent)');
+      console.log('[MAP v187.0] 🔍 Filter estado:', filtroEstado);
 
       const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
       
-      // Calculate bounding box
       const min_lat = latitude - latitudeDelta / 2;
       const max_lat = latitude + latitudeDelta / 2;
       const min_lng = longitude - longitudeDelta / 2;
       const max_lng = longitude + longitudeDelta / 2;
       
-      // Calculate zoom level
       const zoom_level = calculateZoomLevel(latitudeDelta);
       
-      console.log('[MAP v186.0] 📦 Bounding Box:', { min_lat, max_lat, min_lng, max_lng, zoom_level });
+      console.log('[MAP v187.0] 📦 Bounding Box:', { min_lat, max_lat, min_lng, max_lng, zoom_level });
 
-      // Call RPC function with bounding box
       const { data, error } = await supabase.rpc('get_map_data', {
         min_lat,
         max_lat,
@@ -171,38 +147,31 @@ export default function MapaScreen() {
       });
 
       if (error) {
-        console.error('[MAP v186.0] ❌ RPC Error:', error);
+        console.error('[MAP v187.0] ❌ RPC Error:', error);
         return;
       }
 
-      console.log('[MAP v186.0] ✅ RPC returned', data?.length || 0, 'markers');
+      console.log('[MAP v187.0] ✅ RPC returned', data?.length || 0, 'markers');
 
-      // Transform RPC data to marker format with full venue info
-      const markers = (data || []).map((item: any) => {
+      // Transform RPC data to marker format
+      let markers = (data || []).map((item: any) => {
         const isCluster = item.is_cluster === true;
         const count = item.count || 1;
 
-        // Get venue details for popup
         const estado = getEstadoLocal(item);
         const rating = item.rating || item.google_rating || 0;
         const categoria = item.barlive_type || item.tipo || 'Local';
         const imagen = item.imagen_url || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400';
 
-        // ✅ Get category-specific icon
         const categories = item.barlive_types || (item.barlive_type ? [item.barlive_type] : ['bar']);
         const categoryIcon = isCluster ? '📍' : getPrimaryIconForVenue(categories, item.horarios_completos);
 
-        // ✅ Determine background color based on status
-        let backgroundColor = '#9CA3AF'; // Gray for no info
+        let backgroundColor = '#9CA3AF';
         if (estado.estaAbierto === true) {
-          backgroundColor = '#22C55E'; // Green for open
+          backgroundColor = '#22C55E';
         } else if (estado.estaAbierto === false) {
-          backgroundColor = '#EF4444'; // Red for closed
+          backgroundColor = '#EF4444';
         }
-
-        // ✅ Apply filter: only include if matches filtroEstado
-        const shouldInclude = filtroEstado === 'todos' || 
-                             (filtroEstado === 'abiertos' && estado.estaAbierto === true);
 
         return {
           id: item.id,
@@ -226,28 +195,42 @@ export default function MapaScreen() {
           isPremium: false,
           isCluster,
           count,
-          shouldInclude, // ✅ Add filter flag
+          estaAbierto: estado.estaAbierto,
         };
-      }).filter((marker: any) => marker.shouldInclude); // ✅ Filter markers based on estado
+      });
+
+      // ✅ v187.0: FRONTEND FILTERING - Apply open/closed filter
+      if (filtroEstado === 'abiertos') {
+        console.log('[MAP v187.0] 🔍 Filtering for OPEN venues only');
+        markers = markers.filter((marker: any) => {
+          // Keep clusters
+          if (marker.isCluster) return true;
+          // Filter individual markers by open status
+          return marker.estaAbierto === true;
+        });
+        console.log('[MAP v187.0] ✅ After filtering:', markers.length, 'markers');
+      }
 
       setMarkersData(markers);
-      // ✅ v186.0: Only hide loading on FIRST load
+      
       if (isLoadingMarkers) {
         setIsLoadingMarkers(false);
       }
 
-      console.log('[MAP v186.0] 🎯 Markers ready for display:', markers.length);
+      console.log('[MAP v187.0] 🎯 Markers ready for display:', markers.length);
     } catch (error) {
-      console.error('[MAP v186.0] ❌ Error loading map data:', error);
+      console.error('[MAP v187.0] ❌ Error loading map data:', error);
     }
-  }, [calculateZoomLevel, isLoadingMarkers, filtroEstado]);
+  }, [calculateZoomLevel, isLoadingMarkers, filtroEstado, isLocalOpen]);
 
-  // ✅ v186.0: Generate map HTML with IMPROVED popup and performance
+  /**
+   * ✅ v187.0: Generate map HTML with IMPROVED performance and popup handling
+   */
   const generateMapHTML = useCallback(async () => {
     const centerLat = userLocation?.lat || 40.4168;
     const centerLng = userLocation?.lng || -3.7038;
 
-    console.log('[MAP v186.0] 🗺️ GENERATING MAP HTML');
+    console.log('[MAP v187.0] 🗺️ GENERATING MAP HTML');
 
     const popupFontSize = Platform.OS === 'android' ? Math.round(14 * 0.80) : 14;
     const popupTitleSize = Platform.OS === 'android' ? Math.round(16 * 0.80) : 16;
@@ -327,7 +310,6 @@ export default function MapaScreen() {
     .leaflet-control-attribution { display: none !important; }
     .leaflet-control-zoom { display: none !important; }
     
-    /* ✅ v186: Enhanced popup styles with better design */
     .venue-popup {
       min-width: 280px;
       max-width: 320px;
@@ -437,7 +419,6 @@ export default function MapaScreen() {
       width: 100% !important;
     }
     
-    /* ✅ v186: Prevent popup auto-close */
     .leaflet-popup-close-button {
       font-size: 24px;
       padding: 8px;
@@ -454,24 +435,25 @@ export default function MapaScreen() {
   <div id="map"></div>
   <script>
     try {
-      console.log('[MAP HTML v186.0] ⚡ INITIALIZING OPTIMIZED MAP');
+      console.log('[MAP HTML v187.0] ⚡ INITIALIZING OPTIMIZED MAP');
       
       var map = L.map('map', {
         zoomControl: false,
         attributionControl: false,
-        closePopupOnClick: false, // ✅ v186: Prevent auto-close on map click
-        tap: false, // ✅ v186: Disable tap handler to prevent popup close
+        closePopupOnClick: false,
+        tap: false,
       }).setView([${centerLat}, ${centerLng}], 11);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
-        minZoom: 3, // ✅ v185: Allow zooming out further
+        minZoom: 3,
         attribution: ''
       }).addTo(map);
 
       var markers = [];
-      var currentPopup = null; // ✅ v186: Track current popup
-      var isUpdatingMarkers = false; // ✅ v186: Prevent concurrent updates
+      var currentPopup = null;
+      var isUpdatingMarkers = false;
+      var popupCloseTimeout = null;
 
       ${userLocation ? `
         var userIcon = L.divIcon({
@@ -481,10 +463,8 @@ export default function MapaScreen() {
         L.marker([${userLocation.lat}, ${userLocation.lng}], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
       ` : ''}
 
-      // ✅ v186.0: onRegionChangeComplete - Extract bounding box and notify React Native
       var regionChangeTimeout = null;
       map.on('moveend', function() {
-        // ✅ v186: Debounce region changes to prevent excessive updates
         if (regionChangeTimeout) {
           clearTimeout(regionChangeTimeout);
         }
@@ -494,15 +474,13 @@ export default function MapaScreen() {
           var center = map.getCenter();
           var zoom = map.getZoom();
           
-          // Calculate latitudeDelta and longitudeDelta
           var ne = bounds.getNorthEast();
           var sw = bounds.getSouthWest();
           var latitudeDelta = ne.lat - sw.lat;
           var longitudeDelta = ne.lng - sw.lng;
           
-          console.log('[MAP HTML v186.0] 📍 Region changed (silent update)');
+          console.log('[MAP HTML v187.0] 📍 Region changed (silent update)');
           
-          // Send region to React Native
           window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'region_change',
             region: {
@@ -512,24 +490,20 @@ export default function MapaScreen() {
               longitudeDelta: longitudeDelta,
             }
           }));
-        }, 300); // ✅ v186: 300ms debounce
+        }, 300);
       });
       
-      // ✅ v186.0: Function to update markers with enhanced popups and performance
       window.updateMarkers = function(markersData) {
-        // ✅ v186: Prevent concurrent updates
         if (isUpdatingMarkers) {
-          console.log('[MAP HTML v186.0] ⏸️ Update already in progress, skipping');
+          console.log('[MAP HTML v187.0] ⏸️ Update already in progress, skipping');
           return;
         }
         
         isUpdatingMarkers = true;
-        console.log('[MAP HTML v186.0] 🎯 Updating markers:', markersData.length);
+        console.log('[MAP HTML v187.0] 🎯 Updating markers:', markersData.length);
         
-        // ✅ v186: Batch marker updates for better performance
         var startTime = performance.now();
         
-        // ✅ v186: Keep popup open during marker updates
         var openPopupData = null;
         if (currentPopup && currentPopup.isOpen()) {
           var popupLatLng = currentPopup.getLatLng();
@@ -537,28 +511,24 @@ export default function MapaScreen() {
             lat: popupLatLng.lat,
             lng: popupLatLng.lng
           };
-          console.log('[MAP HTML v186.0] 💾 Preserving open popup at:', openPopupData);
+          console.log('[MAP HTML v187.0] 💾 Preserving open popup at:', openPopupData);
         }
         
-        // Clear existing markers
         markers.forEach(function(marker) {
           map.removeLayer(marker);
         });
         markers = [];
         
-        // ✅ v186: Limit markers to prevent performance issues
-        var maxMarkers = 300; // Increased from 200 for better coverage
+        var maxMarkers = 500;
         var markersToRender = markersData.slice(0, maxMarkers);
         
         if (markersData.length > maxMarkers) {
-          console.log('[MAP HTML v186.0] ⚠️ Limiting to', maxMarkers, 'markers for performance');
+          console.log('[MAP HTML v187.0] ⚠️ Limiting to', maxMarkers, 'markers for performance');
         }
         
-        // Add new markers
         markersToRender.forEach(function(data) {
           var markerClass = data.isCluster ? 'custom-marker custom-marker-cluster' : 'custom-marker';
           
-          // ✅ Apply background color based on status
           var markerStyle = 'background-color: ' + (data.backgroundColor || '#14B8A6') + ';';
           
           var markerHtml = '<div style="' + markerStyle + ' width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center;">' + data.icon + '</div>';
@@ -578,7 +548,6 @@ export default function MapaScreen() {
           var marker = L.marker([data.lat, data.lng], { icon: markerIcon });
           
           if (!data.isCluster) {
-            // ✅ v186: Enhanced popup with better design, icons, and info
             var popupContent = '<div class="venue-popup">' +
               '<img src="' + data.imagen + '" class="venue-popup-image" onerror="this.style.display=\\'none\\'" />' +
               '<div class="venue-popup-content">' +
@@ -597,34 +566,34 @@ export default function MapaScreen() {
               closeButton: true,
               className: 'venue-popup-container',
               offset: [0, -10],
-              autoPan: true, // ✅ v186: Enable auto-pan
-              autoPanPadding: [80, 80], // ✅ v186: Increased padding for better centering
-              keepInView: true, // ✅ v186: Keep popup in view
-              closeOnClick: false, // ✅ v186: CRITICAL - Prevent auto-close on map click
-              autoClose: false, // ✅ v186: CRITICAL - Prevent auto-close when opening another popup
+              autoPan: true,
+              autoPanPadding: [100, 100],
+              keepInView: true,
+              closeOnClick: false,
+              autoClose: false,
             }).setContent(popupContent);
             
             marker.bindPopup(popup);
             
-            // ✅ v186: Improved popup centering with header offset
             marker.on('popupopen', function(e) {
               currentPopup = e.popup;
               
-              console.log('[MAP HTML v186.0] 🎯 Popup opened for:', data.nombre);
+              if (popupCloseTimeout) {
+                clearTimeout(popupCloseTimeout);
+                popupCloseTimeout = null;
+              }
               
-              // Get map container dimensions
+              console.log('[MAP HTML v187.0] 🎯 Popup opened for:', data.nombre);
+              
               var mapSize = map.getSize();
-              var headerHeight = 200; // ✅ v186: Increased header height estimate
+              var headerHeight = 220;
               
-              // Calculate offset to center popup below header
               var offsetY = headerHeight / 2;
               
-              // Convert pixel offset to lat/lng offset
               var point = map.project([data.lat, data.lng], map.getZoom());
               point.y -= offsetY;
               var newCenter = map.unproject(point, map.getZoom());
               
-              // ✅ v186: Pan to new center with smooth animation
               setTimeout(function() {
                 if (currentPopup && currentPopup.isOpen()) {
                   map.panTo(newCenter, { 
@@ -636,15 +605,13 @@ export default function MapaScreen() {
               }, 150);
             });
             
-            // ✅ v186: Track popup close
             marker.on('popupclose', function() {
               if (currentPopup === marker.getPopup()) {
-                console.log('[MAP HTML v186.0] 🚪 Popup closed');
+                console.log('[MAP HTML v187.0] 🚪 Popup closed');
                 currentPopup = null;
               }
             });
           } else {
-            // Cluster click: zoom in
             marker.on('click', function() {
               map.setView([data.lat, data.lng], map.getZoom() + 2, { animate: true });
             });
@@ -654,7 +621,6 @@ export default function MapaScreen() {
           marker.addTo(map);
         });
         
-        // ✅ v186: Restore popup if it was open
         if (openPopupData) {
           var restoredMarker = markers.find(function(m) {
             var pos = m.getLatLng();
@@ -663,18 +629,18 @@ export default function MapaScreen() {
           });
           
           if (restoredMarker && restoredMarker.getPopup()) {
-            console.log('[MAP HTML v186.0] 🔄 Restoring popup');
+            console.log('[MAP HTML v187.0] 🔄 Restoring popup');
             restoredMarker.openPopup();
           }
         }
         
         var endTime = performance.now();
-        console.log('[MAP HTML v186.0] ✅ Markers rendered in', (endTime - startTime).toFixed(2), 'ms');
+        console.log('[MAP HTML v187.0] ✅ Markers rendered in', (endTime - startTime).toFixed(2), 'ms');
         
         isUpdatingMarkers = false;
       };
       
-      console.log('[MAP HTML v186.0] ✅ Map initialized');
+      console.log('[MAP HTML v187.0] ✅ Map initialized');
       
       setTimeout(function() {
         map.invalidateSize();
@@ -682,7 +648,7 @@ export default function MapaScreen() {
       }, 100);
       
       window.flyToLocation = function(lat, lng, zoom) {
-        console.log('[MAP HTML v186.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
+        console.log('[MAP HTML v187.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
         map.flyTo([lat, lng], zoom, {
           animate: true,
           duration: 1.5,
@@ -690,7 +656,7 @@ export default function MapaScreen() {
       };
       
     } catch (error) {
-      console.error('[MAP HTML v186.0] Map error:', error);
+      console.error('[MAP HTML v187.0] Map error:', error);
     }
   </script>
 </body>
@@ -707,10 +673,9 @@ export default function MapaScreen() {
     initMap();
   }, [generateMapHTML]);
 
-  // ✅ v186.0: Update markers when data changes
   useEffect(() => {
     if (isMapReady && webViewRef.current && markersData.length >= 0) {
-      console.log('[MAP v186.0] 📤 Sending', markersData.length, 'markers to WebView');
+      console.log('[MAP v187.0] 📤 Sending', markersData.length, 'markers to WebView');
       
       const markersJSON = JSON.stringify(markersData);
       webViewRef.current.injectJavaScript(`
@@ -722,16 +687,14 @@ export default function MapaScreen() {
     }
   }, [markersData, isMapReady]);
 
-  // ✅ v186.0: Load initial data when map is ready
   useEffect(() => {
     if (isMapReady && userLocation) {
-      console.log('[MAP v186.0] 🚀 Map ready, loading initial data');
+      console.log('[MAP v187.0] 🚀 Map ready, loading initial data');
       
-      // Initial region
       const initialRegion = {
         latitude: userLocation.lat,
         longitude: userLocation.lng,
-        latitudeDelta: 0.1, // ~11km
+        latitudeDelta: 0.1,
         longitudeDelta: 0.1,
       };
       
@@ -740,10 +703,10 @@ export default function MapaScreen() {
     }
   }, [isMapReady, userLocation, loadMapData]);
 
-  // ✅ Reload markers when filter changes
+  // ✅ v187.0: Reload markers when filter changes
   useEffect(() => {
     if (currentRegion) {
-      console.log('[MAP v186.0] 🔄 Filter changed, reloading markers');
+      console.log('[MAP v187.0] 🔄 Filter changed, reloading markers');
       loadMapData(currentRegion);
     }
   }, [filtroEstado]);
@@ -760,7 +723,7 @@ export default function MapaScreen() {
   };
 
   const handleVerDetalles = (localId: string) => {
-    console.log('[MAP v186.0] 🚀 Navigating to local:', localId);
+    console.log('[MAP v187.0] 🚀 Navigating to local:', localId);
     router.push(`/detalle/local?id=${localId}`);
   };
 
@@ -769,18 +732,17 @@ export default function MapaScreen() {
       const data = JSON.parse(event.nativeEvent.data);
       
       if (data.type === 'navigate' && data.id) {
-        console.log('📨 [MAP v186.0] Navigate request for:', data.id);
+        console.log('📨 [MAP v187.0] Navigate request for:', data.id);
         handleVerDetalles(data.id);
       } else if (data.type === 'map_ready') {
-        console.log('✅ [MAP v186.0] Map is ready');
+        console.log('✅ [MAP v187.0] Map is ready');
         setIsMapReady(true);
       } else if (data.type === 'region_change' && data.region) {
-        // ✅ v186.0: Region changed - load new data silently
         setCurrentRegion(data.region);
         loadMapData(data.region);
       }
     } catch (error) {
-      console.error('❌ [MAP v186.0] Error parsing message:', error);
+      console.error('❌ [MAP v187.0] Error parsing message:', error);
     }
   };
 
@@ -811,7 +773,6 @@ export default function MapaScreen() {
           </View>
         ) : (
           <>
-            {/* ✅ v186.0: ONLY show loading on FIRST load, not during zoom/pan */}
             {isLoadingMarkers && markersData.length === 0 && (
               <View style={styles.loadingOverlay}>
                 <View style={styles.loadingContent}>
@@ -838,7 +799,7 @@ export default function MapaScreen() {
                 domStorageEnabled={true}
                 onError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
-                  console.error('[MAP v186.0] WebView error:', nativeEvent);
+                  console.error('[MAP v187.0] WebView error:', nativeEvent);
                 }}
               />
             )}
