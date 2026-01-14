@@ -180,7 +180,7 @@ export default function MapaScreen() {
         const estado = item.estado_actual || 'Sin información';
         const rating = item.rating || item.google_rating || 0;
         const categoria = item.barlive_type || item.tipo || 'Local';
-        const imagen = item.imagen_url || item.thumbnail_url || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400';
+        const imagen = item.imagen_url || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400';
 
         return {
           id: item.id,
