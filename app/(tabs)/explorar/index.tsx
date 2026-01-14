@@ -1,7 +1,6 @@
 
-import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useMode } from '@/contexts/ModeContext';
+import { calcularDistancia } from '@/utils/locationUtils';
+import { supabase } from '@/utils/supabase';
 import {
   View,
   Text,
@@ -20,9 +19,11 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { colors, commonStyles } from '@/styles/commonStyles';
+import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import LoginPrompt from '@/components/common/LoginPrompt';
+import { useAuth } from '@/contexts/AuthContext';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   getSearchBoxHeight,
   getCategoryIconSize,
@@ -34,1160 +35,809 @@ import {
   getContentBottomPadding,
 } from '@/utils/androidScaling';
 import { useRouter } from 'expo-router';
-import { getEstadoLocal } from '@/utils/timeUtils';
 import { IconSymbol } from '@/components/IconSymbol';
-import LoginPrompt from '@/components/common/LoginPrompt';
-import * as Location from 'expo-location';
-import { calcularDistancia } from '@/utils/locationUtils';
-import { supabase } from '@/utils/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+import { getEstadoLocal } from '@/utils/timeUtils';
 import { getCategoryIcon } from '@/utils/categoryIcons';
-import { useGlobalData } from '@/contexts/GlobalDataContext';
+import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import { colors, commonStyles } from '@/styles/commonStyles';
+import * as Location from 'expo-location';
+import { useMode } from '@/contexts/ModeContext';
+import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 
-// ✅ CRITICAL PERFORMANCE FIX v199.0: Optimized page size for 200k+ locales
 const ITEMS_PER_PAGE = 20;
-
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 260 : 360;
-const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
+const PRELOAD_THRESHOLD = 5; // Cargar más cuando quedan 5 items por ver
+const HEADER_MAX_HEIGHT = 280;
+const HEADER_MIN_HEIGHT = 120;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 const PROVINCIAS = [
   'Todas',
-  'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila', 'Badajoz',
-  'Barcelona', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria', 'Castellón', 'Ciudad Real',
-  'Córdoba', 'Cuenca', 'Girona', 'Granada', 'Guadalajara', 'Guipúzcoa', 'Huelva',
-  'Huesca', 'Islas Baleares', 'Jaén', 'La Coruña', 'La Rioja', 'Las Palmas', 'León',
-  'Lleida', 'Lugo', 'Madrid', 'Málaga', 'Murcia', 'Navarra', 'Ourense', 'Palencia',
-  'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife', 'Segovia', 'Sevilla', 'Soria',
-  'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
+  'A Coruña',
+  'Álava',
+  'Albacete',
+  'Alicante',
+  'Almería',
+  'Asturias',
+  'Ávila',
+  'Badajoz',
+  'Barcelona',
+  'Burgos',
+  'Cáceres',
+  'Cádiz',
+  'Cantabria',
+  'Castellón',
+  'Ciudad Real',
+  'Córdoba',
+  'Cuenca',
+  'Girona',
+  'Granada',
+  'Guadalajara',
+  'Guipúzcoa',
+  'Huelva',
+  'Huesca',
+  'Islas Baleares',
+  'Jaén',
+  'La Rioja',
+  'Las Palmas',
+  'León',
+  'Lleida',
+  'Lugo',
+  'Madrid',
+  'Málaga',
+  'Murcia',
+  'Navarra',
+  'Ourense',
+  'Palencia',
+  'Pontevedra',
+  'Salamanca',
+  'Santa Cruz de Tenerife',
+  'Segovia',
+  'Sevilla',
+  'Soria',
+  'Tarragona',
+  'Teruel',
+  'Toledo',
+  'Valencia',
+  'Valladolid',
+  'Vizcaya',
+  'Zamora',
+  'Zaragoza',
 ];
 
 const CATEGORIAS = [
-  { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
-  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
-  { id: 'restaurante', nombre: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
-  { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
-  { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
-  { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'local_drink' },
-  { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
+  { id: 'todas', nombre: 'Todas', icono: 'apps' },
+  { id: 'bar', nombre: 'Bares', icono: 'local-bar' },
+  { id: 'restaurante', nombre: 'Restaurantes', icono: 'restaurant' },
+  { id: 'discoteca', nombre: 'Discotecas', icono: 'nightlife' },
+  { id: 'pub', nombre: 'Pubs', icono: 'sports-bar' },
+  { id: 'cafeteria', nombre: 'Cafeterías', icono: 'local-cafe' },
 ];
 
-/**
- * ✅ EXPLORAR SCREEN v199.0 - SCALABLE TO 200,000+ LOCALES
- * 
- * CRITICAL PERFORMANCE OPTIMIZATIONS v199.0:
- * - ✅ Server-side pagination: Only loads 20 items at a time
- * - ✅ Database indexes: Ultra-fast queries even with 200k+ records
- * - ✅ Intelligent caching: Caches only visible data
- * - ✅ Distance calculation: Done in database, not in app
- * - ✅ Lazy loading: Loads more as user scrolls
- * - ✅ No memory bloat: Never loads all 200k+ locales into memory
- * 
- * WHY WEB IS FASTER:
- * - Browsers have built-in optimizations (HTTP/2, GPU acceleration)
- * - Expo Go adds development overhead (hot reload, debugging)
- * - Production builds will match web performance
- * 
- * SOLUTION FOR 200K+ LOCALES:
- * - Database does the heavy lifting (sorting, filtering, distance calc)
- * - App only renders what's visible on screen
- * - Infinite scroll loads more data seamlessly
- * - No loading screens between pages
- */
-
 export default function ExplorarScreen() {
-  const router = useRouter();
   const { user } = useAuth();
-  const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
-  const { prefetchNextPage } = useGlobalData();
-  
-  const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
+  const { mode } = useMode();
+  const { globalLocales, refreshGlobalData, isLoadingGlobal } = useGlobalData();
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
-  const [showModeSelectorModal, setShowModeSelectorModal] = useState(false);
-  
-  const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('todas');
+  const [selectedCategory, setSelectedCategory] = useState('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
+  const [showProvinciaModal, setShowProvinciaModal] = useState(false);
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
-  const scrollY = useRef(0);
-  const lastScrollY = useRef(0);
-  const headerTranslateY = useRef(new Animated.Value(0)).current;
-  const isLoadingMoreRef = useRef(false);
-  const lastFiltersRef = useRef<string>('');
+  // Estados para paginación e infinite scroll
+  const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreData, setHasMoreData] = useState(true);
 
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Obtener ubicación del usuario
   useEffect(() => {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const location = await Location.getCurrentPositionAsync({});
-          setUserLocation({
-            lat: location.coords.latitude,
-            lng: location.coords.longitude,
-          });
-          console.log('[Explorar v199.0] User location obtained:', location.coords);
+        if (status !== 'granted') {
+          console.log('User tapped Explorar - Location permission denied');
+          return;
         }
+
+        const location = await Location.getCurrentPositionAsync({});
+        setUserLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        console.log('User location obtained:', location.coords);
       } catch (error) {
-        console.error('[Explorar v199.0] Error getting location:', error);
+        console.error('Error getting location:', error);
       }
     })();
   }, []);
 
-  // ✅ CRITICAL v199.0: Load data from server with pagination
-  const loadLocales = useCallback(async (page: number = 1, append: boolean = false) => {
-    if (isLoadingMoreRef.current && append) {
-      console.log('[Explorar v199.0] Already loading more, skipping...');
-      return;
-    }
-
-    const filtersKey = `${selectedCategory}-${provinciaSeleccionada}-${searchQuery}`;
-    const filtersChanged = filtersKey !== lastFiltersRef.current;
-
-    if (filtersChanged) {
-      console.log('[Explorar v199.0] 🔄 Filters changed, resetting...');
-      lastFiltersRef.current = filtersKey;
-      setCurrentPage(1);
-      setDisplayedLocales([]);
-      setHasMore(true);
-      page = 1;
-      append = false;
-    }
-
-    if (append) {
-      isLoadingMoreRef.current = true;
-    } else {
-      setLoading(true);
-    }
-
-    try {
-      console.log('[Explorar v199.0] 📡 Loading page', page, 'from server...');
-      
-      // ✅ CRITICAL: Call RPC function for server-side pagination
-      const offset = (page - 1) * ITEMS_PER_PAGE;
-      const { data, error } = await supabase.rpc('get_locales_paginados', {
-        user_lat: userLocation?.lat || 0,
-        user_lng: userLocation?.lng || 0,
-        p_limit: ITEMS_PER_PAGE,
-        p_offset: offset,
-      });
-
-      if (error) {
-        console.error('[Explorar v199.0] Error loading locales:', error);
-        throw error;
+  // Filtrar y ordenar locales
+  const filteredAndSortedLocales = useMemo(() => {
+    console.log('Filtering locales - Category:', selectedCategory, 'Province:', provinciaSeleccionada, 'Search:', searchQuery);
+    
+    let filtered = globalLocales.filter((local) => {
+      // Filtro de búsqueda
+      if (searchQuery) {
+        const matchesSearch =
+          local.nombre?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          local.direccion?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          local.ciudad?.toLowerCase().includes(searchQuery.toLowerCase());
+        if (!matchesSearch) return false;
       }
 
-      console.log('[Explorar v199.0] ✅ Loaded', data?.length || 0, 'locales from server');
-
-      if (data && data.length > 0) {
-        // Transform data
-        const transformedLocales = data.map((local: any) => {
-          const estado = getEstadoLocal(local);
-          
-          return {
-            ...local,
-            coordenadas: {
-              lat: parseFloat(local.latitud),
-              lng: parseFloat(local.longitud),
-            },
-            imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-            estaAbierto: local.is_open_now !== null ? local.is_open_now : estado.estaAbierto,
-            tieneHorarios: local.has_schedule_info || (local.horarios_completos && Object.keys(local.horarios_completos).length > 0),
-            distancia: local.distancia_metros ? (local.distancia_metros / 1000) : null, // Convert meters to km
-            is_favorite: local.is_favorite || false,
-          };
-        });
-
-        if (append) {
-          setDisplayedLocales(prev => [...prev, ...transformedLocales]);
-        } else {
-          setDisplayedLocales(transformedLocales);
-        }
-
-        // Check if we got less than requested, meaning no more data
-        const gotLessThanRequested = data.length < ITEMS_PER_PAGE;
-        setHasMore(!gotLessThanRequested);
-        setCurrentPage(page);
-
-        const newTotalDisplayed = append ? displayedLocales.length + transformedLocales.length : transformedLocales.length;
-        console.log('[Explorar v199.0] 📊 Total displayed:', newTotalDisplayed, '(more available:', !gotLessThanRequested, ')');
-
-        // Check social profiles for new locales
-        checkSocialProfilesForLocales(transformedLocales.slice(0, 30).map(l => l.id));
-      } else {
-        setHasMore(false);
-        if (!append) {
-          setDisplayedLocales([]);
-        }
+      // Filtro de categoría
+      if (selectedCategory !== 'todas') {
+        const matchesCategory = local.tipo?.toLowerCase() === selectedCategory.toLowerCase();
+        if (!matchesCategory) return false;
       }
-    } catch (error) {
-      console.error('[Explorar v199.0] Error loading locales:', error);
-      Alert.alert('Error', 'No se pudieron cargar los locales');
-    } finally {
-      setLoading(false);
-      isLoadingMoreRef.current = false;
-    }
-  }, [selectedCategory, provinciaSeleccionada, searchQuery, userLocation, displayedLocales.length]);
 
-  const checkSocialProfilesForLocales = useCallback(async (localIds: string[]) => {
-    if (localIds.length === 0) return;
+      // Filtro de provincia
+      if (provinciaSeleccionada !== 'Todas') {
+        const matchesProvincia = local.provincia === provinciaSeleccionada;
+        if (!matchesProvincia) return false;
+      }
 
-    try {
-      console.log('[Explorar v199.0] Checking social profiles for', localIds.length, 'locales');
-      
-      const { data: posts, error: postsError } = await supabase
-        .from('posts')
-        .select('local_id')
-        .eq('tipo', 'local')
-        .in('local_id', localIds);
+      return true;
+    });
 
-      if (postsError) throw postsError;
-
-      const newSocialProfiles = new Map();
-      const localsWithPosts = new Set(posts?.map(p => p.local_id) || []);
-      
-      localIds.forEach(localId => {
-        newSocialProfiles.set(localId, localsWithPosts.has(localId));
+    // Ordenar por distancia si hay ubicación
+    if (userLocation) {
+      filtered = filtered.map((local) => {
+        const distance =
+          local.latitud && local.longitud
+            ? calcularDistancia(
+                userLocation.latitude,
+                userLocation.longitude,
+                local.latitud,
+                local.longitud
+              )
+            : 999999;
+        return { ...local, distance };
       });
-      
-      setSocialProfiles(prev => new Map([...prev, ...newSocialProfiles]));
-    } catch (error) {
-      console.error('[Explorar v199.0] Error checking social profiles:', error);
-    }
-  }, []);
 
-  // Load initial data
+      // Ordenar por prioridad y distancia
+      filtered.sort((a, b) => {
+        const estadoA = getEstadoLocal(a.horarios_completos, a.google_business_status);
+        const estadoB = getEstadoLocal(b.horarios_completos, b.google_business_status);
+
+        // Prioridad 1: Destacados y abiertos dentro de 100km
+        const aDestacadoCerca = a.destacado && estadoA === 'abierto_ahora' && a.distance <= 100;
+        const bDestacadoCerca = b.destacado && estadoB === 'abierto_ahora' && b.distance <= 100;
+        if (aDestacadoCerca && !bDestacadoCerca) return -1;
+        if (!aDestacadoCerca && bDestacadoCerca) return 1;
+
+        // Prioridad 2: Abiertos sin destacar dentro de 100km
+        const aAbiertoCerca = estadoA === 'abierto_ahora' && a.distance <= 100;
+        const bAbiertoCerca = estadoB === 'abierto_ahora' && b.distance <= 100;
+        if (aAbiertoCerca && !bAbiertoCerca) return -1;
+        if (!aAbiertoCerca && bAbiertoCerca) return 1;
+
+        // Prioridad 3: Destacados y abiertos fuera de 100km
+        const aDestacadoLejos = a.destacado && estadoA === 'abierto_ahora' && a.distance > 100;
+        const bDestacadoLejos = b.destacado && estadoB === 'abierto_ahora' && b.distance > 100;
+        if (aDestacadoLejos && !bDestacadoLejos) return -1;
+        if (!aDestacadoLejos && bDestacadoLejos) return 1;
+
+        // Prioridad 4: Con eventos activos
+        const aConEvento = a.evento_activo;
+        const bConEvento = b.evento_activo;
+        if (aConEvento && !bConEvento) return -1;
+        if (!aConEvento && bConEvento) return 1;
+
+        // Prioridad 5: Sin información de horario
+        const aSinInfo = estadoA === 'sin_info';
+        const bSinInfo = estadoB === 'sin_info';
+        if (aSinInfo && !bSinInfo) return -1;
+        if (!aSinInfo && bSinInfo) return 1;
+
+        // Prioridad 6: Cerrados
+        const aCerrado = estadoA === 'cerrado_ahora';
+        const bCerrado = estadoB === 'cerrado_ahora';
+        if (!aCerrado && bCerrado) return -1;
+        if (aCerrado && !bCerrado) return 1;
+
+        // Dentro de cada prioridad, ordenar por distancia
+        return a.distance - b.distance;
+      });
+    }
+
+    console.log('Filtered locales count:', filtered.length);
+    return filtered;
+  }, [globalLocales, searchQuery, selectedCategory, provinciaSeleccionada, userLocation]);
+
+  // Cargar página inicial
   useEffect(() => {
-    loadLocales(1, false);
-  }, [selectedCategory, provinciaSeleccionada, userLocation]);
-
-  // ✅ CRITICAL v199.0: Seamless infinite scroll
-  const loadMoreLocales = useCallback(() => {
-    if (!hasMore || isLoadingMoreRef.current || loading) {
-      return;
-    }
-
-    console.log('[Explorar v199.0] 📥 Loading more locales...');
-    loadLocales(currentPage + 1, true);
-  }, [hasMore, loading, currentPage, loadLocales]);
-
-  const onRefresh = async () => {
-    console.log('[Explorar v199.0] 🔄 Manual refresh triggered');
-    setRefreshing(true);
-    setSearchQuery('');
-    setSelectedCategory('todas');
-    setProvinciaSeleccionada('Todas');
+    console.log('Loading initial page of locales');
+    const initialLocales = filteredAndSortedLocales.slice(0, ITEMS_PER_PAGE);
+    setDisplayedLocales(initialLocales);
     setCurrentPage(1);
-    setDisplayedLocales([]);
-    setHasMore(true);
-    
-    await loadLocales(1, false);
-    setRefreshing(false);
-  };
+    setHasMoreData(filteredAndSortedLocales.length > ITEMS_PER_PAGE);
+  }, [filteredAndSortedLocales]);
 
-  const clearFilters = useCallback(() => {
-    console.log('[Explorar v199.0] 🧹 Clearing all filters');
-    setSearchQuery('');
-    setSelectedCategory('todas');
-    setProvinciaSeleccionada('Todas');
-  }, []);
-
-  const activeFiltersCount = useMemo(() => {
-    let count = 0;
-    if (searchQuery.trim()) count++;
-    if (selectedCategory !== 'todas') count++;
-    if (provinciaSeleccionada !== 'Todas') count++;
-    return count;
-  }, [searchQuery, selectedCategory, provinciaSeleccionada]);
-
-  const toggleFavorito = async (localId: string, e?: any) => {
-    if (e) {
-      e.stopPropagation();
-    }
-    
-    if (!user) {
-      console.log('[Explorar v199.0] User not authenticated');
-      setShowLoginModal(true);
+  // Función para cargar más locales
+  const loadMoreLocales = useCallback(() => {
+    if (isLoadingMore || !hasMoreData) {
       return;
     }
 
-    if (!localId) {
-      console.log('[Explorar v199.0] No local ID');
-      return;
-    }
+    console.log('Loading more locales - Current page:', currentPage);
+    setIsLoadingMore(true);
 
-    try {
-      const { data: existingFavorite } = await supabase
-        .from('locales_guardados')
-        .select('id')
-        .eq('usuario_id', user.id)
-        .eq('local_id', localId)
-        .single();
+    // Simular un pequeño delay para mejor UX
+    setTimeout(() => {
+      const nextPage = currentPage + 1;
+      const startIndex = currentPage * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const newLocales = filteredAndSortedLocales.slice(startIndex, endIndex);
 
-      if (existingFavorite) {
-        console.log('[Explorar v199.0] Removing from favorites');
-        const { error } = await supabase
-          .from('locales_guardados')
-          .delete()
-          .eq('usuario_id', user.id)
-          .eq('local_id', localId);
-
-        if (error) throw error;
+      if (newLocales.length > 0) {
+        setDisplayedLocales((prev) => [...prev, ...newLocales]);
+        setCurrentPage(nextPage);
+        setHasMoreData(endIndex < filteredAndSortedLocales.length);
+        console.log('Loaded', newLocales.length, 'more locales. Total displayed:', displayedLocales.length + newLocales.length);
       } else {
-        console.log('[Explorar v199.0] Adding to favorites');
-        const { error } = await supabase
-          .from('locales_guardados')
-          .insert({
+        setHasMoreData(false);
+        console.log('No more locales to load');
+      }
+
+      setIsLoadingMore(false);
+    }, 300);
+  }, [currentPage, filteredAndSortedLocales, isLoadingMore, hasMoreData, displayedLocales.length]);
+
+  // Detectar cuando el usuario está cerca del final y pre-cargar
+  const handleScroll = useCallback(
+    (event: any) => {
+      const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+      const paddingToBottom = 20;
+      const isCloseToBottom =
+        layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+
+      // Pre-cargar cuando quedan PRELOAD_THRESHOLD items por ver
+      const currentIndex = Math.floor(contentOffset.y / 200); // Asumiendo ~200px por item
+      const remainingItems = displayedLocales.length - currentIndex;
+
+      if (remainingItems <= PRELOAD_THRESHOLD && hasMoreData && !isLoadingMore) {
+        console.log('Pre-loading next batch - Remaining items:', remainingItems);
+        loadMoreLocales();
+      }
+    },
+    [displayedLocales.length, hasMoreData, isLoadingMore, loadMoreLocales]
+  );
+
+  const onRefresh = useCallback(async () => {
+    console.log('User pulled to refresh locales list');
+    setRefreshing(true);
+    await refreshGlobalData();
+    setRefreshing(false);
+  }, [refreshGlobalData]);
+
+  const toggleFavorito = useCallback(
+    async (localId: string) => {
+      if (!user) {
+        console.log('User tapped favorite - Not logged in, showing login modal');
+        setShowLoginModal(true);
+        return;
+      }
+
+      console.log('User toggled favorite for local:', localId);
+      try {
+        const { data: existingFav } = await supabase
+          .from('favoritos')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .eq('local_id', localId)
+          .single();
+
+        if (existingFav) {
+          await supabase.from('favoritos').delete().eq('id', existingFav.id);
+          console.log('Removed from favorites');
+        } else {
+          await supabase.from('favoritos').insert({
             usuario_id: user.id,
             local_id: localId,
           });
+          console.log('Added to favorites');
+        }
 
-        if (error) throw error;
+        await refreshGlobalData();
+      } catch (error) {
+        console.error('Error toggling favorite:', error);
       }
-    } catch (error) {
-      console.error('[Explorar v199.0] Error toggling favorito:', error);
-      Alert.alert('Error', 'No se pudo actualizar favoritos');
+    },
+    [user, refreshGlobalData]
+  );
+
+  const handleComoLlegar = useCallback((local: any, e: any) => {
+    e.stopPropagation();
+    console.log('User tapped directions for local:', local.nombre);
+    if (local.latitud && local.longitud) {
+      const url = Platform.select({
+        ios: `maps:0,0?q=${local.latitud},${local.longitud}`,
+        android: `geo:0,0?q=${local.latitud},${local.longitud}(${encodeURIComponent(local.nombre)})`,
+        default: `https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`,
+      });
+      Linking.openURL(url);
     }
-  };
+  }, []);
 
-  const handleComoLlegar = (local: any, e: any) => {
-    e.stopPropagation();
-    const { lat, lng } = local.coordenadas;
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    Linking.openURL(url);
-  };
+  const handlePerfilSocial = useCallback(
+    (localId: string, e: any) => {
+      e.stopPropagation();
+      console.log('User tapped social profile for local:', localId);
+      router.push(`/perfil/local?id=${localId}`);
+    },
+    [router]
+  );
 
-  const handlePerfilSocial = (localId: string, e: any) => {
-    e.stopPropagation();
-    router.push(`/perfil/local?localId=${localId}`);
-  };
+  const handleNavigateToMap = useCallback(() => {
+    console.log('User navigated to map view');
+    router.push('/explorar/mapa');
+  }, [router]);
 
-  const handleNavigateToMap = () => {
-    router.push('/(tabs)/explorar/mapa');
-  };
-
-  const handleClaimOrCreateLocal = () => {
+  const handleClaimOrCreateLocal = useCallback(() => {
     if (!user) {
+      console.log('User tapped claim/create local - Not logged in, showing login modal');
       setShowLoginModal(true);
       return;
     }
+    console.log('User navigated to claim/create local');
     router.push('/auth/local-ownership-request');
-  };
+  }, [user, router]);
 
-  const getModeLabel = () => {
-    if (currentMode === 'admin') return 'Admin';
-    if (currentMode === 'propietario') return 'Propietario';
-    return 'Cliente';
-  };
-
-  const getModeIcon = () => {
-    if (currentMode === 'admin') return { ios: 'shield.fill', android: 'admin_panel_settings' };
-    if (currentMode === 'propietario') return { ios: 'building.2.fill', android: 'store' };
-    return { ios: 'person.fill', android: 'person' };
-  };
-
-  const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
-    try {
-      console.log('[Explorar v199.0] Changing mode to:', newMode);
-      await setCurrentMode(newMode);
-      setShowModeSelectorModal(false);
-    } catch (error) {
-      console.error('[Explorar v199.0] Error changing mode:', error);
-      Alert.alert('Error', 'No se pudo cambiar el modo');
+  const getModeLabel = useCallback(() => {
+    switch (mode) {
+      case 'cliente':
+        return 'Cliente';
+      case 'propietario':
+        return 'Propietario';
+      case 'admin':
+        return 'Admin';
+      default:
+        return 'Cliente';
     }
-  };
+  }, [mode]);
 
-  const handleScroll = useCallback((event: any) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const diff = currentScrollY - lastScrollY.current;
-    
-    if (Math.abs(diff) > 5) {
-      if (diff > 0 && currentScrollY > 50) {
-        Animated.timing(headerTranslateY, {
-          toValue: -HEADER_SCROLL_DISTANCE,
-          duration: 250,
-          useNativeDriver: true,
-        }).start();
-      } else if (diff < 0) {
-        Animated.timing(headerTranslateY, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }).start();
-      }
+  const getModeIcon = useCallback(() => {
+    switch (mode) {
+      case 'cliente':
+        return 'person';
+      case 'propietario':
+        return 'store';
+      case 'admin':
+        return 'admin-panel-settings';
+      default:
+        return 'person';
     }
-    
-    lastScrollY.current = currentScrollY;
-    scrollY.current = currentScrollY;
-  }, [headerTranslateY]);
+  }, [mode]);
 
-  const renderLocalCard = useCallback(({ item }: { item: any }) => {
-    const estado = getEstadoLocal(item);
-    const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
-    const isDestacado = item.destacado;
-    const hasSocialProfile = socialProfiles.get(item.id) || false;
-    const isFavorite = user ? item.is_favorite : false;
+  const handleModeChange = useCallback(
+    (newMode: 'cliente' | 'propietario' | 'admin') => {
+      console.log('User changed mode to:', newMode);
+      // La lógica de cambio de modo está en ModeContext
+    },
+    []
+  );
 
-    const getBadgeColor = () => {
-      if (estado.badge === 'Abierto ahora' || estado.badge === 'Abierto 24h') {
-        return '#22C55E';
-      }
-      if (estado.badge === 'Cierra pronto') {
-        return '#F97316';
-      }
-      if (estado.badge === 'Abre pronto') {
-        return '#EAB308';
-      }
-      if (estado.estaAbierto === false) {
-        return '#EF4444';
-      }
-      return '#9CA3AF';
-    };
-
-    const getBadgeText = () => {
-      if (estado.badge === 'Abierto 24h') {
-        return 'Abierto 24h';
-      }
-      
-      if (estado.tiempoRestante) {
-        if (estado.badge === 'Abierto ahora') {
-          return `Abierto ahora • Cierra en ${estado.tiempoRestante}`;
-        }
-        if (estado.badge === 'Cierra pronto') {
-          return `Cierra en ${estado.tiempoRestante}`;
-        }
-        if (estado.badge === 'Abre pronto') {
-          return `Abre en ${estado.tiempoRestante}`;
-        }
-        return `${estado.badge} • ${estado.tiempoRestante}`;
-      }
-      return estado.badge;
-    };
-
-    const shouldDimImage = () => {
-      return estado.estaAbierto === false || estado.estaAbierto === null;
-    };
-
-    const formatCategories = () => {
-      const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
-      let categories = item.barlive_types || [];
-      if (categories.length === 0 && item.barlive_type) {
-        categories = [item.barlive_type];
-      }
-      
-      return categories.filter((cat: string) => 
-        !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
-      );
-    };
-
-    const categoriasAMostrar = formatCategories();
-
-    const getRating = () => {
-      if (item.rating && item.rating > 0) {
-        return item.rating;
-      }
-      if (item.google_rating && item.google_rating > 0) {
-        return item.google_rating;
-      }
-      return 0;
-    };
-
-    const displayRating = getRating();
-
-    const iconSize = Platform.OS === 'android' ? scaleIconSize(14) : 14;
-    const starIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
-    const heartIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
-    const actionIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
+  const renderFooter = useCallback(() => {
+    if (!isLoadingMore) return null;
 
     return (
-      <TouchableOpacity 
-        style={[
-          styles.card,
-          isDestacado && styles.cardDestacado
-        ]} 
-        onPress={() => router.push(`/detalle/local?id=${item.id}`)}
-        activeOpacity={0.9}
-      >
-        <View style={styles.imageContainer}>
-          {imagenPrincipal ? (
-            <Image
-              source={{ uri: imagenPrincipal }}
-              style={styles.image}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.image, styles.placeholderImage]}>
-              <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={48} color={colors.textSecondary} />
-            </View>
-          )}
-
-          {shouldDimImage() && (
-            <View style={styles.dimmedOverlay} />
-          )}
-
-          <View style={styles.imageOverlay} />
-
-          {isDestacado && (
-            <View style={styles.badgeDestacadoHeader}>
-              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={starIconSize} color="#92400E" />
-              <Text style={[styles.badgeDestacadoHeaderText, { fontSize: scaleFontSize(12) }]}>Destacado</Text>
-            </View>
-          )}
-
-          <View style={[
-            styles.badgeEstadoSuperior, 
-            { backgroundColor: getBadgeColor() + 'E6' },
-            isDestacado && styles.badgeEstadoSuperiorConDestacado
-          ]}>
-            <Text style={[styles.badgeEstadoSuperiorText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{getBadgeText()}</Text>
-          </View>
-
-          {displayRating > 0 && (
-            <View style={styles.ratingBadge}>
-              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={starIconSize} color="#FACC15" />
-              <Text style={[styles.ratingBadgeText, { fontSize: scaleFontSize(12) }]}>{displayRating.toFixed(1)}</Text>
-            </View>
-          )}
-
-          {item.nuevo && (
-            <View style={styles.badgeNuevoContainer}>
-              <View style={styles.badgeNuevo}>
-                <Text style={[styles.badgeNuevoText, { fontSize: scaleFontSize(12) }]}>Nuevo</Text>
-              </View>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={styles.favoritoButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              toggleFavorito(item.id, e);
-            }}
-          >
-            <IconSymbol
-              ios_icon_name={isFavorite ? "heart.fill" : "heart"}
-              android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
-              size={heartIconSize}
-              color={isFavorite ? "#EF4444" : "#FFFFFF"}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={[styles.nombre, { fontSize: scaleFontSize(18) }]} numberOfLines={1}>
-              {item.nombre}
-            </Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={iconSize} color={colors.textSecondary} />
-            <Text style={[styles.infoText, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
-              {item.direccion}
-            </Text>
-          </View>
-
-          {categoriasAMostrar.length > 0 && (
-            <View style={styles.categoriasContainer}>
-              {categoriasAMostrar.map((categoria: string, index: number) => (
-                <View key={index} style={styles.categoriaBadge}>
-                  <Text style={[styles.categoriaIcon, { fontSize: scaleFontSize(12) }]}>{getCategoryIcon(categoria)}</Text>
-                  <Text style={[styles.categoriaText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{categoria}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          <View style={styles.actionButtonsContainer}>
-            {hasSocialProfile && (
-              <TouchableOpacity 
-                style={styles.perfilSocialButton} 
-                onPress={(e) => handlePerfilSocial(item.id, e)}
-              >
-                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={actionIconSize} color={colors.headerText} />
-                <Text style={[styles.perfilSocialText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Perfil Social</Text>
-              </TouchableOpacity>
-            )}
-            
-            <TouchableOpacity 
-              style={[
-                styles.comoLlegarButton,
-                !hasSocialProfile && styles.comoLlegarButtonFull
-              ]} 
-              onPress={(e) => handleComoLlegar(item, e)}
-            >
-              <View style={styles.comoLlegarContent}>
-                <View style={styles.comoLlegarLeft}>
-                  <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={actionIconSize} color={colors.headerText} />
-                  <Text style={[styles.comoLlegarText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Cómo llegar</Text>
-                </View>
-                
-                {item.distancia !== null && item.distancia !== undefined && (
-                  <View style={styles.distanciaInButton}>
-                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={iconSize} color={colors.headerText} />
-                    <Text style={[styles.distanciaInButtonText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
-                      {item.distancia.toFixed(1)} km
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={styles.footerText}>Cargando más locales...</Text>
+      </View>
     );
-  }, [router, socialProfiles, user, toggleFavorito, handleComoLlegar, handlePerfilSocial]);
+  }, [isLoadingMore]);
 
-  const renderFooter = () => {
-    if (!hasMore && displayedLocales.length > 0) {
+  const renderEmpty = useCallback(() => {
+    if (isLoadingGlobal) {
       return (
-        <View style={styles.footerContainer}>
-          <Text style={[styles.footerText, { fontSize: scaleFontSize(14) }]}>
-            ✅ Has visto todos los locales disponibles
-          </Text>
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.emptyText}>Cargando locales...</Text>
         </View>
       );
     }
 
-    if (isLoadingMoreRef.current) {
-      return (
-        <View style={styles.footerContainer}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={[styles.footerText, { fontSize: scaleFontSize(14) }]}>
-            Cargando más locales...
-          </Text>
-        </View>
-      );
-    }
-
-    return null;
-  };
-
-  const renderEmpty = () => {
-    if (loading) return null;
-    
-    if (activeFiltersCount > 0 && displayedLocales.length === 0) {
-      return (
-        <View style={styles.emptyState}>
-          <IconSymbol
-            ios_icon_name="magnifyingglass"
-            android_material_icon_name="search"
-            size={64}
-            color={colors.textSecondary}
-          />
-          <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No se encontraron resultados</Text>
-          <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
-            Intenta con otros filtros de búsqueda
-          </Text>
-          <TouchableOpacity 
-            style={styles.clearFiltersButton}
-            onPress={clearFilters}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.clearFiltersButtonText, { fontSize: scaleFontSize(14) }]}>Limpiar filtros</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    
     return (
-      <View style={styles.emptyState}>
+      <View style={styles.emptyContainer}>
         <IconSymbol
-          ios_icon_name="map"
-          android_material_icon_name="map"
-          size={64}
+          ios_icon_name="magnifyingglass"
+          android_material_icon_name="search"
+          size={scaleIconSize(64)}
           color={colors.textSecondary}
         />
-        <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No hay locales disponibles</Text>
-        <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
-          Intenta buscar en otra ubicación
+        <Text style={styles.emptyText}>No se encontraron locales</Text>
+        <Text style={styles.emptySubtext}>
+          Intenta cambiar los filtros o la búsqueda
         </Text>
       </View>
     );
-  };
+  }, [isLoadingGlobal]);
 
-  if (loading && displayedLocales.length === 0) {
+  const HeaderContent = useCallback(() => {
+    const headerHeight = scrollY.interpolate({
+      inputRange: [0, HEADER_SCROLL_DISTANCE],
+      outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+      extrapolate: 'clamp',
+    });
+
+    const headerOpacity = scrollY.interpolate({
+      inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
+      outputRange: [1, 1, 0],
+      extrapolate: 'clamp',
+    });
+
     return (
-      <View style={styles.container}>
+      <Animated.View style={[styles.header, { height: headerHeight }]}>
         <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.headerGradient}
-        >
-          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 32) }]}>Explorar</Text>
-        </LinearGradient>
-
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando locales...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  const searchBoxHeight = getSearchBoxHeight();
-  const categoryIconSize = getCategoryIconSize();
-  const categoryIconInnerSize = getCategoryIconInnerSize();
-  const modeIcon = getModeIcon();
-
-  const HeaderContent = () => {
-    const headerTitleSize = Platform.OS === 'android' ? scaleFontSize(32) : 32;
-    const headerIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
-
-    return (
-      <React.Fragment>
-        <View style={styles.headerTop}>
-          <Text style={[styles.headerTitle, { fontSize: headerTitleSize }]}>Explorar</Text>
-          <View style={styles.headerActions}>
-            {user && (
-              <TouchableOpacity 
-                style={styles.modeSelectorButton}
-                onPress={() => setShowModeSelectorModal(true)}
-                activeOpacity={0.7}
+          colors={[colors.primary, colors.primaryDark]}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.headerContent}>
+          <View style={styles.headerTop}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.headerTitle}>Explorar</Text>
+              <Text style={styles.headerSubtitle}>
+                {displayedLocales.length} de {filteredAndSortedLocales.length} locales
+              </Text>
+            </View>
+            <View style={styles.headerRight}>
+              <ProfileSwitcher />
+              <TouchableOpacity
+                style={styles.mapButton}
+                onPress={handleNavigateToMap}
               >
-                <IconSymbol 
-                  ios_icon_name={modeIcon.ios} 
-                  android_material_icon_name={modeIcon.android} 
-                  size={scaleIconSize(18)} 
-                  color={colors.headerText} 
-                />
-                <Text style={[styles.modeSelectorText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
-                  {getModeLabel()}
-                </Text>
-                <IconSymbol 
-                  ios_icon_name="chevron.down" 
-                  android_material_icon_name="arrow_drop_down" 
-                  size={scaleIconSize(16)} 
-                  color={colors.headerText} 
+                <IconSymbol
+                  ios_icon_name="map"
+                  android_material_icon_name="map"
+                  size={scaleIconSize(24)}
+                  color={colors.background}
                 />
               </TouchableOpacity>
-            )}
-
-            <TouchableOpacity 
-              style={styles.mapButton}
-              onPress={handleNavigateToMap}
-              activeOpacity={0.7}
-            >
-              <IconSymbol 
-                ios_icon_name="map.fill" 
-                android_material_icon_name="map" 
-                size={headerIconSize} 
-                color={colors.headerText} 
-              />
-            </TouchableOpacity>
-
-            {activeFiltersCount > 0 && (
-              <TouchableOpacity 
-                style={styles.clearFiltersHeaderButton}
-                onPress={clearFilters}
-                activeOpacity={0.7}
-              >
-                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(20)} color={colors.headerText} />
-              </TouchableOpacity>
-            )}
+            </View>
           </View>
-        </View>
-      
-      <View style={[styles.searchContainer, { 
-        height: searchBoxHeight,
-        paddingVertical: Platform.OS === 'android' ? 10 : 10,
-      }]}>
-        <IconSymbol 
-          ios_icon_name="magnifyingglass" 
-          android_material_icon_name="search"
-          size={scaleIconSize(20)} 
-          color={colors.textSecondary}
-        />
-        <TextInput
-          style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
-          placeholder="Buscar locales..."
-          placeholderTextColor={colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity 
-            onPress={() => setSearchQuery('')}
-            style={styles.clearButton}
-            activeOpacity={0.7}
-          >
-            <IconSymbol 
-              ios_icon_name="xmark.circle.fill" 
-              android_material_icon_name="cancel"
-              size={scaleIconSize(20)} 
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
-          <IconSymbol 
-            ios_icon_name="slider.horizontal.3" 
-            android_material_icon_name="tune" 
-            size={scaleIconSize(20)} 
-            color={colors.primary} 
-          />
-        </TouchableOpacity>
-      </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesScroll}
-        contentContainerStyle={styles.categoriesContent}
-      >
-        {CATEGORIAS.map((categoria) => (
-          <TouchableOpacity
-            key={categoria.id}
-            style={styles.categoriaButton}
-            onPress={() => setSelectedCategory(categoria.id)}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.categoriaIconContainer,
-                {
-                  width: categoryIconSize,
-                  height: categoryIconSize,
-                  borderRadius: categoryIconSize / 4,
-                },
-                selectedCategory === categoria.id && styles.categoriaIconContainerActive,
-              ]}
+          <Animated.View style={{ opacity: headerOpacity }}>
+            <View style={styles.searchContainer}>
+              <IconSymbol
+                ios_icon_name="magnifyingglass"
+                android_material_icon_name="search"
+                size={scaleIconSize(20)}
+                color={colors.textSecondary}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar locales..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <IconSymbol
+                    ios_icon_name="xmark.circle.fill"
+                    android_material_icon_name="cancel"
+                    size={scaleIconSize(20)}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoriesScroll}
+              contentContainerStyle={styles.categoriesContent}
+            >
+              {CATEGORIAS.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.categoryChip,
+                    selectedCategory === cat.id && styles.categoryChipActive,
+                  ]}
+                  onPress={() => {
+                    console.log('User selected category:', cat.nombre);
+                    setSelectedCategory(cat.id);
+                  }}
+                >
+                  <IconSymbol
+                    ios_icon_name={cat.icono}
+                    android_material_icon_name={cat.icono}
+                    size={scaleIconSize(20)}
+                    color={
+                      selectedCategory === cat.id
+                        ? colors.background
+                        : colors.text
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      selectedCategory === cat.id &&
+                        styles.categoryChipTextActive,
+                    ]}
+                  >
+                    {cat.nombre}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.provinciaButton}
+              onPress={() => setShowProvinciaModal(true)}
             >
               <IconSymbol
-                ios_icon_name={categoria.iosIcon}
-                android_material_icon_name={categoria.androidIcon}
-                size={categoryIconInnerSize}
-                color={selectedCategory === categoria.id ? colors.primary : colors.white}
+                ios_icon_name="location"
+                android_material_icon_name="location-on"
+                size={scaleIconSize(20)}
+                color={colors.text}
               />
-            </View>
-            <Text
-              style={[
-                styles.categoriaLabel,
-                { fontSize: scaleFontSize(12) },
-                selectedCategory === categoria.id && styles.categoriaLabelActive,
-              ]}
-            >
-              {categoria.nombre}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <TouchableOpacity 
-        style={styles.claimBanner}
-        onPress={handleClaimOrCreateLocal}
-        activeOpacity={0.8}
-      >
-        <View style={styles.claimBannerContent}>
-          <IconSymbol 
-            ios_icon_name="building.2.fill" 
-            android_material_icon_name="store" 
-            size={scaleIconSize(24)} 
-            color={colors.headerText} 
-          />
-          <View style={styles.claimBannerTextContainer}>
-            <Text style={[styles.claimBannerTitle, { fontSize: scaleFontSize(15) }]}>
-              ¿Tienes un local?
-            </Text>
-            <Text style={[styles.claimBannerSubtitle, { fontSize: scaleFontSize(13) }]}>
-              Reclámalo o crea uno nuevo
-            </Text>
-          </View>
-          <IconSymbol 
-            ios_icon_name="chevron.right" 
-            android_material_icon_name="chevron_right" 
-            size={scaleIconSize(20)} 
-            color={colors.headerText} 
-          />
+              <Text style={styles.provinciaButtonText}>
+                {provinciaSeleccionada}
+              </Text>
+              <IconSymbol
+                ios_icon_name="chevron.down"
+                android_material_icon_name="arrow-drop-down"
+                size={scaleIconSize(20)}
+                color={colors.text}
+              />
+            </TouchableOpacity>
+          </Animated.View>
         </View>
-      </TouchableOpacity>
-    </React.Fragment>
+      </Animated.View>
     );
-  };
+  }, [
+    scrollY,
+    searchQuery,
+    selectedCategory,
+    provinciaSeleccionada,
+    displayedLocales.length,
+    filteredAndSortedLocales.length,
+    handleNavigateToMap,
+  ]);
+
+  const renderLocalCard = useCallback(
+    ({ item, index }: { item: any; index: number }) => {
+      const estado = getEstadoLocal(
+        item.horarios_completos,
+        item.google_business_status
+      );
+      const isFavorito = item.is_favorito;
+
+      return (
+        <TouchableOpacity
+          key={`${item.id}-${index}`}
+          style={styles.localCard}
+          onPress={() => {
+            console.log('User tapped local card:', item.nombre);
+            router.push(`/detalle/local?id=${item.id}`);
+          }}
+        >
+          <Image
+            source={{
+              uri:
+                item.imagen_url ||
+                item.foto_principal ||
+                'https://via.placeholder.com/400x200?text=Sin+Imagen',
+            }}
+            style={styles.localImage}
+          />
+          {item.destacado && (
+            <View style={styles.destacadoBadge}>
+              <IconSymbol
+                ios_icon_name="star.fill"
+                android_material_icon_name="star"
+                size={scaleIconSize(16)}
+                color={colors.warning}
+              />
+              <Text style={styles.destacadoText}>Destacado</Text>
+            </View>
+          )}
+          <View style={styles.localInfo}>
+            <View style={styles.localHeader}>
+              <Text style={styles.localNombre} numberOfLines={1}>
+                {item.nombre}
+              </Text>
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  toggleFavorito(item.id);
+                }}
+              >
+                <IconSymbol
+                  ios_icon_name={isFavorito ? 'heart.fill' : 'heart'}
+                  android_material_icon_name={
+                    isFavorito ? 'favorite' : 'favorite-border'
+                  }
+                  size={scaleIconSize(24)}
+                  color={isFavorito ? colors.error : colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.localMeta}>
+              <View style={styles.localMetaItem}>
+                <IconSymbol
+                  ios_icon_name="mappin"
+                  android_material_icon_name="location-on"
+                  size={scaleIconSize(16)}
+                  color={colors.textSecondary}
+                />
+                <Text style={styles.localMetaText} numberOfLines={1}>
+                  {item.direccion || item.ciudad || 'Sin dirección'}
+                </Text>
+              </View>
+              {item.distance !== undefined && (
+                <Text style={styles.localDistance}>
+                  {item.distance < 1
+                    ? `${Math.round(item.distance * 1000)}m`
+                    : `${item.distance.toFixed(1)}km`}
+                </Text>
+              )}
+            </View>
+            <View style={styles.localFooter}>
+              <View
+                style={[
+                  styles.estadoBadge,
+                  estado === 'abierto_ahora' && styles.estadoBadgeAbierto,
+                  estado === 'cerrado_ahora' && styles.estadoBadgeCerrado,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.estadoText,
+                    estado === 'abierto_ahora' && styles.estadoTextAbierto,
+                    estado === 'cerrado_ahora' && styles.estadoTextCerrado,
+                  ]}
+                >
+                  {estado === 'abierto_ahora'
+                    ? 'Abierto'
+                    : estado === 'cerrado_ahora'
+                    ? 'Cerrado'
+                    : 'Sin info'}
+                </Text>
+              </View>
+              <View style={styles.localActions}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={(e) => handleComoLlegar(item, e)}
+                >
+                  <IconSymbol
+                    ios_icon_name="arrow.triangle.turn.up.right.diamond"
+                    android_material_icon_name="directions"
+                    size={scaleIconSize(20)}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={(e) => handlePerfilSocial(item.id, e)}
+                >
+                  <IconSymbol
+                    ios_icon_name="person.circle"
+                    android_material_icon_name="account-circle"
+                    size={scaleIconSize(20)}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [router, toggleFavorito, handleComoLlegar, handlePerfilSocial]
+  );
 
   return (
     <View style={styles.container}>
-      <Animated.View
-        style={[
-          styles.headerContainer,
-          {
-            transform: [{ translateY: headerTranslateY }],
-          },
-        ]}
-      >
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.headerGradient}
-        >
-          <HeaderContent />
-        </LinearGradient>
-      </Animated.View>
-
+      <HeaderContent />
       <FlatList
         data={displayedLocales}
         renderItem={renderLocalCard}
-        keyExtractor={(item: any) => item.id}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
         contentContainerStyle={[
           styles.listContent,
-          { 
-            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 48 : HEADER_MAX_HEIGHT,
-            paddingBottom: getContentBottomPadding(100)
-          },
+          { paddingTop: HEADER_MAX_HEIGHT },
         ]}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={colors.primary}
+            progressViewOffset={HEADER_MAX_HEIGHT}
           />
         }
+        ListEmptyComponent={renderEmpty}
+        ListFooterComponent={renderFooter}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          {
+            useNativeDriver: false,
+            listener: handleScroll,
+          }
+        )}
+        scrollEventThrottle={16}
         onEndReached={loadMoreLocales}
         onEndReachedThreshold={0.5}
-        ListFooterComponent={renderFooter}
-        ListEmptyComponent={renderEmpty}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
         removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
         updateCellsBatchingPeriod={50}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
+        initialNumToRender={10}
+        windowSize={10}
       />
 
+      {/* Modal de selección de provincia */}
       <Modal
-        visible={showModeSelectorModal}
+        visible={showProvinciaModal}
+        transparent
         animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowModeSelectorModal(false)}
+        onRequestClose={() => setShowProvinciaModal(false)}
       >
-        <Pressable 
+        <Pressable
           style={styles.modalOverlay}
-          onPress={() => setShowModeSelectorModal(false)}
+          onPress={() => setShowProvinciaModal(false)}
         >
-          <Pressable style={styles.modeSelectorModal} onPress={(e) => e.stopPropagation()}>
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Seleccionar Rol</Text>
-              <TouchableOpacity onPress={() => setShowModeSelectorModal(false)}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(24)} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modeOptionsContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.modeOption,
-                  currentMode === 'cliente' && styles.modeOptionActive
-                ]}
-                onPress={() => handleModeChange('cliente')}
-                activeOpacity={0.7}
-              >
-                <IconSymbol 
-                  ios_icon_name="person.fill" 
-                  android_material_icon_name="person" 
-                  size={scaleIconSize(32)} 
-                  color={currentMode === 'cliente' ? colors.primary : colors.text} 
+              <Text style={styles.modalTitle}>Seleccionar Provincia</Text>
+              <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
+                <IconSymbol
+                  ios_icon_name="xmark"
+                  android_material_icon_name="close"
+                  size={scaleIconSize(24)}
+                  color={colors.text}
                 />
-                <Text style={[
-                  styles.modeOptionText,
-                  { fontSize: scaleFontSize(16) },
-                  currentMode === 'cliente' && styles.modeOptionTextActive
-                ]}>
-                  Cliente
-                </Text>
-                {currentMode === 'cliente' && (
-                  <IconSymbol 
-                    ios_icon_name="checkmark.circle.fill" 
-                    android_material_icon_name="check_circle" 
-                    size={scaleIconSize(24)} 
-                    color={colors.primary} 
-                  />
-                )}
               </TouchableOpacity>
-
-              {(user?.rol_app === 'propietario' || user?.rol_app === 'admin') && (
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {PROVINCIAS.map((provincia) => (
                 <TouchableOpacity
+                  key={provincia}
                   style={[
-                    styles.modeOption,
-                    currentMode === 'propietario' && styles.modeOptionActive
+                    styles.provinciaItem,
+                    provinciaSeleccionada === provincia &&
+                      styles.provinciaItemActive,
                   ]}
-                  onPress={() => handleModeChange('propietario')}
-                  activeOpacity={0.7}
+                  onPress={() => {
+                    console.log('User selected province:', provincia);
+                    setProvinciaSeleccionada(provincia);
+                    setShowProvinciaModal(false);
+                  }}
                 >
-                  <IconSymbol 
-                    ios_icon_name="building.2.fill" 
-                    android_material_icon_name="store" 
-                    size={scaleIconSize(32)} 
-                    color={currentMode === 'propietario' ? colors.primary : colors.text} 
-                  />
-                  <Text style={[
-                    styles.modeOptionText,
-                    { fontSize: scaleFontSize(16) },
-                    currentMode === 'propietario' && styles.modeOptionTextActive
-                  ]}>
-                    Propietario
+                  <Text
+                    style={[
+                      styles.provinciaItemText,
+                      provinciaSeleccionada === provincia &&
+                        styles.provinciaItemTextActive,
+                    ]}
+                  >
+                    {provincia}
                   </Text>
-                  {currentMode === 'propietario' && (
-                    <IconSymbol 
-                      ios_icon_name="checkmark.circle.fill" 
-                      android_material_icon_name="check_circle" 
-                      size={scaleIconSize(24)} 
-                      color={colors.primary} 
+                  {provinciaSeleccionada === provincia && (
+                    <IconSymbol
+                      ios_icon_name="checkmark"
+                      android_material_icon_name="check"
+                      size={scaleIconSize(20)}
+                      color={colors.primary}
                     />
                   )}
                 </TouchableOpacity>
-              )}
-
-              {user?.rol_app === 'admin' && (
-                <TouchableOpacity
-                  style={[
-                    styles.modeOption,
-                    currentMode === 'admin' && styles.modeOptionActive
-                  ]}
-                  onPress={() => handleModeChange('admin')}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol 
-                    ios_icon_name="shield.fill" 
-                    android_material_icon_name="admin_panel_settings" 
-                    size={scaleIconSize(32)} 
-                    color={currentMode === 'admin' ? colors.primary : colors.text} 
-                  />
-                  <Text style={[
-                    styles.modeOptionText,
-                    { fontSize: scaleFontSize(16) },
-                    currentMode === 'admin' && styles.modeOptionTextActive
-                  ]}>
-                    Admin
-                  </Text>
-                  {currentMode === 'admin' && (
-                    <IconSymbol 
-                      ios_icon_name="checkmark.circle.fill" 
-                      android_material_icon_name="check_circle" 
-                      size={scaleIconSize(24)} 
-                      color={colors.primary} 
-                    />
-                  )}
-                </TouchableOpacity>
-              )}
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      <Modal
-        visible={mostrarFiltros}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setMostrarFiltros(false)}
-      >
-        <Pressable 
-          style={styles.modalOverlay}
-          onPress={() => setMostrarFiltros(false)}
-        >
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Filtros</Text>
-              <TouchableOpacity onPress={() => setMostrarFiltros(false)}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(24)} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView 
-              style={styles.modalScrollView}
-              showsVerticalScrollIndicator={true}
-              bounces={false}
-            >
-              <View style={styles.filterSection}>
-                <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Categoría de Local</Text>
-                <View style={styles.categoriesGrid}>
-                  {CATEGORIAS.map((categoria) => (
-                    <TouchableOpacity
-                      key={categoria.id}
-                      style={[
-                        styles.categoryFilterItem,
-                        selectedCategory === categoria.id && styles.categoryFilterItemActive,
-                      ]}
-                      onPress={() => setSelectedCategory(categoria.id)}
-                    >
-                      <IconSymbol
-                        ios_icon_name={categoria.iosIcon}
-                        android_material_icon_name={categoria.androidIcon}
-                        size={categoryIconInnerSize}
-                        color={selectedCategory === categoria.id ? colors.white : colors.primary}
-                      />
-                      <Text
-                        style={[
-                          styles.categoryFilterText,
-                          { fontSize: scaleFontSize(14) },
-                          selectedCategory === categoria.id && styles.categoryFilterTextActive,
-                        ]}
-                      >
-                        {categoria.nombre}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.filterSection}>
-                <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Provincia</Text>
-                <View style={styles.provinciasListContainer}>
-                  {PROVINCIAS.map((provincia) => (
-                    <TouchableOpacity
-                      key={provincia}
-                      style={[
-                        styles.provinciaItem,
-                        provinciaSeleccionada === provincia && styles.provinciaItemActive,
-                      ]}
-                      onPress={() => setProvinciaSeleccionada(provincia)}
-                    >
-                      <Text
-                        style={[
-                          styles.provinciaText,
-                          { fontSize: scaleFontSize(15) },
-                          provinciaSeleccionada === provincia && styles.provinciaTextActive,
-                        ]}
-                      >
-                        {provincia}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={{ height: 40 }} />
+              ))}
             </ScrollView>
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.limpiarButton}
-                onPress={() => {
-                  setSelectedCategory('todas');
-                  setProvinciaSeleccionada('Todas');
-                }}
-              >
-                <Text style={[styles.limpiarButtonText, { fontSize: scaleFontSize(16) }]}>Limpiar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.aplicarButtonModal}
-                onPress={() => setMostrarFiltros(false)}
-              >
-                <LinearGradient
-                  colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-                  style={styles.aplicarButtonGradient}
-                >
-                  <Text style={[styles.aplicarButtonText, { fontSize: scaleFontSize(16) }]}>Aplicar</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
+          </View>
         </Pressable>
       </Modal>
 
@@ -1204,459 +854,244 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  headerContainer: {
+  header: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 1000,
-    backgroundColor: colors.background,
+    zIndex: 10,
+    overflow: 'hidden',
   },
-  headerGradient: {
-    paddingTop: Platform.OS === 'android' ? 44 : 50,
-    paddingBottom: Platform.OS === 'android' ? 16 : 20,
+  headerContent: {
+    flex: 1,
+    paddingTop: Platform.OS === 'android' ? 48 : 60,
     paddingHorizontal: 16,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'android' ? 10 : 12,
+    marginBottom: 16,
   },
-  headerTitle: {
-    fontWeight: 'bold',
-    color: colors.headerText,
+  headerLeft: {
     flex: 1,
   },
-  headerActions: {
+  headerTitle: {
+    fontSize: getHeaderTitleSize(),
+    fontWeight: 'bold',
+    color: colors.background,
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: scaleFontSize(14),
+    color: colors.background,
+    opacity: 0.8,
+  },
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  modeSelectorButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    maxWidth: 150,
-  },
-  modeSelectorText: {
-    fontWeight: '600',
-    color: colors.headerText,
-    flexShrink: 1,
+    gap: 12,
   },
   mapButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
     justifyContent: 'center',
-  },
-  clearFiltersHeaderButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
-    justifyContent: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: colors.background,
     borderRadius: 12,
     paddingHorizontal: 12,
-    marginBottom: Platform.OS === 'android' ? 10 : 12,
+    paddingVertical: 10,
+    marginBottom: 12,
     gap: 8,
   },
   searchInput: {
     flex: 1,
+    fontSize: scaleFontSize(16),
     color: colors.text,
-    padding: 0,
-    marginLeft: 8,
-  },
-  clearButton: {
-    padding: 4,
   },
   categoriesScroll: {
-    marginBottom: Platform.OS === 'android' ? 10 : 12,
-    marginRight: -16,
+    marginBottom: 12,
   },
   categoriesContent: {
-    paddingHorizontal: 0,
-    paddingRight: 16,
-    gap: 16,
+    gap: 8,
   },
-  categoriaButton: {
-    alignItems: 'center',
-    gap: 6,
-    minWidth: 70,
-  },
-  categoriaIconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  categoriaIconContainerActive: {
-    borderColor: colors.white,
-    backgroundColor: colors.white,
-  },
-  categoriaLabel: {
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-  },
-  categoriaLabelActive: {
-    color: colors.white,
-    fontWeight: '700',
-  },
-  claimBanner: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    marginBottom: Platform.OS === 'android' ? 8 : 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  claimBannerContent: {
+  categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 6,
   },
-  claimBannerTextContainer: {
-    flex: 1,
+  categoryChipActive: {
+    backgroundColor: colors.primary,
   },
-  claimBannerTitle: {
-    fontWeight: '700',
-    color: colors.headerText,
-    marginBottom: 2,
-  },
-  claimBannerSubtitle: {
+  categoryChipText: {
+    fontSize: scaleFontSize(14),
+    color: colors.text,
     fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  categoryChipTextActive: {
+    color: colors.background,
+  },
+  provinciaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  provinciaButtonText: {
+    flex: 1,
+    fontSize: scaleFontSize(16),
+    color: colors.text,
   },
   listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: getContentBottomPadding(),
+  },
+  localCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    ...commonStyles.shadow,
+  },
+  localImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: colors.border,
+  },
+  destacadoBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  destacadoText: {
+    fontSize: scaleFontSize(12),
+    color: colors.warning,
+    fontWeight: '600',
+  },
+  localInfo: {
     padding: 16,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  localHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 60,
+    marginBottom: 8,
   },
-  loadingText: {
-    marginTop: 16,
+  localNombre: {
+    flex: 1,
+    fontSize: scaleFontSize(18),
+    fontWeight: 'bold',
+    color: colors.text,
+    marginRight: 8,
+  },
+  localMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  localMetaItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  localMetaText: {
+    flex: 1,
+    fontSize: scaleFontSize(14),
     color: colors.textSecondary,
   },
-  footerContainer: {
+  localDistance: {
+    fontSize: scaleFontSize(14),
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  localFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  estadoBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: colors.border,
+  },
+  estadoBadgeAbierto: {
+    backgroundColor: colors.successLight,
+  },
+  estadoBadgeCerrado: {
+    backgroundColor: colors.errorLight,
+  },
+  estadoText: {
+    fontSize: scaleFontSize(12),
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  estadoTextAbierto: {
+    color: colors.success,
+  },
+  estadoTextCerrado: {
+    color: colors.error,
+  },
+  localActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footerLoader: {
     paddingVertical: 20,
     alignItems: 'center',
     gap: 8,
   },
   footerText: {
+    fontSize: scaleFontSize(14),
     color: colors.textSecondary,
-    fontWeight: '500',
   },
-  emptyState: {
+  emptyContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 40,
+    alignItems: 'center',
+    paddingVertical: 60,
   },
   emptyText: {
+    fontSize: scaleFontSize(18),
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 8,
-    textAlign: 'center',
     marginTop: 16,
   },
   emptySubtext: {
+    fontSize: scaleFontSize(14),
     color: colors.textSecondary,
+    marginTop: 8,
     textAlign: 'center',
-    lineHeight: 20,
-  },
-  clearFiltersButton: {
-    marginTop: 20,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  clearFiltersButtonText: {
-    fontWeight: '600',
-    color: colors.headerText,
-  },
-  card: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  cardDestacado: {
-    borderWidth: 3,
-    borderColor: '#FACC15',
-    shadowColor: '#FACC15',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  imageContainer: {
-    width: '100%',
-    height: 200,
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholderImage: {
-    backgroundColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dimmedOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 1,
-  },
-  imageOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
-  },
-  badgeDestacadoHeader: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FACC15',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 4,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
-    zIndex: 11,
-  },
-  badgeDestacadoHeaderText: {
-    fontWeight: '700',
-    color: '#92400E',
-  },
-  badgeEstadoSuperior: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    zIndex: 10,
-    maxWidth: '70%',
-  },
-  badgeEstadoSuperiorConDestacado: {
-    top: 52,
-  },
-  badgeEstadoSuperiorText: {
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  ratingBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 4,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    zIndex: 12,
-  },
-  ratingBadgeText: {
-    fontWeight: '700',
-    color: colors.headerText,
-    letterSpacing: 0.3,
-  },
-  badgeNuevoContainer: {
-    position: 'absolute',
-    top: 56,
-    right: 12,
-    zIndex: 9,
-  },
-  badgeNuevo: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  badgeNuevoText: {
-    fontWeight: '700',
-    color: colors.headerText,
-  },
-  favoritoButton: {
-    position: 'absolute',
-    bottom: 12,
-    right: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  content: {
-    padding: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  nombre: {
-    fontWeight: '700',
-    color: colors.text,
-    flex: 1,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
-  },
-  infoText: {
-    color: colors.textSecondary,
-    flex: 1,
-  },
-  categoriasContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
-  },
-  categoriaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary + '15',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
-    maxWidth: '48%',
-  },
-  categoriaIcon: {
-  },
-  categoriaText: {
-    fontWeight: '600',
-    color: colors.primary,
-    textTransform: 'capitalize',
-    flexShrink: 1,
-  },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  perfilSocialButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.secondary + '99',
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 6,
-    minWidth: 0,
-  },
-  perfilSocialText: {
-    fontWeight: '600',
-    color: colors.headerText,
-    flexShrink: 1,
-  },
-  comoLlegarButton: {
-    flex: 1,
-    backgroundColor: colors.primary + '99',
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    borderRadius: 8,
-    minWidth: 0,
-  },
-  comoLlegarButtonFull: {
-    flex: 1,
-  },
-  comoLlegarContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 6,
-  },
-  comoLlegarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexShrink: 1,
-    minWidth: 0,
-  },
-  comoLlegarText: {
-    fontWeight: '600',
-    color: colors.headerText,
-    flexShrink: 1,
-  },
-  distanciaInButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flexShrink: 0,
-  },
-  distanciaInButtonText: {
-    fontWeight: '600',
-    color: colors.headerText,
   },
   modalOverlay: {
     flex: 1,
@@ -1664,150 +1099,44 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     maxHeight: '80%',
-  },
-  modeSelectorModal: {
-    backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '60%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    borderBottomColor: colors.border,
   },
   modalTitle: {
+    fontSize: scaleFontSize(20),
     fontWeight: 'bold',
     color: colors.text,
   },
-  modeOptionsContainer: {
-    padding: 20,
-    gap: 12,
-  },
-  modeOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    backgroundColor: colors.background,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  modeOptionActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + '10',
-  },
-  modeOptionText: {
-    flex: 1,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  modeOptionTextActive: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  modalScrollView: {
-    maxHeight: '100%',
-    paddingHorizontal: 20,
-  },
-  filterSection: {
-    marginTop: 20,
-    marginBottom: 16,
-  },
-  filterTitle: {
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  categoryFilterItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    minWidth: '47%',
-  },
-  categoryFilterItemActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  categoryFilterText: {
-    fontWeight: '600',
-    color: colors.text,
-  },
-  categoryFilterTextActive: {
-    color: colors.white,
-  },
-  provinciasListContainer: {
-    gap: 8,
+  modalScroll: {
+    maxHeight: 400,
   },
   provinciaItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: colors.background,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   provinciaItemActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryLight,
   },
-  provinciaText: {
+  provinciaItemText: {
+    fontSize: scaleFontSize(16),
     color: colors.text,
   },
-  provinciaTextActive: {
-    color: colors.white,
+  provinciaItemTextActive: {
     fontWeight: '600',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    backgroundColor: colors.cardBackground,
-  },
-  limpiarButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  limpiarButtonText: {
-    fontWeight: '600',
-    color: colors.text,
-  },
-  aplicarButtonModal: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  aplicarButtonGradient: {
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  aplicarButtonText: {
-    fontWeight: '600',
-    color: colors.white,
+    color: colors.primary,
   },
 });
