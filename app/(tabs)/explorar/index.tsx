@@ -107,7 +107,6 @@ export default function ExplorarScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
@@ -171,16 +170,12 @@ export default function ExplorarScreen() {
       console.log('[Explorar v199.0] 📡 Loading page', page, 'from server...');
       
       // ✅ CRITICAL: Call RPC function for server-side pagination
+      const offset = (page - 1) * ITEMS_PER_PAGE;
       const { data, error } = await supabase.rpc('get_locales_paginados', {
-        p_page: page,
-        p_page_size: ITEMS_PER_PAGE,
-        p_categoria: selectedCategory === 'todas' ? null : selectedCategory,
-        p_provincia: provinciaSeleccionada === 'Todas' ? null : provinciaSeleccionada,
-        p_comunidad: null,
-        p_solo_abiertos: false,
-        p_user_lat: userLocation?.lat || null,
-        p_user_lng: userLocation?.lng || null,
-        p_max_distance_km: null,
+        user_lat: userLocation?.lat || 0,
+        user_lng: userLocation?.lng || 0,
+        p_limit: ITEMS_PER_PAGE,
+        p_offset: offset,
       });
 
       if (error) {
@@ -191,9 +186,6 @@ export default function ExplorarScreen() {
       console.log('[Explorar v199.0] ✅ Loaded', data?.length || 0, 'locales from server');
 
       if (data && data.length > 0) {
-        const totalFromServer = data[0].total_count || 0;
-        setTotalCount(totalFromServer);
-
         // Transform data
         const transformedLocales = data.map((local: any) => {
           const estado = getEstadoLocal(local);
@@ -205,8 +197,10 @@ export default function ExplorarScreen() {
               lng: parseFloat(local.longitud),
             },
             imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-            estaAbierto: estado.estaAbierto,
-            tieneHorarios: local.horarios_completos && Object.keys(local.horarios_completos).length > 0,
+            estaAbierto: local.is_open_now !== null ? local.is_open_now : estado.estaAbierto,
+            tieneHorarios: local.has_schedule_info || (local.horarios_completos && Object.keys(local.horarios_completos).length > 0),
+            distancia: local.distancia_metros ? (local.distancia_metros / 1000) : null, // Convert meters to km
+            is_favorite: local.is_favorite || false,
           };
         });
 
@@ -216,11 +210,13 @@ export default function ExplorarScreen() {
           setDisplayedLocales(transformedLocales);
         }
 
-        const newTotalDisplayed = append ? displayedLocales.length + transformedLocales.length : transformedLocales.length;
-        setHasMore(newTotalDisplayed < totalFromServer);
+        // Check if we got less than requested, meaning no more data
+        const gotLessThanRequested = data.length < ITEMS_PER_PAGE;
+        setHasMore(!gotLessThanRequested);
         setCurrentPage(page);
 
-        console.log('[Explorar v199.0] 📊 Total displayed:', newTotalDisplayed, '/', totalFromServer);
+        const newTotalDisplayed = append ? displayedLocales.length + transformedLocales.length : transformedLocales.length;
+        console.log('[Explorar v199.0] 📊 Total displayed:', newTotalDisplayed, '(more available:', !gotLessThanRequested, ')');
 
         // Check social profiles for new locales
         checkSocialProfilesForLocales(transformedLocales.slice(0, 30).map(l => l.id));
@@ -649,11 +645,11 @@ export default function ExplorarScreen() {
   }, [router, socialProfiles, user, toggleFavorito, handleComoLlegar, handlePerfilSocial]);
 
   const renderFooter = () => {
-    if (!hasMore) {
+    if (!hasMore && displayedLocales.length > 0) {
       return (
         <View style={styles.footerContainer}>
           <Text style={[styles.footerText, { fontSize: scaleFontSize(14) }]}>
-            ✅ Has visto todos los locales ({totalCount})
+            ✅ Has visto todos los locales disponibles
           </Text>
         </View>
       );
@@ -913,10 +909,10 @@ export default function ExplorarScreen() {
         </View>
       </TouchableOpacity>
 
-      {totalCount > 0 && (
+      {displayedLocales.length > 0 && (
         <View style={styles.resultsCounter}>
           <Text style={[styles.resultsCounterText, { fontSize: scaleFontSize(13) }]}>
-            📍 {displayedLocales.length} de {totalCount} locales
+            📍 {displayedLocales.length} locales cargados
           </Text>
         </View>
       )}
