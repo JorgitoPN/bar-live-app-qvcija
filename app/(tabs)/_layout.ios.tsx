@@ -9,25 +9,17 @@ import { useMode } from '@/contexts/ModeContext';
 const { width: screenWidth } = Dimensions.get('window');
 
 /**
- * iOS-SPECIFIC TAB LAYOUT - VERSION v89.0
+ * iOS-SPECIFIC TAB LAYOUT - VERSION v89.1
  * 
- * ✅ iOS EXPO GO FIX v89.0 - PROPER TAB NAVIGATION
+ * ✅ iOS EXPO GO FIX v89.1 - PROPER TAB NAVIGATION
  * 
- * CRITICAL FIXES v89.0 (iOS ONLY):
+ * CRITICAL FIXES v89.1:
+ * - ✅ Fixed animation error by removing invalid 'none' animation option
  * - ✅ Fixed iOS Expo Go loading issue - proper tab configuration
  * - ✅ Removed test modal list configuration
  * - ✅ Implemented full tab navigation matching Android
  * - ✅ Proper role-based tab visibility
  * - ✅ Consistent with Android functionality
- * 
- * This file ensures proper iOS-specific behavior:
- * - ✅ Native iOS UI (Human Interface Guidelines compliant)
- * - ✅ Proper status bar handling
- * - ✅ iOS-specific navigation behavior
- * - ✅ Native touch feedback and gestures
- * - ✅ Consistent with Android functionality
- * - ✅ No missing features or content
- * - ✅ Professional native mobile app experience
  */
 export default function TabLayout() {
   const { user } = useAuth();
@@ -42,7 +34,7 @@ export default function TabLayout() {
   // Determine user's actual role from database
   const userRole = user?.rol_app || 'cliente';
 
-  console.log('[TabLayout iOS v89.0] ⚡ User role:', userRole, 'Current mode:', currentMode, 'Pathname:', pathname);
+  console.log('[TabLayout iOS v89.1] ⚡ User role:', userRole, 'Current mode:', currentMode, 'Pathname:', pathname);
 
   // Prevent access to admin pages for non-admin users (silently redirect)
   useEffect(() => {
@@ -59,7 +51,7 @@ export default function TabLayout() {
       const isAdminSubPage = pathname.startsWith('/(tabs)/admin/') || pathname.startsWith('/admin/');
       
       if ((isAdminIndexPage || isAdminSubPage) && !hasShownAdminAlert.current) {
-        console.log('[TabLayout iOS v89.0] ⚠️ Unauthorized user trying to access admin page:', pathname);
+        console.log('[TabLayout iOS v89.1] ⚠️ Unauthorized user trying to access admin page:', pathname);
         hasShownAdminAlert.current = true;
         
         router.replace('/(tabs)/explorar');
@@ -85,7 +77,7 @@ export default function TabLayout() {
       const isGestionSubPage = pathname.startsWith('/(tabs)/gestion/') || pathname.startsWith('/gestion/');
       
       if ((isGestionIndexPage || isGestionSubPage) && !hasShownGestionAlert.current) {
-        console.log('[TabLayout iOS v89.0] ⚠️ Non-propietario user trying to access gestion page:', pathname);
+        console.log('[TabLayout iOS v89.1] ⚠️ Non-propietario user trying to access gestion page:', pathname);
         hasShownGestionAlert.current = true;
         
         setTimeout(() => {
@@ -280,7 +272,7 @@ export default function TabLayout() {
   };
 
   const tabs = getTabsForRole();
-  console.log('[TabLayout iOS v89.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
+  console.log('[TabLayout iOS v89.1] ⚡ Rendering tabs:', tabs.map(t => t.name));
 
   return (
     <>
@@ -288,8 +280,6 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: { display: 'none' },
-          animation: 'none',
-          animationDuration: 0,
           lazy: false,
         }}
       >
@@ -297,8 +287,6 @@ export default function TabLayout() {
           name="explorar" 
           options={{ 
             href: '/(tabs)/explorar',
-            animation: 'none',
-            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -306,8 +294,6 @@ export default function TabLayout() {
           name="eventos" 
           options={{ 
             href: '/(tabs)/eventos',
-            animation: 'none',
-            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -315,8 +301,6 @@ export default function TabLayout() {
           name="favoritos" 
           options={{ 
             href: '/(tabs)/favoritos',
-            animation: 'none',
-            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -324,8 +308,6 @@ export default function TabLayout() {
           name="social" 
           options={{ 
             href: '/(tabs)/social',
-            animation: 'none',
-            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -333,8 +315,6 @@ export default function TabLayout() {
           name="perfil" 
           options={{ 
             href: '/(tabs)/perfil',
-            animation: 'none',
-            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -342,8 +322,6 @@ export default function TabLayout() {
           name="gestion" 
           options={{ 
             href: userRole === 'propietario' || userRole === 'admin' ? '/(tabs)/gestion' : null,
-            animation: 'none',
-            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -351,8 +329,6 @@ export default function TabLayout() {
           name="admin" 
           options={{ 
             href: (userRole === 'admin' && user?.email === 'jorgepereznoyagh@gmail.com') ? '/(tabs)/admin' : null,
-            animation: 'none',
-            animationDuration: 0,
             lazy: false,
           }} 
         />

@@ -11,11 +11,12 @@ import { colors } from '@/styles/commonStyles';
 const { width: screenWidth } = Dimensions.get('window');
 
 /**
- * ANDROID-SPECIFIC TAB LAYOUT - VERSION v80.0
+ * ANDROID-SPECIFIC TAB LAYOUT - VERSION v80.1
  * 
  * ✅ ANDROID BOTTOM NAV FIX - EXACT iOS DESIGN MATCH
  * 
- * CRITICAL FIXES v80.0 (ANDROID ONLY):
+ * CRITICAL FIXES v80.1:
+ * - ✅ Fixed animation error by removing invalid 'none' animation option
  * - ✅ Unified BarLive background (no white background)
  * - ✅ Compact height matching iOS exactly
  * - ✅ Icons positioned at bottom of screen
@@ -23,21 +24,6 @@ const { width: screenWidth } = Dimensions.get('window');
  * - ✅ Explore button protrudes upward like iOS
  * - ✅ Respects Android system navigation buttons
  * - ✅ Exact visual parity with iOS
- * 
- * This file ensures proper Android-specific behavior:
- * - ✅ Native Android UI (Material Design compliant)
- * - ✅ Proper status bar handling with correct colors
- * - ✅ Correct padding for notch/status bar
- * - ✅ Android-specific navigation behavior
- * - ✅ Native touch feedback and gestures (ripple effects)
- * - ✅ Consistent with iOS functionality
- * - ✅ No missing features or content
- * - ✅ Professional native mobile app experience
- * - ✅ Optimized animations for Android
- * - ✅ Hardware back button support
- * - ✅ Native Android transitions
- * - ✅ Bottom tab bar ALWAYS visible with maximum z-index
- * - ✅ Safe area insets for system navigation buttons
  */
 export default function TabLayout() {
   const { user } = useAuth();
@@ -54,7 +40,7 @@ export default function TabLayout() {
   const userRole = user?.rol_app || 'cliente';
 
   console.log(
-    '[TabLayout Android v80.0] ⚡ User role:', userRole, 
+    '[TabLayout Android v80.1] ⚡ User role:', userRole, 
     'Current mode:', currentMode, 
     'Pathname:', pathname,
     'Bottom inset:', insets.bottom
@@ -76,7 +62,7 @@ export default function TabLayout() {
       
       if ((isAdminIndexPage || isAdminSubPage) && !hasShownAdminAlert.current) {
         console.log(
-          '[TabLayout Android v80.0] ⚠️ Unauthorized user trying to access admin page:', 
+          '[TabLayout Android v80.1] ⚠️ Unauthorized user trying to access admin page:', 
           pathname
         );
         hasShownAdminAlert.current = true;
@@ -105,7 +91,7 @@ export default function TabLayout() {
       
       if ((isGestionIndexPage || isGestionSubPage) && !hasShownGestionAlert.current) {
         console.log(
-          '[TabLayout Android v80.0] ⚠️ Non-propietario user trying to access gestion page:', 
+          '[TabLayout Android v80.1] ⚠️ Non-propietario user trying to access gestion page:', 
           pathname
         );
         hasShownGestionAlert.current = true;
@@ -302,7 +288,7 @@ export default function TabLayout() {
   };
 
   const tabs = getTabsForRole();
-  console.log('[TabLayout Android v80.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
+  console.log('[TabLayout Android v80.1] ⚡ Rendering tabs:', tabs.map(t => t.name));
 
   // ✅ CRITICAL FIX v80.0: Compact tab bar height matching iOS
   const TAB_BAR_HEIGHT = 70; // Matches iOS exactly
@@ -324,7 +310,6 @@ export default function TabLayout() {
           screenOptions={{
             headerShown: false,
             tabBarStyle: { display: 'none' },
-            animation: 'none',
             lazy: false,
           }}
         >

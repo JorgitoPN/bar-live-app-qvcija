@@ -17,6 +17,7 @@ const { width: screenWidth } = Dimensions.get('window');
  * - ✅ Fixed blank screen issue caused by route mismatch
  * - ✅ Proper role-based tab visibility
  * - ✅ Consistent with platform-specific layouts
+ * - ✅ Fixed animation error by removing invalid 'none' animation option
  */
 export default function TabLayout() {
   const { user } = useAuth();
@@ -277,7 +278,6 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: { display: 'none' },
-          animation: Platform.OS === 'android' ? 'none' : 'default',
           lazy: false,
         }}
       >
