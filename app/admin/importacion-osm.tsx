@@ -15,7 +15,12 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { importarCatalogoOSM, verificarEstadoOverpassAPI } from '@/utils/osmImportService';
+import { 
+  importarCatalogoOSM, 
+  verificarEstadoOverpassAPI,
+  obtenerEstadoImportacionActual,
+  cancelarImportacionActual,
+} from '@/utils/osmImportService';
 import { LocalCatalogo } from '@/types';
 
 const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
@@ -48,6 +53,19 @@ const TIPOS_OSM = [
   { value: 'nightclub', label: 'Discoteca' },
 ];
 
+interface ImportacionEstado {
+  provincia: string;
+  tipos: string[];
+  limite_total: number;
+  locales_procesados: number;
+  locales_importados: number;
+  locales_duplicados: number;
+  locales_excluidos: number;
+  ultima_posicion: number;
+  completada: boolean;
+  fecha_inicio: string;
+}
+
 export default function ImportacionOSMScreen() {
   const router = useRouter();
   
@@ -68,7 +86,12 @@ export default function ImportacionOSMScreen() {
     importados: 0,
     duplicados: 0,
     errores: 0,
+    excluidos: 0,
   });
+
+  // Estado de importación existente
+  const [importacionExistente, setImportacionExistente] = useState<ImportacionEstado | null>(null);
+  const [verificandoEstado, setVerificandoEstado] = useState(false);
 
   // Estado de la API
   const [estadoAPI, setEstadoAPI] = useState<{
@@ -109,14 +132,43 @@ export default function ImportacionOSMScreen() {
     }
   }, []);
 
+  // Verificar si hay una importación existente
+  const verificarImportacionExistente = useCallback(async () => {
+    if (tiposSeleccionados.length === 0) return;
+    
+    setVerificandoEstado(true);
+    try {
+      const estado = await obtenerEstadoImportacionActual(provinciaSeleccionada, tiposSeleccionados);
+      setImportacionExistente(estado);
+      
+      if (estado && !estado.completada) {
+        agregarLog('📋 Se encontró una importación en progreso');
+        agregarLog(`   Procesados: ${estado.locales_procesados}/${estado.limite_total}`);
+        agregarLog(`   Importados: ${estado.locales_importados}`);
+        agregarLog(`   Duplicados: ${estado.locales_duplicados}`);
+        agregarLog(`   Excluidos: ${estado.locales_excluidos}`);
+        agregarLog(`   Posición: ${estado.ultima_posicion}`);
+      }
+    } catch (error) {
+      console.error('[OSM Import] Error checking existing import:', error);
+    } finally {
+      setVerificandoEstado(false);
+    }
+  }, [provinciaSeleccionada, tiposSeleccionados]);
+
   // Verificar estado de la API al cargar
   useEffect(() => {
     verificarEstadoAPI();
   }, [verificarEstadoAPI]);
 
+  // Verificar importación existente cuando cambian provincia o tipos
+  useEffect(() => {
+    verificarImportacionExistente();
+  }, [verificarImportacionExistente]);
+
   const agregarLog = (mensaje: string) => {
     const timestamp = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev, `[${timestamp}] ${mensaje}`].slice(-30)); // Mantener solo últimos 30 logs
+    setLogs(prev => [...prev, `[${timestamp}] ${mensaje}`].slice(-50));
   };
 
   const toggleTipo = (tipo: string) => {
@@ -138,6 +190,30 @@ export default function ImportacionOSMScreen() {
     setMostrarSelectorProvincia(false);
   };
 
+  const cancelarImportacion = async () => {
+    if (!importacionExistente) return;
+
+    Alert.alert(
+      'Cancelar Importación',
+      '¿Estás seguro de que quieres cancelar la importación en progreso? El progreso actual se guardará.',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Sí, cancelar',
+          style: 'destructive',
+          onPress: async () => {
+            const cancelado = await cancelarImportacionActual(provinciaSeleccionada, tiposSeleccionados);
+            if (cancelado) {
+              setImportacionExistente(null);
+              agregarLog('❌ Importación cancelada');
+              Alert.alert('Cancelado', 'La importación ha sido cancelada');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const iniciarImportacion = async () => {
     if (tiposSeleccionados.length === 0) {
       Alert.alert('Error', 'Selecciona al menos un tipo de local');
@@ -147,6 +223,27 @@ export default function ImportacionOSMScreen() {
     const limiteNum = parseInt(limite);
     if (isNaN(limiteNum) || limiteNum < 1 || limiteNum > 10000) {
       Alert.alert('Error', 'El límite debe estar entre 1 y 10000');
+      return;
+    }
+
+    // Si hay una importación existente, preguntar si continuar
+    if (importacionExistente && !importacionExistente.completada) {
+      Alert.alert(
+        'Continuar Importación',
+        `Se encontró una importación en progreso:\n\n` +
+        `Procesados: ${importacionExistente.locales_procesados}/${importacionExistente.limite_total}\n` +
+        `Importados: ${importacionExistente.locales_importados}\n` +
+        `Duplicados: ${importacionExistente.locales_duplicados}\n` +
+        `Excluidos: ${importacionExistente.locales_excluidos}\n\n` +
+        `¿Deseas continuar desde donde se quedó?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Continuar',
+            onPress: () => ejecutarImportacion(limiteNum),
+          },
+        ]
+      );
       return;
     }
 
@@ -170,15 +267,26 @@ export default function ImportacionOSMScreen() {
     setImportando(true);
     setResultados([]);
     setLogs([]);
-    setEstadisticas({ importados: 0, duplicados: 0, errores: 0 });
+    setEstadisticas({ importados: 0, duplicados: 0, errores: 0, excluidos: 0 });
     setProgreso({ actual: 0, total: limiteNum });
 
-    agregarLog('🚀 Iniciando importación desde OpenStreetMap...');
-    agregarLog(`📍 Provincia: ${provinciaSeleccionada}`);
-    agregarLog(`🏷️ Tipos: ${tiposSeleccionados.join(', ')}`);
-    agregarLog(`🔢 Límite: ${limiteNum} locales`);
+    if (importacionExistente && !importacionExistente.completada) {
+      agregarLog('🔄 Continuando importación existente...');
+      agregarLog(`📍 Provincia: ${provinciaSeleccionada}`);
+      agregarLog(`🏷️ Tipos: ${tiposSeleccionados.join(', ')}`);
+      agregarLog(`📊 Progreso anterior: ${importacionExistente.locales_procesados}/${importacionExistente.limite_total}`);
+      agregarLog(`📍 Continuando desde posición: ${importacionExistente.ultima_posicion}`);
+    } else {
+      agregarLog('🚀 Iniciando nueva importación desde OpenStreetMap...');
+      agregarLog(`📍 Provincia: ${provinciaSeleccionada}`);
+      agregarLog(`🏷️ Tipos: ${tiposSeleccionados.join(', ')}`);
+      agregarLog(`🔢 Límite: ${limiteNum} locales`);
+    }
+    
     agregarLog('⏳ Esto puede tardar varios minutos...');
     agregarLog('🔄 Sistema de reintentos automático activado');
+    agregarLog('💾 El progreso se guarda automáticamente');
+    agregarLog('🔄 Puedes continuar más tarde si hay errores');
 
     try {
       const localesImportados = await importarCatalogoOSM(
@@ -198,25 +306,34 @@ export default function ImportacionOSMScreen() {
         }
       );
 
-      agregarLog(`🎉 Importación completada: ${localesImportados.length} locales`);
+      agregarLog(`🎉 Sesión de importación completada: ${localesImportados.length} locales en esta sesión`);
       agregarLog(`💾 Datos guardados en LocalCatalogo`);
       agregarLog(`💰 COSTE: 0€ (OSM es gratis)`);
 
-      // Mostrar breakdown por tipo
-      const breakdown: Record<string, number> = {};
-      localesImportados.forEach(local => {
-        const tipo = local.tipo_osm || 'unknown';
-        breakdown[tipo] = (breakdown[tipo] || 0) + 1;
-      });
+      // Verificar si la importación está completa
+      const estadoFinal = await obtenerEstadoImportacionActual(provinciaSeleccionada, tiposSeleccionados);
       
-      let breakdownText = '\n\nDesglose por tipo:\n';
-      Object.entries(breakdown).forEach(([tipo, count]) => {
-        breakdownText += `- ${tipo}: ${count}\n`;
-      });
+      let mensaje = `✅ Se importaron ${localesImportados.length} locales en esta sesión.`;
+      
+      if (estadoFinal && estadoFinal.completada) {
+        mensaje += `\n\n📊 Importación completa:`;
+        mensaje += `\n• Total procesados: ${estadoFinal.locales_procesados}`;
+        mensaje += `\n• Importados: ${estadoFinal.locales_importados}`;
+        mensaje += `\n• Duplicados: ${estadoFinal.locales_duplicados}`;
+        mensaje += `\n• Excluidos: ${estadoFinal.locales_excluidos}`;
+        mensaje += `\n\nSiguiente paso: Enriquecer con Google Places`;
+      } else if (estadoFinal) {
+        mensaje += `\n\n⏸️ Importación pausada:`;
+        mensaje += `\n• Procesados: ${estadoFinal.locales_procesados}/${estadoFinal.limite_total}`;
+        mensaje += `\n• Importados: ${estadoFinal.locales_importados}`;
+        mensaje += `\n• Duplicados: ${estadoFinal.locales_duplicados}`;
+        mensaje += `\n• Excluidos: ${estadoFinal.locales_excluidos}`;
+        mensaje += `\n\nPuedes continuar la importación más tarde.`;
+      }
 
       Alert.alert(
         'Importación completada',
-        `✅ Se importaron ${localesImportados.length} locales desde OpenStreetMap.${breakdownText}\nSiguiente paso: Enriquecer con Google Places`,
+        mensaje,
         [
           { text: 'Ver Resultados', style: 'cancel' },
           {
@@ -225,6 +342,9 @@ export default function ImportacionOSMScreen() {
           },
         ]
       );
+
+      // Actualizar estado de importación existente
+      setImportacionExistente(estadoFinal);
     } catch (error: any) {
       console.error('[OSM Import] Error:', error);
       agregarLog(`❌ Error: ${error.message || error}`);
@@ -232,16 +352,23 @@ export default function ImportacionOSMScreen() {
       let errorMessage = 'Ocurrió un error durante la importación.';
       
       if (error.message?.includes('504') || error.message?.includes('timeout')) {
-        errorMessage = 'La API de Overpass está sobrecargada o no responde. Por favor, intenta:\n\n' +
-          '1. Reducir el límite de locales\n' +
-          '2. Seleccionar menos tipos de locales\n' +
-          '3. Intentar en unos minutos\n\n' +
-          'El sistema ya intentó con múltiples endpoints y reintentos automáticos.';
+        errorMessage = 'La API de Overpass está sobrecargada o no responde.\n\n' +
+          '✅ El progreso se ha guardado automáticamente.\n\n' +
+          'Puedes:\n' +
+          '1. Esperar unos minutos y continuar la importación\n' +
+          '2. Reducir el límite de locales\n' +
+          '3. Seleccionar menos tipos de locales';
       } else if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
-        errorMessage = 'Has excedido el límite de peticiones. Por favor, espera unos minutos antes de intentar de nuevo.';
+        errorMessage = 'Has excedido el límite de peticiones.\n\n' +
+          '✅ El progreso se ha guardado automáticamente.\n\n' +
+          'Por favor, espera unos minutos antes de continuar.';
       }
       
       Alert.alert('Error de Importación', errorMessage);
+
+      // Actualizar estado de importación existente
+      const estadoActual = await obtenerEstadoImportacionActual(provinciaSeleccionada, tiposSeleccionados);
+      setImportacionExistente(estadoActual);
     } finally {
       setImportando(false);
     }
@@ -259,7 +386,7 @@ export default function ImportacionOSMScreen() {
           onPress={() => router.back()}
           style={commonStyles.backButton}
         >
-          <IconSymbol name="chevron.left" size={24} color="#fff" />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={commonStyles.headerTitle}>Importación OSM</Text>
         <Text style={styles.headerSubtitle}>
@@ -268,6 +395,64 @@ export default function ImportacionOSMScreen() {
       </LinearGradient>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+        {/* Estado de importación existente */}
+        {importacionExistente && !importacionExistente.completada && (
+          <View style={styles.existingImportCard}>
+            <View style={styles.existingImportHeader}>
+              <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="sync" size={24} color={colors.primary} />
+              <Text style={styles.existingImportTitle}>Importación en Progreso</Text>
+            </View>
+            <Text style={styles.existingImportText}>
+              Se encontró una importación en progreso para {importacionExistente.provincia}
+            </Text>
+            <View style={styles.existingImportStats}>
+              <View style={styles.existingImportStat}>
+                <Text style={styles.existingImportStatValue}>{importacionExistente.locales_procesados}</Text>
+                <Text style={styles.existingImportStatLabel}>Procesados</Text>
+              </View>
+              <View style={styles.existingImportStat}>
+                <Text style={[styles.existingImportStatValue, { color: '#10B981' }]}>{importacionExistente.locales_importados}</Text>
+                <Text style={styles.existingImportStatLabel}>Importados</Text>
+              </View>
+              <View style={styles.existingImportStat}>
+                <Text style={[styles.existingImportStatValue, { color: '#F59E0B' }]}>{importacionExistente.locales_duplicados}</Text>
+                <Text style={styles.existingImportStatLabel}>Duplicados</Text>
+              </View>
+              <View style={styles.existingImportStat}>
+                <Text style={[styles.existingImportStatValue, { color: '#EF4444' }]}>{importacionExistente.locales_excluidos}</Text>
+                <Text style={styles.existingImportStatLabel}>Excluidos</Text>
+              </View>
+            </View>
+            <View style={styles.existingImportProgress}>
+              <View style={styles.existingImportProgressBar}>
+                <View
+                  style={[
+                    styles.existingImportProgressFill,
+                    { width: `${(importacionExistente.locales_procesados / importacionExistente.limite_total) * 100}%` },
+                  ]}
+                />
+              </View>
+              <Text style={styles.existingImportProgressText}>
+                {importacionExistente.locales_procesados} / {importacionExistente.limite_total}
+              </Text>
+            </View>
+            <View style={styles.existingImportActions}>
+              <TouchableOpacity
+                style={styles.existingImportCancelButton}
+                onPress={cancelarImportacion}
+              >
+                <Text style={styles.existingImportCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.existingImportContinueButton}
+                onPress={() => ejecutarImportacion(importacionExistente.limite_total)}
+              >
+                <Text style={styles.existingImportContinueButtonText}>Continuar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Estado de la API */}
         <View style={[
           styles.apiStatusCard,
@@ -278,7 +463,8 @@ export default function ImportacionOSMScreen() {
               <ActivityIndicator size="small" color={colors.primary} />
             ) : (
               <IconSymbol 
-                name={estadoAPI.disponible ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"} 
+                ios_icon_name={estadoAPI.disponible ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"}
+                android_material_icon_name={estadoAPI.disponible ? "check-circle" : "warning"}
                 size={24} 
                 color={estadoAPI.disponible ? '#10B981' : '#F59E0B'} 
               />
@@ -293,7 +479,7 @@ export default function ImportacionOSMScreen() {
               style={styles.refreshButton}
               onPress={verificarEstadoAPI}
             >
-              <IconSymbol name="arrow.clockwise" size={16} color={colors.primary} />
+              <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={16} color={colors.primary} />
               <Text style={styles.refreshButtonText}>Verificar de nuevo</Text>
             </TouchableOpacity>
           )}
@@ -302,7 +488,7 @@ export default function ImportacionOSMScreen() {
         {/* Información sobre OSM */}
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
-            <IconSymbol name="map.fill" size={32} color={colors.primary} />
+            <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={32} color={colors.primary} />
             <Text style={styles.infoTitle}>OpenStreetMap (OSM)</Text>
           </View>
           <Text style={styles.infoText}>
@@ -312,13 +498,13 @@ export default function ImportacionOSMScreen() {
             ✅ API 100% GRATIS sin límites
           </Text>
           <Text style={[styles.infoText, { fontWeight: '600', color: colors.primary }]}>
-            ✅ Miles de locales en segundos
+            ✅ Sistema de continuación automática
           </Text>
           <Text style={[styles.infoText, { fontWeight: '600', color: colors.primary }]}>
-            ✅ Sistema de reintentos automático
+            ✅ Progreso guardado automáticamente
           </Text>
           <Text style={[styles.infoText, { fontWeight: '600', color: colors.primary }]}>
-            ✅ Múltiples endpoints de respaldo
+            ✅ Reintentos automáticos
           </Text>
           <Text style={[styles.infoText, { fontWeight: '600', color: colors.primary }]}>
             ✅ COSTE: 0€
@@ -338,7 +524,7 @@ export default function ImportacionOSMScreen() {
                 onPress={() => setMostrarSelectorComunidad(true)}
               >
                 <Text style={styles.selectorButtonText}>{comunidadSeleccionada}</Text>
-                <IconSymbol name="chevron.down" size={20} color={colors.textSecondary} />
+                <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="arrow-drop-down" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
 
               {/* Selector de provincia */}
@@ -348,7 +534,7 @@ export default function ImportacionOSMScreen() {
                 onPress={() => setMostrarSelectorProvincia(true)}
               >
                 <Text style={styles.selectorButtonText}>{provinciaSeleccionada}</Text>
-                <IconSymbol name="chevron.down" size={20} color={colors.textSecondary} />
+                <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="arrow-drop-down" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
 
               {/* Selector de tipos */}
@@ -388,8 +574,11 @@ export default function ImportacionOSMScreen() {
               <Text style={styles.helperText}>
                 Máximo: 10,000 locales por importación
               </Text>
-              <Text style={[styles.helperText, { color: '#F59E0B', marginTop: 4 }]}>
-                ⚠️ Límites más bajos reducen el riesgo de timeouts
+              <Text style={[styles.helperText, { color: '#10B981', marginTop: 4 }]}>
+                ✅ El progreso se guarda automáticamente
+              </Text>
+              <Text style={[styles.helperText, { color: '#10B981', marginTop: 2 }]}>
+                ✅ Puedes continuar más tarde si hay errores
               </Text>
             </View>
 
@@ -404,8 +593,15 @@ export default function ImportacionOSMScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.importButtonGradient}
               >
-                <IconSymbol name="arrow.down.circle.fill" size={24} color="#fff" />
-                <Text style={styles.importButtonText}>Iniciar Importación</Text>
+                <IconSymbol 
+                  ios_icon_name={importacionExistente && !importacionExistente.completada ? "arrow.clockwise.circle.fill" : "arrow.down.circle.fill"}
+                  android_material_icon_name={importacionExistente && !importacionExistente.completada ? "sync" : "download"}
+                  size={24} 
+                  color="#fff" 
+                />
+                <Text style={styles.importButtonText}>
+                  {importacionExistente && !importacionExistente.completada ? 'Continuar Importación' : 'Iniciar Importación'}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           </>
@@ -416,7 +612,7 @@ export default function ImportacionOSMScreen() {
           <View style={styles.progressCard}>
             <Text style={styles.progressTitle}>Importando desde OSM...</Text>
             <Text style={styles.progressSubtitle}>
-              Esto puede tardar varios minutos. El sistema reintentará automáticamente si hay errores.
+              El progreso se guarda automáticamente. Puedes cerrar y continuar más tarde.
             </Text>
             
             <View style={styles.progressBarContainer}>
@@ -448,9 +644,9 @@ export default function ImportacionOSMScreen() {
               </View>
               <View style={styles.statItem}>
                 <Text style={[styles.statValue, { color: '#EF4444' }]}>
-                  {estadisticas.errores}
+                  {estadisticas.excluidos}
                 </Text>
-                <Text style={styles.statLabel}>Errores</Text>
+                <Text style={styles.statLabel}>Excluidos</Text>
               </View>
             </View>
 
@@ -476,7 +672,7 @@ export default function ImportacionOSMScreen() {
         {resultados.length > 0 && !importando && (
           <View style={styles.resultsCard}>
             <Text style={styles.resultsTitle}>
-              ✅ Locales Importados ({resultados.length})
+              ✅ Locales Importados en esta sesión ({resultados.length})
             </Text>
             {resultados.slice(0, 10).map((local, index) => (
               <View key={local.id} style={styles.resultItem}>
@@ -512,7 +708,7 @@ export default function ImportacionOSMScreen() {
               onPress={() => router.push('/admin/enriquecimiento-google')}
             >
               <Text style={styles.nextButtonText}>Ir a Enriquecimiento Google</Text>
-              <IconSymbol name="arrow.right" size={20} color="#fff" />
+              <IconSymbol ios_icon_name="arrow.right" android_material_icon_name="arrow-forward" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
         )}
@@ -530,7 +726,7 @@ export default function ImportacionOSMScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar Comunidad Autónoma</Text>
               <TouchableOpacity onPress={() => setMostrarSelectorComunidad(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalScroll}>
@@ -552,7 +748,7 @@ export default function ImportacionOSMScreen() {
                     {comunidad}
                   </Text>
                   {comunidadSeleccionada === comunidad && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -573,7 +769,7 @@ export default function ImportacionOSMScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar Provincia</Text>
               <TouchableOpacity onPress={() => setMostrarSelectorProvincia(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalScroll}>
@@ -595,7 +791,7 @@ export default function ImportacionOSMScreen() {
                     {provincia}
                   </Text>
                   {provinciaSeleccionada === provincia && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -619,6 +815,97 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
     marginTop: 4,
+  },
+  existingImportCard: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+  },
+  existingImportHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  existingImportTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginLeft: 8,
+  },
+  existingImportText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  existingImportStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 12,
+  },
+  existingImportStat: {
+    alignItems: 'center',
+  },
+  existingImportStatValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  existingImportStatLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  existingImportProgress: {
+    marginBottom: 12,
+  },
+  existingImportProgressBar: {
+    height: 6,
+    backgroundColor: colors.border,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  existingImportProgressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+  },
+  existingImportProgressText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  existingImportActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  existingImportCancelButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  existingImportCancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  existingImportContinueButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+  },
+  existingImportContinueButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
   apiStatusCard: {
     borderRadius: 12,

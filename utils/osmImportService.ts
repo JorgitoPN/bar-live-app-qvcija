@@ -40,9 +40,37 @@ const RETRY_CONFIG = {
  * Configuración de rate limiting
  */
 const RATE_LIMIT_CONFIG = {
-  requestsPerMinute: 2, // Máximo 2 requests por minuto para no sobrecargar
+  requestsPerMinute: 2,
   delayBetweenRequestsMs: 30000, // 30 segundos entre requests
 };
+
+/**
+ * Configuración de paginación
+ * Procesar en lotes pequeños para evitar timeouts
+ */
+const PAGINATION_CONFIG = {
+  batchSize: 50, // Procesar 50 locales a la vez
+  maxBatchesPerSession: 20, // Máximo 20 lotes por sesión (1000 locales)
+};
+
+/**
+ * Interfaz para el estado de importación
+ */
+interface ImportacionOSMEstado {
+  id?: string;
+  provincia: string;
+  tipos: string[];
+  limite_total: number;
+  locales_procesados: number;
+  locales_importados: number;
+  locales_duplicados: number;
+  locales_excluidos: number;
+  ultima_posicion: number;
+  completada: boolean;
+  fecha_inicio: string;
+  fecha_ultima_actualizacion: string;
+  error?: string;
+}
 
 /**
  * Delay helper function
@@ -52,7 +80,165 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * Importar catálogo de locales desde OpenStreetMap
+ * Obtener o crear estado de importación
+ */
+async function obtenerEstadoImportacion(
+  provincia: string,
+  tipos: string[]
+): Promise<ImportacionOSMEstado | null> {
+  try {
+    console.log('[OSM Import] 🔍 Checking for existing import state...');
+    console.log('[OSM Import] Province:', provincia);
+    console.log('[OSM Import] Types:', tipos.join(', '));
+
+    // Buscar importación activa (no completada) para esta provincia y tipos
+    const { data, error } = await supabase
+      .from('osm_import_state')
+      .select('*')
+      .eq('provincia', provincia)
+      .eq('completada', false)
+      .order('fecha_inicio', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.error('[OSM Import] Error fetching import state:', error);
+      return null;
+    }
+
+    if (data) {
+      // Verificar que los tipos coincidan
+      const tiposGuardados = data.tipos as string[];
+      const tiposCoinciden = 
+        tiposGuardados.length === tipos.length &&
+        tiposGuardados.every(t => tipos.includes(t));
+
+      if (tiposCoinciden) {
+        console.log('[OSM Import] ✅ Found existing import state');
+        console.log('[OSM Import] Progress:', data.locales_procesados, '/', data.limite_total);
+        console.log('[OSM Import] Last position:', data.ultima_posicion);
+        return data as ImportacionOSMEstado;
+      } else {
+        console.log('[OSM Import] ⚠️ Found import state but types don\'t match');
+        console.log('[OSM Import] Saved types:', tiposGuardados);
+        console.log('[OSM Import] Requested types:', tipos);
+      }
+    }
+
+    console.log('[OSM Import] ℹ️ No existing import state found');
+    return null;
+  } catch (error) {
+    console.error('[OSM Import] Error in obtenerEstadoImportacion:', error);
+    return null;
+  }
+}
+
+/**
+ * Crear nuevo estado de importación
+ */
+async function crearEstadoImportacion(
+  provincia: string,
+  tipos: string[],
+  limiteTotal: number
+): Promise<ImportacionOSMEstado | null> {
+  try {
+    console.log('[OSM Import] 📝 Creating new import state...');
+
+    const nuevoEstado: Omit<ImportacionOSMEstado, 'id'> = {
+      provincia,
+      tipos,
+      limite_total: limiteTotal,
+      locales_procesados: 0,
+      locales_importados: 0,
+      locales_duplicados: 0,
+      locales_excluidos: 0,
+      ultima_posicion: 0,
+      completada: false,
+      fecha_inicio: new Date().toISOString(),
+      fecha_ultima_actualizacion: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from('osm_import_state')
+      .insert(nuevoEstado)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[OSM Import] Error creating import state:', error);
+      return null;
+    }
+
+    console.log('[OSM Import] ✅ Import state created with ID:', data.id);
+    return data as ImportacionOSMEstado;
+  } catch (error) {
+    console.error('[OSM Import] Error in crearEstadoImportacion:', error);
+    return null;
+  }
+}
+
+/**
+ * Actualizar estado de importación
+ */
+async function actualizarEstadoImportacion(
+  estadoId: string,
+  actualizacion: Partial<ImportacionOSMEstado>
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('osm_import_state')
+      .update({
+        ...actualizacion,
+        fecha_ultima_actualizacion: new Date().toISOString(),
+      })
+      .eq('id', estadoId);
+
+    if (error) {
+      console.error('[OSM Import] Error updating import state:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('[OSM Import] Error in actualizarEstadoImportacion:', error);
+    return false;
+  }
+}
+
+/**
+ * Marcar importación como completada
+ */
+async function marcarImportacionCompletada(
+  estadoId: string,
+  error?: string
+): Promise<boolean> {
+  try {
+    console.log('[OSM Import] ✅ Marking import as completed...');
+
+    const { error: updateError } = await supabase
+      .from('osm_import_state')
+      .update({
+        completada: true,
+        fecha_ultima_actualizacion: new Date().toISOString(),
+        error: error || null,
+      })
+      .eq('id', estadoId);
+
+    if (updateError) {
+      console.error('[OSM Import] Error marking import as completed:', updateError);
+      return false;
+    }
+
+    console.log('[OSM Import] ✅ Import marked as completed');
+    return true;
+  } catch (error) {
+    console.error('[OSM Import] Error in marcarImportacionCompletada:', error);
+    return false;
+  }
+}
+
+/**
+ * Importar catálogo de locales desde OpenStreetMap con continuación automática
  */
 export async function importarCatalogoOSM(
   provincia: string,
@@ -67,86 +253,178 @@ export async function importarCatalogoOSM(
   console.log('[OSM Import] Limit:', limite);
 
   try {
-    // Construir query de Overpass API
-    const query = construirQueryOverpass(provincia, tipos, limite);
-    console.log('[OSM Import] Overpass query constructed:', query);
-
-    // Consultar Overpass API con reintentos
-    const localesOSM = await consultarOverpassAPIConReintentos(query);
-    console.log(`[OSM Import] Received ${localesOSM.length} results from OSM`);
-
-    // Filtrar por tipos solicitados
-    const localesFiltrados = localesOSM.filter(element => {
-      const amenity = element.tags?.amenity;
-      const tipoValido = amenity && tipos.includes(amenity);
-      if (!tipoValido) {
-        console.log(`[OSM Import] Filtering out element with amenity: ${amenity}`);
-      }
-      return tipoValido;
-    });
-    console.log(`[OSM Import] After filtering: ${localesFiltrados.length} elements match requested types`);
-
-    // Procesar y convertir a LocalCatalogo
-    const localesCatalogo: LocalCatalogo[] = [];
+    // Obtener o crear estado de importación
+    let estado = await obtenerEstadoImportacion(provincia, tipos);
     
-    for (let i = 0; i < localesFiltrados.length && i < limite; i++) {
-      const osmElement = localesFiltrados[i];
-      
-      try {
-        const localCatalogo = convertirOSMaLocalCatalogo(osmElement, provincia);
+    if (!estado) {
+      console.log('[OSM Import] 🆕 Starting new import session');
+      estado = await crearEstadoImportacion(provincia, tipos, limite);
+      if (!estado) {
+        throw new Error('No se pudo crear el estado de importación');
+      }
+    } else {
+      console.log('[OSM Import] 🔄 Continuing existing import session');
+      console.log('[OSM Import] Already processed:', estado.locales_procesados, 'locales');
+      console.log('[OSM Import] Continuing from position:', estado.ultima_posicion);
+    }
+
+    const localesImportados: LocalCatalogo[] = [];
+    let localesProcesados = estado.locales_procesados;
+    let localesImportadosCount = estado.locales_importados;
+    let localesDuplicadosCount = estado.locales_duplicados;
+    let localesExcluidosCount = estado.locales_excluidos;
+    let posicionActual = estado.ultima_posicion;
+
+    // Calcular cuántos locales faltan por procesar
+    const localesFaltantes = limite - localesProcesados;
+    console.log('[OSM Import] Remaining to process:', localesFaltantes, 'locales');
+
+    if (localesFaltantes <= 0) {
+      console.log('[OSM Import] ✅ Import already completed');
+      await marcarImportacionCompletada(estado.id!);
+      return localesImportados;
+    }
+
+    // Procesar en lotes
+    const numLotes = Math.ceil(localesFaltantes / PAGINATION_CONFIG.batchSize);
+    const lotesAProcesar = Math.min(numLotes, PAGINATION_CONFIG.maxBatchesPerSession);
+    
+    console.log('[OSM Import] 📦 Processing in batches');
+    console.log('[OSM Import] Batch size:', PAGINATION_CONFIG.batchSize);
+    console.log('[OSM Import] Total batches needed:', numLotes);
+    console.log('[OSM Import] Batches to process in this session:', lotesAProcesar);
+
+    for (let lote = 0; lote < lotesAProcesar; lote++) {
+      console.log(`[OSM Import] 📦 Processing batch ${lote + 1}/${lotesAProcesar}...`);
+
+      // Construir query con offset
+      const query = construirQueryOverpassConOffset(
+        provincia,
+        tipos,
+        PAGINATION_CONFIG.batchSize,
+        posicionActual
+      );
+
+      // Consultar Overpass API con reintentos
+      const localesOSM = await consultarOverpassAPIConReintentos(query);
+      console.log(`[OSM Import] Received ${localesOSM.length} results from OSM for batch ${lote + 1}`);
+
+      if (localesOSM.length === 0) {
+        console.log('[OSM Import] ⚠️ No more results from OSM, marking as completed');
+        await marcarImportacionCompletada(estado.id!);
+        break;
+      }
+
+      // Filtrar por tipos solicitados
+      const localesFiltrados = localesOSM.filter(element => {
+        const amenity = element.tags?.amenity;
+        return amenity && tipos.includes(amenity);
+      });
+      console.log(`[OSM Import] After filtering: ${localesFiltrados.length} elements match requested types`);
+
+      // Procesar cada local del lote
+      for (let i = 0; i < localesFiltrados.length; i++) {
+        const osmElement = localesFiltrados[i];
         
-        if (localCatalogo) {
-          // Guardar en Supabase
-          const localGuardado = await guardarLocalEnSupabase(localCatalogo);
+        try {
+          const localCatalogo = convertirOSMaLocalCatalogo(osmElement, provincia);
           
-          if (localGuardado) {
-            localesCatalogo.push(localCatalogo);
-            console.log(`[OSM Import] Saved: ${localCatalogo.nombre} (${localCatalogo.tipo_osm})`);
+          if (localCatalogo) {
+            // Guardar en Supabase
+            const resultado = await guardarLocalEnSupabase(localCatalogo);
             
+            if (resultado === 'importado') {
+              localesImportados.push(localCatalogo);
+              localesImportadosCount++;
+              console.log(`[OSM Import] ✅ Saved: ${localCatalogo.nombre} (${localCatalogo.tipo_osm})`);
+            } else if (resultado === 'duplicado') {
+              localesDuplicadosCount++;
+              console.log(`[OSM Import] ⚠️ Duplicate: ${localCatalogo.nombre}`);
+            } else if (resultado === 'excluido') {
+              localesExcluidosCount++;
+              console.log(`[OSM Import] 🚫 Excluded: ${localCatalogo.nombre}`);
+            }
+            
+            localesProcesados++;
+            posicionActual++;
+
             if (onProgress) {
-              onProgress(i + 1, Math.min(localesFiltrados.length, limite), localCatalogo);
+              onProgress(localesProcesados, limite, localCatalogo);
+            }
+
+            // Actualizar estado cada 10 locales
+            if (localesProcesados % 10 === 0) {
+              await actualizarEstadoImportacion(estado.id!, {
+                locales_procesados: localesProcesados,
+                locales_importados: localesImportadosCount,
+                locales_duplicados: localesDuplicadosCount,
+                locales_excluidos: localesExcluidosCount,
+                ultima_posicion: posicionActual,
+              });
             }
           }
+        } catch (error) {
+          console.error('[OSM Import] Error processing element:', error);
         }
-      } catch (error) {
-        console.error('[OSM Import] Error processing element:', error);
+      }
+
+      // Actualizar estado al final del lote
+      await actualizarEstadoImportacion(estado.id!, {
+        locales_procesados: localesProcesados,
+        locales_importados: localesImportadosCount,
+        locales_duplicados: localesDuplicadosCount,
+        locales_excluidos: localesExcluidosCount,
+        ultima_posicion: posicionActual,
+      });
+
+      // Verificar si ya alcanzamos el límite
+      if (localesProcesados >= limite) {
+        console.log('[OSM Import] ✅ Reached import limit');
+        await marcarImportacionCompletada(estado.id!);
+        break;
+      }
+
+      // Delay entre lotes para no sobrecargar la API
+      if (lote < lotesAProcesar - 1) {
+        console.log(`[OSM Import] ⏳ Waiting ${RATE_LIMIT_CONFIG.delayBetweenRequestsMs}ms before next batch...`);
+        await delay(RATE_LIMIT_CONFIG.delayBetweenRequestsMs);
       }
     }
 
+    // Verificar si la importación está completa
+    if (localesProcesados >= limite) {
+      await marcarImportacionCompletada(estado.id!);
+    }
+
     console.log('[OSM Import] ========================================');
-    console.log(`[OSM Import] Import completed: ${localesCatalogo.length} venues`);
-    console.log('[OSM Import] Breakdown by type:');
-    const breakdown: Record<string, number> = {};
-    localesCatalogo.forEach(local => {
-      const tipo = local.tipo_osm || 'unknown';
-      breakdown[tipo] = (breakdown[tipo] || 0) + 1;
-    });
-    Object.entries(breakdown).forEach(([tipo, count]) => {
-      console.log(`[OSM Import]   - ${tipo}: ${count}`);
-    });
+    console.log(`[OSM Import] Session completed`);
+    console.log(`[OSM Import] Total processed: ${localesProcesados} locales`);
+    console.log(`[OSM Import] Imported: ${localesImportadosCount}`);
+    console.log(`[OSM Import] Duplicates: ${localesDuplicadosCount}`);
+    console.log(`[OSM Import] Excluded: ${localesExcluidosCount}`);
+    console.log(`[OSM Import] Current position: ${posicionActual}`);
     console.log('[OSM Import] COST: 0€ (OSM is free)');
     console.log('[OSM Import] ========================================');
 
-    return localesCatalogo;
+    return localesImportados;
   } catch (error: any) {
     console.error('[OSM Import] Import error:', error);
     
-    // ✅ Provide user-friendly error messages
+    // Provide user-friendly error messages
     if (error.message.includes('504') || error.message.includes('timeout')) {
       throw new Error(
         'El servidor de OpenStreetMap está temporalmente sobrecargado. ' +
-        'Por favor, intenta de nuevo en unos minutos. ' +
-        'Los servidores de OSM son gratuitos y pueden estar ocupados.'
+        'El progreso se ha guardado. Puedes continuar la importación más tarde desde donde se quedó.'
       );
     } else if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
       throw new Error(
         'Se han realizado demasiadas solicitudes. ' +
-        'Por favor, espera 1-2 minutos antes de intentar de nuevo.'
+        'El progreso se ha guardado. Por favor, espera 1-2 minutos y vuelve a intentar.'
       );
     } else {
       throw new Error(
         'Error al importar desde OpenStreetMap: ' + error.message + '. ' +
-        'Por favor, verifica tu conexión a internet e intenta de nuevo.'
+        'El progreso se ha guardado y puedes continuar más tarde.'
       );
     }
   }
@@ -154,27 +432,22 @@ export async function importarCatalogoOSM(
 
 /**
  * Guardar local en Supabase
- * IMPORTANTE: Los locales importados desde OSM se guardan como INACTIVOS
- * Solo se activan después de un enriquecimiento exitoso con Google Places
+ * Retorna: 'importado' | 'duplicado' | 'excluido'
  */
-async function guardarLocalEnSupabase(localCatalogo: LocalCatalogo): Promise<boolean> {
+async function guardarLocalEnSupabase(localCatalogo: LocalCatalogo): Promise<'importado' | 'duplicado' | 'excluido'> {
   try {
-    // 🚫 VERIFICAR SI EL LOCAL ESTÁ EXCLUIDO
-    console.log(`[OSM Import] Checking if local is excluded: ${localCatalogo.nombre}`);
+    // Verificar si el local está excluido
     const exclusionCheck = await verificarLocalExcluido({
       nombre: localCatalogo.nombre,
       latitud: localCatalogo.latitud,
       longitud: localCatalogo.longitud,
       osm_id: localCatalogo.osm_id,
-      amenity_type: localCatalogo.tipo_osm, // ✅ Pasar el tipo de amenity
+      amenity_type: localCatalogo.tipo_osm,
     });
 
     if (exclusionCheck.excluido) {
-      console.log(`[OSM Import] ❌ Local is excluded, skipping: ${localCatalogo.nombre}`);
-      console.log(`[OSM Import] Reason: ${exclusionCheck.motivo}`);
-      return false;
+      return 'excluido';
     }
-    console.log(`[OSM Import] ✅ Local is not excluded, proceeding with import`);
 
     // Verificar si ya existe (por osm_id)
     const { data: existente, error: errorBusqueda } = await supabase
@@ -185,12 +458,10 @@ async function guardarLocalEnSupabase(localCatalogo: LocalCatalogo): Promise<boo
       .single();
 
     if (existente) {
-      console.log(`[OSM Import] Local already exists: ${localCatalogo.nombre}`);
-      return false;
+      return 'duplicado';
     }
 
     // Insertar nuevo local
-    // ⚠️ IMPORTANTE: activo = false hasta que se enriquezca con éxito
     const { data, error } = await supabase
       .from('locales')
       .insert({
@@ -207,40 +478,37 @@ async function guardarLocalEnSupabase(localCatalogo: LocalCatalogo): Promise<boo
         source_type: 'osm',
         source_id: localCatalogo.osm_id,
         enriquecido: false,
-        activo: false, // ⚠️ INACTIVO hasta enriquecimiento exitoso
+        activo: false,
       })
       .select()
       .single();
 
     if (error) {
       console.error('[OSM Import] Error saving to Supabase:', error);
-      return false;
+      return 'duplicado'; // Asumir duplicado si hay error
     }
 
-    console.log(`[OSM Import] Successfully saved: ${localCatalogo.nombre} (${localCatalogo.tipo_osm}) - INACTIVE until enriched`);
-    return true;
+    return 'importado';
   } catch (error) {
     console.error('[OSM Import] Error in guardarLocalEnSupabase:', error);
-    return false;
+    return 'duplicado';
   }
 }
 
 /**
- * Construir query de Overpass API
+ * Construir query de Overpass API con offset para paginación
  */
-function construirQueryOverpass(
+function construirQueryOverpassConOffset(
   provincia: string,
   tipos: string[],
-  limite: number
+  limite: number,
+  offset: number
 ): string {
-  // Convertir tipos a formato OSM - crear filtros individuales para cada tipo
-  const amenityFilters = tipos.map(tipo => `["amenity"="${tipo}"]`).join('');
+  console.log('[OSM Import] Building query with offset');
+  console.log('[OSM Import] Offset:', offset);
+  console.log('[OSM Import] Limit:', limite);
   
-  console.log('[OSM Import] Building query for types:', tipos);
-  console.log('[OSM Import] Amenity filters:', amenityFilters);
-  
-  // Query de Overpass API mejorada con timeout más largo
-  // Busca en toda España si no encuentra por provincia específica
+  // Query de Overpass API con paginación
   const query = `
     [out:json][timeout:180];
     (
@@ -251,10 +519,21 @@ function construirQueryOverpass(
         relation["amenity"~"${tipos.join('|')}"](area.searchArea);
       );
     );
-    out body center ${limite * 2};
+    out body center ${limite};
   `;
 
   return query.trim();
+}
+
+/**
+ * Construir query de Overpass API (versión original sin offset)
+ */
+function construirQueryOverpass(
+  provincia: string,
+  tipos: string[],
+  limite: number
+): string {
+  return construirQueryOverpassConOffset(provincia, tipos, limite, 0);
 }
 
 /**
@@ -282,7 +561,6 @@ async function consultarOverpassAPIConReintentos(query: string): Promise<any[]> 
         console.log(`[OSM Import] 🔄 Attempting request to endpoint: ${endpoint} (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1})`);
         const result = await consultarOverpassAPI(query, endpoint);
         
-        // Si llegamos aquí, la request fue exitosa
         console.log(`[OSM Import] ✅ Request successful on attempt ${attempt + 1} using endpoint: ${endpoint}`);
         return result;
         
@@ -290,13 +568,11 @@ async function consultarOverpassAPIConReintentos(query: string): Promise<any[]> 
         lastError = error;
         console.error(`[OSM Import] ❌ Request failed on endpoint ${endpoint}:`, error.message);
         
-        // Si es un error 504 o timeout, continuar con el siguiente endpoint
         if (error.message.includes('504') || error.message.includes('timeout')) {
           console.log(`[OSM Import] ⏱️ Server timeout detected, trying next endpoint...`);
           continue;
         }
         
-        // Si es otro tipo de error, esperar antes de reintentar
         if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
           console.log(`[OSM Import] 🚦 Rate limit detected, waiting longer before retry...`);
           await delay(RATE_LIMIT_CONFIG.delayBetweenRequestsMs);
@@ -305,7 +581,6 @@ async function consultarOverpassAPIConReintentos(query: string): Promise<any[]> 
     }
   }
   
-  // Si llegamos aquí, todos los reintentos fallaron
   console.error(`[OSM Import] ❌ All retry attempts exhausted. Last error:`, lastError);
   throw new Error(`Overpass API error after ${RETRY_CONFIG.maxRetries + 1} attempts: ${lastError?.message || 'Unknown error'}`);
 }
@@ -317,7 +592,6 @@ async function consultarOverpassAPI(query: string, endpoint: string): Promise<an
   console.log(`[OSM Import] 📡 Querying Overpass API at: ${endpoint}`);
   
   try {
-    // Crear un AbortController para timeout manual
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutos timeout
     
@@ -326,7 +600,7 @@ async function consultarOverpassAPI(query: string, endpoint: string): Promise<an
       body: query,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'BarLive/1.0', // Identificarse como aplicación
+        'User-Agent': 'BarLive/1.0',
       },
       signal: controller.signal,
     });
@@ -334,7 +608,6 @@ async function consultarOverpassAPI(query: string, endpoint: string): Promise<an
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      // Leer el cuerpo de la respuesta para más detalles
       let errorDetails = '';
       try {
         errorDetails = await response.text();
@@ -342,17 +615,14 @@ async function consultarOverpassAPI(query: string, endpoint: string): Promise<an
         console.log('[OSM Import] Could not read error response body');
       }
       
-      // ✅ Provide more context about the error
       if (response.status === 504) {
         throw new Error(
           `Overpass API timeout (504): El servidor está sobrecargado. ` +
-          `Esto es normal para los servidores gratuitos de OSM. ` +
           `Detalles: ${errorDetails.substring(0, 200)}`
         );
       } else if (response.status === 429) {
         throw new Error(
-          `Overpass API rate limit (429): Demasiadas solicitudes. ` +
-          `Por favor, espera 1-2 minutos antes de intentar de nuevo.`
+          `Overpass API rate limit (429): Demasiadas solicitudes.`
         );
       } else {
         throw new Error(
@@ -366,37 +636,16 @@ async function consultarOverpassAPI(query: string, endpoint: string): Promise<an
     
     if (!data.elements || !Array.isArray(data.elements)) {
       console.log('[OSM Import] ⚠️ No elements found in response');
-      console.log('[OSM Import] Response data:', JSON.stringify(data, null, 2));
       return [];
     }
 
     console.log(`[OSM Import] ✅ Overpass API returned ${data.elements.length} elements`);
     
-    // Log breakdown by amenity type
-    const typeBreakdown: Record<string, number> = {};
-    data.elements.forEach((element: any) => {
-      const amenity = element.tags?.amenity || 'unknown';
-      typeBreakdown[amenity] = (typeBreakdown[amenity] || 0) + 1;
-    });
-    console.log('[OSM Import] 📊 Type breakdown from OSM:');
-    Object.entries(typeBreakdown).forEach(([type, count]) => {
-      console.log(`[OSM Import]   - ${type}: ${count}`);
-    });
-    
-    // Rate limiting: esperar antes de permitir otra request
-    console.log(`[OSM Import] ⏳ Applying rate limit: waiting ${RATE_LIMIT_CONFIG.delayBetweenRequestsMs}ms before next request...`);
-    await delay(RATE_LIMIT_CONFIG.delayBetweenRequestsMs);
-    
     return data.elements;
   } catch (error: any) {
-    // Manejar errores de timeout del AbortController
     if (error.name === 'AbortError') {
       console.error('[OSM Import] ⏱️ Request timeout after 3 minutes');
-      throw new Error(
-        'Overpass API timeout: La solicitud tardó demasiado tiempo. ' +
-        'Los servidores de OSM están muy ocupados. ' +
-        'Por favor, intenta de nuevo en unos minutos.'
-      );
+      throw new Error('Overpass API timeout: La solicitud tardó demasiado tiempo.');
     }
     
     console.error('[OSM Import] ❌ Overpass API error:', error);
@@ -413,37 +662,26 @@ function convertirOSMaLocalCatalogo(
 ): LocalCatalogo | null {
   const tags = osmElement.tags || {};
   
-  // Verificar que tenga nombre
   if (!tags.name) {
-    console.log('[OSM Import] Skipping element without name');
     return null;
   }
 
-  // Obtener coordenadas
   let lat = osmElement.lat;
   let lon = osmElement.lon;
   
-  // Si es un way (polígono), usar el centro
   if (!lat && osmElement.center) {
     lat = osmElement.center.lat;
     lon = osmElement.center.lon;
   }
   
   if (!lat || !lon) {
-    console.log('[OSM Import] Skipping element without coordinates');
     return null;
   }
 
-  // Obtener tipo OSM
   const tipoOSM = tags.amenity || 'bar';
-  
-  // Mapear a tipos BarLive
   const barliveTypes = OSM_TO_BARLIVE_TYPES[tipoOSM] || ['bar'];
-
-  // Construir dirección
   const direccion = construirDireccion(tags);
 
-  // Crear LocalCatalogo
   const localCatalogo: LocalCatalogo = {
     id: `osm-${osmElement.type}-${osmElement.id}`,
     osm_id: `${osmElement.type}/${osmElement.id}`,
@@ -522,71 +760,7 @@ function obtenerComunidad(provincia: string): string {
 }
 
 /**
- * Generar datos mock de OSM para desarrollo
- */
-function generarDatosMockOSM(): any[] {
-  const nombres = [
-    'La Catrina', 'El Rincón de Pepe', 'Taberna El Abuelo',
-    'Cervecería 100 Montaditos', 'Café Central', 'Bar Manolo',
-    'Restaurante Casa Paco', 'Pub The Irish', 'Discoteca Kapital',
-    'Café de la Ópera', 'Bar Los Gatos', 'Restaurante El Faro',
-    'Pub La Cervecería', 'Bar La Esquina', 'Café Comercial',
-    'Restaurante La Barraca', 'Bar El Tigre', 'Café Gijón',
-    'Pub Finnegan', 'Bar Lambuzo', 'Restaurante Botín',
-    'Café del Círculo', 'Bar Santander', 'Pub Molly Malone',
-    'Restaurante Sobrino de Botín', 'Bar La Venencia',
-  ];
-
-  const calles = [
-    'Calle Mayor', 'Calle Alcalá', 'Gran Vía', 'Calle Serrano',
-    'Calle Goya', 'Calle Fuencarral', 'Calle Preciados',
-    'Calle Arenal', 'Calle Toledo', 'Calle Atocha',
-  ];
-
-  const tipos = ['bar', 'restaurant', 'cafe', 'pub', 'nightclub'];
-
-  const elementos: any[] = [];
-
-  // Generar 10 de cada tipo para asegurar variedad
-  tipos.forEach(tipo => {
-    for (let i = 0; i < 10; i++) {
-      const nombre = nombres[Math.floor(Math.random() * nombres.length)];
-      const calle = calles[Math.floor(Math.random() * calles.length)];
-      const numero = Math.floor(Math.random() * 100) + 1;
-      
-      elementos.push({
-        type: 'node',
-        id: 1000000 + elementos.length,
-        lat: 40.4168 + (Math.random() - 0.5) * 0.1,
-        lon: -3.7038 + (Math.random() - 0.5) * 0.1,
-        tags: {
-          name: `${nombre} ${tipo} ${i + 1}`,
-          amenity: tipo,
-          'addr:street': calle,
-          'addr:housenumber': numero.toString(),
-          'addr:city': 'Madrid',
-          outdoor_seating: Math.random() > 0.5 ? 'yes' : 'no',
-        },
-      });
-    }
-  });
-
-  console.log('[OSM Import] Generated mock data with breakdown:');
-  const mockBreakdown: Record<string, number> = {};
-  elementos.forEach(element => {
-    const amenity = element.tags.amenity;
-    mockBreakdown[amenity] = (mockBreakdown[amenity] || 0) + 1;
-  });
-  Object.entries(mockBreakdown).forEach(([type, count]) => {
-    console.log(`[OSM Import]   - ${type}: ${count}`);
-  });
-
-  return elementos;
-}
-
-/**
  * Verificar el estado de la API de Overpass
- * Útil para diagnóstico antes de intentar importar
  */
 export async function verificarEstadoOverpassAPI(): Promise<{
   disponible: boolean;
@@ -598,7 +772,7 @@ export async function verificarEstadoOverpassAPI(): Promise<{
   for (const endpoint of OVERPASS_ENDPOINTS) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       const response = await fetch(`${endpoint}/status`, {
         method: 'GET',
@@ -625,4 +799,34 @@ export async function verificarEstadoOverpassAPI(): Promise<{
     endpoint: null,
     mensaje: 'Ningún endpoint de Overpass API está disponible en este momento. Por favor, intenta más tarde.',
   };
+}
+
+/**
+ * Obtener estado actual de importación para mostrar en UI
+ */
+export async function obtenerEstadoImportacionActual(
+  provincia: string,
+  tipos: string[]
+): Promise<ImportacionOSMEstado | null> {
+  return await obtenerEstadoImportacion(provincia, tipos);
+}
+
+/**
+ * Cancelar importación actual
+ */
+export async function cancelarImportacionActual(
+  provincia: string,
+  tipos: string[]
+): Promise<boolean> {
+  try {
+    const estado = await obtenerEstadoImportacion(provincia, tipos);
+    if (!estado || !estado.id) {
+      return false;
+    }
+
+    return await marcarImportacionCompletada(estado.id, 'Cancelada por el usuario');
+  } catch (error) {
+    console.error('[OSM Import] Error canceling import:', error);
+    return false;
+  }
 }
