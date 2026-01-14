@@ -194,7 +194,7 @@ export default function ExplorarScreen() {
         // ✅ v182.0: Pass complete local data to getEstadoLocal
         const estado = getEstadoLocal({
           horarios_completos: local.horarios_completos,
-          estado_negocio: local.estado_negocio, // Keep the correct property name
+          google_business_status: local.google_business_status,
           estado_actual: local.estado_actual,
         });
         

@@ -194,7 +194,8 @@ export default function MapaScreen() {
         const estado = getEstadoLocal({
           ...item,
           horarios_completos: item.horarios_completos,
-          estado_negocio: item.estado_negocio,
+          google_business_status: item.google_business_status,
+          estado_actual: item.estado_actual,
         });
         const estaAbierto = estado.estaAbierto;
         const tieneHorarios = item.horarios_completos && Object.keys(item.horarios_completos).length > 0;
