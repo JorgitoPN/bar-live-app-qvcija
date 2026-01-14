@@ -291,6 +291,14 @@ export default function AdminIndexScreen() {
       description: 'Enriquece datos con Google Places',
     },
     {
+      title: 'Limpieza OSM Enriquecidos',
+      icon: 'trash.circle.fill' as const,
+      androidIcon: 'delete_sweep' as const,
+      color: '#DC2626',
+      route: '/admin/limpieza-osm-enriquecidos',
+      description: 'Elimina locales OSM ya enriquecidos para liberar espacio',
+    },
+    {
       title: 'Sistema de Limpieza',
       icon: 'trash.circle.fill' as const,
       androidIcon: 'cleaning_services' as const,

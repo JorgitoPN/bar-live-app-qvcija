@@ -24,6 +24,7 @@ import { validarLocalCompleto, estaEnEspana } from '@/utils/localTypesBackend';
 import * as Clipboard from 'expo-clipboard';
 import { performanceMonitor } from '@/utils/performanceMonitor';
 import { descargarYSubirFotosLocal, generarMetadatosFotos, verificarBucketSupabase } from '@/utils/enrichmentPhotos';
+import { limpiarLocalOSMSiEnriquecido, estaLimpiezaAutomaticaHabilitada } from '@/utils/osmCleanupService';
 import { useAuth } from '@/contexts/AuthContext';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
@@ -105,9 +106,16 @@ const DIAS_SEMANA: Record<number, string> = {
 const MAX_LOGS = 50;
 
 /**
- * ✅ ENRIQUECIMIENTO GOOGLE v130.0 - AUTO-DELETE DUPLICATES AND REJECTED LOCALES
+ * ✅ ENRIQUECIMIENTO GOOGLE v131.0 - AUTO-CLEANUP ENRICHED OSM LOCALES
  * 
- * CRITICAL FIXES v130.0 (APPLIED):
+ * NEW IN v131.0:
+ * - ✅ NEW: Automatic cleanup of enriched OSM locales after activation
+ * - ✅ NEW: OSM locales are deleted after being enriched and published
+ * - ✅ NEW: Configurable auto-cleanup system (can be enabled/disabled)
+ * - ✅ NEW: Frees up space and improves app performance
+ * - ✅ NEW: Locales remain visible in "Explorar" and "Mapa" (Google Places data)
+ * 
+ * CRITICAL FIXES v130.0:
  * - ✅ FIXED: Locales that fail with P0001 (duplicate) are now automatically deleted
  * - ✅ FIXED: Locales rejected during enrichment are automatically deleted
  * - ✅ FIXED: Prevents wasting money on repeated API calls for invalid locales
@@ -1078,6 +1086,19 @@ export default function EnriquecimientoGoogleScreen() {
             const photos = galeriaUrls.length > 0 ? `📸 ${galeriaUrls.length} fotos` : '';
             agregarLog('success', `✅ ${local.nombre} ${rating} ${reviews} ${status} ${price} ${photos} [${types}]`);
             exitosos++;
+            
+            // 🗑️ v131.0: LIMPIEZA AUTOMÁTICA DE OSM ENRIQUECIDOS
+            // Verificar si la limpieza automática está habilitada
+            const autoCleanupEnabled = await estaLimpiezaAutomaticaHabilitada();
+            if (autoCleanupEnabled) {
+              agregarLog('info', `🗑️ Limpieza automática: Eliminando ${local.nombre} del catálogo OSM...`);
+              const deleted = await limpiarLocalOSMSiEnriquecido(local.id);
+              if (deleted) {
+                agregarLog('success', `✅ ${local.nombre} eliminado del catálogo OSM (ya está publicado con Google Places)`);
+              } else {
+                agregarLog('warning', `⚠️ No se pudo eliminar ${local.nombre} del catálogo OSM`);
+              }
+            }
           }
           
           performanceMonitor.end(`enrich_${local.id}`);
@@ -1097,11 +1118,22 @@ export default function EnriquecimientoGoogleScreen() {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
+      // 🗑️ v131.0: MOSTRAR INFORMACIÓN SOBRE LIMPIEZA AUTOMÁTICA
+      const autoCleanupEnabled = await estaLimpiezaAutomaticaHabilitada();
+      const cleanupMessage = autoCleanupEnabled
+        ? '\n\n🗑️ Limpieza automática: Los locales OSM enriquecidos han sido eliminados del catálogo'
+        : '\n\n💡 Tip: Activa la limpieza automática en "Limpieza OSM Enriquecidos" para liberar espacio';
+      
       agregarLog('success', `🎉 Completado: ${exitosos} exitosos, ${fallidos} fallidos, ${rechazados} rechazados y eliminados`);
+      
+      if (autoCleanupEnabled) {
+        agregarLog('info', `🗑️ Limpieza automática: ${exitosos} locales OSM eliminados del catálogo`);
+        agregarLog('info', '✅ Los locales siguen visibles en "Explorar" y "Mapa" con datos de Google Places');
+      }
       
       Alert.alert(
         'Enriquecimiento Completado',
-        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🗑️ Rechazados y eliminados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage\n🔍 Búsqueda multi-estrategia activada\n🗑️ Los locales rechazados y duplicados han sido eliminados del catálogo`,
+        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🗑️ Rechazados y eliminados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage\n🔍 Búsqueda multi-estrategia activada\n🗑️ Los locales rechazados y duplicados han sido eliminados del catálogo${cleanupMessage}`,
         [
           {
             text: 'Ver Estadísticas',
@@ -1354,6 +1386,22 @@ export default function EnriquecimientoGoogleScreen() {
           ✅ Bloqueados para futuras importaciones
           {'\n\n'}
           Esto evita costes innecesarios de API y mantiene el catálogo limpio.
+        </Text>
+      </View>
+
+      {/* NEW v131.0: OSM Cleanup Info */}
+      <View style={[styles.infoBox, { backgroundColor: '#D1FAE5', marginBottom: 15 }]}>
+        <Text style={[styles.infoBoxTitle, { color: '#065F46', fontSize: scaleFontSize(13) }]}>🗑️ Limpieza OSM Enriquecidos v131.0</Text>
+        <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5, fontSize: scaleFontSize(12) }]}>
+          Los locales OSM enriquecidos exitosamente serán:
+          {'\n\n'}
+          ✅ Eliminados del catálogo OSM (si limpieza automática está activada)
+          {'\n'}
+          ✅ Mantenidos visibles en "Explorar" y "Mapa" con datos de Google Places
+          {'\n'}
+          ✅ Liberan espacio y mejoran el rendimiento
+          {'\n\n'}
+          💡 Configura la limpieza automática en "Limpieza OSM Enriquecidos"
         </Text>
       </View>
 
