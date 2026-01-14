@@ -139,6 +139,7 @@ export default function MapaScreen() {
 
     try {
       console.log('[MAP v179.0] 🗺️ Loading map data (silent)');
+      console.log('[MAP v179.0] 🔍 Filter estado:', filtroEstado);
 
       const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
       
@@ -177,19 +178,36 @@ export default function MapaScreen() {
         const count = item.count || 1;
 
         // Get venue details for popup
-        const estado = item.estado_actual || 'Sin información';
+        const estado = getEstadoLocal(item);
         const rating = item.rating || item.google_rating || 0;
         const categoria = item.barlive_type || item.tipo || 'Local';
         const imagen = item.imagen_url || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400';
+
+        // ✅ Get category-specific icon
+        const categories = item.barlive_types || (item.barlive_type ? [item.barlive_type] : ['bar']);
+        const categoryIcon = isCluster ? '📍' : getPrimaryIconForVenue(categories, item.horarios_completos);
+
+        // ✅ Determine background color based on status
+        let backgroundColor = '#9CA3AF'; // Gray for no info
+        if (estado.estaAbierto === true) {
+          backgroundColor = '#22C55E'; // Green for open
+        } else if (estado.estaAbierto === false) {
+          backgroundColor = '#EF4444'; // Red for closed
+        }
+
+        // ✅ Apply filter: only include if matches filtroEstado
+        const shouldInclude = filtroEstado === 'todos' || 
+                             (filtroEstado === 'abiertos' && estado.estaAbierto === true);
 
         return {
           id: item.id,
           lat: item.lat,
           lng: item.lng,
           nombre: item.nombre || 'Cluster',
-          estado: estado,
-          estadoBadge: isCluster ? `${count} locales` : estado,
-          icon: isCluster ? '📍' : '🍷',
+          estado: estado.badge,
+          estadoBadge: isCluster ? `${count} locales` : estado.badge,
+          icon: categoryIcon,
+          backgroundColor: backgroundColor,
           overlayIcon: null,
           rating: rating,
           imagen: imagen,
@@ -203,8 +221,9 @@ export default function MapaScreen() {
           isPremium: false,
           isCluster,
           count,
+          shouldInclude, // ✅ Add filter flag
         };
-      });
+      }).filter((marker: any) => marker.shouldInclude); // ✅ Filter markers based on estado
 
       setMarkersData(markers);
       // ✅ v179.0: Only hide loading on FIRST load
@@ -216,7 +235,7 @@ export default function MapaScreen() {
     } catch (error) {
       console.error('[MAP v179.0] ❌ Error loading map data:', error);
     }
-  }, [calculateZoomLevel, isLoadingMarkers]);
+  }, [calculateZoomLevel, isLoadingMarkers, filtroEstado]);
 
   // ✅ v179.0: Generate map HTML with enhanced popup
   const generateMapHTML = useCallback(async () => {
@@ -254,8 +273,7 @@ export default function MapaScreen() {
       border: 3px solid #FFFFFF;
       transition: transform 0.2s;
       cursor: pointer;
-      background-color: #14B8A6;
-      box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
     
     .custom-marker-cluster {
@@ -444,10 +462,13 @@ export default function MapaScreen() {
         markersData.forEach(function(data) {
           var markerClass = data.isCluster ? 'custom-marker custom-marker-cluster' : 'custom-marker';
           
-          var markerHtml = data.icon;
+          // ✅ Apply background color based on status
+          var markerStyle = 'background-color: ' + (data.backgroundColor || '#14B8A6') + ';';
+          
+          var markerHtml = '<div style="' + markerStyle + ' width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center;">' + data.icon + '</div>';
           if (data.isCluster) {
             markerHtml = '<div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">' +
-              data.icon +
+              '<div style="' + markerStyle + ' width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center;">' + data.icon + '</div>' +
               '<div class="cluster-count">' + data.count + '</div>' +
             '</div>';
           }
@@ -479,6 +500,11 @@ export default function MapaScreen() {
               maxWidth: 320,
               closeButton: true,
               className: 'venue-popup-container'
+            });
+            
+            // ✅ Center popup when opened
+            marker.on('popupopen', function() {
+              map.setView([data.lat, data.lng], map.getZoom(), { animate: true });
             });
           } else {
             // Cluster click: zoom in
@@ -557,6 +583,14 @@ export default function MapaScreen() {
       loadMapData(initialRegion);
     }
   }, [isMapReady, userLocation, loadMapData]);
+
+  // ✅ Reload markers when filter changes
+  useEffect(() => {
+    if (currentRegion) {
+      console.log('[MAP v179.0] 🔄 Filter changed, reloading markers');
+      loadMapData(currentRegion);
+    }
+  }, [filtroEstado]);
 
   const centerOnUser = () => {
     if (userLocation && webViewRef.current && isMapReady) {
