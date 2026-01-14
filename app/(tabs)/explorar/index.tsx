@@ -187,12 +187,18 @@ export default function ExplorarScreen() {
 
       // Transform data
       const transformedLocales = locales.map((local: any) => {
+        console.log('[Explorar v182.0] 🔍 Processing local:', local.nombre);
+        console.log('[Explorar v182.0] 📅 horarios_completos:', local.horarios_completos);
+        console.log('[Explorar v182.0] 🏪 estado_negocio:', local.estado_negocio);
+        
         // ✅ v182.0: Pass complete local data to getEstadoLocal
         const estado = getEstadoLocal({
-          ...local,
           horarios_completos: local.horarios_completos,
-          estado_negocio: local.estado_negocio,
+          estado_negocio: local.estado_negocio, // Keep the correct property name
+          estado_actual: local.estado_actual,
         });
+        
+        console.log('[Explorar v182.0] ✅ Estado calculated:', estado);
         
         return {
           ...local,
