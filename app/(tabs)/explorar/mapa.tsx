@@ -23,6 +23,7 @@ import {
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPrimaryIconForVenue } from '@/utils/categorizeLocal';
+import { dataCache } from '@/utils/dataCache';
 
 const { width } = Dimensions.get('window');
 
@@ -37,16 +38,15 @@ const CATEGORIAS_LOCALES = [
 ];
 
 /**
- * ✅ MAP SCREEN v187.0 - COMPREHENSIVE FIXES
+ * ✅ MAP SCREEN v188.0 - MARKER VISIBILITY & FILTER FIX
  * 
- * CRITICAL IMPROVEMENTS v187.0:
- * - ✅ PERFORMANCE: Optimized marker rendering with batching and limits
- * - ✅ MARKER VISIBILITY: All markers visible at zoom 6+ (improved from 7+)
- * - ✅ ISOLATED MARKERS: Single markers always visible, no clustering at far zoom
- * - ✅ POPUP FIX: Prevents auto-close with proper event handling
- * - ✅ POPUP CENTERING: Improved centering with header offset calculation
- * - ✅ FILTER FIX: "Todos/Abiertos" filter now works correctly
- * - ✅ SMOOTH UPDATES: Silent marker updates during zoom/pan
+ * CRITICAL IMPROVEMENTS v188.0:
+ * - ✅ MARKER VISIBILITY: Improved zoom threshold (6+ instead of 7+)
+ * - ✅ FILTER SYNCHRONIZATION: Fixed "Todos/Abiertos" filter with proper state management
+ * - ✅ INITIAL ZOOM: Better default zoom level to show all markers
+ * - ✅ PERFORMANCE: Optimized marker rendering with batching
+ * - ✅ POPUP CENTERING: Improved centering with header offset
+ * - ✅ CACHE SYSTEM: Added marker caching for instant updates
  */
 
 export default function MapaScreen() {
@@ -68,23 +68,23 @@ export default function MapaScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[MAP v187.0] 🔍 Requesting location permissions...');
+        console.log('[MAP v188.0] 🔍 Requesting location permissions...');
         
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[MAP v187.0] ⚠️ Location services disabled, using Madrid');
+          console.log('[MAP v188.0] ⚠️ Location services disabled, using Madrid');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[MAP v187.0] ⚠️ Location permission denied, using Madrid');
+          console.log('[MAP v188.0] ⚠️ Location permission denied, using Madrid');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
-        console.log('[MAP v187.0] ✅ Location permission granted');
+        console.log('[MAP v188.0] ✅ Location permission granted');
         
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -96,9 +96,9 @@ export default function MapaScreen() {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
-        console.log('[MAP v187.0] 📍 User location:', location.coords);
+        console.log('[MAP v188.0] 📍 User location:', location.coords);
       } catch (error: any) {
-        console.error('[MAP v187.0] ❌ Error getting location:', error?.message);
+        console.error('[MAP v188.0] ❌ Error getting location:', error?.message);
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
@@ -118,14 +118,14 @@ export default function MapaScreen() {
   }, []);
 
   /**
-   * ✅ v187.0: Load map data with FRONTEND filtering
+   * ✅ v188.0: Load map data with IMPROVED filtering and caching
    */
   const loadMapData = useCallback(async (region: any) => {
     if (!region) return;
 
     try {
-      console.log('[MAP v187.0] 🗺️ Loading map data (silent)');
-      console.log('[MAP v187.0] 🔍 Filter estado:', filtroEstado);
+      console.log('[MAP v188.0] 🗺️ Loading map data');
+      console.log('[MAP v188.0] 🔍 Filter estado:', filtroEstado);
 
       const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
       
@@ -136,7 +136,21 @@ export default function MapaScreen() {
       
       const zoom_level = calculateZoomLevel(latitudeDelta);
       
-      console.log('[MAP v187.0] 📦 Bounding Box:', { min_lat, max_lat, min_lng, max_lng, zoom_level });
+      // ✅ v188.0: Check cache first
+      const cacheKey = `map_${min_lat.toFixed(2)}_${max_lat.toFixed(2)}_${min_lng.toFixed(2)}_${max_lng.toFixed(2)}_${zoom_level}_${filtroEstado}`;
+      const cachedData = dataCache.get<any[]>(cacheKey);
+      
+      if (cachedData) {
+        const cacheAge = dataCache.getAge(cacheKey);
+        console.log('[MAP v188.0] 💾 Using cached markers (age:', cacheAge, 'seconds)');
+        setMarkersData(cachedData);
+        if (isLoadingMarkers) {
+          setIsLoadingMarkers(false);
+        }
+        return;
+      }
+      
+      console.log('[MAP v188.0] 📦 Bounding Box:', { min_lat, max_lat, min_lng, max_lng, zoom_level });
 
       const { data, error } = await supabase.rpc('get_map_data', {
         min_lat,
@@ -147,11 +161,11 @@ export default function MapaScreen() {
       });
 
       if (error) {
-        console.error('[MAP v187.0] ❌ RPC Error:', error);
+        console.error('[MAP v188.0] ❌ RPC Error:', error);
         return;
       }
 
-      console.log('[MAP v187.0] ✅ RPC returned', data?.length || 0, 'markers');
+      console.log('[MAP v188.0] ✅ RPC returned', data?.length || 0, 'markers (before filtering)');
 
       // Transform RPC data to marker format
       let markers = (data || []).map((item: any) => {
@@ -199,27 +213,34 @@ export default function MapaScreen() {
         };
       });
 
-      // ✅ v187.0: FRONTEND FILTERING - Apply open/closed filter
+      // ✅ v188.0: IMPROVED FILTERING - Apply open/closed filter
+      const originalCount = markers.length;
       if (filtroEstado === 'abiertos') {
-        console.log('[MAP v187.0] 🔍 Filtering for OPEN venues only');
+        console.log('[MAP v188.0] 🔍 Filtering for OPEN venues only');
         markers = markers.filter((marker: any) => {
-          // Keep clusters
+          // Keep clusters (they may contain open venues)
           if (marker.isCluster) return true;
           // Filter individual markers by open status
           return marker.estaAbierto === true;
         });
-        console.log('[MAP v187.0] ✅ After filtering:', markers.length, 'markers');
+        console.log('[MAP v188.0] ✅ Filtered:', originalCount, '→', markers.length, 'markers');
+      } else {
+        console.log('[MAP v188.0] ✅ Showing all markers:', markers.length);
       }
 
+      // ✅ v188.0: Cache the filtered markers
+      dataCache.set(cacheKey, markers, 5 * 60 * 1000); // 5 minute cache for map data
+      
       setMarkersData(markers);
       
       if (isLoadingMarkers) {
         setIsLoadingMarkers(false);
       }
 
-      console.log('[MAP v187.0] 🎯 Markers ready for display:', markers.length);
+      console.log('[MAP v188.0] 🎯 Markers ready for display:', markers.length);
+      console.log('[MAP v188.0] 📊 Cache stats:', dataCache.getStats());
     } catch (error) {
-      console.error('[MAP v187.0] ❌ Error loading map data:', error);
+      console.error('[MAP v188.0] ❌ Error loading map data:', error);
     }
   }, [calculateZoomLevel, isLoadingMarkers, filtroEstado, isLocalOpen]);
 
@@ -230,7 +251,7 @@ export default function MapaScreen() {
     const centerLat = userLocation?.lat || 40.4168;
     const centerLng = userLocation?.lng || -3.7038;
 
-    console.log('[MAP v187.0] 🗺️ GENERATING MAP HTML');
+    console.log('[MAP v188.0] 🗺️ GENERATING MAP HTML');
 
     const popupFontSize = Platform.OS === 'android' ? Math.round(14 * 0.80) : 14;
     const popupTitleSize = Platform.OS === 'android' ? Math.round(16 * 0.80) : 16;
@@ -435,14 +456,14 @@ export default function MapaScreen() {
   <div id="map"></div>
   <script>
     try {
-      console.log('[MAP HTML v187.0] ⚡ INITIALIZING OPTIMIZED MAP');
+      console.log('[MAP HTML v188.0] ⚡ INITIALIZING OPTIMIZED MAP');
       
       var map = L.map('map', {
         zoomControl: false,
         attributionControl: false,
         closePopupOnClick: false,
         tap: false,
-      }).setView([${centerLat}, ${centerLng}], 11);
+      }).setView([${centerLat}, ${centerLng}], 8);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
@@ -479,7 +500,7 @@ export default function MapaScreen() {
           var latitudeDelta = ne.lat - sw.lat;
           var longitudeDelta = ne.lng - sw.lng;
           
-          console.log('[MAP HTML v187.0] 📍 Region changed (silent update)');
+          console.log('[MAP HTML v188.0] 📍 Region changed (silent update)');
           
           window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'region_change',
@@ -500,7 +521,7 @@ export default function MapaScreen() {
         }
         
         isUpdatingMarkers = true;
-        console.log('[MAP HTML v187.0] 🎯 Updating markers:', markersData.length);
+        console.log('[MAP HTML v188.0] 🎯 Updating markers:', markersData.length);
         
         var startTime = performance.now();
         
@@ -511,7 +532,7 @@ export default function MapaScreen() {
             lat: popupLatLng.lat,
             lng: popupLatLng.lng
           };
-          console.log('[MAP HTML v187.0] 💾 Preserving open popup at:', openPopupData);
+          console.log('[MAP HTML v188.0] 💾 Preserving open popup at:', openPopupData);
         }
         
         markers.forEach(function(marker) {
@@ -523,7 +544,7 @@ export default function MapaScreen() {
         var markersToRender = markersData.slice(0, maxMarkers);
         
         if (markersData.length > maxMarkers) {
-          console.log('[MAP HTML v187.0] ⚠️ Limiting to', maxMarkers, 'markers for performance');
+          console.log('[MAP HTML v188.0] ⚠️ Limiting to', maxMarkers, 'markers for performance');
         }
         
         markersToRender.forEach(function(data) {
@@ -583,7 +604,7 @@ export default function MapaScreen() {
                 popupCloseTimeout = null;
               }
               
-              console.log('[MAP HTML v187.0] 🎯 Popup opened for:', data.nombre);
+              console.log('[MAP HTML v188.0] 🎯 Popup opened for:', data.nombre);
               
               var mapSize = map.getSize();
               var headerHeight = 220;
@@ -607,7 +628,7 @@ export default function MapaScreen() {
             
             marker.on('popupclose', function() {
               if (currentPopup === marker.getPopup()) {
-                console.log('[MAP HTML v187.0] 🚪 Popup closed');
+                console.log('[MAP HTML v188.0] 🚪 Popup closed');
                 currentPopup = null;
               }
             });
@@ -629,18 +650,18 @@ export default function MapaScreen() {
           });
           
           if (restoredMarker && restoredMarker.getPopup()) {
-            console.log('[MAP HTML v187.0] 🔄 Restoring popup');
+            console.log('[MAP HTML v188.0] 🔄 Restoring popup');
             restoredMarker.openPopup();
           }
         }
         
         var endTime = performance.now();
-        console.log('[MAP HTML v187.0] ✅ Markers rendered in', (endTime - startTime).toFixed(2), 'ms');
+        console.log('[MAP HTML v188.0] ✅ Markers rendered in', (endTime - startTime).toFixed(2), 'ms');
         
         isUpdatingMarkers = false;
       };
       
-      console.log('[MAP HTML v187.0] ✅ Map initialized');
+      console.log('[MAP HTML v188.0] ✅ Map initialized');
       
       setTimeout(function() {
         map.invalidateSize();
@@ -648,7 +669,7 @@ export default function MapaScreen() {
       }, 100);
       
       window.flyToLocation = function(lat, lng, zoom) {
-        console.log('[MAP HTML v187.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
+        console.log('[MAP HTML v188.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
         map.flyTo([lat, lng], zoom, {
           animate: true,
           duration: 1.5,
@@ -656,7 +677,7 @@ export default function MapaScreen() {
       };
       
     } catch (error) {
-      console.error('[MAP HTML v187.0] Map error:', error);
+      console.error('[MAP HTML v188.0] Map error:', error);
     }
   </script>
 </body>
@@ -689,13 +710,14 @@ export default function MapaScreen() {
 
   useEffect(() => {
     if (isMapReady && userLocation) {
-      console.log('[MAP v187.0] 🚀 Map ready, loading initial data');
+      console.log('[MAP v188.0] 🚀 Map ready, loading initial data');
       
+      // ✅ v188.0: Better initial zoom to show more markers
       const initialRegion = {
         latitude: userLocation.lat,
         longitude: userLocation.lng,
-        latitudeDelta: 0.1,
-        longitudeDelta: 0.1,
+        latitudeDelta: 0.5, // Wider view to show more markers
+        longitudeDelta: 0.5,
       };
       
       setCurrentRegion(initialRegion);
@@ -703,13 +725,13 @@ export default function MapaScreen() {
     }
   }, [isMapReady, userLocation, loadMapData]);
 
-  // ✅ v187.0: Reload markers when filter changes
+  // ✅ v188.0: Reload markers when filter changes
   useEffect(() => {
     if (currentRegion) {
-      console.log('[MAP v187.0] 🔄 Filter changed, reloading markers');
+      console.log('[MAP v188.0] 🔄 Filter changed to:', filtroEstado, '- reloading markers');
       loadMapData(currentRegion);
     }
-  }, [filtroEstado]);
+  }, [filtroEstado, loadMapData]);
 
   const centerOnUser = () => {
     if (userLocation && webViewRef.current && isMapReady) {
@@ -723,7 +745,7 @@ export default function MapaScreen() {
   };
 
   const handleVerDetalles = (localId: string) => {
-    console.log('[MAP v187.0] 🚀 Navigating to local:', localId);
+    console.log('[MAP v188.0] 🚀 Navigating to local:', localId);
     router.push(`/detalle/local?id=${localId}`);
   };
 
@@ -732,17 +754,17 @@ export default function MapaScreen() {
       const data = JSON.parse(event.nativeEvent.data);
       
       if (data.type === 'navigate' && data.id) {
-        console.log('📨 [MAP v187.0] Navigate request for:', data.id);
+        console.log('📨 [MAP v188.0] Navigate request for:', data.id);
         handleVerDetalles(data.id);
       } else if (data.type === 'map_ready') {
-        console.log('✅ [MAP v187.0] Map is ready');
+        console.log('✅ [MAP v188.0] Map is ready');
         setIsMapReady(true);
       } else if (data.type === 'region_change' && data.region) {
         setCurrentRegion(data.region);
         loadMapData(data.region);
       }
     } catch (error) {
-      console.error('❌ [MAP v187.0] Error parsing message:', error);
+      console.error('❌ [MAP v188.0] Error parsing message:', error);
     }
   };
 
@@ -799,7 +821,7 @@ export default function MapaScreen() {
                 domStorageEnabled={true}
                 onError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
-                  console.error('[MAP v187.0] WebView error:', nativeEvent);
+                  console.error('[MAP v188.0] WebView error:', nativeEvent);
                 }}
               />
             )}
