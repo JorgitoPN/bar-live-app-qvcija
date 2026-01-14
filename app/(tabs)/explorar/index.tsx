@@ -1,25 +1,28 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 EXPLORAR SCREEN v192.0 - COMPREHENSIVE PERFORMANCE & CACHING FIX
+ * 🚀 EXPLORAR SCREEN v193.0 - INFINITE SCROLL & PRIORITY FIX
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 📊 CRITICAL FIXES v192.0:
+ * 📊 CRITICAL FIXES v193.0:
  * 
- * 1. 💾 PERSISTENT CACHE SYSTEM
- *    - Cache duration: 15 minutes (was 10) = 50% longer
- *    - Separate cache keys for different filters
- *    - Background cache refresh
- *    - Result: Instant loads, always fresh data
+ * 1. ♾️ INFINITE SCROLL PAGINATION
+ *    - Load ALL venues in batches of 15
+ *    - Auto-load next batch before reaching end
+ *    - Seamless infinite scrolling experience
+ *    - Result: All venues accessible via scroll
  * 
- * 2. 🎯 BACKEND-FIRST SORTING
- *    - Trust backend priority_group ordering
- *    - NO frontend re-sorting (prevents pagination breaks)
- *    - Maintains consistent order across pages
- *    - Result: Correct open/closed order in pagination
+ * 2. 🎯 STRICT PRIORITY ORDERING
+ *    - Featured & Open venues FIRST (within 100km)
+ *    - Open venues SECOND
+ *    - Venues with events THIRD
+ *    - No schedule info FOURTH
+ *    - Closed venues LAST
+ *    - Distance is primary sort within each group
+ *    - Result: Closed venues NEVER appear first
  * 
  * 3. ⚡ OPTIMIZED LOADING
- *    - Load 15 items per page (optimal balance)
+ *    - Load 15 items per page
  *    - Pre-fetch next page in background
  *    - Intelligent request deduplication
  *    - Result: < 1 second loads
@@ -37,11 +40,11 @@
  *    - Result: Fresh data without interruption
  * 
  * 📈 EXPECTED RESULTS:
- * - Initial load: < 1 second
- * - Cached loads: < 100ms (instant)
- * - Pagination: Smooth, no order breaks
- * - Background refresh: Invisible to user
- * - Memory usage: Optimized
+ * - Initial load: 15 venues
+ * - Scroll pagination: Automatic, seamless
+ * - Priority order: ALWAYS correct (open first, closed last)
+ * - Total venues: ALL available (not limited to 15)
+ * - Performance: Optimized with caching
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -215,42 +218,42 @@ export default function ExplorarScreen() {
   }, []);
 
   /**
-   * ✅ v192.0: OPTIMIZED load with persistent cache and NO frontend sorting
+   * ✅ v193.0: INFINITE SCROLL with strict priority ordering
    */
   const loadLocales = useCallback(async (offset: number = 0, append: boolean = false) => {
     if (!userLocation) {
-      console.log('[Explorar v192.0] ⏳ Waiting for user location...');
+      console.log('[Explorar v193.0] ⏳ Waiting for user location...');
       return;
     }
 
-    // ✅ v192.0: Prevent duplicate requests within 500ms
+    // ✅ v193.0: Prevent duplicate requests within 500ms
     const now = Date.now();
     if (now - lastRequestTimeRef.current < 500) {
-      console.log('[Explorar v192.0] 🚫 Request throttled (too soon)');
+      console.log('[Explorar v193.0] 🚫 Request throttled (too soon)');
       return;
     }
 
-    // ✅ v192.0: Request deduplication
+    // ✅ v193.0: Request deduplication
     if (activeRequestRef.current) {
-      console.log('[Explorar v192.0] 🚫 Request already in progress, waiting...');
+      console.log('[Explorar v193.0] 🚫 Request already in progress, waiting...');
       return activeRequestRef.current;
     }
 
     if (isLoadingMoreRef.current) {
-      console.log('[Explorar v192.0] ⏸️ Already loading, skipping...');
+      console.log('[Explorar v193.0] ⏸️ Already loading, skipping...');
       return;
     }
 
-    // ✅ v192.0: Extended cache check (15 minutes)
+    // ✅ v193.0: Cache check - but allow pagination to continue
     if (!append && cachedLocales.length > 0 && (now - lastLoadTime) < CACHE_DURATION) {
       const cacheAge = Math.round((now - lastLoadTime) / 1000);
-      console.log('[Explorar v192.0] 💾 Using cached data (age:', cacheAge, 'seconds)');
+      console.log('[Explorar v193.0] 💾 Using cached data (age:', cacheAge, 'seconds)');
       
-      // ✅ v192.0: NO SORTING - Just display cached data as-is
+      // ✅ v193.0: Display first page from cache
       const limitedLocales = cachedLocales.slice(0, ITEMS_PER_PAGE);
       setDisplayedLocales(limitedLocales);
       setCurrentOffset(limitedLocales.length);
-      setHasMore(cachedLocales.length > ITEMS_PER_PAGE);
+      setHasMore(true); // Always allow loading more
       setLoading(false);
       return;
     }
@@ -259,9 +262,10 @@ export default function ExplorarScreen() {
 
     const requestPromise = (async () => {
       try {
-        console.log('[Explorar v192.0] 🚀 LOADING LOCALES - BACKEND-SORTED');
-        console.log('[Explorar v192.0] 📍 Location:', userLocation.lat.toFixed(4), userLocation.lng.toFixed(4));
-        console.log('[Explorar v192.0] 📊 Offset:', offset, 'Limit:', ITEMS_PER_PAGE);
+        console.log('[Explorar v193.0] 🚀 LOADING LOCALES - INFINITE SCROLL');
+        console.log('[Explorar v193.0] 📍 Location:', userLocation.lat.toFixed(4), userLocation.lng.toFixed(4));
+        console.log('[Explorar v193.0] 📊 Offset:', offset, 'Limit:', ITEMS_PER_PAGE);
+        console.log('[Explorar v193.0] 📄 Append mode:', append);
 
         isLoadingMoreRef.current = true;
         if (append) {
@@ -272,7 +276,7 @@ export default function ExplorarScreen() {
 
         const startTime = Date.now();
 
-        // ✅ v192.0: Load data - backend handles ALL sorting
+        // ✅ v193.0: Load data - backend handles ALL sorting with strict priorities
         const { data, error } = await supabase.rpc('get_locales_paginados', {
           user_lat: userLocation.lat,
           user_lng: userLocation.lng,
@@ -281,10 +285,10 @@ export default function ExplorarScreen() {
         });
 
         const loadTime = Date.now() - startTime;
-        console.log('[Explorar v192.0] ⚡ RPC completed in', loadTime, 'ms');
+        console.log('[Explorar v193.0] ⚡ RPC completed in', loadTime, 'ms');
 
         if (error) {
-          console.error('[Explorar v192.0] ❌ RPC Error:', error);
+          console.error('[Explorar v193.0] ❌ RPC Error:', error);
           if (isMountedRef.current) {
             setLoading(false);
             setLoadingMore(false);
@@ -295,7 +299,7 @@ export default function ExplorarScreen() {
 
         if (!isMountedRef.current) return;
 
-        console.log('[Explorar v192.0] ✅ Received', data?.length || 0, 'venues (pre-sorted by backend)');
+        console.log('[Explorar v193.0] ✅ Received', data?.length || 0, 'venues (pre-sorted by backend)');
 
         const locales = data || [];
 
@@ -325,28 +329,35 @@ export default function ExplorarScreen() {
         }).filter(Boolean);
 
         const transformTime = Date.now() - transformStartTime;
-        console.log('[Explorar v192.0] ⚡ Transformation completed in', transformTime, 'ms');
+        console.log('[Explorar v193.0] ⚡ Transformation completed in', transformTime, 'ms');
 
-        // ✅ v192.0: Cache with extended TTL
-        if (!append) {
+        // ✅ v193.0: Cache first page only
+        if (!append && offset === 0) {
           setCachedLocales(transformedLocales);
           setLastLoadTime(now);
-          console.log('[Explorar v192.0] 💾 Cached', transformedLocales.length, 'venues (TTL: 15min)');
+          console.log('[Explorar v193.0] 💾 Cached first page:', transformedLocales.length, 'venues (TTL: 15min)');
         }
 
-        // ✅ v192.0: NO SORTING - Display backend order directly
+        // ✅ v193.0: Append or replace venues
         if (append) {
-          setDisplayedLocales(prev => [...prev, ...transformedLocales]);
+          setDisplayedLocales(prev => {
+            const newLocales = [...prev, ...transformedLocales];
+            console.log('[Explorar v193.0] 📊 Total venues after append:', newLocales.length);
+            return newLocales;
+          });
           setCurrentOffset(offset + transformedLocales.length);
         } else {
           setDisplayedLocales(transformedLocales);
           setCurrentOffset(transformedLocales.length);
         }
 
-        setHasMore(transformedLocales.length === ITEMS_PER_PAGE);
+        // ✅ v193.0: Always allow loading more if we got a full page
+        const hasMoreData = transformedLocales.length === ITEMS_PER_PAGE;
+        setHasMore(hasMoreData);
+        console.log('[Explorar v193.0] 📊 Has more data:', hasMoreData);
 
-        console.log('[Explorar v192.0] 📊 Displaying', transformedLocales.length, 'venues');
-        console.log('[Explorar v192.0] 🔝 Top 3:', transformedLocales.slice(0, 3).map((l: any) => ({
+        console.log('[Explorar v193.0] 📊 Current batch:', transformedLocales.length, 'venues');
+        console.log('[Explorar v193.0] 🔝 Top 3 of this batch:', transformedLocales.slice(0, 3).map((l: any) => ({
           nombre: l.nombre,
           priority_group: l.priority_group,
           isOpen: l.estaAbierto,
@@ -384,10 +395,11 @@ export default function ExplorarScreen() {
         }, 200);
 
         const totalTime = Date.now() - startTime;
-        console.log('[Explorar v192.0] 🎉 TOTAL LOAD TIME:', totalTime, 'ms');
+        console.log('[Explorar v193.0] 🎉 TOTAL LOAD TIME:', totalTime, 'ms');
+        console.log('[Explorar v193.0] 📊 Total displayed venues:', append ? displayedLocales.length + transformedLocales.length : transformedLocales.length);
 
       } catch (error) {
-        console.error('[Explorar v192.0] ❌ Critical error:', error);
+        console.error('[Explorar v193.0] ❌ Critical error:', error);
       } finally {
         if (isMountedRef.current) {
           setLoading(false);
@@ -400,7 +412,7 @@ export default function ExplorarScreen() {
 
     activeRequestRef.current = requestPromise;
     return requestPromise;
-  }, [userLocation, cachedLocales, lastLoadTime]);
+  }, [userLocation, cachedLocales, lastLoadTime, displayedLocales.length]);
 
   /**
    * ✅ v192.0: REMOVED - Backend handles all sorting
@@ -466,10 +478,10 @@ export default function ExplorarScreen() {
     };
   }, [userLocation, loadLocales]);
 
-  // ✅ v191.0: Debounced load more
+  // ✅ v193.0: Infinite scroll - load more before reaching end
   const loadMoreLocales = useCallback(() => {
     if (isLoadingMoreRef.current || loadingMore || !hasMore || activeRequestRef.current) {
-      console.log('[Explorar v192.0] ⏸️ Cannot load more:', { 
+      console.log('[Explorar v193.0] ⏸️ Cannot load more:', { 
         isLoading: isLoadingMoreRef.current, 
         loadingMore, 
         hasMore,
@@ -478,20 +490,22 @@ export default function ExplorarScreen() {
       return;
     }
 
-    console.log('[Explorar v192.0] 📥 Loading more venues...');
+    console.log('[Explorar v193.0] 📥 Loading more venues... (offset:', currentOffset, ')');
     loadLocales(currentOffset, true);
   }, [currentOffset, hasMore, loadingMore, loadLocales]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v192.0] 🔄 Manual refresh - clearing cache');
-    console.log('[Explorar v192.0] 📊 Cache stats before clear:', dataCache.getStats());
+    console.log('[Explorar v193.0] 🔄 Manual refresh - clearing cache and resetting pagination');
+    console.log('[Explorar v193.0] 📊 Cache stats before clear:', dataCache.getStats());
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
     setCurrentOffset(0);
+    setDisplayedLocales([]); // Clear displayed venues
     setCachedLocales([]);
     setLastLoadTime(0);
+    setHasMore(true); // Reset pagination
     activeRequestRef.current = null;
     lastRequestTimeRef.current = 0;
     dataCache.clear('explorar_locales');
@@ -1090,16 +1104,16 @@ export default function ExplorarScreen() {
           />
         }
         onEndReached={loadMoreLocales}
-        onEndReachedThreshold={0.3}
+        onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         removeClippedSubviews={true}
-        maxToRenderPerBatch={3}
+        maxToRenderPerBatch={5}
         updateCellsBatchingPeriod={100}
-        initialNumToRender={5}
-        windowSize={8}
+        initialNumToRender={8}
+        windowSize={10}
       />
 
       <Modal
