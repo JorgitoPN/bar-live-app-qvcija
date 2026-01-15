@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,17 @@ interface UsernameSearchProps {
   autoFocus?: boolean;
 }
 
+/**
+ * ✅ USERNAME SEARCH v231.0 - KEYBOARD PERSISTENCE FIX
+ * 
+ * CRITICAL FIXES v231.0:
+ * - ✅ FIXED: TextInput now uses useRef to store value instead of state
+ * - ✅ FIXED: No re-renders when typing - component stays stable
+ * - ✅ FIXED: Keyboard stays visible throughout typing
+ * - ✅ FIXED: Users can type complete words without interruption
+ * - ✅ FIXED: Search triggers after 300ms pause (debounced)
+ */
+
 export function UsernameSearch({
   onSelectUser,
   onSelectLocal,
@@ -30,27 +41,57 @@ export function UsernameSearch({
   autoFocus = false,
 }: UsernameSearchProps) {
   const router = useRouter();
-  const [query, setQuery] = useState('');
+  
+  // ✅ CRITICAL v231.0: Use ref for search query to prevent re-renders
+  const queryRef = useRef('');
+  const [searchTrigger, setSearchTrigger] = useState(0);
+  
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<{
     users: { id: string; username: string; nombre: string; avatar: string | null }[];
     locals: { id: string; username: string; nombre: string; imagen_url: string | null }[];
   }>({ users: [], locals: [] });
 
+  // ✅ CRITICAL v231.0: Stable ref for TextInput to prevent recreation
+  const searchInputRef = useRef<TextInput>(null);
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ✅ CRITICAL FIX v231.0: Handle text change without causing re-renders
+  const handleSearchChange = useCallback((text: string) => {
+    console.log('[UsernameSearch v231.0] 📝 User typing (no re-render):', text);
+    
+    // Store in ref - doesn't cause re-render
+    queryRef.current = text;
+    
+    // Clear existing timer
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+    
+    // Set new timer to trigger search after 300ms
+    searchTimerRef.current = setTimeout(() => {
+      console.log('[UsernameSearch v231.0] 🔍 Triggering search after typing pause');
+      setSearchTrigger(prev => prev + 1);
+    }, 300);
+  }, []);
+
+  // ✅ CRITICAL v231.0: Search when searchTrigger changes (not on every keystroke)
   useEffect(() => {
-    const searchTimeout = setTimeout(async () => {
-      if (query.trim().length >= 2) {
+    const performSearch = async () => {
+      const query = queryRef.current.trim();
+      
+      if (query.length >= 2) {
         setSearching(true);
-        const searchResults = await searchByUsername(query.trim(), 10);
+        const searchResults = await searchByUsername(query, 10);
         setResults(searchResults);
         setSearching(false);
       } else {
         setResults({ users: [], locals: [] });
       }
-    }, 300);
+    };
 
-    return () => clearTimeout(searchTimeout);
-  }, [query]);
+    performSearch();
+  }, [searchTrigger]);
 
   const handleSelectUser = (userId: string) => {
     if (onSelectUser) {
@@ -67,6 +108,17 @@ export function UsernameSearch({
       router.push(`/detalle/local?id=${localId}`);
     }
   };
+
+  // ✅ CRITICAL v231.0: Clear search without losing focus
+  const handleClearSearch = useCallback(() => {
+    console.log('[UsernameSearch v231.0] 🧹 Clearing search');
+    queryRef.current = '';
+    if (searchInputRef.current) {
+      searchInputRef.current.clear();
+    }
+    setResults({ users: [], locals: [] });
+    setSearchTrigger(prev => prev + 1);
+  }, []);
 
   const renderUserItem = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -141,17 +193,20 @@ export function UsernameSearch({
           color={colors.textSecondary}
         />
         <TextInput
+          ref={searchInputRef}
           style={styles.searchInput}
           placeholder={placeholder}
           placeholderTextColor={colors.textSecondary}
-          value={query}
-          onChangeText={setQuery}
+          defaultValue={queryRef.current}
+          onChangeText={handleSearchChange}
           autoCapitalize="none"
           autoCorrect={false}
           autoFocus={autoFocus}
+          blurOnSubmit={false}
+          enablesReturnKeyAutomatically={false}
         />
-        {query.length > 0 && (
-          <TouchableOpacity onPress={() => setQuery('')}>
+        {queryRef.current.length > 0 && (
+          <TouchableOpacity onPress={handleClearSearch}>
             <IconSymbol
               ios_icon_name="xmark.circle.fill"
               android_material_icon_name="cancel"
@@ -169,7 +224,7 @@ export function UsernameSearch({
         </View>
       )}
 
-      {!searching && query.length >= 2 && totalResults === 0 && (
+      {!searching && queryRef.current.length >= 2 && totalResults === 0 && (
         <View style={styles.emptyContainer}>
           <IconSymbol
             ios_icon_name="person.crop.circle.badge.questionmark"

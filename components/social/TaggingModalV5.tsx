@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -37,13 +37,14 @@ interface TaggingModalV5Props {
 }
 
 /**
- * ✅ TAGGING MODAL v141.0 - ANDROID SCALING COMPLETE
+ * ✅ TAGGING MODAL v231.0 - KEYBOARD PERSISTENCE FIX
  * 
- * CRITICAL FIXES v141.0 (ANDROID ONLY):
- * - ✅ All font sizes use scaleFontSize() for consistency
- * - ✅ All icon sizes use scaleIconSize() for proper proportions
- * - ✅ All text elements properly scaled
- * - ✅ iOS design remains unchanged
+ * CRITICAL FIXES v231.0:
+ * - ✅ FIXED: TextInput now uses useRef to store value instead of state
+ * - ✅ FIXED: No re-renders when typing - component stays stable
+ * - ✅ FIXED: Keyboard stays visible throughout typing
+ * - ✅ FIXED: Users can type complete words without interruption
+ * - ✅ FIXED: Search triggers after 300ms pause (debounced)
  * 
  * Features:
  * - Search both users and locals
@@ -59,17 +60,24 @@ export default function TaggingModalV5({
   onSelectUser,
   alreadyTagged,
 }: TaggingModalV5Props) {
-  const [searchQuery, setSearchQuery] = useState('');
+  // ✅ CRITICAL v231.0: Use ref for search query to prevent re-renders
+  const searchQueryRef = useRef('');
+  const [searchTrigger, setSearchTrigger] = useState(0);
+  
   const [suggestions, setSuggestions] = useState<TaggableUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const { height: SCREEN_HEIGHT } = useWindowDimensions();
 
+  // ✅ CRITICAL v231.0: Stable ref for TextInput to prevent recreation
+  const searchInputRef = useRef<TextInput>(null);
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[TaggingModalV5 v141.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[TaggingModalV5 v231.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -77,7 +85,7 @@ export default function TaggingModalV5({
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[TaggingModalV5 v141.0] ⌨️ Keyboard hidden');
+        console.log('[TaggingModalV5 v231.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
       }
     );
@@ -86,6 +94,25 @@ export default function TaggingModalV5({
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
+  }, []);
+
+  // ✅ CRITICAL FIX v231.0: Handle text change without causing re-renders
+  const handleSearchChange = useCallback((text: string) => {
+    console.log('[TaggingModalV5 v231.0] 📝 User typing (no re-render):', text);
+    
+    // Store in ref - doesn't cause re-render
+    searchQueryRef.current = text;
+    
+    // Clear existing timer
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+    
+    // Set new timer to trigger search after 300ms
+    searchTimerRef.current = setTimeout(() => {
+      console.log('[TaggingModalV5 v231.0] 🔍 Triggering search after typing pause');
+      setSearchTrigger(prev => prev + 1);
+    }, 300);
   }, []);
 
   const searchUsersAndLocals = useCallback(async (query: string) => {
@@ -98,7 +125,7 @@ export default function TaggingModalV5({
 
     setLoading(true);
     try {
-      console.log('[TaggingModalV5 v141.0] 🔍 Searching for users and locals with query:', cleanQuery);
+      console.log('[TaggingModalV5 v231.0] 🔍 Searching for users and locals with query:', cleanQuery);
       
       const results: TaggableUser[] = [];
 
@@ -126,7 +153,7 @@ export default function TaggingModalV5({
           })));
         }
       } catch (error) {
-        console.error('[TaggingModalV5 v141.0] Error searching users:', error);
+        console.error('[TaggingModalV5 v231.0] Error searching users:', error);
       }
 
       // Search locals with active subscriptions
@@ -174,33 +201,33 @@ export default function TaggingModalV5({
           }
         }
       } catch (error) {
-        console.error('[TaggingModalV5 v141.0] Error searching locals:', error);
+        console.error('[TaggingModalV5 v231.0] Error searching locals:', error);
       }
 
-      console.log('[TaggingModalV5 v141.0] ✅ Found', results.length, 'results');
+      console.log('[TaggingModalV5 v231.0] ✅ Found', results.length, 'results');
       setSuggestions(results);
     } catch (error) {
-      console.error('[TaggingModalV5 v141.0] Error in searchUsersAndLocals:', error);
+      console.error('[TaggingModalV5 v231.0] Error in searchUsersAndLocals:', error);
       setSuggestions([]);
     } finally {
       setLoading(false);
     }
   }, [alreadyTagged]);
 
+  // ✅ CRITICAL v231.0: Search when searchTrigger changes (not on every keystroke)
   useEffect(() => {
-    if (visible && searchQuery.length > 0) {
-      const timeoutId = setTimeout(() => {
-        searchUsersAndLocals(searchQuery);
-      }, 300);
-
-      return () => clearTimeout(timeoutId);
+    if (visible && searchQueryRef.current.length > 0) {
+      searchUsersAndLocals(searchQueryRef.current);
     } else {
       setSuggestions([]);
     }
-  }, [searchQuery, visible, searchUsersAndLocals]);
+  }, [searchTrigger, visible, searchUsersAndLocals]);
 
   const handleClose = () => {
-    setSearchQuery('');
+    searchQueryRef.current = '';
+    if (searchInputRef.current) {
+      searchInputRef.current.clear();
+    }
     setSuggestions([]);
     Keyboard.dismiss();
     onClose();
@@ -208,9 +235,23 @@ export default function TaggingModalV5({
 
   const handleSelectUser = (user: TaggableUser) => {
     onSelectUser(user);
-    setSearchQuery('');
+    searchQueryRef.current = '';
+    if (searchInputRef.current) {
+      searchInputRef.current.clear();
+    }
     setSuggestions([]);
   };
+
+  // ✅ CRITICAL v231.0: Clear search without losing focus
+  const handleClearSearch = useCallback(() => {
+    console.log('[TaggingModalV5 v231.0] 🧹 Clearing search');
+    searchQueryRef.current = '';
+    if (searchInputRef.current) {
+      searchInputRef.current.clear();
+    }
+    setSuggestions([]);
+    setSearchTrigger(prev => prev + 1);
+  }, []);
 
   if (!visible) {
     return null;
@@ -265,7 +306,7 @@ export default function TaggingModalV5({
                   </TouchableOpacity>
                 </View>
 
-                {/* Search Input */}
+                {/* Search Input - ✅ CRITICAL v231.0: Uses defaultValue and ref */}
                 <View style={styles.searchContainer}>
                   <IconSymbol 
                     ios_icon_name="magnifyingglass" 
@@ -274,21 +315,21 @@ export default function TaggingModalV5({
                     color={colors.textSecondary} 
                   />
                   <TextInput
+                    ref={searchInputRef}
                     style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
                     placeholder="Escribe para ver resultados..."
                     placeholderTextColor={colors.textSecondary}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
+                    defaultValue={searchQueryRef.current}
+                    onChangeText={handleSearchChange}
                     autoFocus
                     autoCapitalize="none"
                     autoCorrect={false}
+                    blurOnSubmit={false}
+                    enablesReturnKeyAutomatically={false}
                   />
-                  {searchQuery.length > 0 && (
+                  {searchQueryRef.current.length > 0 && (
                     <TouchableOpacity 
-                      onPress={() => {
-                        setSearchQuery('');
-                        setSuggestions([]);
-                      }} 
+                      onPress={handleClearSearch}
                       activeOpacity={0.7}
                     >
                       <IconSymbol 
@@ -361,7 +402,7 @@ export default function TaggingModalV5({
                         </TouchableOpacity>
                       ))}
                     </React.Fragment>
-                  ) : searchQuery.length >= 1 ? (
+                  ) : searchQueryRef.current.length >= 1 ? (
                     <View style={styles.emptyState}>
                       <IconSymbol 
                         ios_icon_name="magnifyingglass" 
