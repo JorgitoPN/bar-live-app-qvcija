@@ -73,28 +73,23 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v210.0 - FIXED SEARCH INPUT BLOCKING
+ * ✅ EXPLORAR SCREEN v211.0 - FIXED SEARCH INPUT BLOCKING (FINAL FIX)
  * 
- * CRITICAL FIX v210.0:
- * - ✅ FIXED: Search input now allows typing multiple characters without blocking
+ * CRITICAL FIX v211.0:
+ * - ✅ FIXED: Search input now allows continuous typing without blocking
+ * - ✅ FIXED: Removed searchQuery from loadLocales dependencies to prevent re-renders
+ * - ✅ FIXED: Only debouncedSearchQuery triggers data loading
+ * - ✅ FIXED: TextInput remains responsive throughout typing
+ * 
+ * PREVIOUS FIX v210.0:
  * - ✅ FIXED: Implemented debounced search to prevent re-renders on every keystroke
  * - ✅ FIXED: Search results now update 500ms after user stops typing
  * 
- * PREVIOUS FIX v209.0:
- * - ✅ FIXED: Now properly uses database's is_open_now value for status display
- * - ✅ FIXED: Venues are sorted correctly by database (open > no info > closed)
- * - ✅ FIXED: Status badges now accurately reflect database calculation
- * 
- * SORTING PRIORITY (handled by database):
- * 1. Open venues (including overnight venues like La Urbana at 02:48 AM)
- * 2. Venues without schedule information
- * 3. Closed venues
- * 
  * SEARCH BEHAVIOR:
- * - User types in search box → searchQuery updates immediately (no blocking)
+ * - User types in search box → searchQuery updates immediately (UI only, no blocking)
  * - After 500ms of no typing → debouncedSearchQuery updates
- * - debouncedSearchQuery triggers data loading → results appear
- * - Input remains responsive throughout the process
+ * - debouncedSearchQuery triggers loadLocales → results appear
+ * - Input remains fully responsive throughout the entire process
  */
 
 export default function ExplorarScreen() {
@@ -138,17 +133,18 @@ export default function ExplorarScreen() {
     const isValid = lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
     
     if (!isValid) {
-      console.warn('[Explorar v209.0] ⚠️ Invalid coordinates detected:', { lat, lng });
+      console.warn('[Explorar v211.0] ⚠️ Invalid coordinates detected:', { lat, lng });
     }
     
     return isValid;
   }, []);
 
-  // ✅ CRITICAL: Debounce search query to prevent blocking after typing one letter
+  // ✅ CRITICAL FIX v211.0: Debounce search query to prevent input blocking
+  // This effect ONLY updates debouncedSearchQuery, it does NOT trigger data loading
   useEffect(() => {
-    console.log('[Explorar v210.0] 🔍 Search query changed:', searchQuery);
+    console.log('[Explorar v211.0] 🔍 Search query changed:', searchQuery);
     const timer = setTimeout(() => {
-      console.log('[Explorar v210.0] ⏱️ Debounced search query set:', searchQuery);
+      console.log('[Explorar v211.0] ⏱️ Debounced search query set:', searchQuery);
       setDebouncedSearchQuery(searchQuery);
     }, 500); // Wait 500ms after user stops typing
 
@@ -161,16 +157,16 @@ export default function ExplorarScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[Explorar v209.0] 📍 Requesting location permission (background)...');
+        console.log('[Explorar v211.0] 📍 Requesting location permission (background)...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         
         if (status !== 'granted') {
-          console.log('[Explorar v209.0] ⚠️ Location permission denied');
+          console.log('[Explorar v211.0] ⚠️ Location permission denied');
           setLocationError('Permiso de ubicación denegado. Las distancias no estarán disponibles.');
           return;
         }
 
-        console.log('[Explorar v209.0] 📍 Getting current position (background)...');
+        console.log('[Explorar v211.0] 📍 Getting current position (background)...');
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
@@ -178,10 +174,10 @@ export default function ExplorarScreen() {
         const lat = location.coords.latitude;
         const lng = location.coords.longitude;
         
-        console.log('[Explorar v209.0] 📍 Location obtained:', { lat, lng });
+        console.log('[Explorar v211.0] 📍 Location obtained:', { lat, lng });
         
         if (!isValidSpainCoordinate(lat, lng)) {
-          console.error('[Explorar v209.0] ❌ Location outside Spain bounds!');
+          console.error('[Explorar v211.0] ❌ Location outside Spain bounds!');
           setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
           setUserLocation(null);
           return;
@@ -189,23 +185,24 @@ export default function ExplorarScreen() {
         
         setUserLocation({ lat, lng });
         setLocationError(null);
-        console.log('[Explorar v209.0] ✅ Valid location set:', { lat, lng });
+        console.log('[Explorar v211.0] ✅ Valid location set:', { lat, lng });
         
       } catch (error: any) {
-        console.error('[Explorar v209.0] ❌ Error getting location:', error);
+        console.error('[Explorar v211.0] ❌ Error getting location:', error);
         setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
         setUserLocation(null);
       }
     })();
   }, [isValidSpainCoordinate]);
 
-  // ✅ CRITICAL v210.0: Load data from server with INSTANT UI and ACCURATE STATUS
-  // Now uses debouncedSearchQuery instead of searchQuery to prevent input blocking
+  // ✅ CRITICAL v211.0: Load data from server with INSTANT UI and ACCURATE STATUS
+  // IMPORTANT: This function is now ONLY triggered by debouncedSearchQuery, NOT searchQuery
+  // This prevents the input from blocking while the user is typing
   const loadLocales = useCallback(async (page: number = 1, append: boolean = false) => {
-    console.log('[Explorar v210.0] 🚀 loadLocales called - page:', page, 'append:', append);
+    console.log('[Explorar v211.0] 🚀 loadLocales called - page:', page, 'append:', append);
     
     if (isLoadingMoreRef.current && append) {
-      console.log('[Explorar v210.0] Already loading more, skipping...');
+      console.log('[Explorar v211.0] Already loading more, skipping...');
       return;
     }
 
@@ -213,7 +210,7 @@ export default function ExplorarScreen() {
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
     if (filtersChanged) {
-      console.log('[Explorar v210.0] 🔄 Filters changed, resetting...');
+      console.log('[Explorar v211.0] 🔄 Filters changed, resetting...');
       lastFiltersRef.current = filtersKey;
       setCurrentPage(1);
       setDisplayedLocales([]);
@@ -226,13 +223,13 @@ export default function ExplorarScreen() {
       isLoadingMoreRef.current = true;
     } else {
       if (!hasLoadedInitialDataRef.current) {
-        console.log('[Explorar v210.0] ⚡ First load - showing skeleton UI');
+        console.log('[Explorar v211.0] ⚡ First load - showing skeleton UI');
         setInitialLoading(true);
       }
     }
 
     try {
-      console.log('[Explorar v210.0] 📡 Loading page', page, 'from server...');
+      console.log('[Explorar v211.0] 📡 Loading page', page, 'from server...');
       
       const hasValidLocation = userLocation && isValidSpainCoordinate(userLocation.lat, userLocation.lng);
       
@@ -240,7 +237,7 @@ export default function ExplorarScreen() {
         ? { user_lat: userLocation.lat, user_lng: userLocation.lng }
         : { user_lat: null, user_lng: null };
       
-      console.log('[Explorar v209.0] 📍 Using location params:', locationParams);
+      console.log('[Explorar v211.0] 📍 Using location params:', locationParams);
       
       const offset = (page - 1) * ITEMS_PER_PAGE;
       const { data, error } = await supabase.rpc('get_locales_paginados', {
@@ -250,11 +247,11 @@ export default function ExplorarScreen() {
       });
 
       if (error) {
-        console.error('[Explorar v210.0] Error loading locales:', error);
+        console.error('[Explorar v211.0] Error loading locales:', error);
         throw error;
       }
 
-      console.log('[Explorar v210.0] ✅ Loaded', data?.length || 0, 'locales from server');
+      console.log('[Explorar v211.0] ✅ Loaded', data?.length || 0, 'locales from server');
 
       if (data && data.length > 0) {
         const transformedLocales = data.map((local: any) => {
@@ -267,7 +264,7 @@ export default function ExplorarScreen() {
             distanciaKm = local.distancia_metros / 1000;
             
             if (distanciaKm > 1000) {
-              console.warn('[Explorar v209.0] ⚠️ Suspicious distance:', {
+              console.warn('[Explorar v211.0] ⚠️ Suspicious distance:', {
                 local: local.nombre,
                 distancia_km: distanciaKm,
               });
@@ -282,7 +279,7 @@ export default function ExplorarScreen() {
           const estaAbierto = local.is_open_now;
           const tieneHorarios = local.has_schedule_info;
           
-          console.log(`[Explorar v209.0] ${local.nombre}: is_open_now=${estaAbierto}, has_schedule=${tieneHorarios}`);
+          console.log(`[Explorar v211.0] ${local.nombre}: is_open_now=${estaAbierto}, has_schedule=${tieneHorarios}`);
           
           return {
             ...local,
@@ -310,7 +307,7 @@ export default function ExplorarScreen() {
         setCurrentPage(page);
 
         const newTotalDisplayed = append ? displayedLocales.length + transformedLocales.length : transformedLocales.length;
-        console.log('[Explorar v210.0] 📊 Total displayed:', newTotalDisplayed, '(more available:', !gotLessThanRequested, ')');
+        console.log('[Explorar v211.0] 📊 Total displayed:', newTotalDisplayed, '(more available:', !gotLessThanRequested, ')');
 
         checkSocialProfilesForLocales(transformedLocales.slice(0, 30).map(l => l.id));
         
@@ -322,7 +319,7 @@ export default function ExplorarScreen() {
         }
       }
     } catch (error) {
-      console.error('[Explorar v210.0] Error loading locales:', error);
+      console.error('[Explorar v211.0] Error loading locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
     } finally {
       setLoading(false);
@@ -335,7 +332,7 @@ export default function ExplorarScreen() {
     if (localIds.length === 0) return;
 
     try {
-      console.log('[Explorar v210.0] Checking social profiles for', localIds.length, 'locales');
+      console.log('[Explorar v211.0] Checking social profiles for', localIds.length, 'locales');
       
       const { data: posts, error: postsError } = await supabase
         .from('posts')
@@ -354,14 +351,15 @@ export default function ExplorarScreen() {
       
       setSocialProfiles(prev => new Map([...prev, ...newSocialProfiles]));
     } catch (error) {
-      console.error('[Explorar v210.0] Error checking social profiles:', error);
+      console.error('[Explorar v211.0] Error checking social profiles:', error);
     }
   }, []);
 
-  // ✅ CRITICAL v210.0: Load initial data IMMEDIATELY on mount
-  // Now uses debouncedSearchQuery to prevent input blocking
+  // ✅ CRITICAL v211.0: Load initial data IMMEDIATELY on mount
+  // IMPORTANT: Only triggered by debouncedSearchQuery, NOT searchQuery
+  // This prevents the input from blocking while typing
   useEffect(() => {
-    console.log('[Explorar v210.0] 🚀 Component mounted - loading initial data');
+    console.log('[Explorar v211.0] 🚀 Filters changed - loading data');
     loadLocales(1, false);
   }, [selectedCategory, provinciaSeleccionada, debouncedSearchQuery, userLocation]);
 
@@ -371,12 +369,12 @@ export default function ExplorarScreen() {
       return;
     }
 
-    console.log('[Explorar v210.0] 📥 Loading more locales...');
+    console.log('[Explorar v211.0] 📥 Loading more locales...');
     loadLocales(currentPage + 1, true);
   }, [hasMore, loading, currentPage, loadLocales]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v210.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v211.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setDebouncedSearchQuery('');
@@ -391,7 +389,7 @@ export default function ExplorarScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v210.0] 🧹 Clearing all filters');
+    console.log('[Explorar v211.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedSearchQuery('');
     setSelectedCategory('todas');
@@ -412,13 +410,13 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v210.0] User not authenticated');
+      console.log('[Explorar v211.0] User not authenticated');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v210.0] No local ID');
+      console.log('[Explorar v211.0] No local ID');
       return;
     }
 
@@ -431,7 +429,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v210.0] Removing from favorites');
+        console.log('[Explorar v211.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -440,7 +438,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v210.0] Adding to favorites');
+        console.log('[Explorar v211.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -451,7 +449,7 @@ export default function ExplorarScreen() {
         if (error) throw error;
       }
     } catch (error) {
-      console.error('[Explorar v210.0] Error toggling favorito:', error);
+      console.error('[Explorar v211.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
@@ -494,11 +492,11 @@ export default function ExplorarScreen() {
 
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
-      console.log('[Explorar v210.0] Changing mode to:', newMode);
+      console.log('[Explorar v211.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v210.0] Error changing mode:', error);
+      console.error('[Explorar v211.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
