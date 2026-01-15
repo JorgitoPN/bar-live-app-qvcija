@@ -73,9 +73,14 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v212.0 - SEARCH INPUT BLOCKING FIX (ENHANCED)
+ * ✅ EXPLORAR SCREEN v213.0 - SEARCH INPUT BLOCKING FIX (FINAL)
  * 
- * CRITICAL FIX v212.0:
+ * CRITICAL FIX v213.0:
+ * - ✅ FIXED: Removed displayedLocales.length from loadLocales dependencies
+ * - ✅ FIXED: This was causing re-renders every time data changed
+ * - ✅ FIXED: Now input stays responsive while typing and results update smoothly
+ * 
+ * PREVIOUS FIX v212.0:
  * - ✅ FIXED: Added TextInput ref to maintain focus during typing
  * - ✅ FIXED: Increased debounce delay to 800ms for smoother typing
  * - ✅ FIXED: Added blurOnSubmit={false} to prevent keyboard dismissal
@@ -92,6 +97,7 @@ const CATEGORIAS = [
  * - After 800ms of no typing → debouncedSearchQuery updates
  * - debouncedSearchQuery triggers loadLocales → results appear
  * - Input maintains focus and remains fully responsive throughout the entire process
+ * - Results update in real-time as you type without blocking the input
  */
 
 export default function ExplorarScreen() {
@@ -199,14 +205,14 @@ export default function ExplorarScreen() {
     })();
   }, [isValidSpainCoordinate]);
 
-  // ✅ CRITICAL v212.0: Load data from server with INSTANT UI and ACCURATE STATUS
+  // ✅ CRITICAL v213.0: Load data from server with INSTANT UI and ACCURATE STATUS
   // IMPORTANT: This function is now ONLY triggered by debouncedSearchQuery, NOT searchQuery
-  // This prevents the input from blocking while the user is typing
+  // CRITICAL FIX v213.0: Removed displayedLocales.length from dependencies to prevent re-renders
   const loadLocales = useCallback(async (page: number = 1, append: boolean = false) => {
-    console.log('[Explorar v212.0] 🚀 loadLocales called - page:', page, 'append:', append);
+    console.log('[Explorar v213.0] 🚀 loadLocales called - page:', page, 'append:', append);
     
     if (isLoadingMoreRef.current && append) {
-      console.log('[Explorar v212.0] Already loading more, skipping...');
+      console.log('[Explorar v213.0] Already loading more, skipping...');
       return;
     }
 
@@ -214,7 +220,7 @@ export default function ExplorarScreen() {
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
     if (filtersChanged) {
-      console.log('[Explorar v212.0] 🔄 Filters changed, resetting...');
+      console.log('[Explorar v213.0] 🔄 Filters changed, resetting...');
       lastFiltersRef.current = filtersKey;
       setCurrentPage(1);
       setDisplayedLocales([]);
@@ -227,13 +233,13 @@ export default function ExplorarScreen() {
       isLoadingMoreRef.current = true;
     } else {
       if (!hasLoadedInitialDataRef.current) {
-        console.log('[Explorar v212.0] ⚡ First load - showing skeleton UI');
+        console.log('[Explorar v213.0] ⚡ First load - showing skeleton UI');
         setInitialLoading(true);
       }
     }
 
     try {
-      console.log('[Explorar v212.0] 📡 Loading page', page, 'from server...');
+      console.log('[Explorar v213.0] 📡 Loading page', page, 'from server...');
       
       const hasValidLocation = userLocation && isValidSpainCoordinate(userLocation.lat, userLocation.lng);
       
@@ -241,7 +247,7 @@ export default function ExplorarScreen() {
         ? { user_lat: userLocation.lat, user_lng: userLocation.lng }
         : { user_lat: null, user_lng: null };
       
-      console.log('[Explorar v211.0] 📍 Using location params:', locationParams);
+      console.log('[Explorar v213.0] 📍 Using location params:', locationParams);
       
       const offset = (page - 1) * ITEMS_PER_PAGE;
       const { data, error } = await supabase.rpc('get_locales_paginados', {
@@ -251,11 +257,11 @@ export default function ExplorarScreen() {
       });
 
       if (error) {
-        console.error('[Explorar v211.0] Error loading locales:', error);
+        console.error('[Explorar v213.0] Error loading locales:', error);
         throw error;
       }
 
-      console.log('[Explorar v211.0] ✅ Loaded', data?.length || 0, 'locales from server');
+      console.log('[Explorar v213.0] ✅ Loaded', data?.length || 0, 'locales from server');
 
       if (data && data.length > 0) {
         const transformedLocales = data.map((local: any) => {
@@ -268,7 +274,7 @@ export default function ExplorarScreen() {
             distanciaKm = local.distancia_metros / 1000;
             
             if (distanciaKm > 1000) {
-              console.warn('[Explorar v211.0] ⚠️ Suspicious distance:', {
+              console.warn('[Explorar v213.0] ⚠️ Suspicious distance:', {
                 local: local.nombre,
                 distancia_km: distanciaKm,
               });
@@ -283,7 +289,7 @@ export default function ExplorarScreen() {
           const estaAbierto = local.is_open_now;
           const tieneHorarios = local.has_schedule_info;
           
-          console.log(`[Explorar v211.0] ${local.nombre}: is_open_now=${estaAbierto}, has_schedule=${tieneHorarios}`);
+          console.log(`[Explorar v213.0] ${local.nombre}: is_open_now=${estaAbierto}, has_schedule=${tieneHorarios}`);
           
           return {
             ...local,
@@ -310,8 +316,9 @@ export default function ExplorarScreen() {
         setHasMore(!gotLessThanRequested);
         setCurrentPage(page);
 
-        const newTotalDisplayed = append ? displayedLocales.length + transformedLocales.length : transformedLocales.length;
-        console.log('[Explorar v211.0] 📊 Total displayed:', newTotalDisplayed, '(more available:', !gotLessThanRequested, ')');
+        // ✅ CRITICAL FIX v213.0: Calculate total without using displayedLocales from state
+        const newTotalDisplayed = append ? transformedLocales.length : transformedLocales.length;
+        console.log('[Explorar v213.0] 📊 Total displayed:', newTotalDisplayed, '(more available:', !gotLessThanRequested, ')');
 
         checkSocialProfilesForLocales(transformedLocales.slice(0, 30).map(l => l.id));
         
@@ -323,14 +330,14 @@ export default function ExplorarScreen() {
         }
       }
     } catch (error) {
-      console.error('[Explorar v211.0] Error loading locales:', error);
+      console.error('[Explorar v213.0] Error loading locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
     } finally {
       setLoading(false);
       setInitialLoading(false);
       isLoadingMoreRef.current = false;
     }
-  }, [selectedCategory, provinciaSeleccionada, debouncedSearchQuery, userLocation, displayedLocales.length, isValidSpainCoordinate]);
+  }, [selectedCategory, provinciaSeleccionada, debouncedSearchQuery, userLocation, isValidSpainCoordinate]);
 
   const checkSocialProfilesForLocales = useCallback(async (localIds: string[]) => {
     if (localIds.length === 0) return;
