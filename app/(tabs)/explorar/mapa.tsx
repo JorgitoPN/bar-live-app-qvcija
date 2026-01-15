@@ -370,13 +370,60 @@ export default function MapaScreen() {
     setLocalesFiltrados(localesFiltradosMemo);
   }, [localesFiltradosMemo]);
 
+  // ✅ CRITICAL FIX v209.0: Fetch actual ratings from reviews_barlive table
+  const [localRatings, setLocalRatings] = useState<Map<string, { rating: number; count: number }>>(new Map());
+
+  useEffect(() => {
+    const fetchRatings = async () => {
+      if (localesFiltrados.length === 0) return;
+      
+      console.log('[MAP v209.0] 📊 Fetching actual ratings from reviews_barlive...');
+      
+      const localIds = localesFiltrados.slice(0, 200).map(l => l.id);
+      
+      const { data: reviewsData, error } = await supabase
+        .from('reviews_barlive')
+        .select('local_id, rating')
+        .in('local_id', localIds);
+
+      if (error) {
+        console.error('[MAP v209.0] ❌ Error fetching reviews:', error);
+        return;
+      }
+
+      const ratingsMap = new Map<string, { rating: number; count: number }>();
+      
+      if (reviewsData) {
+        // Group reviews by local_id and calculate average
+        const reviewsByLocal = reviewsData.reduce((acc, review) => {
+          if (!acc[review.local_id]) {
+            acc[review.local_id] = [];
+          }
+          acc[review.local_id].push(review.rating);
+          return acc;
+        }, {} as Record<string, number[]>);
+
+        Object.entries(reviewsByLocal).forEach(([localId, ratings]) => {
+          const avgRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+          ratingsMap.set(localId, { rating: avgRating, count: ratings.length });
+        });
+      }
+
+      setLocalRatings(ratingsMap);
+      console.log('[MAP v209.0] ✅ Ratings loaded for', ratingsMap.size, 'locales');
+    };
+
+    fetchRatings();
+  }, [localesFiltrados]);
+
   // ✅ CRITICAL PERFORMANCE FIX v197.0: Limit markers and optimize data
+  // ✅ CRITICAL FIX v209.0: Use actual ratings from reviews_barlive table
   const markersData = useMemo(() => {
-    console.log('[MAP v197.0] 🎯 Memoizing markers data...');
+    console.log('[MAP v209.0] 🎯 Memoizing markers data with actual ratings...');
     
     // ✅ Limit to 200 markers for better performance
     const limitedLocales = localesFiltrados.slice(0, 200);
-    console.log('[MAP v197.0] 📊 Using', limitedLocales.length, 'of', localesFiltrados.length, 'locales for markers');
+    console.log('[MAP v209.0] 📊 Using', limitedLocales.length, 'of', localesFiltrados.length, 'locales for markers');
     
     return limitedLocales.map(local => {
       const estadoCompleto = getEstadoLocal(local);
@@ -421,6 +468,12 @@ export default function MapaScreen() {
         );
       }
       
+      // ✅ CRITICAL FIX v209.0: Use actual rating from reviews_barlive table
+      const actualRatingData = localRatings.get(local.id);
+      const displayRating = actualRatingData 
+        ? actualRatingData.rating 
+        : (local.valoracion_google || local.rating || 0);
+      
       return {
         id: local.id,
         lat: local.coordenadas.lat,
@@ -432,7 +485,7 @@ export default function MapaScreen() {
         estadoBadge: estadoCompleto.badge,
         icon: icon,
         overlayIcon: overlayIcon,
-        rating: local.valoracion_google || local.rating,
+        rating: displayRating,
         imagen: local.imagen_url || local.imagenes?.[0] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400',
         distancia: distancia,
         destacado: local.destacado || false,
@@ -443,7 +496,7 @@ export default function MapaScreen() {
         isPremium: local.plan === 'premium',
       };
     });
-  }, [localesFiltrados, userLocation]);
+  }, [localesFiltrados, userLocation, localRatings]);
 
   const generateMapHTML = useCallback(async () => {
     const centerLat = userLocation?.lat || 40.4168;
