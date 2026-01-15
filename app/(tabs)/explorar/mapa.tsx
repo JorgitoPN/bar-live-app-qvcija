@@ -132,7 +132,12 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v197.0 - CRITICAL PERFORMANCE OPTIMIZATIONS
+ * ✅ MAP SCREEN v222.0 - IOS CENTER BUTTON POSITION FIX
+ * 
+ * CRITICAL FIX v222.0:
+ * - ✅ FIXED: iOS center button now positioned higher (bottom: 120 on iOS vs 100 on Android)
+ * - ✅ FIXED: Button no longer hidden below bottom menu on iOS
+ * - ✅ FIXED: Proper spacing from bottom tab bar on iOS devices
  * 
  * PERFORMANCE FIXES v197.0:
  * - ✅ Limited map markers to 300 locales for faster rendering
@@ -168,23 +173,23 @@ export default function MapaScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[MAP v197.0] 🔍 Requesting location permissions...');
+        console.log('[MAP v222.0] 🔍 Requesting location permissions...');
         
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[MAP v197.0] ⚠️ Location services are disabled, using default location (Madrid)');
+          console.log('[MAP v222.0] ⚠️ Location services are disabled, using default location (Madrid)');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[MAP v197.0] ⚠️ Location permission denied, using default location (Madrid)');
+          console.log('[MAP v222.0] ⚠️ Location permission denied, using default location (Madrid)');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
-        console.log('[MAP v197.0] ✅ Location permission granted, getting position...');
+        console.log('[MAP v222.0] ✅ Location permission granted, getting position...');
         
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -196,16 +201,16 @@ export default function MapaScreen() {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
-        console.log('[MAP v197.0] 📍 User location obtained:', {
+        console.log('[MAP v222.0] 📍 User location obtained:', {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
       } catch (error: any) {
-        console.error('[MAP v197.0] ❌ Error getting location:', {
+        console.error('[MAP v222.0] ❌ Error getting location:', {
           message: error?.message || 'Unknown error',
           code: error?.code,
         });
-        console.log('[MAP v197.0] ⚠️ Using default location (Madrid) due to error');
+        console.log('[MAP v222.0] ⚠️ Using default location (Madrid) due to error');
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
@@ -213,16 +218,16 @@ export default function MapaScreen() {
 
   // ✅ CRITICAL PERFORMANCE FIX v197.0: Optimized data loading with limits
   useEffect(() => {
-    console.log('⚡ [MAP v197.0] ========================================');
-    console.log('⚡ [MAP v197.0] INSTANT HYDRATION from GlobalDataContext');
-    console.log('⚡ [MAP v197.0] Total locales available:', globalLocales.length);
+    console.log('⚡ [MAP v222.0] ========================================');
+    console.log('⚡ [MAP v222.0] INSTANT HYDRATION from GlobalDataContext');
+    console.log('⚡ [MAP v222.0] Total locales available:', globalLocales.length);
     
     if (globalLocales.length > 0) {
       setIsLoadingMarkers(true);
       
       // ✅ Limit to first 300 locales for better performance
       const limitedLocales = globalLocales.slice(0, 300);
-      console.log('[MAP v197.0] 📊 Using', limitedLocales.length, 'locales for map');
+      console.log('[MAP v222.0] 📊 Using', limitedLocales.length, 'locales for map');
       
       const now = new Date();
       const currentDate = now.toISOString().split('T')[0];
@@ -268,7 +273,7 @@ export default function MapaScreen() {
 
             setTodosLosLocales(localesTransformados);
             setIsLoadingMarkers(false);
-            console.log(`⚡ [MAP v197.0] ✅ INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
+            console.log(`⚡ [MAP v222.0] ✅ INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
           });
       }, 50);
     }
@@ -276,7 +281,7 @@ export default function MapaScreen() {
 
   useEffect(() => {
     const backgroundRefresh = async () => {
-      console.log('🔄 [MAP v111.1] Background refresh triggered');
+      console.log('🔄 [MAP v222.0] Background refresh triggered');
       await refreshData(true);
     };
 
@@ -286,7 +291,7 @@ export default function MapaScreen() {
   }, [refreshData]);
 
   const localesFiltradosMemo = useMemo(() => {
-    console.log('[MAP v197.0] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
+    console.log('[MAP v222.0] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
     
     let filtrados = todosLosLocales.filter(local => {
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
@@ -361,7 +366,7 @@ export default function MapaScreen() {
       return matchCategoria && matchEstado && matchGlobalFilters;
     });
     
-    console.log(`[MAP v197.0] ✅ Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
+    console.log(`[MAP v222.0] ✅ Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
     
     return filtrados;
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado, globalFiltros, userLocation]);
@@ -377,12 +382,12 @@ export default function MapaScreen() {
     const fetchRatings = async () => {
       if (localesFiltrados.length === 0) return;
       
-      console.log('[MAP v210.0] 📊 Fetching actual ratings from reviews_barlive for ALL filtered locales...');
+      console.log('[MAP v222.0] 📊 Fetching actual ratings from reviews_barlive for ALL filtered locales...');
       
       // ✅ CRITICAL FIX: Fetch ratings for ALL filtered locales, not just first 200
       const localIds = localesFiltrados.map(l => l.id);
       
-      console.log('[MAP v210.0] 📊 Fetching ratings for', localIds.length, 'locales');
+      console.log('[MAP v222.0] 📊 Fetching ratings for', localIds.length, 'locales');
       
       const { data: reviewsData, error } = await supabase
         .from('reviews_barlive')
@@ -390,14 +395,14 @@ export default function MapaScreen() {
         .in('local_id', localIds);
 
       if (error) {
-        console.error('[MAP v210.0] ❌ Error fetching reviews:', error);
+        console.error('[MAP v222.0] ❌ Error fetching reviews:', error);
         return;
       }
 
       const ratingsMap = new Map<string, { rating: number; count: number }>();
       
       if (reviewsData) {
-        console.log('[MAP v210.0] 📊 Received', reviewsData.length, 'reviews from database');
+        console.log('[MAP v222.0] 📊 Received', reviewsData.length, 'reviews from database');
         
         // Group reviews by local_id and calculate average
         const reviewsByLocal = reviewsData.reduce((acc, review) => {
@@ -411,12 +416,12 @@ export default function MapaScreen() {
         Object.entries(reviewsByLocal).forEach(([localId, ratings]) => {
           const avgRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
           ratingsMap.set(localId, { rating: avgRating, count: ratings.length });
-          console.log(`[MAP v210.0] 📊 Local ${localId}: ${avgRating.toFixed(1)} (${ratings.length} reviews)`);
+          console.log(`[MAP v222.0] 📊 Local ${localId}: ${avgRating.toFixed(1)} (${ratings.length} reviews)`);
         });
       }
 
       setLocalRatings(ratingsMap);
-      console.log('[MAP v210.0] ✅ Ratings loaded for', ratingsMap.size, 'locales');
+      console.log('[MAP v222.0] ✅ Ratings loaded for', ratingsMap.size, 'locales');
     };
 
     fetchRatings();
@@ -425,12 +430,12 @@ export default function MapaScreen() {
   // ✅ CRITICAL PERFORMANCE FIX v197.0: Limit markers and optimize data
   // ✅ CRITICAL FIX v210.0: Use actual ratings from reviews_barlive table with proper fallback
   const markersData = useMemo(() => {
-    console.log('[MAP v210.0] 🎯 Memoizing markers data with actual ratings...');
-    console.log('[MAP v210.0] 📊 localRatings has', localRatings.size, 'entries');
+    console.log('[MAP v222.0] 🎯 Memoizing markers data with actual ratings...');
+    console.log('[MAP v222.0] 📊 localRatings has', localRatings.size, 'entries');
     
     // ✅ Limit to 200 markers for better performance
     const limitedLocales = localesFiltrados.slice(0, 200);
-    console.log('[MAP v210.0] 📊 Using', limitedLocales.length, 'of', localesFiltrados.length, 'locales for markers');
+    console.log('[MAP v222.0] 📊 Using', limitedLocales.length, 'of', localesFiltrados.length, 'locales for markers');
     
     return limitedLocales.map(local => {
       const estadoCompleto = getEstadoLocal(local);
@@ -482,17 +487,17 @@ export default function MapaScreen() {
       if (actualRatingData && actualRatingData.rating > 0) {
         // Use actual rating from reviews_barlive
         displayRating = actualRatingData.rating;
-        console.log(`[MAP v210.0] ✅ Using actual rating for ${local.nombre}: ${displayRating.toFixed(1)}`);
+        console.log(`[MAP v222.0] ✅ Using actual rating for ${local.nombre}: ${displayRating.toFixed(1)}`);
       } else if (local.google_rating && local.google_rating > 0) {
         // Fallback to Google rating (CORRECT COLUMN NAME)
         displayRating = local.google_rating;
-        console.log(`[MAP v210.0] ⚠️ Using Google rating for ${local.nombre}: ${displayRating.toFixed(1)}`);
+        console.log(`[MAP v222.0] ⚠️ Using Google rating for ${local.nombre}: ${displayRating.toFixed(1)}`);
       } else if (local.rating && local.rating > 0) {
         // Fallback to local rating
         displayRating = local.rating;
-        console.log(`[MAP v210.0] ⚠️ Using local rating for ${local.nombre}: ${displayRating.toFixed(1)}`);
+        console.log(`[MAP v222.0] ⚠️ Using local rating for ${local.nombre}: ${displayRating.toFixed(1)}`);
       } else {
-        console.log(`[MAP v210.0] ⚠️ No rating available for ${local.nombre}, using 0.0`);
+        console.log(`[MAP v222.0] ⚠️ No rating available for ${local.nombre}, using 0.0`);
       }
       
       return {
@@ -564,7 +569,7 @@ export default function MapaScreen() {
           });
         }
       } catch (error) {
-        console.error('[MAP v111.1] Error loading check-ins:', error);
+        console.error('[MAP v222.0] Error loading check-ins:', error);
       }
     }
 
@@ -577,7 +582,7 @@ export default function MapaScreen() {
       };
     });
 
-    console.log(`[MAP v197.0] 🗺️ GENERATING MAP HTML WITH ${markersWithCheckIns.length} MARKERS`);
+    console.log(`[MAP v222.0] 🗺️ GENERATING MAP HTML WITH ${markersWithCheckIns.length} MARKERS`);
 
     const popupFontSize = Platform.OS === 'android' ? Math.round(14 * 0.80) : 14;
     const popupTitleSize = Platform.OS === 'android' ? Math.round(16 * 0.80) : 16;
@@ -888,7 +893,7 @@ export default function MapaScreen() {
   <div id="map"></div>
   <script>
     try {
-      console.log('[MAP HTML v197.0] ⚡ INSTANT INITIALIZATION');
+      console.log('[MAP HTML v222.0] ⚡ INSTANT INITIALIZATION');
       
       var map = L.map('map', {
         zoomControl: false,
@@ -1094,7 +1099,7 @@ export default function MapaScreen() {
 
       map.addLayer(markers);
       
-      console.log('[MAP HTML v197.0] ✅ Map initialized successfully');
+      console.log('[MAP HTML v222.0] ✅ Map initialized successfully');
       
       setTimeout(function() {
         map.invalidateSize();
@@ -1102,7 +1107,7 @@ export default function MapaScreen() {
       }, 100);
       
       window.flyToLocation = function(lat, lng, zoom) {
-        console.log('[MAP HTML v197.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
+        console.log('[MAP HTML v222.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
         map.flyTo([lat, lng], zoom, {
           animate: true,
           duration: 1.5,
@@ -1111,7 +1116,7 @@ export default function MapaScreen() {
       };
       
     } catch (error) {
-      console.error('[MAP HTML v197.0] Map initialization error:', error);
+      console.error('[MAP HTML v222.0] Map initialization error:', error);
     }
   </script>
 </body>
@@ -1122,7 +1127,7 @@ export default function MapaScreen() {
   useEffect(() => {
     const generateHTML = async () => {
       if (localesFiltrados.length > 0 && !isLoadingMarkers) {
-        console.log('[MAP v197.0] 🚀 Generating map HTML with', localesFiltrados.length, 'markers');
+        console.log('[MAP v222.0] 🚀 Generating map HTML with', localesFiltrados.length, 'markers');
         const html = await generateMapHTML();
         setMapHTML(html);
       }
@@ -1142,7 +1147,7 @@ export default function MapaScreen() {
       
       if (globalFiltros.provincia && PROVINCIA_COORDINATES[globalFiltros.provincia]) {
         const coords = PROVINCIA_COORDINATES[globalFiltros.provincia];
-        console.log(`[MAP v197.0] 🛫 FLY-TO: Province "${globalFiltros.provincia}"`, coords);
+        console.log(`[MAP v222.0] 🛫 FLY-TO: Province "${globalFiltros.provincia}"`, coords);
         
         webViewRef.current.injectJavaScript(`
           if (typeof window.flyToLocation !== 'undefined') {
@@ -1153,7 +1158,7 @@ export default function MapaScreen() {
       }
       else if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades' && COMUNIDAD_COORDINATES[globalFiltros.comunidad]) {
         const coords = COMUNIDAD_COORDINATES[globalFiltros.comunidad];
-        console.log(`[MAP v197.0] 🛫 FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
+        console.log(`[MAP v222.0] 🛫 FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
         
         webViewRef.current.injectJavaScript(`
           if (typeof window.flyToLocation !== 'undefined') {
@@ -1200,23 +1205,23 @@ export default function MapaScreen() {
   };
 
   const handleVerDetalles = (localId: string) => {
-    console.log('[MAP v197.0] Navigating to local details:', localId);
+    console.log('[MAP v222.0] Navigating to local details:', localId);
     router.push(`/detalle/local?id=${localId}`);
   };
 
   const handleWebViewMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      console.log('📨 [MAP v197.0] Received message from WebView:', data);
+      console.log('📨 [MAP v222.0] Received message from WebView:', data);
       
       if (data.type === 'navigate' && data.id) {
         handleVerDetalles(data.id);
       } else if (data.type === 'map_ready') {
-        console.log('✅ [MAP v197.0] Map is ready for interactions');
+        console.log('✅ [MAP v222.0] Map is ready for interactions');
         setIsMapReady(true);
       }
     } catch (error) {
-      console.error('❌ [MAP v197.0] Error parsing WebView message:', error);
+      console.error('❌ [MAP v222.0] Error parsing WebView message:', error);
     }
   };
 
@@ -1274,7 +1279,7 @@ export default function MapaScreen() {
                 domStorageEnabled={true}
                 onError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
-                  console.error('[MAP v111.1] WebView error:', nativeEvent);
+                  console.error('[MAP v222.0] WebView error:', nativeEvent);
                 }}
               />
             )}
@@ -1417,12 +1422,13 @@ export default function MapaScreen() {
         </View>
       </View>
 
+      {/* ✅ CRITICAL FIX v222.0: iOS-specific positioning for center button (higher on iOS) */}
       <TouchableOpacity 
         style={[styles.centerButton, {
           width: centerButtonSize,
           height: centerButtonSize,
           borderRadius: centerButtonSize / 2,
-          bottom: 100,
+          bottom: Platform.OS === 'ios' ? 120 : 100,
           right: 16,
         }]}
         onPress={centerOnUser}
