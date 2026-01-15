@@ -370,16 +370,19 @@ export default function MapaScreen() {
     setLocalesFiltrados(localesFiltradosMemo);
   }, [localesFiltradosMemo]);
 
-  // ✅ CRITICAL FIX v209.0: Fetch actual ratings from reviews_barlive table
+  // ✅ CRITICAL FIX v210.0: Fetch actual ratings from reviews_barlive table for ALL filtered locales
   const [localRatings, setLocalRatings] = useState<Map<string, { rating: number; count: number }>>(new Map());
 
   useEffect(() => {
     const fetchRatings = async () => {
       if (localesFiltrados.length === 0) return;
       
-      console.log('[MAP v209.0] 📊 Fetching actual ratings from reviews_barlive...');
+      console.log('[MAP v210.0] 📊 Fetching actual ratings from reviews_barlive for ALL filtered locales...');
       
-      const localIds = localesFiltrados.slice(0, 200).map(l => l.id);
+      // ✅ CRITICAL FIX: Fetch ratings for ALL filtered locales, not just first 200
+      const localIds = localesFiltrados.map(l => l.id);
+      
+      console.log('[MAP v210.0] 📊 Fetching ratings for', localIds.length, 'locales');
       
       const { data: reviewsData, error } = await supabase
         .from('reviews_barlive')
@@ -387,13 +390,15 @@ export default function MapaScreen() {
         .in('local_id', localIds);
 
       if (error) {
-        console.error('[MAP v209.0] ❌ Error fetching reviews:', error);
+        console.error('[MAP v210.0] ❌ Error fetching reviews:', error);
         return;
       }
 
       const ratingsMap = new Map<string, { rating: number; count: number }>();
       
       if (reviewsData) {
+        console.log('[MAP v210.0] 📊 Received', reviewsData.length, 'reviews from database');
+        
         // Group reviews by local_id and calculate average
         const reviewsByLocal = reviewsData.reduce((acc, review) => {
           if (!acc[review.local_id]) {
@@ -406,24 +411,26 @@ export default function MapaScreen() {
         Object.entries(reviewsByLocal).forEach(([localId, ratings]) => {
           const avgRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
           ratingsMap.set(localId, { rating: avgRating, count: ratings.length });
+          console.log(`[MAP v210.0] 📊 Local ${localId}: ${avgRating.toFixed(1)} (${ratings.length} reviews)`);
         });
       }
 
       setLocalRatings(ratingsMap);
-      console.log('[MAP v209.0] ✅ Ratings loaded for', ratingsMap.size, 'locales');
+      console.log('[MAP v210.0] ✅ Ratings loaded for', ratingsMap.size, 'locales');
     };
 
     fetchRatings();
   }, [localesFiltrados]);
 
   // ✅ CRITICAL PERFORMANCE FIX v197.0: Limit markers and optimize data
-  // ✅ CRITICAL FIX v209.0: Use actual ratings from reviews_barlive table
+  // ✅ CRITICAL FIX v210.0: Use actual ratings from reviews_barlive table with proper fallback
   const markersData = useMemo(() => {
-    console.log('[MAP v209.0] 🎯 Memoizing markers data with actual ratings...');
+    console.log('[MAP v210.0] 🎯 Memoizing markers data with actual ratings...');
+    console.log('[MAP v210.0] 📊 localRatings has', localRatings.size, 'entries');
     
     // ✅ Limit to 200 markers for better performance
     const limitedLocales = localesFiltrados.slice(0, 200);
-    console.log('[MAP v209.0] 📊 Using', limitedLocales.length, 'of', localesFiltrados.length, 'locales for markers');
+    console.log('[MAP v210.0] 📊 Using', limitedLocales.length, 'of', localesFiltrados.length, 'locales for markers');
     
     return limitedLocales.map(local => {
       const estadoCompleto = getEstadoLocal(local);
@@ -468,11 +475,25 @@ export default function MapaScreen() {
         );
       }
       
-      // ✅ CRITICAL FIX v209.0: Use actual rating from reviews_barlive table
+      // ✅ CRITICAL FIX v210.0: Use actual rating from reviews_barlive table with proper fallback
       const actualRatingData = localRatings.get(local.id);
-      const displayRating = actualRatingData 
-        ? actualRatingData.rating 
-        : (local.valoracion_google || local.rating || 0);
+      let displayRating = 0;
+      
+      if (actualRatingData && actualRatingData.rating > 0) {
+        // Use actual rating from reviews_barlive
+        displayRating = actualRatingData.rating;
+        console.log(`[MAP v210.0] ✅ Using actual rating for ${local.nombre}: ${displayRating.toFixed(1)}`);
+      } else if (local.google_rating && local.google_rating > 0) {
+        // Fallback to Google rating (CORRECT COLUMN NAME)
+        displayRating = local.google_rating;
+        console.log(`[MAP v210.0] ⚠️ Using Google rating for ${local.nombre}: ${displayRating.toFixed(1)}`);
+      } else if (local.rating && local.rating > 0) {
+        // Fallback to local rating
+        displayRating = local.rating;
+        console.log(`[MAP v210.0] ⚠️ Using local rating for ${local.nombre}: ${displayRating.toFixed(1)}`);
+      } else {
+        console.log(`[MAP v210.0] ⚠️ No rating available for ${local.nombre}, using 0.0`);
+      }
       
       return {
         id: local.id,
