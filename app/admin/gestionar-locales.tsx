@@ -52,13 +52,13 @@ interface Usuario {
 const LOCALES_POR_PAGINA = 50;
 
 /**
- * ✅ GESTIONAR LOCALES v218.0 - SEARCH INPUT FIX
+ * ✅ GESTIONAR LOCALES v223.0 - FINAL SEARCH INPUT FIX
  * 
- * CRITICAL FIXES v218.0:
- * - ✅ FIXED: Search input now uses stable useCallback handler
+ * CRITICAL FIXES v223.0:
+ * - ✅ FIXED: Search input now uses stable useCallback with empty deps
  * - ✅ FIXED: TextInput maintains focus while typing
  * - ✅ FIXED: Keyboard stays visible during typing
- * - ✅ FIXED: No re-renders interrupt typing
+ * - ✅ FIXED: Added keyboardShouldPersistTaps to FlatList
  */
 
 export default function GestionarLocalesScreen() {
@@ -98,43 +98,43 @@ export default function GestionarLocalesScreen() {
     sinPropietario: 0,
   });
 
-  // ✅ CRITICAL v218.0: Stable refs for TextInputs to prevent focus loss
+  // ✅ CRITICAL v223.0: Stable refs for TextInputs to prevent focus loss
   const searchInputRef = useRef<TextInput>(null);
   const searchUsuarioInputRef = useRef<TextInput>(null);
 
-  // ✅ CRITICAL FIX v218.0: Stable callback for handling search text changes
+  // ✅ CRITICAL FIX v223.0: Stable callback with EMPTY dependencies array
   const handleSearchChange = useCallback((text: string) => {
-    console.log('[GestionarLocales v218.0] 📝 User typing in search:', text);
+    console.log('[GestionarLocales v223.0] 📝 User typing in search:', text);
     setBusqueda(text);
-  }, []);
+  }, []); // ✅ EMPTY DEPS - prevents recreation
 
-  // ✅ CRITICAL FIX v218.0: Stable callback for handling user search text changes
+  // ✅ CRITICAL FIX v223.0: Stable callback with EMPTY dependencies array
   const handleSearchUsuarioChange = useCallback((text: string) => {
-    console.log('[GestionarLocales v218.0] 📝 User typing in user search:', text);
+    console.log('[GestionarLocales v223.0] 📝 User typing in user search:', text);
     setSearchUsuario(text);
-  }, []);
+  }, []); // ✅ EMPTY DEPS - prevents recreation
 
   const cargarContadores = useCallback(async () => {
     try {
-      console.log('[GestionarLocales v218.0] Loading counters...');
+      console.log('[GestionarLocales v223.0] Loading counters...');
       
       const { count: totalCount, error: countError } = await supabase
         .from('locales')
         .select('*', { count: 'exact', head: true });
 
       if (countError) {
-        console.error('[GestionarLocales v218.0] Error loading total count:', countError);
+        console.error('[GestionarLocales v223.0] Error loading total count:', countError);
         throw countError;
       }
 
-      console.log('[GestionarLocales v218.0] Total locales in database:', totalCount);
+      console.log('[GestionarLocales v223.0] Total locales in database:', totalCount);
 
       const { data, error } = await supabase
         .from('locales')
         .select('activo, enriquecido, propietario_id');
 
       if (error) {
-        console.error('[GestionarLocales v218.0] Error loading stats:', error);
+        console.error('[GestionarLocales v223.0] Error loading stats:', error);
         throw error;
       }
 
@@ -148,16 +148,16 @@ export default function GestionarLocalesScreen() {
         sinPropietario: data?.filter(l => !l.propietario_id).length || 0,
       };
 
-      console.log('[GestionarLocales v218.0] Stats:', stats);
+      console.log('[GestionarLocales v223.0] Stats:', stats);
       setContadores(stats);
     } catch (error) {
-      console.error('[GestionarLocales v218.0] Error cargando contadores:', error);
+      console.error('[GestionarLocales v223.0] Error cargando contadores:', error);
     }
   }, []);
 
   const cargarLocales = useCallback(async (reset: boolean = false, currentPage: number = 1) => {
     try {
-      console.log('[GestionarLocales v218.0] Loading locales, reset:', reset, 'page:', currentPage);
+      console.log('[GestionarLocales v223.0] Loading locales, reset:', reset, 'page:', currentPage);
       
       if (reset) {
         setInitialLoading(true);
@@ -168,7 +168,7 @@ export default function GestionarLocalesScreen() {
       const from = reset ? 0 : (currentPage - 1) * LOCALES_POR_PAGINA;
       const to = from + LOCALES_POR_PAGINA - 1;
 
-      console.log('[GestionarLocales v218.0] Fetching range:', from, '-', to);
+      console.log('[GestionarLocales v223.0] Fetching range:', from, '-', to);
 
       let query = supabase
         .from('locales')
@@ -217,11 +217,11 @@ export default function GestionarLocalesScreen() {
       const { data, error, count } = await query;
 
       if (error) {
-        console.error('[GestionarLocales v218.0] Error cargando locales:', error);
+        console.error('[GestionarLocales v223.0] Error cargando locales:', error);
         throw error;
       }
 
-      console.log('[GestionarLocales v218.0] Locales loaded:', data?.length || 0, 'Total count:', count);
+      console.log('[GestionarLocales v223.0] Locales loaded:', data?.length || 0, 'Total count:', count);
       
       if (reset) {
         setLocales(data || []);
@@ -234,9 +234,9 @@ export default function GestionarLocalesScreen() {
       setTotalLocales(count || 0);
       setHasMore((data?.length || 0) === LOCALES_POR_PAGINA);
       
-      console.log('[GestionarLocales v218.0] Has more:', (data?.length || 0) === LOCALES_POR_PAGINA);
+      console.log('[GestionarLocales v223.0] Has more:', (data?.length || 0) === LOCALES_POR_PAGINA);
     } catch (error) {
-      console.error('[GestionarLocales v218.0] Error cargando locales:', error);
+      console.error('[GestionarLocales v223.0] Error cargando locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
     } finally {
       setInitialLoading(false);
@@ -245,14 +245,14 @@ export default function GestionarLocalesScreen() {
   }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado]);
 
   useEffect(() => {
-    console.log('[GestionarLocales v218.0] Initial load');
+    console.log('[GestionarLocales v223.0] Initial load');
     cargarContadores();
     cargarLocales(true, 1);
   }, [cargarContadores, cargarLocales]);
 
   useEffect(() => {
     if (!initialLoading) {
-      console.log('[GestionarLocales v218.0] Filters changed, reloading...');
+      console.log('[GestionarLocales v223.0] Filters changed, reloading...');
       const timer = setTimeout(() => {
         cargarLocales(true, 1);
       }, 500);
@@ -278,13 +278,13 @@ export default function GestionarLocalesScreen() {
 
       setUsuarios(data || []);
     } catch (error) {
-      console.error('[GestionarLocales v218.0] Error searching users:', error);
+      console.error('[GestionarLocales v223.0] Error searching users:', error);
     } finally {
       setLoadingUsuarios(false);
     }
   }, []);
 
-  // ✅ CRITICAL v218.0: Debounce user search to avoid blocking
+  // ✅ CRITICAL v223.0: Debounce user search to avoid blocking
   useEffect(() => {
     if (searchUsuario.trim().length >= 2) {
       const timer = setTimeout(() => {
@@ -321,7 +321,7 @@ export default function GestionarLocalesScreen() {
         });
 
       if (junctionError && junctionError.code !== '23505') {
-        console.error('[GestionarLocales v218.0] Error creating junction entry:', junctionError);
+        console.error('[GestionarLocales v223.0] Error creating junction entry:', junctionError);
       }
 
       Alert.alert(
@@ -338,7 +338,7 @@ export default function GestionarLocalesScreen() {
       cargarLocales(true, 1);
       cargarContadores();
     } catch (error) {
-      console.error('[GestionarLocales v218.0] Error assigning local:', error);
+      console.error('[GestionarLocales v223.0] Error assigning local:', error);
       Alert.alert('Error', 'No se pudo asignar el local al usuario');
     } finally {
       setAssigningUser(false);
@@ -366,7 +366,7 @@ export default function GestionarLocalesScreen() {
       );
       cargarContadores();
     } catch (error) {
-      console.error('[GestionarLocales v218.0] Error actualizando local:', error);
+      console.error('[GestionarLocales v223.0] Error actualizando local:', error);
       Alert.alert('Error', 'No se pudo actualizar el local');
     }
   }, [cargarContadores]);
@@ -386,7 +386,7 @@ export default function GestionarLocalesScreen() {
         )
       );
     } catch (error) {
-      console.error('[GestionarLocales v218.0] Error actualizando destacado:', error);
+      console.error('[GestionarLocales v223.0] Error actualizando destacado:', error);
       Alert.alert('Error', 'No se pudo actualizar el estado destacado');
     }
   }, []);
@@ -406,7 +406,7 @@ export default function GestionarLocalesScreen() {
       Alert.alert('Éxito', 'Local eliminado correctamente');
       cargarContadores();
     } catch (error) {
-      console.error('[GestionarLocales v218.0] Error eliminando local:', error);
+      console.error('[GestionarLocales v223.0] Error eliminando local:', error);
       Alert.alert('Error', 'No se pudo eliminar el local');
     }
   }, [cargarContadores]);
@@ -470,7 +470,7 @@ export default function GestionarLocalesScreen() {
               setModoSeleccion(false);
               cargarContadores();
             } catch (error) {
-              console.error('[GestionarLocales v218.0] Error eliminando locales:', error);
+              console.error('[GestionarLocales v223.0] Error eliminando locales:', error);
               Alert.alert('Error', 'No se pudieron eliminar todos los locales');
             }
           },
@@ -499,7 +499,7 @@ export default function GestionarLocalesScreen() {
 
   const handleLoadMore = useCallback(() => {
     if (hasMore && !loadingMore && !initialLoading) {
-      console.log('[GestionarLocales v218.0] Loading more, page:', paginaActual);
+      console.log('[GestionarLocales v223.0] Loading more, page:', paginaActual);
       cargarLocales(false, paginaActual);
     }
   }, [hasMore, loadingMore, initialLoading, paginaActual, cargarLocales]);
@@ -745,7 +745,6 @@ export default function GestionarLocalesScreen() {
       <View style={styles.searchContainer}>
         <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
         <TextInput
-          key="search-input-gestionar-locales"
           ref={searchInputRef}
           style={styles.searchInput}
           placeholder="Buscar por nombre o dirección..."
@@ -905,6 +904,8 @@ export default function GestionarLocalesScreen() {
         maxToRenderPerBatch={10}
         updateCellsBatchingPeriod={50}
         windowSize={10}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       />
 
       <Modal
@@ -1097,7 +1098,6 @@ export default function GestionarLocalesScreen() {
               <View style={styles.searchContainer}>
                 <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
                 <TextInput
-                  key="search-input-usuario-gestionar-locales"
                   ref={searchUsuarioInputRef}
                   style={styles.searchInput}
                   placeholder="Buscar usuario por nombre o email..."
