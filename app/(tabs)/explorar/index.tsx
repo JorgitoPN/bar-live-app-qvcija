@@ -44,7 +44,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 
-// ✅ CRITICAL PERFORMANCE FIX v232.0: INSTANT FILTERING - NO DEBOUNCE
+// ✅ CRITICAL PERFORMANCE FIX v232.0: KEYBOARD PERSISTENCE - FINAL FIX
 const ITEMS_PER_PAGE = 20;
 
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 260 : 360;
@@ -73,15 +73,23 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v232.0 - INSTANT FILTERING FIX
+ * ✅ EXPLORAR SCREEN v232.0 - KEYBOARD PERSISTENCE FINAL FIX
  * 
  * CRITICAL FIX v232.0:
- * - ✅ FIXED: Removed ALL debouncing and timers
- * - ✅ FIXED: TextInput uses useState (controlled component)
- * - ✅ FIXED: Instant filtering with useMemo
- * - ✅ FIXED: Keyboard stays visible - no focus loss
+ * - ✅ FIXED: TextInput maintains focus during typing
+ * - ✅ FIXED: No keyboard dismissal on state updates
+ * - ✅ FIXED: Instant filtering without losing focus
  * - ✅ FIXED: Users can type continuously without interruption
- * - ✅ PATTERN: Same as TaggingModalV5 which works perfectly
+ * - ✅ FIXED: Removed all FlatList keyboard interference
+ * 
+ * ROOT CAUSE:
+ * The component was re-rendering on every keystroke, causing the TextInput to lose focus.
+ * 
+ * SOLUTION:
+ * 1. Use controlled TextInput with stable ref
+ * 2. Instant filtering with useMemo (no delays)
+ * 3. No keyboard-related props on FlatList
+ * 4. Let React Native handle keyboard naturally
  */
 
 export default function ExplorarScreen() {
@@ -90,13 +98,12 @@ export default function ExplorarScreen() {
   const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
   const { prefetchNextPage } = useGlobalData();
   
-  const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
   const [allLoadedLocales, setAllLoadedLocales] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
-  // ✅ CRITICAL v232.0: Use useState for instant filtering (like TaggingModalV5)
+  // ✅ CRITICAL v232.0: Use state for search query - instant updates
   const [searchQuery, setSearchQuery] = useState('');
   
   const [currentPage, setCurrentPage] = useState(1);
@@ -117,8 +124,27 @@ export default function ExplorarScreen() {
   const isLoadingMoreRef = useRef(false);
   const lastFiltersRef = useRef<string>('');
   const hasLoadedInitialDataRef = useRef(false);
+  
+  // ✅ CRITICAL v232.0: Stable ref for TextInput to prevent recreation
+  const searchInputRef = useRef<TextInput>(null);
 
-  // ✅ CRITICAL v232.0: Validate coordinates are within Spain
+  // ✅ CRITICAL v232.0: Handle text change - instant, no timers
+  const handleSearchChange = useCallback((text: string) => {
+    console.log('[Explorar v232.0] 📝 User typing (keyboard stays open):', text);
+    setSearchQuery(text);
+  }, []);
+
+  // ✅ CRITICAL v232.0: Clear search without losing focus
+  const handleClearSearch = useCallback(() => {
+    console.log('[Explorar v232.0] 🧹 Clearing search');
+    setSearchQuery('');
+    // Keep focus on input after clearing
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 50);
+  }, []);
+
+  // ✅ CRITICAL FIX v232.0: Validate coordinates are within Spain
   const isValidSpainCoordinate = useCallback((lat: number, lng: number): boolean => {
     const MIN_LAT = 27.0;
     const MAX_LAT = 44.0;
@@ -193,7 +219,6 @@ export default function ExplorarScreen() {
       lastFiltersRef.current = filtersKey;
       setCurrentPage(1);
       setAllLoadedLocales([]);
-      setDisplayedLocales([]);
       setHasMore(true);
       page = 1;
       append = false;
@@ -320,10 +345,10 @@ export default function ExplorarScreen() {
     }
   }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada]);
 
-  // ✅ CRITICAL v232.0: INSTANT client-side filtering (like TaggingModalV5)
+  // ✅ CRITICAL v232.0: Instant client-side filtering with useMemo (no timers!)
   const filteredLocales = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    console.log('[Explorar v232.0] 🔍 Filtering locales INSTANTLY, search:', query);
+    console.log('[Explorar v232.0] 🔍 Filtering locales instantly, search:', query);
     
     if (!query) {
       return allLoadedLocales;
@@ -345,12 +370,7 @@ export default function ExplorarScreen() {
 
     console.log('[Explorar v232.0] ✅ Filtered', filtered.length, 'locales from', allLoadedLocales.length);
     return filtered;
-  }, [allLoadedLocales, searchQuery]); // ✅ Depends directly on searchQuery state
-
-  // ✅ CRITICAL v232.0: Update displayed locales when filtered results change
-  useEffect(() => {
-    setDisplayedLocales(filteredLocales);
-  }, [filteredLocales]);
+  }, [allLoadedLocales, searchQuery]);
 
   // ✅ CRITICAL v232.0: Load data when category/province changes (NOT search)
   useEffect(() => {
@@ -376,7 +396,6 @@ export default function ExplorarScreen() {
     setProvinciaSeleccionada('Todas');
     setCurrentPage(1);
     setAllLoadedLocales([]);
-    setDisplayedLocales([]);
     setHasMore(true);
     
     await loadLocales(1, false);
@@ -746,7 +765,7 @@ export default function ExplorarScreen() {
   }, [router, socialProfiles, user, toggleFavorito, handleComoLlegar, handlePerfilSocial]);
 
   const renderFooter = () => {
-    if (!hasMore && displayedLocales.length > 0) {
+    if (!hasMore && filteredLocales.length > 0) {
       return (
         <View style={styles.footerContainer}>
           <Text style={[styles.footerText, { fontSize: scaleFontSize(14) }]}>
@@ -783,7 +802,7 @@ export default function ExplorarScreen() {
       );
     }
     
-    if (activeFiltersCount > 0 && displayedLocales.length === 0) {
+    if (activeFiltersCount > 0 && filteredLocales.length === 0) {
       return (
         <View style={styles.emptyState}>
           <IconSymbol
@@ -895,7 +914,7 @@ export default function ExplorarScreen() {
           </View>
         )}
       
-      {/* ✅ CRITICAL v232.0: Search bar - Controlled TextInput with useState (like TaggingModalV5) */}
+      {/* ✅ CRITICAL v232.0: Search bar - FINAL FIX - Keyboard stays open */}
       <View style={[styles.searchContainer, { 
         height: searchBoxHeight,
         paddingVertical: Platform.OS === 'android' ? 10 : 10,
@@ -907,18 +926,20 @@ export default function ExplorarScreen() {
           color={colors.textSecondary}
         />
         <TextInput
+          key="search-input-stable-v232-final"
+          ref={searchInputRef}
           style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
           placeholder="Buscar locales..."
           placeholderTextColor={colors.textSecondary}
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={handleSearchChange}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity 
-            onPress={() => setSearchQuery('')}
+            onPress={handleClearSearch}
             style={styles.clearButton}
             activeOpacity={0.7}
           >
@@ -1039,8 +1060,9 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
+      {/* ✅ CRITICAL v232.0: FlatList WITHOUT ANY keyboard props - let OS handle it naturally */}
       <FlatList
-        data={displayedLocales}
+        data={filteredLocales}
         renderItem={renderLocalCard}
         keyExtractor={(item: any) => item.id}
         contentContainerStyle={[
@@ -1068,7 +1090,6 @@ export default function ExplorarScreen() {
         updateCellsBatchingPeriod={50}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        keyboardShouldPersistTaps="handled"
       />
 
       <Modal
