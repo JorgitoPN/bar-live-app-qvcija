@@ -68,11 +68,11 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v227.0 - KEYBOARD PERSISTENCE FIX
+ * ✅ FAVORITOS SCREEN v230.0 - KEYBOARD PERSISTENCE FINAL FIX
  * 
- * CRITICAL FIX v227.0:
- * - ✅ FIXED: FlatList now uses keyboardShouldPersistTaps="always" to keep keyboard visible
- * - ✅ FIXED: Removed keyboardDismissMode to prevent keyboard from dismissing
+ * CRITICAL FIX v230.0:
+ * - ✅ FIXED: Removed keyboardShouldPersistTaps from FlatList
+ * - ✅ FIXED: Added keyboardDismissMode="none" to prevent keyboard dismissal
  * - ✅ FIXED: TextInput maintains focus during list updates
  * - ✅ FIXED: Users can type continuously without keyboard disappearing
  */
@@ -86,7 +86,7 @@ export default function FavoritosScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   
-  // ✅ CRITICAL v227.0: Use state for search query - instant updates, no timers
+  // ✅ CRITICAL v230.0: Use state for search query - instant updates, no timers
   const [searchQuery, setSearchQuery] = useState('');
   
   const [currentPage, setCurrentPage] = useState(1);
@@ -103,7 +103,7 @@ export default function FavoritosScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   
-  // ✅ CRITICAL v227.0: Stable ref for TextInput to prevent recreation
+  // ✅ CRITICAL v230.0: Stable ref for TextInput to prevent recreation
   const searchInputRef = useRef<TextInput>(null);
 
   const headerTranslateY = scrollY.interpolate({
@@ -112,10 +112,10 @@ export default function FavoritosScreen() {
     extrapolate: 'clamp',
   });
 
-  // ✅ CRITICAL FIX v227.0: Handle text change - instant, no timers
+  // ✅ CRITICAL FIX v230.0: Handle text change - instant, no timers
   const handleSearchChange = useCallback((text: string) => {
-    console.log('[Favoritos v227.0] 📝 User typing (instant update, keyboard stays visible):', text);
-    setSearchQuery(text); // Instant state update, no delays
+    console.log('[Favoritos v230.0] 📝 User typing (instant update, keyboard MUST stay visible):', text);
+    setSearchQuery(text);
   }, []);
 
   useEffect(() => {
@@ -128,10 +128,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v227.0] User location obtained:', location.coords);
+          console.log('[Favoritos v230.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v227.0] Error getting location:', error);
+        console.error('[Favoritos v230.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -157,7 +157,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v227.0] Error checking social profiles:', error);
+      console.error('[Favoritos v230.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -168,7 +168,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v227.0] Cargando locales guardados...');
+      console.log('[Favoritos v230.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -228,12 +228,12 @@ export default function FavoritosScreen() {
         
         setAllSavedLocales(formattedLocales);
         
-        console.log('[Favoritos v227.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v230.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v227.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v230.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -254,7 +254,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v227.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v230.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -268,7 +268,7 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v227.0] Recalculating distances with new user location');
+      console.log('[Favoritos v230.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -286,10 +286,10 @@ export default function FavoritosScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation]);
 
-  // ✅ CRITICAL v227.0: Instant client-side filtering with useMemo (no timers!)
+  // ✅ CRITICAL v230.0: Instant client-side filtering with useMemo (no timers!)
   const filteredLocales = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    console.log('[Favoritos v227.0] 🔍 Filtering locales instantly, search:', query);
+    console.log('[Favoritos v230.0] 🔍 Filtering locales instantly, search:', query);
     let filtered = [...allSavedLocales];
 
     if (query) {
@@ -322,17 +322,17 @@ export default function FavoritosScreen() {
       filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
     }
 
-    console.log('[Favoritos v227.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
+    console.log('[Favoritos v230.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
     return filtered;
-  }, [searchQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]); // ✅ Depends directly on searchQuery state
+  }, [searchQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
-  // ✅ CRITICAL v227.0: Update displayed locales with pagination
+  // ✅ CRITICAL v230.0: Update displayed locales with pagination
   useEffect(() => {
     const firstPage = filteredLocales.slice(0, currentPage * ITEMS_PER_PAGE);
     setDisplayedLocales(firstPage);
     setHasMore(filteredLocales.length > firstPage.length);
     
-    console.log('[Favoritos v227.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
+    console.log('[Favoritos v230.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
   }, [filteredLocales, currentPage]);
 
   const loadMoreLocales = useCallback(() => {
@@ -345,12 +345,12 @@ export default function FavoritosScreen() {
       setCurrentPage(nextPage);
       setLoadingMore(false);
       
-      console.log('[Favoritos v227.0] Cargando más locales, página:', nextPage);
+      console.log('[Favoritos v230.0] Cargando más locales, página:', nextPage);
     }, 300);
   }, [currentPage, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v227.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v230.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -361,7 +361,7 @@ export default function FavoritosScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v227.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v230.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -382,18 +382,18 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v227.0] User not authenticated');
+      console.log('[Favoritos v230.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v227.0] No local ID');
+      console.log('[Favoritos v230.0] No local ID');
       return;
     }
 
     try {
-      console.log('[Favoritos v227.0] Removing from favorites. User:', user.id, 'Local:', localId);
+      console.log('[Favoritos v230.0] Removing from favorites. User:', user.id, 'Local:', localId);
       
       const { error } = await supabase
         .from('locales_guardados')
@@ -402,16 +402,16 @@ export default function FavoritosScreen() {
         .eq('local_id', localId);
 
       if (error) {
-        console.error('[Favoritos v227.0] Error removing favorite:', error);
+        console.error('[Favoritos v230.0] Error removing favorite:', error);
         Alert.alert('Error', 'No se pudo quitar de favoritos');
         return;
       }
       
-      console.log('[Favoritos v227.0] ✅ Removed from favorites');
+      console.log('[Favoritos v230.0] ✅ Removed from favorites');
       
       await loadSavedLocales();
     } catch (error) {
-      console.error('[Favoritos v227.0] Error removing favorito:', error);
+      console.error('[Favoritos v230.0] Error removing favorito:', error);
       Alert.alert('Error', 'No se pudo eliminar de favoritos');
     }
   };
@@ -777,7 +777,7 @@ export default function FavoritosScreen() {
         )}
       </View>
       
-      {/* ✅ CRITICAL v227.0: Search bar - Controlled TextInput with instant updates, keyboard persists */}
+      {/* ✅ CRITICAL v230.0: Search bar - FINAL FIX with keyboardDismissMode="none" */}
       <View style={[styles.searchContainer, { 
         height: searchBoxHeight,
         paddingVertical: Platform.OS === 'android' ? 10 : 10,
@@ -789,6 +789,7 @@ export default function FavoritosScreen() {
           color={colors.textSecondary}
         />
         <TextInput
+          key="search-input-favoritos-v230-final"
           ref={searchInputRef}
           style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
           placeholder="Buscar en favoritos..."
@@ -797,6 +798,7 @@ export default function FavoritosScreen() {
           onChangeText={handleSearchChange}
           autoCapitalize="none"
           autoCorrect={false}
+          autoFocus={false}
           returnKeyType="search"
           blurOnSubmit={false}
           enablesReturnKeyAutomatically={false}
@@ -804,7 +806,7 @@ export default function FavoritosScreen() {
         {searchQuery.length > 0 && (
           <TouchableOpacity 
             onPress={() => {
-              console.log('[Favoritos v227.0] 🧹 Clearing search');
+              console.log('[Favoritos v230.0] 🧹 Clearing search');
               setSearchQuery('');
               // Keep focus on input after clearing
               setTimeout(() => {
@@ -841,7 +843,7 @@ export default function FavoritosScreen() {
         showsHorizontalScrollIndicator={false}
         style={styles.categoriesScroll}
         contentContainerStyle={styles.categoriesContent}
-        keyboardShouldPersistTaps="always"
+        keyboardShouldPersistTaps="handled"
       >
         {CATEGORIAS.map((categoria) => (
           <TouchableOpacity
@@ -928,7 +930,7 @@ export default function FavoritosScreen() {
         </LinearGradient>
       )}
 
-      {/* ✅ CRITICAL v227.0: FlatList with keyboardShouldPersistTaps="always" to keep keyboard visible */}
+      {/* ✅ CRITICAL v230.0: FlatList WITHOUT keyboardShouldPersistTaps, WITH keyboardDismissMode="none" */}
       <ListComponent
         data={displayedLocales}
         renderItem={renderLocalCard}
@@ -953,7 +955,7 @@ export default function FavoritosScreen() {
         windowSize={5}
         onScroll={Platform.OS === 'android' ? handleScroll : undefined}
         scrollEventThrottle={16}
-        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="none"
       />
 
       <Modal
@@ -978,7 +980,7 @@ export default function FavoritosScreen() {
               style={styles.modalScrollView}
               showsVerticalScrollIndicator={true}
               bounces={false}
-              keyboardShouldPersistTaps="always"
+              keyboardShouldPersistTaps="handled"
             >
               <View style={styles.filterSection}>
                 <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Categoría de Local</Text>
