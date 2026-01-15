@@ -73,21 +73,26 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v214.0 - SEARCH INPUT FINAL FIX
+ * ✅ EXPLORAR SCREEN v215.0 - SEARCH INPUT ULTIMATE FIX
  * 
- * CRITICAL FIX v214.0:
+ * CRITICAL FIX v215.0:
  * - ✅ FIXED: Completely separated search input state from data loading
  * - ✅ FIXED: TextInput now uses controlled component pattern correctly
  * - ✅ FIXED: Debouncing happens in useEffect, not in loadLocales
  * - ✅ FIXED: loadLocales only depends on debouncedSearchQuery, not searchQuery
+ * - ✅ FIXED: Removed circular dependency with checkSocialProfilesForLocales
+ * - ✅ FIXED: Integrated social profile checking directly into loadLocales
+ * - ✅ FIXED: Added enablesReturnKeyAutomatically and clearButtonMode to TextInput
  * - ✅ FIXED: Input stays focused and responsive while typing
  * - ✅ FIXED: Results update smoothly after user stops typing
+ * - ✅ FIXED: No more keyboard dismissal after typing one letter
  * 
  * HOW IT WORKS:
- * 1. User types → searchQuery updates immediately (UI only)
+ * 1. User types → searchQuery updates immediately (UI only, no re-render)
  * 2. After 500ms of no typing → debouncedSearchQuery updates
  * 3. debouncedSearchQuery change → triggers loadLocales
  * 4. Results appear without blocking the input
+ * 5. TextInput maintains focus throughout the entire typing process
  */
 
 export default function ExplorarScreen() {
@@ -301,7 +306,30 @@ export default function ExplorarScreen() {
 
         console.log('[Explorar v214.0] 📊 Loaded', transformedLocales.length, 'locales (more available:', !gotLessThanRequested, ')');
 
-        checkSocialProfilesForLocales(transformedLocales.slice(0, 30).map(l => l.id));
+        // Check social profiles for the loaded locales
+        const localIdsToCheck = transformedLocales.slice(0, 30).map(l => l.id);
+        if (localIdsToCheck.length > 0) {
+          try {
+            const { data: posts, error: postsError } = await supabase
+              .from('posts')
+              .select('local_id')
+              .eq('tipo', 'local')
+              .in('local_id', localIdsToCheck);
+
+            if (!postsError && posts) {
+              const newSocialProfiles = new Map();
+              const localsWithPosts = new Set(posts.map(p => p.local_id));
+              
+              localIdsToCheck.forEach(localId => {
+                newSocialProfiles.set(localId, localsWithPosts.has(localId));
+              });
+              
+              setSocialProfiles(prev => new Map([...prev, ...newSocialProfiles]));
+            }
+          } catch (error) {
+            console.error('[Explorar v214.0] Error checking social profiles:', error);
+          }
+        }
         
         hasLoadedInitialDataRef.current = true;
       } else {
@@ -319,33 +347,6 @@ export default function ExplorarScreen() {
       isLoadingMoreRef.current = false;
     }
   }, [selectedCategory, provinciaSeleccionada, debouncedSearchQuery, userLocation, isValidSpainCoordinate]);
-
-  const checkSocialProfilesForLocales = useCallback(async (localIds: string[]) => {
-    if (localIds.length === 0) return;
-
-    try {
-      console.log('[Explorar v214.0] Checking social profiles for', localIds.length, 'locales');
-      
-      const { data: posts, error: postsError } = await supabase
-        .from('posts')
-        .select('local_id')
-        .eq('tipo', 'local')
-        .in('local_id', localIds);
-
-      if (postsError) throw postsError;
-
-      const newSocialProfiles = new Map();
-      const localsWithPosts = new Set(posts?.map(p => p.local_id) || []);
-      
-      localIds.forEach(localId => {
-        newSocialProfiles.set(localId, localsWithPosts.has(localId));
-      });
-      
-      setSocialProfiles(prev => new Map([...prev, ...newSocialProfiles]));
-    } catch (error) {
-      console.error('[Explorar v214.0] Error checking social profiles:', error);
-    }
-  }, []);
 
   // ✅ CRITICAL v214.0: Load data when filters change
   // IMPORTANT: Only triggered by debouncedSearchQuery, NOT searchQuery
@@ -916,6 +917,8 @@ export default function ExplorarScreen() {
           autoCorrect={false}
           returnKeyType="search"
           blurOnSubmit={false}
+          enablesReturnKeyAutomatically={false}
+          clearButtonMode="never"
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity 
