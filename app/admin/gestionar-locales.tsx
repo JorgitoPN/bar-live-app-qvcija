@@ -745,6 +745,7 @@ export default function GestionarLocalesScreen() {
       <View style={styles.searchContainer}>
         <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
         <TextInput
+          key="search-input-gestionar-locales"
           ref={searchInputRef}
           style={styles.searchInput}
           placeholder="Buscar por nombre o dirección..."
@@ -1096,6 +1097,7 @@ export default function GestionarLocalesScreen() {
               <View style={styles.searchContainer}>
                 <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
                 <TextInput
+                  key="search-input-usuario-gestionar-locales"
                   ref={searchUsuarioInputRef}
                   style={styles.searchInput}
                   placeholder="Buscar usuario por nombre o email..."

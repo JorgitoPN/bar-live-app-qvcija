@@ -1037,6 +1037,7 @@ export default function GestionarPlanesV7Screen() {
                     color={colors.textSecondary} 
                   />
                   <TextInput
+                    key="search-input-gestionar-planes"
                     ref={searchInputRef}
                     style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
                     value={searchQuery}
