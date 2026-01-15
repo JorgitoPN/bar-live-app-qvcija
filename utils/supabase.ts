@@ -2,12 +2,16 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+// Use environment variables with fallback to hardcoded values
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI';
 
 if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('[Supabase] Missing configuration');
   throw new Error('Missing Supabase environment variables');
 }
+
+console.log('[Supabase] Initializing client...');
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -16,7 +20,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: false,
   },
-  // ✅ FIXED: Habilitar logging detallado para real-time debugging
   realtime: {
     params: {
       log_level: 'info',

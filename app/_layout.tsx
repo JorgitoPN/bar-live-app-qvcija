@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Component, ReactNode } from 'react';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AvatarProvider } from '@/contexts/AvatarContext';
@@ -7,15 +7,64 @@ import { ModeProvider } from '@/contexts/ModeContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
-import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
 import { PostsProvider } from '@/contexts/PostsContext';
 import { FilterProvider } from '@/contexts/FilterContext';
 import { colors } from '@/styles/commonStyles';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform } from 'react-native';
+import { Platform, View, Text, TouchableOpacity } from 'react-native';
 import { initializeAndroidBehavior } from '@/utils/androidNativeBehavior';
+
+// Error Boundary Component
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('[ErrorBoundary] App crashed:', error);
+    console.error('[ErrorBoundary] Error info:', errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, padding: 20 }}>
+          <Text style={{ color: colors.text, fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>
+            Oops! Algo salió mal
+          </Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 16, textAlign: 'center', marginBottom: 24 }}>
+            La aplicación encontró un error inesperado.
+          </Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginBottom: 24, fontFamily: 'monospace' }}>
+            {this.state.error?.message || 'Error desconocido'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              this.setState({ hasError: false, error: null });
+            }}
+            style={{ backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
+              Reintentar
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Prevent auto-hiding splash screen
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -23,21 +72,23 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 /**
- * ROOT LAYOUT v140.0 - AVATAR CONTEXT INTEGRATION
+ * ROOT LAYOUT v141.0 - FIXED MISSING IMPORT
  * 
- * CRITICAL FIX v140.0:
- * - ✅ Added AvatarProvider for persistent miniavatar state
- * - ✅ Avatar state now persists across all page navigations
- * - ✅ Single source of truth for avatar URL
+ * CRITICAL FIX v141.0:
+ * - ✅ Removed ImpersonationProvider import (file doesn't exist)
+ * - ✅ App now loads correctly without crashing
  */
 
 export default function RootLayout() {
   useEffect(() => {
+    console.log('[RootLayout v141.0] 🚀 App starting...');
+    console.log('[RootLayout v141.0] 📱 Platform:', Platform.OS);
+    
     // ✅ CRITICAL FIX v25.0: Initialize Android-specific behavior
     let cleanupAndroid: (() => void) | undefined;
     
     if (Platform.OS === 'android') {
-      console.log('[RootLayout v140.0] 🤖 Initializing Android native behavior...');
+      console.log('[RootLayout v141.0] 🤖 Initializing Android native behavior...');
       try {
         cleanupAndroid = initializeAndroidBehavior();
       } catch (error) {
@@ -47,9 +98,14 @@ export default function RootLayout() {
 
     // Hide splash screen
     const timer = setTimeout(() => {
-      SplashScreen.hideAsync().catch(() => {
-        console.log('[RootLayout] Error hiding splash screen');
-      });
+      console.log('[RootLayout v141.0] 🎨 Hiding splash screen...');
+      SplashScreen.hideAsync()
+        .then(() => {
+          console.log('[RootLayout v141.0] ✅ Splash screen hidden');
+        })
+        .catch((error) => {
+          console.error('[RootLayout] Error hiding splash screen:', error);
+        });
     }, 100);
 
     // Cleanup function
@@ -66,10 +122,10 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <AvatarProvider>
-          <ImpersonationProvider>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <AuthProvider>
+          <AvatarProvider>
             <ModeProvider>
               <SelectedLocalProvider>
                 <GlobalDataProvider>
@@ -109,9 +165,9 @@ export default function RootLayout() {
                 </GlobalDataProvider>
               </SelectedLocalProvider>
             </ModeProvider>
-          </ImpersonationProvider>
-        </AvatarProvider>
-      </AuthProvider>
-    </GestureHandlerRootView>
+          </AvatarProvider>
+        </AuthProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
