@@ -44,7 +44,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 
-// ✅ CRITICAL PERFORMANCE FIX v223.0: Fixed search on native - keyboard stays visible
+// ✅ CRITICAL PERFORMANCE FIX v224.0: FINAL FIX - TextInput focus maintained
 const ITEMS_PER_PAGE = 20;
 
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 260 : 360;
@@ -73,20 +73,20 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v223.0 - FINAL SEARCH FIX FOR NATIVE
+ * ✅ EXPLORAR SCREEN v224.0 - FINAL SEARCH FIX FOR NATIVE
  * 
- * CRITICAL FIX v223.0:
- * - ✅ FIXED: Keyboard now stays visible while typing on iOS and Android
+ * CRITICAL FIX v224.0:
+ * - ✅ FIXED: TextInput now uses useRef to store value instead of state
+ * - ✅ FIXED: No re-renders when typing - component stays stable
+ * - ✅ FIXED: Keyboard stays visible throughout typing
  * - ✅ FIXED: Users can type complete words without interruption
- * - ✅ FIXED: TextInput maintains focus throughout typing
- * - ✅ FIXED: No component re-renders interrupt the typing experience
- * - ✅ FIXED: Added keyboardShouldPersistTaps to FlatList
+ * - ✅ FIXED: Filtering happens on a timer, not on every keystroke
  * 
  * HOW IT WORKS NOW:
- * 1. TextInput uses a stable ref and key to prevent recreation
- * 2. handleSearchChange is wrapped in useCallback with empty deps
- * 3. FlatList has keyboardShouldPersistTaps="handled" to keep keyboard open
- * 4. Client-side filtering prevents unnecessary re-renders
+ * 1. TextInput value is stored in a ref (searchQueryRef) - no re-renders
+ * 2. Filtering happens after 300ms of no typing (debounced)
+ * 3. Component doesn't re-render while user is typing
+ * 4. FlatList has keyboardShouldPersistTaps="handled" to keep keyboard open
  */
 
 export default function ExplorarScreen() {
@@ -101,8 +101,9 @@ export default function ExplorarScreen() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
-  // ✅ CRITICAL v223.0: Single state for search query
-  const [searchQuery, setSearchQuery] = useState('');
+  // ✅ CRITICAL v224.0: Use ref for search query to prevent re-renders
+  const searchQueryRef = useRef('');
+  const [filterTrigger, setFilterTrigger] = useState(0); // Trigger filtering without re-rendering input
   
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -123,22 +124,40 @@ export default function ExplorarScreen() {
   const lastFiltersRef = useRef<string>('');
   const hasLoadedInitialDataRef = useRef(false);
   
-  // ✅ CRITICAL v223.0: Stable ref for TextInput to prevent focus loss
+  // ✅ CRITICAL v224.0: Stable ref for TextInput to prevent recreation
   const searchInputRef = useRef<TextInput>(null);
+  const filterTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ✅ CRITICAL v223.0: Stable callback with EMPTY dependencies array
+  // ✅ CRITICAL v224.0: Handle text change without causing re-renders
   const handleSearchChange = useCallback((text: string) => {
-    console.log('[Explorar v223.0] 📝 User typing (immediate):', text);
-    setSearchQuery(text);
-  }, []); // ✅ EMPTY DEPS - prevents recreation
-
-  // ✅ CRITICAL v223.0: Stable callback for clearing search
-  const handleClearSearch = useCallback(() => {
-    console.log('[Explorar v223.0] 🧹 Clearing search');
-    setSearchQuery('');
+    console.log('[Explorar v224.0] 📝 User typing (no re-render):', text);
+    
+    // Store in ref - doesn't cause re-render
+    searchQueryRef.current = text;
+    
+    // Clear existing timer
+    if (filterTimerRef.current) {
+      clearTimeout(filterTimerRef.current);
+    }
+    
+    // Set new timer to trigger filtering after 300ms
+    filterTimerRef.current = setTimeout(() => {
+      console.log('[Explorar v224.0] 🔍 Triggering filter after typing pause');
+      setFilterTrigger(prev => prev + 1); // Trigger filtering
+    }, 300);
   }, []);
 
-  // ✅ CRITICAL FIX v223.0: Validate coordinates are within Spain
+  // ✅ CRITICAL v224.0: Clear search without losing focus
+  const handleClearSearch = useCallback(() => {
+    console.log('[Explorar v224.0] 🧹 Clearing search');
+    searchQueryRef.current = '';
+    if (searchInputRef.current) {
+      searchInputRef.current.clear();
+    }
+    setFilterTrigger(prev => prev + 1);
+  }, []);
+
+  // ✅ CRITICAL FIX v224.0: Validate coordinates are within Spain
   const isValidSpainCoordinate = useCallback((lat: number, lng: number): boolean => {
     const MIN_LAT = 27.0;
     const MAX_LAT = 44.0;
@@ -148,26 +167,26 @@ export default function ExplorarScreen() {
     const isValid = lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
     
     if (!isValid) {
-      console.warn('[Explorar v223.0] ⚠️ Invalid coordinates detected:', { lat, lng });
+      console.warn('[Explorar v224.0] ⚠️ Invalid coordinates detected:', { lat, lng });
     }
     
     return isValid;
   }, []);
 
-  // ✅ CRITICAL v223.0: Get location in background (non-blocking)
+  // ✅ CRITICAL v224.0: Get location in background (non-blocking)
   useEffect(() => {
     (async () => {
       try {
-        console.log('[Explorar v223.0] 📍 Requesting location permission (background)...');
+        console.log('[Explorar v224.0] 📍 Requesting location permission (background)...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         
         if (status !== 'granted') {
-          console.log('[Explorar v223.0] ⚠️ Location permission denied');
+          console.log('[Explorar v224.0] ⚠️ Location permission denied');
           setLocationError('Permiso de ubicación denegado. Las distancias no estarán disponibles.');
           return;
         }
 
-        console.log('[Explorar v223.0] 📍 Getting current position (background)...');
+        console.log('[Explorar v224.0] 📍 Getting current position (background)...');
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
@@ -175,10 +194,10 @@ export default function ExplorarScreen() {
         const lat = location.coords.latitude;
         const lng = location.coords.longitude;
         
-        console.log('[Explorar v223.0] 📍 Location obtained:', { lat, lng });
+        console.log('[Explorar v224.0] 📍 Location obtained:', { lat, lng });
         
         if (!isValidSpainCoordinate(lat, lng)) {
-          console.error('[Explorar v223.0] ❌ Location outside Spain bounds!');
+          console.error('[Explorar v224.0] ❌ Location outside Spain bounds!');
           setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
           setUserLocation(null);
           return;
@@ -186,22 +205,22 @@ export default function ExplorarScreen() {
         
         setUserLocation({ lat, lng });
         setLocationError(null);
-        console.log('[Explorar v223.0] ✅ Valid location set:', { lat, lng });
+        console.log('[Explorar v224.0] ✅ Valid location set:', { lat, lng });
         
       } catch (error: any) {
-        console.error('[Explorar v223.0] ❌ Error getting location:', error);
+        console.error('[Explorar v224.0] ❌ Error getting location:', error);
         setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
         setUserLocation(null);
       }
     })();
   }, [isValidSpainCoordinate]);
 
-  // ✅ CRITICAL v223.0: Load data from server (only triggered by category/province changes)
+  // ✅ CRITICAL v224.0: Load data from server (only triggered by category/province changes)
   const loadLocales = useCallback(async (page: number = 1, append: boolean = false) => {
-    console.log('[Explorar v223.0] 🚀 loadLocales called - page:', page, 'append:', append);
+    console.log('[Explorar v224.0] 🚀 loadLocales called - page:', page, 'append:', append);
     
     if (isLoadingMoreRef.current && append) {
-      console.log('[Explorar v223.0] Already loading more, skipping...');
+      console.log('[Explorar v224.0] Already loading more, skipping...');
       return;
     }
 
@@ -209,7 +228,7 @@ export default function ExplorarScreen() {
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
     if (filtersChanged) {
-      console.log('[Explorar v223.0] 🔄 Filters changed, resetting...');
+      console.log('[Explorar v224.0] 🔄 Filters changed, resetting...');
       lastFiltersRef.current = filtersKey;
       setCurrentPage(1);
       setAllLoadedLocales([]);
@@ -223,13 +242,13 @@ export default function ExplorarScreen() {
       isLoadingMoreRef.current = true;
     } else {
       if (!hasLoadedInitialDataRef.current) {
-        console.log('[Explorar v223.0] ⚡ First load - showing skeleton UI');
+        console.log('[Explorar v224.0] ⚡ First load - showing skeleton UI');
         setInitialLoading(true);
       }
     }
 
     try {
-      console.log('[Explorar v223.0] 📡 Loading page', page, 'from server...');
+      console.log('[Explorar v224.0] 📡 Loading page', page, 'from server...');
       
       const hasValidLocation = userLocation && isValidSpainCoordinate(userLocation.lat, userLocation.lng);
       
@@ -237,7 +256,7 @@ export default function ExplorarScreen() {
         ? { user_lat: userLocation.lat, user_lng: userLocation.lng }
         : { user_lat: null, user_lng: null };
       
-      console.log('[Explorar v223.0] 📍 Using location params:', locationParams);
+      console.log('[Explorar v224.0] 📍 Using location params:', locationParams);
       
       const offset = (page - 1) * ITEMS_PER_PAGE;
       const { data, error } = await supabase.rpc('get_locales_paginados', {
@@ -247,11 +266,11 @@ export default function ExplorarScreen() {
       });
 
       if (error) {
-        console.error('[Explorar v223.0] Error loading locales:', error);
+        console.error('[Explorar v224.0] Error loading locales:', error);
         throw error;
       }
 
-      console.log('[Explorar v223.0] ✅ Loaded', data?.length || 0, 'locales from server');
+      console.log('[Explorar v224.0] ✅ Loaded', data?.length || 0, 'locales from server');
 
       if (data && data.length > 0) {
         const transformedLocales = data.map((local: any) => {
@@ -260,7 +279,7 @@ export default function ExplorarScreen() {
             distanciaKm = local.distancia_metros / 1000;
             
             if (distanciaKm > 1000) {
-              console.warn('[Explorar v223.0] ⚠️ Suspicious distance:', {
+              console.warn('[Explorar v224.0] ⚠️ Suspicious distance:', {
                 local: local.nombre,
                 distancia_km: distanciaKm,
               });
@@ -270,7 +289,7 @@ export default function ExplorarScreen() {
           const estaAbierto = local.is_open_now;
           const tieneHorarios = local.has_schedule_info;
           
-          console.log(`[Explorar v223.0] ${local.nombre}: is_open_now=${estaAbierto}, has_schedule=${tieneHorarios}`);
+          console.log(`[Explorar v224.0] ${local.nombre}: is_open_now=${estaAbierto}, has_schedule=${tieneHorarios}`);
           
           return {
             ...local,
@@ -296,7 +315,7 @@ export default function ExplorarScreen() {
         setHasMore(!gotLessThanRequested);
         setCurrentPage(page);
 
-        console.log('[Explorar v223.0] 📊 Loaded', transformedLocales.length, 'locales (more available:', !gotLessThanRequested, ')');
+        console.log('[Explorar v224.0] 📊 Loaded', transformedLocales.length, 'locales (more available:', !gotLessThanRequested, ')');
 
         // Check social profiles for the loaded locales
         const localIdsToCheck = transformedLocales.slice(0, 30).map(l => l.id);
@@ -319,7 +338,7 @@ export default function ExplorarScreen() {
               setSocialProfiles(prev => new Map([...prev, ...newSocialProfiles]));
             }
           } catch (error) {
-            console.error('[Explorar v223.0] Error checking social profiles:', error);
+            console.error('[Explorar v224.0] Error checking social profiles:', error);
           }
         }
         
@@ -331,7 +350,7 @@ export default function ExplorarScreen() {
         }
       }
     } catch (error) {
-      console.error('[Explorar v223.0] Error loading locales:', error);
+      console.error('[Explorar v224.0] Error loading locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
     } finally {
       setLoading(false);
@@ -340,15 +359,15 @@ export default function ExplorarScreen() {
     }
   }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada]);
 
-  // ✅ CRITICAL v223.0: Client-side filtering (no server calls on search)
+  // ✅ CRITICAL v224.0: Client-side filtering (triggered by filterTrigger, not searchQuery)
   const filteredLocales = useMemo(() => {
-    console.log('[Explorar v223.0] 🔍 Filtering locales client-side, search:', searchQuery);
+    const query = searchQueryRef.current.toLowerCase().trim();
+    console.log('[Explorar v224.0] 🔍 Filtering locales client-side, search:', query);
     
-    if (!searchQuery.trim()) {
+    if (!query) {
       return allLoadedLocales;
     }
 
-    const query = searchQuery.toLowerCase().trim();
     const filtered = allLoadedLocales.filter(local => {
       const nombre = local.nombre?.toLowerCase() || '';
       const direccion = local.direccion?.toLowerCase() || '';
@@ -363,60 +382,68 @@ export default function ExplorarScreen() {
              barliveTypes.includes(query);
     });
 
-    console.log('[Explorar v223.0] ✅ Filtered', filtered.length, 'locales from', allLoadedLocales.length);
+    console.log('[Explorar v224.0] ✅ Filtered', filtered.length, 'locales from', allLoadedLocales.length);
     return filtered;
-  }, [allLoadedLocales, searchQuery]);
+  }, [allLoadedLocales, filterTrigger]); // ✅ Depends on filterTrigger, not searchQuery
 
-  // ✅ CRITICAL v223.0: Update displayed locales when filtered results change
+  // ✅ CRITICAL v224.0: Update displayed locales when filtered results change
   useEffect(() => {
     setDisplayedLocales(filteredLocales);
   }, [filteredLocales]);
 
-  // ✅ CRITICAL v223.0: Load data when category/province changes (NOT search)
+  // ✅ CRITICAL v224.0: Load data when category/province changes (NOT search)
   useEffect(() => {
-    console.log('[Explorar v223.0] 🚀 Category/Province changed - loading data');
+    console.log('[Explorar v224.0] 🚀 Category/Province changed - loading data');
     loadLocales(1, false);
   }, [selectedCategory, provinciaSeleccionada, loadLocales]);
 
-  // ✅ CRITICAL v223.0: Seamless infinite scroll
+  // ✅ CRITICAL v224.0: Seamless infinite scroll
   const loadMoreLocales = useCallback(() => {
     if (!hasMore || isLoadingMoreRef.current || loading) {
       return;
     }
 
-    console.log('[Explorar v223.0] 📥 Loading more locales...');
+    console.log('[Explorar v224.0] 📥 Loading more locales...');
     loadLocales(currentPage + 1, true);
   }, [hasMore, loading, currentPage, loadLocales]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v223.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v224.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
-    setSearchQuery('');
+    searchQueryRef.current = '';
+    if (searchInputRef.current) {
+      searchInputRef.current.clear();
+    }
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
     setCurrentPage(1);
     setAllLoadedLocales([]);
     setDisplayedLocales([]);
     setHasMore(true);
+    setFilterTrigger(prev => prev + 1);
     
     await loadLocales(1, false);
     setRefreshing(false);
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v223.0] 🧹 Clearing all filters');
-    setSearchQuery('');
+    console.log('[Explorar v224.0] 🧹 Clearing all filters');
+    searchQueryRef.current = '';
+    if (searchInputRef.current) {
+      searchInputRef.current.clear();
+    }
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
+    setFilterTrigger(prev => prev + 1);
   }, []);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (searchQuery.trim()) count++;
+    if (searchQueryRef.current.trim()) count++;
     if (selectedCategory !== 'todas') count++;
     if (provinciaSeleccionada !== 'Todas') count++;
     return count;
-  }, [searchQuery, selectedCategory, provinciaSeleccionada]);
+  }, [selectedCategory, provinciaSeleccionada, filterTrigger]);
 
   const toggleFavorito = async (localId: string, e?: any) => {
     if (e) {
@@ -424,13 +451,13 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v223.0] User not authenticated');
+      console.log('[Explorar v224.0] User not authenticated');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v223.0] No local ID');
+      console.log('[Explorar v224.0] No local ID');
       return;
     }
 
@@ -443,7 +470,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v223.0] Removing from favorites');
+        console.log('[Explorar v224.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -452,7 +479,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v223.0] Adding to favorites');
+        console.log('[Explorar v224.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -463,7 +490,7 @@ export default function ExplorarScreen() {
         if (error) throw error;
       }
     } catch (error) {
-      console.error('[Explorar v223.0] Error toggling favorito:', error);
+      console.error('[Explorar v224.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
@@ -506,11 +533,11 @@ export default function ExplorarScreen() {
 
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
-      console.log('[Explorar v223.0] Changing mode to:', newMode);
+      console.log('[Explorar v224.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v223.0] Error changing mode:', error);
+      console.error('[Explorar v224.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
@@ -539,7 +566,7 @@ export default function ExplorarScreen() {
     scrollY.current = currentScrollY;
   }, [headerTranslateY]);
 
-  // ✅ NEW v223.0: Skeleton card for loading state
+  // ✅ NEW v224.0: Skeleton card for loading state
   const renderSkeletonCard = useCallback(() => {
     return (
       <View style={styles.card}>
@@ -915,7 +942,7 @@ export default function ExplorarScreen() {
           </View>
         )}
       
-      {/* ✅ CRITICAL v223.0: Search bar with filter icon properly aligned inside */}
+      {/* ✅ CRITICAL v224.0: Search bar - TextInput value controlled by ref, not state */}
       <View style={[styles.searchContainer, { 
         height: searchBoxHeight,
         paddingVertical: Platform.OS === 'android' ? 10 : 10,
@@ -931,16 +958,15 @@ export default function ExplorarScreen() {
           style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
           placeholder="Buscar locales..."
           placeholderTextColor={colors.textSecondary}
-          value={searchQuery}
+          defaultValue={searchQueryRef.current}
           onChangeText={handleSearchChange}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
           blurOnSubmit={false}
           enablesReturnKeyAutomatically={false}
-          clearButtonMode="never"
         />
-        {searchQuery.length > 0 && (
+        {searchQueryRef.current.length > 0 && (
           <TouchableOpacity 
             onPress={handleClearSearch}
             style={styles.clearButton}
