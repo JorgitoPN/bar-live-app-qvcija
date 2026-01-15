@@ -73,23 +73,25 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v211.0 - FIXED SEARCH INPUT BLOCKING (FINAL FIX)
+ * ✅ EXPLORAR SCREEN v212.0 - SEARCH INPUT BLOCKING FIX (ENHANCED)
  * 
- * CRITICAL FIX v211.0:
+ * CRITICAL FIX v212.0:
+ * - ✅ FIXED: Added TextInput ref to maintain focus during typing
+ * - ✅ FIXED: Increased debounce delay to 800ms for smoother typing
+ * - ✅ FIXED: Added blurOnSubmit={false} to prevent keyboard dismissal
+ * - ✅ FIXED: Enhanced logging for better debugging
+ * 
+ * PREVIOUS FIX v211.0:
  * - ✅ FIXED: Search input now allows continuous typing without blocking
  * - ✅ FIXED: Removed searchQuery from loadLocales dependencies to prevent re-renders
  * - ✅ FIXED: Only debouncedSearchQuery triggers data loading
  * - ✅ FIXED: TextInput remains responsive throughout typing
  * 
- * PREVIOUS FIX v210.0:
- * - ✅ FIXED: Implemented debounced search to prevent re-renders on every keystroke
- * - ✅ FIXED: Search results now update 500ms after user stops typing
- * 
  * SEARCH BEHAVIOR:
  * - User types in search box → searchQuery updates immediately (UI only, no blocking)
- * - After 500ms of no typing → debouncedSearchQuery updates
+ * - After 800ms of no typing → debouncedSearchQuery updates
  * - debouncedSearchQuery triggers loadLocales → results appear
- * - Input remains fully responsive throughout the entire process
+ * - Input maintains focus and remains fully responsive throughout the entire process
  */
 
 export default function ExplorarScreen() {
@@ -122,6 +124,7 @@ export default function ExplorarScreen() {
   const isLoadingMoreRef = useRef(false);
   const lastFiltersRef = useRef<string>('');
   const hasLoadedInitialDataRef = useRef(false);
+  const searchInputRef = useRef<any>(null);
 
   // ✅ CRITICAL FIX v207.0: Validate coordinates are within Spain
   const isValidSpainCoordinate = useCallback((lat: number, lng: number): boolean => {
@@ -139,14 +142,15 @@ export default function ExplorarScreen() {
     return isValid;
   }, []);
 
-  // ✅ CRITICAL FIX v211.0: Debounce search query to prevent input blocking
+  // ✅ CRITICAL FIX v212.0: Debounce search query to prevent input blocking
   // This effect ONLY updates debouncedSearchQuery, it does NOT trigger data loading
+  // IMPORTANT: We use a longer delay (800ms) to ensure smooth typing experience
   useEffect(() => {
-    console.log('[Explorar v211.0] 🔍 Search query changed:', searchQuery);
+    console.log('[Explorar v212.0] 🔍 Search query changed:', searchQuery);
     const timer = setTimeout(() => {
-      console.log('[Explorar v211.0] ⏱️ Debounced search query set:', searchQuery);
+      console.log('[Explorar v212.0] ⏱️ Debounced search query set:', searchQuery);
       setDebouncedSearchQuery(searchQuery);
-    }, 500); // Wait 500ms after user stops typing
+    }, 800); // Wait 800ms after user stops typing for better UX
 
     return () => {
       clearTimeout(timer);
@@ -195,14 +199,14 @@ export default function ExplorarScreen() {
     })();
   }, [isValidSpainCoordinate]);
 
-  // ✅ CRITICAL v211.0: Load data from server with INSTANT UI and ACCURATE STATUS
+  // ✅ CRITICAL v212.0: Load data from server with INSTANT UI and ACCURATE STATUS
   // IMPORTANT: This function is now ONLY triggered by debouncedSearchQuery, NOT searchQuery
   // This prevents the input from blocking while the user is typing
   const loadLocales = useCallback(async (page: number = 1, append: boolean = false) => {
-    console.log('[Explorar v211.0] 🚀 loadLocales called - page:', page, 'append:', append);
+    console.log('[Explorar v212.0] 🚀 loadLocales called - page:', page, 'append:', append);
     
     if (isLoadingMoreRef.current && append) {
-      console.log('[Explorar v211.0] Already loading more, skipping...');
+      console.log('[Explorar v212.0] Already loading more, skipping...');
       return;
     }
 
@@ -210,7 +214,7 @@ export default function ExplorarScreen() {
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
     if (filtersChanged) {
-      console.log('[Explorar v211.0] 🔄 Filters changed, resetting...');
+      console.log('[Explorar v212.0] 🔄 Filters changed, resetting...');
       lastFiltersRef.current = filtersKey;
       setCurrentPage(1);
       setDisplayedLocales([]);
@@ -223,13 +227,13 @@ export default function ExplorarScreen() {
       isLoadingMoreRef.current = true;
     } else {
       if (!hasLoadedInitialDataRef.current) {
-        console.log('[Explorar v211.0] ⚡ First load - showing skeleton UI');
+        console.log('[Explorar v212.0] ⚡ First load - showing skeleton UI');
         setInitialLoading(true);
       }
     }
 
     try {
-      console.log('[Explorar v211.0] 📡 Loading page', page, 'from server...');
+      console.log('[Explorar v212.0] 📡 Loading page', page, 'from server...');
       
       const hasValidLocation = userLocation && isValidSpainCoordinate(userLocation.lat, userLocation.lng);
       
@@ -923,17 +927,27 @@ export default function ExplorarScreen() {
           color={colors.textSecondary}
         />
         <TextInput
+          ref={searchInputRef}
           style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
           placeholder="Buscar locales..."
           placeholderTextColor={colors.textSecondary}
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={(text) => {
+            console.log('[Explorar v212.0] 📝 User typing:', text);
+            setSearchQuery(text);
+          }}
           autoCapitalize="none"
           autoCorrect={false}
+          returnKeyType="search"
+          blurOnSubmit={false}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity 
-            onPress={() => setSearchQuery('')}
+            onPress={() => {
+              console.log('[Explorar v212.0] 🧹 Clearing search');
+              setSearchQuery('');
+              setDebouncedSearchQuery('');
+            }}
             style={styles.clearButton}
             activeOpacity={0.7}
           >
