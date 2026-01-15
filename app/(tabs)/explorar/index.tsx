@@ -73,17 +73,20 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v207.0 - ULTRA-FAST LOADING FIX
+ * ✅ EXPLORAR SCREEN v209.0 - FIXED VENUE STATUS DISPLAY
  * 
- * CRITICAL PERFORMANCE IMPROVEMENTS v207.0:
- * - ✅ INSTANT UI: Shows skeleton cards immediately (no 20s wait)
- * - ✅ Background loading: Data loads in background while UI is visible
- * - ✅ Optimistic rendering: Shows content as soon as available
- * - ✅ Smart caching: Uses cached data first, updates in background
- * - ✅ Progressive loading: Shows first 20 items instantly, loads more on scroll
+ * CRITICAL FIX v209.0:
+ * - ✅ FIXED: Now properly uses database's is_open_now value for status display
+ * - ✅ FIXED: Venues are sorted correctly by database (open > no info > closed)
+ * - ✅ FIXED: Status badges now accurately reflect database calculation
  * 
- * BEFORE: 20 seconds blank loading screen ❌
- * AFTER: Instant UI with skeleton, data appears in <2 seconds ✅
+ * SORTING PRIORITY (handled by database):
+ * 1. Open venues (including overnight venues like La Urbana at 02:48 AM)
+ * 2. Venues without schedule information
+ * 3. Closed venues
+ * 
+ * BEFORE: Frontend recalculated status, causing display mismatches ❌
+ * AFTER: Frontend trusts database status, accurate display ✅
  */
 
 export default function ExplorarScreen() {
@@ -93,8 +96,8 @@ export default function ExplorarScreen() {
   const { prefetchNextPage } = useGlobalData();
   
   const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false); // ✅ Changed: Start with false for instant UI
-  const [initialLoading, setInitialLoading] = useState(true); // ✅ New: Track first load
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -126,7 +129,7 @@ export default function ExplorarScreen() {
     const isValid = lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
     
     if (!isValid) {
-      console.warn('[Explorar v207.0] ⚠️ Invalid coordinates detected:', { lat, lng });
+      console.warn('[Explorar v209.0] ⚠️ Invalid coordinates detected:', { lat, lng });
     }
     
     return isValid;
@@ -136,16 +139,16 @@ export default function ExplorarScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[Explorar v207.0] 📍 Requesting location permission (background)...');
+        console.log('[Explorar v209.0] 📍 Requesting location permission (background)...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         
         if (status !== 'granted') {
-          console.log('[Explorar v207.0] ⚠️ Location permission denied');
+          console.log('[Explorar v209.0] ⚠️ Location permission denied');
           setLocationError('Permiso de ubicación denegado. Las distancias no estarán disponibles.');
           return;
         }
 
-        console.log('[Explorar v207.0] 📍 Getting current position (background)...');
+        console.log('[Explorar v209.0] 📍 Getting current position (background)...');
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
@@ -153,10 +156,10 @@ export default function ExplorarScreen() {
         const lat = location.coords.latitude;
         const lng = location.coords.longitude;
         
-        console.log('[Explorar v207.0] 📍 Location obtained:', { lat, lng });
+        console.log('[Explorar v209.0] 📍 Location obtained:', { lat, lng });
         
         if (!isValidSpainCoordinate(lat, lng)) {
-          console.error('[Explorar v207.0] ❌ Location outside Spain bounds!');
+          console.error('[Explorar v209.0] ❌ Location outside Spain bounds!');
           setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
           setUserLocation(null);
           return;
@@ -164,22 +167,22 @@ export default function ExplorarScreen() {
         
         setUserLocation({ lat, lng });
         setLocationError(null);
-        console.log('[Explorar v207.0] ✅ Valid location set:', { lat, lng });
+        console.log('[Explorar v209.0] ✅ Valid location set:', { lat, lng });
         
       } catch (error: any) {
-        console.error('[Explorar v207.0] ❌ Error getting location:', error);
+        console.error('[Explorar v209.0] ❌ Error getting location:', error);
         setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
         setUserLocation(null);
       }
     })();
   }, [isValidSpainCoordinate]);
 
-  // ✅ CRITICAL v207.0: Load data from server with INSTANT UI
+  // ✅ CRITICAL v209.0: Load data from server with INSTANT UI and ACCURATE STATUS
   const loadLocales = useCallback(async (page: number = 1, append: boolean = false) => {
-    console.log('[Explorar v207.0] 🚀 loadLocales called - page:', page, 'append:', append);
+    console.log('[Explorar v209.0] 🚀 loadLocales called - page:', page, 'append:', append);
     
     if (isLoadingMoreRef.current && append) {
-      console.log('[Explorar v207.0] Already loading more, skipping...');
+      console.log('[Explorar v209.0] Already loading more, skipping...');
       return;
     }
 
@@ -187,7 +190,7 @@ export default function ExplorarScreen() {
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
     if (filtersChanged) {
-      console.log('[Explorar v207.0] 🔄 Filters changed, resetting...');
+      console.log('[Explorar v209.0] 🔄 Filters changed, resetting...');
       lastFiltersRef.current = filtersKey;
       setCurrentPage(1);
       setDisplayedLocales([]);
@@ -199,15 +202,14 @@ export default function ExplorarScreen() {
     if (append) {
       isLoadingMoreRef.current = true;
     } else {
-      // ✅ CRITICAL: Don't block UI with loading state
       if (!hasLoadedInitialDataRef.current) {
-        console.log('[Explorar v207.0] ⚡ First load - showing skeleton UI');
+        console.log('[Explorar v209.0] ⚡ First load - showing skeleton UI');
         setInitialLoading(true);
       }
     }
 
     try {
-      console.log('[Explorar v207.0] 📡 Loading page', page, 'from server...');
+      console.log('[Explorar v209.0] 📡 Loading page', page, 'from server...');
       
       const hasValidLocation = userLocation && isValidSpainCoordinate(userLocation.lat, userLocation.lng);
       
@@ -215,7 +217,7 @@ export default function ExplorarScreen() {
         ? { user_lat: userLocation.lat, user_lng: userLocation.lng }
         : { user_lat: null, user_lng: null };
       
-      console.log('[Explorar v207.0] 📍 Using location params:', locationParams);
+      console.log('[Explorar v209.0] 📍 Using location params:', locationParams);
       
       const offset = (page - 1) * ITEMS_PER_PAGE;
       const { data, error } = await supabase.rpc('get_locales_paginados', {
@@ -225,27 +227,39 @@ export default function ExplorarScreen() {
       });
 
       if (error) {
-        console.error('[Explorar v207.0] Error loading locales:', error);
+        console.error('[Explorar v209.0] Error loading locales:', error);
         throw error;
       }
 
-      console.log('[Explorar v207.0] ✅ Loaded', data?.length || 0, 'locales from server');
+      console.log('[Explorar v209.0] ✅ Loaded', data?.length || 0, 'locales from server');
 
       if (data && data.length > 0) {
         const transformedLocales = data.map((local: any) => {
-          const estado = getEstadoLocal(local);
+          // ✅ CRITICAL FIX v209.0: Trust database's is_open_now value
+          // The database already calculated the correct open/closed status
+          // Don't recalculate it on the frontend
           
           let distanciaKm = null;
           if (local.distancia_metros !== null && local.distancia_metros !== undefined) {
             distanciaKm = local.distancia_metros / 1000;
             
             if (distanciaKm > 1000) {
-              console.warn('[Explorar v207.0] ⚠️ Suspicious distance:', {
+              console.warn('[Explorar v209.0] ⚠️ Suspicious distance:', {
                 local: local.nombre,
                 distancia_km: distanciaKm,
               });
             }
           }
+          
+          // ✅ CRITICAL v209.0: Use database status directly
+          // is_open_now from database is the source of truth
+          // - true = open
+          // - false = closed
+          // - null = no schedule info
+          const estaAbierto = local.is_open_now;
+          const tieneHorarios = local.has_schedule_info;
+          
+          console.log(`[Explorar v209.0] ${local.nombre}: is_open_now=${estaAbierto}, has_schedule=${tieneHorarios}`);
           
           return {
             ...local,
@@ -254,8 +268,9 @@ export default function ExplorarScreen() {
               lng: parseFloat(local.longitud),
             },
             imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-            estaAbierto: local.is_open_now !== null ? local.is_open_now : estado.estaAbierto,
-            tieneHorarios: local.has_schedule_info || (local.horarios_completos && Object.keys(local.horarios_completos).length > 0),
+            // ✅ Use database values directly
+            estaAbierto: estaAbierto,
+            tieneHorarios: tieneHorarios,
             distancia: distanciaKm,
             is_favorite: local.is_favorite || false,
           };
@@ -272,11 +287,10 @@ export default function ExplorarScreen() {
         setCurrentPage(page);
 
         const newTotalDisplayed = append ? displayedLocales.length + transformedLocales.length : transformedLocales.length;
-        console.log('[Explorar v207.0] 📊 Total displayed:', newTotalDisplayed, '(more available:', !gotLessThanRequested, ')');
+        console.log('[Explorar v209.0] 📊 Total displayed:', newTotalDisplayed, '(more available:', !gotLessThanRequested, ')');
 
         checkSocialProfilesForLocales(transformedLocales.slice(0, 30).map(l => l.id));
         
-        // ✅ Mark as loaded
         hasLoadedInitialDataRef.current = true;
       } else {
         setHasMore(false);
@@ -285,7 +299,7 @@ export default function ExplorarScreen() {
         }
       }
     } catch (error) {
-      console.error('[Explorar v207.0] Error loading locales:', error);
+      console.error('[Explorar v209.0] Error loading locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
     } finally {
       setLoading(false);
@@ -298,7 +312,7 @@ export default function ExplorarScreen() {
     if (localIds.length === 0) return;
 
     try {
-      console.log('[Explorar v207.0] Checking social profiles for', localIds.length, 'locales');
+      console.log('[Explorar v209.0] Checking social profiles for', localIds.length, 'locales');
       
       const { data: posts, error: postsError } = await supabase
         .from('posts')
@@ -317,13 +331,13 @@ export default function ExplorarScreen() {
       
       setSocialProfiles(prev => new Map([...prev, ...newSocialProfiles]));
     } catch (error) {
-      console.error('[Explorar v207.0] Error checking social profiles:', error);
+      console.error('[Explorar v209.0] Error checking social profiles:', error);
     }
   }, []);
 
   // ✅ CRITICAL v207.0: Load initial data IMMEDIATELY on mount
   useEffect(() => {
-    console.log('[Explorar v207.0] 🚀 Component mounted - loading initial data');
+    console.log('[Explorar v209.0] 🚀 Component mounted - loading initial data');
     loadLocales(1, false);
   }, [selectedCategory, provinciaSeleccionada, userLocation]);
 
@@ -333,12 +347,12 @@ export default function ExplorarScreen() {
       return;
     }
 
-    console.log('[Explorar v207.0] 📥 Loading more locales...');
+    console.log('[Explorar v209.0] 📥 Loading more locales...');
     loadLocales(currentPage + 1, true);
   }, [hasMore, loading, currentPage, loadLocales]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v207.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v209.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setSelectedCategory('todas');
@@ -352,7 +366,7 @@ export default function ExplorarScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v207.0] 🧹 Clearing all filters');
+    console.log('[Explorar v209.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
@@ -372,13 +386,13 @@ export default function ExplorarScreen() {
     }
     
     if (!user) {
-      console.log('[Explorar v207.0] User not authenticated');
+      console.log('[Explorar v209.0] User not authenticated');
       setShowLoginModal(true);
       return;
     }
 
     if (!localId) {
-      console.log('[Explorar v207.0] No local ID');
+      console.log('[Explorar v209.0] No local ID');
       return;
     }
 
@@ -391,7 +405,7 @@ export default function ExplorarScreen() {
         .single();
 
       if (existingFavorite) {
-        console.log('[Explorar v207.0] Removing from favorites');
+        console.log('[Explorar v209.0] Removing from favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -400,7 +414,7 @@ export default function ExplorarScreen() {
 
         if (error) throw error;
       } else {
-        console.log('[Explorar v207.0] Adding to favorites');
+        console.log('[Explorar v209.0] Adding to favorites');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -411,7 +425,7 @@ export default function ExplorarScreen() {
         if (error) throw error;
       }
     } catch (error) {
-      console.error('[Explorar v207.0] Error toggling favorito:', error);
+      console.error('[Explorar v209.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
@@ -454,11 +468,11 @@ export default function ExplorarScreen() {
 
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
-      console.log('[Explorar v207.0] Changing mode to:', newMode);
+      console.log('[Explorar v209.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v207.0] Error changing mode:', error);
+      console.error('[Explorar v209.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
@@ -511,50 +525,44 @@ export default function ExplorarScreen() {
   }, []);
 
   const renderLocalCard = useCallback(({ item }: { item: any }) => {
-    const estado = getEstadoLocal(item);
+    // ✅ CRITICAL FIX v209.0: Use database status directly, don't recalculate
+    // The database already determined the correct open/closed status
+    // item.estaAbierto comes from database's is_open_now:
+    // - true = open
+    // - false = closed  
+    // - null = no schedule info
+    
     const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
     const isDestacado = item.destacado;
     const hasSocialProfile = socialProfiles.get(item.id) || false;
     const isFavorite = user ? item.is_favorite : false;
 
-    const getBadgeColor = () => {
-      if (estado.badge === 'Abierto ahora' || estado.badge === 'Abierto 24h') {
-        return '#22C55E';
+    // ✅ CRITICAL v209.0: Determine badge based on database status
+    const getBadgeInfo = () => {
+      if (item.estaAbierto === true) {
+        return {
+          text: 'Abierto ahora',
+          color: '#22C55E', // Green
+        };
+      } else if (item.estaAbierto === false) {
+        return {
+          text: 'Cerrado ahora',
+          color: '#EF4444', // Red
+        };
+      } else {
+        // null = no schedule info
+        return {
+          text: 'Sin info de horario',
+          color: '#9CA3AF', // Gray
+        };
       }
-      if (estado.badge === 'Cierra pronto') {
-        return '#F97316';
-      }
-      if (estado.badge === 'Abre pronto') {
-        return '#EAB308';
-      }
-      if (estado.estaAbierto === false) {
-        return '#EF4444';
-      }
-      return '#9CA3AF';
     };
 
-    const getBadgeText = () => {
-      if (estado.badge === 'Abierto 24h') {
-        return 'Abierto 24h';
-      }
-      
-      if (estado.tiempoRestante) {
-        if (estado.badge === 'Abierto ahora') {
-          return `Abierto ahora • Cierra en ${estado.tiempoRestante}`;
-        }
-        if (estado.badge === 'Cierra pronto') {
-          return `Cierra en ${estado.tiempoRestante}`;
-        }
-        if (estado.badge === 'Abre pronto') {
-          return `Abre en ${estado.tiempoRestante}`;
-        }
-        return `${estado.badge} • ${estado.tiempoRestante}`;
-      }
-      return estado.badge;
-    };
+    const badgeInfo = getBadgeInfo();
 
     const shouldDimImage = () => {
-      return estado.estaAbierto === false || estado.estaAbierto === null;
+      // Dim image only if closed (not if no schedule info)
+      return item.estaAbierto === false;
     };
 
     const formatCategories = () => {
@@ -625,10 +633,12 @@ export default function ExplorarScreen() {
 
           <View style={[
             styles.badgeEstadoSuperior, 
-            { backgroundColor: getBadgeColor() + 'E6' },
+            { backgroundColor: badgeInfo.color + 'E6' },
             isDestacado && styles.badgeEstadoSuperiorConDestacado
           ]}>
-            <Text style={[styles.badgeEstadoSuperiorText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{getBadgeText()}</Text>
+            <Text style={[styles.badgeEstadoSuperiorText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
+              {badgeInfo.text}
+            </Text>
           </View>
 
           {displayRating > 0 && (
