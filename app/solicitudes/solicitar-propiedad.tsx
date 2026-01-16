@@ -20,22 +20,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
 import * as Location from 'expo-location';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
 
 /**
- * ✅ SOLICITAR PROPIEDAD v2.1 - FIXED NAVIGATION & DOCUMENT UPLOAD
+ * ✅ SOLICITAR PROPIEDAD v3.0 - IMAGE-ONLY SYSTEM LIKE SOCIAL POSTS
  * 
- * FIXES v2.1:
- * - ✅ Fixed redirect after submission (now goes to solicitud-detalle, not notificaciones)
- * - ✅ Proper MIME type handling for documents
- * - ✅ Correct blob conversion for file uploads
- * - ✅ Preserved file extension and metadata
- * - ✅ Support for PDF, JPG, PNG formats
- * - ✅ Console logs for debugging navigation
+ * FIXES v3.0:
+ * - ✅ Removed PDF support - ONLY images allowed (JPG, PNG, WEBP)
+ * - ✅ Using ImagePicker instead of DocumentPicker for property documents
+ * - ✅ Same image upload system as social network posts
+ * - ✅ Simplified URL handling - direct Supabase Storage URLs
+ * - ✅ Proper MIME type handling for images
+ * - ✅ Better error handling and logging
  */
 
 interface LocalSearchResult {
@@ -171,7 +170,7 @@ export default function SolicitarPropiedadScreen() {
       setSelectedLocal(data);
       setCurrentStep(2); // Skip search step
     } catch (error) {
-      console.error('[SolicitarPropiedad] Error loading preselected local:', error);
+      console.error('[SolicitarPropiedad v3.0] Error loading preselected local:', error);
       Alert.alert('Error', 'No se pudo cargar el local seleccionado');
     }
   }, [router]);
@@ -184,7 +183,7 @@ export default function SolicitarPropiedadScreen() {
 
     try {
       setSearchingLocales(true);
-      console.log('[SolicitarPropiedad] Searching locales:', query);
+      console.log('[SolicitarPropiedad v3.0] Searching locales:', query);
 
       const { data, error } = await supabase
         .from('locales')
@@ -196,10 +195,10 @@ export default function SolicitarPropiedadScreen() {
 
       if (error) throw error;
 
-      console.log('[SolicitarPropiedad] Found locales:', data?.length || 0);
+      console.log('[SolicitarPropiedad v3.0] Found locales:', data?.length || 0);
       setSearchResults(data || []);
     } catch (error) {
-      console.error('[SolicitarPropiedad] Error searching locales:', error);
+      console.error('[SolicitarPropiedad v3.0] Error searching locales:', error);
     } finally {
       setSearchingLocales(false);
     }
@@ -216,7 +215,7 @@ export default function SolicitarPropiedadScreen() {
   }, [searchQuery, requestType, searchLocales]);
 
   const handleSelectLocal = async (local: LocalSearchResult) => {
-    console.log('[SolicitarPropiedad] Local selected:', local.nombre);
+    console.log('[SolicitarPropiedad v3.0] Local selected:', local.nombre);
 
     // Check if there's already an active request for this local
     const { data: existingRequest, error } = await supabase
@@ -227,7 +226,7 @@ export default function SolicitarPropiedadScreen() {
       .maybeSingle();
 
     if (error) {
-      console.error('[SolicitarPropiedad] Error checking existing requests:', error);
+      console.error('[SolicitarPropiedad v3.0] Error checking existing requests:', error);
     }
 
     if (existingRequest) {
@@ -243,109 +242,87 @@ export default function SolicitarPropiedadScreen() {
     setCurrentStep(2);
   };
 
+  /**
+   * ✅ v3.0: NEW IMAGE-ONLY UPLOAD SYSTEM
+   * Uses ImagePicker like social posts - NO PDF support
+   */
   const handleUploadDocument = async () => {
     try {
-      console.log('[SolicitarPropiedad v2.0] Opening document picker...');
+      console.log('[SolicitarPropiedad v3.0] Opening image picker for property document...');
       
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['image/*', 'application/pdf'],
-        copyToCacheDirectory: true,
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería para seleccionar la imagen');
+        return;
+      }
+
+      // Launch image picker - ONLY IMAGES
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+        allowsMultipleSelection: false,
       });
 
-      console.log('[SolicitarPropiedad v2.0] Document picker result:', result);
+      console.log('[SolicitarPropiedad v3.0] Image picker result:', result);
 
       if (result.canceled) {
-        console.log('[SolicitarPropiedad v2.0] Document selection cancelled');
+        console.log('[SolicitarPropiedad v3.0] Image selection cancelled');
         return;
       }
 
       if (!result.assets || result.assets.length === 0) {
-        console.log('[SolicitarPropiedad v2.0] No document selected');
+        console.log('[SolicitarPropiedad v3.0] No image selected');
         return;
       }
 
-      const file = result.assets[0];
-      console.log('[SolicitarPropiedad v2.0] Selected file:', {
-        name: file.name,
-        mimeType: file.mimeType,
-        size: file.size,
-        uri: file.uri,
+      const image = result.assets[0];
+      console.log('[SolicitarPropiedad v3.0] Selected image:', {
+        uri: image.uri,
+        width: image.width,
+        height: image.height,
       });
 
-      // ✅ FIX: Proper MIME type detection and blob conversion
-      let mimeType = file.mimeType || 'application/octet-stream';
-      
-      // Detect MIME type from file extension if not provided
-      if (!file.mimeType || file.mimeType === 'application/octet-stream') {
-        const extension = file.name.split('.').pop()?.toLowerCase();
-        switch (extension) {
-          case 'pdf':
-            mimeType = 'application/pdf';
-            break;
-          case 'jpg':
-          case 'jpeg':
-            mimeType = 'image/jpeg';
-            break;
-          case 'png':
-            mimeType = 'image/png';
-            break;
-          case 'gif':
-            mimeType = 'image/gif';
-            break;
-          case 'webp':
-            mimeType = 'image/webp';
-            break;
-          default:
-            mimeType = 'application/octet-stream';
-        }
-      }
-
-      console.log('[SolicitarPropiedad v2.0] Detected MIME type:', mimeType);
-
-      // ✅ FIX: Proper blob conversion with correct MIME type
-      const response = await fetch(file.uri);
+      // Upload to Supabase Storage - SAME AS SOCIAL POSTS
+      const response = await fetch(image.uri);
       const blob = await response.blob();
       
-      console.log('[SolicitarPropiedad v2.0] Blob created:', {
-        size: blob.size,
-        type: blob.type,
-      });
-
-      // ✅ FIX: Preserve file extension in storage path
-      const fileExtension = file.name.split('.').pop() || 'pdf';
-      const fileName = `${user?.id}/documentos/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      // Generate unique filename
+      const fileExtension = image.uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${user?.id}/${Date.now()}.${fileExtension}`;
       
-      console.log('[SolicitarPropiedad v2.0] Uploading to:', fileName);
+      console.log('[SolicitarPropiedad v3.0] Uploading to documentos-propiedad bucket:', fileName);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documentos-propiedad')
         .upload(fileName, blob, {
-          contentType: mimeType,
+          contentType: `image/${fileExtension}`,
           upsert: false,
         });
 
       if (uploadError) {
-        console.error('[SolicitarPropiedad v2.0] Upload error:', uploadError);
+        console.error('[SolicitarPropiedad v3.0] Upload error:', uploadError);
         throw uploadError;
       }
 
-      console.log('[SolicitarPropiedad v2.0] Upload successful:', uploadData.path);
+      console.log('[SolicitarPropiedad v3.0] Upload successful:', uploadData.path);
 
-      // Get public URL
+      // Get public URL - SAME AS SOCIAL POSTS
       const { data: urlData } = supabase.storage
         .from('documentos-propiedad')
-        .getPublicUrl(fileName);
+        .getPublicUrl(uploadData.path);
+
+      console.log('[SolicitarPropiedad v3.0] ✅ Public URL generated:', urlData.publicUrl);
 
       setDocumentoUrl(urlData.publicUrl);
-      setDocumentoNombre(file.name);
+      setDocumentoNombre(`documento_propiedad.${fileExtension}`);
       
-      console.log('[SolicitarPropiedad v2.0] ✅ Document uploaded successfully');
-      console.log('[SolicitarPropiedad v2.0] Public URL:', urlData.publicUrl);
-      
-      Alert.alert('✅ Éxito', 'Documento subido correctamente');
+      Alert.alert('✅ Éxito', 'Imagen subida correctamente');
     } catch (error) {
-      console.error('[SolicitarPropiedad v2.0] Error uploading document:', error);
-      Alert.alert('Error', 'No se pudo subir el documento. Intenta de nuevo.');
+      console.error('[SolicitarPropiedad v3.0] Error uploading image:', error);
+      Alert.alert('Error', 'No se pudo subir la imagen. Intenta de nuevo.');
     }
   };
 
@@ -365,7 +342,34 @@ export default function SolicitarPropiedadScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setImagenPortadaUrl(result.assets[0].uri);
+      // Upload to Supabase Storage
+      try {
+        const image = result.assets[0];
+        const response = await fetch(image.uri);
+        const blob = await response.blob();
+        
+        const fileExtension = image.uri.split('.').pop()?.toLowerCase() || 'jpg';
+        const fileName = `${user?.id}/portada-${Date.now()}.${fileExtension}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('locales')
+          .upload(fileName, blob, {
+            contentType: `image/${fileExtension}`,
+            upsert: false,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('locales')
+          .getPublicUrl(uploadData.path);
+
+        setImagenPortadaUrl(urlData.publicUrl);
+        console.log('[SolicitarPropiedad v3.0] Cover photo uploaded:', urlData.publicUrl);
+      } catch (error) {
+        console.error('[SolicitarPropiedad v3.0] Error uploading cover photo:', error);
+        Alert.alert('Error', 'No se pudo subir la foto de portada');
+      }
     }
   };
 
@@ -391,8 +395,39 @@ export default function SolicitarPropiedadScreen() {
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      const newImages = result.assets.map(asset => asset.uri);
-      setGaleriaUrls([...galeriaUrls, ...newImages]);
+      // Upload all images to Supabase Storage
+      try {
+        const uploadedUrls: string[] = [];
+        
+        for (const image of result.assets) {
+          const response = await fetch(image.uri);
+          const blob = await response.blob();
+          
+          const fileExtension = image.uri.split('.').pop()?.toLowerCase() || 'jpg';
+          const fileName = `${user?.id}/galeria-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('locales')
+            .upload(fileName, blob, {
+              contentType: `image/${fileExtension}`,
+              upsert: false,
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage
+            .from('locales')
+            .getPublicUrl(uploadData.path);
+
+          uploadedUrls.push(urlData.publicUrl);
+        }
+        
+        setGaleriaUrls([...galeriaUrls, ...uploadedUrls]);
+        console.log('[SolicitarPropiedad v3.0] Gallery images uploaded:', uploadedUrls.length);
+      } catch (error) {
+        console.error('[SolicitarPropiedad v3.0] Error uploading gallery images:', error);
+        Alert.alert('Error', 'No se pudieron subir algunas imágenes');
+      }
     }
   };
 
@@ -424,7 +459,7 @@ export default function SolicitarPropiedadScreen() {
         if (place.postalCode) setCodigoPostalLocal(place.postalCode);
       }
     } catch (error) {
-      console.error('[SolicitarPropiedad] Error getting location:', error);
+      console.error('[SolicitarPropiedad v3.0] Error getting location:', error);
       Alert.alert('Error', 'No se pudo obtener tu ubicación');
     } finally {
       setLoading(false);
@@ -435,12 +470,12 @@ export default function SolicitarPropiedadScreen() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'location_selected') {
-        console.log('[SolicitarPropiedad] Location selected:', data.lat, data.lng);
+        console.log('[SolicitarPropiedad v3.0] Location selected:', data.lat, data.lng);
         setLatitudLocal(data.lat);
         setLongitudLocal(data.lng);
       }
     } catch (error) {
-      console.error('[SolicitarPropiedad] Error parsing WebView message:', error);
+      console.error('[SolicitarPropiedad v3.0] Error parsing WebView message:', error);
     }
   };
 
@@ -561,7 +596,7 @@ export default function SolicitarPropiedadScreen() {
             return false;
           }
           if (!documentoUrl) {
-            Alert.alert('Documento requerido', 'Debes subir un documento que acredite tu relación con el local');
+            Alert.alert('Imagen requerida', 'Debes subir una imagen que acredite tu relación con el local (factura, contrato, licencia, etc.)');
             return false;
           }
           if (!mensaje.trim()) {
@@ -622,7 +657,7 @@ export default function SolicitarPropiedadScreen() {
 
     setLoading(true);
     try {
-      console.log('[SolicitarPropiedad v2.0] Submitting request:', requestType);
+      console.log('[SolicitarPropiedad v3.0] Submitting request:', requestType);
 
       if (requestType === 'reclamar_local') {
         if (!selectedLocal) {
@@ -649,51 +684,7 @@ export default function SolicitarPropiedadScreen() {
           return;
         }
 
-        // ✅ FIX: Upload document with proper MIME type if it's a local file
-        let finalDocumentoUrl = documentoUrl;
-        if (documentoUrl && documentoUrl.startsWith('file://')) {
-          const response = await fetch(documentoUrl);
-          const blob = await response.blob();
-          
-          // Detect MIME type from blob or file extension
-          let mimeType = blob.type || 'application/octet-stream';
-          const extension = documentoNombre.split('.').pop()?.toLowerCase();
-          
-          if (!mimeType || mimeType === 'application/octet-stream') {
-            switch (extension) {
-              case 'pdf':
-                mimeType = 'application/pdf';
-                break;
-              case 'jpg':
-              case 'jpeg':
-                mimeType = 'image/jpeg';
-                break;
-              case 'png':
-                mimeType = 'image/png';
-                break;
-              default:
-                mimeType = 'application/octet-stream';
-            }
-          }
-          
-          const fileName = `${user.id}/documentos/${Date.now()}-${documentoNombre.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('documentos-propiedad')
-            .upload(fileName, blob, {
-              contentType: mimeType,
-              upsert: false,
-            });
-
-          if (!uploadError && uploadData) {
-            const { data: urlData } = supabase.storage
-              .from('documentos-propiedad')
-              .getPublicUrl(fileName);
-            finalDocumentoUrl = urlData.publicUrl;
-          }
-        }
-
-        // Create request
+        // Create request - documento_propiedad_url is already a public URL
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
           .insert({
@@ -707,14 +698,14 @@ export default function SolicitarPropiedadScreen() {
             telefono_contacto: telefonoContacto || null,
             email_contacto: emailContacto,
             mensaje: mensaje || null,
-            documento_propiedad_url: finalDocumentoUrl,
+            documento_propiedad_url: documentoUrl, // Direct public URL
             documento_propiedad_tipo: documentoTipo,
             estado: 'pendiente',
           });
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedad v2.0] ✅ Claim request created successfully');
+        console.log('[SolicitarPropiedad v3.0] ✅ Claim request created successfully');
 
         // Send confirmation email
         try {
@@ -727,7 +718,7 @@ export default function SolicitarPropiedadScreen() {
             },
           });
         } catch (emailError) {
-          console.error('[SolicitarPropiedad v2.0] Error sending confirmation email:', emailError);
+          console.error('[SolicitarPropiedad v3.0] Error sending confirmation email:', emailError);
         }
 
         // Create notification
@@ -738,7 +729,7 @@ export default function SolicitarPropiedadScreen() {
           mensaje: `Hemos enviado un correo de confirmación a ${emailContacto}. Por favor, confirma tu email para que tu solicitud pase a revisión.`,
         });
 
-        // ✅ FIX v2.1: Redirect to solicitud-detalle instead of notificaciones
+        // Get created request ID and redirect
         const { data: createdRequest } = await supabase
           .from('solicitudes_propietario')
           .select('id')
@@ -758,7 +749,7 @@ export default function SolicitarPropiedadScreen() {
             text: 'Ver Detalles', 
             onPress: () => {
               if (createdRequest?.id) {
-                console.log('[SolicitarPropiedad v2.1] ✅ Redirecting to solicitud-detalle:', createdRequest.id);
+                console.log('[SolicitarPropiedad v3.0] ✅ Redirecting to solicitud-detalle:', createdRequest.id);
                 router.replace({
                   pathname: '/admin/solicitud-detalle',
                   params: { id: createdRequest.id },
@@ -784,7 +775,7 @@ export default function SolicitarPropiedadScreen() {
         }
 
         // Check for duplicates
-        console.log('[SolicitarPropiedad v2.0] Checking for duplicate locals...');
+        console.log('[SolicitarPropiedad v3.0] Checking for duplicate locals...');
         const { data: duplicates, error: duplicateError } = await supabase
           .rpc('check_duplicate_local', {
             p_nombre: nombreLocal,
@@ -793,7 +784,7 @@ export default function SolicitarPropiedadScreen() {
           });
 
         if (duplicateError) {
-          console.error('[SolicitarPropiedad v2.0] Error checking duplicates:', duplicateError);
+          console.error('[SolicitarPropiedad v3.0] Error checking duplicates:', duplicateError);
         } else if (duplicates && duplicates.length > 0) {
           const duplicate = duplicates[0];
           Alert.alert(
@@ -808,85 +799,8 @@ export default function SolicitarPropiedadScreen() {
           return;
         }
 
-        // Upload images
-        let finalPortadaUrl = imagenPortadaUrl;
-        if (imagenPortadaUrl && imagenPortadaUrl.startsWith('file://')) {
-          const response = await fetch(imagenPortadaUrl);
-          const blob = await response.blob();
-          const fileName = `${user.id}/portada-${Date.now()}.jpg`;
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('locales')
-            .upload(fileName, blob, { contentType: 'image/jpeg' });
-
-          if (!uploadError && uploadData) {
-            const { data: urlData } = supabase.storage.from('locales').getPublicUrl(fileName);
-            finalPortadaUrl = urlData.publicUrl;
-          }
-        }
-
-        const finalGaleriaUrls: string[] = [];
-        for (const imageUri of galeriaUrls) {
-          if (imageUri.startsWith('file://')) {
-            const response = await fetch(imageUri);
-            const blob = await response.blob();
-            const fileName = `${user.id}/galeria-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-            
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('locales')
-              .upload(fileName, blob, { contentType: 'image/jpeg' });
-
-            if (!uploadError && uploadData) {
-              const { data: urlData } = supabase.storage.from('locales').getPublicUrl(fileName);
-              finalGaleriaUrls.push(urlData.publicUrl);
-            }
-          } else {
-            finalGaleriaUrls.push(imageUri);
-          }
-        }
-
-        // ✅ FIX: Upload document with proper MIME type if provided
-        let finalDocumentoUrl = documentoUrl;
-        if (documentoUrl && documentoUrl.startsWith('file://')) {
-          const response = await fetch(documentoUrl);
-          const blob = await response.blob();
-          
-          let mimeType = blob.type || 'application/octet-stream';
-          const extension = documentoNombre.split('.').pop()?.toLowerCase();
-          
-          if (!mimeType || mimeType === 'application/octet-stream') {
-            switch (extension) {
-              case 'pdf':
-                mimeType = 'application/pdf';
-                break;
-              case 'jpg':
-              case 'jpeg':
-                mimeType = 'image/jpeg';
-                break;
-              case 'png':
-                mimeType = 'image/png';
-                break;
-              default:
-                mimeType = 'application/octet-stream';
-            }
-          }
-          
-          const fileName = `${user.id}/documentos/${Date.now()}-${documentoNombre.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('documentos-propiedad')
-            .upload(fileName, blob, {
-              contentType: mimeType,
-              upsert: false,
-            });
-
-          if (!uploadError && uploadData) {
-            const { data: urlData } = supabase.storage
-              .from('documentos-propiedad')
-              .getPublicUrl(fileName);
-            finalDocumentoUrl = urlData.publicUrl;
-          }
-        }
+        // All images are already uploaded to Supabase Storage with public URLs
+        // No need to re-upload, just use the URLs directly
 
         // Create request with multiple categories
         const { error: insertError } = await supabase
@@ -910,16 +824,16 @@ export default function SolicitarPropiedadScreen() {
             longitud_local: longitudLocal,
             horarios_local: horariosLocal,
             servicios_local: serviciosLocal,
-            imagen_portada_url: finalPortadaUrl,
-            galeria_urls: finalGaleriaUrls,
-            documento_propiedad_url: finalDocumentoUrl,
+            imagen_portada_url: imagenPortadaUrl, // Direct public URL
+            galeria_urls: galeriaUrls, // Direct public URLs
+            documento_propiedad_url: documentoUrl, // Direct public URL
             documento_propiedad_tipo: documentoTipo,
             estado: 'pendiente',
           });
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedad v2.0] ✅ New local request created successfully');
+        console.log('[SolicitarPropiedad v3.0] ✅ New local request created successfully');
 
         // Send confirmation email
         try {
@@ -932,7 +846,7 @@ export default function SolicitarPropiedadScreen() {
             },
           });
         } catch (emailError) {
-          console.error('[SolicitarPropiedad v2.0] Error sending confirmation email:', emailError);
+          console.error('[SolicitarPropiedad v3.0] Error sending confirmation email:', emailError);
         }
 
         // Create notification
@@ -943,7 +857,7 @@ export default function SolicitarPropiedadScreen() {
           mensaje: `Hemos enviado un correo de confirmación a ${emailContacto}. Por favor, confirma tu email para que tu solicitud pase a revisión.`,
         });
 
-        // ✅ FIX v2.1: Redirect to solicitud-detalle instead of notificaciones
+        // Get created request ID and redirect
         const { data: createdRequest } = await supabase
           .from('solicitudes_propietario')
           .select('id')
@@ -963,7 +877,7 @@ export default function SolicitarPropiedadScreen() {
             text: 'Ver Detalles', 
             onPress: () => {
               if (createdRequest?.id) {
-                console.log('[SolicitarPropiedad v2.1] ✅ Redirecting to solicitud-detalle:', createdRequest.id);
+                console.log('[SolicitarPropiedad v3.0] ✅ Redirecting to solicitud-detalle:', createdRequest.id);
                 router.replace({
                   pathname: '/admin/solicitud-detalle',
                   params: { id: createdRequest.id },
@@ -976,7 +890,7 @@ export default function SolicitarPropiedadScreen() {
         );
       }
     } catch (error) {
-      console.error('[SolicitarPropiedad v2.0] Error submitting request:', error);
+      console.error('[SolicitarPropiedad v3.0] Error submitting request:', error);
       Alert.alert('Error', 'No se pudo enviar la solicitud. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -1142,57 +1056,54 @@ export default function SolicitarPropiedadScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Documento de Propiedad *</Text>
+        <Text style={styles.label}>Imagen de Documento de Propiedad *</Text>
         <Text style={styles.helperText}>
-          Sube un documento que acredite tu relación con el local (factura, contrato, licencia, etc.) - Obligatorio
+          Sube una FOTO del documento que acredite tu relación con el local (factura, contrato, licencia, etc.) - Obligatorio
+        </Text>
+        <Text style={styles.helperTextWarning}>
+          ⚠️ Solo se permiten imágenes (JPG, PNG, WEBP). No se aceptan archivos PDF.
         </Text>
         
         {documentoUrl ? (
-          <View style={styles.documentCard}>
-            <View style={styles.documentCardHeader}>
-              <IconSymbol ios_icon_name="doc.fill" android_material_icon_name="description" size={24} color={colors.primary} />
-              <View style={styles.documentCardInfo}>
-                <Text style={styles.documentCardTitle}>
+          <View style={styles.documentImageCard}>
+            <Image 
+              source={{ uri: documentoUrl }} 
+              style={styles.documentImage}
+              resizeMode="cover"
+            />
+            <View style={styles.documentImageOverlay}>
+              <View style={styles.documentImageInfo}>
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color="#10B981" />
+                <Text style={styles.documentImageTitle}>
                   {TIPOS_DOCUMENTO.find(t => t.value === documentoTipo)?.label || 'Documento'}
                 </Text>
-                <Text style={styles.documentCardSubtitle}>{documentoNombre}</Text>
               </View>
-            </View>
-            <View style={styles.documentCardActions}>
-              <TouchableOpacity
-                style={styles.changeDocumentButton}
-                onPress={() => setShowDocumentTypeModal(true)}
-              >
-                <Text style={styles.changeDocumentButtonText}>Cambiar Tipo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.removeDocumentButton}
-                onPress={() => {
-                  setDocumentoUrl(null);
-                  setDocumentoNombre('');
-                }}
-              >
-                <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#EF4444" />
-              </TouchableOpacity>
+              <View style={styles.documentImageActions}>
+                <TouchableOpacity
+                  style={styles.changeDocumentTypeButton}
+                  onPress={() => setShowDocumentTypeModal(true)}
+                >
+                  <IconSymbol ios_icon_name="tag.fill" android_material_icon_name="label" size={16} color={colors.primary} />
+                  <Text style={styles.changeDocumentTypeText}>Cambiar Tipo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.removeDocumentButton}
+                  onPress={() => {
+                    setDocumentoUrl(null);
+                    setDocumentoNombre('');
+                  }}
+                >
+                  <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#EF4444" />
+                  <Text style={styles.removeDocumentText}>Eliminar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         ) : (
-          <TouchableOpacity style={styles.uploadButton} onPress={handleUploadDocument}>
-            <IconSymbol ios_icon_name="doc.badge.plus" android_material_icon_name="upload_file" size={32} color={colors.primary} />
-            <Text style={styles.uploadButtonText}>Subir Documento</Text>
-            <Text style={styles.uploadButtonSubtext}>PDF, JPG, PNG (máx. 10MB)</Text>
-          </TouchableOpacity>
-        )}
-
-        {documentoUrl && (
-          <TouchableOpacity
-            style={styles.selectDocumentTypeButton}
-            onPress={() => setShowDocumentTypeModal(true)}
-          >
-            <Text style={styles.selectDocumentTypeText}>
-              Tipo: {TIPOS_DOCUMENTO.find(t => t.value === documentoTipo)?.label}
-            </Text>
-            <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={16} color={colors.primary} />
+          <TouchableOpacity style={styles.uploadImageButton} onPress={handleUploadDocument}>
+            <IconSymbol ios_icon_name="photo.badge.plus" android_material_icon_name="add_photo_alternate" size={48} color={colors.primary} />
+            <Text style={styles.uploadImageButtonText}>Seleccionar Imagen</Text>
+            <Text style={styles.uploadImageButtonSubtext}>JPG, PNG, WEBP</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -1564,57 +1475,54 @@ export default function SolicitarPropiedadScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Documento de Propiedad (Opcional)</Text>
+        <Text style={styles.label}>Imagen de Documento de Propiedad (Opcional)</Text>
         <Text style={styles.helperText}>
-          Documento que acredite tu propiedad del local
+          Foto del documento que acredite tu propiedad del local
+        </Text>
+        <Text style={styles.helperTextWarning}>
+          ⚠️ Solo se permiten imágenes (JPG, PNG, WEBP). No se aceptan archivos PDF.
         </Text>
         
         {documentoUrl ? (
-          <View style={styles.documentCard}>
-            <View style={styles.documentCardHeader}>
-              <IconSymbol ios_icon_name="doc.fill" android_material_icon_name="description" size={24} color={colors.primary} />
-              <View style={styles.documentCardInfo}>
-                <Text style={styles.documentCardTitle}>
+          <View style={styles.documentImageCard}>
+            <Image 
+              source={{ uri: documentoUrl }} 
+              style={styles.documentImage}
+              resizeMode="cover"
+            />
+            <View style={styles.documentImageOverlay}>
+              <View style={styles.documentImageInfo}>
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color="#10B981" />
+                <Text style={styles.documentImageTitle}>
                   {TIPOS_DOCUMENTO.find(t => t.value === documentoTipo)?.label || 'Documento'}
                 </Text>
-                <Text style={styles.documentCardSubtitle}>{documentoNombre}</Text>
               </View>
-            </View>
-            <View style={styles.documentCardActions}>
-              <TouchableOpacity
-                style={styles.changeDocumentButton}
-                onPress={() => setShowDocumentTypeModal(true)}
-              >
-                <Text style={styles.changeDocumentButtonText}>Cambiar Tipo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.removeDocumentButton}
-                onPress={() => {
-                  setDocumentoUrl(null);
-                  setDocumentoNombre('');
-                }}
-              >
-                <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#EF4444" />
-              </TouchableOpacity>
+              <View style={styles.documentImageActions}>
+                <TouchableOpacity
+                  style={styles.changeDocumentTypeButton}
+                  onPress={() => setShowDocumentTypeModal(true)}
+                >
+                  <IconSymbol ios_icon_name="tag.fill" android_material_icon_name="label" size={16} color={colors.primary} />
+                  <Text style={styles.changeDocumentTypeText}>Cambiar Tipo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.removeDocumentButton}
+                  onPress={() => {
+                    setDocumentoUrl(null);
+                    setDocumentoNombre('');
+                  }}
+                >
+                  <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#EF4444" />
+                  <Text style={styles.removeDocumentText}>Eliminar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         ) : (
-          <TouchableOpacity style={styles.uploadButton} onPress={handleUploadDocument}>
-            <IconSymbol ios_icon_name="doc.badge.plus" android_material_icon_name="upload_file" size={32} color={colors.primary} />
-            <Text style={styles.uploadButtonText}>Subir Documento</Text>
-            <Text style={styles.uploadButtonSubtext}>PDF, JPG, PNG (máx. 10MB)</Text>
-          </TouchableOpacity>
-        )}
-
-        {documentoUrl && (
-          <TouchableOpacity
-            style={styles.selectDocumentTypeButton}
-            onPress={() => setShowDocumentTypeModal(true)}
-          >
-            <Text style={styles.selectDocumentTypeText}>
-              Tipo: {TIPOS_DOCUMENTO.find(t => t.value === documentoTipo)?.label}
-            </Text>
-            <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={16} color={colors.primary} />
+          <TouchableOpacity style={styles.uploadImageButton} onPress={handleUploadDocument}>
+            <IconSymbol ios_icon_name="photo.badge.plus" android_material_icon_name="add_photo_alternate" size={48} color={colors.primary} />
+            <Text style={styles.uploadImageButtonText}>Seleccionar Imagen</Text>
+            <Text style={styles.uploadImageButtonSubtext}>JPG, PNG, WEBP</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -2007,6 +1915,12 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 8,
   },
+  helperTextWarning: {
+    fontSize: 12,
+    color: '#F59E0B',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
   input: {
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
@@ -2040,70 +1954,90 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
-  documentCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
+  uploadImageButton: {
+    backgroundColor: colors.primary + '10',
     borderWidth: 2,
     borderColor: colors.primary,
-    gap: 12,
-  },
-  documentCardHeader: {
-    flexDirection: 'row',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 40,
     alignItems: 'center',
     gap: 12,
   },
-  documentCardInfo: {
-    flex: 1,
-  },
-  documentCardTitle: {
+  uploadImageButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text,
-    marginBottom: 2,
+    color: colors.primary,
   },
-  documentCardSubtitle: {
+  uploadImageButtonSubtext: {
     fontSize: 13,
     color: colors.textSecondary,
+    fontWeight: '600',
   },
-  documentCardActions: {
+  documentImageCard: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  documentImage: {
+    width: '100%',
+    height: 250,
+    backgroundColor: colors.cardBorder,
+  },
+  documentImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 12,
+    gap: 10,
+  },
+  documentImageInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  documentImageTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  documentImageActions: {
     flexDirection: 'row',
     gap: 10,
   },
-  changeDocumentButton: {
+  changeDocumentTypeButton: {
     flex: 1,
-    backgroundColor: colors.primary + '15',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  changeDocumentButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  removeDocumentButton: {
-    backgroundColor: '#EF4444' + '15',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectDocumentTypeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.primary + '10',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginTop: 8,
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
-  selectDocumentTypeText: {
-    fontSize: 14,
+  changeDocumentTypeText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.headerText,
+  },
+  removeDocumentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  removeDocumentText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
   },
   tipoGrid: {
     flexDirection: 'row',

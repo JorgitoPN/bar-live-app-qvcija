@@ -21,8 +21,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
-import * as FileSystem from 'expo-file-system/legacy';
-import { Share as RNShare } from 'react-native';
 
 interface Solicitud {
   id: string;
@@ -63,14 +61,14 @@ interface Solicitud {
 }
 
 /**
- * ✅ SOLICITUD DETALLE v4.7 - IMPROVED PATH CLEANING & URL CONSTRUCTION
+ * ✅ SOLICITUD DETALLE v5.0 - SIMPLIFIED IMAGE DISPLAY LIKE SOCIAL POSTS
  * 
- * COMPLETE FIXES v4.7:
- * - ✅ Better handling of nested bucket names in paths
- * - ✅ Proper segment-by-segment URL encoding
- * - ✅ Remove partial URL fragments from paths
- * - ✅ More robust path cleaning logic
- * - ✅ All previous v4.6 fixes maintained
+ * COMPLETE FIXES v5.0:
+ * - ✅ Removed complex getPublicUrl() function
+ * - ✅ Using direct URLs from database (same as social posts)
+ * - ✅ Simplified image display with proper error handling
+ * - ✅ Better loading states and error placeholders
+ * - ✅ Consistent with PostViewerModal image handling
  */
 
 const { width } = Dimensions.get('window');
@@ -82,7 +80,6 @@ export default function SolicitudDetalleScreen() {
 
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
   const [loading, setLoading] = useState(true);
-  const [downloadingDocument, setDownloadingDocument] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showActionModal, setShowActionModal] = useState(false);
@@ -97,7 +94,7 @@ export default function SolicitudDetalleScreen() {
 
   const loadSolicitud = useCallback(async () => {
     try {
-      console.log('[SolicitudDetalle v4.7] Loading request:', solicitudId);
+      console.log('[SolicitudDetalle v5.0] Loading request:', solicitudId);
       
       const { data, error } = await supabase
         .from('solicitudes_propietario')
@@ -115,18 +112,18 @@ export default function SolicitudDetalleScreen() {
         .single();
 
       if (error) {
-        console.error('[SolicitudDetalle v4.7] Error loading request:', error);
+        console.error('[SolicitudDetalle v5.0] Error loading request:', error);
         throw error;
       }
 
-      console.log('[SolicitudDetalle v4.7] Loaded request:', data.nombre_local);
-      console.log('[SolicitudDetalle v4.7] Document URL:', data.documento_propiedad_url);
-      console.log('[SolicitudDetalle v4.7] Cover image URL:', data.imagen_portada_url);
-      console.log('[SolicitudDetalle v4.7] Gallery URLs:', data.galeria_urls);
+      console.log('[SolicitudDetalle v5.0] ✅ Loaded request:', data.nombre_local);
+      console.log('[SolicitudDetalle v5.0] Document URL:', data.documento_propiedad_url);
+      console.log('[SolicitudDetalle v5.0] Cover image URL:', data.imagen_portada_url);
+      console.log('[SolicitudDetalle v5.0] Gallery URLs:', data.galeria_urls);
       
       setSolicitud(data);
     } catch (error) {
-      console.error('[SolicitudDetalle v4.7] Error:', error);
+      console.error('[SolicitudDetalle v5.0] Error:', error);
       Alert.alert('Error', 'No se pudo cargar la solicitud');
       router.back();
     } finally {
@@ -139,195 +136,54 @@ export default function SolicitudDetalleScreen() {
   }, [loadSolicitud]);
 
   const handleImageLoadStart = (uri: string) => {
-    console.log('[SolicitudDetalle v4.7] Image load started:', uri);
+    console.log('[SolicitudDetalle v5.0] Image load started:', uri);
     setImageLoadingStates(prev => ({ ...prev, [uri]: true }));
     setImageErrorStates(prev => ({ ...prev, [uri]: false }));
   };
 
   const handleImageLoadEnd = (uri: string) => {
-    console.log('[SolicitudDetalle v4.7] ✅ Image loaded successfully:', uri);
+    console.log('[SolicitudDetalle v5.0] ✅ Image loaded successfully:', uri);
     setImageLoadingStates(prev => ({ ...prev, [uri]: false }));
   };
 
   const handleImageError = (uri: string, error: any) => {
-    console.error('[SolicitudDetalle v4.7] ❌ Image load error:', uri, error);
+    console.error('[SolicitudDetalle v5.0] ❌ Image load error:', uri, error);
     setImageLoadingStates(prev => ({ ...prev, [uri]: false }));
     setImageErrorStates(prev => ({ ...prev, [uri]: true }));
   };
 
-  const getPublicUrl = (path: string) => {
-    if (!path) {
-      console.log('[SolicitudDetalle v4.7] ⚠️ Empty path provided');
-      return null;
-    }
-    
-    // If it's already a full URL, return it as-is
-    if (path.startsWith('http')) {
-      console.log('[SolicitudDetalle v4.7] Using full URL:', path);
-      return path;
-    }
-    
-    // Remove leading slash if present
-    let cleanPath = path.startsWith('/') ? path.substring(1) : path;
-    
-    // Remove ALL occurrences of bucket name from path (handle nested paths)
-    // This handles cases like: documentos-propiedad/4f3ce732.../documentos/...
-    cleanPath = cleanPath.split('/').filter(segment => segment !== 'documentos-propiedad').join('/');
-    
-    // Remove 'public/' prefix if present
-    if (cleanPath.startsWith('public/')) {
-      cleanPath = cleanPath.replace('public/', '');
-    }
-    
-    // Remove 'storage/v1/object/public/' if present (in case it's a partial URL)
-    if (cleanPath.includes('storage/v1/object/public/')) {
-      cleanPath = cleanPath.split('storage/v1/object/public/')[1] || cleanPath;
-    }
-    
-    console.log('[SolicitudDetalle v4.7] Cleaned path:', cleanPath);
-    
-    // Construct the public URL manually with proper encoding
-    const projectUrl = 'https://embntaqwlwmgazvrglaf.supabase.co';
-    
-    // Split path into segments, encode each segment separately, then rejoin
-    const pathSegments = cleanPath.split('/');
-    const encodedSegments = pathSegments.map(segment => encodeURIComponent(segment));
-    const encodedPath = encodedSegments.join('/');
-    
-    const finalUrl = `${projectUrl}/storage/v1/object/public/documentos-propiedad/${encodedPath}`;
-    console.log('[SolicitudDetalle v4.7] ✅ Final URL:', finalUrl);
-    
-    return finalUrl;
-  };
-
-  const handleOpenDocument = async () => {
+  const handleOpenDocument = () => {
     if (!solicitud?.documento_propiedad_url) {
       Alert.alert('Error', 'No hay documento disponible');
       return;
     }
 
-    try {
-      console.log('[SolicitudDetalle v4.7] Opening document:', solicitud.documento_propiedad_url);
-      
-      const documentUrl = getPublicUrl(solicitud.documento_propiedad_url);
-      if (!documentUrl) {
-        throw new Error('No se pudo generar la URL del documento');
-      }
-      
-      console.log('[SolicitudDetalle v4.7] Document URL to open:', documentUrl);
-      
-      // Check if it's an image or PDF
-      const isImage = documentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-      const isPDF = documentUrl.match(/\.pdf$/i);
+    console.log('[SolicitudDetalle v5.0] Opening document image:', solicitud.documento_propiedad_url);
+    
+    // Check if it's an image
+    const isImage = solicitud.documento_propiedad_url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
 
-      if (isImage) {
-        // For images, show in modal viewer
-        console.log('[SolicitudDetalle v4.7] Opening image in viewer');
-        setSelectedImageIndex(0);
-        setShowImageModal(true);
-      } else {
-        // For PDFs and other documents, offer options
-        Alert.alert(
-          'Abrir Documento',
-          '¿Cómo deseas abrir el documento?',
-          [
-            {
-              text: 'Abrir en Navegador',
-              onPress: () => {
-                console.log('[SolicitudDetalle v4.7] Opening in browser:', documentUrl);
-                Linking.openURL(documentUrl);
-              },
-            },
-            {
-              text: 'Descargar y Compartir',
-              onPress: () => handleDownloadDocument(),
-            },
-            {
-              text: 'Cancelar',
-              style: 'cancel',
-            },
-          ]
-        );
-      }
-    } catch (error) {
-      console.error('[SolicitudDetalle v4.7] Error opening document:', error);
-      Alert.alert('Error', 'No se pudo abrir el documento');
-    }
-  };
-
-  const handleDownloadDocument = async () => {
-    if (!solicitud?.documento_propiedad_url) return;
-
-    setDownloadingDocument(true);
-    try {
-      const documentUrl = getPublicUrl(solicitud.documento_propiedad_url);
-      if (!documentUrl) {
-        throw new Error('No se pudo generar la URL del documento');
-      }
-      
-      console.log('[SolicitudDetalle v4.7] Downloading document:', documentUrl);
-
-      // Get file extension from URL
-      const urlParts = documentUrl.split('.');
-      const extension = urlParts[urlParts.length - 1].split('?')[0]; // Remove query params
-      const fileName = `documento_${solicitud.id}.${extension}`;
-      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-
-      console.log('[SolicitudDetalle v4.7] Downloading to:', fileUri);
-
-      // Download the file
-      const downloadResult = await FileSystem.downloadAsync(
-        documentUrl,
-        fileUri
-      );
-
-      console.log('[SolicitudDetalle v4.7] Download result:', downloadResult.status);
-
-      if (downloadResult.status === 200) {
-        console.log('[SolicitudDetalle v4.7] ✅ Document downloaded successfully');
-        
-        // Try to share the file
-        try {
-          await RNShare.share({
-            url: downloadResult.uri,
-            title: 'Documento de Propiedad',
-          });
-          console.log('[SolicitudDetalle v4.7] ✅ Document shared successfully');
-        } catch (shareError) {
-          console.log('[SolicitudDetalle v4.7] Share not available, showing alert');
-          Alert.alert(
-            '✅ Descargado',
-            `El documento se ha descargado correctamente.\n\nUbicación: ${downloadResult.uri}`,
-            [
-              {
-                text: 'Abrir',
-                onPress: () => Linking.openURL(downloadResult.uri),
-              },
-              { text: 'OK' },
-            ]
-          );
-        }
-      } else {
-        throw new Error('Download failed with status: ' + downloadResult.status);
-      }
-    } catch (error) {
-      console.error('[SolicitudDetalle v4.7] Error downloading document:', error);
+    if (isImage) {
+      // Show in image viewer
+      const documentIndex = allImages.findIndex(img => img === solicitud.documento_propiedad_url);
+      setSelectedImageIndex(documentIndex >= 0 ? documentIndex : 0);
+      setShowImageModal(true);
+    } else {
+      // Fallback for non-images (shouldn't happen with v3.0)
       Alert.alert(
-        'Error al Descargar',
-        'No se pudo descargar el documento. Intenta abrirlo en el navegador.',
+        'Abrir Documento',
+        'Este documento no es una imagen. ¿Deseas abrirlo en el navegador?',
         [
           {
             text: 'Abrir en Navegador',
-            onPress: () => {
-              const url = getPublicUrl(solicitud.documento_propiedad_url!);
-              if (url) Linking.openURL(url);
-            },
+            onPress: () => Linking.openURL(solicitud.documento_propiedad_url!),
           },
-          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
         ]
       );
-    } finally {
-      setDownloadingDocument(false);
     }
   };
 
@@ -343,7 +199,7 @@ export default function SolicitudDetalleScreen() {
   };
 
   const handleViewImage = (index: number) => {
-    console.log('[SolicitudDetalle v4.7] Opening image viewer at index:', index);
+    console.log('[SolicitudDetalle v5.0] Opening image viewer at index:', index);
     setSelectedImageIndex(index);
     setShowImageModal(true);
   };
@@ -493,7 +349,7 @@ export default function SolicitudDetalleScreen() {
       setMotivoDenegacion('');
       setNotasAdmin('');
     } catch (error) {
-      console.error('[SolicitudDetalle v4.7] Error executing action:', error);
+      console.error('[SolicitudDetalle v5.0] Error executing action:', error);
       Alert.alert('Error', 'No se pudo completar la acción');
     }
   };
@@ -542,36 +398,30 @@ export default function SolicitudDetalleScreen() {
 
   const estadoConfig = getEstadoConfig(solicitud.estado);
   
-  // Build array of all images with proper URLs
+  // Build array of all images - DIRECT URLs from database (same as social posts)
   const allImages: string[] = [];
   
+  // Add document image if it's an image
   if (solicitud.documento_propiedad_url && solicitud.documento_propiedad_url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-    const url = getPublicUrl(solicitud.documento_propiedad_url);
-    if (url) {
-      console.log('[SolicitudDetalle v4.7] Adding document image to gallery:', url);
-      allImages.push(url);
-    }
+    console.log('[SolicitudDetalle v5.0] Adding document image:', solicitud.documento_propiedad_url);
+    allImages.push(solicitud.documento_propiedad_url);
   }
   
+  // Add cover image
   if (solicitud.imagen_portada_url) {
-    const url = getPublicUrl(solicitud.imagen_portada_url);
-    if (url) {
-      console.log('[SolicitudDetalle v4.7] Adding cover image to gallery:', url);
-      allImages.push(url);
-    }
+    console.log('[SolicitudDetalle v5.0] Adding cover image:', solicitud.imagen_portada_url);
+    allImages.push(solicitud.imagen_portada_url);
   }
   
+  // Add gallery images
   if (solicitud.galeria_urls && solicitud.galeria_urls.length > 0) {
     solicitud.galeria_urls.forEach(imgUrl => {
-      const url = getPublicUrl(imgUrl);
-      if (url) {
-        console.log('[SolicitudDetalle v4.7] Adding gallery image:', url);
-        allImages.push(url);
-      }
+      console.log('[SolicitudDetalle v5.0] Adding gallery image:', imgUrl);
+      allImages.push(imgUrl);
     });
   }
 
-  console.log('[SolicitudDetalle v4.7] Total images to display:', allImages.length);
+  console.log('[SolicitudDetalle v5.0] ✅ Total images to display:', allImages.length);
 
   return (
     <View style={styles.container}>
@@ -717,38 +567,33 @@ export default function SolicitudDetalleScreen() {
           </View>
         </View>
 
-        {/* Document Card */}
+        {/* Document Card - SIMPLIFIED v5.0 */}
         {solicitud.documento_propiedad_url && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📄 Documento de Propiedad</Text>
             <TouchableOpacity 
               style={styles.documentCard} 
               onPress={handleOpenDocument}
-              disabled={downloadingDocument}
             >
               <View style={styles.documentCardContent}>
                 <View style={styles.documentIconBox}>
-                  <IconSymbol ios_icon_name="doc.fill" android_material_icon_name="description" size={32} color={colors.primary} />
+                  <IconSymbol ios_icon_name="photo.fill" android_material_icon_name="image" size={32} color={colors.primary} />
                 </View>
                 <View style={styles.documentTextBox}>
                   <Text style={styles.documentTitle}>
                     {getTipoDocumentoLabel(solicitud.documento_propiedad_tipo)}
                   </Text>
                   <Text style={styles.documentSubtitle}>
-                    {downloadingDocument ? 'Descargando...' : 'Toca para ver o descargar'}
+                    Toca para ver la imagen
                   </Text>
                 </View>
-                {downloadingDocument ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={20} color={colors.primary} />
-                )}
+                <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={20} color={colors.primary} />
               </View>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Images Gallery - FIXED v4.4 */}
+        {/* Images Gallery - SIMPLIFIED v5.0 */}
         {allImages.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🖼️ Imágenes ({allImages.length})</Text>
@@ -765,7 +610,7 @@ export default function SolicitudDetalleScreen() {
                           size={32} 
                           color={colors.textSecondary} 
                         />
-                        <Text style={styles.imageErrorText}>Error al cargar</Text>
+                        <Text style={styles.imageErrorText}>Error</Text>
                       </View>
                     ) : (
                       <>
@@ -883,7 +728,7 @@ export default function SolicitudDetalleScreen() {
         </View>
       )}
 
-      {/* Image Viewer Modal - FIXED v4.4 */}
+      {/* Image Viewer Modal - SIMPLIFIED v5.0 */}
       <Modal
         visible={showImageModal}
         transparent
@@ -909,15 +754,9 @@ export default function SolicitudDetalleScreen() {
                   color="#fff" 
                 />
                 <Text style={styles.fullImageErrorText}>No se pudo cargar la imagen</Text>
-                <TouchableOpacity 
-                  style={styles.fullImageErrorButton}
-                  onPress={() => {
-                    const url = allImages[selectedImageIndex];
-                    if (url) Linking.openURL(url);
-                  }}
-                >
-                  <Text style={styles.fullImageErrorButtonText}>Abrir en Navegador</Text>
-                </TouchableOpacity>
+                <Text style={styles.fullImageErrorSubtext}>
+                  La imagen puede haber sido eliminada o no estar disponible
+                </Text>
               </View>
             ) : (
               <>
@@ -1509,17 +1348,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
   },
-  fullImageErrorButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  fullImageErrorButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
+  fullImageErrorSubtext: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
   },
   imageModalFooter: {
     position: 'absolute',
