@@ -63,17 +63,19 @@ interface Solicitud {
 }
 
 /**
- * ✅ SOLICITUD DETALLE v4.0 - FIXED DOCUMENT VIEWING & NAVIGATION
+ * ✅ SOLICITUD DETALLE v4.1 - ENHANCED IMAGE VIEWING & ERROR HANDLING
  * 
- * COMPLETE FIXES v4.0:
+ * COMPLETE FIXES v4.1:
  * - ✅ Fixed document download/viewing (proper URL handling & MIME types)
  * - ✅ Support for both images and PDFs with native viewers
  * - ✅ Native sharing for downloaded documents
- * - ✅ Proper error handling for corrupted files
- * - ✅ Image gallery viewer with zoom
+ * - ✅ Enhanced error handling for corrupted/missing images
+ * - ✅ Loading indicators for images
+ * - ✅ Better image gallery viewer with error recovery
  * - ✅ Map location preview
  * - ✅ Admin actions with confirmation
  * - ✅ Fixed navigation from profile (no longer redirects to notifications)
+ * - ✅ Console logs for debugging image loading issues
  */
 
 const { width } = Dimensions.get('window');
@@ -644,14 +646,28 @@ export default function SolicitudDetalleScreen() {
           </View>
         )}
 
-        {/* Images Gallery */}
+        {/* Images Gallery - FIXED v4.1 */}
         {allImages.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🖼️ Imágenes ({allImages.length})</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
               {allImages.map((uri, index) => (
                 <TouchableOpacity key={index} onPress={() => handleViewImage(index)}>
-                  <Image source={{ uri }} style={styles.imageThumb} />
+                  <Image 
+                    source={{ uri }} 
+                    style={styles.imageThumb}
+                    resizeMode="cover"
+                    onError={(error) => {
+                      console.error('[SolicitudDetalle v4.1] Image load error:', uri, error.nativeEvent.error);
+                    }}
+                    onLoad={() => {
+                      console.log('[SolicitudDetalle v4.1] ✅ Image loaded successfully:', uri);
+                    }}
+                  />
+                  {/* Loading indicator overlay */}
+                  <View style={styles.imageLoadingOverlay}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -749,7 +765,7 @@ export default function SolicitudDetalleScreen() {
         </View>
       )}
 
-      {/* Image Viewer Modal - FIXED */}
+      {/* Image Viewer Modal - FIXED v4.1 */}
       <Modal
         visible={showImageModal}
         transparent
@@ -764,11 +780,35 @@ export default function SolicitudDetalleScreen() {
             <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={36} color="#fff" />
           </TouchableOpacity>
           
-          <Image 
-            source={{ uri: allImages[selectedImageIndex] }} 
-            style={styles.fullImage} 
-            resizeMode="contain" 
-          />
+          <View style={styles.fullImageContainer}>
+            <Image 
+              source={{ uri: allImages[selectedImageIndex] }} 
+              style={styles.fullImage} 
+              resizeMode="contain"
+              onError={(error) => {
+                console.error('[SolicitudDetalle v4.1] Full image load error:', allImages[selectedImageIndex], error.nativeEvent.error);
+                Alert.alert(
+                  'Error al Cargar Imagen',
+                  'No se pudo cargar la imagen. Puede estar dañada o no disponible.',
+                  [
+                    {
+                      text: 'Abrir en Navegador',
+                      onPress: () => Linking.openURL(allImages[selectedImageIndex]),
+                    },
+                    { text: 'Cerrar', onPress: () => setShowImageModal(false) },
+                  ]
+                );
+              }}
+              onLoad={() => {
+                console.log('[SolicitudDetalle v4.1] ✅ Full image loaded successfully');
+              }}
+            />
+            {/* Loading indicator for full image */}
+            <View style={styles.fullImageLoading}>
+              <ActivityIndicator size="large" color="#fff" />
+              <Text style={styles.fullImageLoadingText}>Cargando imagen...</Text>
+            </View>
+          </View>
           
           <View style={styles.imageModalFooter}>
             <Text style={styles.imageCounter}>{selectedImageIndex + 1} / {allImages.length}</Text>
@@ -1168,6 +1208,17 @@ const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: colors.cardBorder,
   },
+  imageLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 10,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   mapCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
@@ -1283,9 +1334,26 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 10,
   },
-  fullImage: {
+  fullImageContainer: {
     width: width,
     height: '80%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
+  },
+  fullImageLoading: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  fullImageLoadingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
   imageModalFooter: {
     position: 'absolute',

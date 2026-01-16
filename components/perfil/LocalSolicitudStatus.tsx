@@ -26,7 +26,12 @@ interface Props {
 }
 
 /**
- * ✅ LOCAL SOLICITUD STATUS v1.0
+ * ✅ LOCAL SOLICITUD STATUS v1.1 - FIXED NAVIGATION
+ * 
+ * FIXES v1.1:
+ * - ✅ Fixed "Ver Detalles" navigation (now goes to /admin/solicitud-detalle, not /perfil/notificaciones)
+ * - ✅ Proper route parameters passing
+ * - ✅ Console logs for debugging
  * 
  * Displays ownership request status on local profile pages
  * Shows current status and allows viewing details
@@ -155,7 +160,16 @@ export default function LocalSolicitudStatus({ localId }: Props) {
         </View>
         <TouchableOpacity
           style={styles.viewDetailsButton}
-          onPress={() => router.push('/perfil/notificaciones')}
+          onPress={() => {
+            console.log('[LocalSolicitudStatus v1.1] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
+            console.log('[LocalSolicitudStatus v1.1] Route: /admin/solicitud-detalle');
+            
+            // ✅ FIX v1.1: Navigate to solicitud-detalle instead of notificaciones
+            router.push({
+              pathname: '/admin/solicitud-detalle',
+              params: { id: solicitud.id },
+            });
+          }}
         >
           <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={estadoInfo.color} />
         </TouchableOpacity>

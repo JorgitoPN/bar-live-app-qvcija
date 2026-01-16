@@ -27,13 +27,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
 
 /**
- * ✅ SOLICITAR PROPIEDAD v2.0 - FIXED DOCUMENT UPLOAD
+ * ✅ SOLICITAR PROPIEDAD v2.1 - FIXED NAVIGATION & DOCUMENT UPLOAD
  * 
- * FIXES:
+ * FIXES v2.1:
+ * - ✅ Fixed redirect after submission (now goes to solicitud-detalle, not notificaciones)
  * - ✅ Proper MIME type handling for documents
  * - ✅ Correct blob conversion for file uploads
  * - ✅ Preserved file extension and metadata
  * - ✅ Support for PDF, JPG, PNG formats
+ * - ✅ Console logs for debugging navigation
  */
 
 interface LocalSearchResult {
@@ -736,13 +738,36 @@ export default function SolicitarPropiedadScreen() {
           mensaje: `Hemos enviado un correo de confirmación a ${emailContacto}. Por favor, confirma tu email para que tu solicitud pase a revisión.`,
         });
 
+        // ✅ FIX v2.1: Redirect to solicitud-detalle instead of notificaciones
+        const { data: createdRequest } = await supabase
+          .from('solicitudes_propietario')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .eq('local_id', selectedLocal.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
         Alert.alert(
           '✅ Solicitud Enviada',
           `Tu solicitud para reclamar "${selectedLocal.nombre}" ha sido enviada.\n\n` +
           `📧 Revisa tu email (${emailContacto}) para confirmar tu solicitud.\n\n` +
           `Una vez confirmado, tu solicitud pasará a revisión por un administrador.\n\n` +
           `Recibirás notificaciones sobre el estado de tu solicitud.`,
-          [{ text: 'OK', onPress: () => router.push('/perfil/notificaciones') }]
+          [{ 
+            text: 'Ver Detalles', 
+            onPress: () => {
+              if (createdRequest?.id) {
+                console.log('[SolicitarPropiedad v2.1] ✅ Redirecting to solicitud-detalle:', createdRequest.id);
+                router.replace({
+                  pathname: '/admin/solicitud-detalle',
+                  params: { id: createdRequest.id },
+                });
+              } else {
+                router.back();
+              }
+            }
+          }]
         );
       } else {
         // nuevo_local request
@@ -918,13 +943,36 @@ export default function SolicitarPropiedadScreen() {
           mensaje: `Hemos enviado un correo de confirmación a ${emailContacto}. Por favor, confirma tu email para que tu solicitud pase a revisión.`,
         });
 
+        // ✅ FIX v2.1: Redirect to solicitud-detalle instead of notificaciones
+        const { data: createdRequest } = await supabase
+          .from('solicitudes_propietario')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .eq('nombre_local', nombreLocal)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
         Alert.alert(
           '✅ Solicitud Enviada',
           `Tu solicitud para crear el local "${nombreLocal}" ha sido enviada.\n\n` +
           `📧 Revisa tu email (${emailContacto}) para confirmar tu solicitud.\n\n` +
           `Una vez confirmado, tu solicitud pasará a revisión por un administrador.\n\n` +
           `Recibirás notificaciones sobre el estado de tu solicitud.`,
-          [{ text: 'OK', onPress: () => router.push('/perfil/notificaciones') }]
+          [{ 
+            text: 'Ver Detalles', 
+            onPress: () => {
+              if (createdRequest?.id) {
+                console.log('[SolicitarPropiedad v2.1] ✅ Redirecting to solicitud-detalle:', createdRequest.id);
+                router.replace({
+                  pathname: '/admin/solicitud-detalle',
+                  params: { id: createdRequest.id },
+                });
+              } else {
+                router.back();
+              }
+            }
+          }]
         );
       }
     } catch (error) {
