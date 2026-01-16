@@ -26,15 +26,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
 
 /**
- * ✅ SOLICITAR PROPIEDAD v3.0 - IMAGE-ONLY SYSTEM LIKE SOCIAL POSTS
+ * ✅ SOLICITAR PROPIEDAD v4.0 - SISTEMA SIMPLE DE IMÁGENES
  * 
- * FIXES v3.0:
- * - ✅ Removed PDF support - ONLY images allowed (JPG, PNG, WEBP)
- * - ✅ Using ImagePicker instead of DocumentPicker for property documents
- * - ✅ Same image upload system as social network posts
- * - ✅ Simplified URL handling - direct Supabase Storage URLs
- * - ✅ Proper MIME type handling for images
- * - ✅ Better error handling and logging
+ * NUEVO SISTEMA v4.0:
+ * - ✅ SOLO imágenes permitidas (JPG, PNG, WEBP) - NO PDF
+ * - ✅ Sistema de subida IDÉNTICO a posts de red social
+ * - ✅ URLs públicas directas de Supabase Storage
+ * - ✅ Sin complicaciones, sin conversiones
+ * - ✅ Visualización simple con Image de React Native
  */
 
 interface LocalSearchResult {
@@ -87,7 +86,6 @@ export default function SolicitarPropiedadScreen() {
   const { user } = useAuth();
   const webViewRef = useRef<WebView>(null);
 
-  // Determine request type from params
   const requestType = (params.type as 'reclamar_local' | 'nuevo_local') || 'reclamar_local';
   const preselectedLocalId = params.localId as string | undefined;
 
@@ -104,12 +102,11 @@ export default function SolicitarPropiedadScreen() {
   const [mensaje, setMensaje] = useState('');
   const [documentoUrl, setDocumentoUrl] = useState<string | null>(null);
   const [documentoTipo, setDocumentoTipo] = useState<string>('factura_luz');
-  const [documentoNombre, setDocumentoNombre] = useState<string>('');
 
   // Form data for nuevo_local
   const [nombreLocal, setNombreLocal] = useState('');
   const [tipoLocal, setTipoLocal] = useState('');
-  const [tiposLocalMultiple, setTiposLocalMultiple] = useState<string[]>([]); // Multiple categories for nuevo_local
+  const [tiposLocalMultiple, setTiposLocalMultiple] = useState<string[]>([]);
   const [descripcionLocal, setDescripcionLocal] = useState('');
   const [direccionLocal, setDireccionLocal] = useState('');
   const [ciudadLocal, setCiudadLocal] = useState('');
@@ -125,7 +122,6 @@ export default function SolicitarPropiedadScreen() {
 
   const [showDocumentTypeModal, setShowDocumentTypeModal] = useState(false);
 
-  // Initialize horarios with default values
   useEffect(() => {
     const defaultHorarios: Record<string, { abierto: boolean; apertura: string; cierre: string }> = {};
     DIAS_SEMANA.forEach(dia => {
@@ -134,14 +130,12 @@ export default function SolicitarPropiedadScreen() {
     setHorariosLocal(defaultHorarios);
   }, []);
 
-  // Pre-fill email with user's email
   useEffect(() => {
     if (user?.email) {
       setEmailContacto(user.email);
     }
   }, [user]);
 
-  // Load preselected local if provided
   useEffect(() => {
     if (preselectedLocalId && requestType === 'reclamar_local') {
       loadPreselectedLocal(preselectedLocalId);
@@ -168,9 +162,9 @@ export default function SolicitarPropiedadScreen() {
       }
 
       setSelectedLocal(data);
-      setCurrentStep(2); // Skip search step
+      setCurrentStep(2);
     } catch (error) {
-      console.error('[SolicitarPropiedad v3.0] Error loading preselected local:', error);
+      console.error('[SolicitarPropiedad v4.0] ❌ Error cargando local:', error);
       Alert.alert('Error', 'No se pudo cargar el local seleccionado');
     }
   }, [router]);
@@ -183,22 +177,22 @@ export default function SolicitarPropiedadScreen() {
 
     try {
       setSearchingLocales(true);
-      console.log('[SolicitarPropiedad v3.0] Searching locales:', query);
+      console.log('[SolicitarPropiedad v4.0] 🔍 Buscando locales:', query);
 
       const { data, error } = await supabase
         .from('locales')
         .select('id, nombre, direccion, ciudad, provincia, imagen_url, tipo, propietario_id')
         .or(`nombre.ilike.%${query}%,direccion.ilike.%${query}%,ciudad.ilike.%${query}%`)
-        .is('propietario_id', null) // Only show locales without owner
+        .is('propietario_id', null)
         .eq('activo', true)
         .limit(20);
 
       if (error) throw error;
 
-      console.log('[SolicitarPropiedad v3.0] Found locales:', data?.length || 0);
+      console.log('[SolicitarPropiedad v4.0] ✅ Locales encontrados:', data?.length || 0);
       setSearchResults(data || []);
     } catch (error) {
-      console.error('[SolicitarPropiedad v3.0] Error searching locales:', error);
+      console.error('[SolicitarPropiedad v4.0] ❌ Error buscando locales:', error);
     } finally {
       setSearchingLocales(false);
     }
@@ -215,9 +209,8 @@ export default function SolicitarPropiedadScreen() {
   }, [searchQuery, requestType, searchLocales]);
 
   const handleSelectLocal = async (local: LocalSearchResult) => {
-    console.log('[SolicitarPropiedad v3.0] Local selected:', local.nombre);
+    console.log('[SolicitarPropiedad v4.0] ✅ Local seleccionado:', local.nombre);
 
-    // Check if there's already an active request for this local
     const { data: existingRequest, error } = await supabase
       .from('solicitudes_propietario')
       .select('id, estado')
@@ -226,13 +219,13 @@ export default function SolicitarPropiedadScreen() {
       .maybeSingle();
 
     if (error) {
-      console.error('[SolicitarPropiedad v3.0] Error checking existing requests:', error);
+      console.error('[SolicitarPropiedad v4.0] ❌ Error verificando solicitudes:', error);
     }
 
     if (existingRequest) {
       Alert.alert(
         'Solicitud Existente',
-        'Ya existe una solicitud activa para este local. No se permiten múltiples solicitudes para el mismo local.',
+        'Ya existe una solicitud activa para este local.',
         [{ text: 'OK' }]
       );
       return;
@@ -243,14 +236,16 @@ export default function SolicitarPropiedadScreen() {
   };
 
   /**
-   * ✅ v3.0: NEW IMAGE-ONLY UPLOAD SYSTEM
-   * Uses ImagePicker like social posts - NO PDF support
+   * ✅ SISTEMA SIMPLE: Subir imagen igual que en posts
+   * - Usa ImagePicker (NO DocumentPicker)
+   * - Sube a Supabase Storage
+   * - Obtiene URL pública
+   * - Sin complicaciones
    */
   const handleUploadDocument = async () => {
     try {
-      console.log('[SolicitarPropiedad v3.0] Opening image picker for property document...');
+      console.log('[SolicitarPropiedad v4.0] 📸 Abriendo selector de imágenes...');
       
-      // Request permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (status !== 'granted') {
@@ -258,7 +253,7 @@ export default function SolicitarPropiedadScreen() {
         return;
       }
 
-      // Launch image picker - ONLY IMAGES
+      // ✅ SIMPLE: Solo imágenes, igual que posts
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
@@ -266,34 +261,24 @@ export default function SolicitarPropiedadScreen() {
         allowsMultipleSelection: false,
       });
 
-      console.log('[SolicitarPropiedad v3.0] Image picker result:', result);
+      console.log('[SolicitarPropiedad v4.0] 📸 Resultado:', result);
 
-      if (result.canceled) {
-        console.log('[SolicitarPropiedad v3.0] Image selection cancelled');
-        return;
-      }
-
-      if (!result.assets || result.assets.length === 0) {
-        console.log('[SolicitarPropiedad v3.0] No image selected');
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        console.log('[SolicitarPropiedad v4.0] ⚠️ Selección cancelada');
         return;
       }
 
       const image = result.assets[0];
-      console.log('[SolicitarPropiedad v3.0] Selected image:', {
-        uri: image.uri,
-        width: image.width,
-        height: image.height,
-      });
+      console.log('[SolicitarPropiedad v4.0] ✅ Imagen seleccionada:', image.uri);
 
-      // Upload to Supabase Storage - SAME AS SOCIAL POSTS
+      // ✅ SIMPLE: Subir igual que posts
       const response = await fetch(image.uri);
       const blob = await response.blob();
       
-      // Generate unique filename
       const fileExtension = image.uri.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${user?.id}/${Date.now()}.${fileExtension}`;
       
-      console.log('[SolicitarPropiedad v3.0] Uploading to documentos-propiedad bucket:', fileName);
+      console.log('[SolicitarPropiedad v4.0] ⬆️ Subiendo a Supabase Storage:', fileName);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documentos-propiedad')
@@ -303,25 +288,24 @@ export default function SolicitarPropiedadScreen() {
         });
 
       if (uploadError) {
-        console.error('[SolicitarPropiedad v3.0] Upload error:', uploadError);
+        console.error('[SolicitarPropiedad v4.0] ❌ Error subiendo:', uploadError);
         throw uploadError;
       }
 
-      console.log('[SolicitarPropiedad v3.0] Upload successful:', uploadData.path);
+      console.log('[SolicitarPropiedad v4.0] ✅ Subida exitosa:', uploadData.path);
 
-      // Get public URL - SAME AS SOCIAL POSTS
+      // ✅ SIMPLE: Obtener URL pública igual que posts
       const { data: urlData } = supabase.storage
         .from('documentos-propiedad')
         .getPublicUrl(uploadData.path);
 
-      console.log('[SolicitarPropiedad v3.0] ✅ Public URL generated:', urlData.publicUrl);
+      console.log('[SolicitarPropiedad v4.0] ✅ URL pública generada:', urlData.publicUrl);
 
       setDocumentoUrl(urlData.publicUrl);
-      setDocumentoNombre(`documento_propiedad.${fileExtension}`);
       
       Alert.alert('✅ Éxito', 'Imagen subida correctamente');
     } catch (error) {
-      console.error('[SolicitarPropiedad v3.0] Error uploading image:', error);
+      console.error('[SolicitarPropiedad v4.0] ❌ Error:', error);
       Alert.alert('Error', 'No se pudo subir la imagen. Intenta de nuevo.');
     }
   };
@@ -330,7 +314,7 @@ export default function SolicitarPropiedadScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería para seleccionar la foto');
+      Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería');
       return;
     }
 
@@ -342,7 +326,6 @@ export default function SolicitarPropiedadScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      // Upload to Supabase Storage
       try {
         const image = result.assets[0];
         const response = await fetch(image.uri);
@@ -365,9 +348,9 @@ export default function SolicitarPropiedadScreen() {
           .getPublicUrl(uploadData.path);
 
         setImagenPortadaUrl(urlData.publicUrl);
-        console.log('[SolicitarPropiedad v3.0] Cover photo uploaded:', urlData.publicUrl);
+        console.log('[SolicitarPropiedad v4.0] ✅ Portada subida:', urlData.publicUrl);
       } catch (error) {
-        console.error('[SolicitarPropiedad v3.0] Error uploading cover photo:', error);
+        console.error('[SolicitarPropiedad v4.0] ❌ Error subiendo portada:', error);
         Alert.alert('Error', 'No se pudo subir la foto de portada');
       }
     }
@@ -395,7 +378,6 @@ export default function SolicitarPropiedadScreen() {
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      // Upload all images to Supabase Storage
       try {
         const uploadedUrls: string[] = [];
         
@@ -423,9 +405,9 @@ export default function SolicitarPropiedadScreen() {
         }
         
         setGaleriaUrls([...galeriaUrls, ...uploadedUrls]);
-        console.log('[SolicitarPropiedad v3.0] Gallery images uploaded:', uploadedUrls.length);
+        console.log('[SolicitarPropiedad v4.0] ✅ Galería subida:', uploadedUrls.length, 'imágenes');
       } catch (error) {
-        console.error('[SolicitarPropiedad v3.0] Error uploading gallery images:', error);
+        console.error('[SolicitarPropiedad v4.0] ❌ Error subiendo galería:', error);
         Alert.alert('Error', 'No se pudieron subir algunas imágenes');
       }
     }
@@ -459,7 +441,7 @@ export default function SolicitarPropiedadScreen() {
         if (place.postalCode) setCodigoPostalLocal(place.postalCode);
       }
     } catch (error) {
-      console.error('[SolicitarPropiedad v3.0] Error getting location:', error);
+      console.error('[SolicitarPropiedad v4.0] ❌ Error obteniendo ubicación:', error);
       Alert.alert('Error', 'No se pudo obtener tu ubicación');
     } finally {
       setLoading(false);
@@ -470,12 +452,12 @@ export default function SolicitarPropiedadScreen() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'location_selected') {
-        console.log('[SolicitarPropiedad v3.0] Location selected:', data.lat, data.lng);
+        console.log('[SolicitarPropiedad v4.0] 📍 Ubicación seleccionada:', data.lat, data.lng);
         setLatitudLocal(data.lat);
         setLongitudLocal(data.lng);
       }
     } catch (error) {
-      console.error('[SolicitarPropiedad v3.0] Error parsing WebView message:', error);
+      console.error('[SolicitarPropiedad v4.0] ❌ Error procesando mensaje:', error);
     }
   };
 
@@ -586,7 +568,6 @@ export default function SolicitarPropiedadScreen() {
           }
           return true;
         case 2:
-          // All fields are mandatory for reclamar_local
           if (!emailContacto.trim()) {
             Alert.alert('Email requerido', 'El email de contacto es obligatorio');
             return false;
@@ -596,11 +577,11 @@ export default function SolicitarPropiedadScreen() {
             return false;
           }
           if (!documentoUrl) {
-            Alert.alert('Imagen requerida', 'Debes subir una imagen que acredite tu relación con el local (factura, contrato, licencia, etc.)');
+            Alert.alert('Imagen requerida', 'Debes subir una imagen que acredite tu relación con el local');
             return false;
           }
           if (!mensaje.trim()) {
-            Alert.alert('Mensaje requerido', 'Debes explicar por qué eres el propietario de este local');
+            Alert.alert('Mensaje requerido', 'Debes explicar por qué eres el propietario');
             return false;
           }
           return true;
@@ -608,7 +589,6 @@ export default function SolicitarPropiedadScreen() {
           return true;
       }
     } else {
-      // nuevo_local validation
       switch (step) {
         case 1:
           if (!nombreLocal.trim()) {
@@ -657,7 +637,7 @@ export default function SolicitarPropiedadScreen() {
 
     setLoading(true);
     try {
-      console.log('[SolicitarPropiedad v3.0] Submitting request:', requestType);
+      console.log('[SolicitarPropiedad v4.0] 📤 Enviando solicitud:', requestType);
 
       if (requestType === 'reclamar_local') {
         if (!selectedLocal) {
@@ -666,7 +646,6 @@ export default function SolicitarPropiedadScreen() {
           return;
         }
 
-        // Check for existing active requests
         const { data: existingRequest } = await supabase
           .from('solicitudes_propietario')
           .select('id')
@@ -675,16 +654,12 @@ export default function SolicitarPropiedadScreen() {
           .maybeSingle();
 
         if (existingRequest) {
-          Alert.alert(
-            'Solicitud Existente',
-            'Ya existe una solicitud activa para este local.',
-            [{ text: 'OK' }]
-          );
+          Alert.alert('Solicitud Existente', 'Ya existe una solicitud activa para este local.');
           setLoading(false);
           return;
         }
 
-        // Create request - documento_propiedad_url is already a public URL
+        // ✅ SIMPLE: Guardar URL pública directamente
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
           .insert({
@@ -698,16 +673,15 @@ export default function SolicitarPropiedadScreen() {
             telefono_contacto: telefonoContacto || null,
             email_contacto: emailContacto,
             mensaje: mensaje || null,
-            documento_propiedad_url: documentoUrl, // Direct public URL
+            documento_propiedad_url: documentoUrl, // ✅ URL pública directa
             documento_propiedad_tipo: documentoTipo,
             estado: 'pendiente',
           });
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedad v3.0] ✅ Claim request created successfully');
+        console.log('[SolicitarPropiedad v4.0] ✅ Solicitud creada exitosamente');
 
-        // Send confirmation email
         try {
           await supabase.functions.invoke('send-ownership-request-confirmation', {
             body: {
@@ -718,18 +692,16 @@ export default function SolicitarPropiedadScreen() {
             },
           });
         } catch (emailError) {
-          console.error('[SolicitarPropiedad v3.0] Error sending confirmation email:', emailError);
+          console.error('[SolicitarPropiedad v4.0] ⚠️ Error enviando email:', emailError);
         }
 
-        // Create notification
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
           tipo: 'sistema',
           titulo: '📧 Confirma tu email',
-          mensaje: `Hemos enviado un correo de confirmación a ${emailContacto}. Por favor, confirma tu email para que tu solicitud pase a revisión.`,
+          mensaje: `Hemos enviado un correo de confirmación a ${emailContacto}.`,
         });
 
-        // Get created request ID and redirect
         const { data: createdRequest } = await supabase
           .from('solicitudes_propietario')
           .select('id')
@@ -742,14 +714,12 @@ export default function SolicitarPropiedadScreen() {
         Alert.alert(
           '✅ Solicitud Enviada',
           `Tu solicitud para reclamar "${selectedLocal.nombre}" ha sido enviada.\n\n` +
-          `📧 Revisa tu email (${emailContacto}) para confirmar tu solicitud.\n\n` +
-          `Una vez confirmado, tu solicitud pasará a revisión por un administrador.\n\n` +
+          `📧 Revisa tu email (${emailContacto}) para confirmar.\n\n` +
           `Recibirás notificaciones sobre el estado de tu solicitud.`,
           [{ 
             text: 'Ver Detalles', 
             onPress: () => {
               if (createdRequest?.id) {
-                console.log('[SolicitarPropiedad v3.0] ✅ Redirecting to solicitud-detalle:', createdRequest.id);
                 router.replace({
                   pathname: '/admin/solicitud-detalle',
                   params: { id: createdRequest.id },
@@ -761,7 +731,7 @@ export default function SolicitarPropiedadScreen() {
           }]
         );
       } else {
-        // nuevo_local request
+        // nuevo_local
         if (!nombreLocal.trim() || tiposLocalMultiple.length === 0 || !direccionLocal.trim() || !ciudadLocal.trim() || !provinciaLocal.trim()) {
           Alert.alert('Campos requeridos', 'Por favor completa todos los campos obligatorios');
           setLoading(false);
@@ -774,8 +744,7 @@ export default function SolicitarPropiedadScreen() {
           return;
         }
 
-        // Check for duplicates
-        console.log('[SolicitarPropiedad v3.0] Checking for duplicate locals...');
+        console.log('[SolicitarPropiedad v4.0] 🔍 Verificando duplicados...');
         const { data: duplicates, error: duplicateError } = await supabase
           .rpc('check_duplicate_local', {
             p_nombre: nombreLocal,
@@ -784,33 +753,29 @@ export default function SolicitarPropiedadScreen() {
           });
 
         if (duplicateError) {
-          console.error('[SolicitarPropiedad v3.0] Error checking duplicates:', duplicateError);
+          console.error('[SolicitarPropiedad v4.0] ❌ Error verificando duplicados:', duplicateError);
         } else if (duplicates && duplicates.length > 0) {
           const duplicate = duplicates[0];
           Alert.alert(
             'Local Duplicado',
-            `Ya existe un local con el nombre "${nombreLocal}" en esta ubicación exacta.\n\n` +
+            `Ya existe un local con el nombre "${nombreLocal}" en esta ubicación.\n\n` +
             `Dirección: ${duplicate.direccion || 'No especificada'}\n` +
-            `Ciudad: ${duplicate.ciudad || 'No especificada'}\n\n` +
-            `Por favor, verifica si es el mismo local o elige una ubicación diferente.`,
+            `Ciudad: ${duplicate.ciudad || 'No especificada'}`,
             [{ text: 'Entendido' }]
           );
           setLoading(false);
           return;
         }
 
-        // All images are already uploaded to Supabase Storage with public URLs
-        // No need to re-upload, just use the URLs directly
-
-        // Create request with multiple categories
+        // ✅ SIMPLE: Todas las URLs ya son públicas, solo guardarlas
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
           .insert({
             usuario_id: user.id,
             tipo_solicitud: 'nuevo_local',
             nombre_local: nombreLocal,
-            tipo_local: tiposLocalMultiple[0], // Primary category (first selected)
-            tipos_local_multiple: tiposLocalMultiple, // All selected categories
+            tipo_local: tiposLocalMultiple[0],
+            tipos_local_multiple: tiposLocalMultiple,
             descripcion: descripcionLocal || null,
             direccion_local: direccionLocal,
             ciudad_local: ciudadLocal,
@@ -824,18 +789,17 @@ export default function SolicitarPropiedadScreen() {
             longitud_local: longitudLocal,
             horarios_local: horariosLocal,
             servicios_local: serviciosLocal,
-            imagen_portada_url: imagenPortadaUrl, // Direct public URL
-            galeria_urls: galeriaUrls, // Direct public URLs
-            documento_propiedad_url: documentoUrl, // Direct public URL
+            imagen_portada_url: imagenPortadaUrl, // ✅ URL pública directa
+            galeria_urls: galeriaUrls, // ✅ URLs públicas directas
+            documento_propiedad_url: documentoUrl, // ✅ URL pública directa
             documento_propiedad_tipo: documentoTipo,
             estado: 'pendiente',
           });
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedad v3.0] ✅ New local request created successfully');
+        console.log('[SolicitarPropiedad v4.0] ✅ Solicitud de nuevo local creada');
 
-        // Send confirmation email
         try {
           await supabase.functions.invoke('send-ownership-request-confirmation', {
             body: {
@@ -846,18 +810,16 @@ export default function SolicitarPropiedadScreen() {
             },
           });
         } catch (emailError) {
-          console.error('[SolicitarPropiedad v3.0] Error sending confirmation email:', emailError);
+          console.error('[SolicitarPropiedad v4.0] ⚠️ Error enviando email:', emailError);
         }
 
-        // Create notification
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
           tipo: 'sistema',
           titulo: '📧 Confirma tu email',
-          mensaje: `Hemos enviado un correo de confirmación a ${emailContacto}. Por favor, confirma tu email para que tu solicitud pase a revisión.`,
+          mensaje: `Hemos enviado un correo de confirmación a ${emailContacto}.`,
         });
 
-        // Get created request ID and redirect
         const { data: createdRequest } = await supabase
           .from('solicitudes_propietario')
           .select('id')
@@ -869,15 +831,13 @@ export default function SolicitarPropiedadScreen() {
 
         Alert.alert(
           '✅ Solicitud Enviada',
-          `Tu solicitud para crear el local "${nombreLocal}" ha sido enviada.\n\n` +
-          `📧 Revisa tu email (${emailContacto}) para confirmar tu solicitud.\n\n` +
-          `Una vez confirmado, tu solicitud pasará a revisión por un administrador.\n\n` +
+          `Tu solicitud para crear "${nombreLocal}" ha sido enviada.\n\n` +
+          `📧 Revisa tu email (${emailContacto}) para confirmar.\n\n` +
           `Recibirás notificaciones sobre el estado de tu solicitud.`,
           [{ 
             text: 'Ver Detalles', 
             onPress: () => {
               if (createdRequest?.id) {
-                console.log('[SolicitarPropiedad v3.0] ✅ Redirecting to solicitud-detalle:', createdRequest.id);
                 router.replace({
                   pathname: '/admin/solicitud-detalle',
                   params: { id: createdRequest.id },
@@ -890,8 +850,8 @@ export default function SolicitarPropiedadScreen() {
         );
       }
     } catch (error) {
-      console.error('[SolicitarPropiedad v3.0] Error submitting request:', error);
-      Alert.alert('Error', 'No se pudo enviar la solicitud. Por favor, intenta de nuevo.');
+      console.error('[SolicitarPropiedad v4.0] ❌ Error enviando solicitud:', error);
+      Alert.alert('Error', 'No se pudo enviar la solicitud. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -917,7 +877,6 @@ export default function SolicitarPropiedadScreen() {
     );
   };
 
-  // RECLAMAR LOCAL STEPS
   const renderReclamarStep1 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Buscar Local</Text>
@@ -1030,7 +989,7 @@ export default function SolicitarPropiedadScreen() {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Email de Contacto *</Text>
-        <Text style={styles.helperText}>Recibirás notificaciones en este email (obligatorio)</Text>
+        <Text style={styles.helperText}>Recibirás notificaciones en este email</Text>
         <TextInput
           style={styles.input}
           placeholder="tu@email.com"
@@ -1044,7 +1003,7 @@ export default function SolicitarPropiedadScreen() {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Teléfono de Contacto *</Text>
-        <Text style={styles.helperText}>Número de teléfono para contactarte (obligatorio)</Text>
+        <Text style={styles.helperText}>Número de teléfono para contactarte</Text>
         <TextInput
           style={styles.input}
           placeholder="+34 600 000 000"
@@ -1058,12 +1017,13 @@ export default function SolicitarPropiedadScreen() {
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Imagen de Documento de Propiedad *</Text>
         <Text style={styles.helperText}>
-          Sube una FOTO del documento que acredite tu relación con el local (factura, contrato, licencia, etc.) - Obligatorio
+          Sube una FOTO del documento que acredite tu relación con el local
         </Text>
         <Text style={styles.helperTextWarning}>
-          ⚠️ Solo se permiten imágenes (JPG, PNG, WEBP). No se aceptan archivos PDF.
+          ⚠️ Solo imágenes (JPG, PNG, WEBP). NO se aceptan PDF.
         </Text>
         
+        {/* ✅ SIMPLE: Mostrar imagen igual que en posts */}
         {documentoUrl ? (
           <View style={styles.documentImageCard}>
             <Image 
@@ -1088,10 +1048,7 @@ export default function SolicitarPropiedadScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.removeDocumentButton}
-                  onPress={() => {
-                    setDocumentoUrl(null);
-                    setDocumentoNombre('');
-                  }}
+                  onPress={() => setDocumentoUrl(null)}
                 >
                   <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#EF4444" />
                   <Text style={styles.removeDocumentText}>Eliminar</Text>
@@ -1111,7 +1068,7 @@ export default function SolicitarPropiedadScreen() {
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Mensaje Explicativo *</Text>
         <Text style={styles.helperText}>
-          Explica por qué eres el propietario de este local (obligatorio)
+          Explica por qué eres el propietario de este local
         </Text>
         <TextInput
           style={[styles.input, styles.textArea]}
@@ -1126,7 +1083,6 @@ export default function SolicitarPropiedadScreen() {
     </View>
   );
 
-  // Helper function to toggle multiple categories
   const toggleTipoLocal = (tipoValue: string) => {
     setTiposLocalMultiple(prev => {
       if (prev.includes(tipoValue)) {
@@ -1137,7 +1093,6 @@ export default function SolicitarPropiedadScreen() {
     });
   };
 
-  // NUEVO LOCAL STEPS
   const renderNuevoStep1 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Información Básica</Text>
@@ -1158,9 +1113,6 @@ export default function SolicitarPropiedadScreen() {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Tipo de Local * (Puedes seleccionar varios)</Text>
-        <Text style={styles.helperText}>
-          Selecciona todas las categorías que apliquen a tu local
-        </Text>
         <View style={styles.tipoGrid}>
           {TIPOS_LOCAL.map((tipo) => (
             <TouchableOpacity
@@ -1273,7 +1225,7 @@ export default function SolicitarPropiedadScreen() {
       <View style={styles.mapContainer}>
         <Text style={styles.mapLabel}>Ubicación Exacta en el Mapa *</Text>
         <Text style={styles.mapHelperText}>
-          Arrastra el marcador o toca en el mapa para ajustar la ubicación
+          Arrastra el marcador o toca en el mapa
         </Text>
         <View style={styles.mapViewer}>
           <WebView
@@ -1428,7 +1380,7 @@ export default function SolicitarPropiedadScreen() {
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Imágenes y Documentación</Text>
       <Text style={styles.stepDescription}>
-        Añade fotos de tu local y documentación de propiedad
+        Añade fotos de tu local y documentación
       </Text>
 
       <View style={styles.inputContainer}>
@@ -1477,10 +1429,10 @@ export default function SolicitarPropiedadScreen() {
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Imagen de Documento de Propiedad (Opcional)</Text>
         <Text style={styles.helperText}>
-          Foto del documento que acredite tu propiedad del local
+          Foto del documento que acredite tu propiedad
         </Text>
         <Text style={styles.helperTextWarning}>
-          ⚠️ Solo se permiten imágenes (JPG, PNG, WEBP). No se aceptan archivos PDF.
+          ⚠️ Solo imágenes (JPG, PNG, WEBP). NO se aceptan PDF.
         </Text>
         
         {documentoUrl ? (
@@ -1507,10 +1459,7 @@ export default function SolicitarPropiedadScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.removeDocumentButton}
-                  onPress={() => {
-                    setDocumentoUrl(null);
-                    setDocumentoNombre('');
-                  }}
+                  onPress={() => setDocumentoUrl(null)}
                 >
                   <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#EF4444" />
                   <Text style={styles.removeDocumentText}>Eliminar</Text>
@@ -1531,7 +1480,7 @@ export default function SolicitarPropiedadScreen() {
         <Text style={styles.label}>Mensaje Adicional (Opcional)</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Información adicional sobre tu local..."
+          placeholder="Información adicional..."
           placeholderTextColor={colors.textSecondary}
           value={mensaje}
           onChangeText={setMensaje}
@@ -1616,7 +1565,7 @@ export default function SolicitarPropiedadScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Document Type Modal */}
+      {/* Modal de tipo de documento */}
       <Modal
         visible={showDocumentTypeModal}
         transparent
@@ -1626,7 +1575,7 @@ export default function SolicitarPropiedadScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowDocumentTypeModal(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Tipo de Documento</Text>
-            <Text style={styles.modalSubtitle}>Selecciona el tipo de documento que estás subiendo</Text>
+            <Text style={styles.modalSubtitle}>Selecciona el tipo de documento</Text>
             
             <ScrollView style={styles.documentTypesList}>
               {TIPOS_DOCUMENTO.map((tipo) => (
@@ -1954,6 +1903,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
+  // ✅ SIMPLE: Estilos para mostrar imagen (igual que posts)
   uploadImageButton: {
     backgroundColor: colors.primary + '10',
     borderWidth: 2,
