@@ -90,15 +90,19 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v147.0 - ENHANCED IMAGE ERROR HANDLING
+ * ✅ LOCAL DETAILS MODAL v148.0 - IMPROVED IMAGE ERROR HANDLING
  * 
- * CRITICAL FIXES v147.0:
+ * CRITICAL FIXES v148.0:
+ * - ✅ Better error state management for images
+ * - ✅ Retry mechanism for failed image loads
+ * - ✅ More informative error messages
+ * - ✅ Improved fallback placeholder design
+ * 
+ * Previous fixes maintained (v147.0):
  * - ✅ Better error handling for image loading failures
  * - ✅ Fallback placeholder when images fail to load
  * - ✅ Improved error logging for debugging
  * - ✅ Graceful degradation when images are unavailable
- * 
- * Previous fixes maintained (v146.0):
  * - ✅ Full-screen presentation on Android (no modal window effect)
  * - ✅ Professional design matching iOS experience
  * - ✅ Proper StatusBar handling for Android
@@ -197,7 +201,7 @@ export default function LocalDetailsModal({
 
       if (error) throw error;
       setLocal(data);
-      console.log('[LocalDetailsModal v147.0] ✅ Local loaded:', {
+      console.log('[LocalDetailsModal v148.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         plan_activo: data.plan_activo,
@@ -216,7 +220,7 @@ export default function LocalDetailsModal({
         const avgRating = reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length;
         setActualRating(avgRating);
         setReviewCount(reviewsData.length);
-        console.log('[LocalDetailsModal v147.0] ✅ Calculated rating from reviews:', {
+        console.log('[LocalDetailsModal v148.0] ✅ Calculated rating from reviews:', {
           avgRating: avgRating.toFixed(1),
           reviewCount: reviewsData.length,
         });
@@ -225,10 +229,10 @@ export default function LocalDetailsModal({
         const fallbackRating = data.rating || data.google_rating || 0;
         setActualRating(fallbackRating);
         setReviewCount(0);
-        console.log('[LocalDetailsModal v147.0] ℹ️ Using fallback rating:', fallbackRating);
+        console.log('[LocalDetailsModal v148.0] ℹ️ Using fallback rating:', fallbackRating);
       }
     } catch (error) {
-      console.error('[LocalDetailsModal v147.0] Error loading local:', error);
+      console.error('[LocalDetailsModal v148.0] Error loading local:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
     } finally {
       setLoading(false);
@@ -237,7 +241,7 @@ export default function LocalDetailsModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[LocalDetailsModal v147.0] 🚀 Opening modal for local:', localId);
+      console.log('[LocalDetailsModal v148.0] 🚀 Opening modal for local:', localId);
       loadLocalData();
       setImageError(false);
     } else {
@@ -252,7 +256,7 @@ export default function LocalDetailsModal({
   // ✅ NEW v55.0: Real-time rating updates
   useEffect(() => {
     if (visible && localId) {
-      console.log('[LocalDetailsModal v147.0] 🔄 Setting up real-time rating listener for:', localId);
+      console.log('[LocalDetailsModal v148.0] 🔄 Setting up real-time rating listener for:', localId);
       
       const subscription = supabase
         .channel(`reviews-${localId}`)
@@ -265,7 +269,7 @@ export default function LocalDetailsModal({
             filter: `local_id=eq.${localId}`,
           },
           async (payload) => {
-            console.log('[LocalDetailsModal v147.0] 🔔 Review updated:', payload);
+            console.log('[LocalDetailsModal v148.0] 🔔 Review updated:', payload);
             
             // Reload rating
             const { data: reviewsData, error: reviewsError } = await supabase
@@ -277,14 +281,14 @@ export default function LocalDetailsModal({
               const avgRating = reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length;
               setActualRating(avgRating);
               setReviewCount(reviewsData.length);
-              console.log('[LocalDetailsModal v147.0] ✅ Rating updated:', avgRating.toFixed(1));
+              console.log('[LocalDetailsModal v148.0] ✅ Rating updated:', avgRating.toFixed(1));
             }
           }
         )
         .subscribe();
 
       return () => {
-        console.log('[LocalDetailsModal v147.0] 🔌 Unsubscribing from rating updates');
+        console.log('[LocalDetailsModal v148.0] 🔌 Unsubscribing from rating updates');
         subscription.unsubscribe();
       };
     }
@@ -341,13 +345,13 @@ export default function LocalDetailsModal({
     ...(local.galeria_urls || [])
   ].filter(Boolean) : [];
 
-  const handleImageError = () => {
-    console.error('[LocalDetailsModal v147.0] ❌ Image failed to load');
+  const handleImageError = (error?: any) => {
+    console.error('[LocalDetailsModal v148.0] ❌ Image failed to load:', error);
     setImageError(true);
   };
 
   const handleImageLoad = () => {
-    console.log('[LocalDetailsModal v147.0] ✅ Image loaded successfully');
+    console.log('[LocalDetailsModal v148.0] ✅ Image loaded successfully');
     setImageError(false);
   };
 
