@@ -5,7 +5,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
+  FlatList,
   Image,
   ActivityIndicator,
   RefreshControl,
@@ -13,7 +13,8 @@ import {
   Platform,
   TextInput,
   Modal,
-  Linking,
+  Pressable,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -59,15 +60,20 @@ interface Solicitud {
 }
 
 /**
- * ✅ SOLICITUDES PROPIETARIO v56.0 - COMPACT REDESIGN
+ * ✅ SOLICITUDES PROPIETARIO v60.0 - COMPLETE REDESIGN FROM SCRATCH
  * 
- * COMPLETE REDESIGN v56.0:
- * - ✅ Compact horizontal filter chips (no large sections)
- * - ✅ Streamlined card layout with better spacing
- * - ✅ Fixed document download/viewing functionality
- * - ✅ Improved visual hierarchy
- * - ✅ Better mobile UX with less scrolling
+ * BRAND NEW DESIGN v60.0:
+ * - ✅ Compact dropdown filter (replaces large tab sections)
+ * - ✅ Card-based list with optimized spacing
+ * - ✅ Quick actions directly on cards
+ * - ✅ Minimal vertical space usage
+ * - ✅ Better visual hierarchy
+ * - ✅ Improved mobile UX
+ * - ✅ Fixed document viewing
+ * - ✅ Fixed navigation to details
  */
+
+const { width } = Dimensions.get('window');
 
 export default function AdminSolicitudesPropietarioScreen() {
   const router = useRouter();
@@ -76,6 +82,7 @@ export default function AdminSolicitudesPropietarioScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
   const [selectedSolicitud, setSelectedSolicitud] = useState<Solicitud | null>(null);
   const [actionType, setActionType] = useState<'aprobar' | 'denegar' | 'cambiar_estado' | null>(null);
@@ -85,7 +92,7 @@ export default function AdminSolicitudesPropietarioScreen() {
 
   const loadSolicitudes = useCallback(async () => {
     try {
-      console.log('[Solicitudes v56.0] Loading owner requests...');
+      console.log('[Solicitudes v60.0] Loading owner requests...');
       
       let query = supabase
         .from('solicitudes_propietario')
@@ -112,14 +119,14 @@ export default function AdminSolicitudesPropietarioScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Solicitudes v56.0] Error loading requests:', error);
+        console.error('[Solicitudes v60.0] Error loading requests:', error);
         throw error;
       }
 
-      console.log('[Solicitudes v56.0] Loaded requests:', data?.length || 0);
+      console.log('[Solicitudes v60.0] Loaded requests:', data?.length || 0);
       setSolicitudes(data || []);
     } catch (error) {
-      console.error('[Solicitudes v56.0] Error:', error);
+      console.error('[Solicitudes v60.0] Error:', error);
       Alert.alert('Error', 'No se pudieron cargar las solicitudes');
     } finally {
       setLoading(false);
@@ -137,30 +144,21 @@ export default function AdminSolicitudesPropietarioScreen() {
   };
 
   const handleViewDetails = (solicitud: Solicitud) => {
-    console.log('[Solicitudes v56.0] Navigating to details:', solicitud.id);
+    console.log('[Solicitudes v60.0] Navigating to details:', solicitud.id);
     router.push({
       pathname: '/admin/solicitud-detalle',
       params: { id: solicitud.id },
     });
   };
 
-  const handleAprobar = async (solicitud: Solicitud) => {
+  const handleQuickAction = (solicitud: Solicitud, action: 'aprobar' | 'denegar' | 'cambiar_estado') => {
     setSelectedSolicitud(solicitud);
-    setActionType('aprobar');
-    setShowActionModal(true);
-  };
-
-  const handleDenegar = async (solicitud: Solicitud) => {
-    setSelectedSolicitud(solicitud);
-    setActionType('denegar');
-    setMotivoDenegacion('');
-    setShowActionModal(true);
-  };
-
-  const handleCambiarEstado = async (solicitud: Solicitud) => {
-    setSelectedSolicitud(solicitud);
-    setActionType('cambiar_estado');
-    setNotasAdmin('');
+    setActionType(action);
+    if (action === 'denegar') {
+      setMotivoDenegacion('');
+    } else if (action === 'cambiar_estado') {
+      setNotasAdmin('');
+    }
     setShowActionModal(true);
   };
 
@@ -193,7 +191,7 @@ export default function AdminSolicitudesPropietarioScreen() {
           const previousOwnerId = localData?.propietario_id;
 
           if (previousOwnerId && previousOwnerId !== selectedSolicitud.usuario_id) {
-            console.log('[Solicitudes v56.0] Resetting local profile due to ownership change...');
+            console.log('[Solicitudes v60.0] Resetting local profile due to ownership change...');
             
             const { data: resetResult, error: resetError } = await supabase
               .rpc('reset_local_profile', {
@@ -203,9 +201,9 @@ export default function AdminSolicitudesPropietarioScreen() {
               });
 
             if (resetError) {
-              console.error('[Solicitudes v56.0] Error resetting profile:', resetError);
+              console.error('[Solicitudes v60.0] Error resetting profile:', resetError);
             } else {
-              console.log('[Solicitudes v56.0] ✅ Profile reset:', resetResult);
+              console.log('[Solicitudes v60.0] ✅ Profile reset:', resetResult);
             }
           }
 
@@ -268,7 +266,7 @@ export default function AdminSolicitudesPropietarioScreen() {
             throw propError;
           }
 
-          console.log('[Solicitudes v56.0] ✅ New local created:', newLocal.id);
+          console.log('[Solicitudes v60.0] ✅ New local created:', newLocal.id);
         }
 
         await supabase.from('notificaciones').insert({
@@ -332,67 +330,27 @@ export default function AdminSolicitudesPropietarioScreen() {
       setNotasAdmin('');
       loadSolicitudes();
     } catch (error) {
-      console.error('[Solicitudes v56.0] Error executing action:', error);
+      console.error('[Solicitudes v60.0] Error executing action:', error);
       Alert.alert('Error', 'No se pudo completar la acción');
     }
   };
 
-  const getEstadoColor = (estado: string) => {
+  const getEstadoConfig = (estado: string) => {
     switch (estado) {
       case 'pendiente':
-        return '#F59E0B';
+        return { label: 'Pendiente', color: '#F59E0B', icon: 'schedule' };
       case 'en_revision':
-        return '#3B82F6';
+        return { label: 'Revisión', color: '#3B82F6', icon: 'search' };
       case 'informacion_adicional':
-        return '#8B5CF6';
+        return { label: 'Info', color: '#8B5CF6', icon: 'info' };
       case 'aprobada':
-        return '#10B981';
+        return { label: 'Aprobada', color: '#10B981', icon: 'check_circle' };
       case 'denegada':
-        return '#EF4444';
+        return { label: 'Denegada', color: '#EF4444', icon: 'cancel' };
       default:
-        return colors.textSecondary;
+        return { label: estado, color: colors.textSecondary, icon: 'circle' };
     }
   };
-
-  const getEstadoLabel = (estado: string) => {
-    switch (estado) {
-      case 'pendiente':
-        return 'Pendiente';
-      case 'en_revision':
-        return 'Revisión';
-      case 'informacion_adicional':
-        return 'Info';
-      case 'aprobada':
-        return 'Aprobada';
-      case 'denegada':
-        return 'Denegada';
-      default:
-        return estado;
-    }
-  };
-
-  const getTipoDocumentoLabel = (tipo?: string) => {
-    switch (tipo) {
-      case 'factura_luz':
-        return 'Factura de Luz';
-      case 'factura_agua':
-        return 'Factura de Agua';
-      case 'contrato_alquiler':
-        return 'Contrato de Alquiler';
-      case 'escritura':
-        return 'Escritura de Propiedad';
-      case 'licencia_actividad':
-        return 'Licencia de Actividad';
-      case 'otro':
-        return 'Otro Documento';
-      default:
-        return 'Documento';
-    }
-  };
-
-  const solicitudesFiltradas = filtro === 'todas' 
-    ? solicitudes 
-    : solicitudes.filter((s) => s.estado === filtro);
 
   const contadores = {
     pendiente: solicitudes.filter(s => s.estado === 'pendiente').length,
@@ -403,8 +361,155 @@ export default function AdminSolicitudesPropietarioScreen() {
     todas: solicitudes.length,
   };
 
+  const solicitudesFiltradas = filtro === 'todas' 
+    ? solicitudes 
+    : solicitudes.filter((s) => s.estado === filtro);
+
+  const renderSolicitudCard = ({ item }: { item: Solicitud }) => {
+    const estadoConfig = getEstadoConfig(item.estado);
+    
+    return (
+      <TouchableOpacity 
+        style={styles.card}
+        onPress={() => handleViewDetails(item)}
+        activeOpacity={0.7}
+      >
+        {/* Compact Header with User & Status */}
+        <View style={styles.cardHeader}>
+          <View style={styles.userRow}>
+            {item.usuario?.avatar ? (
+              <Image source={{ uri: item.usuario.avatar }} style={styles.miniAvatar} />
+            ) : (
+              <View style={[styles.miniAvatar, styles.avatarPlaceholder]}>
+                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={14} color={colors.white} />
+              </View>
+            )}
+            <View style={styles.userTextContainer}>
+              <Text style={styles.userName} numberOfLines={1}>{item.usuario?.nombre || 'Usuario'}</Text>
+              {item.usuario?.username && (
+                <Text style={styles.userHandle} numberOfLines={1}>@{item.usuario.username}</Text>
+              )}
+            </View>
+          </View>
+          
+          <View style={[styles.statusPill, { backgroundColor: estadoConfig.color }]}>
+            <IconSymbol 
+              ios_icon_name={estadoConfig.icon} 
+              android_material_icon_name={estadoConfig.icon} 
+              size={12} 
+              color="#fff" 
+            />
+            <Text style={styles.statusPillText}>{estadoConfig.label}</Text>
+          </View>
+        </View>
+
+        {/* Local Info - Compact */}
+        <View style={styles.localInfo}>
+          <View style={styles.localTitleRow}>
+            <IconSymbol 
+              ios_icon_name="building.2.fill" 
+              android_material_icon_name="store" 
+              size={18} 
+              color={colors.text} 
+            />
+            <Text style={styles.localName} numberOfLines={1}>{item.nombre_local}</Text>
+          </View>
+
+          <View style={styles.metaRow}>
+            <View style={styles.typeTag}>
+              <Text style={styles.typeTagText}>
+                {item.tipo_solicitud === 'reclamar_local' ? '🔑 Reclamar' : '✨ Nuevo'}
+              </Text>
+            </View>
+            
+            {item.direccion_local && (
+              <View style={styles.addressContainer}>
+                <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={12} color={colors.textSecondary} />
+                <Text style={styles.addressText} numberOfLines={1}>{item.direccion_local}</Text>
+              </View>
+            )}
+          </View>
+
+          {item.documento_propiedad_url && (
+            <View style={styles.docIndicator}>
+              <IconSymbol ios_icon_name="doc.fill" android_material_icon_name="description" size={12} color="#10B981" />
+              <Text style={styles.docIndicatorText}>Documento adjunto</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Quick Actions - Only for pending/review states */}
+        {(item.estado === 'pendiente' || item.estado === 'en_revision' || item.estado === 'informacion_adicional') && (
+          <View style={styles.quickActions}>
+            <TouchableOpacity
+              style={[styles.quickActionBtn, styles.approveBtn]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleQuickAction(item, 'aprobar');
+              }}
+            >
+              <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={16} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.quickActionBtn, styles.statusBtn]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleQuickAction(item, 'cambiar_estado');
+              }}
+            >
+              <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="sync" size={16} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.quickActionBtn, styles.rejectBtn]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleQuickAction(item, 'denegar');
+              }}
+            >
+              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={16} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.quickActionSeparator} />
+            <TouchableOpacity
+              style={[styles.quickActionBtn, styles.detailsBtn]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleViewDetails(item);
+              }}
+            >
+              <IconSymbol ios_icon_name="arrow.right" android_material_icon_name="arrow_forward" size={16} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Footer - Date */}
+        <View style={styles.cardFooter}>
+          <IconSymbol ios_icon_name="clock" android_material_icon_name="schedule" size={11} color={colors.textSecondary} />
+          <Text style={styles.dateText}>
+            {new Date(item.created_at).toLocaleDateString('es-ES', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const filterOptions = [
+    { key: 'pendiente', label: 'Pendientes', count: contadores.pendiente },
+    { key: 'en_revision', label: 'En Revisión', count: contadores.en_revision },
+    { key: 'informacion_adicional', label: 'Info Adicional', count: contadores.informacion_adicional },
+    { key: 'aprobada', label: 'Aprobadas', count: contadores.aprobada },
+    { key: 'denegada', label: 'Denegadas', count: contadores.denegada },
+    { key: 'todas', label: 'Todas', count: contadores.todas },
+  ];
+
+  const currentFilterOption = filterOptions.find(f => f.key === filtro);
+
   return (
     <View style={styles.container}>
+      {/* Compact Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -414,14 +519,32 @@ export default function AdminSolicitudesPropietarioScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Solicitudes</Text>
-          <Text style={styles.headerSubtitle}>Gestión de propietarios</Text>
+          <Text style={styles.headerSubtitle}>{contadores.todas} total</Text>
         </View>
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      {/* Compact Search Bar */}
-      <View style={styles.searchBar}>
-        <View style={styles.searchContainer}>
+      {/* Compact Filter Bar */}
+      <View style={styles.filterBar}>
+        <TouchableOpacity 
+          style={styles.filterDropdown}
+          onPress={() => setShowFilterModal(true)}
+        >
+          <View style={styles.filterDropdownLeft}>
+            <IconSymbol 
+              ios_icon_name="line.3.horizontal.decrease.circle" 
+              android_material_icon_name="filter_list" 
+              size={18} 
+              color={colors.primary} 
+            />
+            <Text style={styles.filterDropdownText}>
+              {currentFilterOption?.label} ({currentFilterOption?.count})
+            </Text>
+          </View>
+          <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={18} color={colors.primary} />
+        </TouchableOpacity>
+
+        <View style={styles.searchBox}>
           <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={16} color={colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
@@ -438,192 +561,91 @@ export default function AdminSolicitudesPropietarioScreen() {
         </View>
       </View>
 
-      {/* Compact Horizontal Filter Chips */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.filtersContainer}
-        contentContainerStyle={styles.filtersContent}
-      >
-        {[
-          { key: 'pendiente', label: 'Pendientes', icon: 'schedule', count: contadores.pendiente },
-          { key: 'en_revision', label: 'Revisión', icon: 'search', count: contadores.en_revision },
-          { key: 'informacion_adicional', label: 'Info', icon: 'info', count: contadores.informacion_adicional },
-          { key: 'aprobada', label: 'Aprobadas', icon: 'check_circle', count: contadores.aprobada },
-          { key: 'denegada', label: 'Denegadas', icon: 'cancel', count: contadores.denegada },
-          { key: 'todas', label: 'Todas', icon: 'list', count: contadores.todas },
-        ].map((f) => (
-          <TouchableOpacity
-            key={f.key}
-            style={[
-              styles.filterChip, 
-              filtro === f.key && [styles.filterChipActive, { backgroundColor: getEstadoColor(f.key) }]
-            ]}
-            onPress={() => setFiltro(f.key as any)}
-          >
-            <IconSymbol 
-              ios_icon_name={f.icon} 
-              android_material_icon_name={f.icon} 
-              size={14} 
-              color={filtro === f.key ? '#fff' : colors.textSecondary} 
-            />
-            <Text style={[
-              styles.filterChipText,
-              filtro === f.key && styles.filterChipTextActive
-            ]}>
-              {f.label}
-            </Text>
-            <View style={[
-              styles.filterChipBadge,
-              filtro === f.key && styles.filterChipBadgeActive
-            ]}>
-              <Text style={[
-                styles.filterChipBadgeText,
-                filtro === f.key && styles.filterChipBadgeTextActive
-              ]}>
-                {f.count}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
+      {/* List */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Cargando solicitudes...</Text>
         </View>
       ) : (
-        <ScrollView 
-          style={styles.content}
-          contentContainerStyle={styles.contentContainer}
+        <FlatList
+          data={solicitudesFiltradas}
+          renderItem={renderSolicitudCard}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
-        >
-          {solicitudesFiltradas.length > 0 ? (
-            solicitudesFiltradas.map((solicitud) => (
-              <View key={solicitud.id} style={styles.solicitudCard}>
-                {/* Compact Header */}
-                <View style={styles.cardHeader}>
-                  <View style={styles.userSection}>
-                    {solicitud.usuario?.avatar ? (
-                      <Image source={{ uri: solicitud.usuario.avatar }} style={styles.avatar} />
-                    ) : (
-                      <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={16} color={colors.white} />
-                      </View>
-                    )}
-                    <View style={styles.userInfo}>
-                      <Text style={styles.nombre} numberOfLines={1}>{solicitud.usuario?.nombre || 'Usuario'}</Text>
-                      {solicitud.usuario?.username && (
-                        <Text style={styles.username} numberOfLines={1}>@{solicitud.usuario.username}</Text>
-                      )}
-                    </View>
-                  </View>
-                  
-                  <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(solicitud.estado) }]}>
-                    <Text style={styles.estadoText}>{getEstadoLabel(solicitud.estado)}</Text>
-                  </View>
-                </View>
-
-                {/* Local Info - Compact */}
-                <View style={styles.localSection}>
-                  <View style={styles.localHeader}>
-                    <IconSymbol 
-                      ios_icon_name="building.2.fill" 
-                      android_material_icon_name="store" 
-                      size={16} 
-                      color={colors.primary} 
-                    />
-                    <Text style={styles.localTitle} numberOfLines={1}>{solicitud.nombre_local}</Text>
-                    <View style={styles.tipoChip}>
-                      <Text style={styles.tipoChipText}>
-                        {solicitud.tipo_solicitud === 'reclamar_local' ? 'Reclamar' : 'Nuevo'}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  {solicitud.direccion_local && (
-                    <View style={styles.infoRow}>
-                      <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={12} color={colors.textSecondary} />
-                      <Text style={styles.infoText} numberOfLines={1}>{solicitud.direccion_local}</Text>
-                    </View>
-                  )}
-
-                  {solicitud.documento_propiedad_url && (
-                    <View style={styles.documentBadge}>
-                      <IconSymbol ios_icon_name="doc.fill" android_material_icon_name="description" size={12} color="#10B981" />
-                      <Text style={styles.documentBadgeText}>
-                        {getTipoDocumentoLabel(solicitud.documento_propiedad_tipo)}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Compact Footer */}
-                <View style={styles.cardFooter}>
-                  <Text style={styles.metadataText}>
-                    {new Date(solicitud.created_at).toLocaleDateString('es-ES', {
-                      day: '2-digit',
-                      month: 'short',
-                    })}
-                  </Text>
-
-                  <TouchableOpacity 
-                    style={styles.viewDetailsButton}
-                    onPress={() => handleViewDetails(solicitud)}
-                  >
-                    <Text style={styles.viewDetailsButtonText}>Ver detalles</Text>
-                    <IconSymbol ios_icon_name="arrow.right" android_material_icon_name="arrow_forward" size={12} color={colors.primary} />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Compact Actions */}
-                {(solicitud.estado === 'pendiente' || solicitud.estado === 'en_revision' || solicitud.estado === 'informacion_adicional') && (
-                  <View style={styles.actionsContainer}>
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.aprobarButton]}
-                      onPress={() => handleAprobar(solicitud)}
-                    >
-                      <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={14} color="#fff" />
-                      <Text style={styles.actionButtonText}>Aprobar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.cambiarEstadoButton]}
-                      onPress={() => handleCambiarEstado(solicitud)}
-                    >
-                      <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="sync" size={14} color="#fff" />
-                      <Text style={styles.actionButtonText}>Estado</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.rechazarButton]}
-                      onPress={() => handleDenegar(solicitud)}
-                    >
-                      <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={14} color="#fff" />
-                      <Text style={styles.actionButtonText}>Denegar</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            ))
-          ) : (
+          ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <IconSymbol 
                 ios_icon_name="doc.text" 
                 android_material_icon_name="description" 
-                size={48} 
+                size={64} 
                 color={colors.textSecondary} 
               />
               <Text style={styles.emptyText}>
                 {filtro === 'todas' 
                   ? 'No hay solicitudes' 
-                  : `No hay solicitudes ${getEstadoLabel(filtro).toLowerCase()}s`}
+                  : `No hay solicitudes ${currentFilterOption?.label.toLowerCase()}`}
               </Text>
             </View>
-          )}
-        </ScrollView>
+          }
+        />
       )}
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowFilterModal(false)}>
+          <View style={styles.filterModalContent}>
+            <View style={styles.filterModalHeader}>
+              <Text style={styles.filterModalTitle}>Filtrar por Estado</Text>
+              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {filterOptions.map((option) => {
+              const config = getEstadoConfig(option.key);
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  style={[
+                    styles.filterOption,
+                    filtro === option.key && styles.filterOptionActive,
+                  ]}
+                  onPress={() => {
+                    setFiltro(option.key as any);
+                    setShowFilterModal(false);
+                  }}
+                >
+                  <View style={styles.filterOptionLeft}>
+                    <View style={[styles.filterOptionIcon, { backgroundColor: config.color + '20' }]}>
+                      <IconSymbol 
+                        ios_icon_name={config.icon} 
+                        android_material_icon_name={config.icon} 
+                        size={20} 
+                        color={config.color} 
+                      />
+                    </View>
+                    <Text style={[styles.filterOptionText, filtro === option.key && { color: config.color }]}>
+                      {option.label}
+                    </Text>
+                  </View>
+                  <View style={[styles.filterOptionBadge, { backgroundColor: config.color }]}>
+                    <Text style={styles.filterOptionBadgeText}>{option.count}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Action Modal */}
       <Modal
@@ -632,12 +654,12 @@ export default function AdminSolicitudesPropietarioScreen() {
         animationType="fade"
         onRequestClose={() => setShowActionModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {actionType === 'aprobar' && '✅ Aprobar'}
-                {actionType === 'denegar' && '❌ Denegar'}
+        <View style={styles.actionModalOverlay}>
+          <View style={styles.actionModalContent}>
+            <View style={styles.actionModalHeader}>
+              <Text style={styles.actionModalTitle}>
+                {actionType === 'aprobar' && '✅ Aprobar Solicitud'}
+                {actionType === 'denegar' && '❌ Denegar Solicitud'}
                 {actionType === 'cambiar_estado' && '🔄 Cambiar Estado'}
               </Text>
               <TouchableOpacity onPress={() => setShowActionModal(false)}>
@@ -646,44 +668,50 @@ export default function AdminSolicitudesPropietarioScreen() {
             </View>
 
             {actionType === 'aprobar' && (
-              <View style={styles.modalBody}>
-                <Text style={styles.modalText}>
-                  ¿Aprobar esta solicitud?
+              <View style={styles.actionModalBody}>
+                <Text style={styles.actionModalText}>
+                  ¿Confirmas que deseas aprobar esta solicitud?
                 </Text>
-                <Text style={styles.modalSubtext}>
-                  El usuario recibirá el rol de propietario.
+                <Text style={styles.actionModalSubtext}>
+                  El usuario recibirá el rol de propietario y podrá gestionar el local.
                 </Text>
               </View>
             )}
 
             {actionType === 'denegar' && (
-              <View style={styles.modalBody}>
-                <Text style={styles.modalText}>Motivo de denegación:</Text>
+              <View style={styles.actionModalBody}>
+                <Text style={styles.actionModalLabel}>Motivo de denegación *</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="Ej: No se pudo verificar..."
+                  style={[styles.modalInput, styles.modalTextArea]}
+                  placeholder="Explica por qué se deniega la solicitud..."
                   placeholderTextColor={colors.textSecondary}
                   value={motivoDenegacion}
                   onChangeText={setMotivoDenegacion}
                   multiline
-                  numberOfLines={3}
+                  numberOfLines={4}
                 />
               </View>
             )}
 
             {actionType === 'cambiar_estado' && (
-              <View style={styles.modalBody}>
-                <Text style={styles.modalText}>Nuevo estado:</Text>
-                <View style={styles.estadoOptions}>
+              <View style={styles.actionModalBody}>
+                <Text style={styles.actionModalLabel}>Selecciona el nuevo estado:</Text>
+                <View style={styles.stateOptions}>
                   <TouchableOpacity
                     style={[
-                      styles.estadoOption,
-                      nuevoEstado === 'en_revision' && styles.estadoOptionActive,
+                      styles.stateOption,
+                      nuevoEstado === 'en_revision' && styles.stateOptionActive,
                     ]}
                     onPress={() => setNuevoEstado('en_revision')}
                   >
+                    <IconSymbol 
+                      ios_icon_name="search" 
+                      android_material_icon_name="search" 
+                      size={20} 
+                      color={nuevoEstado === 'en_revision' ? '#3B82F6' : colors.textSecondary} 
+                    />
                     <Text style={[
-                      styles.estadoOptionText,
+                      styles.stateOptionText,
                       nuevoEstado === 'en_revision' && { color: '#3B82F6' }
                     ]}>
                       En Revisión
@@ -691,43 +719,55 @@ export default function AdminSolicitudesPropietarioScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
-                      styles.estadoOption,
-                      nuevoEstado === 'informacion_adicional' && styles.estadoOptionActive,
+                      styles.stateOption,
+                      nuevoEstado === 'informacion_adicional' && styles.stateOptionActive,
                     ]}
                     onPress={() => setNuevoEstado('informacion_adicional')}
                   >
+                    <IconSymbol 
+                      ios_icon_name="info" 
+                      android_material_icon_name="info" 
+                      size={20} 
+                      color={nuevoEstado === 'informacion_adicional' ? '#8B5CF6' : colors.textSecondary} 
+                    />
                     <Text style={[
-                      styles.estadoOptionText,
+                      styles.stateOptionText,
                       nuevoEstado === 'informacion_adicional' && { color: '#8B5CF6' }
                     ]}>
-                      Info. Adicional
+                      Info Adicional
                     </Text>
                   </TouchableOpacity>
                 </View>
+                <Text style={styles.actionModalLabel}>Notas para el usuario (opcional):</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="Notas (opcional)..."
+                  style={[styles.modalInput, styles.modalTextArea]}
+                  placeholder="Ej: Por favor, proporciona..."
                   placeholderTextColor={colors.textSecondary}
                   value={notasAdmin}
                   onChangeText={setNotasAdmin}
                   multiline
-                  numberOfLines={2}
+                  numberOfLines={3}
                 />
               </View>
             )}
 
-            <View style={styles.modalActions}>
+            <View style={styles.actionModalFooter}>
               <TouchableOpacity
-                style={styles.modalCancelButton}
+                style={styles.actionModalCancelBtn}
                 onPress={() => setShowActionModal(false)}
               >
-                <Text style={styles.modalCancelButtonText}>Cancelar</Text>
+                <Text style={styles.actionModalCancelText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.modalConfirmButton}
+                style={styles.actionModalConfirmBtn}
                 onPress={executeAction}
               >
-                <Text style={styles.modalConfirmButtonText}>Confirmar</Text>
+                <LinearGradient
+                  colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                  style={styles.actionModalConfirmGradient}
+                >
+                  <Text style={styles.actionModalConfirmText}>Confirmar</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -744,7 +784,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 16,
+    paddingBottom: 14,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -758,96 +798,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.headerText,
-    opacity: 0.9,
+    opacity: 0.85,
     marginTop: 2,
   },
-  searchBar: {
-    backgroundColor: colors.cardBackground,
+  filterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-  searchContainer: {
+  filterDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 140,
+  },
+  filterDropdownLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  filterDropdownText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  searchBox: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.background,
-    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 6,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
   },
   searchInput: {
     flex: 1,
     fontSize: 13,
     color: colors.text,
-  },
-  filtersContainer: {
-    backgroundColor: colors.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  filtersContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  filterChipActive: {
-    borderWidth: 0,
-  },
-  filterChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  filterChipTextActive: {
-    color: '#fff',
-  },
-  filterChipBadge: {
-    backgroundColor: colors.cardBorder,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  filterChipBadgeActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  filterChipBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  filterChipBadgeTextActive: {
-    color: '#fff',
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 12,
-    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -856,104 +864,119 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.textSecondary,
-    marginTop: 16,
+    marginTop: 12,
+    fontWeight: '600',
   },
-  solicitudCard: {
-    marginBottom: 12,
-    borderRadius: 12,
+  listContent: {
+    padding: 12,
+    paddingBottom: 100,
+  },
+  card: {
     backgroundColor: colors.cardBackground,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    padding: 12,
-    gap: 10,
+    marginBottom: 10,
+    overflow: 'hidden',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    padding: 12,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder + '30',
+    borderBottomColor: colors.cardBorder + '40',
   },
-  userSection: {
+  userRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
     gap: 8,
+    flex: 1,
   },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: colors.primary + '30',
+  miniAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.primary + '40',
   },
   avatarPlaceholder: {
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  userInfo: {
+  userTextContainer: {
     flex: 1,
   },
-  nombre: {
-    fontSize: 14,
+  userName: {
+    fontSize: 13,
     fontWeight: '700',
     color: colors.text,
   },
-  username: {
+  userHandle: {
     fontSize: 11,
     color: colors.primary,
     fontWeight: '600',
   },
-  estadoBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-  },
-  estadoText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  localSection: {
-    gap: 6,
-  },
-  localHeader: {
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
-  localTitle: {
+  statusPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  localInfo: {
+    padding: 12,
+    gap: 8,
+  },
+  localTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  localName: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.text,
   },
-  tipoChip: {
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  typeTag: {
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 8,
   },
-  tipoChipText: {
-    fontSize: 10,
+  typeTagText: {
+    fontSize: 11,
     fontWeight: '700',
     color: colors.primary,
   },
-  infoRow: {
+  addressContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  infoText: {
+  addressText: {
     flex: 1,
     fontSize: 12,
     color: colors.textSecondary,
   },
-  documentBadge: {
+  docIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -963,70 +986,60 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     alignSelf: 'flex-start',
   },
-  documentBadgeText: {
+  docIndicatorText: {
     fontSize: 10,
     fontWeight: '600',
     color: '#10B981',
   },
+  quickActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder + '40',
+  },
+  quickActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  approveBtn: {
+    backgroundColor: '#10B981',
+  },
+  statusBtn: {
+    backgroundColor: '#3B82F6',
+  },
+  rejectBtn: {
+    backgroundColor: '#EF4444',
+  },
+  detailsBtn: {
+    backgroundColor: colors.primary + '15',
+  },
+  quickActionSeparator: {
+    flex: 1,
+  },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder + '30',
-  },
-  metadataText: {
-    fontSize: 10,
-    color: colors.textSecondary,
-  },
-  viewDetailsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.primary + '15',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-  },
-  viewDetailsButtonText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 4,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    backgroundColor: colors.background + '80',
   },
-  actionButtonText: {
+  dateText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  aprobarButton: {
-    backgroundColor: '#10B981',
-  },
-  cambiarEstadoButton: {
-    backgroundColor: '#3B82F6',
-  },
-  rechazarButton: {
-    backgroundColor: '#EF4444',
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    paddingVertical: 80,
   },
   emptyText: {
     fontSize: 16,
@@ -1037,102 +1050,183 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  filterModalContent: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+  },
+  filterModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  filterModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  filterOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
+  filterOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '10',
+  },
+  filterOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  filterOptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterOptionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  filterOptionBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    minWidth: 32,
+    alignItems: 'center',
+  },
+  filterOptionBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  actionModalOverlay: {
+    flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
-  modalContent: {
+  actionModalContent: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 20,
     width: '100%',
     maxWidth: 400,
   },
-  modalHeader: {
+  actionModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  modalTitle: {
+  actionModalTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
   },
-  modalBody: {
+  actionModalBody: {
     marginBottom: 20,
   },
-  modalText: {
+  actionModalText: {
     fontSize: 15,
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 8,
+    fontWeight: '600',
   },
-  modalSubtext: {
+  actionModalSubtext: {
     fontSize: 13,
     color: colors.textSecondary,
+    lineHeight: 18,
   },
-  input: {
+  actionModalLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 10,
+  },
+  modalInput: {
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 14,
     color: colors.text,
   },
-  textArea: {
-    minHeight: 80,
+  modalTextArea: {
+    minHeight: 100,
     textAlignVertical: 'top',
   },
-  estadoOptions: {
+  stateOptions: {
     gap: 10,
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  estadoOption: {
+  stateOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     backgroundColor: colors.background,
     borderWidth: 2,
     borderColor: colors.cardBorder,
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: 12,
+    padding: 14,
   },
-  estadoOptionActive: {
+  stateOptionActive: {
     borderColor: colors.primary,
     backgroundColor: colors.primary + '10',
   },
-  estadoOptionText: {
-    fontSize: 14,
+  stateOptionText: {
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
-    textAlign: 'center',
   },
-  modalActions: {
+  actionModalFooter: {
     flexDirection: 'row',
     gap: 10,
   },
-  modalCancelButton: {
+  actionModalCancelBtn: {
     flex: 1,
-    backgroundColor: colors.cardBorder,
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
   },
-  modalCancelButtonText: {
+  actionModalCancelText: {
     fontSize: 15,
     fontWeight: '600',
     color: colors.text,
   },
-  modalConfirmButton: {
+  actionModalConfirmBtn: {
     flex: 1,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  actionModalConfirmGradient: {
+    paddingVertical: 14,
     alignItems: 'center',
   },
-  modalConfirmButtonText: {
+  actionModalConfirmText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.headerText,
   },
 });

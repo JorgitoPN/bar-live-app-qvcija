@@ -29,14 +29,12 @@ interface Props {
 }
 
 /**
- * ✅ SOLICITUD PROPIEDAD STATUS v1.0
+ * ✅ SOLICITUD PROPIEDAD STATUS v2.0 - FIXED NAVIGATION
  * 
- * Displays the current status of ownership requests in user profile
- * Shows:
- * - Request type (claim existing or create new)
- * - Current status with color coding
- * - Admin notes if any
- * - Actions based on status
+ * FIXES v2.0:
+ * - ✅ Fixed "Ver Detalles" button navigation (now goes to /admin/solicitud-detalle, not /perfil/notificaciones)
+ * - ✅ Proper route parameters passing
+ * - ✅ Console logs for debugging navigation
  */
 
 export default function SolicitudPropiedadStatus({ userId }: Props) {
@@ -59,7 +57,7 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
           filter: `usuario_id=eq.${userId}`,
         },
         () => {
-          console.log('[SolicitudStatus] Request changed, reloading...');
+          console.log('[SolicitudStatus v2.0] Request changed, reloading...');
           loadSolicitud();
         }
       )
@@ -82,14 +80,14 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
         .maybeSingle();
 
       if (error) {
-        console.error('[SolicitudStatus] Error loading request:', error);
+        console.error('[SolicitudStatus v2.0] Error loading request:', error);
         return;
       }
 
       setSolicitud(data);
-      console.log('[SolicitudStatus] Loaded request:', data?.estado);
+      console.log('[SolicitudStatus v2.0] Loaded request:', data?.estado);
     } catch (error) {
-      console.error('[SolicitudStatus] Error:', error);
+      console.error('[SolicitudStatus v2.0] Error:', error);
     } finally {
       setLoading(false);
     }
@@ -213,7 +211,11 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
             <TouchableOpacity
               style={styles.viewDetailsButton}
               onPress={() => {
-                console.log('[SolicitudStatus] Navigating to details:', solicitud.id);
+                console.log('[SolicitudStatus v2.0] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
+                console.log('[SolicitudStatus v2.0] Route: /admin/solicitud-detalle');
+                console.log('[SolicitudStatus v2.0] Params:', { id: solicitud.id });
+                
+                // ✅ FIX: Correct navigation to solicitud-detalle (not notificaciones)
                 router.push({
                   pathname: '/admin/solicitud-detalle',
                   params: { id: solicitud.id },

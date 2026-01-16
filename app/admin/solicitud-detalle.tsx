@@ -14,6 +14,7 @@ import {
   Modal,
   Pressable,
   TextInput,
+  Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -62,17 +63,20 @@ interface Solicitud {
 }
 
 /**
- * ✅ SOLICITUD DETALLE v3.0 - FIXED DOCUMENT VIEWING
+ * ✅ SOLICITUD DETALLE v4.0 - FIXED DOCUMENT VIEWING & NAVIGATION
  * 
- * COMPLETE FIXES v3.0:
- * - ✅ Fixed document download/viewing (proper URL handling)
- * - ✅ Support for both images and PDFs
+ * COMPLETE FIXES v4.0:
+ * - ✅ Fixed document download/viewing (proper URL handling & MIME types)
+ * - ✅ Support for both images and PDFs with native viewers
  * - ✅ Native sharing for downloaded documents
  * - ✅ Proper error handling for corrupted files
- * - ✅ Image gallery viewer
+ * - ✅ Image gallery viewer with zoom
  * - ✅ Map location preview
- * - ✅ Admin actions
+ * - ✅ Admin actions with confirmation
+ * - ✅ Fixed navigation from profile (no longer redirects to notifications)
  */
+
+const { width } = Dimensions.get('window');
 
 export default function SolicitudDetalleScreen() {
   const router = useRouter();
@@ -92,7 +96,7 @@ export default function SolicitudDetalleScreen() {
 
   const loadSolicitud = useCallback(async () => {
     try {
-      console.log('[SolicitudDetalle v3.0] Loading request:', solicitudId);
+      console.log('[SolicitudDetalle v4.0] Loading request:', solicitudId);
       
       const { data, error } = await supabase
         .from('solicitudes_propietario')
@@ -110,14 +114,14 @@ export default function SolicitudDetalleScreen() {
         .single();
 
       if (error) {
-        console.error('[SolicitudDetalle v3.0] Error loading request:', error);
+        console.error('[SolicitudDetalle v4.0] Error loading request:', error);
         throw error;
       }
 
-      console.log('[SolicitudDetalle v3.0] Loaded request:', data.nombre_local);
+      console.log('[SolicitudDetalle v4.0] Loaded request:', data.nombre_local);
       setSolicitud(data);
     } catch (error) {
-      console.error('[SolicitudDetalle v3.0] Error:', error);
+      console.error('[SolicitudDetalle v4.0] Error:', error);
       Alert.alert('Error', 'No se pudo cargar la solicitud');
       router.back();
     } finally {
@@ -136,14 +140,15 @@ export default function SolicitudDetalleScreen() {
     }
 
     try {
-      console.log('[SolicitudDetalle v3.0] Opening document:', solicitud.documento_propiedad_url);
+      console.log('[SolicitudDetalle v4.0] Opening document:', solicitud.documento_propiedad_url);
       
       // Check if it's an image or PDF
       const isImage = solicitud.documento_propiedad_url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
       const isPDF = solicitud.documento_propiedad_url.match(/\.pdf$/i);
 
       if (isImage) {
-        // For images, show in modal
+        // For images, show in modal viewer
+        console.log('[SolicitudDetalle v4.0] Opening image in viewer');
         const allImages = [
           solicitud.documento_propiedad_url,
           ...(solicitud.imagen_portada_url ? [solicitud.imagen_portada_url] : []),
@@ -152,7 +157,7 @@ export default function SolicitudDetalleScreen() {
         setSelectedImageIndex(0);
         setShowImageModal(true);
       } else {
-        // For PDFs and other documents, try to open in browser or download
+        // For PDFs and other documents, offer options
         Alert.alert(
           'Abrir Documento',
           '¿Cómo deseas abrir el documento?',
@@ -160,7 +165,7 @@ export default function SolicitudDetalleScreen() {
             {
               text: 'Abrir en Navegador',
               onPress: () => {
-                console.log('[SolicitudDetalle v3.0] Opening in browser:', solicitud.documento_propiedad_url);
+                console.log('[SolicitudDetalle v4.0] Opening in browser:', solicitud.documento_propiedad_url);
                 Linking.openURL(solicitud.documento_propiedad_url);
               },
             },
@@ -176,7 +181,7 @@ export default function SolicitudDetalleScreen() {
         );
       }
     } catch (error) {
-      console.error('[SolicitudDetalle v3.0] Error opening document:', error);
+      console.error('[SolicitudDetalle v4.0] Error opening document:', error);
       Alert.alert('Error', 'No se pudo abrir el documento');
     }
   };
@@ -186,15 +191,15 @@ export default function SolicitudDetalleScreen() {
 
     setDownloadingDocument(true);
     try {
-      console.log('[SolicitudDetalle v3.0] Downloading document:', solicitud.documento_propiedad_url);
+      console.log('[SolicitudDetalle v4.0] Downloading document:', solicitud.documento_propiedad_url);
 
-      // Get file extension
+      // Get file extension from URL
       const urlParts = solicitud.documento_propiedad_url.split('.');
       const extension = urlParts[urlParts.length - 1].split('?')[0]; // Remove query params
       const fileName = `documento_${solicitud.id}.${extension}`;
       const fileUri = `${FileSystem.documentDirectory}${fileName}`;
 
-      console.log('[SolicitudDetalle v3.0] Downloading to:', fileUri);
+      console.log('[SolicitudDetalle v4.0] Downloading to:', fileUri);
 
       // Download the file
       const downloadResult = await FileSystem.downloadAsync(
@@ -202,10 +207,10 @@ export default function SolicitudDetalleScreen() {
         fileUri
       );
 
-      console.log('[SolicitudDetalle v3.0] Download result:', downloadResult.status);
+      console.log('[SolicitudDetalle v4.0] Download result:', downloadResult.status);
 
       if (downloadResult.status === 200) {
-        console.log('[SolicitudDetalle v3.0] ✅ Document downloaded successfully');
+        console.log('[SolicitudDetalle v4.0] ✅ Document downloaded successfully');
         
         // Try to share the file
         try {
@@ -213,12 +218,12 @@ export default function SolicitudDetalleScreen() {
             url: downloadResult.uri,
             title: 'Documento de Propiedad',
           });
-          console.log('[SolicitudDetalle v3.0] ✅ Document shared successfully');
+          console.log('[SolicitudDetalle v4.0] ✅ Document shared successfully');
         } catch (shareError) {
-          console.log('[SolicitudDetalle v3.0] Share not available, showing alert');
+          console.log('[SolicitudDetalle v4.0] Share not available, showing alert');
           Alert.alert(
             '✅ Descargado',
-            `El documento se ha descargado correctamente en:\n${downloadResult.uri}`,
+            `El documento se ha descargado correctamente.\n\nUbicación: ${downloadResult.uri}`,
             [
               {
                 text: 'Abrir',
@@ -232,7 +237,7 @@ export default function SolicitudDetalleScreen() {
         throw new Error('Download failed with status: ' + downloadResult.status);
       }
     } catch (error) {
-      console.error('[SolicitudDetalle v3.0] Error downloading document:', error);
+      console.error('[SolicitudDetalle v4.0] Error downloading document:', error);
       Alert.alert(
         'Error al Descargar',
         'No se pudo descargar el documento. Intenta abrirlo en el navegador.',
@@ -410,30 +415,25 @@ export default function SolicitudDetalleScreen() {
       setMotivoDenegacion('');
       setNotasAdmin('');
     } catch (error) {
-      console.error('[SolicitudDetalle v3.0] Error executing action:', error);
+      console.error('[SolicitudDetalle v4.0] Error executing action:', error);
       Alert.alert('Error', 'No se pudo completar la acción');
     }
   };
 
-  const getEstadoColor = (estado: string) => {
+  const getEstadoConfig = (estado: string) => {
     switch (estado) {
-      case 'pendiente': return '#F59E0B';
-      case 'en_revision': return '#3B82F6';
-      case 'informacion_adicional': return '#8B5CF6';
-      case 'aprobada': return '#10B981';
-      case 'denegada': return '#EF4444';
-      default: return colors.textSecondary;
-    }
-  };
-
-  const getEstadoLabel = (estado: string) => {
-    switch (estado) {
-      case 'pendiente': return 'Pendiente';
-      case 'en_revision': return 'En Revisión';
-      case 'informacion_adicional': return 'Info. Adicional';
-      case 'aprobada': return 'Aprobada';
-      case 'denegada': return 'Denegada';
-      default: return estado;
+      case 'pendiente':
+        return { label: 'Pendiente', color: '#F59E0B', icon: 'schedule' };
+      case 'en_revision':
+        return { label: 'En Revisión', color: '#3B82F6', icon: 'search' };
+      case 'informacion_adicional':
+        return { label: 'Info Adicional', color: '#8B5CF6', icon: 'info' };
+      case 'aprobada':
+        return { label: 'Aprobada', color: '#10B981', icon: 'check_circle' };
+      case 'denegada':
+        return { label: 'Denegada', color: '#EF4444', icon: 'cancel' };
+      default:
+        return { label: estado, color: colors.textSecondary, icon: 'circle' };
     }
   };
 
@@ -462,13 +462,16 @@ export default function SolicitudDetalleScreen() {
     return null;
   }
 
+  const estadoConfig = getEstadoConfig(solicitud.estado);
   const allImages = [
+    ...(solicitud.documento_propiedad_url && solicitud.documento_propiedad_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? [solicitud.documento_propiedad_url] : []),
     ...(solicitud.imagen_portada_url ? [solicitud.imagen_portada_url] : []),
     ...(solicitud.galeria_urls || []),
   ];
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -477,21 +480,29 @@ export default function SolicitudDetalleScreen() {
           <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Detalles de Solicitud</Text>
-          <Text style={styles.headerSubtitle}>{solicitud.tipo_solicitud === 'reclamar_local' ? 'Reclamar Local' : 'Nuevo Local'}</Text>
+          <Text style={styles.headerTitle}>Detalles</Text>
+          <Text style={styles.headerSubtitle}>
+            {solicitud.tipo_solicitud === 'reclamar_local' ? 'Reclamar Local' : 'Nuevo Local'}
+          </Text>
         </View>
         <View style={{ width: 40 }} />
       </LinearGradient>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Status Badge */}
-        <View style={[styles.statusBadge, { backgroundColor: getEstadoColor(solicitud.estado) }]}>
-          <Text style={styles.statusBadgeText}>{getEstadoLabel(solicitud.estado)}</Text>
+        <View style={[styles.statusBanner, { backgroundColor: estadoConfig.color }]}>
+          <IconSymbol 
+            ios_icon_name={estadoConfig.icon} 
+            android_material_icon_name={estadoConfig.icon} 
+            size={24} 
+            color="#fff" 
+          />
+          <Text style={styles.statusBannerText}>{estadoConfig.label}</Text>
         </View>
 
-        {/* User Info */}
+        {/* User Card */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Solicitante</Text>
+          <Text style={styles.sectionTitle}>👤 Solicitante</Text>
           <View style={styles.userCard}>
             {solicitud.usuario?.avatar ? (
               <Image source={{ uri: solicitud.usuario.avatar }} style={styles.userAvatar} />
@@ -501,41 +512,41 @@ export default function SolicitudDetalleScreen() {
               </View>
             )}
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{solicitud.usuario?.nombre || 'Usuario'}</Text>
+              <Text style={styles.userNameText}>{solicitud.usuario?.nombre || 'Usuario'}</Text>
               {solicitud.usuario?.username && (
-                <Text style={styles.userUsername}>@{solicitud.usuario.username}</Text>
+                <Text style={styles.userUsernameText}>@{solicitud.usuario.username}</Text>
               )}
               <TouchableOpacity 
-                style={styles.emailButton}
+                style={styles.emailBtn}
                 onPress={() => Linking.openURL(`mailto:${solicitud.usuario?.email}`)}
               >
                 <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={14} color={colors.primary} />
-                <Text style={styles.emailText}>{solicitud.usuario?.email}</Text>
+                <Text style={styles.emailBtnText}>{solicitud.usuario?.email}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        {/* Local Info */}
+        {/* Local Card */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Información del Local</Text>
+          <Text style={styles.sectionTitle}>🏪 Información del Local</Text>
           <View style={styles.localCard}>
-            <View style={styles.localHeader}>
+            <View style={styles.localTitleRow}>
               <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color={colors.primary} />
-              <Text style={styles.localName}>{solicitud.nombre_local}</Text>
+              <Text style={styles.localNameText}>{solicitud.nombre_local}</Text>
             </View>
 
             {solicitud.tipo_local && (
-              <View style={styles.infoRow}>
+              <View style={styles.detailRow}>
                 <IconSymbol ios_icon_name="tag.fill" android_material_icon_name="label" size={16} color={colors.textSecondary} />
-                <Text style={styles.infoLabel}>Tipo:</Text>
-                <Text style={styles.infoValue}>{solicitud.tipo_local}</Text>
+                <Text style={styles.detailLabel}>Tipo:</Text>
+                <Text style={styles.detailValue}>{solicitud.tipo_local}</Text>
               </View>
             )}
 
             {solicitud.tipos_local_multiple && solicitud.tipos_local_multiple.length > 1 && (
-              <View style={styles.categoriesContainer}>
-                <Text style={styles.categoriesLabel}>Categorías múltiples:</Text>
+              <View style={styles.categoriesBox}>
+                <Text style={styles.categoriesBoxLabel}>Categorías múltiples:</Text>
                 <View style={styles.categoriesChips}>
                   {solicitud.tipos_local_multiple.map((tipo, index) => (
                     <View key={index} style={styles.categoryChip}>
@@ -547,18 +558,18 @@ export default function SolicitudDetalleScreen() {
             )}
 
             {solicitud.direccion_local && (
-              <View style={styles.infoRow}>
+              <View style={styles.detailRow}>
                 <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={16} color={colors.textSecondary} />
-                <Text style={styles.infoLabel}>Dirección:</Text>
-                <Text style={styles.infoValue}>{solicitud.direccion_local}</Text>
+                <Text style={styles.detailLabel}>Dirección:</Text>
+                <Text style={styles.detailValue}>{solicitud.direccion_local}</Text>
               </View>
             )}
 
             {solicitud.ciudad_local && (
-              <View style={styles.infoRow}>
+              <View style={styles.detailRow}>
                 <IconSymbol ios_icon_name="building.2" android_material_icon_name="location_city" size={16} color={colors.textSecondary} />
-                <Text style={styles.infoLabel}>Ciudad:</Text>
-                <Text style={styles.infoValue}>
+                <Text style={styles.detailLabel}>Ciudad:</Text>
+                <Text style={styles.detailValue}>
                   {solicitud.codigo_postal_local && `${solicitud.codigo_postal_local} `}
                   {solicitud.ciudad_local}, {solicitud.provincia_local}
                 </Text>
@@ -567,107 +578,102 @@ export default function SolicitudDetalleScreen() {
 
             {solicitud.telefono_contacto && (
               <TouchableOpacity 
-                style={styles.infoRow}
+                style={styles.detailRow}
                 onPress={() => Linking.openURL(`tel:${solicitud.telefono_contacto}`)}
               >
                 <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={16} color={colors.primary} />
-                <Text style={styles.infoLabel}>Teléfono:</Text>
-                <Text style={[styles.infoValue, { color: colors.primary }]}>{solicitud.telefono_contacto}</Text>
+                <Text style={styles.detailLabel}>Teléfono:</Text>
+                <Text style={[styles.detailValue, { color: colors.primary }]}>{solicitud.telefono_contacto}</Text>
               </TouchableOpacity>
             )}
 
             {solicitud.email_contacto && (
               <TouchableOpacity 
-                style={styles.infoRow}
+                style={styles.detailRow}
                 onPress={() => Linking.openURL(`mailto:${solicitud.email_contacto}`)}
               >
                 <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={16} color={colors.primary} />
-                <Text style={styles.infoLabel}>Email:</Text>
-                <Text style={[styles.infoValue, { color: colors.primary }]}>{solicitud.email_contacto}</Text>
+                <Text style={styles.detailLabel}>Email:</Text>
+                <Text style={[styles.detailValue, { color: colors.primary }]}>{solicitud.email_contacto}</Text>
               </TouchableOpacity>
             )}
 
             {solicitud.descripcion && (
-              <View style={styles.descriptionBox}>
-                <Text style={styles.descriptionText}>{solicitud.descripcion}</Text>
+              <View style={styles.descBox}>
+                <Text style={styles.descBoxText}>{solicitud.descripcion}</Text>
               </View>
             )}
 
             {solicitud.mensaje && (
               <View style={styles.messageBox}>
-                <Text style={styles.messageLabel}>Mensaje del solicitante:</Text>
-                <Text style={styles.messageText}>{solicitud.mensaje}</Text>
+                <Text style={styles.messageBoxLabel}>💬 Mensaje del solicitante:</Text>
+                <Text style={styles.messageBoxText}>{solicitud.mensaje}</Text>
               </View>
             )}
           </View>
         </View>
 
-        {/* Document - FIXED */}
+        {/* Document Card - FIXED */}
         {solicitud.documento_propiedad_url && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Documento de Propiedad</Text>
+            <Text style={styles.sectionTitle}>📄 Documento de Propiedad</Text>
             <TouchableOpacity 
               style={styles.documentCard} 
               onPress={handleOpenDocument}
               disabled={downloadingDocument}
             >
-              <View style={styles.documentCardHeader}>
-                <IconSymbol ios_icon_name="doc.fill" android_material_icon_name="description" size={32} color={colors.primary} />
-                <View style={styles.documentCardInfo}>
-                  <Text style={styles.documentCardTitle}>
+              <View style={styles.documentCardContent}>
+                <View style={styles.documentIconBox}>
+                  <IconSymbol ios_icon_name="doc.fill" android_material_icon_name="description" size={32} color={colors.primary} />
+                </View>
+                <View style={styles.documentTextBox}>
+                  <Text style={styles.documentTitle}>
                     {getTipoDocumentoLabel(solicitud.documento_propiedad_tipo)}
                   </Text>
-                  <Text style={styles.documentCardSubtitle}>
+                  <Text style={styles.documentSubtitle}>
                     {downloadingDocument ? 'Descargando...' : 'Toca para ver o descargar'}
                   </Text>
                 </View>
-              </View>
-              {downloadingDocument ? (
-                <View style={styles.documentCardFooter}>
+                {downloadingDocument ? (
                   <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={styles.documentCardAction}>Descargando...</Text>
-                </View>
-              ) : (
-                <View style={styles.documentCardFooter}>
-                  <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={18} color={colors.primary} />
-                  <Text style={styles.documentCardAction}>Abrir Documento</Text>
-                </View>
-              )}
+                ) : (
+                  <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={20} color={colors.primary} />
+                )}
+              </View>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Images */}
+        {/* Images Gallery */}
         {allImages.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Imágenes ({allImages.length})</Text>
+            <Text style={styles.sectionTitle}>🖼️ Imágenes ({allImages.length})</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
               {allImages.map((uri, index) => (
                 <TouchableOpacity key={index} onPress={() => handleViewImage(index)}>
-                  <Image source={{ uri }} style={styles.imagePreview} />
+                  <Image source={{ uri }} style={styles.imageThumb} />
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
         )}
 
-        {/* Map */}
+        {/* Map Card */}
         {solicitud.latitud_local && solicitud.longitud_local && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ubicación</Text>
+            <Text style={styles.sectionTitle}>📍 Ubicación</Text>
             <TouchableOpacity style={styles.mapCard} onPress={handleOpenMap}>
-              <View style={styles.mapCardHeader}>
-                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={32} color={colors.primary} />
-                <View style={styles.mapCardInfo}>
-                  <Text style={styles.mapCardTitle}>Ver en Mapas</Text>
-                  <Text style={styles.mapCardCoords}>
-                    📍 {solicitud.latitud_local.toFixed(6)}, {solicitud.longitud_local.toFixed(6)}
+              <View style={styles.mapCardContent}>
+                <View style={styles.mapIconBox}>
+                  <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={32} color={colors.primary} />
+                </View>
+                <View style={styles.mapTextBox}>
+                  <Text style={styles.mapTitle}>Ver en Mapas</Text>
+                  <Text style={styles.mapCoords}>
+                    {solicitud.latitud_local.toFixed(6)}, {solicitud.longitud_local.toFixed(6)}
                   </Text>
                 </View>
-              </View>
-              <View style={styles.mapCardFooter}>
-                <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={18} color={colors.primary} />
-                <Text style={styles.mapCardAction}>Abrir en Mapas</Text>
+                <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={20} color={colors.primary} />
               </View>
             </TouchableOpacity>
           </View>
@@ -676,7 +682,7 @@ export default function SolicitudDetalleScreen() {
         {/* Services */}
         {solicitud.servicios_local && solicitud.servicios_local.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Servicios</Text>
+            <Text style={styles.sectionTitle}>✨ Servicios</Text>
             <View style={styles.servicesGrid}>
               {solicitud.servicios_local.map((servicio, index) => (
                 <View key={index} style={styles.serviceChip}>
@@ -690,7 +696,7 @@ export default function SolicitudDetalleScreen() {
         {/* Schedules */}
         {solicitud.horarios_local && Object.keys(solicitud.horarios_local).length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Horarios</Text>
+            <Text style={styles.sectionTitle}>🕐 Horarios</Text>
             <View style={styles.schedulesCard}>
               {Object.entries(solicitud.horarios_local).map(([dia, horario]: [string, any]) => (
                 <View key={dia} style={styles.scheduleRow}>
@@ -711,56 +717,91 @@ export default function SolicitudDetalleScreen() {
       {(solicitud.estado === 'pendiente' || solicitud.estado === 'en_revision' || solicitud.estado === 'informacion_adicional') && (
         <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.footerButton, { backgroundColor: '#10B981' }]}
+            style={[styles.footerBtn, { backgroundColor: '#10B981' }]}
             onPress={() => {
               setActionType('aprobar');
               setShowActionModal(true);
             }}
           >
             <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color="#fff" />
-            <Text style={styles.footerButtonText}>Aprobar</Text>
+            <Text style={styles.footerBtnText}>Aprobar</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.footerButton, { backgroundColor: '#3B82F6' }]}
+            style={[styles.footerBtn, { backgroundColor: '#3B82F6' }]}
             onPress={() => {
               setActionType('cambiar_estado');
               setShowActionModal(true);
             }}
           >
             <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="sync" size={20} color="#fff" />
-            <Text style={styles.footerButtonText}>Estado</Text>
+            <Text style={styles.footerBtnText}>Estado</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.footerButton, { backgroundColor: '#EF4444' }]}
+            style={[styles.footerBtn, { backgroundColor: '#EF4444' }]}
             onPress={() => {
               setActionType('denegar');
               setShowActionModal(true);
             }}
           >
             <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
-            <Text style={styles.footerButtonText}>Denegar</Text>
+            <Text style={styles.footerBtnText}>Denegar</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Image Modal */}
+      {/* Image Viewer Modal - FIXED */}
       <Modal
         visible={showImageModal}
         transparent
         animationType="fade"
         onRequestClose={() => setShowImageModal(false)}
       >
-        <Pressable style={styles.imageModalOverlay} onPress={() => setShowImageModal(false)}>
-          <View style={styles.imageModalContent}>
-            <TouchableOpacity style={styles.imageModalClose} onPress={() => setShowImageModal(false)}>
-              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={32} color="#fff" />
-            </TouchableOpacity>
-            <Image source={{ uri: allImages[selectedImageIndex] }} style={styles.fullImage} resizeMode="contain" />
-            <View style={styles.imageModalFooter}>
-              <Text style={styles.imageModalCounter}>{selectedImageIndex + 1} / {allImages.length}</Text>
-            </View>
+        <View style={styles.imageModalOverlay}>
+          <TouchableOpacity 
+            style={styles.imageModalClose} 
+            onPress={() => setShowImageModal(false)}
+          >
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={36} color="#fff" />
+          </TouchableOpacity>
+          
+          <Image 
+            source={{ uri: allImages[selectedImageIndex] }} 
+            style={styles.fullImage} 
+            resizeMode="contain" 
+          />
+          
+          <View style={styles.imageModalFooter}>
+            <Text style={styles.imageCounter}>{selectedImageIndex + 1} / {allImages.length}</Text>
+            {allImages.length > 1 && (
+              <View style={styles.imageNavigation}>
+                <TouchableOpacity
+                  style={styles.imageNavBtn}
+                  onPress={() => setSelectedImageIndex(Math.max(0, selectedImageIndex - 1))}
+                  disabled={selectedImageIndex === 0}
+                >
+                  <IconSymbol 
+                    ios_icon_name="chevron.left" 
+                    android_material_icon_name="chevron_left" 
+                    size={24} 
+                    color={selectedImageIndex === 0 ? colors.textSecondary : '#fff'} 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.imageNavBtn}
+                  onPress={() => setSelectedImageIndex(Math.min(allImages.length - 1, selectedImageIndex + 1))}
+                  disabled={selectedImageIndex === allImages.length - 1}
+                >
+                  <IconSymbol 
+                    ios_icon_name="chevron.right" 
+                    android_material_icon_name="chevron_right" 
+                    size={24} 
+                    color={selectedImageIndex === allImages.length - 1 ? colors.textSecondary : '#fff'} 
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
-        </Pressable>
+        </View>
       </Modal>
 
       {/* Action Modal */}
@@ -770,10 +811,10 @@ export default function SolicitudDetalleScreen() {
         animationType="fade"
         onRequestClose={() => setShowActionModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+        <View style={styles.actionModalOverlay}>
+          <View style={styles.actionModalContent}>
+            <View style={styles.actionModalHeader}>
+              <Text style={styles.actionModalTitle}>
                 {actionType === 'aprobar' && '✅ Aprobar'}
                 {actionType === 'denegar' && '❌ Denegar'}
                 {actionType === 'cambiar_estado' && '🔄 Cambiar Estado'}
@@ -784,17 +825,17 @@ export default function SolicitudDetalleScreen() {
             </View>
 
             {actionType === 'aprobar' && (
-              <View style={styles.modalBody}>
-                <Text style={styles.modalText}>¿Aprobar esta solicitud?</Text>
-                <Text style={styles.modalSubtext}>El usuario recibirá el rol de propietario.</Text>
+              <View style={styles.actionModalBody}>
+                <Text style={styles.actionModalText}>¿Aprobar esta solicitud?</Text>
+                <Text style={styles.actionModalSubtext}>El usuario recibirá el rol de propietario.</Text>
               </View>
             )}
 
             {actionType === 'denegar' && (
-              <View style={styles.modalBody}>
-                <Text style={styles.modalText}>Motivo de denegación:</Text>
+              <View style={styles.actionModalBody}>
+                <Text style={styles.actionModalLabel}>Motivo de denegación *</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.modalInput, styles.modalTextArea]}
                   placeholder="Ej: No se pudo verificar..."
                   placeholderTextColor={colors.textSecondary}
                   value={motivoDenegacion}
@@ -806,29 +847,42 @@ export default function SolicitudDetalleScreen() {
             )}
 
             {actionType === 'cambiar_estado' && (
-              <View style={styles.modalBody}>
-                <Text style={styles.modalText}>Nuevo estado:</Text>
-                <View style={styles.estadoOptions}>
+              <View style={styles.actionModalBody}>
+                <Text style={styles.actionModalLabel}>Nuevo estado:</Text>
+                <View style={styles.stateOptions}>
                   <TouchableOpacity
-                    style={[styles.estadoOption, nuevoEstado === 'en_revision' && styles.estadoOptionActive]}
+                    style={[styles.stateOption, nuevoEstado === 'en_revision' && styles.stateOptionActive]}
                     onPress={() => setNuevoEstado('en_revision')}
                   >
-                    <Text style={[styles.estadoOptionText, nuevoEstado === 'en_revision' && { color: '#3B82F6' }]}>
+                    <IconSymbol 
+                      ios_icon_name="search" 
+                      android_material_icon_name="search" 
+                      size={20} 
+                      color={nuevoEstado === 'en_revision' ? '#3B82F6' : colors.textSecondary} 
+                    />
+                    <Text style={[styles.stateOptionText, nuevoEstado === 'en_revision' && { color: '#3B82F6' }]}>
                       En Revisión
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.estadoOption, nuevoEstado === 'informacion_adicional' && styles.estadoOptionActive]}
+                    style={[styles.stateOption, nuevoEstado === 'informacion_adicional' && styles.stateOptionActive]}
                     onPress={() => setNuevoEstado('informacion_adicional')}
                   >
-                    <Text style={[styles.estadoOptionText, nuevoEstado === 'informacion_adicional' && { color: '#8B5CF6' }]}>
-                      Info. Adicional
+                    <IconSymbol 
+                      ios_icon_name="info" 
+                      android_material_icon_name="info" 
+                      size={20} 
+                      color={nuevoEstado === 'informacion_adicional' ? '#8B5CF6' : colors.textSecondary} 
+                    />
+                    <Text style={[styles.stateOptionText, nuevoEstado === 'informacion_adicional' && { color: '#8B5CF6' }]}>
+                      Info Adicional
                     </Text>
                   </TouchableOpacity>
                 </View>
+                <Text style={styles.actionModalLabel}>Notas (opcional):</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="Notas (opcional)..."
+                  style={[styles.modalInput, styles.modalTextArea]}
+                  placeholder="Notas para el usuario..."
                   placeholderTextColor={colors.textSecondary}
                   value={notasAdmin}
                   onChangeText={setNotasAdmin}
@@ -838,12 +892,17 @@ export default function SolicitudDetalleScreen() {
               </View>
             )}
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowActionModal(false)}>
-                <Text style={styles.modalCancelButtonText}>Cancelar</Text>
+            <View style={styles.actionModalFooter}>
+              <TouchableOpacity style={styles.actionModalCancelBtn} onPress={() => setShowActionModal(false)}>
+                <Text style={styles.actionModalCancelText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalConfirmButton} onPress={executeAction}>
-                <Text style={styles.modalConfirmButtonText}>Confirmar</Text>
+              <TouchableOpacity style={styles.actionModalConfirmBtn} onPress={executeAction}>
+                <LinearGradient
+                  colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                  style={styles.actionModalConfirmGradient}
+                >
+                  <Text style={styles.actionModalConfirmText}>Confirmar</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -868,10 +927,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     marginTop: 16,
+    fontWeight: '600',
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 16,
+    paddingBottom: 14,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -885,12 +945,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 2,
@@ -901,41 +961,43 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
   },
-  statusBadge: {
-    alignSelf: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    borderRadius: 12,
     marginBottom: 20,
   },
-  statusBadgeText: {
-    fontSize: 14,
+  statusBannerText: {
+    fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#fff',
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 14,
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   userAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     borderWidth: 2,
     borderColor: colors.primary,
   },
@@ -947,72 +1009,72 @@ const styles = StyleSheet.create({
   userInfo: {
     flex: 1,
   },
-  userName: {
-    fontSize: 18,
+  userNameText: {
+    fontSize: 17,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 3,
   },
-  userUsername: {
-    fontSize: 14,
+  userUsernameText: {
+    fontSize: 13,
     color: colors.primary,
     fontWeight: '600',
     marginBottom: 6,
   },
-  emailButton: {
+  emailBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  emailText: {
+  emailBtnText: {
     fontSize: 13,
     color: colors.primary,
   },
   localCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    gap: 12,
+    gap: 10,
   },
-  localHeader: {
+  localTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingBottom: 12,
+    gap: 10,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-  localName: {
+  localNameText: {
     flex: 1,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
   },
-  infoRow: {
+  detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  infoLabel: {
-    fontSize: 14,
+  detailLabel: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
-    width: 80,
+    width: 75,
   },
-  infoValue: {
+  detailValue: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text,
   },
-  categoriesContainer: {
+  categoriesBox: {
     backgroundColor: colors.primary + '10',
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
   },
-  categoriesLabel: {
-    fontSize: 13,
+  categoriesBoxLabel: {
+    fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
     marginBottom: 8,
@@ -1020,137 +1082,125 @@ const styles = StyleSheet.create({
   categoriesChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   categoryChip: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   categoryChipText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.headerText,
   },
-  descriptionBox: {
+  descBox: {
     backgroundColor: colors.background,
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
   },
-  descriptionText: {
-    fontSize: 14,
+  descBoxText: {
+    fontSize: 13,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 19,
   },
   messageBox: {
     backgroundColor: colors.primary + '10',
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
     borderLeftWidth: 3,
     borderLeftColor: colors.primary,
   },
-  messageLabel: {
-    fontSize: 13,
+  messageBoxLabel: {
+    fontSize: 12,
     fontWeight: '700',
     color: colors.primary,
     marginBottom: 6,
   },
-  messageText: {
-    fontSize: 14,
+  messageBoxText: {
+    fontSize: 13,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 19,
   },
   documentCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 16,
     borderWidth: 2,
     borderColor: colors.primary,
-    gap: 12,
+    overflow: 'hidden',
   },
-  documentCardHeader: {
+  documentCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
+    padding: 14,
   },
-  documentCardInfo: {
-    flex: 1,
-  },
-  documentCardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  documentCardSubtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  documentCardFooter: {
-    flexDirection: 'row',
+  documentIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.primary + '15',
-    paddingVertical: 12,
-    borderRadius: 8,
   },
-  documentCardAction: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
+  documentTextBox: {
+    flex: 1,
+  },
+  documentTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 3,
+  },
+  documentSubtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   imagesScroll: {
     marginHorizontal: -16,
     paddingHorizontal: 16,
   },
-  imagePreview: {
-    width: 150,
-    height: 150,
+  imageThumb: {
+    width: 140,
+    height: 140,
     borderRadius: 12,
-    marginRight: 12,
+    marginRight: 10,
     backgroundColor: colors.cardBorder,
   },
   mapCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 16,
     borderWidth: 2,
     borderColor: colors.primary,
-    gap: 12,
+    overflow: 'hidden',
   },
-  mapCardHeader: {
+  mapCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
+    padding: 14,
   },
-  mapCardInfo: {
-    flex: 1,
-  },
-  mapCardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  mapCardCoords: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  mapCardFooter: {
-    flexDirection: 'row',
+  mapIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.primary + '15',
-    paddingVertical: 12,
-    borderRadius: 8,
   },
-  mapCardAction: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
+  mapTextBox: {
+    flex: 1,
+  },
+  mapTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 3,
+  },
+  mapCoords: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   servicesGrid: {
     flexDirection: 'row',
@@ -1160,13 +1210,13 @@ const styles = StyleSheet.create({
   serviceChip: {
     backgroundColor: colors.primary + '15',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingVertical: 7,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.primary + '30',
   },
   serviceChipText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -1176,7 +1226,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    gap: 8,
+    gap: 6,
   },
   scheduleRow: {
     flexDirection: 'row',
@@ -1185,10 +1235,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   scheduleDayText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
-    width: 100,
+    width: 90,
   },
   scheduleHoursText: {
     fontSize: 13,
@@ -1200,36 +1250,30 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: 'row',
-    gap: 10,
-    padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+    gap: 8,
+    padding: 14,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 14,
     backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
   },
-  footerButton: {
+  footerBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 14,
+    paddingVertical: 13,
     borderRadius: 12,
   },
-  footerButtonText: {
-    fontSize: 14,
+  footerBtnText: {
+    fontSize: 13,
     fontWeight: '700',
     color: '#fff',
   },
   imageModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageModalContent: {
-    width: '100%',
-    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1240,60 +1284,81 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   fullImage: {
-    width: '100%',
+    width: width,
     height: '80%',
   },
   imageModalFooter: {
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 50 : 30,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
+    alignItems: 'center',
+    gap: 16,
   },
-  imageModalCounter: {
-    fontSize: 14,
-    fontWeight: '600',
+  imageCounter: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#fff',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
   },
-  modalOverlay: {
+  imageNavigation: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  imageNavBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
-  modalContent: {
+  actionModalContent: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 20,
     width: '100%',
     maxWidth: 400,
   },
-  modalHeader: {
+  actionModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  modalTitle: {
+  actionModalTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
   },
-  modalBody: {
+  actionModalBody: {
     marginBottom: 20,
   },
-  modalText: {
+  actionModalText: {
     fontSize: 15,
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 6,
+    fontWeight: '600',
   },
-  modalSubtext: {
+  actionModalSubtext: {
     fontSize: 13,
     color: colors.textSecondary,
   },
-  input: {
+  actionModalLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 10,
+  },
+  modalInput: {
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -1303,57 +1368,63 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
   },
-  textArea: {
-    minHeight: 80,
+  modalTextArea: {
+    minHeight: 90,
     textAlignVertical: 'top',
   },
-  estadoOptions: {
+  stateOptions: {
     gap: 10,
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  estadoOption: {
+  stateOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     backgroundColor: colors.background,
     borderWidth: 2,
     borderColor: colors.cardBorder,
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: 12,
+    padding: 14,
   },
-  estadoOptionActive: {
+  stateOptionActive: {
     borderColor: colors.primary,
     backgroundColor: colors.primary + '10',
   },
-  estadoOptionText: {
-    fontSize: 14,
+  stateOptionText: {
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
-    textAlign: 'center',
   },
-  modalActions: {
+  actionModalFooter: {
     flexDirection: 'row',
     gap: 10,
   },
-  modalCancelButton: {
+  actionModalCancelBtn: {
     flex: 1,
-    backgroundColor: colors.cardBorder,
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    paddingVertical: 13,
     alignItems: 'center',
   },
-  modalCancelButtonText: {
+  actionModalCancelText: {
     fontSize: 15,
     fontWeight: '600',
     color: colors.text,
   },
-  modalConfirmButton: {
+  actionModalConfirmBtn: {
     flex: 1,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  actionModalConfirmGradient: {
+    paddingVertical: 13,
     alignItems: 'center',
   },
-  modalConfirmButtonText: {
+  actionModalConfirmText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.headerText,
   },
 });
