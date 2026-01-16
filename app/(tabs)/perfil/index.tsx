@@ -30,6 +30,7 @@ import ShoppingCart from '@/components/payment/ShoppingCart';
 import { profileCache } from '@/utils/profileCache';
 import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
 import { scaleFontSize } from '@/utils/androidScaling';
+import SolicitudPropiedadStatus from '@/components/perfil/SolicitudPropiedadStatus';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -1087,6 +1088,13 @@ export default function PerfilScreen() {
         >
           {renderProfileHeader()}
         </LinearGradient>
+
+        {/* ✅ NEW: Show ownership request status if exists */}
+        {userId && (
+          <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
+            <SolicitudPropiedadStatus userId={userId} />
+          </View>
+        )}
 
         <View style={styles.tabsContainer}>
           <TouchableOpacity

@@ -516,7 +516,37 @@ export default function ExplorarScreen() {
       setShowLoginModal(true);
       return;
     }
-    router.push('/auth/local-ownership-request');
+    
+    console.log('[Explorar v224.0] User tapped Claim/Create Local button');
+    
+    Alert.alert(
+      'Solicitar Propiedad',
+      '¿Qué deseas hacer?',
+      [
+        {
+          text: 'Reclamar Local Existente',
+          onPress: () => {
+            router.push({
+              pathname: '/solicitudes/solicitar-propiedad',
+              params: { type: 'reclamar_local' },
+            });
+          },
+        },
+        {
+          text: 'Crear Nuevo Local',
+          onPress: () => {
+            router.push({
+              pathname: '/solicitudes/solicitar-propiedad',
+              params: { type: 'nuevo_local' },
+            });
+          },
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ]
+    );
   };
 
   const getModeLabel = () => {

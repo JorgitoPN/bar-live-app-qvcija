@@ -36,6 +36,7 @@ import MomentoUpload from '@/components/momento/MomentoUpload';
 import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
 import PermissionGuard from '@/components/social/PermissionGuard';
 import { scaleFontSize } from '@/utils/androidScaling';
+import LocalSolicitudStatus from '@/components/perfil/LocalSolicitudStatus';
 
 const SCREEN_VERSION = '98.0.0';
 
@@ -1174,6 +1175,11 @@ export default function LocalPerfilScreen() {
               </View>
             </Animated.View>
           </LinearGradient>
+
+          {/* ✅ NEW: Show ownership request status if exists */}
+          <View style={{ paddingHorizontal: 20, paddingTop: 16, backgroundColor: colors.background }}>
+            <LocalSolicitudStatus localId={localId} />
+          </View>
 
           <View style={styles.tabsContainer}>
             <TouchableOpacity

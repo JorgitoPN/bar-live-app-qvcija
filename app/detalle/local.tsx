@@ -842,10 +842,11 @@ export default function DetalleLocalScreen() {
   };
 
   const handleClaimLocal = () => {
+    console.log('[DetalleLocal v101.0] User tapped Claim Local button');
     router.push({
-      pathname: '/auth/local-ownership-request',
-      params: { localId: params.id, mode: 'claim' },
-    } as any);
+      pathname: '/solicitudes/solicitar-propiedad',
+      params: { localId: params.id, type: 'reclamar_local' },
+    });
   };
 
   const handleLoadMoreReviews = () => {
