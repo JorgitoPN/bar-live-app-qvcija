@@ -212,7 +212,13 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
           <View style={styles.statusActions}>
             <TouchableOpacity
               style={styles.viewDetailsButton}
-              onPress={() => router.push('/perfil/notificaciones')}
+              onPress={() => {
+                console.log('[SolicitudStatus] Navigating to details:', solicitud.id);
+                router.push({
+                  pathname: '/admin/solicitud-detalle',
+                  params: { id: solicitud.id },
+                });
+              }}
             >
               <Text style={styles.viewDetailsButtonText}>Ver Detalles</Text>
               <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={16} color={colors.primary} />
