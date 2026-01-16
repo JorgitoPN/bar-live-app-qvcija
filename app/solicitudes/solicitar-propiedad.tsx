@@ -114,6 +114,7 @@ export default function SolicitarPropiedadScreen() {
   // Form data for nuevo_local
   const [nombreLocal, setNombreLocal] = useState('');
   const [tipoLocal, setTipoLocal] = useState('');
+  const [tiposLocalMultiple, setTiposLocalMultiple] = useState<string[]>([]); // Multiple categories for nuevo_local
   const [descripcionLocal, setDescripcionLocal] = useState('');
   const [direccionLocal, setDireccionLocal] = useState('');
   const [ciudadLocal, setCiudadLocal] = useState('');
@@ -504,8 +505,21 @@ export default function SolicitarPropiedadScreen() {
           }
           return true;
         case 2:
+          // All fields are mandatory for reclamar_local
           if (!emailContacto.trim()) {
-            Alert.alert('Email requerido', 'Por favor proporciona un email de contacto');
+            Alert.alert('Email requerido', 'El email de contacto es obligatorio');
+            return false;
+          }
+          if (!telefonoContacto.trim()) {
+            Alert.alert('Teléfono requerido', 'El teléfono de contacto es obligatorio');
+            return false;
+          }
+          if (!documentoUrl) {
+            Alert.alert('Documento requerido', 'Debes subir un documento que acredite tu relación con el local');
+            return false;
+          }
+          if (!mensaje.trim()) {
+            Alert.alert('Mensaje requerido', 'Debes explicar por qué eres el propietario de este local');
             return false;
           }
           return true;
@@ -516,8 +530,12 @@ export default function SolicitarPropiedadScreen() {
       // nuevo_local validation
       switch (step) {
         case 1:
-          if (!nombreLocal.trim() || !tipoLocal) {
-            Alert.alert('Campos requeridos', 'Por favor completa el nombre y tipo de local');
+          if (!nombreLocal.trim()) {
+            Alert.alert('Nombre requerido', 'Por favor completa el nombre del local');
+            return false;
+          }
+          if (tiposLocalMultiple.length === 0) {
+            Alert.alert('Tipo requerido', 'Por favor selecciona al menos un tipo de local');
             return false;
           }
           return true;
@@ -585,7 +603,7 @@ export default function SolicitarPropiedadScreen() {
           return;
         }
 
-        // Upload document if provided
+        // Upload document (mandatory for reclamar_local)
         let finalDocumentoUrl = documentoUrl;
         if (documentoUrl && documentoUrl.startsWith('file://')) {
           const response = await fetch(documentoUrl);
@@ -659,7 +677,7 @@ export default function SolicitarPropiedadScreen() {
         );
       } else {
         // nuevo_local request
-        if (!nombreLocal.trim() || !tipoLocal || !direccionLocal.trim() || !ciudadLocal.trim() || !provinciaLocal.trim()) {
+        if (!nombreLocal.trim() || tiposLocalMultiple.length === 0 || !direccionLocal.trim() || !ciudadLocal.trim() || !provinciaLocal.trim()) {
           Alert.alert('Campos requeridos', 'Por favor completa todos los campos obligatorios');
           setLoading(false);
           return;
@@ -752,14 +770,15 @@ export default function SolicitarPropiedadScreen() {
           }
         }
 
-        // Create request
+        // Create request with multiple categories
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
           .insert({
             usuario_id: user.id,
             tipo_solicitud: 'nuevo_local',
             nombre_local: nombreLocal,
-            tipo_local: tipoLocal,
+            tipo_local: tiposLocalMultiple[0], // Primary category (first selected)
+            tipos_local_multiple: tiposLocalMultiple, // All selected categories
             descripcion: descripcionLocal || null,
             direccion_local: direccionLocal,
             ciudad_local: ciudadLocal,
@@ -956,7 +975,7 @@ export default function SolicitarPropiedadScreen() {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Email de Contacto *</Text>
-        <Text style={styles.helperText}>Recibirás notificaciones en este email</Text>
+        <Text style={styles.helperText}>Recibirás notificaciones en este email (obligatorio)</Text>
         <TextInput
           style={styles.input}
           placeholder="tu@email.com"
@@ -969,7 +988,8 @@ export default function SolicitarPropiedadScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Teléfono de Contacto (Opcional)</Text>
+        <Text style={styles.label}>Teléfono de Contacto *</Text>
+        <Text style={styles.helperText}>Número de teléfono para contactarte (obligatorio)</Text>
         <TextInput
           style={styles.input}
           placeholder="+34 600 000 000"
@@ -981,9 +1001,9 @@ export default function SolicitarPropiedadScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Documento de Propiedad (Opcional)</Text>
+        <Text style={styles.label}>Documento de Propiedad *</Text>
         <Text style={styles.helperText}>
-          Sube un documento que acredite tu relación con el local (factura, contrato, licencia, etc.)
+          Sube un documento que acredite tu relación con el local (factura, contrato, licencia, etc.) - Obligatorio
         </Text>
         
         {documentoUrl ? (
@@ -1037,9 +1057,9 @@ export default function SolicitarPropiedadScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Mensaje Explicativo (Opcional)</Text>
+        <Text style={styles.label}>Mensaje Explicativo *</Text>
         <Text style={styles.helperText}>
-          Explica por qué eres el propietario de este local
+          Explica por qué eres el propietario de este local (obligatorio)
         </Text>
         <TextInput
           style={[styles.input, styles.textArea]}
@@ -1053,6 +1073,17 @@ export default function SolicitarPropiedadScreen() {
       </View>
     </View>
   );
+
+  // Helper function to toggle multiple categories
+  const toggleTipoLocal = (tipoValue: string) => {
+    setTiposLocalMultiple(prev => {
+      if (prev.includes(tipoValue)) {
+        return prev.filter(t => t !== tipoValue);
+      } else {
+        return [...prev, tipoValue];
+      }
+    });
+  };
 
   // NUEVO LOCAL STEPS
   const renderNuevoStep1 = () => (
@@ -1074,20 +1105,43 @@ export default function SolicitarPropiedadScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Tipo de Local *</Text>
+        <Text style={styles.label}>Tipo de Local * (Puedes seleccionar varios)</Text>
+        <Text style={styles.helperText}>
+          Selecciona todas las categorías que apliquen a tu local
+        </Text>
         <View style={styles.tipoGrid}>
           {TIPOS_LOCAL.map((tipo) => (
             <TouchableOpacity
               key={tipo.value}
-              style={[styles.tipoButton, tipoLocal === tipo.value && styles.tipoButtonActive]}
-              onPress={() => setTipoLocal(tipo.value)}
+              style={[styles.tipoButton, tiposLocalMultiple.includes(tipo.value) && styles.tipoButtonActive]}
+              onPress={() => toggleTipoLocal(tipo.value)}
             >
-              <Text style={[styles.tipoButtonText, tipoLocal === tipo.value && styles.tipoButtonTextActive]}>
+              <Text style={[styles.tipoButtonText, tiposLocalMultiple.includes(tipo.value) && styles.tipoButtonTextActive]}>
                 {tipo.label}
               </Text>
+              {tiposLocalMultiple.includes(tipo.value) && (
+                <View style={styles.tipoCheckmark}>
+                  <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={14} color={colors.headerText} />
+                </View>
+              )}
             </TouchableOpacity>
           ))}
         </View>
+        {tiposLocalMultiple.length > 0 && (
+          <View style={styles.selectedTiposContainer}>
+            <Text style={styles.selectedTiposLabel}>Categorías seleccionadas:</Text>
+            <View style={styles.selectedTiposChips}>
+              {tiposLocalMultiple.map((tipoValue) => {
+                const tipo = TIPOS_LOCAL.find(t => t.value === tipoValue);
+                return (
+                  <View key={tipoValue} style={styles.selectedTipoChip}>
+                    <Text style={styles.selectedTipoChipText}>{tipo?.label}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
       </View>
 
       <View style={styles.inputContainer}>
@@ -1925,6 +1979,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 12,
     alignItems: 'center',
+    position: 'relative',
   },
   tipoButtonActive: {
     borderColor: colors.primary,
@@ -1936,6 +1991,47 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   tipoButtonTextActive: {
+    color: colors.headerText,
+  },
+  tipoCheckmark: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.headerText,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedTiposContainer: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: colors.primary + '10',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  selectedTiposLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+    marginBottom: 8,
+  },
+  selectedTiposChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  selectedTipoChip: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  selectedTipoChipText: {
+    fontSize: 12,
+    fontWeight: '600',
     color: colors.headerText,
   },
   row: {
