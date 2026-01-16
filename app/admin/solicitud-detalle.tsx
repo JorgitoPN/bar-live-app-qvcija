@@ -61,14 +61,14 @@ interface Solicitud {
 }
 
 /**
- * ✅ SOLICITUD DETALLE v5.0 - SIMPLIFIED IMAGE DISPLAY LIKE SOCIAL POSTS
+ * ✅ SOLICITUD DETALLE v6.0 - IMPROVED ERROR HANDLING
  * 
- * COMPLETE FIXES v5.0:
- * - ✅ Removed complex getPublicUrl() function
- * - ✅ Using direct URLs from database (same as social posts)
- * - ✅ Simplified image display with proper error handling
- * - ✅ Better loading states and error placeholders
- * - ✅ Consistent with PostViewerModal image handling
+ * FIXES v6.0:
+ * - ✅ Better error handling for missing/deleted images
+ * - ✅ Graceful fallback when images fail to load
+ * - ✅ Clear error messages for users
+ * - ✅ Prevents app crashes from missing images
+ * - ✅ Consistent with social post image handling
  */
 
 const { width } = Dimensions.get('window');
@@ -94,7 +94,7 @@ export default function SolicitudDetalleScreen() {
 
   const loadSolicitud = useCallback(async () => {
     try {
-      console.log('[SolicitudDetalle v5.0] Loading request:', solicitudId);
+      console.log('[SolicitudDetalle v6.0] Loading request:', solicitudId);
       
       const { data, error } = await supabase
         .from('solicitudes_propietario')
@@ -112,18 +112,18 @@ export default function SolicitudDetalleScreen() {
         .single();
 
       if (error) {
-        console.error('[SolicitudDetalle v5.0] Error loading request:', error);
+        console.error('[SolicitudDetalle v6.0] Error loading request:', error);
         throw error;
       }
 
-      console.log('[SolicitudDetalle v5.0] ✅ Loaded request:', data.nombre_local);
-      console.log('[SolicitudDetalle v5.0] Document URL:', data.documento_propiedad_url);
-      console.log('[SolicitudDetalle v5.0] Cover image URL:', data.imagen_portada_url);
-      console.log('[SolicitudDetalle v5.0] Gallery URLs:', data.galeria_urls);
+      console.log('[SolicitudDetalle v6.0] ✅ Loaded request:', data.nombre_local);
+      console.log('[SolicitudDetalle v6.0] Document URL:', data.documento_propiedad_url);
+      console.log('[SolicitudDetalle v6.0] Cover image URL:', data.imagen_portada_url);
+      console.log('[SolicitudDetalle v6.0] Gallery URLs:', data.galeria_urls);
       
       setSolicitud(data);
     } catch (error) {
-      console.error('[SolicitudDetalle v5.0] Error:', error);
+      console.error('[SolicitudDetalle v6.0] Error:', error);
       Alert.alert('Error', 'No se pudo cargar la solicitud');
       router.back();
     } finally {
@@ -136,18 +136,18 @@ export default function SolicitudDetalleScreen() {
   }, [loadSolicitud]);
 
   const handleImageLoadStart = (uri: string) => {
-    console.log('[SolicitudDetalle v5.0] Image load started:', uri);
+    console.log('[SolicitudDetalle v6.0] Image load started:', uri);
     setImageLoadingStates(prev => ({ ...prev, [uri]: true }));
     setImageErrorStates(prev => ({ ...prev, [uri]: false }));
   };
 
   const handleImageLoadEnd = (uri: string) => {
-    console.log('[SolicitudDetalle v5.0] ✅ Image loaded successfully:', uri);
+    console.log('[SolicitudDetalle v6.0] ✅ Image loaded successfully:', uri);
     setImageLoadingStates(prev => ({ ...prev, [uri]: false }));
   };
 
   const handleImageError = (uri: string, error: any) => {
-    console.error('[SolicitudDetalle v5.0] ❌ Image load error:', uri, error);
+    console.error('[SolicitudDetalle v6.0] ❌ Image load error:', uri, error);
     setImageLoadingStates(prev => ({ ...prev, [uri]: false }));
     setImageErrorStates(prev => ({ ...prev, [uri]: true }));
   };
@@ -158,7 +158,7 @@ export default function SolicitudDetalleScreen() {
       return;
     }
 
-    console.log('[SolicitudDetalle v5.0] Opening document image:', solicitud.documento_propiedad_url);
+    console.log('[SolicitudDetalle v6.0] Opening document image:', solicitud.documento_propiedad_url);
     
     // Check if it's an image
     const isImage = solicitud.documento_propiedad_url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
@@ -199,7 +199,7 @@ export default function SolicitudDetalleScreen() {
   };
 
   const handleViewImage = (index: number) => {
-    console.log('[SolicitudDetalle v5.0] Opening image viewer at index:', index);
+    console.log('[SolicitudDetalle v6.0] Opening image viewer at index:', index);
     setSelectedImageIndex(index);
     setShowImageModal(true);
   };
@@ -349,7 +349,7 @@ export default function SolicitudDetalleScreen() {
       setMotivoDenegacion('');
       setNotasAdmin('');
     } catch (error) {
-      console.error('[SolicitudDetalle v5.0] Error executing action:', error);
+      console.error('[SolicitudDetalle v6.0] Error executing action:', error);
       Alert.alert('Error', 'No se pudo completar la acción');
     }
   };
@@ -403,25 +403,25 @@ export default function SolicitudDetalleScreen() {
   
   // Add document image if it's an image
   if (solicitud.documento_propiedad_url && solicitud.documento_propiedad_url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-    console.log('[SolicitudDetalle v5.0] Adding document image:', solicitud.documento_propiedad_url);
+    console.log('[SolicitudDetalle v6.0] Adding document image:', solicitud.documento_propiedad_url);
     allImages.push(solicitud.documento_propiedad_url);
   }
   
   // Add cover image
   if (solicitud.imagen_portada_url) {
-    console.log('[SolicitudDetalle v5.0] Adding cover image:', solicitud.imagen_portada_url);
+    console.log('[SolicitudDetalle v6.0] Adding cover image:', solicitud.imagen_portada_url);
     allImages.push(solicitud.imagen_portada_url);
   }
   
   // Add gallery images
   if (solicitud.galeria_urls && solicitud.galeria_urls.length > 0) {
     solicitud.galeria_urls.forEach(imgUrl => {
-      console.log('[SolicitudDetalle v5.0] Adding gallery image:', imgUrl);
+      console.log('[SolicitudDetalle v6.0] Adding gallery image:', imgUrl);
       allImages.push(imgUrl);
     });
   }
 
-  console.log('[SolicitudDetalle v5.0] ✅ Total images to display:', allImages.length);
+  console.log('[SolicitudDetalle v6.0] ✅ Total images to display:', allImages.length);
 
   return (
     <View style={styles.container}>
@@ -567,7 +567,7 @@ export default function SolicitudDetalleScreen() {
           </View>
         </View>
 
-        {/* Document Card - SIMPLIFIED v5.0 */}
+        {/* Document Card - SIMPLIFIED v6.0 with better error handling */}
         {solicitud.documento_propiedad_url && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📄 Documento de Propiedad</Text>
@@ -593,13 +593,13 @@ export default function SolicitudDetalleScreen() {
           </View>
         )}
 
-        {/* Images Gallery - SIMPLIFIED v5.0 */}
+        {/* Images Gallery - IMPROVED v6.0 with better error handling */}
         {allImages.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🖼️ Imágenes ({allImages.length})</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
               {allImages.map((uri, index) => (
-                <TouchableOpacity key={index} onPress={() => handleViewImage(index)}>
+                <TouchableOpacity key={`${uri}-${index}`} onPress={() => handleViewImage(index)}>
                   <View style={styles.imageThumbContainer}>
                     {imageErrorStates[uri] ? (
                       // Show error placeholder
@@ -610,7 +610,7 @@ export default function SolicitudDetalleScreen() {
                           size={32} 
                           color={colors.textSecondary} 
                         />
-                        <Text style={styles.imageErrorText}>Error</Text>
+                        <Text style={styles.imageErrorText}>No disponible</Text>
                       </View>
                     ) : (
                       <>
@@ -620,7 +620,10 @@ export default function SolicitudDetalleScreen() {
                           resizeMode="cover"
                           onLoadStart={() => handleImageLoadStart(uri)}
                           onLoadEnd={() => handleImageLoadEnd(uri)}
-                          onError={(error) => handleImageError(uri, error.nativeEvent.error)}
+                          onError={(error) => {
+                            console.error('[SolicitudDetalle v6.0] Image error for:', uri, error.nativeEvent);
+                            handleImageError(uri, error.nativeEvent.error);
+                          }}
                         />
                         {/* Loading indicator overlay */}
                         {imageLoadingStates[uri] && (
@@ -728,7 +731,7 @@ export default function SolicitudDetalleScreen() {
         </View>
       )}
 
-      {/* Image Viewer Modal - SIMPLIFIED v5.0 */}
+      {/* Image Viewer Modal - IMPROVED v6.0 with better error handling */}
       <Modal
         visible={showImageModal}
         transparent
@@ -766,7 +769,10 @@ export default function SolicitudDetalleScreen() {
                   resizeMode="contain"
                   onLoadStart={() => handleImageLoadStart(allImages[selectedImageIndex])}
                   onLoadEnd={() => handleImageLoadEnd(allImages[selectedImageIndex])}
-                  onError={(error) => handleImageError(allImages[selectedImageIndex], error.nativeEvent.error)}
+                  onError={(error) => {
+                    console.error('[SolicitudDetalle v6.0] Full image error:', allImages[selectedImageIndex], error.nativeEvent);
+                    handleImageError(allImages[selectedImageIndex], error.nativeEvent.error);
+                  }}
                 />
                 {/* Loading indicator for full image */}
                 {imageLoadingStates[allImages[selectedImageIndex]] && (
