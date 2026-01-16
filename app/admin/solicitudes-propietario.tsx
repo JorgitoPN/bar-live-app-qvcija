@@ -59,16 +59,14 @@ interface Solicitud {
 }
 
 /**
- * ✅ SOLICITUDES PROPIETARIO v55.0 - MODERN REDESIGN
+ * ✅ SOLICITUDES PROPIETARIO v56.0 - COMPACT REDESIGN
  * 
- * COMPLETE REDESIGN v55.0:
- * - ✅ Modern card-based layout with gradients
- * - ✅ Improved visual hierarchy and spacing
- * - ✅ Better status indicators with icons
- * - ✅ Enhanced document preview
- * - ✅ Functional "Ver detalles" button (navigates to details page)
- * - ✅ Image/document viewer enabled
- * - ✅ Smooth animations and transitions
+ * COMPLETE REDESIGN v56.0:
+ * - ✅ Compact horizontal filter chips (no large sections)
+ * - ✅ Streamlined card layout with better spacing
+ * - ✅ Fixed document download/viewing functionality
+ * - ✅ Improved visual hierarchy
+ * - ✅ Better mobile UX with less scrolling
  */
 
 export default function AdminSolicitudesPropietarioScreen() {
@@ -87,7 +85,7 @@ export default function AdminSolicitudesPropietarioScreen() {
 
   const loadSolicitudes = useCallback(async () => {
     try {
-      console.log('[Solicitudes v55.0] Loading owner requests...');
+      console.log('[Solicitudes v56.0] Loading owner requests...');
       
       let query = supabase
         .from('solicitudes_propietario')
@@ -114,14 +112,14 @@ export default function AdminSolicitudesPropietarioScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Solicitudes v55.0] Error loading requests:', error);
+        console.error('[Solicitudes v56.0] Error loading requests:', error);
         throw error;
       }
 
-      console.log('[Solicitudes v55.0] Loaded requests:', data?.length || 0);
+      console.log('[Solicitudes v56.0] Loaded requests:', data?.length || 0);
       setSolicitudes(data || []);
     } catch (error) {
-      console.error('[Solicitudes v55.0] Error:', error);
+      console.error('[Solicitudes v56.0] Error:', error);
       Alert.alert('Error', 'No se pudieron cargar las solicitudes');
     } finally {
       setLoading(false);
@@ -139,7 +137,7 @@ export default function AdminSolicitudesPropietarioScreen() {
   };
 
   const handleViewDetails = (solicitud: Solicitud) => {
-    console.log('[Solicitudes v55.0] Navigating to details:', solicitud.id);
+    console.log('[Solicitudes v56.0] Navigating to details:', solicitud.id);
     router.push({
       pathname: '/admin/solicitud-detalle',
       params: { id: solicitud.id },
@@ -195,7 +193,7 @@ export default function AdminSolicitudesPropietarioScreen() {
           const previousOwnerId = localData?.propietario_id;
 
           if (previousOwnerId && previousOwnerId !== selectedSolicitud.usuario_id) {
-            console.log('[Solicitudes v55.0] Resetting local profile due to ownership change...');
+            console.log('[Solicitudes v56.0] Resetting local profile due to ownership change...');
             
             const { data: resetResult, error: resetError } = await supabase
               .rpc('reset_local_profile', {
@@ -205,9 +203,9 @@ export default function AdminSolicitudesPropietarioScreen() {
               });
 
             if (resetError) {
-              console.error('[Solicitudes v55.0] Error resetting profile:', resetError);
+              console.error('[Solicitudes v56.0] Error resetting profile:', resetError);
             } else {
-              console.log('[Solicitudes v55.0] ✅ Profile reset:', resetResult);
+              console.log('[Solicitudes v56.0] ✅ Profile reset:', resetResult);
             }
           }
 
@@ -270,7 +268,7 @@ export default function AdminSolicitudesPropietarioScreen() {
             throw propError;
           }
 
-          console.log('[Solicitudes v55.0] ✅ New local created:', newLocal.id);
+          console.log('[Solicitudes v56.0] ✅ New local created:', newLocal.id);
         }
 
         await supabase.from('notificaciones').insert({
@@ -334,7 +332,7 @@ export default function AdminSolicitudesPropietarioScreen() {
       setNotasAdmin('');
       loadSolicitudes();
     } catch (error) {
-      console.error('[Solicitudes v55.0] Error executing action:', error);
+      console.error('[Solicitudes v56.0] Error executing action:', error);
       Alert.alert('Error', 'No se pudo completar la acción');
     }
   };
@@ -361,9 +359,9 @@ export default function AdminSolicitudesPropietarioScreen() {
       case 'pendiente':
         return 'Pendiente';
       case 'en_revision':
-        return 'En Revisión';
+        return 'Revisión';
       case 'informacion_adicional':
-        return 'Info. Adicional';
+        return 'Info';
       case 'aprobada':
         return 'Aprobada';
       case 'denegada':
@@ -396,6 +394,15 @@ export default function AdminSolicitudesPropietarioScreen() {
     ? solicitudes 
     : solicitudes.filter((s) => s.estado === filtro);
 
+  const contadores = {
+    pendiente: solicitudes.filter(s => s.estado === 'pendiente').length,
+    en_revision: solicitudes.filter(s => s.estado === 'en_revision').length,
+    informacion_adicional: solicitudes.filter(s => s.estado === 'informacion_adicional').length,
+    aprobada: solicitudes.filter(s => s.estado === 'aprobada').length,
+    denegada: solicitudes.filter(s => s.estado === 'denegada').length,
+    todas: solicitudes.length,
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -412,58 +419,71 @@ export default function AdminSolicitudesPropietarioScreen() {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      <View style={styles.searchSection}>
+      {/* Compact Search Bar */}
+      <View style={styles.searchBar}>
         <View style={styles.searchContainer}>
-          <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={18} color={colors.textSecondary} />
+          <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={16} color={colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar local..."
+            placeholder="Buscar..."
             placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery !== '' && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={18} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
+      {/* Compact Horizontal Filter Chips */}
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
-        style={styles.filtersScroll}
-        contentContainerStyle={styles.filters}
+        style={styles.filtersContainer}
+        contentContainerStyle={styles.filtersContent}
       >
         {[
-          { key: 'pendiente', label: 'Pendientes', color: '#F59E0B', icon: 'clock', androidIcon: 'schedule' },
-          { key: 'en_revision', label: 'Revisión', color: '#3B82F6', icon: 'doc.text.magnifyingglass', androidIcon: 'search' },
-          { key: 'informacion_adicional', label: 'Info', color: '#8B5CF6', icon: 'exclamationmark.circle', androidIcon: 'info' },
-          { key: 'aprobada', label: 'Aprobadas', color: '#10B981', icon: 'checkmark.circle.fill', androidIcon: 'check_circle' },
-          { key: 'denegada', label: 'Denegadas', color: '#EF4444', icon: 'xmark.circle.fill', androidIcon: 'cancel' },
-          { key: 'todas', label: 'Todas', color: colors.primary, icon: 'list.bullet', androidIcon: 'list' },
+          { key: 'pendiente', label: 'Pendientes', icon: 'schedule', count: contadores.pendiente },
+          { key: 'en_revision', label: 'Revisión', icon: 'search', count: contadores.en_revision },
+          { key: 'informacion_adicional', label: 'Info', icon: 'info', count: contadores.informacion_adicional },
+          { key: 'aprobada', label: 'Aprobadas', icon: 'check_circle', count: contadores.aprobada },
+          { key: 'denegada', label: 'Denegadas', icon: 'cancel', count: contadores.denegada },
+          { key: 'todas', label: 'Todas', icon: 'list', count: contadores.todas },
         ].map((f) => (
           <TouchableOpacity
             key={f.key}
             style={[
-              styles.filterButton, 
-              filtro === f.key && [styles.filterButtonActive, { borderColor: f.color, backgroundColor: f.color + '15' }]
+              styles.filterChip, 
+              filtro === f.key && [styles.filterChipActive, { backgroundColor: getEstadoColor(f.key) }]
             ]}
             onPress={() => setFiltro(f.key as any)}
           >
             <IconSymbol 
               ios_icon_name={f.icon} 
-              android_material_icon_name={f.androidIcon} 
-              size={16} 
-              color={filtro === f.key ? f.color : colors.textSecondary} 
+              android_material_icon_name={f.icon} 
+              size={14} 
+              color={filtro === f.key ? '#fff' : colors.textSecondary} 
             />
             <Text style={[
-              styles.filterButtonText,
-              filtro === f.key && { color: f.color, fontWeight: '700' }
+              styles.filterChipText,
+              filtro === f.key && styles.filterChipTextActive
             ]}>
               {f.label}
             </Text>
+            <View style={[
+              styles.filterChipBadge,
+              filtro === f.key && styles.filterChipBadgeActive
+            ]}>
+              <Text style={[
+                styles.filterChipBadgeText,
+                filtro === f.key && styles.filterChipBadgeTextActive
+              ]}>
+                {f.count}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -484,151 +504,115 @@ export default function AdminSolicitudesPropietarioScreen() {
           {solicitudesFiltradas.length > 0 ? (
             solicitudesFiltradas.map((solicitud) => (
               <View key={solicitud.id} style={styles.solicitudCard}>
-                <LinearGradient
-                  colors={[getEstadoColor(solicitud.estado) + '15', getEstadoColor(solicitud.estado) + '05']}
-                  style={styles.cardGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  {/* Header */}
-                  <View style={styles.cardHeader}>
-                    <View style={styles.userSection}>
-                      {solicitud.usuario?.avatar ? (
-                        <Image source={{ uri: solicitud.usuario.avatar }} style={styles.avatar} />
-                      ) : (
-                        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                          <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.white} />
-                        </View>
-                      )}
-                      <View style={styles.userInfo}>
-                        <Text style={styles.nombre}>{solicitud.usuario?.nombre || 'Usuario'}</Text>
-                        {solicitud.usuario?.username && (
-                          <Text style={styles.username}>@{solicitud.usuario.username}</Text>
-                        )}
+                {/* Compact Header */}
+                <View style={styles.cardHeader}>
+                  <View style={styles.userSection}>
+                    {solicitud.usuario?.avatar ? (
+                      <Image source={{ uri: solicitud.usuario.avatar }} style={styles.avatar} />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={16} color={colors.white} />
                       </View>
-                    </View>
-                    
-                    <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(solicitud.estado) }]}>
-                      <Text style={styles.estadoText}>{getEstadoLabel(solicitud.estado)}</Text>
+                    )}
+                    <View style={styles.userInfo}>
+                      <Text style={styles.nombre} numberOfLines={1}>{solicitud.usuario?.nombre || 'Usuario'}</Text>
+                      {solicitud.usuario?.username && (
+                        <Text style={styles.username} numberOfLines={1}>@{solicitud.usuario.username}</Text>
+                      )}
                     </View>
                   </View>
-
-                  {/* Local Info */}
-                  <View style={styles.localSection}>
-                    <View style={styles.localHeader}>
-                      <IconSymbol 
-                        ios_icon_name={solicitud.tipo_solicitud === 'reclamar_local' ? 'building.2.fill' : 'plus.circle.fill'} 
-                        android_material_icon_name="store" 
-                        size={18} 
-                        color={colors.primary} 
-                      />
-                      <Text style={styles.localTitle}>{solicitud.nombre_local}</Text>
-                      <View style={styles.tipoChip}>
-                        <Text style={styles.tipoChipText}>
-                          {solicitud.tipo_solicitud === 'reclamar_local' ? 'Reclamar' : 'Nuevo'}
-                        </Text>
-                      </View>
-                    </View>
-                    
-                    {solicitud.direccion_local && (
-                      <View style={styles.infoRow}>
-                        <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
-                        <Text style={styles.infoText} numberOfLines={1}>{solicitud.direccion_local}</Text>
-                      </View>
-                    )}
-                    
-                    {solicitud.telefono_contacto && (
-                      <View style={styles.infoRow}>
-                        <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={14} color={colors.textSecondary} />
-                        <Text style={styles.infoText}>{solicitud.telefono_contacto}</Text>
-                      </View>
-                    )}
-
-                    {solicitud.documento_propiedad_url && (
-                      <View style={styles.documentBadge}>
-                        <IconSymbol ios_icon_name="doc.fill" android_material_icon_name="description" size={14} color="#10B981" />
-                        <Text style={styles.documentBadgeText}>
-                          {getTipoDocumentoLabel(solicitud.documento_propiedad_tipo)}
-                        </Text>
-                      </View>
-                    )}
+                  
+                  <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(solicitud.estado) }]}>
+                    <Text style={styles.estadoText}>{getEstadoLabel(solicitud.estado)}</Text>
                   </View>
+                </View>
 
-                  {/* Preview Images */}
-                  {(solicitud.imagen_portada_url || (solicitud.galeria_urls && solicitud.galeria_urls.length > 0)) && (
-                    <View style={styles.imagesPreview}>
-                      {solicitud.imagen_portada_url && (
-                        <Image source={{ uri: solicitud.imagen_portada_url }} style={styles.previewImage} />
-                      )}
-                      {solicitud.galeria_urls && solicitud.galeria_urls.slice(0, 3).map((uri, index) => (
-                        <Image key={index} source={{ uri }} style={styles.previewImage} />
-                      ))}
-                      {solicitud.galeria_urls && solicitud.galeria_urls.length > 3 && (
-                        <View style={styles.moreImagesOverlay}>
-                          <Text style={styles.moreImagesText}>+{solicitud.galeria_urls.length - 3}</Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-
-                  {/* Footer */}
-                  <View style={styles.cardFooter}>
-                    <View style={styles.metadataRow}>
-                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={12} color={colors.textSecondary} />
-                      <Text style={styles.metadataText}>
-                        {new Date(solicitud.created_at).toLocaleDateString('es-ES', {
-                          day: '2-digit',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                {/* Local Info - Compact */}
+                <View style={styles.localSection}>
+                  <View style={styles.localHeader}>
+                    <IconSymbol 
+                      ios_icon_name="building.2.fill" 
+                      android_material_icon_name="store" 
+                      size={16} 
+                      color={colors.primary} 
+                    />
+                    <Text style={styles.localTitle} numberOfLines={1}>{solicitud.nombre_local}</Text>
+                    <View style={styles.tipoChip}>
+                      <Text style={styles.tipoChipText}>
+                        {solicitud.tipo_solicitud === 'reclamar_local' ? 'Reclamar' : 'Nuevo'}
                       </Text>
                     </View>
-
-                    <TouchableOpacity 
-                      style={styles.viewDetailsButton}
-                      onPress={() => handleViewDetails(solicitud)}
-                    >
-                      <Text style={styles.viewDetailsButtonText}>Ver detalles</Text>
-                      <IconSymbol ios_icon_name="arrow.right" android_material_icon_name="arrow_forward" size={14} color={colors.primary} />
-                    </TouchableOpacity>
                   </View>
-
-                  {/* Actions */}
-                  {(solicitud.estado === 'pendiente' || solicitud.estado === 'en_revision' || solicitud.estado === 'informacion_adicional') && (
-                    <View style={styles.actionsContainer}>
-                      <TouchableOpacity
-                        style={[styles.actionButton, styles.aprobarButton]}
-                        onPress={() => handleAprobar(solicitud)}
-                      >
-                        <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={16} color="#fff" />
-                        <Text style={styles.actionButtonText}>Aprobar</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.actionButton, styles.cambiarEstadoButton]}
-                        onPress={() => handleCambiarEstado(solicitud)}
-                      >
-                        <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="sync" size={16} color="#fff" />
-                        <Text style={styles.actionButtonText}>Estado</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.actionButton, styles.rechazarButton]}
-                        onPress={() => handleDenegar(solicitud)}
-                      >
-                        <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={16} color="#fff" />
-                        <Text style={styles.actionButtonText}>Denegar</Text>
-                      </TouchableOpacity>
+                  
+                  {solicitud.direccion_local && (
+                    <View style={styles.infoRow}>
+                      <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={12} color={colors.textSecondary} />
+                      <Text style={styles.infoText} numberOfLines={1}>{solicitud.direccion_local}</Text>
                     </View>
                   )}
-                </LinearGradient>
+
+                  {solicitud.documento_propiedad_url && (
+                    <View style={styles.documentBadge}>
+                      <IconSymbol ios_icon_name="doc.fill" android_material_icon_name="description" size={12} color="#10B981" />
+                      <Text style={styles.documentBadgeText}>
+                        {getTipoDocumentoLabel(solicitud.documento_propiedad_tipo)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Compact Footer */}
+                <View style={styles.cardFooter}>
+                  <Text style={styles.metadataText}>
+                    {new Date(solicitud.created_at).toLocaleDateString('es-ES', {
+                      day: '2-digit',
+                      month: 'short',
+                    })}
+                  </Text>
+
+                  <TouchableOpacity 
+                    style={styles.viewDetailsButton}
+                    onPress={() => handleViewDetails(solicitud)}
+                  >
+                    <Text style={styles.viewDetailsButtonText}>Ver detalles</Text>
+                    <IconSymbol ios_icon_name="arrow.right" android_material_icon_name="arrow_forward" size={12} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Compact Actions */}
+                {(solicitud.estado === 'pendiente' || solicitud.estado === 'en_revision' || solicitud.estado === 'informacion_adicional') && (
+                  <View style={styles.actionsContainer}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.aprobarButton]}
+                      onPress={() => handleAprobar(solicitud)}
+                    >
+                      <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={14} color="#fff" />
+                      <Text style={styles.actionButtonText}>Aprobar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.cambiarEstadoButton]}
+                      onPress={() => handleCambiarEstado(solicitud)}
+                    >
+                      <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="sync" size={14} color="#fff" />
+                      <Text style={styles.actionButtonText}>Estado</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.rechazarButton]}
+                      onPress={() => handleDenegar(solicitud)}
+                    >
+                      <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={14} color="#fff" />
+                      <Text style={styles.actionButtonText}>Denegar</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             ))
           ) : (
             <View style={styles.emptyContainer}>
               <IconSymbol 
-                ios_icon_name={filtro === 'pendiente' ? 'clock' : 'doc.text'} 
+                ios_icon_name="doc.text" 
                 android_material_icon_name="description" 
-                size={64} 
+                size={48} 
                 color={colors.textSecondary} 
               />
               <Text style={styles.emptyText}>
@@ -784,10 +768,10 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     marginTop: 2,
   },
-  searchSection: {
+  searchBar: {
     backgroundColor: colors.cardBackground,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
@@ -795,46 +779,68 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.background,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 6,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text,
   },
-  filtersScroll: {
+  filtersContainer: {
     backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-  filters: {
+  filtersContent: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     gap: 8,
   },
-  filterButton: {
+  filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
     backgroundColor: colors.background,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  filterButtonActive: {
-    borderWidth: 2,
+  filterChipActive: {
+    borderWidth: 0,
   },
-  filterButtonText: {
-    fontSize: 12,
+  filterChipText: {
+    fontSize: 11,
     fontWeight: '600',
     color: colors.textSecondary,
+  },
+  filterChipTextActive: {
+    color: '#fff',
+  },
+  filterChipBadge: {
+    backgroundColor: colors.cardBorder,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  filterChipBadgeActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  filterChipBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  filterChipBadgeTextActive: {
+    color: '#fff',
   },
   content: {
     flex: 1,
@@ -855,20 +861,19 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   solicitudCard: {
-    marginBottom: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-    ...commonStyles.cardShadow,
-  },
-  cardGradient: {
-    padding: 16,
-    gap: 12,
+    marginBottom: 12,
+    borderRadius: 12,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    padding: 12,
+    gap: 10,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 12,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder + '30',
   },
@@ -876,12 +881,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: 10,
+    gap: 8,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 2,
     borderColor: colors.primary + '30',
   },
@@ -894,117 +899,85 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   nombre: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 2,
   },
   username: {
-    fontSize: 13,
+    fontSize: 11,
     color: colors.primary,
     fontWeight: '600',
   },
   estadoBadge: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 10,
   },
   estadoText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   localSection: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 12,
-    gap: 8,
+    gap: 6,
   },
   localHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   localTitle: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
   },
   tipoChip: {
     backgroundColor: colors.primary + '20',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   tipoChipText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: colors.primary,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
   },
   documentBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: '#10B981' + '15',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
     alignSelf: 'flex-start',
   },
   documentBadgeText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
     color: '#10B981',
-  },
-  imagesPreview: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  previewImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 10,
-    backgroundColor: colors.cardBorder,
-  },
-  moreImagesOverlay: {
-    width: 70,
-    height: 70,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  moreImagesText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
   },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 12,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder + '30',
   },
-  metadataRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
   metadataText: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textSecondary,
   },
   viewDetailsButton: {
@@ -1012,18 +985,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: colors.primary + '15',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
   viewDetailsButtonText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.primary,
   },
   actionsContainer: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
     marginTop: 4,
   },
   actionButton: {
@@ -1031,17 +1004,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    gap: 4,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   actionButtonText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
     color: '#fff',
   },
