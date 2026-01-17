@@ -15,14 +15,13 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 /**
- * ✅ NUEVO SISTEMA SIMPLE DE VISUALIZACIÓN DE IMÁGENES v1.0
+ * ✅ SISTEMA SIMPLE DE VISUALIZACIÓN DE IMÁGENES v2.0 - FIXED
  * 
- * Sistema completamente nuevo y funcional:
- * - Galería horizontal con thumbnails
- * - Modal de pantalla completa para ver imágenes
- * - Navegación entre imágenes con scroll
- * - Indicadores visuales claros
- * - Sin dependencias del código anterior
+ * Correcciones aplicadas:
+ * - Validación de URLs antes de renderizar
+ * - Manejo robusto de errores de carga
+ * - Logs detallados para debugging
+ * - Fallback para imágenes que no cargan
  */
 
 interface SimpleImageViewerProps {
@@ -40,24 +39,49 @@ export default function SimpleImageViewer({
 }: SimpleImageViewerProps) {
   const [showModal, setShowModal] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
 
-  console.log('[SimpleImageViewer] 🎬 Componente inicializado');
-  console.log('[SimpleImageViewer] 📸 Total de imágenes:', images.length);
+  console.log('[SimpleImageViewer v2] 🎬 Componente inicializado');
+  console.log('[SimpleImageViewer v2] 📸 Total de imágenes:', images.length);
 
-  if (!images || images.length === 0) {
-    console.log('[SimpleImageViewer] ⚠️ No hay imágenes para mostrar');
+  // ✅ FIXED: Filtrar URLs válidas
+  const validImages = images.filter((url) => {
+    const isValid = url && url.startsWith('https://');
+    if (!isValid) {
+      console.warn('[SimpleImageViewer v2] ⚠️ URL inválida filtrada:', url);
+    }
+    return isValid;
+  });
+
+  console.log('[SimpleImageViewer v2] ✅ Imágenes válidas:', validImages.length);
+
+  if (!validImages || validImages.length === 0) {
+    console.log('[SimpleImageViewer v2] ⚠️ No hay imágenes válidas para mostrar');
     return null;
   }
 
   const handleOpenImage = (index: number) => {
-    console.log('[SimpleImageViewer] 👁️ Abriendo imagen', index + 1, 'de', images.length);
+    console.log('[SimpleImageViewer v2] 👁️ Abriendo imagen', index + 1, 'de', validImages.length);
+    console.log('[SimpleImageViewer v2] 🔗 URL:', validImages[index]);
     setSelectedIndex(index);
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
-    console.log('[SimpleImageViewer] 🚪 Cerrando modal');
+    console.log('[SimpleImageViewer v2] 🚪 Cerrando modal');
     setShowModal(false);
+  };
+
+  const handleImageError = (index: number, url: string, error: any) => {
+    console.error('[SimpleImageViewer v2] ❌ Error cargando imagen', index + 1);
+    console.error('[SimpleImageViewer v2] ❌ URL:', url);
+    console.error('[SimpleImageViewer v2] ❌ Error:', error);
+    
+    setFailedImages(prev => {
+      const newSet = new Set(prev);
+      newSet.add(index);
+      return newSet;
+    });
   };
 
   return (
@@ -65,7 +89,7 @@ export default function SimpleImageViewer({
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-        <Text style={styles.count}>({images.length})</Text>
+        <Text style={styles.count}>({validImages.length})</Text>
       </View>
 
       {/* Galería horizontal de thumbnails */}
@@ -75,42 +99,52 @@ export default function SimpleImageViewer({
         style={styles.gallery}
         contentContainerStyle={styles.galleryContent}
       >
-        {images.map((imageUrl, index) => (
+        {validImages.map((imageUrl, index) => (
           <TouchableOpacity
             key={`thumb-${index}`}
             style={styles.thumbnailContainer}
             onPress={() => handleOpenImage(index)}
             activeOpacity={0.7}
           >
-            <Image
-              source={{ uri: imageUrl }}
-              style={styles.thumbnail}
-              resizeMode="cover"
-              onLoadStart={() => {
-                console.log('[SimpleImageViewer] 🔄 Cargando thumbnail', index + 1);
-              }}
-              onLoad={() => {
-                console.log('[SimpleImageViewer] ✅ Thumbnail', index + 1, 'cargado');
-              }}
-              onError={(error) => {
-                console.error('[SimpleImageViewer] ❌ Error cargando thumbnail', index + 1);
-                console.error('[SimpleImageViewer] ❌ URL:', imageUrl);
-                console.error('[SimpleImageViewer] ❌ Error:', error.nativeEvent.error);
-              }}
-            />
+            {failedImages.has(index) ? (
+              <View style={[styles.thumbnail, styles.thumbnailError]}>
+                <IconSymbol 
+                  ios_icon_name="exclamationmark.triangle.fill" 
+                  android_material_icon_name="error" 
+                  size={32} 
+                  color={colors.textSecondary} 
+                />
+                <Text style={styles.errorText}>Error al cargar</Text>
+              </View>
+            ) : (
+              <Image
+                source={{ uri: imageUrl }}
+                style={styles.thumbnail}
+                resizeMode="cover"
+                onLoadStart={() => {
+                  console.log('[SimpleImageViewer v2] 🔄 Cargando thumbnail', index + 1);
+                }}
+                onLoad={() => {
+                  console.log('[SimpleImageViewer v2] ✅ Thumbnail', index + 1, 'cargado');
+                }}
+                onError={(error) => handleImageError(index, imageUrl, error.nativeEvent.error)}
+              />
+            )}
             {/* Número de imagen */}
             <View style={styles.thumbnailNumber}>
               <Text style={styles.thumbnailNumberText}>{index + 1}</Text>
             </View>
             {/* Icono de expandir */}
-            <View style={styles.expandIcon}>
-              <IconSymbol 
-                ios_icon_name="arrow.up.left.and.arrow.down.right" 
-                android_material_icon_name="fullscreen" 
-                size={18} 
-                color="#fff" 
-              />
-            </View>
+            {!failedImages.has(index) && (
+              <View style={styles.expandIcon}>
+                <IconSymbol 
+                  ios_icon_name="arrow.up.left.and.arrow.down.right" 
+                  android_material_icon_name="fullscreen" 
+                  size={18} 
+                  color="#fff" 
+                />
+              </View>
+            )}
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -149,30 +183,39 @@ export default function SimpleImageViewer({
             onScroll={(event) => {
               const newIndex = Math.round(event.nativeEvent.contentOffset.x / width);
               if (newIndex !== selectedIndex) {
-                console.log('[SimpleImageViewer] 📸 Navegando a imagen', newIndex + 1);
+                console.log('[SimpleImageViewer v2] 📸 Navegando a imagen', newIndex + 1);
                 setSelectedIndex(newIndex);
               }
             }}
             scrollEventThrottle={16}
           >
-            {images.map((imageUrl, index) => (
+            {validImages.map((imageUrl, index) => (
               <View key={`full-${index}`} style={styles.fullImageContainer}>
-                <Image
-                  source={{ uri: imageUrl }}
-                  style={styles.fullImage}
-                  resizeMode="contain"
-                  onLoadStart={() => {
-                    console.log('[SimpleImageViewer] 🔄 Cargando imagen completa', index + 1);
-                  }}
-                  onLoad={() => {
-                    console.log('[SimpleImageViewer] ✅ Imagen completa', index + 1, 'cargada');
-                  }}
-                  onError={(error) => {
-                    console.error('[SimpleImageViewer] ❌ Error cargando imagen completa', index + 1);
-                    console.error('[SimpleImageViewer] ❌ URL:', imageUrl);
-                    console.error('[SimpleImageViewer] ❌ Error:', error.nativeEvent.error);
-                  }}
-                />
+                {failedImages.has(index) ? (
+                  <View style={styles.fullImageError}>
+                    <IconSymbol 
+                      ios_icon_name="exclamationmark.triangle.fill" 
+                      android_material_icon_name="error" 
+                      size={64} 
+                      color="#fff" 
+                    />
+                    <Text style={styles.fullErrorText}>No se pudo cargar la imagen</Text>
+                    <Text style={styles.fullErrorSubtext}>URL: {imageUrl.substring(0, 50)}...</Text>
+                  </View>
+                ) : (
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.fullImage}
+                    resizeMode="contain"
+                    onLoadStart={() => {
+                      console.log('[SimpleImageViewer v2] 🔄 Cargando imagen completa', index + 1);
+                    }}
+                    onLoad={() => {
+                      console.log('[SimpleImageViewer v2] ✅ Imagen completa', index + 1, 'cargada');
+                    }}
+                    onError={(error) => handleImageError(index, imageUrl, error.nativeEvent.error)}
+                  />
+                )}
               </View>
             ))}
           </ScrollView>
@@ -181,12 +224,12 @@ export default function SimpleImageViewer({
           <View style={styles.modalFooter}>
             <View style={styles.counterContainer}>
               <Text style={styles.counterText}>
-                {selectedIndex + 1} / {images.length}
+                {selectedIndex + 1} / {validImages.length}
               </Text>
             </View>
-            {images.length > 1 && (
+            {validImages.length > 1 && (
               <View style={styles.indicators}>
-                {images.map((_, index) => (
+                {validImages.map((_, index) => (
                   <View
                     key={`indicator-${index}`}
                     style={[
@@ -246,6 +289,17 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     backgroundColor: colors.cardBorder,
+  },
+  thumbnailError: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  errorText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   thumbnailNumber: {
     position: 'absolute',
@@ -307,6 +361,23 @@ const styles = StyleSheet.create({
   fullImage: {
     width: width,
     height: height,
+  },
+  fullImageError: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    padding: 20,
+  },
+  fullErrorText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  fullErrorSubtext: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
   },
   modalFooter: {
     position: 'absolute',

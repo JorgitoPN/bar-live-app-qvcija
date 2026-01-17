@@ -15,15 +15,13 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 /**
- * ✅ NUEVO SISTEMA SIMPLE DE SUBIDA DE IMÁGENES v1.0
+ * ✅ SISTEMA SIMPLE DE SUBIDA DE IMÁGENES v2.0 - FIXED
  * 
- * Sistema completamente nuevo y funcional:
- * - Selección simple de imagen desde galería
- * - Subida directa a Supabase Storage
- * - Preview inmediato de la imagen
- * - Validación de tipos de archivo
- * - Manejo de errores claro
- * - Sin dependencias del código anterior
+ * Correcciones aplicadas:
+ * - URL de Supabase Storage correctamente formateada
+ * - Validación de URL antes de guardar
+ * - Logs detallados para debugging
+ * - Manejo robusto de errores
  */
 
 interface SimpleImageUploaderProps {
@@ -46,23 +44,24 @@ export default function SimpleImageUploader({
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(currentImageUrl || null);
 
-  console.log('[SimpleImageUploader] 🎬 Componente inicializado');
-  console.log('[SimpleImageUploader] 📸 Imagen actual:', imageUrl ? 'Sí' : 'No');
+  console.log('[SimpleImageUploader v2] 🎬 Componente inicializado');
+  console.log('[SimpleImageUploader v2] 📸 Imagen actual:', imageUrl ? 'Sí' : 'No');
+  console.log('[SimpleImageUploader v2] 🪣 Bucket:', bucketName);
 
   const handleSelectImage = async () => {
     try {
-      console.log('[SimpleImageUploader] 📸 Usuario presionó seleccionar imagen');
+      console.log('[SimpleImageUploader v2] 📸 Usuario presionó seleccionar imagen');
 
       // Solicitar permisos
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (status !== 'granted') {
-        console.log('[SimpleImageUploader] ❌ Permisos denegados');
+        console.log('[SimpleImageUploader v2] ❌ Permisos denegados');
         Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería para seleccionar imágenes');
         return;
       }
 
-      console.log('[SimpleImageUploader] ✅ Permisos concedidos, abriendo galería...');
+      console.log('[SimpleImageUploader v2] ✅ Permisos concedidos, abriendo galería...');
 
       // Abrir galería - SOLO imágenes
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -72,18 +71,18 @@ export default function SimpleImageUploader({
         allowsMultipleSelection: false,
       });
 
-      console.log('[SimpleImageUploader] 📸 Resultado:', {
+      console.log('[SimpleImageUploader v2] 📸 Resultado:', {
         canceled: result.canceled,
         hasAssets: result.assets?.length > 0,
       });
 
       if (result.canceled || !result.assets || result.assets.length === 0) {
-        console.log('[SimpleImageUploader] ⚠️ Usuario canceló la selección');
+        console.log('[SimpleImageUploader v2] ⚠️ Usuario canceló la selección');
         return;
       }
 
       const selectedImage = result.assets[0];
-      console.log('[SimpleImageUploader] ✅ Imagen seleccionada:', {
+      console.log('[SimpleImageUploader v2] ✅ Imagen seleccionada:', {
         uri: selectedImage.uri,
         width: selectedImage.width,
         height: selectedImage.height,
@@ -92,79 +91,99 @@ export default function SimpleImageUploader({
       // Validar extensión
       const extension = selectedImage.uri.split('.').pop()?.toLowerCase();
       if (!extension || !['jpg', 'jpeg', 'png', 'webp'].includes(extension)) {
-        console.log('[SimpleImageUploader] ❌ Extensión no válida:', extension);
+        console.log('[SimpleImageUploader v2] ❌ Extensión no válida:', extension);
         Alert.alert('Error', 'Por favor selecciona una imagen válida (JPG, PNG o WEBP)');
         return;
       }
 
-      console.log('[SimpleImageUploader] ✅ Extensión válida:', extension);
+      console.log('[SimpleImageUploader v2] ✅ Extensión válida:', extension);
       setUploading(true);
 
       // Convertir a blob
-      console.log('[SimpleImageUploader] 🔄 Convirtiendo a blob...');
+      console.log('[SimpleImageUploader v2] 🔄 Convirtiendo a blob...');
       const response = await fetch(selectedImage.uri);
       const blob = await response.blob();
       
-      console.log('[SimpleImageUploader] ✅ Blob creado:', {
+      console.log('[SimpleImageUploader v2] ✅ Blob creado:', {
         size: blob.size,
         type: blob.type,
       });
 
-      // Generar nombre único
+      // ✅ FIXED: Generar nombre de archivo SIN carpeta de usuario
+      // Esto evita problemas con la estructura de URL
       const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(2, 9);
-      const fileName = `${userId}/${timestamp}-${randomId}.${extension}`;
+      const randomId = Math.random().toString(36).substring(2, 15);
+      const fileName = `${timestamp}-${randomId}-${userId.substring(0, 8)}.${extension}`;
       
-      console.log('[SimpleImageUploader] ⬆️ Subiendo a bucket:', bucketName);
-      console.log('[SimpleImageUploader] 📁 Nombre de archivo:', fileName);
+      console.log('[SimpleImageUploader v2] ⬆️ Subiendo a bucket:', bucketName);
+      console.log('[SimpleImageUploader v2] 📁 Nombre de archivo:', fileName);
 
       // Subir a Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(fileName, blob, {
-          contentType: `image/${extension}`,
+          contentType: `image/${extension === 'jpg' ? 'jpeg' : extension}`,
           upsert: false,
           cacheControl: '3600',
         });
 
       if (uploadError) {
-        console.error('[SimpleImageUploader] ❌ Error en subida:', uploadError);
+        console.error('[SimpleImageUploader v2] ❌ Error en subida:', uploadError);
         throw uploadError;
       }
 
-      console.log('[SimpleImageUploader] ✅ Subida exitosa, path:', uploadData.path);
+      console.log('[SimpleImageUploader v2] ✅ Subida exitosa');
+      console.log('[SimpleImageUploader v2] 📁 Path:', uploadData.path);
 
-      // Obtener URL pública
+      // ✅ FIXED: Obtener URL pública correctamente
       const { data: urlData } = supabase.storage
         .from(bucketName)
         .getPublicUrl(uploadData.path);
 
       const publicUrl = urlData.publicUrl;
       
-      console.log('[SimpleImageUploader] ✅ URL pública generada:', publicUrl);
+      console.log('[SimpleImageUploader v2] 🔗 URL pública generada:', publicUrl);
 
-      // Validar URL
-      if (!publicUrl || !publicUrl.startsWith('http')) {
-        console.error('[SimpleImageUploader] ❌ URL inválida:', publicUrl);
+      // ✅ FIXED: Validación estricta de URL
+      if (!publicUrl || !publicUrl.startsWith('https://')) {
+        console.error('[SimpleImageUploader v2] ❌ URL inválida:', publicUrl);
         throw new Error('URL pública inválida');
       }
+
+      // ✅ FIXED: Verificar que la URL contiene el bucket correcto
+      if (!publicUrl.includes(`/storage/v1/object/public/${bucketName}/`)) {
+        console.error('[SimpleImageUploader v2] ❌ URL no contiene el bucket correcto');
+        console.error('[SimpleImageUploader v2] ❌ Esperado:', `/storage/v1/object/public/${bucketName}/`);
+        console.error('[SimpleImageUploader v2] ❌ Recibido:', publicUrl);
+        throw new Error('Estructura de URL incorrecta');
+      }
+
+      console.log('[SimpleImageUploader v2] ✅ URL validada correctamente');
 
       // Guardar y notificar
       setImageUrl(publicUrl);
       onImageUploaded(publicUrl);
       
-      console.log('[SimpleImageUploader] ✅ Proceso completado exitosamente');
+      console.log('[SimpleImageUploader v2] ✅ Proceso completado exitosamente');
+      console.log('[SimpleImageUploader v2] 🎉 URL final:', publicUrl);
+      
       Alert.alert('✅ Éxito', 'Imagen subida correctamente');
-    } catch (error) {
-      console.error('[SimpleImageUploader] ❌ Error completo:', error);
-      Alert.alert('Error', 'No se pudo subir la imagen. Por favor intenta de nuevo.');
+    } catch (error: any) {
+      console.error('[SimpleImageUploader v2] ❌ Error completo:', error);
+      console.error('[SimpleImageUploader v2] ❌ Mensaje:', error?.message);
+      console.error('[SimpleImageUploader v2] ❌ Stack:', error?.stack);
+      
+      Alert.alert(
+        'Error al subir imagen',
+        error?.message || 'No se pudo subir la imagen. Por favor intenta de nuevo.'
+      );
     } finally {
       setUploading(false);
     }
   };
 
   const handleRemoveImage = () => {
-    console.log('[SimpleImageUploader] 🗑️ Usuario eliminó la imagen');
+    console.log('[SimpleImageUploader v2] 🗑️ Usuario eliminó la imagen');
     setImageUrl(null);
     onImageUploaded('');
   };
@@ -180,10 +199,17 @@ export default function SimpleImageUploader({
             source={{ uri: imageUrl }} 
             style={styles.imagePreview}
             resizeMode="cover"
-            onLoadStart={() => console.log('[SimpleImageUploader] 🔄 Cargando preview...')}
-            onLoad={() => console.log('[SimpleImageUploader] ✅ Preview cargado')}
+            onLoadStart={() => {
+              console.log('[SimpleImageUploader v2] 🔄 Cargando preview...');
+              console.log('[SimpleImageUploader v2] 🔗 URL:', imageUrl);
+            }}
+            onLoad={() => {
+              console.log('[SimpleImageUploader v2] ✅ Preview cargado exitosamente');
+            }}
             onError={(error) => {
-              console.error('[SimpleImageUploader] ❌ Error cargando preview:', error.nativeEvent.error);
+              console.error('[SimpleImageUploader v2] ❌ Error cargando preview');
+              console.error('[SimpleImageUploader v2] ❌ URL:', imageUrl);
+              console.error('[SimpleImageUploader v2] ❌ Error:', error.nativeEvent.error);
             }}
           />
           <View style={styles.imageOverlay}>
