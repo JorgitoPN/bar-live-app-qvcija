@@ -61,18 +61,19 @@ interface Solicitud {
 }
 
 /**
- * ✅ SOLICITUD DETALLE v9.1 - SISTEMA SIMPLE DE IMÁGENES + AUTO-DELETE + FIX [object Object]
+ * ✅ SOLICITUD DETALLE v9.2 - SISTEMA SIMPLE DE IMÁGENES + AUTO-DELETE + FIX URLs
  * 
- * NUEVO SISTEMA v9.1:
+ * NUEVO SISTEMA v9.2:
  * - ✅ Sistema de visualización de imágenes IDÉNTICO a la red social
  * - ✅ Usa Image de React Native directamente (sin complicaciones)
  * - ✅ URLs públicas de Supabase Storage (igual que posts)
  * - ✅ Galería de imágenes con navegación simple
  * - ✅ ELIMINACIÓN AUTOMÁTICA de imágenes al aprobar/denegar solicitud
  * - ✅ Sin conversiones, sin descargas, sin complicaciones
- * - ✅ FIX v9.1: Validación estricta de URLs para evitar [object Object]
- *   - Detecta si la URL es un objeto y extrae la URL correcta
- *   - Valida que las URLs sean strings válidos con http/https
+ * - ✅ FIX v9.2: Validación mejorada de URLs de Supabase Storage
+ *   - Detecta y corrige URLs relativas
+ *   - Construye URLs completas cuando es necesario
+ *   - Valida que sean URLs de Supabase Storage
  *   - Logs detallados para debugging
  */
 
@@ -95,7 +96,7 @@ export default function SolicitudDetalleScreen() {
 
   const loadSolicitud = useCallback(async () => {
     try {
-      console.log('[SolicitudDetalle v9.1] 📥 Cargando solicitud:', solicitudId);
+      console.log('[SolicitudDetalle v9.2] 📥 Cargando solicitud:', solicitudId);
       
       const { data, error } = await supabase
         .from('solicitudes_propietario')
@@ -113,21 +114,21 @@ export default function SolicitudDetalleScreen() {
         .single();
 
       if (error) {
-        console.error('[SolicitudDetalle v9.1] ❌ Error cargando solicitud:', error);
+        console.error('[SolicitudDetalle v9.2] ❌ Error cargando solicitud:', error);
         throw error;
       }
 
-      console.log('[SolicitudDetalle v9.1] ✅ Solicitud cargada:', data.nombre_local);
-      console.log('[SolicitudDetalle v9.1] 📄 Documento URL (raw):', data.documento_propiedad_url);
-      console.log('[SolicitudDetalle v9.1] 📄 Documento URL (type):', typeof data.documento_propiedad_url);
-      console.log('[SolicitudDetalle v9.1] 🖼️ Portada URL (raw):', data.imagen_portada_url);
-      console.log('[SolicitudDetalle v9.1] 🖼️ Portada URL (type):', typeof data.imagen_portada_url);
-      console.log('[SolicitudDetalle v9.1] 🖼️ Galería URLs (raw):', data.galeria_urls);
-      console.log('[SolicitudDetalle v9.1] 🖼️ Galería URLs (type):', typeof data.galeria_urls, Array.isArray(data.galeria_urls));
+      console.log('[SolicitudDetalle v9.2] ✅ Solicitud cargada:', data.nombre_local);
+      console.log('[SolicitudDetalle v9.2] 📄 Documento URL (raw):', data.documento_propiedad_url);
+      console.log('[SolicitudDetalle v9.2] 📄 Documento URL (type):', typeof data.documento_propiedad_url);
+      console.log('[SolicitudDetalle v9.2] 🖼️ Portada URL (raw):', data.imagen_portada_url);
+      console.log('[SolicitudDetalle v9.2] 🖼️ Portada URL (type):', typeof data.imagen_portada_url);
+      console.log('[SolicitudDetalle v9.2] 🖼️ Galería URLs (raw):', data.galeria_urls);
+      console.log('[SolicitudDetalle v9.2] 🖼️ Galería URLs (type):', typeof data.galeria_urls, Array.isArray(data.galeria_urls));
       
       setSolicitud(data);
     } catch (error) {
-      console.error('[SolicitudDetalle v9.1] ❌ Error:', error);
+      console.error('[SolicitudDetalle v9.2] ❌ Error:', error);
       Alert.alert('Error', 'No se pudo cargar la solicitud');
       router.back();
     } finally {
@@ -143,11 +144,11 @@ export default function SolicitudDetalleScreen() {
    * ✅ NUEVA FUNCIÓN: Eliminar imágenes de Supabase Storage
    */
   const deleteImagesFromStorage = async (imageUrls: string[]) => {
-    console.log('[SolicitudDetalle v9.1] 🗑️ Eliminando imágenes del storage:', imageUrls.length);
+    console.log('[SolicitudDetalle v9.2] 🗑️ Eliminando imágenes del storage:', imageUrls.length);
     
     for (const url of imageUrls) {
       if (!url || typeof url !== 'string') {
-        console.warn('[SolicitudDetalle v9.1] ⚠️ URL inválida para eliminar:', url);
+        console.warn('[SolicitudDetalle v9.2] ⚠️ URL inválida para eliminar:', url);
         continue;
       }
       
@@ -174,7 +175,7 @@ export default function SolicitudDetalleScreen() {
         filePath = filePath.replace(/^documentos-propiedad\//, ''); // Remover bucket name si está
         filePath = filePath.replace(/^locales\//, ''); // Remover bucket name si está
         
-        console.log('[SolicitudDetalle v9.1] 🗑️ Eliminando archivo:', filePath);
+        console.log('[SolicitudDetalle v9.2] 🗑️ Eliminando archivo:', filePath);
         
         // Intentar eliminar del bucket documentos-propiedad
         const { error: deleteError1 } = await supabase.storage
@@ -182,7 +183,7 @@ export default function SolicitudDetalleScreen() {
           .remove([filePath]);
         
         if (deleteError1) {
-          console.log('[SolicitudDetalle v9.1] ⚠️ No se encontró en documentos-propiedad, intentando en locales...');
+          console.log('[SolicitudDetalle v9.2] ⚠️ No se encontró en documentos-propiedad, intentando en locales...');
           
           // Intentar eliminar del bucket locales
           const { error: deleteError2 } = await supabase.storage
@@ -190,22 +191,22 @@ export default function SolicitudDetalleScreen() {
             .remove([filePath]);
           
           if (deleteError2) {
-            console.error('[SolicitudDetalle v9.1] ❌ Error eliminando de ambos buckets:', deleteError2);
+            console.error('[SolicitudDetalle v9.2] ❌ Error eliminando de ambos buckets:', deleteError2);
           } else {
-            console.log('[SolicitudDetalle v9.1] ✅ Imagen eliminada del bucket locales');
+            console.log('[SolicitudDetalle v9.2] ✅ Imagen eliminada del bucket locales');
           }
         } else {
-          console.log('[SolicitudDetalle v9.1] ✅ Imagen eliminada del bucket documentos-propiedad');
+          console.log('[SolicitudDetalle v9.2] ✅ Imagen eliminada del bucket documentos-propiedad');
         }
       } catch (error) {
-        console.error('[SolicitudDetalle v9.1] ❌ Error eliminando imagen:', url, error);
+        console.error('[SolicitudDetalle v9.2] ❌ Error eliminando imagen:', url, error);
       }
     }
   };
 
   const handleViewImage = (index: number) => {
-    console.log('[SolicitudDetalle v9.1] 👁️ Abriendo imagen en índice:', index);
-    console.log('[SolicitudDetalle v9.1] 👁️ URL de la imagen:', allImages[index]);
+    console.log('[SolicitudDetalle v9.2] 👁️ Abriendo imagen en índice:', index);
+    console.log('[SolicitudDetalle v9.2] 👁️ URL de la imagen:', allImages[index]);
     setSelectedImageIndex(index);
     setShowImageModal(true);
   };
@@ -215,7 +216,7 @@ export default function SolicitudDetalleScreen() {
 
     try {
       if (actionType === 'aprobar') {
-        console.log('[SolicitudDetalle v9.1] ✅ Aprobando solicitud...');
+        console.log('[SolicitudDetalle v9.2] ✅ Aprobando solicitud...');
         
         const { error: updateError } = await supabase
           .from('solicitudes_propietario')
@@ -299,7 +300,7 @@ export default function SolicitudDetalleScreen() {
         if (solicitud.galeria_urls) imagesToDelete.push(...solicitud.galeria_urls);
         
         if (imagesToDelete.length > 0) {
-          console.log('[SolicitudDetalle v9.1] 🗑️ Eliminando imágenes después de aprobar...');
+          console.log('[SolicitudDetalle v9.2] 🗑️ Eliminando imágenes después de aprobar...');
           await deleteImagesFromStorage(imagesToDelete);
         }
 
@@ -319,7 +320,7 @@ export default function SolicitudDetalleScreen() {
           return;
         }
 
-        console.log('[SolicitudDetalle v9.1] ❌ Denegando solicitud...');
+        console.log('[SolicitudDetalle v9.2] ❌ Denegando solicitud...');
 
         const { error: updateError } = await supabase
           .from('solicitudes_propietario')
@@ -338,7 +339,7 @@ export default function SolicitudDetalleScreen() {
         if (solicitud.galeria_urls) imagesToDelete.push(...solicitud.galeria_urls);
         
         if (imagesToDelete.length > 0) {
-          console.log('[SolicitudDetalle v9.1] 🗑️ Eliminando imágenes después de denegar...');
+          console.log('[SolicitudDetalle v9.2] 🗑️ Eliminando imágenes después de denegar...');
           await deleteImagesFromStorage(imagesToDelete);
         }
 
@@ -381,7 +382,7 @@ export default function SolicitudDetalleScreen() {
       setMotivoDenegacion('');
       setNotasAdmin('');
     } catch (error) {
-      console.error('[SolicitudDetalle v9.1] ❌ Error ejecutando acción:', error);
+      console.error('[SolicitudDetalle v9.2] ❌ Error ejecutando acción:', error);
       Alert.alert('Error', 'No se pudo completar la acción');
     }
   };
@@ -434,35 +435,74 @@ export default function SolicitudDetalleScreen() {
    * ✅ SISTEMA SIMPLE: Array de imágenes igual que en posts
    * - URLs públicas directas de Supabase Storage
    * - Sin conversiones, sin complicaciones
-   * - v9.1: Validación estricta de URLs para evitar [object Object]
+   * - v9.2: Fix para URLs de Supabase Storage con validación mejorada
    */
   const allImages: string[] = [];
   
-  // Función helper para validar y limpiar URLs
+  // Función helper para validar y limpiar URLs de Supabase Storage
   const validateImageUrl = (url: any): string | null => {
-    if (!url) return null;
+    if (!url) {
+      console.log('[SolicitudDetalle v9.2] ⚠️ URL vacía o null');
+      return null;
+    }
     
     // Si es un objeto, intentar extraer la URL
     if (typeof url === 'object') {
-      console.warn('[SolicitudDetalle v9.1] ⚠️ URL es un objeto, intentando extraer:', url);
-      if (url.uri) return url.uri;
-      if (url.url) return url.url;
-      if (url.path) return url.path;
-      console.error('[SolicitudDetalle v9.1] ❌ No se pudo extraer URL del objeto:', url);
+      console.warn('[SolicitudDetalle v9.2] ⚠️ URL es un objeto, intentando extraer:', url);
+      if (url.uri) return validateImageUrl(url.uri);
+      if (url.url) return validateImageUrl(url.url);
+      if (url.path) return validateImageUrl(url.path);
+      console.error('[SolicitudDetalle v9.2] ❌ No se pudo extraer URL del objeto:', url);
       return null;
     }
     
-    // Si es string, validar que sea una URL válida
+    // Si es string, validar y limpiar
     if (typeof url === 'string') {
       const trimmedUrl = url.trim();
+      
+      // Validar que sea una URL completa de Supabase
       if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
-        return trimmedUrl;
+        // Verificar que sea una URL de Supabase Storage válida
+        if (trimmedUrl.includes('supabase.co/storage/v1/object/public/')) {
+          console.log('[SolicitudDetalle v9.2] ✅ URL de Supabase válida:', trimmedUrl.substring(0, 80) + '...');
+          return trimmedUrl;
+        } else {
+          console.warn('[SolicitudDetalle v9.2] ⚠️ URL no es de Supabase Storage:', trimmedUrl.substring(0, 80));
+          // Aún así, intentar usarla si es una URL válida
+          return trimmedUrl;
+        }
       }
-      console.warn('[SolicitudDetalle v9.1] ⚠️ URL no válida (no empieza con http):', trimmedUrl);
+      
+      // Si no empieza con http, podría ser un path relativo - intentar construir URL completa
+      if (trimmedUrl.length > 0 && !trimmedUrl.startsWith('http')) {
+        console.warn('[SolicitudDetalle v9.2] ⚠️ URL relativa detectada, intentando construir URL completa:', trimmedUrl);
+        
+        // Intentar construir URL de Supabase Storage
+        const supabaseUrl = 'https://embntaqwlwmgazvrglaf.supabase.co';
+        let bucket = 'documentos-propiedad';
+        let path = trimmedUrl;
+        
+        // Limpiar el path
+        path = path.replace(/^\/+/, ''); // Remover slashes iniciales
+        
+        // Detectar el bucket del path si está incluido
+        if (path.startsWith('documentos-propiedad/')) {
+          path = path.replace('documentos-propiedad/', '');
+        } else if (path.startsWith('locales/')) {
+          bucket = 'locales';
+          path = path.replace('locales/', '');
+        }
+        
+        const constructedUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
+        console.log('[SolicitudDetalle v9.2] 🔧 URL construida:', constructedUrl);
+        return constructedUrl;
+      }
+      
+      console.warn('[SolicitudDetalle v9.2] ⚠️ URL no válida:', trimmedUrl);
       return null;
     }
     
-    console.error('[SolicitudDetalle v9.1] ❌ Tipo de URL no reconocido:', typeof url, url);
+    console.error('[SolicitudDetalle v9.2] ❌ Tipo de URL no reconocido:', typeof url, url);
     return null;
   };
   
@@ -470,10 +510,10 @@ export default function SolicitudDetalleScreen() {
   if (solicitud.documento_propiedad_url) {
     const validUrl = validateImageUrl(solicitud.documento_propiedad_url);
     if (validUrl) {
-      console.log('[SolicitudDetalle v9.1] ✅ Añadiendo documento:', validUrl);
+      console.log('[SolicitudDetalle v9.2] ✅ Añadiendo documento:', validUrl);
       allImages.push(validUrl);
     } else {
-      console.error('[SolicitudDetalle v9.1] ❌ URL de documento inválida:', solicitud.documento_propiedad_url);
+      console.error('[SolicitudDetalle v9.2] ❌ URL de documento inválida:', solicitud.documento_propiedad_url);
     }
   }
   
@@ -481,29 +521,29 @@ export default function SolicitudDetalleScreen() {
   if (solicitud.imagen_portada_url) {
     const validUrl = validateImageUrl(solicitud.imagen_portada_url);
     if (validUrl) {
-      console.log('[SolicitudDetalle v9.1] ✅ Añadiendo portada:', validUrl);
+      console.log('[SolicitudDetalle v9.2] ✅ Añadiendo portada:', validUrl);
       allImages.push(validUrl);
     } else {
-      console.error('[SolicitudDetalle v9.1] ❌ URL de portada inválida:', solicitud.imagen_portada_url);
+      console.error('[SolicitudDetalle v9.2] ❌ URL de portada inválida:', solicitud.imagen_portada_url);
     }
   }
   
   // Añadir galería
   if (solicitud.galeria_urls && Array.isArray(solicitud.galeria_urls) && solicitud.galeria_urls.length > 0) {
-    console.log('[SolicitudDetalle v9.1] 📸 Procesando galería:', solicitud.galeria_urls.length, 'imágenes');
+    console.log('[SolicitudDetalle v9.2] 📸 Procesando galería:', solicitud.galeria_urls.length, 'imágenes');
     solicitud.galeria_urls.forEach((url, index) => {
       const validUrl = validateImageUrl(url);
       if (validUrl) {
-        console.log(`[SolicitudDetalle v9.1] ✅ Añadiendo imagen ${index + 1} de galería:`, validUrl);
+        console.log(`[SolicitudDetalle v9.2] ✅ Añadiendo imagen ${index + 1} de galería:`, validUrl);
         allImages.push(validUrl);
       } else {
-        console.error(`[SolicitudDetalle v9.1] ❌ URL de galería ${index + 1} inválida:`, url);
+        console.error(`[SolicitudDetalle v9.2] ❌ URL de galería ${index + 1} inválida:`, url);
       }
     });
   }
 
-  console.log('[SolicitudDetalle v9.1] ✅ Total de imágenes válidas:', allImages.length);
-  console.log('[SolicitudDetalle v9.1] 📋 URLs finales:', allImages);
+  console.log('[SolicitudDetalle v9.2] ✅ Total de imágenes válidas:', allImages.length);
+  console.log('[SolicitudDetalle v9.2] 📋 URLs finales:', allImages);
 
   return (
     <View style={styles.container}>
@@ -667,7 +707,7 @@ export default function SolicitudDetalleScreen() {
               {allImages.map((imageUrl, index) => {
                 // Validación adicional antes de renderizar
                 if (!imageUrl || typeof imageUrl !== 'string') {
-                  console.error('[SolicitudDetalle v9.1] ❌ URL inválida en índice', index, ':', imageUrl);
+                  console.error('[SolicitudDetalle v9.2] ❌ URL inválida en índice', index, ':', imageUrl);
                   return null;
                 }
                 
@@ -682,10 +722,10 @@ export default function SolicitudDetalleScreen() {
                       style={styles.imageThumb}
                       resizeMode="cover"
                       onError={(error) => {
-                        console.error('[SolicitudDetalle v9.1] ❌ Error cargando miniatura:', imageUrl, error.nativeEvent.error);
+                        console.error('[SolicitudDetalle v9.2] ❌ Error cargando miniatura:', imageUrl, error.nativeEvent.error);
                       }}
                       onLoad={() => {
-                        console.log('[SolicitudDetalle v9.1] ✅ Miniatura cargada:', imageUrl.substring(0, 50) + '...');
+                        console.log('[SolicitudDetalle v9.2] ✅ Miniatura cargada:', imageUrl.substring(0, 50) + '...');
                       }}
                     />
                     {/* Indicador de tipo de imagen */}
@@ -839,7 +879,7 @@ export default function SolicitudDetalleScreen() {
             {allImages.map((imageUrl, index) => {
               // Validación adicional antes de renderizar imagen completa
               if (!imageUrl || typeof imageUrl !== 'string') {
-                console.error('[SolicitudDetalle v9.1] ❌ URL inválida en modal índice', index, ':', imageUrl);
+                console.error('[SolicitudDetalle v9.2] ❌ URL inválida en modal índice', index, ':', imageUrl);
                 return (
                   <View key={`full-${index}`} style={styles.fullImageContainer}>
                     <View style={{ alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -861,10 +901,10 @@ export default function SolicitudDetalleScreen() {
                     style={styles.fullImage} 
                     resizeMode="contain"
                     onError={(error) => {
-                      console.error('[SolicitudDetalle v9.1] ❌ Error cargando imagen completa:', imageUrl, error.nativeEvent.error);
+                      console.error('[SolicitudDetalle v9.2] ❌ Error cargando imagen completa:', imageUrl, error.nativeEvent.error);
                     }}
                     onLoad={() => {
-                      console.log('[SolicitudDetalle v9.1] ✅ Imagen completa cargada:', imageUrl.substring(0, 50) + '...');
+                      console.log('[SolicitudDetalle v9.2] ✅ Imagen completa cargada:', imageUrl.substring(0, 50) + '...');
                     }}
                   />
                 </View>
