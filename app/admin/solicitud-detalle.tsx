@@ -541,10 +541,13 @@ export default function SolicitudDetalleScreen() {
           </View>
         </View>
 
-        {/* Images Gallery - FIXED v4.3 - Verification Images Only */}
+        {/* Images Gallery - Verification Images Only */}
         {allImages.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>✅ Imágenes de Verificación ({allImages.length})</Text>
+            <Text style={styles.sectionTitle}>📸 Imágenes de Verificación ({allImages.length})</Text>
+            <Text style={styles.sectionDescription}>
+              Imágenes proporcionadas por el solicitante para verificar la propiedad del local
+            </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
               {allImages.map((uri, index) => (
                 <TouchableOpacity key={index} onPress={() => handleViewImage(index)}>
@@ -946,6 +949,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     marginBottom: 10,
+  },
+  sectionDescription: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 12,
+    lineHeight: 18,
   },
   userCard: {
     flexDirection: 'row',

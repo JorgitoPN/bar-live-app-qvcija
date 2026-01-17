@@ -489,7 +489,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
         Alert.alert(
           '✅ Solicitud Enviada',
-          'Tu solicitud ha sido enviada correctamente.\n\nRecibirás notificaciones sobre el estado.',
+          'Tu solicitud ha sido enviada correctamente.\n\nRecibirás notificaciones sobre el estado de tu solicitud.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else {
@@ -547,7 +547,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
         Alert.alert(
           '✅ Solicitud Enviada',
-          'Tu solicitud ha sido enviada correctamente.\n\nRecibirás notificaciones sobre el estado.',
+          'Tu solicitud ha sido enviada correctamente.\n\nRecibirás notificaciones sobre el estado de tu solicitud.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
       }
@@ -680,7 +680,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
     <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.stepTitle}>Información de Contacto</Text>
       <Text style={styles.stepDescription}>
-        Proporciona tus datos de contacto y documentación
+        Proporciona tus datos de contacto e imagen de verificación
       </Text>
 
       {selectedLocal && (
@@ -695,7 +695,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Email de Contacto *</Text>
-        <Text style={styles.helperText}>Recibirás notificaciones en este email</Text>
+        <Text style={styles.helperText}>Recibirás notificaciones en este email (obligatorio)</Text>
         <TextInput
           style={styles.input}
           placeholder="tu@email.com"
@@ -709,7 +709,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Teléfono de Contacto *</Text>
-        <Text style={styles.helperText}>Número de teléfono para contactarte</Text>
+        <Text style={styles.helperText}>Número de teléfono para contactarte (obligatorio)</Text>
         <TextInput
           style={styles.input}
           placeholder="+34 600 000 000"
@@ -721,13 +721,13 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Mensaje Adicional (Opcional)</Text>
+        <Text style={styles.label}>Mensaje Explicativo *</Text>
         <Text style={styles.helperText}>
-          Proporciona información adicional que ayude a verificar tu propiedad del local
+          Explica por qué eres el propietario de este local (obligatorio)
         </Text>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Ej: Soy el propietario desde hace 5 años, puedo proporcionar documentación adicional si es necesario..."
+          placeholder="Ej: Soy el propietario desde hace 5 años..."
           placeholderTextColor={colors.textSecondary}
           value={mensaje}
           onChangeText={setMensaje}
@@ -739,7 +739,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
       <View style={styles.infoBox}>
         <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={20} color={colors.primary} />
         <Text style={styles.infoBoxText}>
-          Nuestro equipo revisará tu solicitud y se pondrá en contacto contigo para verificar la propiedad del local. Podrás proporcionar documentación adicional durante el proceso de revisión.
+          Nuestro equipo revisará tu solicitud y se pondrá en contacto contigo para completar el proceso de verificación.
         </Text>
       </View>
     </ScrollView>
