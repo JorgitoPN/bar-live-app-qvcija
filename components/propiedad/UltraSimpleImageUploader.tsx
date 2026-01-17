@@ -44,6 +44,7 @@ export default function UltraSimpleImageUploader({
   const [localImageUrl, setLocalImageUrl] = useState<string>(currentUrl);
   const [imageVerified, setImageVerified] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
 
   console.log('═══════════════════════════════════════');
   console.log('[UltraSimple] 🎬 Componente montado');
@@ -130,18 +131,24 @@ export default function UltraSimpleImageUploader({
       setUploading(true);
       setImageVerified(false);
 
-      // PASO 3: Convertir imagen a blob
-      console.log('\n🔄 PASO 3: Convirtiendo imagen a blob...');
+      // PASO 3: Convertir imagen a ArrayBuffer
+      console.log('\n🔄 PASO 3: Convirtiendo imagen a ArrayBuffer...');
       const response = await fetch(selectedImage.uri);
       const blob = await response.blob();
-      const sizeInMB = (blob.size / 1024 / 1024).toFixed(2);
-      console.log('✅ PASO 3: Blob creado');
+      const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as ArrayBuffer);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(blob);
+      });
+      
+      const sizeInMB = (arrayBuffer.byteLength / 1024 / 1024).toFixed(2);
+      console.log('✅ PASO 3: ArrayBuffer creado');
       console.log('   📦 Tamaño:', sizeInMB, 'MB');
-      console.log('   📄 Tipo:', blob.type);
 
       // PASO 4: Validar tamaño
       console.log('\n✔️ PASO 4: Validando tamaño...');
-      if (blob.size > 10 * 1024 * 1024) {
+      if (arrayBuffer.byteLength > 10 * 1024 * 1024) {
         console.log('❌ Imagen demasiado grande:', sizeInMB, 'MB');
         Alert.alert('Imagen muy grande', 'La imagen no puede superar 10 MB');
         setUploading(false);
@@ -165,7 +172,7 @@ export default function UltraSimpleImageUploader({
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documentos-propiedad')
-        .upload(fileName, blob, {
+        .upload(fileName, arrayBuffer, {
           contentType: 'image/jpeg',
           cacheControl: '3600',
           upsert: false,
@@ -190,11 +197,24 @@ export default function UltraSimpleImageUploader({
       console.log('✅ PASO 7: URL pública obtenida');
       console.log('   🌐 URL:', publicUrl);
 
-      // PASO 8: Guardar y notificar
-      console.log('\n💾 PASO 8: Guardando estado...');
+      // PASO 8: Verificar que la URL es accesible
+      console.log('\n🔍 PASO 8: Verificando URL...');
+      try {
+        const verifyResponse = await fetch(publicUrl, { method: 'HEAD' });
+        if (!verifyResponse.ok) {
+          throw new Error('URL no accesible');
+        }
+        console.log('✅ PASO 8: URL verificada y accesible');
+      } catch (verifyError) {
+        console.warn('⚠️ No se pudo verificar la URL, pero continuamos');
+      }
+
+      // PASO 9: Guardar y notificar
+      console.log('\n💾 PASO 9: Guardando estado...');
       setLocalImageUrl(publicUrl);
+      setImageVerified(true);
       onUploadComplete(publicUrl);
-      console.log('✅ PASO 8: Estado guardado y callback ejecutado');
+      console.log('✅ PASO 9: Estado guardado y callback ejecutado');
 
       console.log('\n🎉 ═══ PROCESO COMPLETADO CON ÉXITO ═══\n');
       Alert.alert('✅ Éxito', 'Documento subido correctamente');
@@ -223,15 +243,31 @@ export default function UltraSimpleImageUploader({
     console.log('✅ Imagen eliminada');
   };
 
-  const handleImageError = () => {
+  const handleImageError = (error: any) => {
     console.error('❌ Error al cargar imagen para mostrar');
+    console.error('   Error details:', error?.nativeEvent);
+    
+    // Intentar recargar la imagen una vez
+    if (!imageVerified) {
+      console.log('🔄 Intentando recargar imagen...');
+      setImageVerified(true);
+      return;
+    }
+    
     Alert.alert(
-      'Error',
-      'No se pudo cargar la imagen. Por favor intenta subirla de nuevo.'
+      'Error al cargar imagen',
+      'No se pudo mostrar la imagen. Por favor intenta subirla de nuevo.',
+      [
+        {
+          text: 'Reintentar',
+          onPress: () => {
+            setLocalImageUrl('');
+            setImageVerified(false);
+            onUploadComplete('');
+          }
+        }
+      ]
     );
-    setLocalImageUrl('');
-    setImageVerified(false);
-    onUploadComplete('');
   };
 
   return (
@@ -253,16 +289,33 @@ export default function UltraSimpleImageUploader({
             </View>
           ) : (
             <>
-              <Image
-                source={{ uri: localImageUrl }}
-                style={styles.previewImage}
-                resizeMode="cover"
-                onError={handleImageError}
-                onLoad={() => {
-                  console.log('✅ Imagen cargada correctamente en UI');
-                  setImageVerified(true);
-                }}
-              />
+              <>
+                <Image
+                  source={{ uri: localImageUrl }}
+                  style={styles.previewImage}
+                  resizeMode="cover"
+                  onError={handleImageError}
+                  onLoad={() => {
+                    console.log('✅ Imagen cargada correctamente en UI');
+                    setImageVerified(true);
+                    setImageLoading(false);
+                  }}
+                  onLoadStart={() => {
+                    console.log('🔄 Iniciando carga de imagen...');
+                    setImageLoading(true);
+                  }}
+                  onLoadEnd={() => {
+                    console.log('🏁 Carga de imagen finalizada');
+                    setImageLoading(false);
+                  }}
+                />
+                {imageLoading && (
+                  <View style={styles.imageLoadingOverlay}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={styles.imageLoadingText}>Cargando imagen...</Text>
+                  </View>
+                )}
+              </>
               <View style={styles.previewOverlay}>
                 <View style={styles.successBadge}>
                   <IconSymbol
@@ -444,6 +497,22 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 300,
     backgroundColor: colors.cardBorder,
+  },
+  imageLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  imageLoadingText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
   },
   previewOverlay: {
     backgroundColor: 'rgba(0, 0, 0, 0.92)',
