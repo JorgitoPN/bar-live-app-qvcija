@@ -404,10 +404,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
             Alert.alert('Documento requerido', 'Debes subir una imagen del documento de propiedad');
             return false;
           }
-          if (!mensaje.trim()) {
-            Alert.alert('Mensaje requerido', 'Debes explicar por qué eres el propietario');
-            return false;
-          }
           return true;
         default:
           return true;
@@ -701,9 +697,9 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
   const renderReclamarStep2 = () => (
     <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.stepTitle}>Solicitud de Propiedad</Text>
+      <Text style={styles.stepTitle}>Información de Contacto</Text>
       <Text style={styles.stepDescription}>
-        Proporciona tus datos de contacto y documentación que acredite tu propiedad
+        Proporciona tus datos de contacto y documentación
       </Text>
 
       {selectedLocal && (
@@ -718,6 +714,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Email de Contacto *</Text>
+        <Text style={styles.helperText}>Recibirás notificaciones en este email</Text>
         <TextInput
           style={styles.input}
           placeholder="tu@email.com"
@@ -731,6 +728,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Teléfono de Contacto *</Text>
+        <Text style={styles.helperText}>Número de teléfono para contactarte</Text>
         <TextInput
           style={styles.input}
           placeholder="+34 600 000 000"
@@ -742,68 +740,21 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
       </View>
 
       {/* 🆕 COMPONENTE DE SUBIDA DE IMAGEN */}
-      <UltraSimpleImageUploader
-        onUploadComplete={(url) => {
-          console.log('[ReclamarStep2] ✅ Documento subido:', url);
-          setDocumentoUrl(url);
-        }}
-        currentUrl={documentoUrl}
-        userId={user?.id || ''}
-        label="Documento de Propiedad *"
-        description="Sube una foto clara del documento que acredite tu relación con el local (factura de servicios, contrato de alquiler, escritura de propiedad, licencia de actividad, etc.)"
-      />
-
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Tipo de Documento</Text>
-        <TouchableOpacity
-          style={styles.documentTypeSelector}
-          onPress={() => setShowDocumentTypeModal(true)}
-        >
-          <Text style={styles.documentTypeSelectorText}>
-            {TIPOS_DOCUMENTO.find(t => t.value === documentoTipo)?.label || 'Seleccionar'}
-          </Text>
-          <IconSymbol 
-            ios_icon_name="chevron.down" 
-            android_material_icon_name="arrow_drop_down" 
-            size={20} 
-            color={colors.textSecondary} 
-          />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Mensaje Explicativo *</Text>
-        <Text style={styles.helperText}>
-          Explica brevemente por qué eres el propietario del local y cualquier información adicional relevante
+        <Text style={styles.label}>Imagen de Documento de Propiedad *</Text>
+        <Text style={styles.warningText}>
+          ⚠️ Solo imágenes (JPG, PNG, WEBP). NO se aceptan PDF.
         </Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="Ejemplo: Soy el propietario del local desde hace 5 años. Adjunto factura de luz a mi nombre..."
-          placeholderTextColor={colors.textSecondary}
-          value={mensaje}
-          onChangeText={setMensaje}
-          multiline
-          numberOfLines={6}
+        <UltraSimpleImageUploader
+          onUploadComplete={(url) => {
+            console.log('[ReclamarStep2] ✅ Documento subido:', url);
+            setDocumentoUrl(url);
+          }}
+          currentUrl={documentoUrl}
+          userId={user?.id || ''}
+          label=""
+          description="Sube una FOTO del documento que acredite tu relación con el local"
         />
-      </View>
-
-      <View style={styles.infoBox}>
-        <IconSymbol 
-          ios_icon_name="info.circle.fill" 
-          android_material_icon_name="info" 
-          size={24} 
-          color={colors.primary} 
-        />
-        <View style={styles.infoBoxContent}>
-          <Text style={styles.infoBoxTitle}>Documentos aceptados</Text>
-          <Text style={styles.infoBoxText}>
-            • Factura de luz o agua a tu nombre{'\n'}
-            • Contrato de alquiler o compraventa{'\n'}
-            • Escritura de propiedad{'\n'}
-            • Licencia de actividad{'\n'}
-            • Cualquier documento oficial que demuestre tu relación con el local
-          </Text>
-        </View>
       </View>
     </ScrollView>
   );
@@ -1149,14 +1100,8 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
           <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>
-            {requestType === 'reclamar_local' ? 'Reclamar Local' : 'Crear Nuevo Local'}
-          </Text>
-          <Text style={styles.headerSubtitle}>
-            {requestType === 'reclamar_local' 
-              ? `Paso ${currentStep} de 2` 
-              : `Paso ${currentStep} de 5`}
-          </Text>
+          <Text style={styles.headerTitle}>Reclamar Local</Text>
+          <Text style={styles.headerSubtitle}>Solicitud de propiedad</Text>
         </View>
         <View style={{ width: 40 }} />
       </LinearGradient>
@@ -1513,6 +1458,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 18,
   },
+  warningText: {
+    fontSize: 13,
+    color: '#F59E0B',
+    fontWeight: '600',
+    marginBottom: 12,
+    backgroundColor: '#FEF3C7',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+  },
   input: {
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
@@ -1542,30 +1498,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     fontWeight: '500',
-  },
-  infoBox: {
-    flexDirection: 'row',
-    backgroundColor: colors.primary + '08',
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-    marginTop: 8,
-  },
-  infoBoxContent: {
-    flex: 1,
-  },
-  infoBoxTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.primary,
-    marginBottom: 8,
-  },
-  infoBoxText: {
-    fontSize: 13,
-    color: colors.text,
-    lineHeight: 20,
   },
   tipoGrid: {
     flexDirection: 'row',
