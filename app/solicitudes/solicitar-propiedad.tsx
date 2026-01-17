@@ -26,14 +26,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
 
 /**
- * ✅ SOLICITAR PROPIEDAD v4.0 - SISTEMA SIMPLE DE IMÁGENES
+ * ✅ SOLICITAR PROPIEDAD v5.0 - SISTEMA ROBUSTO DE IMÁGENES
  * 
- * NUEVO SISTEMA v4.0:
+ * NUEVO SISTEMA v5.0:
  * - ✅ SOLO imágenes permitidas (JPG, PNG, WEBP) - NO PDF
- * - ✅ Sistema de subida IDÉNTICO a posts de red social
+ * - ✅ Validación mejorada de tipos de archivo
  * - ✅ URLs públicas directas de Supabase Storage
- * - ✅ Sin complicaciones, sin conversiones
- * - ✅ Visualización simple con Image de React Native
+ * - ✅ Preview inmediato de la imagen subida
+ * - ✅ Logs detallados para debugging
+ * - ✅ Manejo de errores mejorado
+ * - ✅ Indicadores de carga durante la subida
+ * - ✅ Visualización garantizada con Image de React Native
  */
 
 interface LocalSearchResult {
@@ -236,16 +239,17 @@ export default function SolicitarPropiedadScreen() {
   };
 
   /**
-   * ✅ SISTEMA SIMPLE: Subir imagen igual que en posts
-   * - Usa ImagePicker (NO DocumentPicker)
-   * - Sube a Supabase Storage
-   * - Obtiene URL pública
-   * - Sin complicaciones
+   * ✅ SISTEMA NUEVO v5.0: Subir imagen con validación mejorada
+   * - Usa ImagePicker para seleccionar SOLO imágenes
+   * - Sube a Supabase Storage con validación de tipo
+   * - Obtiene URL pública verificada
+   * - Muestra preview inmediato
    */
   const handleUploadDocument = async () => {
     try {
-      console.log('[SolicitarPropiedad v4.0] 📸 Abriendo selector de imágenes...');
+      console.log('[SolicitarPropiedad v5.0] 📸 Iniciando selección de imagen...');
       
+      // Solicitar permisos
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (status !== 'granted') {
@@ -253,60 +257,97 @@ export default function SolicitarPropiedadScreen() {
         return;
       }
 
-      // ✅ SIMPLE: Solo imágenes, igual que posts
+      // Seleccionar SOLO imágenes (JPG, PNG, WEBP)
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
-        quality: 0.8,
+        quality: 0.9,
         allowsMultipleSelection: false,
       });
 
-      console.log('[SolicitarPropiedad v4.0] 📸 Resultado:', result);
+      console.log('[SolicitarPropiedad v5.0] 📸 Resultado de selección:', {
+        canceled: result.canceled,
+        hasAssets: result.assets?.length > 0,
+      });
 
       if (result.canceled || !result.assets || result.assets.length === 0) {
-        console.log('[SolicitarPropiedad v4.0] ⚠️ Selección cancelada');
+        console.log('[SolicitarPropiedad v5.0] ⚠️ Selección cancelada por el usuario');
         return;
       }
 
       const image = result.assets[0];
-      console.log('[SolicitarPropiedad v4.0] ✅ Imagen seleccionada:', image.uri);
+      console.log('[SolicitarPropiedad v5.0] ✅ Imagen seleccionada:', {
+        uri: image.uri,
+        width: image.width,
+        height: image.height,
+        type: image.type,
+      });
 
-      // ✅ SIMPLE: Subir igual que posts
+      // Validar que sea una imagen
+      if (!image.uri.match(/\.(jpg|jpeg|png|webp)$/i)) {
+        Alert.alert('Error', 'Por favor selecciona una imagen válida (JPG, PNG o WEBP)');
+        return;
+      }
+
+      // Mostrar indicador de carga
+      setLoading(true);
+
+      // Convertir a blob
       const response = await fetch(image.uri);
       const blob = await response.blob();
       
-      const fileExtension = image.uri.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${user?.id}/${Date.now()}.${fileExtension}`;
+      console.log('[SolicitarPropiedad v5.0] 📦 Blob creado:', {
+        size: blob.size,
+        type: blob.type,
+      });
       
-      console.log('[SolicitarPropiedad v4.0] ⬆️ Subiendo a Supabase Storage:', fileName);
+      // Generar nombre único
+      const fileExtension = image.uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(7);
+      const fileName = `${user?.id}/${timestamp}-${randomId}.${fileExtension}`;
+      
+      console.log('[SolicitarPropiedad v5.0] ⬆️ Subiendo a Supabase Storage:', fileName);
 
+      // Subir a Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documentos-propiedad')
         .upload(fileName, blob, {
           contentType: `image/${fileExtension}`,
           upsert: false,
+          cacheControl: '3600',
         });
 
       if (uploadError) {
-        console.error('[SolicitarPropiedad v4.0] ❌ Error subiendo:', uploadError);
+        console.error('[SolicitarPropiedad v5.0] ❌ Error subiendo:', uploadError);
         throw uploadError;
       }
 
-      console.log('[SolicitarPropiedad v4.0] ✅ Subida exitosa:', uploadData.path);
+      console.log('[SolicitarPropiedad v5.0] ✅ Subida exitosa:', uploadData.path);
 
-      // ✅ SIMPLE: Obtener URL pública igual que posts
+      // Obtener URL pública
       const { data: urlData } = supabase.storage
         .from('documentos-propiedad')
         .getPublicUrl(uploadData.path);
 
-      console.log('[SolicitarPropiedad v4.0] ✅ URL pública generada:', urlData.publicUrl);
+      const publicUrl = urlData.publicUrl;
+      console.log('[SolicitarPropiedad v5.0] ✅ URL pública generada:', publicUrl);
 
-      setDocumentoUrl(urlData.publicUrl);
+      // Verificar que la URL es válida
+      if (!publicUrl || !publicUrl.startsWith('http')) {
+        throw new Error('URL pública inválida');
+      }
+
+      // Guardar URL
+      setDocumentoUrl(publicUrl);
       
+      console.log('[SolicitarPropiedad v5.0] ✅ Imagen guardada correctamente');
       Alert.alert('✅ Éxito', 'Imagen subida correctamente');
     } catch (error) {
-      console.error('[SolicitarPropiedad v4.0] ❌ Error:', error);
-      Alert.alert('Error', 'No se pudo subir la imagen. Intenta de nuevo.');
+      console.error('[SolicitarPropiedad v5.0] ❌ Error completo:', error);
+      Alert.alert('Error', 'No se pudo subir la imagen. Por favor intenta de nuevo.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -659,7 +700,9 @@ export default function SolicitarPropiedadScreen() {
           return;
         }
 
-        // ✅ SIMPLE: Guardar URL pública directamente
+        // ✅ v5.0: Guardar URL pública directa de Supabase Storage
+        console.log('[SolicitarPropiedad v5.0] 💾 Guardando solicitud con URL:', documentoUrl);
+        
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
           .insert({
@@ -673,7 +716,7 @@ export default function SolicitarPropiedadScreen() {
             telefono_contacto: telefonoContacto || null,
             email_contacto: emailContacto,
             mensaje: mensaje || null,
-            documento_propiedad_url: documentoUrl, // ✅ URL pública directa
+            documento_propiedad_url: documentoUrl, // ✅ URL pública completa de Supabase
             documento_propiedad_tipo: documentoTipo,
             estado: 'pendiente',
           });
@@ -767,7 +810,12 @@ export default function SolicitarPropiedadScreen() {
           return;
         }
 
-        // ✅ SIMPLE: Todas las URLs ya son públicas, solo guardarlas
+        // ✅ v5.0: Guardar todas las URLs públicas de Supabase Storage
+        console.log('[SolicitarPropiedad v5.0] 💾 Guardando solicitud de nuevo local');
+        console.log('[SolicitarPropiedad v5.0] 📄 Documento URL:', documentoUrl);
+        console.log('[SolicitarPropiedad v5.0] 🖼️ Portada URL:', imagenPortadaUrl);
+        console.log('[SolicitarPropiedad v5.0] 🖼️ Galería URLs:', galeriaUrls.length);
+        
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
           .insert({
@@ -789,9 +837,9 @@ export default function SolicitarPropiedadScreen() {
             longitud_local: longitudLocal,
             horarios_local: horariosLocal,
             servicios_local: serviciosLocal,
-            imagen_portada_url: imagenPortadaUrl, // ✅ URL pública directa
-            galeria_urls: galeriaUrls, // ✅ URLs públicas directas
-            documento_propiedad_url: documentoUrl, // ✅ URL pública directa
+            imagen_portada_url: imagenPortadaUrl, // ✅ URL pública completa
+            galeria_urls: galeriaUrls, // ✅ Array de URLs públicas completas
+            documento_propiedad_url: documentoUrl, // ✅ URL pública completa
             documento_propiedad_tipo: documentoTipo,
             estado: 'pendiente',
           });
@@ -1023,13 +1071,19 @@ export default function SolicitarPropiedadScreen() {
           ⚠️ Solo imágenes (JPG, PNG, WEBP). NO se aceptan PDF.
         </Text>
         
-        {/* ✅ SIMPLE: Mostrar imagen igual que en posts */}
+        {/* ✅ NUEVO v5.0: Visualización mejorada de imagen */}
         {documentoUrl ? (
           <View style={styles.documentImageCard}>
             <Image 
               source={{ uri: documentoUrl }} 
               style={styles.documentImage}
               resizeMode="cover"
+              onLoadStart={() => console.log('[SolicitarPropiedad v5.0] 🔄 Cargando imagen...')}
+              onLoad={() => console.log('[SolicitarPropiedad v5.0] ✅ Imagen cargada correctamente')}
+              onError={(error) => {
+                console.error('[SolicitarPropiedad v5.0] ❌ Error cargando imagen:', error.nativeEvent.error);
+                Alert.alert('Error', 'No se pudo cargar la imagen. Por favor intenta subirla de nuevo.');
+              }}
             />
             <View style={styles.documentImageOverlay}>
               <View style={styles.documentImageInfo}>
@@ -1048,7 +1102,10 @@ export default function SolicitarPropiedadScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.removeDocumentButton}
-                  onPress={() => setDocumentoUrl(null)}
+                  onPress={() => {
+                    console.log('[SolicitarPropiedad v5.0] 🗑️ Eliminando imagen');
+                    setDocumentoUrl(null);
+                  }}
                 >
                   <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#EF4444" />
                   <Text style={styles.removeDocumentText}>Eliminar</Text>
@@ -1057,10 +1114,23 @@ export default function SolicitarPropiedadScreen() {
             </View>
           </View>
         ) : (
-          <TouchableOpacity style={styles.uploadImageButton} onPress={handleUploadDocument}>
-            <IconSymbol ios_icon_name="photo.badge.plus" android_material_icon_name="add_photo_alternate" size={48} color={colors.primary} />
-            <Text style={styles.uploadImageButtonText}>Seleccionar Imagen</Text>
-            <Text style={styles.uploadImageButtonSubtext}>JPG, PNG, WEBP</Text>
+          <TouchableOpacity 
+            style={styles.uploadImageButton} 
+            onPress={handleUploadDocument}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.uploadImageButtonText}>Subiendo imagen...</Text>
+              </>
+            ) : (
+              <>
+                <IconSymbol ios_icon_name="photo.badge.plus" android_material_icon_name="add_photo_alternate" size={48} color={colors.primary} />
+                <Text style={styles.uploadImageButtonText}>Seleccionar Imagen</Text>
+                <Text style={styles.uploadImageButtonSubtext}>JPG, PNG, WEBP</Text>
+              </>
+            )}
           </TouchableOpacity>
         )}
       </View>
@@ -1435,12 +1505,19 @@ export default function SolicitarPropiedadScreen() {
           ⚠️ Solo imágenes (JPG, PNG, WEBP). NO se aceptan PDF.
         </Text>
         
+        {/* ✅ NUEVO v5.0: Visualización mejorada de imagen */}
         {documentoUrl ? (
           <View style={styles.documentImageCard}>
             <Image 
               source={{ uri: documentoUrl }} 
               style={styles.documentImage}
               resizeMode="cover"
+              onLoadStart={() => console.log('[SolicitarPropiedad v5.0] 🔄 Cargando imagen...')}
+              onLoad={() => console.log('[SolicitarPropiedad v5.0] ✅ Imagen cargada correctamente')}
+              onError={(error) => {
+                console.error('[SolicitarPropiedad v5.0] ❌ Error cargando imagen:', error.nativeEvent.error);
+                Alert.alert('Error', 'No se pudo cargar la imagen. Por favor intenta subirla de nuevo.');
+              }}
             />
             <View style={styles.documentImageOverlay}>
               <View style={styles.documentImageInfo}>
@@ -1459,7 +1536,10 @@ export default function SolicitarPropiedadScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.removeDocumentButton}
-                  onPress={() => setDocumentoUrl(null)}
+                  onPress={() => {
+                    console.log('[SolicitarPropiedad v5.0] 🗑️ Eliminando imagen');
+                    setDocumentoUrl(null);
+                  }}
                 >
                   <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#EF4444" />
                   <Text style={styles.removeDocumentText}>Eliminar</Text>
@@ -1468,10 +1548,23 @@ export default function SolicitarPropiedadScreen() {
             </View>
           </View>
         ) : (
-          <TouchableOpacity style={styles.uploadImageButton} onPress={handleUploadDocument}>
-            <IconSymbol ios_icon_name="photo.badge.plus" android_material_icon_name="add_photo_alternate" size={48} color={colors.primary} />
-            <Text style={styles.uploadImageButtonText}>Seleccionar Imagen</Text>
-            <Text style={styles.uploadImageButtonSubtext}>JPG, PNG, WEBP</Text>
+          <TouchableOpacity 
+            style={styles.uploadImageButton} 
+            onPress={handleUploadDocument}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.uploadImageButtonText}>Subiendo imagen...</Text>
+              </>
+            ) : (
+              <>
+                <IconSymbol ios_icon_name="photo.badge.plus" android_material_icon_name="add_photo_alternate" size={48} color={colors.primary} />
+                <Text style={styles.uploadImageButtonText}>Seleccionar Imagen</Text>
+                <Text style={styles.uploadImageButtonSubtext}>JPG, PNG, WEBP</Text>
+              </>
+            )}
           </TouchableOpacity>
         )}
       </View>

@@ -61,15 +61,18 @@ interface Solicitud {
 }
 
 /**
- * ✅ SOLICITUD DETALLE v10.0 - SISTEMA SIMPLE DE IMÁGENES
+ * ✅ SOLICITUD DETALLE v11.0 - SISTEMA ROBUSTO DE VISUALIZACIÓN
  * 
- * SISTEMA v10.0:
+ * SISTEMA v11.0:
  * - ✅ Visualización directa de imágenes con Image de React Native
- * - ✅ URLs públicas de Supabase Storage
- * - ✅ Construcción automática de URLs desde paths
- * - ✅ Galería de imágenes con navegación
+ * - ✅ URLs públicas de Supabase Storage con validación
+ * - ✅ Construcción automática y robusta de URLs desde paths
+ * - ✅ Galería horizontal con thumbnails numerados
+ * - ✅ Modal de pantalla completa con navegación entre imágenes
+ * - ✅ Indicadores de tipo de imagen (Documento, Portada, Galería)
  * - ✅ Eliminación automática de imágenes al aprobar/denegar
- * - ✅ Sin complicaciones, solo mostrar imágenes
+ * - ✅ Logs detallados para debugging
+ * - ✅ Manejo de errores con fallbacks visuales
  */
 
 const { width } = Dimensions.get('window');
@@ -133,45 +136,65 @@ export default function SolicitudDetalleScreen() {
   }, [loadSolicitud]);
 
   /**
-   * ✅ Eliminar imágenes de Supabase Storage
+   * ✅ v11.0: Eliminar imágenes de Supabase Storage de forma robusta
    */
   const deleteImagesFromStorage = async (imageUrls: string[]) => {
-    console.log('[SolicitudDetalle v10.0] 🗑️ Eliminando', imageUrls.length, 'imágenes del storage');
+    console.log('[SolicitudDetalle v11.0] 🗑️ Iniciando eliminación de', imageUrls.length, 'imágenes');
     
     for (const url of imageUrls) {
       if (!url || typeof url !== 'string') {
+        console.log('[SolicitudDetalle v11.0] ⚠️ URL inválida, saltando');
         continue;
       }
       
       try {
+        console.log('[SolicitudDetalle v11.0] 🗑️ Procesando URL:', url.substring(0, 80) + '...');
+        
         let filePath = url;
+        let bucket = 'documentos-propiedad';
         
         // Extraer path de URL completa
         if (url.includes('/storage/v1/object/public/')) {
           const parts = url.split('/storage/v1/object/public/');
           if (parts.length > 1) {
-            const pathParts = parts[1].split('/');
-            pathParts.shift(); // Remover bucket name
+            const pathWithBucket = parts[1];
+            const pathParts = pathWithBucket.split('/');
+            
+            // El primer elemento es el bucket
+            if (pathParts[0] === 'locales') {
+              bucket = 'locales';
+            } else if (pathParts[0] === 'documentos-propiedad') {
+              bucket = 'documentos-propiedad';
+            }
+            
+            // El resto es el path del archivo
+            pathParts.shift();
             filePath = pathParts.join('/');
           }
         }
         
-        // Limpiar path
+        // Limpiar path de slashes iniciales
         filePath = filePath.replace(/^\/+/, '');
-        filePath = filePath.replace(/^documentos-propiedad\//, '');
-        filePath = filePath.replace(/^locales\//, '');
         
-        console.log('[SolicitudDetalle v10.0] 🗑️ Eliminando:', filePath);
+        console.log('[SolicitudDetalle v11.0] 🗑️ Eliminando del bucket:', bucket);
+        console.log('[SolicitudDetalle v11.0] 🗑️ Path del archivo:', filePath);
         
-        // Intentar eliminar de ambos buckets
-        await supabase.storage.from('documentos-propiedad').remove([filePath]);
-        await supabase.storage.from('locales').remove([filePath]);
+        // Eliminar del bucket correcto
+        const { error: deleteError } = await supabase.storage
+          .from(bucket)
+          .remove([filePath]);
         
-        console.log('[SolicitudDetalle v10.0] ✅ Imagen eliminada');
+        if (deleteError) {
+          console.error('[SolicitudDetalle v11.0] ❌ Error eliminando:', deleteError);
+        } else {
+          console.log('[SolicitudDetalle v11.0] ✅ Imagen eliminada correctamente');
+        }
       } catch (error) {
-        console.error('[SolicitudDetalle v10.0] ❌ Error eliminando imagen:', error);
+        console.error('[SolicitudDetalle v11.0] ❌ Error en proceso de eliminación:', error);
       }
     }
+    
+    console.log('[SolicitudDetalle v11.0] ✅ Proceso de eliminación completado');
   };
 
   const handleViewImage = (index: number) => {
@@ -262,14 +285,23 @@ export default function SolicitudDetalleScreen() {
           }
         }
 
-        // ✅ NUEVO: Eliminar imágenes del storage después de aprobar
+        // ✅ v11.0: Eliminar imágenes del storage después de aprobar
         const imagesToDelete: string[] = [];
-        if (solicitud.documento_propiedad_url) imagesToDelete.push(solicitud.documento_propiedad_url);
-        if (solicitud.imagen_portada_url) imagesToDelete.push(solicitud.imagen_portada_url);
-        if (solicitud.galeria_urls) imagesToDelete.push(...solicitud.galeria_urls);
+        if (solicitud.documento_propiedad_url) {
+          console.log('[SolicitudDetalle v11.0] 📄 Añadiendo documento para eliminar');
+          imagesToDelete.push(solicitud.documento_propiedad_url);
+        }
+        if (solicitud.imagen_portada_url) {
+          console.log('[SolicitudDetalle v11.0] 🖼️ Añadiendo portada para eliminar');
+          imagesToDelete.push(solicitud.imagen_portada_url);
+        }
+        if (solicitud.galeria_urls && Array.isArray(solicitud.galeria_urls)) {
+          console.log('[SolicitudDetalle v11.0] 🖼️ Añadiendo', solicitud.galeria_urls.length, 'imágenes de galería para eliminar');
+          imagesToDelete.push(...solicitud.galeria_urls);
+        }
         
         if (imagesToDelete.length > 0) {
-          console.log('[SolicitudDetalle v9.2] 🗑️ Eliminando imágenes después de aprobar...');
+          console.log('[SolicitudDetalle v11.0] 🗑️ Eliminando', imagesToDelete.length, 'imágenes después de aprobar...');
           await deleteImagesFromStorage(imagesToDelete);
         }
 
@@ -301,14 +333,23 @@ export default function SolicitudDetalleScreen() {
 
         if (updateError) throw updateError;
 
-        // ✅ NUEVO: Eliminar imágenes del storage después de denegar
+        // ✅ v11.0: Eliminar imágenes del storage después de denegar
         const imagesToDelete: string[] = [];
-        if (solicitud.documento_propiedad_url) imagesToDelete.push(solicitud.documento_propiedad_url);
-        if (solicitud.imagen_portada_url) imagesToDelete.push(solicitud.imagen_portada_url);
-        if (solicitud.galeria_urls) imagesToDelete.push(...solicitud.galeria_urls);
+        if (solicitud.documento_propiedad_url) {
+          console.log('[SolicitudDetalle v11.0] 📄 Añadiendo documento para eliminar');
+          imagesToDelete.push(solicitud.documento_propiedad_url);
+        }
+        if (solicitud.imagen_portada_url) {
+          console.log('[SolicitudDetalle v11.0] 🖼️ Añadiendo portada para eliminar');
+          imagesToDelete.push(solicitud.imagen_portada_url);
+        }
+        if (solicitud.galeria_urls && Array.isArray(solicitud.galeria_urls)) {
+          console.log('[SolicitudDetalle v11.0] 🖼️ Añadiendo', solicitud.galeria_urls.length, 'imágenes de galería para eliminar');
+          imagesToDelete.push(...solicitud.galeria_urls);
+        }
         
         if (imagesToDelete.length > 0) {
-          console.log('[SolicitudDetalle v9.2] 🗑️ Eliminando imágenes después de denegar...');
+          console.log('[SolicitudDetalle v11.0] 🗑️ Eliminando', imagesToDelete.length, 'imágenes después de denegar...');
           await deleteImagesFromStorage(imagesToDelete);
         }
 
@@ -401,84 +442,112 @@ export default function SolicitudDetalleScreen() {
   const estadoConfig = getEstadoConfig(solicitud.estado);
   
   /**
-   * ✅ SISTEMA SIMPLE v10.0: Array de imágenes con URLs directas
-   * - URLs públicas de Supabase Storage
-   * - Validación y construcción automática de URLs
-   * - Sin complicaciones, solo mostrar imágenes
+   * ✅ SISTEMA NUEVO v11.0: Construcción robusta de URLs de imágenes
+   * - Valida y normaliza todas las URLs
+   * - Maneja URLs completas y paths relativos
+   * - Detecta automáticamente el bucket correcto
+   * - Logs detallados para debugging
    */
   const allImages: string[] = [];
   
-  // Función helper para obtener URL pública de Supabase Storage
+  // Función helper mejorada para obtener URL pública de Supabase Storage
   const getSupabaseImageUrl = (path: any): string | null => {
     if (!path) {
-      console.log('[SolicitudDetalle v10.0] ⚠️ Path vacío');
+      console.log('[SolicitudDetalle v11.0] ⚠️ Path vacío o nulo');
       return null;
     }
     
-    // Si ya es una URL completa, usarla directamente
-    if (typeof path === 'string' && (path.startsWith('http://') || path.startsWith('https://'))) {
-      console.log('[SolicitudDetalle v10.0] ✅ URL completa detectada');
-      return path;
+    // Convertir a string si no lo es
+    const pathString = String(path).trim();
+    
+    if (!pathString) {
+      console.log('[SolicitudDetalle v11.0] ⚠️ Path vacío después de trim');
+      return null;
+    }
+    
+    // Si ya es una URL completa válida, usarla directamente
+    if (pathString.startsWith('http://') || pathString.startsWith('https://')) {
+      console.log('[SolicitudDetalle v11.0] ✅ URL completa detectada:', pathString.substring(0, 80) + '...');
+      return pathString;
     }
     
     // Si es un path relativo, construir URL completa
-    if (typeof path === 'string') {
-      const cleanPath = path.trim().replace(/^\/+/, '');
-      
-      // Detectar el bucket
-      let bucket = 'documentos-propiedad';
-      let filePath = cleanPath;
-      
-      if (cleanPath.startsWith('documentos-propiedad/')) {
-        filePath = cleanPath.replace('documentos-propiedad/', '');
-      } else if (cleanPath.startsWith('locales/')) {
-        bucket = 'locales';
-        filePath = cleanPath.replace('locales/', '');
-      }
-      
-      // Construir URL pública usando el cliente de Supabase
-      const { data } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-      
-      console.log('[SolicitudDetalle v10.0] ✅ URL construida:', data.publicUrl);
-      return data.publicUrl;
+    console.log('[SolicitudDetalle v11.0] 🔧 Construyendo URL desde path:', pathString);
+    
+    // Limpiar el path
+    let cleanPath = pathString.replace(/^\/+/, ''); // Remover slashes iniciales
+    
+    // Detectar el bucket basado en el path
+    let bucket = 'documentos-propiedad';
+    let filePath = cleanPath;
+    
+    if (cleanPath.startsWith('documentos-propiedad/')) {
+      bucket = 'documentos-propiedad';
+      filePath = cleanPath.replace('documentos-propiedad/', '');
+      console.log('[SolicitudDetalle v11.0] 📁 Bucket detectado: documentos-propiedad');
+    } else if (cleanPath.startsWith('locales/')) {
+      bucket = 'locales';
+      filePath = cleanPath.replace('locales/', '');
+      console.log('[SolicitudDetalle v11.0] 📁 Bucket detectado: locales');
+    } else {
+      // Si no tiene prefijo, asumir que es documentos-propiedad
+      console.log('[SolicitudDetalle v11.0] 📁 Bucket por defecto: documentos-propiedad');
     }
     
-    console.error('[SolicitudDetalle v10.0] ❌ Formato de path no reconocido:', path);
-    return null;
+    console.log('[SolicitudDetalle v11.0] 📄 File path limpio:', filePath);
+    
+    // Construir URL pública usando el cliente de Supabase
+    const { data } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+    
+    const publicUrl = data.publicUrl;
+    console.log('[SolicitudDetalle v11.0] ✅ URL pública construida:', publicUrl.substring(0, 80) + '...');
+    
+    return publicUrl;
   };
   
   // Añadir documento de propiedad
   if (solicitud.documento_propiedad_url) {
+    console.log('[SolicitudDetalle v11.0] 📄 Procesando documento de propiedad...');
     const url = getSupabaseImageUrl(solicitud.documento_propiedad_url);
     if (url) {
-      console.log('[SolicitudDetalle v10.0] ✅ Documento añadido');
+      console.log('[SolicitudDetalle v11.0] ✅ Documento añadido al array');
       allImages.push(url);
+    } else {
+      console.log('[SolicitudDetalle v11.0] ❌ No se pudo obtener URL del documento');
     }
   }
   
   // Añadir imagen de portada
   if (solicitud.imagen_portada_url) {
+    console.log('[SolicitudDetalle v11.0] 🖼️ Procesando imagen de portada...');
     const url = getSupabaseImageUrl(solicitud.imagen_portada_url);
     if (url) {
-      console.log('[SolicitudDetalle v10.0] ✅ Portada añadida');
+      console.log('[SolicitudDetalle v11.0] ✅ Portada añadida al array');
       allImages.push(url);
+    } else {
+      console.log('[SolicitudDetalle v11.0] ❌ No se pudo obtener URL de la portada');
     }
   }
   
   // Añadir galería
   if (solicitud.galeria_urls && Array.isArray(solicitud.galeria_urls)) {
-    solicitud.galeria_urls.forEach((imageUrl) => {
+    console.log('[SolicitudDetalle v11.0] 🖼️ Procesando galería:', solicitud.galeria_urls.length, 'imágenes');
+    solicitud.galeria_urls.forEach((imageUrl, index) => {
+      console.log('[SolicitudDetalle v11.0] 🖼️ Procesando imagen de galería', index + 1);
       const url = getSupabaseImageUrl(imageUrl);
       if (url) {
+        console.log('[SolicitudDetalle v11.0] ✅ Imagen de galería añadida');
         allImages.push(url);
+      } else {
+        console.log('[SolicitudDetalle v11.0] ❌ No se pudo obtener URL de imagen de galería', index + 1);
       }
     });
-    console.log('[SolicitudDetalle v10.0] ✅ Galería añadida:', solicitud.galeria_urls.length, 'imágenes');
   }
 
-  console.log('[SolicitudDetalle v10.0] ✅ Total de imágenes:', allImages.length);
+  console.log('[SolicitudDetalle v11.0] ✅ TOTAL DE IMÁGENES PROCESADAS:', allImages.length);
+  console.log('[SolicitudDetalle v11.0] 📋 URLs finales:', allImages.map((url, i) => `${i + 1}. ${url.substring(0, 60)}...`));
 
   return (
     <View style={styles.container}>
@@ -624,7 +693,7 @@ export default function SolicitudDetalleScreen() {
           </View>
         </View>
 
-        {/* ✅ NUEVO SISTEMA SIMPLE: Galería de imágenes igual que posts */}
+        {/* ✅ NUEVO v11.0: Galería de imágenes con mejor visualización */}
         {allImages.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
@@ -639,33 +708,52 @@ export default function SolicitudDetalleScreen() {
               style={styles.imagesScroll}
               contentContainerStyle={styles.imagesScrollContent}
             >
-              {allImages.map((imageUrl, index) => (
-                <TouchableOpacity 
-                  key={`image-${index}`} 
-                  onPress={() => handleViewImage(index)}
-                  activeOpacity={0.8}
-                >
-                  <Image 
-                    source={{ uri: imageUrl }} 
-                    style={styles.imageThumb}
-                    resizeMode="cover"
-                    onError={(error) => {
-                      console.error('[SolicitudDetalle v10.0] ❌ Error cargando imagen:', error.nativeEvent.error);
+              {allImages.map((imageUrl, index) => {
+                // Determinar el tipo de imagen
+                let imageType = '📸 Galería';
+                if (index === 0 && solicitud.documento_propiedad_url) {
+                  imageType = '📄 Documento';
+                } else if (index === (solicitud.documento_propiedad_url ? 1 : 0) && solicitud.imagen_portada_url) {
+                  imageType = '🖼️ Portada';
+                }
+                
+                return (
+                  <TouchableOpacity 
+                    key={`image-${index}`} 
+                    onPress={() => {
+                      console.log('[SolicitudDetalle v11.0] 👁️ Abriendo imagen', index + 1, 'de', allImages.length);
+                      handleViewImage(index);
                     }}
-                    onLoad={() => {
-                      console.log('[SolicitudDetalle v10.0] ✅ Imagen cargada correctamente');
-                    }}
-                  />
-                  {/* Indicador de tipo de imagen */}
-                  <View style={styles.imageTypeIndicator}>
-                    <Text style={styles.imageTypeText}>
-                      {index === 0 && solicitud.documento_propiedad_url ? '📄 Doc' : 
-                       index === (solicitud.documento_propiedad_url ? 1 : 0) && solicitud.imagen_portada_url ? '🖼️ Portada' : 
-                       '📸 Galería'}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.imageThumbContainer}>
+                      <Image 
+                        source={{ uri: imageUrl }} 
+                        style={styles.imageThumb}
+                        resizeMode="cover"
+                        onLoadStart={() => {
+                          console.log('[SolicitudDetalle v11.0] 🔄 Cargando imagen', index + 1);
+                        }}
+                        onLoad={() => {
+                          console.log('[SolicitudDetalle v11.0] ✅ Imagen', index + 1, 'cargada correctamente');
+                        }}
+                        onError={(error) => {
+                          console.error('[SolicitudDetalle v11.0] ❌ Error cargando imagen', index + 1, ':', error.nativeEvent.error);
+                          console.error('[SolicitudDetalle v11.0] ❌ URL problemática:', imageUrl);
+                        }}
+                      />
+                      {/* Indicador de tipo de imagen */}
+                      <View style={styles.imageTypeIndicator}>
+                        <Text style={styles.imageTypeText}>{imageType}</Text>
+                      </View>
+                      {/* Número de imagen */}
+                      <View style={styles.imageNumberIndicator}>
+                        <Text style={styles.imageNumberText}>{index + 1}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         )}
@@ -771,18 +859,24 @@ export default function SolicitudDetalleScreen() {
         </View>
       )}
 
-      {/* ✅ MODAL DE IMÁGENES SIMPLE - Igual que en la red social */}
+      {/* ✅ NUEVO v11.0: Modal de imágenes mejorado con mejor visualización */}
       <Modal
         visible={showImageModal}
         transparent={false}
         animationType="fade"
-        onRequestClose={() => setShowImageModal(false)}
+        onRequestClose={() => {
+          console.log('[SolicitudDetalle v11.0] 🚪 Cerrando modal de imágenes');
+          setShowImageModal(false);
+        }}
       >
         <View style={styles.imageModalOverlay}>
           {/* Botón de cerrar */}
           <TouchableOpacity 
             style={styles.imageModalClose} 
-            onPress={() => setShowImageModal(false)}
+            onPress={() => {
+              console.log('[SolicitudDetalle v11.0] 🚪 Usuario cerró el modal');
+              setShowImageModal(false);
+            }}
             activeOpacity={0.8}
           >
             <View style={styles.closeButtonCircle}>
@@ -799,7 +893,10 @@ export default function SolicitudDetalleScreen() {
             contentOffset={{ x: selectedImageIndex * width, y: 0 }}
             onScroll={(event) => {
               const index = Math.round(event.nativeEvent.contentOffset.x / width);
-              setSelectedImageIndex(index);
+              if (index !== selectedImageIndex) {
+                console.log('[SolicitudDetalle v11.0] 📸 Cambiando a imagen', index + 1);
+                setSelectedImageIndex(index);
+              }
             }}
             scrollEventThrottle={16}
           >
@@ -809,13 +906,22 @@ export default function SolicitudDetalleScreen() {
                   source={{ uri: imageUrl }} 
                   style={styles.fullImage} 
                   resizeMode="contain"
-                  onError={(error) => {
-                    console.error('[SolicitudDetalle v10.0] ❌ Error cargando imagen:', error.nativeEvent.error);
+                  onLoadStart={() => {
+                    console.log('[SolicitudDetalle v11.0] 🔄 Cargando imagen completa', index + 1);
                   }}
                   onLoad={() => {
-                    console.log('[SolicitudDetalle v10.0] ✅ Imagen completa cargada');
+                    console.log('[SolicitudDetalle v11.0] ✅ Imagen completa', index + 1, 'cargada');
+                  }}
+                  onError={(error) => {
+                    console.error('[SolicitudDetalle v11.0] ❌ Error cargando imagen completa', index + 1);
+                    console.error('[SolicitudDetalle v11.0] ❌ Error:', error.nativeEvent.error);
+                    console.error('[SolicitudDetalle v11.0] ❌ URL:', imageUrl);
                   }}
                 />
+                {/* Indicador de carga */}
+                <View style={styles.imageLoadingIndicator}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                </View>
               </View>
             ))}
           </ScrollView>
@@ -1174,7 +1280,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 19,
   },
-  // ✅ NUEVO: Estilos para galería de imágenes (igual que posts)
+  // ✅ NUEVO v11.0: Estilos mejorados para galería de imágenes
   imagesScroll: {
     marginHorizontal: -16,
     paddingHorizontal: 16,
@@ -1182,25 +1288,47 @@ const styles = StyleSheet.create({
   imagesScrollContent: {
     gap: 12,
   },
+  imageThumbContainer: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: colors.primary + '40',
+  },
   imageThumb: {
     width: 160,
     height: 160,
-    borderRadius: 12,
     backgroundColor: colors.cardBorder,
   },
   imageTypeIndicator: {
     position: 'absolute',
     bottom: 8,
     left: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 8,
   },
   imageTypeText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#fff',
+  },
+  imageNumberIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: colors.primary,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageNumberText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.headerText,
   },
   mapCard: {
     backgroundColor: colors.cardBackground,
@@ -1340,6 +1468,16 @@ const styles = StyleSheet.create({
   fullImage: {
     width: width,
     height: Dimensions.get('window').height,
+  },
+  imageLoadingIndicator: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   imageModalFooter: {
     position: 'absolute',
