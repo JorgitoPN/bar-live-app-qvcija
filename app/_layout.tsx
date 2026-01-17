@@ -1,177 +1,89 @@
 
-import React, { useEffect, Component, ReactNode } from 'react';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
+import 'react-native-reanimated';
+import { useColorScheme } from 'react-native';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ModeProvider } from '@/contexts/ModeContext';
+import { FilterProvider } from '@/contexts/FilterContext';
+import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { AvatarProvider } from '@/contexts/AvatarContext';
 import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
-import { ModeProvider } from '@/contexts/ModeContext';
-import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
-import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
-import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { PostsProvider } from '@/contexts/PostsContext';
-import { FilterProvider } from '@/contexts/FilterContext';
-import { colors } from '@/styles/commonStyles';
-import { StatusBar } from 'expo-status-bar';
-import * as SplashScreen from 'expo-splash-screen';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform, View, Text, TouchableOpacity } from 'react-native';
-import { initializeAndroidBehavior } from '@/utils/androidNativeBehavior';
+import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 
-// Error Boundary Component
-class ErrorBoundary extends Component<
-  { children: ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: any) {
-    console.error('[ErrorBoundary] App crashed:', error);
-    console.error('[ErrorBoundary] Error info:', errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, padding: 20 }}>
-          <Text style={{ color: colors.text, fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>
-            Oops! Algo salió mal
-          </Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 16, textAlign: 'center', marginBottom: 24 }}>
-            La aplicación encontró un error inesperado.
-          </Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginBottom: 24, fontFamily: 'monospace' }}>
-            {this.state.error?.message || 'Error desconocido'}
-          </Text>
-          <TouchableOpacity
-            onPress={() => {
-              this.setState({ hasError: false, error: null });
-            }}
-            style={{ backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
-          >
-            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
-              Reintentar
-            </Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
-// Prevent auto-hiding splash screen
-SplashScreen.preventAutoHideAsync().catch(() => {
-  console.log('[RootLayout] Splash screen already hidden');
-});
-
-/**
- * ROOT LAYOUT v142.0 - FIXED IMPERSONATION PROVIDER
- * 
- * CRITICAL FIX v142.0:
- * - ✅ Added ImpersonationProvider back (it exists and is needed by ModeContext)
- * - ✅ ImpersonationProvider must wrap ModeProvider
- * - ✅ Fixed "useImpersonation must be used within an ImpersonationProvider" error
- */
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const colorScheme = useColorScheme();
+  const [appIsReady, setAppIsReady] = useState(false);
+  const [loaded] = useFonts({
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+  });
+
   useEffect(() => {
-    console.log('[RootLayout v141.0] 🚀 App starting...');
-    console.log('[RootLayout v141.0] 📱 Platform:', Platform.OS);
+    console.log('App initialization started');
     
-    // ✅ CRITICAL FIX v25.0: Initialize Android-specific behavior
-    let cleanupAndroid: (() => void) | undefined;
-    
-    if (Platform.OS === 'android') {
-      console.log('[RootLayout v141.0] 🤖 Initializing Android native behavior...');
+    async function prepare() {
       try {
-        cleanupAndroid = initializeAndroidBehavior();
-      } catch (error) {
-        console.error('[RootLayout] Error initializing Android behavior:', error);
+        // Simulate minimum loading time for better UX
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('App preparation complete');
+      } catch (e) {
+        console.warn('Error during app preparation:', e);
+      } finally {
+        setAppIsReady(true);
       }
     }
 
-    // Hide splash screen
-    const timer = setTimeout(() => {
-      console.log('[RootLayout v141.0] 🎨 Hiding splash screen...');
-      SplashScreen.hideAsync()
-        .then(() => {
-          console.log('[RootLayout v141.0] ✅ Splash screen hidden');
-        })
-        .catch((error) => {
-          console.error('[RootLayout] Error hiding splash screen:', error);
-        });
-    }, 100);
+    if (loaded) {
+      prepare();
+    }
+  }, [loaded]);
 
-    // Cleanup function
-    return () => {
-      clearTimeout(timer);
-      if (cleanupAndroid) {
-        try {
-          cleanupAndroid();
-        } catch (error) {
-          console.error('[RootLayout] Error cleaning up Android behavior:', error);
-        }
-      }
-    };
-  }, []);
+  useEffect(() => {
+    if (loaded && appIsReady) {
+      console.log('Hiding splash screen');
+      SplashScreen.hideAsync();
+    }
+  }, [loaded, appIsReady]);
+
+  if (!loaded || !appIsReady) {
+    return <InitialLoadingScreen />;
+  }
 
   return (
     <ErrorBoundary>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AuthProvider>
-          <AvatarProvider>
-            <ImpersonationProvider>
-              <ModeProvider>
-                <SelectedLocalProvider>
-                  <GlobalDataProvider>
-                    <FavoritesProvider>
-                      <FilterProvider>
-                        <PostsProvider>
-                          <StatusBar style="light" />
-                          <Stack
-                            screenOptions={{
-                              headerShown: false,
-                              contentStyle: { backgroundColor: colors.background },
-                              animation: Platform.OS === 'android' ? 'slide_from_right' : 'default',
-                              gestureEnabled: true,
-                              gestureDirection: 'horizontal',
-                            }}
-                          >
-                            {/* Main app routes */}
-                            <Stack.Screen name="index" options={{ headerShown: false }} />
-                            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                            <Stack.Screen name="auth" options={{ headerShown: false }} />
-                            <Stack.Screen name="crear" options={{ headerShown: false }} />
-                            <Stack.Screen name="detalle" options={{ headerShown: false }} />
-                            <Stack.Screen name="editar" options={{ headerShown: false }} />
-                            <Stack.Screen name="perfil" options={{ headerShown: false }} />
-                            <Stack.Screen name="social" options={{ headerShown: false }} />
-                            <Stack.Screen name="chat" options={{ headerShown: false }} />
-                            <Stack.Screen name="admin" options={{ headerShown: false }} />
-                            <Stack.Screen name="gestion" options={{ headerShown: false }} />
-                            <Stack.Screen name="empleo" options={{ headerShown: false }} />
-                            <Stack.Screen name="legal" options={{ headerShown: false }} />
-                            <Stack.Screen name="soporte" options={{ headerShown: false }} />
-                            <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
-                          </Stack>
-                        </PostsProvider>
-                      </FilterProvider>
-                    </FavoritesProvider>
-                  </GlobalDataProvider>
-                </SelectedLocalProvider>
-              </ModeProvider>
-            </ImpersonationProvider>
-          </AvatarProvider>
+          <ModeProvider>
+            <FilterProvider>
+              <FavoritesProvider>
+                <AvatarProvider>
+                  <ImpersonationProvider>
+                    <PostsProvider>
+                      <GlobalDataProvider>
+                        <Stack>
+                          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                          <Stack.Screen name="+not-found" />
+                        </Stack>
+                        <StatusBar style="auto" />
+                      </GlobalDataProvider>
+                    </PostsProvider>
+                  </ImpersonationProvider>
+                </AvatarProvider>
+              </FavoritesProvider>
+            </FilterProvider>
+          </ModeProvider>
         </AuthProvider>
-      </GestureHandlerRootView>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }
