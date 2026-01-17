@@ -1,12 +1,5 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import * as Location from 'expo-location';
-import { useAuth } from '@/contexts/AuthContext';
-import UltraSimpleImageUploader from '@/components/propiedad/UltraSimpleImageUploader';
-import { colors } from '@/styles/commonStyles';
-import { supabase } from '@/utils/supabase';
-import { IconSymbol } from '@/components/IconSymbol';
 import {
   View,
   Text,
@@ -22,17 +15,24 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { IconSymbol } from '@/components/IconSymbol';
+import { colors } from '@/styles/commonStyles';
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
+import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
 
 /**
- * ✅ SISTEMA DEFINITIVO DE SUBIDA DE IMÁGENES v8.0
+ * ✅ SOLICITAR PROPIEDAD v5.1 - FIX DE ERROR DE CARGA DE IMAGEN
  * 
- * Este es el archivo CORRECTO y ACTUALIZADO.
- * - Usa UltraSimpleImageUploader (componente robusto)
- * - Sin bugs de carga de imágenes
- * - Logs detallados para debugging
- * - Sistema completamente funcional
+ * CAMBIOS v5.1:
+ * - ✅ Validación estricta de URL antes de renderizar Image
+ * - ✅ Manejo de errores mejorado con fallback
+ * - ✅ Logs más detallados para debugging
+ * - ✅ Prevención de "Unknown image download error"
  */
 
 interface LocalSearchResult {
@@ -104,6 +104,7 @@ export default function SolicitarPropiedadScreen() {
 
   // Form data for nuevo_local
   const [nombreLocal, setNombreLocal] = useState('');
+  const [tipoLocal, setTipoLocal] = useState('');
   const [tiposLocalMultiple, setTiposLocalMultiple] = useState<string[]>([]);
   const [descripcionLocal, setDescripcionLocal] = useState('');
   const [direccionLocal, setDireccionLocal] = useState('');
@@ -115,15 +116,10 @@ export default function SolicitarPropiedadScreen() {
   const [longitudLocal, setLongitudLocal] = useState<number | null>(null);
   const [horariosLocal, setHorariosLocal] = useState<Record<string, { abierto: boolean; apertura: string; cierre: string }>>({});
   const [serviciosLocal, setServiciosLocal] = useState<string[]>([]);
+  const [imagenPortadaUrl, setImagenPortadaUrl] = useState<string>('');
+  const [galeriaUrls, setGaleriaUrls] = useState<string[]>([]);
 
   const [showDocumentTypeModal, setShowDocumentTypeModal] = useState(false);
-
-  console.log('═══════════════════════════════════════');
-  console.log('[SolicitarPropiedad v8.0] 🎬 Pantalla inicializada');
-  console.log('[SolicitarPropiedad v8.0] 📋 Tipo:', requestType);
-  console.log('[SolicitarPropiedad v8.0] 👤 Usuario:', user?.nombre);
-  console.log('[SolicitarPropiedad v8.0] 📧 Email:', user?.email);
-  console.log('═══════════════════════════════════════');
 
   useEffect(() => {
     const defaultHorarios: Record<string, { abierto: boolean; apertura: string; cierre: string }> = {};
@@ -147,8 +143,6 @@ export default function SolicitarPropiedadScreen() {
 
   const loadPreselectedLocal = useCallback(async (localId: string) => {
     try {
-      console.log('[SolicitarPropiedad v8.0] 🔍 Cargando local preseleccionado:', localId);
-      
       const { data, error } = await supabase
         .from('locales')
         .select('id, nombre, direccion, ciudad, provincia, imagen_url, tipo, propietario_id')
@@ -160,18 +154,17 @@ export default function SolicitarPropiedadScreen() {
       if (data.propietario_id) {
         Alert.alert(
           'Local No Disponible',
-          'Este local ya tiene un propietario asignado.',
+          'Este local ya tiene un propietario asignado. No puedes reclamarlo.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
         return;
       }
 
-      console.log('[SolicitarPropiedad v8.0] ✅ Local cargado:', data.nombre);
       setSelectedLocal(data);
       setCurrentStep(2);
     } catch (error) {
-      console.error('[SolicitarPropiedad v8.0] ❌ Error:', error);
-      Alert.alert('Error', 'No se pudo cargar el local');
+      console.error('[SolicitarPropiedad v5.1] ❌ Error cargando local:', error);
+      Alert.alert('Error', 'No se pudo cargar el local seleccionado');
     }
   }, [router]);
 
@@ -183,7 +176,7 @@ export default function SolicitarPropiedadScreen() {
 
     try {
       setSearchingLocales(true);
-      console.log('[SolicitarPropiedad v8.0] 🔍 Buscando locales:', query);
+      console.log('[SolicitarPropiedad v5.1] 🔍 Buscando locales:', query);
 
       const { data, error } = await supabase
         .from('locales')
@@ -195,10 +188,10 @@ export default function SolicitarPropiedadScreen() {
 
       if (error) throw error;
 
-      console.log('[SolicitarPropiedad v8.0] ✅ Locales encontrados:', data?.length || 0);
+      console.log('[SolicitarPropiedad v5.1] ✅ Locales encontrados:', data?.length || 0);
       setSearchResults(data || []);
     } catch (error) {
-      console.error('[SolicitarPropiedad v8.0] ❌ Error en búsqueda:', error);
+      console.error('[SolicitarPropiedad v5.1] ❌ Error buscando locales:', error);
     } finally {
       setSearchingLocales(false);
     }
@@ -215,17 +208,25 @@ export default function SolicitarPropiedadScreen() {
   }, [searchQuery, requestType, searchLocales]);
 
   const handleSelectLocal = async (local: LocalSearchResult) => {
-    console.log('[SolicitarPropiedad v8.0] ✅ Local seleccionado:', local.nombre);
+    console.log('[SolicitarPropiedad v5.1] ✅ Local seleccionado:', local.nombre);
 
-    const { data: existingRequest } = await supabase
+    const { data: existingRequest, error } = await supabase
       .from('solicitudes_propietario')
       .select('id, estado')
       .eq('local_id', local.id)
       .in('estado', ['pendiente', 'en_revision', 'informacion_adicional'])
       .maybeSingle();
 
+    if (error) {
+      console.error('[SolicitarPropiedad v5.1] ❌ Error verificando solicitudes:', error);
+    }
+
     if (existingRequest) {
-      Alert.alert('Solicitud Existente', 'Ya existe una solicitud activa para este local.');
+      Alert.alert(
+        'Solicitud Existente',
+        'Ya existe una solicitud activa para este local.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 
@@ -233,11 +234,221 @@ export default function SolicitarPropiedadScreen() {
     setCurrentStep(2);
   };
 
+  /**
+   * ✅ SISTEMA v5.1: Subir imagen con validación mejorada
+   */
+  const handleUploadDocument = async () => {
+    try {
+      console.log('[SolicitarPropiedad v5.1] 📸 Iniciando selección de imagen...');
+      
+      // Solicitar permisos
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería para seleccionar la imagen');
+        return;
+      }
+
+      // Seleccionar SOLO imágenes (JPG, PNG, WEBP)
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.9,
+        allowsMultipleSelection: false,
+      });
+
+      console.log('[SolicitarPropiedad v5.1] 📸 Resultado de selección:', {
+        canceled: result.canceled,
+        hasAssets: result.assets?.length > 0,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        console.log('[SolicitarPropiedad v5.1] ⚠️ Selección cancelada por el usuario');
+        return;
+      }
+
+      const image = result.assets[0];
+      console.log('[SolicitarPropiedad v5.1] ✅ Imagen seleccionada:', {
+        uri: image.uri,
+        width: image.width,
+        height: image.height,
+        type: image.type,
+      });
+
+      // Validar que sea una imagen
+      if (!image.uri.match(/\.(jpg|jpeg|png|webp)$/i)) {
+        Alert.alert('Error', 'Por favor selecciona una imagen válida (JPG, PNG o WEBP)');
+        return;
+      }
+
+      // Mostrar indicador de carga
+      setLoading(true);
+
+      // Convertir a blob
+      const response = await fetch(image.uri);
+      const blob = await response.blob();
+      
+      console.log('[SolicitarPropiedad v5.1] 📦 Blob creado:', {
+        size: blob.size,
+        type: blob.type,
+      });
+      
+      // Generar nombre único
+      const fileExtension = image.uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(7);
+      const fileName = `${user?.id}/${timestamp}-${randomId}.${fileExtension}`;
+      
+      console.log('[SolicitarPropiedad v5.1] ⬆️ Subiendo a Supabase Storage:', fileName);
+
+      // Subir a Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documentos-propiedad')
+        .upload(fileName, blob, {
+          contentType: `image/${fileExtension}`,
+          upsert: false,
+          cacheControl: '3600',
+        });
+
+      if (uploadError) {
+        console.error('[SolicitarPropiedad v5.1] ❌ Error subiendo:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('[SolicitarPropiedad v5.1] ✅ Subida exitosa:', uploadData.path);
+
+      // Obtener URL pública
+      const { data: urlData } = supabase.storage
+        .from('documentos-propiedad')
+        .getPublicUrl(uploadData.path);
+
+      const publicUrl = urlData.publicUrl;
+      console.log('[SolicitarPropiedad v5.1] ✅ URL pública generada:', publicUrl);
+
+      // Verificar que la URL es válida
+      if (!publicUrl || !publicUrl.startsWith('http')) {
+        throw new Error('URL pública inválida');
+      }
+
+      // Guardar URL
+      setDocumentoUrl(publicUrl);
+      
+      console.log('[SolicitarPropiedad v5.1] ✅ Imagen guardada correctamente');
+      Alert.alert('✅ Éxito', 'Imagen subida correctamente');
+    } catch (error) {
+      console.error('[SolicitarPropiedad v5.1] ❌ Error completo:', error);
+      Alert.alert('Error', 'No se pudo subir la imagen. Por favor intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectCoverPhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      try {
+        const image = result.assets[0];
+        const response = await fetch(image.uri);
+        const blob = await response.blob();
+        
+        const fileExtension = image.uri.split('.').pop()?.toLowerCase() || 'jpg';
+        const fileName = `${user?.id}/portada-${Date.now()}.${fileExtension}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('locales')
+          .upload(fileName, blob, {
+            contentType: `image/${fileExtension}`,
+            upsert: false,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('locales')
+          .getPublicUrl(uploadData.path);
+
+        setImagenPortadaUrl(urlData.publicUrl);
+        console.log('[SolicitarPropiedad v5.1] ✅ Portada subida:', urlData.publicUrl);
+      } catch (error) {
+        console.error('[SolicitarPropiedad v5.1] ❌ Error subiendo portada:', error);
+        Alert.alert('Error', 'No se pudo subir la foto de portada');
+      }
+    }
+  };
+
+  const handleSelectGalleryImages = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería');
+      return;
+    }
+
+    const remainingSlots = 5 - galeriaUrls.length;
+    if (remainingSlots <= 0) {
+      Alert.alert('Límite alcanzado', 'Solo puedes añadir hasta 5 imágenes');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      selectionLimit: remainingSlots,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      try {
+        const uploadedUrls: string[] = [];
+        
+        for (const image of result.assets) {
+          const response = await fetch(image.uri);
+          const blob = await response.blob();
+          
+          const fileExtension = image.uri.split('.').pop()?.toLowerCase() || 'jpg';
+          const fileName = `${user?.id}/galeria-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('locales')
+            .upload(fileName, blob, {
+              contentType: `image/${fileExtension}`,
+              upsert: false,
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage
+            .from('locales')
+            .getPublicUrl(uploadData.path);
+
+          uploadedUrls.push(urlData.publicUrl);
+        }
+        
+        setGaleriaUrls([...galeriaUrls, ...uploadedUrls]);
+        console.log('[SolicitarPropiedad v5.1] ✅ Galería subida:', uploadedUrls.length, 'imágenes');
+      } catch (error) {
+        console.error('[SolicitarPropiedad v5.1] ❌ Error subiendo galería:', error);
+        Alert.alert('Error', 'No se pudieron subir algunas imágenes');
+      }
+    }
+  };
+
   const handleGetCurrentLocation = async () => {
     setLoading(true);
     try {
-      console.log('[SolicitarPropiedad v8.0] 📍 Obteniendo ubicación actual...');
-      
       const { status } = await Location.requestForegroundPermissionsAsync();
       
       if (status !== 'granted') {
@@ -252,8 +463,6 @@ export default function SolicitarPropiedadScreen() {
         longitude: location.coords.longitude,
       });
 
-      console.log('[SolicitarPropiedad v8.0] ✅ Ubicación obtenida');
-
       if (geocode.length > 0) {
         const place = geocode[0];
         setLatitudLocal(location.coords.latitude);
@@ -265,7 +474,7 @@ export default function SolicitarPropiedadScreen() {
         if (place.postalCode) setCodigoPostalLocal(place.postalCode);
       }
     } catch (error) {
-      console.error('[SolicitarPropiedad v8.0] ❌ Error ubicación:', error);
+      console.error('[SolicitarPropiedad v5.1] ❌ Error obteniendo ubicación:', error);
       Alert.alert('Error', 'No se pudo obtener tu ubicación');
     } finally {
       setLoading(false);
@@ -276,12 +485,12 @@ export default function SolicitarPropiedadScreen() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'location_selected') {
-        console.log('[SolicitarPropiedad v8.0] 📍 Ubicación seleccionada en mapa:', data.lat, data.lng);
+        console.log('[SolicitarPropiedad v5.1] 📍 Ubicación seleccionada:', data.lat, data.lng);
         setLatitudLocal(data.lat);
         setLongitudLocal(data.lng);
       }
     } catch (error) {
-      console.error('[SolicitarPropiedad v8.0] ❌ Error mensaje webview:', error);
+      console.error('[SolicitarPropiedad v5.1] ❌ Error procesando mensaje:', error);
     }
   };
 
@@ -387,21 +596,25 @@ export default function SolicitarPropiedadScreen() {
       switch (step) {
         case 1:
           if (!selectedLocal) {
-            Alert.alert('Selección requerida', 'Por favor selecciona un local');
+            Alert.alert('Selección requerida', 'Por favor selecciona un local para reclamar');
             return false;
           }
           return true;
         case 2:
           if (!emailContacto.trim()) {
-            Alert.alert('Email requerido', 'El email es obligatorio');
+            Alert.alert('Email requerido', 'El email de contacto es obligatorio');
             return false;
           }
           if (!telefonoContacto.trim()) {
-            Alert.alert('Teléfono requerido', 'El teléfono es obligatorio');
+            Alert.alert('Teléfono requerido', 'El teléfono de contacto es obligatorio');
             return false;
           }
-          if (!documentoUrl) {
-            Alert.alert('Documento requerido', 'Debes subir una imagen del documento de propiedad');
+          if (!documentoUrl || !documentoUrl.startsWith('http')) {
+            Alert.alert('Imagen requerida', 'Debes subir una imagen que acredite tu relación con el local');
+            return false;
+          }
+          if (!mensaje.trim()) {
+            Alert.alert('Mensaje requerido', 'Debes explicar por qué eres el propietario');
             return false;
           }
           return true;
@@ -412,21 +625,21 @@ export default function SolicitarPropiedadScreen() {
       switch (step) {
         case 1:
           if (!nombreLocal.trim()) {
-            Alert.alert('Nombre requerido', 'Completa el nombre del local');
+            Alert.alert('Nombre requerido', 'Por favor completa el nombre del local');
             return false;
           }
           if (tiposLocalMultiple.length === 0) {
-            Alert.alert('Tipo requerido', 'Selecciona al menos un tipo');
+            Alert.alert('Tipo requerido', 'Por favor selecciona al menos un tipo de local');
             return false;
           }
           return true;
         case 2:
           if (!direccionLocal.trim() || !ciudadLocal.trim() || !provinciaLocal.trim()) {
-            Alert.alert('Campos requeridos', 'Completa dirección, ciudad y provincia');
+            Alert.alert('Campos requeridos', 'Por favor completa la dirección, ciudad y provincia');
             return false;
           }
           if (!latitudLocal || !longitudLocal) {
-            Alert.alert('Ubicación requerida', 'Selecciona la ubicación en el mapa');
+            Alert.alert('Ubicación requerida', 'Por favor selecciona la ubicación exacta en el mapa');
             return false;
           }
           return true;
@@ -451,16 +664,13 @@ export default function SolicitarPropiedadScreen() {
 
   const handleSubmit = async () => {
     if (!user) {
-      Alert.alert('Error', 'Debes iniciar sesión');
+      Alert.alert('Error', 'Debes iniciar sesión para enviar una solicitud');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('\n🚀 ═══ ENVIANDO SOLICITUD ═══');
-      console.log('📋 Tipo:', requestType);
-      console.log('👤 Usuario:', user.id);
-      console.log('📄 URL documento:', documentoUrl);
+      console.log('[SolicitarPropiedad v5.1] 📤 Enviando solicitud:', requestType);
 
       if (requestType === 'reclamar_local') {
         if (!selectedLocal) {
@@ -469,8 +679,22 @@ export default function SolicitarPropiedadScreen() {
           return;
         }
 
-        console.log('🏢 Local:', selectedLocal.nombre);
-        console.log('💾 Insertando en base de datos...');
+        const { data: existingRequest } = await supabase
+          .from('solicitudes_propietario')
+          .select('id')
+          .eq('local_id', selectedLocal.id)
+          .in('estado', ['pendiente', 'en_revision', 'informacion_adicional'])
+          .maybeSingle();
+
+        if (existingRequest) {
+          Alert.alert('Solicitud Existente', 'Ya existe una solicitud activa para este local.');
+          setLoading(false);
+          return;
+        }
+
+        // ✅ v5.1: Validar URL antes de guardar
+        const validDocumentoUrl = documentoUrl && documentoUrl.startsWith('http') ? documentoUrl : null;
+        console.log('[SolicitarPropiedad v5.1] 💾 Guardando solicitud con URL:', validDocumentoUrl);
         
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
@@ -485,42 +709,109 @@ export default function SolicitarPropiedadScreen() {
             telefono_contacto: telefonoContacto || null,
             email_contacto: emailContacto,
             mensaje: mensaje || null,
-            documento_propiedad_url: documentoUrl,
+            documento_propiedad_url: validDocumentoUrl,
             documento_propiedad_tipo: documentoTipo,
             estado: 'pendiente',
           });
 
-        if (insertError) {
-          console.error('❌ Error al insertar:', insertError.message);
-          throw insertError;
-        }
+        if (insertError) throw insertError;
 
-        console.log('✅ Solicitud creada exitosamente');
+        console.log('[SolicitarPropiedad v5.1] ✅ Solicitud creada exitosamente');
+
+        try {
+          await supabase.functions.invoke('send-ownership-request-confirmation', {
+            body: {
+              email: emailContacto,
+              nombre: user.nombre,
+              nombreLocal: selectedLocal.nombre,
+              tipoSolicitud: 'reclamar_local',
+            },
+          });
+        } catch (emailError) {
+          console.error('[SolicitarPropiedad v5.1] ⚠️ Error enviando email:', emailError);
+        }
 
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
           tipo: 'sistema',
-          titulo: '✅ Solicitud enviada',
-          mensaje: `Tu solicitud para reclamar "${selectedLocal.nombre}" ha sido enviada.`,
+          titulo: '📧 Confirma tu email',
+          mensaje: `Hemos enviado un correo de confirmación a ${emailContacto}.`,
         });
 
-        console.log('🎉 ═══ PROCESO COMPLETADO ═══\n');
+        const { data: createdRequest } = await supabase
+          .from('solicitudes_propietario')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .eq('local_id', selectedLocal.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
 
         Alert.alert(
           '✅ Solicitud Enviada',
-          'Tu solicitud ha sido enviada correctamente.\n\nRecibirás notificaciones sobre el estado.',
-          [{ text: 'OK', onPress: () => router.back() }]
+          `Tu solicitud para reclamar "${selectedLocal.nombre}" ha sido enviada.\n\n` +
+          `📧 Revisa tu email (${emailContacto}) para confirmar.\n\n` +
+          `Recibirás notificaciones sobre el estado de tu solicitud.`,
+          [{ 
+            text: 'Ver Detalles', 
+            onPress: () => {
+              if (createdRequest?.id) {
+                router.replace({
+                  pathname: '/admin/solicitud-detalle',
+                  params: { id: createdRequest.id },
+                });
+              } else {
+                router.back();
+              }
+            }
+          }]
         );
       } else {
         // nuevo_local
-        if (!nombreLocal.trim() || tiposLocalMultiple.length === 0) {
-          Alert.alert('Campos requeridos', 'Completa todos los campos obligatorios');
+        if (!nombreLocal.trim() || tiposLocalMultiple.length === 0 || !direccionLocal.trim() || !ciudadLocal.trim() || !provinciaLocal.trim()) {
+          Alert.alert('Campos requeridos', 'Por favor completa todos los campos obligatorios');
           setLoading(false);
           return;
         }
 
-        console.log('🏢 Nuevo local:', nombreLocal);
-        console.log('💾 Insertando en base de datos...');
+        if (!latitudLocal || !longitudLocal) {
+          Alert.alert('Ubicación requerida', 'Por favor selecciona la ubicación en el mapa');
+          setLoading(false);
+          return;
+        }
+
+        console.log('[SolicitarPropiedad v5.1] 🔍 Verificando duplicados...');
+        const { data: duplicates, error: duplicateError } = await supabase
+          .rpc('check_duplicate_local', {
+            p_nombre: nombreLocal,
+            p_latitud: latitudLocal,
+            p_longitud: longitudLocal,
+          });
+
+        if (duplicateError) {
+          console.error('[SolicitarPropiedad v5.1] ❌ Error verificando duplicados:', duplicateError);
+        } else if (duplicates && duplicates.length > 0) {
+          const duplicate = duplicates[0];
+          Alert.alert(
+            'Local Duplicado',
+            `Ya existe un local con el nombre "${nombreLocal}" en esta ubicación.\n\n` +
+            `Dirección: ${duplicate.direccion || 'No especificada'}\n` +
+            `Ciudad: ${duplicate.ciudad || 'No especificada'}`,
+            [{ text: 'Entendido' }]
+          );
+          setLoading(false);
+          return;
+        }
+
+        // ✅ v5.1: Validar URLs antes de guardar
+        const validDocumentoUrl = documentoUrl && documentoUrl.startsWith('http') ? documentoUrl : null;
+        const validPortadaUrl = imagenPortadaUrl && imagenPortadaUrl.startsWith('http') ? imagenPortadaUrl : null;
+        const validGaleriaUrls = galeriaUrls.filter(url => url && url.startsWith('http'));
+        
+        console.log('[SolicitarPropiedad v5.1] 💾 Guardando solicitud de nuevo local');
+        console.log('[SolicitarPropiedad v5.1] 📄 Documento URL:', validDocumentoUrl);
+        console.log('[SolicitarPropiedad v5.1] 🖼️ Portada URL:', validPortadaUrl);
+        console.log('[SolicitarPropiedad v5.1] 🖼️ Galería URLs:', validGaleriaUrls.length);
         
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
@@ -543,37 +834,68 @@ export default function SolicitarPropiedadScreen() {
             longitud_local: longitudLocal,
             horarios_local: horariosLocal,
             servicios_local: serviciosLocal,
-            documento_propiedad_url: documentoUrl || null,
+            imagen_portada_url: validPortadaUrl,
+            galeria_urls: validGaleriaUrls,
+            documento_propiedad_url: validDocumentoUrl,
             documento_propiedad_tipo: documentoTipo,
             estado: 'pendiente',
           });
 
-        if (insertError) {
-          console.error('❌ Error al insertar:', insertError.message);
-          throw insertError;
-        }
+        if (insertError) throw insertError;
 
-        console.log('✅ Solicitud creada exitosamente');
+        console.log('[SolicitarPropiedad v5.1] ✅ Solicitud de nuevo local creada');
+
+        try {
+          await supabase.functions.invoke('send-ownership-request-confirmation', {
+            body: {
+              email: emailContacto,
+              nombre: user.nombre,
+              nombreLocal: nombreLocal,
+              tipoSolicitud: 'nuevo_local',
+            },
+          });
+        } catch (emailError) {
+          console.error('[SolicitarPropiedad v5.1] ⚠️ Error enviando email:', emailError);
+        }
 
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
           tipo: 'sistema',
-          titulo: '✅ Solicitud enviada',
-          mensaje: `Tu solicitud para crear "${nombreLocal}" ha sido enviada.`,
+          titulo: '📧 Confirma tu email',
+          mensaje: `Hemos enviado un correo de confirmación a ${emailContacto}.`,
         });
 
-        console.log('🎉 ═══ PROCESO COMPLETADO ═══\n');
+        const { data: createdRequest } = await supabase
+          .from('solicitudes_propietario')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .eq('nombre_local', nombreLocal)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
 
         Alert.alert(
           '✅ Solicitud Enviada',
-          'Tu solicitud ha sido enviada correctamente.\n\nRecibirás notificaciones sobre el estado.',
-          [{ text: 'OK', onPress: () => router.back() }]
+          `Tu solicitud para crear "${nombreLocal}" ha sido enviada.\n\n` +
+          `📧 Revisa tu email (${emailContacto}) para confirmar.\n\n` +
+          `Recibirás notificaciones sobre el estado de tu solicitud.`,
+          [{ 
+            text: 'Ver Detalles', 
+            onPress: () => {
+              if (createdRequest?.id) {
+                router.replace({
+                  pathname: '/admin/solicitud-detalle',
+                  params: { id: createdRequest.id },
+                });
+              } else {
+                router.back();
+              }
+            }
+          }]
         );
       }
-    } catch (error: any) {
-      console.error('\n💥 ═══ ERROR AL ENVIAR ═══');
-      console.error('❌ Mensaje:', error.message);
-      console.error('═══════════════════════════════════════\n');
+    } catch (error) {
+      console.error('[SolicitarPropiedad v5.1] ❌ Error enviando solicitud:', error);
       Alert.alert('Error', 'No se pudo enviar la solicitud. Intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -587,16 +909,14 @@ export default function SolicitarPropiedadScreen() {
     return (
       <View style={styles.stepIndicator}>
         {steps.map((step) => (
-          <React.Fragment key={step}>
-            <View style={styles.stepItem}>
-              <View style={[styles.stepCircle, currentStep >= step && styles.stepCircleActive]}>
-                <Text style={[styles.stepNumber, currentStep >= step && styles.stepNumberActive]}>
-                  {step}
-                </Text>
-              </View>
+          <View key={step} style={styles.stepItem}>
+            <View style={[styles.stepCircle, currentStep >= step && styles.stepCircleActive]}>
+              <Text style={[styles.stepNumber, currentStep >= step && styles.stepNumberActive]}>
+                {step}
+              </Text>
             </View>
             {step < maxSteps && <View style={[styles.stepLine, currentStep > step && styles.stepLineActive]} />}
-          </React.Fragment>
+          </View>
         ))}
       </View>
     );
@@ -675,7 +995,7 @@ export default function SolicitarPropiedadScreen() {
       {searchQuery.length >= 3 && !searchingLocales && searchResults.length === 0 && (
         <View style={styles.noResultsContainer}>
           <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={48} color={colors.textSecondary} />
-          <Text style={styles.noResultsText}>No se encontraron locales</Text>
+          <Text style={styles.noResultsText}>No se encontraron locales sin propietario</Text>
           <Text style={styles.noResultsSubtext}>
             Si tu local no aparece, puedes crear uno nuevo
           </Text>
@@ -696,7 +1016,7 @@ export default function SolicitarPropiedadScreen() {
   );
 
   const renderReclamarStep2 = () => (
-    <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 40 }}>
+    <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Información de Contacto</Text>
       <Text style={styles.stepDescription}>
         Proporciona tus datos de contacto y documentación
@@ -739,47 +1059,89 @@ export default function SolicitarPropiedadScreen() {
         />
       </View>
 
-      {/* ✅ COMPONENTE CORRECTO DE SUBIDA DE IMAGEN */}
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Imagen de Documento de Propiedad *</Text>
-        <Text style={styles.warningText}>
+        <Text style={styles.helperText}>
+          Sube una FOTO del documento que acredite tu relación con el local
+        </Text>
+        <Text style={styles.helperTextWarning}>
           ⚠️ Solo imágenes (JPG, PNG, WEBP). NO se aceptan PDF.
         </Text>
-        <UltraSimpleImageUploader
-          onUploadComplete={(url) => {
-            console.log('[ReclamarStep2] ✅ Documento subido:', url);
-            setDocumentoUrl(url);
-          }}
-          currentUrl={documentoUrl}
-          userId={user?.id || ''}
-          label=""
-          description="Sube una FOTO del documento que acredite tu relación con el local"
-        />
+        
+        {/* ✅ v5.1: Validación estricta antes de renderizar Image */}
+        {documentoUrl && documentoUrl.startsWith('http') ? (
+          <View style={styles.documentImageCard}>
+            <Image 
+              source={{ uri: documentoUrl }} 
+              style={styles.documentImage}
+              resizeMode="cover"
+              onLoadStart={() => console.log('[SolicitarPropiedad v5.1] 🔄 Cargando imagen...')}
+              onLoad={() => console.log('[SolicitarPropiedad v5.1] ✅ Imagen cargada correctamente')}
+              onError={(error) => {
+                console.error('[SolicitarPropiedad v5.1] ❌ Error cargando imagen:', error.nativeEvent.error);
+                console.error('[SolicitarPropiedad v5.1] ❌ URL problemática:', documentoUrl);
+                Alert.alert('Error', 'No se pudo cargar la imagen. Por favor intenta subirla de nuevo.');
+                setDocumentoUrl('');
+              }}
+            />
+            <View style={styles.documentImageOverlay}>
+              <View style={styles.documentImageInfo}>
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color="#10B981" />
+                <Text style={styles.documentImageTitle}>
+                  {TIPOS_DOCUMENTO.find(t => t.value === documentoTipo)?.label || 'Documento'}
+                </Text>
+              </View>
+              <View style={styles.documentImageActions}>
+                <TouchableOpacity
+                  style={styles.changeDocumentTypeButton}
+                  onPress={() => setShowDocumentTypeModal(true)}
+                >
+                  <IconSymbol ios_icon_name="tag.fill" android_material_icon_name="label" size={16} color={colors.primary} />
+                  <Text style={styles.changeDocumentTypeText}>Cambiar Tipo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.removeDocumentButton}
+                  onPress={() => {
+                    console.log('[SolicitarPropiedad v5.1] 🗑️ Eliminando imagen');
+                    setDocumentoUrl('');
+                  }}
+                >
+                  <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#EF4444" />
+                  <Text style={styles.removeDocumentText}>Eliminar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity 
+            style={styles.uploadImageButton} 
+            onPress={handleUploadDocument}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.uploadImageButtonText}>Subiendo imagen...</Text>
+              </>
+            ) : (
+              <>
+                <IconSymbol ios_icon_name="photo.badge.plus" android_material_icon_name="add_photo_alternate" size={48} color={colors.primary} />
+                <Text style={styles.uploadImageButtonText}>Seleccionar Imagen</Text>
+                <Text style={styles.uploadImageButtonSubtext}>JPG, PNG, WEBP</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Tipo de Documento</Text>
-        <TouchableOpacity
-          style={styles.documentTypeSelector}
-          onPress={() => setShowDocumentTypeModal(true)}
-        >
-          <Text style={styles.documentTypeSelectorText}>
-            {TIPOS_DOCUMENTO.find(t => t.value === documentoTipo)?.label || 'Seleccionar'}
-          </Text>
-          <IconSymbol 
-            ios_icon_name="chevron.down" 
-            android_material_icon_name="arrow_drop_down" 
-            size={20} 
-            color={colors.textSecondary} 
-          />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Mensaje Adicional (Opcional)</Text>
+        <Text style={styles.label}>Mensaje Explicativo *</Text>
+        <Text style={styles.helperText}>
+          Explica por qué eres el propietario de este local
+        </Text>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Información adicional..."
+          placeholder="Ej: Soy el propietario desde hace 5 años..."
           placeholderTextColor={colors.textSecondary}
           value={mensaje}
           onChangeText={setMensaje}
@@ -787,7 +1149,7 @@ export default function SolicitarPropiedadScreen() {
           numberOfLines={4}
         />
       </View>
-    </ScrollView>
+    </View>
   );
 
   const toggleTipoLocal = (tipoValue: string) => {
@@ -819,7 +1181,7 @@ export default function SolicitarPropiedadScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Tipo de Local * (Selecciona al menos uno)</Text>
+        <Text style={styles.label}>Tipo de Local * (Puedes seleccionar varios)</Text>
         <View style={styles.tipoGrid}>
           {TIPOS_LOCAL.map((tipo) => (
             <TouchableOpacity
@@ -838,6 +1200,21 @@ export default function SolicitarPropiedadScreen() {
             </TouchableOpacity>
           ))}
         </View>
+        {tiposLocalMultiple.length > 0 && (
+          <View style={styles.selectedTiposContainer}>
+            <Text style={styles.selectedTiposLabel}>Categorías seleccionadas:</Text>
+            <View style={styles.selectedTiposChips}>
+              {tiposLocalMultiple.map((tipoValue) => {
+                const tipo = TIPOS_LOCAL.find(t => t.value === tipoValue);
+                return (
+                  <View key={tipoValue} style={styles.selectedTipoChip}>
+                    <Text style={styles.selectedTipoChipText}>{tipo?.label}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
       </View>
 
       <View style={styles.inputContainer}>
@@ -859,7 +1236,7 @@ export default function SolicitarPropiedadScreen() {
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Ubicación</Text>
       <Text style={styles.stepDescription}>
-        Dirección y ubicación en el mapa
+        Dirección completa y ubicación exacta en el mapa
       </Text>
 
       <View style={styles.inputContainer}>
@@ -915,7 +1292,7 @@ export default function SolicitarPropiedadScreen() {
       </TouchableOpacity>
 
       <View style={styles.mapContainer}>
-        <Text style={styles.mapLabel}>Ubicación en el Mapa *</Text>
+        <Text style={styles.mapLabel}>Ubicación Exacta en el Mapa *</Text>
         <Text style={styles.mapHelperText}>
           Arrastra el marcador o toca en el mapa
         </Text>
@@ -931,6 +1308,7 @@ export default function SolicitarPropiedadScreen() {
             renderLoading={() => (
               <View style={styles.mapLoadingContainer}>
                 <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.mapLoadingText}>Cargando mapa...</Text>
               </View>
             )}
           />
@@ -938,7 +1316,7 @@ export default function SolicitarPropiedadScreen() {
         {latitudLocal && longitudLocal && (
           <View style={styles.coordinatesDisplay}>
             <Text style={styles.coordinatesText}>
-              📍 {latitudLocal.toFixed(6)}, {longitudLocal.toFixed(6)}
+              📍 Lat: {latitudLocal.toFixed(6)}, Lng: {longitudLocal.toFixed(6)}
             </Text>
           </View>
         )}
@@ -950,11 +1328,12 @@ export default function SolicitarPropiedadScreen() {
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Contacto</Text>
       <Text style={styles.stepDescription}>
-        Información de contacto
+        Información de contacto del local
       </Text>
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Email de Contacto *</Text>
+        <Text style={styles.helperText}>Recibirás notificaciones en este email</Text>
         <TextInput
           style={styles.input}
           placeholder="tu@email.com"
@@ -979,7 +1358,7 @@ export default function SolicitarPropiedadScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Tu Teléfono (Opcional)</Text>
+        <Text style={styles.label}>Tu Teléfono de Contacto (Opcional)</Text>
         <TextInput
           style={styles.input}
           placeholder="+34 600 000 000"
@@ -996,11 +1375,11 @@ export default function SolicitarPropiedadScreen() {
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Horarios y Servicios</Text>
       <Text style={styles.stepDescription}>
-        Configura horarios y servicios
+        Configura los horarios y servicios disponibles
       </Text>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Horarios</Text>
+        <Text style={styles.label}>Horarios de Apertura</Text>
         {DIAS_SEMANA.map((dia) => (
           <View key={dia} style={styles.horarioItem}>
             <View style={styles.horarioHeader}>
@@ -1048,7 +1427,7 @@ export default function SolicitarPropiedadScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Servicios (Opcional)</Text>
+        <Text style={styles.label}>Servicios Disponibles (Opcional)</Text>
         <View style={styles.serviciosGrid}>
           {SERVICIOS_DISPONIBLES.map((servicio) => (
             <TouchableOpacity
@@ -1067,40 +1446,128 @@ export default function SolicitarPropiedadScreen() {
   );
 
   const renderNuevoStep5 = () => (
-    <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.stepTitle}>Documentación</Text>
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Imágenes y Documentación</Text>
       <Text style={styles.stepDescription}>
-        Añade documentación (opcional)
+        Añade fotos de tu local y documentación
       </Text>
 
-      {/* ✅ COMPONENTE CORRECTO DE SUBIDA DE IMAGEN */}
-      <UltraSimpleImageUploader
-        onUploadComplete={(url) => {
-          console.log('[NuevoStep5] ✅ Documento subido:', url);
-          setDocumentoUrl(url);
-        }}
-        currentUrl={documentoUrl}
-        userId={user?.id || ''}
-        label="Documento de Propiedad (Opcional)"
-        description="Foto del documento que acredite tu propiedad del local"
-      />
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Foto de Portada (Opcional)</Text>
+        {imagenPortadaUrl && imagenPortadaUrl.startsWith('http') ? (
+          <View style={styles.coverImageContainer}>
+            <Image source={{ uri: imagenPortadaUrl }} style={styles.coverImage} />
+            <TouchableOpacity style={styles.removeImageButton} onPress={() => setImagenPortadaUrl('')}>
+              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.uploadButton} onPress={handleSelectCoverPhoto}>
+            <IconSymbol ios_icon_name="photo" android_material_icon_name="add_photo_alternate" size={32} color={colors.primary} />
+            <Text style={styles.uploadButtonText}>Seleccionar Foto de Portada</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Tipo de Documento</Text>
-        <TouchableOpacity
-          style={styles.documentTypeSelector}
-          onPress={() => setShowDocumentTypeModal(true)}
-        >
-          <Text style={styles.documentTypeSelectorText}>
-            {TIPOS_DOCUMENTO.find(t => t.value === documentoTipo)?.label || 'Seleccionar'}
-          </Text>
-          <IconSymbol 
-            ios_icon_name="chevron.down" 
-            android_material_icon_name="arrow_drop_down" 
-            size={20} 
-            color={colors.textSecondary} 
-          />
-        </TouchableOpacity>
+        <Text style={styles.label}>Galería ({galeriaUrls.length}/5) (Opcional)</Text>
+        {galeriaUrls.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
+            {galeriaUrls.map((uri, index) => (
+              <View key={index} style={styles.galleryImageContainer}>
+                <Image source={{ uri }} style={styles.galleryImage} />
+                <TouchableOpacity
+                  style={styles.removeGalleryImageButton}
+                  onPress={() => setGaleriaUrls(prev => prev.filter((_, i) => i !== index))}
+                >
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+
+        {galeriaUrls.length < 5 && (
+          <TouchableOpacity style={styles.uploadButton} onPress={handleSelectGalleryImages}>
+            <IconSymbol ios_icon_name="photo.on.rectangle.angled" android_material_icon_name="add_photo_alternate" size={32} color={colors.primary} />
+            <Text style={styles.uploadButtonText}>Añadir Imágenes</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Imagen de Documento de Propiedad (Opcional)</Text>
+        <Text style={styles.helperText}>
+          Foto del documento que acredite tu propiedad
+        </Text>
+        <Text style={styles.helperTextWarning}>
+          ⚠️ Solo imágenes (JPG, PNG, WEBP). NO se aceptan PDF.
+        </Text>
+        
+        {/* ✅ v5.1: Validación estricta antes de renderizar Image */}
+        {documentoUrl && documentoUrl.startsWith('http') ? (
+          <View style={styles.documentImageCard}>
+            <Image 
+              source={{ uri: documentoUrl }} 
+              style={styles.documentImage}
+              resizeMode="cover"
+              onLoadStart={() => console.log('[SolicitarPropiedad v5.1] 🔄 Cargando imagen...')}
+              onLoad={() => console.log('[SolicitarPropiedad v5.1] ✅ Imagen cargada correctamente')}
+              onError={(error) => {
+                console.error('[SolicitarPropiedad v5.1] ❌ Error cargando imagen:', error.nativeEvent.error);
+                console.error('[SolicitarPropiedad v5.1] ❌ URL problemática:', documentoUrl);
+                Alert.alert('Error', 'No se pudo cargar la imagen. Por favor intenta subirla de nuevo.');
+                setDocumentoUrl('');
+              }}
+            />
+            <View style={styles.documentImageOverlay}>
+              <View style={styles.documentImageInfo}>
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color="#10B981" />
+                <Text style={styles.documentImageTitle}>
+                  {TIPOS_DOCUMENTO.find(t => t.value === documentoTipo)?.label || 'Documento'}
+                </Text>
+              </View>
+              <View style={styles.documentImageActions}>
+                <TouchableOpacity
+                  style={styles.changeDocumentTypeButton}
+                  onPress={() => setShowDocumentTypeModal(true)}
+                >
+                  <IconSymbol ios_icon_name="tag.fill" android_material_icon_name="label" size={16} color={colors.primary} />
+                  <Text style={styles.changeDocumentTypeText}>Cambiar Tipo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.removeDocumentButton}
+                  onPress={() => {
+                    console.log('[SolicitarPropiedad v5.1] 🗑️ Eliminando imagen');
+                    setDocumentoUrl('');
+                  }}
+                >
+                  <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#EF4444" />
+                  <Text style={styles.removeDocumentText}>Eliminar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity 
+            style={styles.uploadImageButton} 
+            onPress={handleUploadDocument}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.uploadImageButtonText}>Subiendo imagen...</Text>
+              </>
+            ) : (
+              <>
+                <IconSymbol ios_icon_name="photo.badge.plus" android_material_icon_name="add_photo_alternate" size={48} color={colors.primary} />
+                <Text style={styles.uploadImageButtonText}>Seleccionar Imagen</Text>
+                <Text style={styles.uploadImageButtonSubtext}>JPG, PNG, WEBP</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.inputContainer}>
@@ -1115,7 +1582,7 @@ export default function SolicitarPropiedadScreen() {
           numberOfLines={4}
         />
       </View>
-    </ScrollView>
+    </View>
   );
 
   return (
@@ -1132,7 +1599,7 @@ export default function SolicitarPropiedadScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>
-            {requestType === 'reclamar_local' ? 'Reclamar Local' : 'Nuevo Local'}
+            {requestType === 'reclamar_local' ? 'Reclamar Local' : 'Crear Nuevo Local'}
           </Text>
           <Text style={styles.headerSubtitle}>Solicitud de propiedad</Text>
         </View>
@@ -1202,6 +1669,7 @@ export default function SolicitarPropiedadScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowDocumentTypeModal(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Tipo de Documento</Text>
+            <Text style={styles.modalSubtitle}>Selecciona el tipo de documento</Text>
             
             <ScrollView style={styles.documentTypesList}>
               {TIPOS_DOCUMENTO.map((tipo) => (
@@ -1276,6 +1744,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
   },
   stepItem: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   stepCircle: {
@@ -1328,7 +1797,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 24,
-    lineHeight: 20,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -1489,18 +1957,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     marginBottom: 8,
-    lineHeight: 18,
   },
-  warningText: {
-    fontSize: 13,
+  helperTextWarning: {
+    fontSize: 12,
     color: '#F59E0B',
+    marginBottom: 8,
     fontWeight: '600',
-    marginBottom: 12,
-    backgroundColor: '#FEF3C7',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FCD34D',
   },
   input: {
     backgroundColor: colors.cardBackground,
@@ -1513,24 +1975,112 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   textArea: {
-    minHeight: 120,
+    minHeight: 100,
     textAlignVertical: 'top',
   },
-  documentTypeSelector: {
+  uploadButton: {
+    backgroundColor: colors.cardBackground,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 32,
+    alignItems: 'center',
+    gap: 8,
+  },
+  uploadButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  uploadButtonSubtext: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  uploadImageButton: {
+    backgroundColor: colors.primary + '10',
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 40,
+    alignItems: 'center',
+    gap: 12,
+  },
+  uploadImageButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  uploadImageButtonSubtext: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  documentImageCard: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  documentImage: {
+    width: '100%',
+    height: 250,
+    backgroundColor: colors.cardBorder,
+  },
+  documentImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 12,
+    gap: 10,
+  },
+  documentImageInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    gap: 10,
   },
-  documentTypeSelectorText: {
-    fontSize: 16,
-    color: colors.text,
-    fontWeight: '500',
+  documentImageTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  documentImageActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  changeDocumentTypeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  changeDocumentTypeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.headerText,
+  },
+  removeDocumentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  removeDocumentText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
   },
   tipoGrid: {
     flexDirection: 'row',
@@ -1571,6 +2121,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.headerText,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  selectedTiposContainer: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: colors.primary + '10',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  selectedTiposLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+    marginBottom: 8,
+  },
+  selectedTiposChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  selectedTipoChip: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  selectedTipoChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.headerText,
   },
   row: {
     flexDirection: 'row',
@@ -1630,6 +2210,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 12,
+  },
+  mapLoadingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
   coordinatesDisplay: {
     marginTop: 8,
@@ -1747,6 +2333,42 @@ const styles = StyleSheet.create({
   servicioChipTextActive: {
     color: colors.headerText,
   },
+  coverImageContainer: {
+    position: 'relative',
+  },
+  coverImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: colors.cardBorder,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 14,
+  },
+  galleryScroll: {
+    marginBottom: 12,
+  },
+  galleryImageContainer: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  galleryImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 12,
+    backgroundColor: colors.cardBorder,
+  },
+  removeGalleryImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 12,
+  },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -1804,6 +2426,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: colors.text,
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
     marginBottom: 20,
   },
   documentTypesList: {

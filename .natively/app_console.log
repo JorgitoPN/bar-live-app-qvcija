@@ -1,0 +1,166 @@
+[2026-01-17T08:35:23.148Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-01-17T08:40:23.579Z] [Web] [WARN] Disconnected from Metro (1006: "").
+
+To reconnect:
+- Ensure that Metro is running and available on the same network
+- Reload this app (will trigger further help if Metro cannot be connected to)
+      
+[2026-01-17T08:46:53.701Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-01-17T08:48:17.678Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-01-17T08:49:20.485Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-01-17T08:51:24.260Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:51:27.155Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:51:32.614Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:51:35.360Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:51:37.731Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:51:42.984Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:51:44.350Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:51:52.693Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:52:02.200Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:52:05.802Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:52:08.715Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:52:10.693Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:52:12.324Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:52:16.458Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:52:27.536Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
+[2026-01-17T08:52:47.177Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5] RUNTIME ERROR: Uncaught Error: UnableToResolveError Unable to resolve module @/contexts/AuthContext from /expo-project/app/index.tsx: @/contexts/AuthContext could not be found within the project or in these directories:
+  node_modules
+[0m [90m 2 |[39m [36mimport[39m { [33mRedirect[39m } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mActivityIndicator[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useAuth } [36mfrom[39m [32m'@/contexts/AuthContext'[39m[33m;[39m
+ [90m   |[39m                          [31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { colors } [36mfrom[39m [32m'@/styles/commonStyles'[39m[33m;[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mIndex[39m() {[0m at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:76969:5
