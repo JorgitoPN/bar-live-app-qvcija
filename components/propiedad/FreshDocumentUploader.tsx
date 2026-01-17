@@ -16,14 +16,13 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 /**
- * 🆕 SISTEMA TOTALMENTE NUEVO v5.0 - FRESH START
+ * 🆕 SISTEMA TOTALMENTE NUEVO v5.1 - FIXED
  * 
- * Sistema construido desde CERO sin usar código anterior:
- * - Arquitectura completamente nueva
- * - Validación robusta en cada paso
- * - Manejo de errores mejorado
- * - Logs detallados para debugging
- * - Interfaz clara y simple
+ * Correcciones aplicadas:
+ * - Validación de extensión mejorada
+ * - Manejo robusto de URIs
+ * - Mejor detección de tipos MIME
+ * - Logs más detallados
  */
 
 interface FreshDocumentUploaderProps {
@@ -68,13 +67,14 @@ export default function FreshDocumentUploader({
 
       console.log('[FreshUploader] ✅ Permisos concedidos');
 
-      // PASO 2: Abrir galería
+      // PASO 2: Abrir galería con configuración específica
       console.log('[FreshUploader] 📸 Abriendo galería...');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
+        allowsMultipleSelection: false,
       });
 
       if (result.canceled) {
@@ -85,18 +85,50 @@ export default function FreshDocumentUploader({
       const asset = result.assets[0];
       console.log('[FreshUploader] ✅ Imagen seleccionada');
       console.log('[FreshUploader] 📐 Tamaño:', asset.width, 'x', asset.height);
-      console.log('[FreshUploader] 📁 URI:', asset.uri.substring(0, 50) + '...');
+      console.log('[FreshUploader] 📁 URI completa:', asset.uri);
+      console.log('[FreshUploader] 📄 Tipo:', asset.type);
+      console.log('[FreshUploader] 📦 Nombre archivo:', asset.fileName || 'Sin nombre');
 
       setUploading(true);
       setProgress(10);
 
-      // PASO 3: Validar extensión
-      const extension = asset.uri.split('.').pop()?.toLowerCase();
-      const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+      // PASO 3: Validar que es una imagen (mejorado)
+      let extension = '';
+      
+      // Intentar obtener extensión del nombre del archivo
+      if (asset.fileName) {
+        const parts = asset.fileName.split('.');
+        if (parts.length > 1) {
+          extension = parts[parts.length - 1].toLowerCase();
+        }
+      }
+      
+      // Si no hay extensión del nombre, intentar desde la URI
+      if (!extension) {
+        const uriParts = asset.uri.split('.');
+        if (uriParts.length > 1) {
+          const lastPart = uriParts[uriParts.length - 1].toLowerCase();
+          // Limpiar query params si existen
+          extension = lastPart.split('?')[0];
+        }
+      }
+
+      // Si aún no hay extensión, usar el tipo MIME
+      if (!extension && asset.type === 'image') {
+        extension = 'jpg'; // Default para imágenes sin extensión
+      }
+
+      console.log('[FreshUploader] 🔍 Extensión detectada:', extension);
+
+      const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
       
       if (!extension || !validExtensions.includes(extension)) {
         console.log('[FreshUploader] ❌ Extensión inválida:', extension);
-        Alert.alert('Error', 'Solo se permiten imágenes JPG, PNG o WEBP');
+        Alert.alert(
+          'Formato No Válido',
+          'Solo se permiten imágenes (JPG, PNG, WEBP). NO se aceptan PDF.',
+          [{ text: 'OK' }]
+        );
         setUploading(false);
         return;
       }
@@ -112,7 +144,20 @@ export default function FreshDocumentUploader({
       const sizeInMB = (blob.size / 1024 / 1024).toFixed(2);
       console.log('[FreshUploader] ✅ Blob creado');
       console.log('[FreshUploader] 📦 Tamaño:', sizeInMB, 'MB');
+      console.log('[FreshUploader] 📄 Tipo MIME del blob:', blob.type);
       
+      // Validar que el blob es realmente una imagen
+      if (!blob.type.startsWith('image/')) {
+        console.log('[FreshUploader] ❌ El archivo no es una imagen');
+        Alert.alert(
+          'Formato No Válido',
+          'El archivo seleccionado no es una imagen válida.',
+          [{ text: 'OK' }]
+        );
+        setUploading(false);
+        return;
+      }
+
       if (blob.size > 10 * 1024 * 1024) {
         console.log('[FreshUploader] ❌ Archivo muy grande');
         Alert.alert('Error', 'La imagen no puede superar 10 MB');
@@ -122,23 +167,47 @@ export default function FreshDocumentUploader({
 
       setProgress(40);
 
-      // PASO 5: Generar nombre único
+      // PASO 5: Generar nombre único con extensión correcta
       const timestamp = Date.now();
       const random = Math.random().toString(36).substring(2, 10);
       const userPrefix = userId.substring(0, 8);
-      const fileName = `fresh_${userPrefix}_${timestamp}_${random}.${extension}`;
+      
+      // Normalizar extensión (HEIC/HEIF se convierten a JPG)
+      let finalExtension = extension;
+      if (extension === 'heic' || extension === 'heif') {
+        finalExtension = 'jpg';
+      }
+      
+      const fileName = `fresh_${userPrefix}_${timestamp}_${random}.${finalExtension}`;
       
       console.log('[FreshUploader] 📝 Nombre generado:', fileName);
       setProgress(50);
 
-      // PASO 6: Subir a Supabase
+      // PASO 6: Determinar content type correcto
+      let contentType = blob.type;
+      if (!contentType || contentType === 'application/octet-stream') {
+        // Fallback basado en extensión
+        const contentTypeMap: Record<string, string> = {
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'png': 'image/png',
+          'webp': 'image/webp',
+          'heic': 'image/jpeg',
+          'heif': 'image/jpeg',
+        };
+        contentType = contentTypeMap[finalExtension] || 'image/jpeg';
+      }
+
+      console.log('[FreshUploader] 📄 Content-Type:', contentType);
+
+      // PASO 7: Subir a Supabase
       console.log('[FreshUploader] ⬆️ Subiendo a Supabase Storage...');
       console.log('[FreshUploader] 🪣 Bucket: documentos-propiedad');
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documentos-propiedad')
         .upload(fileName, blob, {
-          contentType: `image/${extension === 'jpg' ? 'jpeg' : extension}`,
+          contentType: contentType,
           cacheControl: '3600',
           upsert: false,
         });
@@ -153,7 +222,7 @@ export default function FreshDocumentUploader({
       console.log('[FreshUploader] 📁 Path:', uploadData.path);
       setProgress(80);
 
-      // PASO 7: Obtener URL pública
+      // PASO 8: Obtener URL pública
       console.log('[FreshUploader] 🔗 Generando URL pública...');
       const { data: urlData } = supabase.storage
         .from('documentos-propiedad')
@@ -164,7 +233,7 @@ export default function FreshDocumentUploader({
       console.log('[FreshUploader] ✅ URL generada');
       console.log('[FreshUploader] 🔗 URL completa:', publicUrl);
 
-      // PASO 8: Validar URL
+      // PASO 9: Validar URL
       if (!publicUrl || !publicUrl.startsWith('https://')) {
         console.error('[FreshUploader] ❌ URL inválida:', publicUrl);
         throw new Error('La URL generada no es válida');
@@ -177,7 +246,7 @@ export default function FreshDocumentUploader({
 
       setProgress(100);
 
-      // PASO 9: Guardar y notificar
+      // PASO 10: Guardar y notificar
       console.log('[FreshUploader] 💾 Guardando URL...');
       setImageUrl(publicUrl);
       onUploadComplete(publicUrl);
@@ -283,10 +352,19 @@ export default function FreshDocumentUploader({
                   color={colors.primary}
                 />
               </View>
-              <Text style={styles.uploadTitle}>Seleccionar Documento</Text>
-              <Text style={styles.uploadSubtitle}>Toca para elegir una imagen</Text>
+              <Text style={styles.uploadTitle}>Seleccionar Imagen</Text>
+              <Text style={styles.uploadSubtitle}>Toca para elegir una foto del documento</Text>
               <View style={styles.formatBadge}>
                 <Text style={styles.formatText}>JPG • PNG • WEBP</Text>
+              </View>
+              <View style={styles.warningBadge}>
+                <IconSymbol
+                  ios_icon_name="exclamationmark.triangle.fill"
+                  android_material_icon_name="warning"
+                  size={16}
+                  color="#F59E0B"
+                />
+                <Text style={styles.warningText}>NO se aceptan PDF</Text>
               </View>
             </View>
           )}
@@ -302,7 +380,7 @@ export default function FreshDocumentUploader({
           color={colors.primary}
         />
         <Text style={styles.infoText}>
-          La imagen debe ser clara y legible
+          La imagen debe ser clara y legible. Solo se aceptan fotos (JPG, PNG, WEBP).
         </Text>
       </View>
     </View>
@@ -335,7 +413,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
-    minHeight: 220,
+    minHeight: 240,
     justifyContent: 'center',
   },
   uploadingState: {
@@ -388,6 +466,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     fontWeight: '500',
+    textAlign: 'center',
   },
   formatBadge: {
     backgroundColor: colors.primary + '15',
@@ -400,6 +479,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.primary,
+  },
+  warningBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  warningText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F59E0B',
   },
   preview: {
     borderRadius: 16,
@@ -447,7 +541,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 4,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
   },
   infoText: {
@@ -455,5 +549,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '500',
     flex: 1,
+    lineHeight: 16,
   },
 });
