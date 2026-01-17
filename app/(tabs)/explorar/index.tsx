@@ -512,13 +512,16 @@ export default function ExplorarScreen() {
   };
 
   const handleClaimOrCreateLocal = () => {
+    console.log('[Explorar v224.0] User tapped Claim/Create Local button');
+    
+    // ✅ NEW: Show login modal if user is not authenticated
     if (!user) {
+      console.log('[Explorar v224.0] User not authenticated - showing login modal');
       setShowLoginModal(true);
       return;
     }
     
-    console.log('[Explorar v224.0] User tapped Claim/Create Local button');
-    
+    // ✅ User is authenticated - show options
     Alert.alert(
       'Solicitar Propiedad',
       '¿Qué deseas hacer?',
