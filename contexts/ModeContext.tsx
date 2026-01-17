@@ -295,7 +295,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isInitialized]); // ✅ FIXED v100.0: Added 'user' to dependencies
 
-  // ✅ LINT FIX v225.0: Added user to dependencies
+  // ✅ CRITICAL FIX v99.0: Only load when user ID changes or when switching to propietario mode
   useEffect(() => {
     if (user && (currentMode === 'propietario' || user.rol_app === 'propietario' || user.rol_app === 'admin')) {
       // Only load if user has changed
@@ -303,9 +303,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         loadOwnedLocals();
       }
     }
-  }, [user, currentMode, loadOwnedLocals]); // ✅ FIXED v100.0: Added loadOwnedLocals to dependencies
+  }, [user?.id, currentMode, loadOwnedLocals]); // ✅ FIXED v100.0: Added loadOwnedLocals to dependencies
 
-  // ✅ LINT FIX v225.0: Added switchToClientProfile and switchToLocalProfile to dependencies
+  // ✅ FIXED v100.0: Wrap setCurrentMode in useCallback
   const setCurrentMode = useCallback(async (mode: UserMode) => {
     try {
       console.log('[ModeContext v100.0] 🔄 Setting mode to:', mode);
@@ -383,7 +383,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       console.error('[ModeContext v100.0] ❌ Error saving mode:', error);
       setCurrentModeState(mode);
     }
-  }, [user, ownedLocals.length, loadOwnedLocals, switchToClientProfile, switchToLocalProfile]); // ✅ FIXED v100.0: Added dependencies
+  }, [user, ownedLocals.length, loadOwnedLocals]); // ✅ FIXED v100.0: Added dependencies
 
   // ✅ FIXED v100.0: Wrap switchToClientProfile in useCallback
   const switchToClientProfile = useCallback(async () => {

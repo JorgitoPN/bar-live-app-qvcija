@@ -24,14 +24,11 @@ module.exports = {
   },
   settings: {
     'import/resolver': {
-      typescript: {
-        alwaysTryTypes: true,
-        project: './tsconfig.json'
-      },
       node: {
         extensions: ['.js', '.jsx', '.ts', '.tsx'],
         paths: ['node_modules', '.']
-      }
+      },
+      typescript: {}
     },
     'import/ignore': [
       'node_modules',
@@ -59,8 +56,7 @@ module.exports = {
     "no-constant-condition": "off",
     "no-var": "off",
     "no-useless-escape": "off",
-    "react-hooks/exhaustive-deps": "warn",
-    "@typescript-eslint/array-type": ["error", { "default": "array" }]
+    "react-hooks/exhaustive-deps": "warn"
   },
   overrides: [
     {

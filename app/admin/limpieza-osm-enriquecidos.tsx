@@ -24,21 +24,21 @@ interface CleanupStats {
   total_osm_pendientes: number;
   total_google_enriquecidos: number;
   espacio_estimado_mb: number;
-  por_provincia: {
+  por_provincia: Array<{
     provincia: string;
     total: number;
     enriquecidos: number;
-  }[];
+  }>;
 }
 
 interface CleanupResult {
   locales_migrados: number;
   espacio_liberado_mb: number;
-  detalles: {
+  detalles: Array<{
     id: string;
     nombre: string;
     provincia: string;
-  }[];
+  }>;
 }
 
 /**
@@ -61,9 +61,6 @@ interface CleanupResult {
  * - ✅ Los locales siguen visibles en "Explorar" y "Mapa"
  * - ✅ Se mantienen likes, posts, check-ins, etc.
  * - ✅ Mejora el rendimiento al reducir el catálogo OSM
- * 
- * LINT FIXES v225.0:
- * - ✅ FIXED: Changed Array<T> to T[] syntax (lines 27, 37)
  */
 
 export default function LimpiezaOSMEnriquecidosScreen() {
