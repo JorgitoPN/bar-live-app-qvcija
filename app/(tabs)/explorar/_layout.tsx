@@ -1,13 +1,16 @@
 
 import { Stack } from 'expo-router';
 
+/**
+ * Explorar section layout
+ * Version: 2.0 - Fixed animation configuration
+ */
 export default function ExplorarLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        animation: 'none',
-        animationDuration: 0,
+        animation: 'default',
       }}
     >
       <Stack.Screen

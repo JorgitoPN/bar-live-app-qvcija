@@ -15,12 +15,16 @@ import { AvatarProvider } from '@/contexts/AvatarContext';
 import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
 import { PostsProvider } from '@/contexts/PostsContext';
 import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
-import ErrorBoundary from '@/components/ErrorBoundary';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * Root Layout Component
+ * Version: 143.0 - Fixed ErrorBoundary import and simplified loading
+ */
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [appIsReady, setAppIsReady] = useState(false);
@@ -29,15 +33,15 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    console.log('App initialization started');
+    console.log('[RootLayout v143.0] 🚀 App initialization started');
     
     async function prepare() {
       try {
-        // Simulate minimum loading time for better UX
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log('App preparation complete');
+        // Minimal loading time - just enough to load fonts
+        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('[RootLayout v143.0] ✅ App preparation complete');
       } catch (e) {
-        console.warn('Error during app preparation:', e);
+        console.warn('[RootLayout v143.0] ⚠️ Error during app preparation:', e);
       } finally {
         setAppIsReady(true);
       }
@@ -50,14 +54,21 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded && appIsReady) {
-      console.log('Hiding splash screen');
-      SplashScreen.hideAsync();
+      console.log('[RootLayout v143.0] 🎨 Hiding splash screen...');
+      SplashScreen.hideAsync().then(() => {
+        console.log('[RootLayout v143.0] ✅ Splash screen hidden');
+      }).catch((error) => {
+        console.error('[RootLayout v143.0] ❌ Error hiding splash screen:', error);
+      });
     }
   }, [loaded, appIsReady]);
 
   if (!loaded || !appIsReady) {
+    console.log('[RootLayout v143.0] ⏳ Showing initial loading screen');
     return <InitialLoadingScreen />;
   }
+
+  console.log('[RootLayout v143.0] ✅ Rendering main app layout');
 
   return (
     <ErrorBoundary>
@@ -70,7 +81,7 @@ export default function RootLayout() {
                   <ImpersonationProvider>
                     <PostsProvider>
                       <GlobalDataProvider>
-                        <Stack>
+                        <Stack screenOptions={{ headerShown: false }}>
                           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                           <Stack.Screen name="+not-found" />
                         </Stack>
