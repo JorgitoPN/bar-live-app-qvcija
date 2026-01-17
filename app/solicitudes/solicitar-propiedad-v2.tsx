@@ -23,17 +23,16 @@ import * as Location from 'expo-location';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
-import SimpleImageUploader from '@/components/propiedad/SimpleImageUploader';
+import NewDocumentUploader from '@/components/propiedad/NewDocumentUploader';
 
 /**
- * ✅ SISTEMA COMPLETAMENTE NUEVO v2.0 - SOLICITAR PROPIEDAD
+ * ✅ SISTEMA COMPLETAMENTE NUEVO v3.0 - SOLICITAR PROPIEDAD
  * 
- * Sistema reconstruido desde cero:
- * - Usa el nuevo componente SimpleImageUploader
- * - Código limpio sin dependencias del sistema anterior
+ * Sistema reconstruido desde cero con nuevos componentes:
+ * - Usa NewDocumentUploader (sistema completamente nuevo)
+ * - Sin dependencias del código anterior
  * - Subida y visualización garantizada
- * - Logs detallados para debugging
- * - Validaciones mejoradas
+ * - Código limpio y simple
  */
 
 interface LocalSearchResult {
@@ -121,7 +120,7 @@ export default function SolicitarPropiedadScreenV2() {
 
   const [showDocumentTypeModal, setShowDocumentTypeModal] = useState(false);
 
-  console.log('[SolicitarPropiedadV2] 🎬 Pantalla inicializada');
+  console.log('[SolicitarPropiedadV2] 🎬 Pantalla inicializada con NUEVO sistema');
   console.log('[SolicitarPropiedadV2] 📋 Tipo de solicitud:', requestType);
   console.log('[SolicitarPropiedadV2] 👤 Usuario:', user?.nombre);
 
@@ -464,7 +463,7 @@ export default function SolicitarPropiedadScreenV2() {
 
     setLoading(true);
     try {
-      console.log('[SolicitarPropiedadV2] 📤 Enviando solicitud...');
+      console.log('[SolicitarPropiedadV2] 📤 Enviando solicitud con NUEVO sistema...');
 
       if (requestType === 'reclamar_local') {
         if (!selectedLocal) {
@@ -496,7 +495,7 @@ export default function SolicitarPropiedadScreenV2() {
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedadV2] ✅ Solicitud creada');
+        console.log('[SolicitarPropiedadV2] ✅ Solicitud creada exitosamente');
 
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
@@ -520,8 +519,6 @@ export default function SolicitarPropiedadScreenV2() {
 
         console.log('[SolicitarPropiedadV2] 💾 Guardando solicitud de nuevo local');
         console.log('[SolicitarPropiedadV2] 📄 URL del documento:', documentoUrl);
-        console.log('[SolicitarPropiedadV2] 🖼️ URL de portada:', imagenPortadaUrl);
-        console.log('[SolicitarPropiedadV2] 🖼️ URLs de galería:', galeriaUrls.length);
         
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
@@ -553,7 +550,7 @@ export default function SolicitarPropiedadScreenV2() {
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedadV2] ✅ Solicitud de nuevo local creada');
+        console.log('[SolicitarPropiedadV2] ✅ Solicitud de nuevo local creada exitosamente');
 
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
@@ -733,17 +730,16 @@ export default function SolicitarPropiedadScreenV2() {
         />
       </View>
 
-      {/* ✅ NUEVO: Componente simple de subida */}
-      <SimpleImageUploader
-        onImageUploaded={(url) => {
-          console.log('[SolicitarPropiedadV2] ✅ Imagen recibida del uploader:', url);
+      {/* 🆕 NUEVO: Componente completamente nuevo de subida */}
+      <NewDocumentUploader
+        onUploadComplete={(url) => {
+          console.log('[SolicitarPropiedadV2] ✅ Documento recibido del NUEVO uploader:', url);
           setDocumentoUrl(url);
         }}
-        currentImageUrl={documentoUrl}
+        currentUrl={documentoUrl}
         userId={user?.id || ''}
-        bucketName="documentos-propiedad"
-        label="Imagen del Documento de Propiedad *"
-        helperText="Sube una foto del documento que acredite tu relación con el local"
+        label="Documento de Propiedad *"
+        description="Sube una foto clara del documento que acredite tu relación con el local"
       />
 
       <View style={styles.inputContainer}>
@@ -1062,17 +1058,16 @@ export default function SolicitarPropiedadScreenV2() {
         Añade fotos y documentación
       </Text>
 
-      {/* ✅ NUEVO: Componente simple de subida para documento */}
-      <SimpleImageUploader
-        onImageUploaded={(url) => {
+      {/* 🆕 NUEVO: Componente completamente nuevo de subida para documento */}
+      <NewDocumentUploader
+        onUploadComplete={(url) => {
           console.log('[SolicitarPropiedadV2] ✅ Documento recibido:', url);
           setDocumentoUrl(url);
         }}
-        currentImageUrl={documentoUrl}
+        currentUrl={documentoUrl}
         userId={user?.id || ''}
-        bucketName="documentos-propiedad"
-        label="Imagen del Documento (Opcional)"
-        helperText="Foto del documento que acredite tu propiedad"
+        label="Documento de Propiedad (Opcional)"
+        description="Foto del documento que acredite tu propiedad del local"
       />
 
       <View style={styles.inputContainer}>
