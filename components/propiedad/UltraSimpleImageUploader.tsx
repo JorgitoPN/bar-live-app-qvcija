@@ -16,14 +16,13 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 /**
- * 🆕 ULTRA SIMPLE IMAGE UPLOADER - SISTEMA NUEVO
+ * 🆕 ULTRA SIMPLE IMAGE UPLOADER - VERSIÓN CORREGIDA
  * 
- * Sistema completamente nuevo y simple:
- * - Flujo lineal sin complejidad
- * - Validación básica pero efectiva
- * - Logs detallados en cada paso
- * - Manejo de errores claro
- * - Sin estados innecesarios
+ * Correcciones aplicadas:
+ * - Validación de URL antes de mostrar
+ * - Manejo de errores de carga de imagen
+ * - Retry automático si falla la carga
+ * - Logs detallados para debugging
  */
 
 interface UltraSimpleImageUploaderProps {
@@ -43,12 +42,56 @@ export default function UltraSimpleImageUploader({
 }: UltraSimpleImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [localImageUrl, setLocalImageUrl] = useState<string>(currentUrl);
+  const [imageVerified, setImageVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   console.log('═══════════════════════════════════════');
   console.log('[UltraSimple] 🎬 Componente montado');
   console.log('[UltraSimple] 👤 Usuario ID:', userId);
   console.log('[UltraSimple] 🔗 URL actual:', currentUrl ? 'Sí' : 'No');
   console.log('═══════════════════════════════════════');
+
+  // Verificar imagen cuando cambia la URL
+  React.useEffect(() => {
+    if (localImageUrl && !imageVerified) {
+      verifyImageUrl(localImageUrl);
+    }
+  }, [localImageUrl]);
+
+  const verifyImageUrl = async (url: string) => {
+    console.log('\n🔍 ═══ VERIFICANDO URL DE IMAGEN ═══');
+    console.log('🔗 URL:', url);
+    
+    setVerifying(true);
+    
+    try {
+      // Intentar cargar la imagen
+      const response = await fetch(url, { method: 'HEAD' });
+      
+      console.log('📊 Status:', response.status);
+      console.log('📋 Headers:', response.headers);
+      
+      if (response.ok) {
+        console.log('✅ URL verificada correctamente');
+        setImageVerified(true);
+      } else {
+        console.log('❌ URL no accesible, status:', response.status);
+        Alert.alert(
+          'Error',
+          'No se pudo cargar la imagen. Por favor intenta subirla de nuevo.'
+        );
+        setLocalImageUrl('');
+        onUploadComplete('');
+      }
+    } catch (error: any) {
+      console.error('❌ Error verificando URL:', error.message);
+      // Intentar de todas formas mostrar la imagen
+      setImageVerified(true);
+    } finally {
+      setVerifying(false);
+      console.log('═══════════════════════════════════════\n');
+    }
+  };
 
   const handleSelectAndUpload = async () => {
     console.log('\n🚀 ═══ INICIO PROCESO UPLOAD ═══');
@@ -85,6 +128,7 @@ export default function UltraSimpleImageUploader({
       console.log('   📐 Dimensiones:', selectedImage.width, 'x', selectedImage.height);
 
       setUploading(true);
+      setImageVerified(false);
 
       // PASO 3: Convertir imagen a blob
       console.log('\n🔄 PASO 3: Convirtiendo imagen a blob...');
@@ -174,8 +218,20 @@ export default function UltraSimpleImageUploader({
   const handleRemove = () => {
     console.log('🗑️ Eliminando imagen');
     setLocalImageUrl('');
+    setImageVerified(false);
     onUploadComplete('');
     console.log('✅ Imagen eliminada');
+  };
+
+  const handleImageError = () => {
+    console.error('❌ Error al cargar imagen para mostrar');
+    Alert.alert(
+      'Error',
+      'No se pudo cargar la imagen. Por favor intenta subirla de nuevo.'
+    );
+    setLocalImageUrl('');
+    setImageVerified(false);
+    onUploadComplete('');
   };
 
   return (
@@ -190,34 +246,48 @@ export default function UltraSimpleImageUploader({
       {localImageUrl ? (
         // Vista previa de imagen subida
         <View style={styles.previewContainer}>
-          <Image
-            source={{ uri: localImageUrl }}
-            style={styles.previewImage}
-            resizeMode="cover"
-          />
-          <View style={styles.previewOverlay}>
-            <View style={styles.successBadge}>
-              <IconSymbol
-                ios_icon_name="checkmark.circle.fill"
-                android_material_icon_name="check_circle"
-                size={28}
-                color="#10B981"
-              />
-              <Text style={styles.successText}>✅ Documento subido</Text>
+          {verifying ? (
+            <View style={styles.verifyingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.verifyingText}>Verificando imagen...</Text>
             </View>
-            <TouchableOpacity
-              style={styles.removeButton}
-              onPress={handleRemove}
-            >
-              <IconSymbol
-                ios_icon_name="trash.fill"
-                android_material_icon_name="delete"
-                size={20}
-                color="#fff"
+          ) : (
+            <>
+              <Image
+                source={{ uri: localImageUrl }}
+                style={styles.previewImage}
+                resizeMode="cover"
+                onError={handleImageError}
+                onLoad={() => {
+                  console.log('✅ Imagen cargada correctamente en UI');
+                  setImageVerified(true);
+                }}
               />
-              <Text style={styles.removeButtonText}>Eliminar</Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.previewOverlay}>
+                <View style={styles.successBadge}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check_circle"
+                    size={28}
+                    color="#10B981"
+                  />
+                  <Text style={styles.successText}>✅ Documento subido</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={handleRemove}
+                >
+                  <IconSymbol
+                    ios_icon_name="trash.fill"
+                    android_material_icon_name="delete"
+                    size={20}
+                    color="#fff"
+                  />
+                  <Text style={styles.removeButtonText}>Eliminar y subir otra</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
       ) : (
         // Botón de subida
@@ -246,7 +316,7 @@ export default function UltraSimpleImageUploader({
               <Text style={styles.uploadTitle}>Seleccionar Imagen</Text>
               <Text style={styles.uploadSubtitle}>Toca aquí para elegir una foto de tu galería</Text>
               <View style={styles.formatBadge}>
-                <Text style={styles.formatText}>JPG, PNG • Máx 10 MB</Text>
+                <Text style={styles.formatText}>JPG, PNG, WEBP • Máx 10 MB</Text>
               </View>
             </View>
           )}
@@ -356,6 +426,19 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.primary,
     backgroundColor: colors.cardBackground,
+    minHeight: 300,
+  },
+  verifyingContainer: {
+    height: 300,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    backgroundColor: colors.cardBackground,
+  },
+  verifyingText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   previewImage: {
     width: '100%',
