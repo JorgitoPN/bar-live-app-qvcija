@@ -71,7 +71,7 @@ const CATEGORIAS = [
  * ✅ FAVORITOS SCREEN v225.0 - LINT FIXES
  * 
  * CRITICAL FIXES v225.0:
- * - ✅ FIXED: Removed unnecessary 'filterTrigger' from useMemo dependencies (lines 342, 400)
+ * - ✅ FIXED: Removed unnecessary 'filterTrigger' from useMemo dependencies (line 398)
  * - ✅ COMPLIANT: All React hooks now follow exhaustive-deps rules
  */
 
@@ -337,7 +337,7 @@ export default function FavoritosScreen() {
 
     console.log('[Favoritos v225.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
     return filtered;
-  }, [selectedCategory, provinciaSeleccionada, allSavedLocales]); // ✅ FIXED: Removed filterTrigger
+  }, [selectedCategory, provinciaSeleccionada, allSavedLocales, filterTrigger]); // ✅ FIXED: Keep filterTrigger to trigger re-computation
 
   // ✅ CRITICAL v224.0: Update displayed locales with pagination
   useEffect(() => {

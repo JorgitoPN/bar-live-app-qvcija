@@ -47,13 +47,13 @@ export default function FreshDocumentUploader({
   console.log('[UltraSimpleUploader] 🎬 Iniciado');
   console.log('[UltraSimpleUploader] 👤 Usuario:', userId);
 
-  // Sincronizar con prop externa
+  // ✅ LINT FIX v225.0: Added imageUrl to dependencies
   useEffect(() => {
     if (currentUrl && currentUrl !== imageUrl) {
       console.log('[UltraSimpleUploader] 🔄 Actualizando URL desde prop');
       setImageUrl(currentUrl);
     }
-  }, [currentUrl]);
+  }, [currentUrl, imageUrl]);
 
   const uploadImage = async () => {
     try {

@@ -11,6 +11,7 @@ export default function InitialLoadingScreen() {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  // ✅ LINT FIX v225.0: Added animation refs to dependencies
   useEffect(() => {
     console.log('InitialLoadingScreen mounted - Starting animations');
     
@@ -44,7 +45,7 @@ export default function InitialLoadingScreen() {
         }),
       ])
     ).start();
-  }, []);
+  }, [fadeAnim, scaleAnim, pulseAnim]);
 
   return (
     <LinearGradient

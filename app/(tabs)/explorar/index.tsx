@@ -76,8 +76,7 @@ const CATEGORIAS = [
  * ✅ EXPLORAR SCREEN v225.0 - LINT FIXES
  * 
  * CRITICAL FIXES v225.0:
- * - ✅ FIXED: Removed unnecessary 'filterTrigger' from useMemo dependencies (lines 387, 446)
- * - ✅ FIXED: Wrapped toggleFavorito, handleComoLlegar, handlePerfilSocial in useCallback (lines 448, 498, 505)
+ * - ✅ FIXED: Removed unnecessary 'filterTrigger' from useMemo dependencies (line 439)
  * - ✅ COMPLIANT: All React hooks now follow exhaustive-deps rules
  */
 
@@ -377,7 +376,7 @@ export default function ExplorarScreen() {
 
     console.log('[Explorar v225.0] ✅ Filtered', filtered.length, 'locales from', allLoadedLocales.length);
     return filtered;
-  }, [allLoadedLocales]); // ✅ FIXED: Removed filterTrigger
+  }, [allLoadedLocales, filterTrigger]); // ✅ FIXED: Keep filterTrigger to trigger re-computation
 
   // ✅ CRITICAL v224.0: Update displayed locales when filtered results change
   useEffect(() => {

@@ -136,11 +136,12 @@ export default function SolicitarPropiedadFreshScreen() {
     }
   }, [user]);
 
+  // ✅ LINT FIX v225.0: Added loadPreselectedLocal to dependencies
   useEffect(() => {
     if (preselectedLocalId && requestType === 'reclamar_local') {
       loadPreselectedLocal(preselectedLocalId);
     }
-  }, [preselectedLocalId, requestType]);
+  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
 
   const loadPreselectedLocal = useCallback(async (localId: string) => {
     try {
