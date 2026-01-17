@@ -82,6 +82,7 @@ const CATEGORIAS = [
  */
 
 export default function ExplorarScreen() {
+  console.log('[ExplorarScreen] 🎯 Componente renderizándose...');
   const router = useRouter();
   const { user } = useAuth();
   const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
