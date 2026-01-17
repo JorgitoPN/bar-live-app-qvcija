@@ -675,7 +675,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
     <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.stepTitle}>Información de Contacto</Text>
       <Text style={styles.stepDescription}>
-        Proporciona tus datos de contacto para verificar tu solicitud
+        Proporciona tus datos de contacto y documentación
       </Text>
 
       {selectedLocal && (
@@ -734,7 +734,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
       <View style={styles.infoBox}>
         <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={20} color={colors.primary} />
         <Text style={styles.infoBoxText}>
-          Nuestro equipo revisará tu solicitud y se pondrá en contacto contigo para verificar la propiedad del local.
+          Nuestro equipo revisará tu solicitud y se pondrá en contacto contigo para verificar la propiedad del local. Podrás proporcionar documentación adicional durante el proceso de revisión.
         </Text>
       </View>
     </ScrollView>
