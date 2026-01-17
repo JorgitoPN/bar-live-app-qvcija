@@ -160,7 +160,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     }
   }, [user, selectedLocalId]);
 
-  // ✅ CRITICAL FIX v99.0: Only depend on user ID and role, not on loadUserLocales
+  // ✅ LINT FIX v225.0: Added user to dependencies
   useEffect(() => {
     if (user && user.rol_app === 'propietario') {
       // Only load if user has changed
@@ -172,7 +172,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
       setLoadingLocales(false);
       lastUserIdRef.current = null;
     }
-  }, [user?.id, user?.rol_app, loadUserLocales]); // ✅ FIXED v100.0: Added loadUserLocales to dependencies
+  }, [user, loadUserLocales]); // ✅ FIXED v100.0: Added loadUserLocales to dependencies
 
   const setSelectedLocalId = async (localId: string | null) => {
     try {
