@@ -476,6 +476,8 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
         console.log('✅ Solicitud creada exitosamente');
 
+        // ✅ REMOVED: Email notification as per user request
+        // Only in-app notification is sent
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
           tipo: 'sistema',
@@ -532,6 +534,8 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
         console.log('✅ Solicitud creada exitosamente');
 
+        // ✅ REMOVED: Email notification as per user request
+        // Only in-app notification is sent
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
           tipo: 'sistema',
