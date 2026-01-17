@@ -19,15 +19,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
-import FreshDocumentViewer from '@/components/propiedad/FreshDocumentViewer';
 
 /**
  * 🆕 SISTEMA TOTALMENTE NUEVO v5.0 - FRESH ADMIN DETAIL
  * 
  * Pantalla reconstruida desde CERO:
- * - Usa FreshDocumentViewer (nuevo componente)
- * - Sin código del sistema anterior
- * - Visualización garantizada
+ * - Sin sistema de visualización de documentos (eliminado)
  * - Logs detallados
  */
 
@@ -51,10 +48,6 @@ interface Solicitud {
   longitud_local?: number;
   horarios_local?: Record<string, any>;
   servicios_local?: string[];
-  imagen_portada_url?: string;
-  galeria_urls?: string[];
-  documento_propiedad_url?: string;
-  documento_propiedad_tipo?: string;
   estado: 'pendiente' | 'en_revision' | 'informacion_adicional' | 'aprobada' | 'denegada';
   tipo_solicitud: 'reclamar_local' | 'nuevo_local';
   motivo_denegacion?: string;
@@ -108,9 +101,6 @@ export default function SolicitudDetalleFreshScreen() {
       }
 
       console.log('[FreshAdminDetail] ✅ Solicitud cargada:', data.nombre_local);
-      console.log('[FreshAdminDetail] 📄 Documento:', data.documento_propiedad_url ? 'Sí' : 'No');
-      console.log('[FreshAdminDetail] 🖼️ Portada:', data.imagen_portada_url ? 'Sí' : 'No');
-      console.log('[FreshAdminDetail] 🖼️ Galería:', data.galeria_urls?.length || 0);
       
       setSolicitud(data);
     } catch (error) {
@@ -125,56 +115,6 @@ export default function SolicitudDetalleFreshScreen() {
   useEffect(() => {
     loadSolicitud();
   }, [loadSolicitud]);
-
-  const deleteImagesFromStorage = async (imageUrls: string[]) => {
-    console.log('[FreshAdminDetail] 🗑️ Eliminando', imageUrls.length, 'imágenes');
-    
-    for (const url of imageUrls) {
-      if (!url || typeof url !== 'string') continue;
-      
-      try {
-        console.log('[FreshAdminDetail] 🗑️ Procesando:', url.substring(0, 60) + '...');
-        
-        let filePath = url;
-        let bucket = 'documentos-propiedad';
-        
-        if (url.includes('/storage/v1/object/public/')) {
-          const parts = url.split('/storage/v1/object/public/');
-          if (parts.length > 1) {
-            const pathWithBucket = parts[1];
-            const pathParts = pathWithBucket.split('/');
-            
-            if (pathParts[0] === 'locales') {
-              bucket = 'locales';
-            } else if (pathParts[0] === 'documentos-propiedad') {
-              bucket = 'documentos-propiedad';
-            }
-            
-            pathParts.shift();
-            filePath = pathParts.join('/');
-          }
-        }
-        
-        filePath = filePath.replace(/^\/+/, '');
-        
-        console.log('[FreshAdminDetail] 🗑️ Bucket:', bucket, '| Path:', filePath);
-        
-        const { error } = await supabase.storage
-          .from(bucket)
-          .remove([filePath]);
-        
-        if (error) {
-          console.error('[FreshAdminDetail] ❌ Error eliminando:', error);
-        } else {
-          console.log('[FreshAdminDetail] ✅ Imagen eliminada');
-        }
-      } catch (error) {
-        console.error('[FreshAdminDetail] ❌ Error:', error);
-      }
-    }
-    
-    console.log('[FreshAdminDetail] ✅ Eliminación completada');
-  };
 
   const executeAction = async () => {
     if (!solicitud) return;
@@ -233,8 +173,6 @@ export default function SolicitudDetalleFreshScreen() {
               longitud: solicitud.longitud_local,
               horarios_completos: solicitud.horarios_local,
               servicios: solicitud.servicios_local,
-              imagen_url: solicitud.imagen_portada_url,
-              galeria_urls: solicitud.galeria_urls,
               propietario_id: solicitud.usuario_id,
               source_type: 'manual',
               estado_solicitud: 'aprobado',
@@ -256,15 +194,6 @@ export default function SolicitudDetalleFreshScreen() {
           if (propError && propError.code !== '23505') {
             throw propError;
           }
-        }
-
-        const imagesToDelete: string[] = [];
-        if (solicitud.documento_propiedad_url) imagesToDelete.push(solicitud.documento_propiedad_url);
-        if (solicitud.imagen_portada_url) imagesToDelete.push(solicitud.imagen_portada_url);
-        if (solicitud.galeria_urls) imagesToDelete.push(...solicitud.galeria_urls);
-        
-        if (imagesToDelete.length > 0) {
-          await deleteImagesFromStorage(imagesToDelete);
         }
 
         await supabase.from('notificaciones').insert({
@@ -294,15 +223,6 @@ export default function SolicitudDetalleFreshScreen() {
           .eq('id', solicitud.id);
 
         if (updateError) throw updateError;
-
-        const imagesToDelete: string[] = [];
-        if (solicitud.documento_propiedad_url) imagesToDelete.push(solicitud.documento_propiedad_url);
-        if (solicitud.imagen_portada_url) imagesToDelete.push(solicitud.imagen_portada_url);
-        if (solicitud.galeria_urls) imagesToDelete.push(...solicitud.galeria_urls);
-        
-        if (imagesToDelete.length > 0) {
-          await deleteImagesFromStorage(imagesToDelete);
-        }
 
         await supabase.from('notificaciones').insert({
           usuario_id: solicitud.usuario_id,
@@ -364,18 +284,6 @@ export default function SolicitudDetalleFreshScreen() {
     }
   };
 
-  const getTipoDocumentoLabel = (tipo?: string) => {
-    switch (tipo) {
-      case 'factura_luz': return 'Factura de Luz';
-      case 'factura_agua': return 'Factura de Agua';
-      case 'contrato_alquiler': return 'Contrato de Alquiler';
-      case 'escritura': return 'Escritura de Propiedad';
-      case 'licencia_actividad': return 'Licencia de Actividad';
-      case 'otro': return 'Otro Documento';
-      default: return 'Documento';
-    }
-  };
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -390,26 +298,6 @@ export default function SolicitudDetalleFreshScreen() {
   }
 
   const estadoConfig = getEstadoConfig(solicitud.estado);
-  
-  // Preparar array de imágenes
-  const allImages: string[] = [];
-  
-  if (solicitud.documento_propiedad_url) {
-    console.log('[FreshAdminDetail] 📄 Añadiendo documento');
-    allImages.push(solicitud.documento_propiedad_url);
-  }
-  
-  if (solicitud.imagen_portada_url) {
-    console.log('[FreshAdminDetail] 🖼️ Añadiendo portada');
-    allImages.push(solicitud.imagen_portada_url);
-  }
-  
-  if (solicitud.galeria_urls && Array.isArray(solicitud.galeria_urls)) {
-    console.log('[FreshAdminDetail] 🖼️ Añadiendo galería:', solicitud.galeria_urls.length);
-    allImages.push(...solicitud.galeria_urls);
-  }
-
-  console.log('[FreshAdminDetail] ✅ Total de imágenes:', allImages.length);
 
   return (
     <View style={styles.container}>
@@ -512,17 +400,6 @@ export default function SolicitudDetalleFreshScreen() {
           </View>
         </View>
 
-        {/* 🆕 NUEVO: Visor Fresh */}
-        {allImages.length > 0 && (
-          <View style={styles.section}>
-            <FreshDocumentViewer
-              imageUrls={allImages}
-              title="🖼️ Imágenes"
-              subtitle="Documento, portada y galería"
-            />
-          </View>
-        )}
-
         {/* Map */}
         {solicitud.latitud_local && solicitud.longitud_local && (
           <View style={styles.section}>
@@ -547,6 +424,41 @@ export default function SolicitudDetalleFreshScreen() {
               </View>
               <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={20} color={colors.primary} />
             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Horarios */}
+        {solicitud.horarios_local && Object.keys(solicitud.horarios_local).length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🕐 Horarios</Text>
+            <View style={styles.horariosCard}>
+              {Object.entries(solicitud.horarios_local).map(([dia, horario]: [string, any]) => (
+                <View key={dia} style={styles.horarioRow}>
+                  <Text style={styles.horarioDia}>{dia}</Text>
+                  {horario.abierto ? (
+                    <Text style={styles.horarioHoras}>
+                      {horario.apertura} - {horario.cierre}
+                    </Text>
+                  ) : (
+                    <Text style={styles.horarioCerrado}>Cerrado</Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Servicios */}
+        {solicitud.servicios_local && solicitud.servicios_local.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>✨ Servicios</Text>
+            <View style={styles.serviciosContainer}>
+              {solicitud.servicios_local.map((servicio, index) => (
+                <View key={index} style={styles.servicioChip}>
+                  <Text style={styles.servicioChipText}>{servicio}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         )}
 
@@ -615,9 +527,6 @@ export default function SolicitudDetalleFreshScreen() {
                 <Text style={styles.actionModalSubtext}>
                   El usuario recibirá el rol de propietario.
                 </Text>
-                <Text style={styles.actionModalWarning}>
-                  ⚠️ Las imágenes se eliminarán del sistema.
-                </Text>
               </View>
             )}
 
@@ -633,9 +542,6 @@ export default function SolicitudDetalleFreshScreen() {
                   multiline
                   numberOfLines={3}
                 />
-                <Text style={styles.actionModalWarning}>
-                  ⚠️ Las imágenes se eliminarán del sistema.
-                </Text>
               </View>
             )}
 
@@ -884,6 +790,53 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
+  horariosCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    gap: 8,
+  },
+  horarioRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  horarioDia: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  horarioHoras: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  horarioCerrado: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  serviciosContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  servicioChip: {
+    backgroundColor: colors.primary + '15',
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  servicioChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+  },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -949,15 +902,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginBottom: 8,
-  },
-  actionModalWarning: {
-    fontSize: 12,
-    color: '#F59E0B',
-    fontWeight: '600',
-    backgroundColor: '#F59E0B' + '15',
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 8,
   },
   actionModalLabel: {
     fontSize: 14,
