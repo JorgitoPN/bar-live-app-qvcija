@@ -401,7 +401,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
             return false;
           }
           if (!documentoUrl) {
-            Alert.alert('Imagen requerida', 'Debes subir una imagen del documento');
+            Alert.alert('Documento requerido', 'Debes subir una imagen del documento de propiedad');
             return false;
           }
           if (!mensaje.trim()) {
@@ -701,9 +701,9 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
   const renderReclamarStep2 = () => (
     <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.stepTitle}>Información de Contacto</Text>
+      <Text style={styles.stepTitle}>Solicitud de Propiedad</Text>
       <Text style={styles.stepDescription}>
-        Proporciona tus datos y documentación
+        Proporciona tus datos de contacto y documentación que acredite tu propiedad
       </Text>
 
       {selectedLocal && (
@@ -741,16 +741,16 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
         />
       </View>
 
-      {/* 🆕 NUEVO COMPONENTE ULTRA SIMPLE */}
+      {/* 🆕 COMPONENTE DE SUBIDA DE IMAGEN */}
       <UltraSimpleImageUploader
         onUploadComplete={(url) => {
-          console.log('[UltraSimpleScreen] ✅ URL recibida del uploader:', url);
+          console.log('[ReclamarStep2] ✅ Documento subido:', url);
           setDocumentoUrl(url);
         }}
         currentUrl={documentoUrl}
         userId={user?.id || ''}
         label="Documento de Propiedad *"
-        description="Sube una foto clara del documento que acredite tu relación con el local (factura, contrato, escritura, etc.)"
+        description="Sube una foto clara del documento que acredite tu relación con el local (factura de servicios, contrato de alquiler, escritura de propiedad, licencia de actividad, etc.)"
       />
 
       <View style={styles.inputContainer}>
@@ -773,15 +773,37 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Mensaje Explicativo *</Text>
+        <Text style={styles.helperText}>
+          Explica brevemente por qué eres el propietario del local y cualquier información adicional relevante
+        </Text>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Explica por qué eres el propietario del local..."
+          placeholder="Ejemplo: Soy el propietario del local desde hace 5 años. Adjunto factura de luz a mi nombre..."
           placeholderTextColor={colors.textSecondary}
           value={mensaje}
           onChangeText={setMensaje}
           multiline
-          numberOfLines={4}
+          numberOfLines={6}
         />
+      </View>
+
+      <View style={styles.infoBox}>
+        <IconSymbol 
+          ios_icon_name="info.circle.fill" 
+          android_material_icon_name="info" 
+          size={24} 
+          color={colors.primary} 
+        />
+        <View style={styles.infoBoxContent}>
+          <Text style={styles.infoBoxTitle}>Documentos aceptados</Text>
+          <Text style={styles.infoBoxText}>
+            • Factura de luz o agua a tu nombre{'\n'}
+            • Contrato de alquiler o compraventa{'\n'}
+            • Escritura de propiedad{'\n'}
+            • Licencia de actividad{'\n'}
+            • Cualquier documento oficial que demuestre tu relación con el local
+          </Text>
+        </View>
       </View>
     </ScrollView>
   );
@@ -1069,10 +1091,10 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
         Añade documentación (opcional)
       </Text>
 
-      {/* 🆕 NUEVO COMPONENTE ULTRA SIMPLE */}
+      {/* 🆕 COMPONENTE DE SUBIDA DE IMAGEN */}
       <UltraSimpleImageUploader
         onUploadComplete={(url) => {
-          console.log('[UltraSimpleScreen] ✅ URL recibida del uploader:', url);
+          console.log('[NuevoStep5] ✅ Documento subido:', url);
           setDocumentoUrl(url);
         }}
         currentUrl={documentoUrl}
@@ -1130,7 +1152,11 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
           <Text style={styles.headerTitle}>
             {requestType === 'reclamar_local' ? 'Reclamar Local' : 'Crear Nuevo Local'}
           </Text>
-          <Text style={styles.headerSubtitle}>Sistema Ultra Simple</Text>
+          <Text style={styles.headerSubtitle}>
+            {requestType === 'reclamar_local' 
+              ? `Paso ${currentStep} de 2` 
+              : `Paso ${currentStep} de 5`}
+          </Text>
         </View>
         <View style={{ width: 40 }} />
       </LinearGradient>
@@ -1258,7 +1284,7 @@ const styles = StyleSheet.create({
     color: colors.headerText,
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: 13,
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 2,
@@ -1324,6 +1350,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 24,
+    lineHeight: 20,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -1480,6 +1507,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 8,
   },
+  helperText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 8,
+    lineHeight: 18,
+  },
   input: {
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
@@ -1491,7 +1524,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   textArea: {
-    minHeight: 100,
+    minHeight: 120,
     textAlignVertical: 'top',
   },
   documentTypeSelector: {
@@ -1509,6 +1542,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     fontWeight: '500',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: colors.primary + '08',
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+    marginTop: 8,
+  },
+  infoBoxContent: {
+    flex: 1,
+  },
+  infoBoxTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 8,
+  },
+  infoBoxText: {
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 20,
   },
   tipoGrid: {
     flexDirection: 'row',
