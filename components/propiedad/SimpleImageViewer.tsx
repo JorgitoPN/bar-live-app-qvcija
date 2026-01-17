@@ -10,18 +10,20 @@ import {
   Modal,
   Dimensions,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 /**
- * ✅ SISTEMA SIMPLE DE VISUALIZACIÓN DE IMÁGENES v2.0 - FIXED
+ * ✅ VISOR SIMPLE DE IMÁGENES v4.0 - MEJORADO
  * 
- * Correcciones aplicadas:
- * - Validación de URLs antes de renderizar
- * - Manejo robusto de errores de carga
- * - Logs detallados para debugging
- * - Fallback para imágenes que no cargan
+ * Mejoras:
+ * - Validación robusta de URLs
+ * - Retry automático en caso de error
+ * - Feedback claro al usuario
+ * - Manejo de errores mejorado
  */
 
 interface SimpleImageViewerProps {
@@ -30,216 +32,308 @@ interface SimpleImageViewerProps {
   subtitle?: string;
 }
 
-const { width, height } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function SimpleImageViewer({
   images,
   title = 'Imágenes',
   subtitle,
 }: SimpleImageViewerProps) {
-  const [showModal, setShowModal] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
+  const [loadingImages, setLoadingImages] = useState<Set<number>>(new Set());
+  const [errorImages, setErrorImages] = useState<Set<number>>(new Set());
+  const [retryCount, setRetryCount] = useState<Map<number, number>>(new Map());
 
-  console.log('[SimpleImageViewer v2] 🎬 Componente inicializado');
-  console.log('[SimpleImageViewer v2] 📸 Total de imágenes:', images.length);
+  console.log('[SimpleImageViewer v4] 🎬 Inicializado');
+  console.log('[SimpleImageViewer v4] 📸 Total de imágenes:', images.length);
 
-  // ✅ FIXED: Filtrar URLs válidas
-  const validImages = images.filter((url) => {
-    const isValid = url && url.startsWith('https://');
-    if (!isValid) {
-      console.warn('[SimpleImageViewer v2] ⚠️ URL inválida filtrada:', url);
+  // Validar URLs
+  const validImages = images.filter((url, index) => {
+    if (!url || typeof url !== 'string') {
+      console.warn('[SimpleImageViewer v4] ⚠️ URL inválida en índice', index);
+      return false;
     }
-    return isValid;
+
+    if (!url.startsWith('https://')) {
+      console.warn('[SimpleImageViewer v4] ⚠️ URL no es HTTPS:', url.substring(0, 50));
+      return false;
+    }
+
+    if (!url.includes('supabase.co')) {
+      console.warn('[SimpleImageViewer v4] ⚠️ URL no es de Supabase');
+      return false;
+    }
+
+    return true;
   });
 
-  console.log('[SimpleImageViewer v2] ✅ Imágenes válidas:', validImages.length);
+  console.log('[SimpleImageViewer v4] ✅ URLs válidas:', validImages.length);
 
-  if (!validImages || validImages.length === 0) {
-    console.log('[SimpleImageViewer v2] ⚠️ No hay imágenes válidas para mostrar');
-    return null;
+  if (validImages.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <IconSymbol
+          ios_icon_name="photo"
+          android_material_icon_name="image"
+          size={48}
+          color={colors.textSecondary}
+        />
+        <Text style={styles.emptyText}>No hay imágenes para mostrar</Text>
+        {images.length > 0 && (
+          <Text style={styles.emptySubtext}>
+            {images.length} URL(s) inválida(s)
+          </Text>
+        )}
+      </View>
+    );
   }
 
-  const handleOpenImage = (index: number) => {
-    console.log('[SimpleImageViewer v2] 👁️ Abriendo imagen', index + 1, 'de', validImages.length);
-    console.log('[SimpleImageViewer v2] 🔗 URL:', validImages[index]);
-    setSelectedIndex(index);
-    setShowModal(true);
+  const handleImageLoadStart = (index: number) => {
+    console.log('[SimpleImageViewer v4] 🔄 Cargando imagen', index + 1);
+    setLoadingImages(prev => new Set(prev).add(index));
   };
 
-  const handleCloseModal = () => {
-    console.log('[SimpleImageViewer v2] 🚪 Cerrando modal');
-    setShowModal(false);
-  };
-
-  const handleImageError = (index: number, url: string, error: any) => {
-    console.error('[SimpleImageViewer v2] ❌ Error cargando imagen', index + 1);
-    console.error('[SimpleImageViewer v2] ❌ URL:', url);
-    console.error('[SimpleImageViewer v2] ❌ Error:', error);
-    
-    setFailedImages(prev => {
+  const handleImageLoadEnd = (index: number) => {
+    console.log('[SimpleImageViewer v4] ✅ Imagen', index + 1, 'cargada');
+    setLoadingImages(prev => {
       const newSet = new Set(prev);
-      newSet.add(index);
+      newSet.delete(index);
       return newSet;
     });
+    setRetryCount(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(index);
+      return newMap;
+    });
+  };
+
+  const handleImageError = (index: number, url: string) => {
+    const currentRetries = retryCount.get(index) || 0;
+    
+    console.error('[SimpleImageViewer v4] ❌ Error en imagen', index + 1);
+    console.error('[SimpleImageViewer v4] ❌ URL:', url);
+    console.error('[SimpleImageViewer v4] ❌ Intento:', currentRetries + 1);
+
+    setLoadingImages(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(index);
+      return newSet;
+    });
+
+    if (currentRetries < 2) {
+      console.log('[SimpleImageViewer v4] 🔄 Reintentando...');
+      setRetryCount(prev => {
+        const newMap = new Map(prev);
+        newMap.set(index, currentRetries + 1);
+        return newMap;
+      });
+      
+      setTimeout(() => {
+        setLoadingImages(prev => new Set(prev).add(index));
+      }, 1000);
+    } else {
+      console.error('[SimpleImageViewer v4] ❌ Máximo de reintentos alcanzado');
+      setErrorImages(prev => new Set(prev).add(index));
+    }
+  };
+
+  const retryImage = (index: number) => {
+    console.log('[SimpleImageViewer v4] 🔄 Reintento manual');
+    setErrorImages(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(index);
+      return newSet;
+    });
+    setRetryCount(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(index);
+      return newMap;
+    });
+    setLoadingImages(prev => new Set(prev).add(index));
+  };
+
+  const showImageUrl = (url: string) => {
+    Alert.alert('URL de la imagen', url);
   };
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-        <Text style={styles.count}>({validImages.length})</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>{title}</Text>
+          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        </View>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{validImages.length}</Text>
+        </View>
       </View>
 
-      {/* Galería horizontal de thumbnails */}
-      <ScrollView 
-        horizontal 
+      {/* Gallery */}
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.gallery}
         contentContainerStyle={styles.galleryContent}
       >
-        {validImages.map((imageUrl, index) => (
+        {validImages.map((url, index) => (
           <TouchableOpacity
-            key={`thumb-${index}`}
-            style={styles.thumbnailContainer}
-            onPress={() => handleOpenImage(index)}
-            activeOpacity={0.7}
+            key={`img-${index}`}
+            style={styles.imageCard}
+            onPress={() => {
+              setSelectedIndex(index);
+              setModalVisible(true);
+            }}
+            onLongPress={() => showImageUrl(url)}
+            activeOpacity={0.8}
           >
-            {failedImages.has(index) ? (
-              <View style={[styles.thumbnail, styles.thumbnailError]}>
-                <IconSymbol 
-                  ios_icon_name="exclamationmark.triangle.fill" 
-                  android_material_icon_name="error" 
-                  size={32} 
-                  color={colors.textSecondary} 
+            <View style={styles.imageNumberBadge}>
+              <Text style={styles.imageNumberText}>{index + 1}</Text>
+            </View>
+
+            {errorImages.has(index) ? (
+              <View style={[styles.imagePreview, styles.errorPreview]}>
+                <IconSymbol
+                  ios_icon_name="exclamationmark.triangle.fill"
+                  android_material_icon_name="error"
+                  size={32}
+                  color="#EF4444"
                 />
-                <Text style={styles.errorText}>Error al cargar</Text>
+                <Text style={styles.errorText}>Error</Text>
+                <TouchableOpacity
+                  style={styles.retryBtn}
+                  onPress={() => retryImage(index)}
+                >
+                  <IconSymbol
+                    ios_icon_name="arrow.clockwise"
+                    android_material_icon_name="refresh"
+                    size={14}
+                    color={colors.primary}
+                  />
+                  <Text style={styles.retryBtnText}>Reintentar</Text>
+                </TouchableOpacity>
               </View>
             ) : (
-              <Image
-                source={{ uri: imageUrl }}
-                style={styles.thumbnail}
-                resizeMode="cover"
-                onLoadStart={() => {
-                  console.log('[SimpleImageViewer v2] 🔄 Cargando thumbnail', index + 1);
-                }}
-                onLoad={() => {
-                  console.log('[SimpleImageViewer v2] ✅ Thumbnail', index + 1, 'cargado');
-                }}
-                onError={(error) => handleImageError(index, imageUrl, error.nativeEvent.error)}
-              />
-            )}
-            {/* Número de imagen */}
-            <View style={styles.thumbnailNumber}>
-              <Text style={styles.thumbnailNumberText}>{index + 1}</Text>
-            </View>
-            {/* Icono de expandir */}
-            {!failedImages.has(index) && (
-              <View style={styles.expandIcon}>
-                <IconSymbol 
-                  ios_icon_name="arrow.up.left.and.arrow.down.right" 
-                  android_material_icon_name="fullscreen" 
-                  size={18} 
-                  color="#fff" 
+              <>
+                <Image
+                  source={{ uri: url }}
+                  style={styles.imagePreview}
+                  resizeMode="cover"
+                  onLoadStart={() => handleImageLoadStart(index)}
+                  onLoad={() => handleImageLoadEnd(index)}
+                  onError={() => handleImageError(index, url)}
                 />
-              </View>
+                {loadingImages.has(index) && (
+                  <View style={styles.loadingOverlay}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                )}
+                {!loadingImages.has(index) && (
+                  <View style={styles.expandIcon}>
+                    <IconSymbol
+                      ios_icon_name="arrow.up.left.and.arrow.down.right"
+                      android_material_icon_name="fullscreen"
+                      size={14}
+                      color="#fff"
+                    />
+                  </View>
+                )}
+              </>
             )}
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Modal de pantalla completa */}
+      {/* Modal */}
       <Modal
-        visible={showModal}
+        visible={modalVisible}
         transparent={false}
         animationType="fade"
-        onRequestClose={handleCloseModal}
+        onRequestClose={() => setModalVisible(false)}
+        statusBarTranslucent
       >
         <View style={styles.modalContainer}>
-          {/* Botón de cerrar */}
-          <TouchableOpacity 
-            style={styles.closeButton} 
-            onPress={handleCloseModal}
-            activeOpacity={0.8}
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={() => setModalVisible(false)}
           >
-            <View style={styles.closeButtonCircle}>
-              <IconSymbol 
-                ios_icon_name="xmark" 
-                android_material_icon_name="close" 
-                size={24} 
-                color="#fff" 
+            <View style={styles.closeBtnCircle}>
+              <IconSymbol
+                ios_icon_name="xmark"
+                android_material_icon_name="close"
+                size={24}
+                color="#fff"
               />
             </View>
           </TouchableOpacity>
 
-          {/* Scroll horizontal de imágenes */}
           <ScrollView
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            style={styles.imageScroll}
-            contentOffset={{ x: selectedIndex * width, y: 0 }}
-            onScroll={(event) => {
-              const newIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+            contentOffset={{ x: selectedIndex * SCREEN_WIDTH, y: 0 }}
+            onScroll={(e) => {
+              const newIndex = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
               if (newIndex !== selectedIndex) {
-                console.log('[SimpleImageViewer v2] 📸 Navegando a imagen', newIndex + 1);
                 setSelectedIndex(newIndex);
               }
             }}
             scrollEventThrottle={16}
           >
-            {validImages.map((imageUrl, index) => (
-              <View key={`full-${index}`} style={styles.fullImageContainer}>
-                {failedImages.has(index) ? (
-                  <View style={styles.fullImageError}>
-                    <IconSymbol 
-                      ios_icon_name="exclamationmark.triangle.fill" 
-                      android_material_icon_name="error" 
-                      size={64} 
-                      color="#fff" 
+            {validImages.map((url, index) => (
+              <View key={`full-${index}`} style={styles.fullscreenContainer}>
+                {errorImages.has(index) ? (
+                  <View style={styles.fullscreenError}>
+                    <IconSymbol
+                      ios_icon_name="exclamationmark.triangle.fill"
+                      android_material_icon_name="error"
+                      size={64}
+                      color="#EF4444"
                     />
-                    <Text style={styles.fullErrorText}>No se pudo cargar la imagen</Text>
-                    <Text style={styles.fullErrorSubtext}>URL: {imageUrl.substring(0, 50)}...</Text>
+                    <Text style={styles.fullscreenErrorText}>
+                      No se pudo cargar la imagen
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.fullscreenRetryBtn}
+                      onPress={() => retryImage(index)}
+                    >
+                      <IconSymbol
+                        ios_icon_name="arrow.clockwise"
+                        android_material_icon_name="refresh"
+                        size={20}
+                        color="#fff"
+                      />
+                      <Text style={styles.fullscreenRetryText}>Reintentar</Text>
+                    </TouchableOpacity>
                   </View>
                 ) : (
-                  <Image
-                    source={{ uri: imageUrl }}
-                    style={styles.fullImage}
-                    resizeMode="contain"
-                    onLoadStart={() => {
-                      console.log('[SimpleImageViewer v2] 🔄 Cargando imagen completa', index + 1);
-                    }}
-                    onLoad={() => {
-                      console.log('[SimpleImageViewer v2] ✅ Imagen completa', index + 1, 'cargada');
-                    }}
-                    onError={(error) => handleImageError(index, imageUrl, error.nativeEvent.error)}
-                  />
+                  <>
+                    <Image
+                      source={{ uri: url }}
+                      style={styles.fullscreenImage}
+                      resizeMode="contain"
+                      onLoadStart={() => handleImageLoadStart(index)}
+                      onLoad={() => handleImageLoadEnd(index)}
+                      onError={() => handleImageError(index, url)}
+                    />
+                    {loadingImages.has(index) && (
+                      <View style={styles.fullscreenLoading}>
+                        <ActivityIndicator size="large" color="#fff" />
+                        <Text style={styles.loadingText}>Cargando...</Text>
+                      </View>
+                    )}
+                  </>
                 )}
               </View>
             ))}
           </ScrollView>
 
-          {/* Contador e indicadores */}
           <View style={styles.modalFooter}>
-            <View style={styles.counterContainer}>
+            <View style={styles.counterBadge}>
               <Text style={styles.counterText}>
                 {selectedIndex + 1} / {validImages.length}
               </Text>
             </View>
-            {validImages.length > 1 && (
-              <View style={styles.indicators}>
-                {validImages.map((_, index) => (
-                  <View
-                    key={`indicator-${index}`}
-                    style={[
-                      styles.indicator,
-                      index === selectedIndex && styles.indicatorActive,
-                    ]}
-                  />
-                ))}
-              </View>
-            )}
           </View>
         </View>
       </Modal>
@@ -249,13 +343,16 @@ export default function SimpleImageViewer({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  headerLeft: {
+    flex: 1,
   },
   title: {
     fontSize: 16,
@@ -265,43 +362,30 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 12,
     color: colors.textSecondary,
+    marginTop: 2,
   },
-  count: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
+  badge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  gallery: {
-    marginHorizontal: -16,
-    paddingHorizontal: 16,
+  badgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.headerText,
   },
   galleryContent: {
     gap: 12,
   },
-  thumbnailContainer: {
+  imageCard: {
     position: 'relative',
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: colors.primary + '40',
+    borderColor: colors.primary + '50',
   },
-  thumbnail: {
-    width: 140,
-    height: 140,
-    backgroundColor: colors.cardBorder,
-  },
-  thumbnailError: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  errorText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  thumbnailNumber: {
+  imageNumberBadge: {
     position: 'absolute',
     top: 8,
     left: 8,
@@ -311,73 +395,139 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
-  thumbnailNumberText: {
+  imageNumberText: {
     fontSize: 13,
     fontWeight: '700',
     color: colors.headerText,
+  },
+  imagePreview: {
+    width: 140,
+    height: 140,
+    backgroundColor: colors.cardBorder,
+  },
+  errorPreview: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  errorText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  retryBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   expandIcon: {
     position: 'absolute',
     bottom: 8,
     right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  emptySubtext: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   modalContainer: {
     flex: 1,
     backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  closeButton: {
+  closeBtn: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 50,
     right: 20,
-    zIndex: 10,
+    zIndex: 100,
   },
-  closeButtonCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  closeBtnCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  imageScroll: {
-    width: width,
-    flex: 1,
-  },
-  fullImageContainer: {
-    width: width,
-    height: height,
+  fullscreenContainer: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fullImage: {
-    width: width,
-    height: height,
+  fullscreenImage: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
-  fullImageError: {
+  fullscreenError: {
     justifyContent: 'center',
     alignItems: 'center',
     gap: 16,
     padding: 20,
   },
-  fullErrorText: {
+  fullscreenErrorText: {
     fontSize: 18,
     fontWeight: '700',
     color: '#fff',
     textAlign: 'center',
   },
-  fullErrorSubtext: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
+  fullscreenRetryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  fullscreenRetryText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  fullscreenLoading: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
   },
   modalFooter: {
     position: 'absolute',
@@ -385,33 +535,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
-    gap: 16,
   },
-  counterContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
+  counterBadge: {
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
   counterText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: '#fff',
-  },
-  indicators: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  indicatorActive: {
-    backgroundColor: '#fff',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
   },
 });

@@ -11,19 +11,19 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 /**
- * 🆕 NUEVO SISTEMA DE VISUALIZACIÓN DE DOCUMENTOS v3.0
+ * 🆕 SISTEMA MEJORADO DE VISUALIZACIÓN v4.0
  * 
- * Sistema completamente nuevo desde cero:
- * - Sin dependencias del código anterior
- * - Galería horizontal simple
- * - Modal de pantalla completa
- * - Manejo robusto de errores
- * - Interfaz intuitiva
+ * Mejoras:
+ * - Validación robusta de URLs
+ * - Manejo mejorado de errores
+ * - Retry automático
+ * - Feedback claro al usuario
  */
 
 interface NewDocumentViewerProps {
@@ -43,20 +43,35 @@ export default function NewDocumentViewer({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [imageLoadErrors, setImageLoadErrors] = useState<Set<number>>(new Set());
   const [loadingImages, setLoadingImages] = useState<Set<number>>(new Set());
+  const [retryCount, setRetryCount] = useState<Map<number, number>>(new Map());
 
-  console.log('[NewDocumentViewer] 🎬 Inicializado');
-  console.log('[NewDocumentViewer] 📄 Total de URLs:', imageUrls.length);
+  console.log('[NewDocumentViewer v4] 🎬 Inicializado');
+  console.log('[NewDocumentViewer v4] 📄 Total de URLs recibidas:', imageUrls.length);
 
-  // Filtrar URLs válidas
-  const validUrls = imageUrls.filter(url => {
-    const isValid = url && typeof url === 'string' && url.startsWith('https://');
-    if (!isValid) {
-      console.warn('[NewDocumentViewer] ⚠️ URL inválida:', url);
+  // Validar y limpiar URLs
+  const validUrls = imageUrls.filter((url, index) => {
+    if (!url || typeof url !== 'string') {
+      console.warn('[NewDocumentViewer v4] ⚠️ URL inválida en índice', index, ':', url);
+      return false;
     }
-    return isValid;
+
+    // Verificar que sea una URL HTTPS válida
+    if (!url.startsWith('https://')) {
+      console.warn('[NewDocumentViewer v4] ⚠️ URL no es HTTPS en índice', index, ':', url.substring(0, 50));
+      return false;
+    }
+
+    // Verificar que contenga el dominio de Supabase
+    if (!url.includes('supabase.co')) {
+      console.warn('[NewDocumentViewer v4] ⚠️ URL no es de Supabase en índice', index);
+      return false;
+    }
+
+    console.log('[NewDocumentViewer v4] ✅ URL válida en índice', index);
+    return true;
   });
 
-  console.log('[NewDocumentViewer] ✅ URLs válidas:', validUrls.length);
+  console.log('[NewDocumentViewer v4] ✅ URLs válidas:', validUrls.length);
 
   if (validUrls.length === 0) {
     return (
@@ -68,44 +83,102 @@ export default function NewDocumentViewer({
           color={colors.textSecondary}
         />
         <Text style={styles.emptyText}>{emptyMessage}</Text>
+        <Text style={styles.emptySubtext}>
+          {imageUrls.length > 0 
+            ? `${imageUrls.length} URL(s) inválida(s) detectada(s)`
+            : 'No se proporcionaron imágenes'}
+        </Text>
       </View>
     );
   }
 
   const openImageModal = (index: number) => {
-    console.log('[NewDocumentViewer] 👁️ Abriendo imagen', index + 1, 'de', validUrls.length);
+    console.log('[NewDocumentViewer v4] 👁️ Abriendo imagen', index + 1, 'de', validUrls.length);
     setSelectedImageIndex(index);
     setModalVisible(true);
   };
 
   const closeModal = () => {
-    console.log('[NewDocumentViewer] 🚪 Cerrando modal');
+    console.log('[NewDocumentViewer v4] 🚪 Cerrando modal');
     setModalVisible(false);
   };
 
   const handleImageLoadStart = (index: number) => {
-    console.log('[NewDocumentViewer] 🔄 Cargando imagen', index + 1);
+    console.log('[NewDocumentViewer v4] 🔄 Iniciando carga de imagen', index + 1);
     setLoadingImages(prev => new Set(prev).add(index));
   };
 
   const handleImageLoadEnd = (index: number) => {
-    console.log('[NewDocumentViewer] ✅ Imagen', index + 1, 'cargada');
+    console.log('[NewDocumentViewer v4] ✅ Imagen', index + 1, 'cargada exitosamente');
     setLoadingImages(prev => {
       const newSet = new Set(prev);
       newSet.delete(index);
       return newSet;
+    });
+    // Limpiar contador de reintentos si la carga fue exitosa
+    setRetryCount(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(index);
+      return newMap;
     });
   };
 
   const handleImageError = (index: number, url: string) => {
-    console.error('[NewDocumentViewer] ❌ Error cargando imagen', index + 1);
-    console.error('[NewDocumentViewer] ❌ URL:', url);
-    setImageLoadErrors(prev => new Set(prev).add(index));
+    const currentRetries = retryCount.get(index) || 0;
+    
+    console.error('[NewDocumentViewer v4] ❌ Error cargando imagen', index + 1);
+    console.error('[NewDocumentViewer v4] ❌ URL:', url);
+    console.error('[NewDocumentViewer v4] ❌ Intento:', currentRetries + 1, 'de 3');
+
     setLoadingImages(prev => {
       const newSet = new Set(prev);
       newSet.delete(index);
       return newSet;
     });
+
+    // Si no hemos alcanzado el máximo de reintentos, intentar de nuevo
+    if (currentRetries < 2) {
+      console.log('[NewDocumentViewer v4] 🔄 Reintentando carga...');
+      setRetryCount(prev => {
+        const newMap = new Map(prev);
+        newMap.set(index, currentRetries + 1);
+        return newMap;
+      });
+      
+      // Forzar recarga después de un breve delay
+      setTimeout(() => {
+        setLoadingImages(prev => new Set(prev).add(index));
+      }, 1000);
+    } else {
+      console.error('[NewDocumentViewer v4] ❌ Máximo de reintentos alcanzado');
+      setImageLoadErrors(prev => new Set(prev).add(index));
+    }
+  };
+
+  const retryImage = (index: number) => {
+    console.log('[NewDocumentViewer v4] 🔄 Reintento manual de imagen', index + 1);
+    setImageLoadErrors(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(index);
+      return newSet;
+    });
+    setRetryCount(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(index);
+      return newMap;
+    });
+    setLoadingImages(prev => new Set(prev).add(index));
+  };
+
+  const copyUrlToClipboard = (url: string) => {
+    console.log('[NewDocumentViewer v4] 📋 URL copiada');
+    Alert.alert(
+      'URL de la imagen',
+      url,
+      [
+        { text: 'Cerrar', style: 'cancel' }
+      ]
+    );
   };
 
   return (
@@ -130,6 +203,7 @@ export default function NewDocumentViewer({
             key={`thumbnail-${index}`}
             style={styles.thumbnailWrapper}
             onPress={() => openImageModal(index)}
+            onLongPress={() => copyUrlToClipboard(url)}
             activeOpacity={0.8}
           >
             {/* Número de imagen */}
@@ -144,9 +218,21 @@ export default function NewDocumentViewer({
                   ios_icon_name="exclamationmark.triangle.fill"
                   android_material_icon_name="error"
                   size={32}
-                  color={colors.textSecondary}
+                  color="#EF4444"
                 />
-                <Text style={styles.errorLabel}>Error</Text>
+                <Text style={styles.errorLabel}>Error al cargar</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={() => retryImage(index)}
+                >
+                  <IconSymbol
+                    ios_icon_name="arrow.clockwise"
+                    android_material_icon_name="refresh"
+                    size={16}
+                    color={colors.primary}
+                  />
+                  <Text style={styles.retryButtonText}>Reintentar</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <>
@@ -163,6 +249,11 @@ export default function NewDocumentViewer({
                 {loadingImages.has(index) && (
                   <View style={styles.loadingOverlay}>
                     <ActivityIndicator size="small" color={colors.primary} />
+                    {retryCount.get(index) ? (
+                      <Text style={styles.retryText}>
+                        Intento {(retryCount.get(index) || 0) + 1}/3
+                      </Text>
+                    ) : null}
                   </View>
                 )}
 
@@ -182,6 +273,19 @@ export default function NewDocumentViewer({
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* Información de ayuda */}
+      <View style={styles.helpSection}>
+        <IconSymbol
+          ios_icon_name="info.circle"
+          android_material_icon_name="info"
+          size={14}
+          color={colors.textSecondary}
+        />
+        <Text style={styles.helpText}>
+          Mantén presionada una imagen para ver su URL
+        </Text>
+      </View>
 
       {/* Modal de pantalla completa */}
       <Modal
@@ -219,7 +323,7 @@ export default function NewDocumentViewer({
                 event.nativeEvent.contentOffset.x / SCREEN_WIDTH
               );
               if (newIndex !== selectedImageIndex) {
-                console.log('[NewDocumentViewer] 📸 Navegando a imagen', newIndex + 1);
+                console.log('[NewDocumentViewer v4] 📸 Navegando a imagen', newIndex + 1);
                 setSelectedImageIndex(newIndex);
               }
             }}
@@ -233,14 +337,32 @@ export default function NewDocumentViewer({
                       ios_icon_name="exclamationmark.triangle.fill"
                       android_material_icon_name="error"
                       size={64}
-                      color="#fff"
+                      color="#EF4444"
                     />
                     <Text style={styles.fullscreenErrorText}>
                       No se pudo cargar la imagen
                     </Text>
-                    <Text style={styles.fullscreenErrorUrl}>
-                      {url.substring(0, 60)}...
+                    <Text style={styles.fullscreenErrorSubtext}>
+                      Verifica tu conexión a internet
                     </Text>
+                    <TouchableOpacity
+                      style={styles.fullscreenRetryButton}
+                      onPress={() => retryImage(index)}
+                    >
+                      <IconSymbol
+                        ios_icon_name="arrow.clockwise"
+                        android_material_icon_name="refresh"
+                        size={20}
+                        color="#fff"
+                      />
+                      <Text style={styles.fullscreenRetryText}>Reintentar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.fullscreenUrlButton}
+                      onPress={() => copyUrlToClipboard(url)}
+                    >
+                      <Text style={styles.fullscreenUrlText}>Ver URL</Text>
+                    </TouchableOpacity>
                   </View>
                 ) : (
                   <>
@@ -255,7 +377,12 @@ export default function NewDocumentViewer({
                     {loadingImages.has(index) && (
                       <View style={styles.fullscreenLoading}>
                         <ActivityIndicator size="large" color="#fff" />
-                        <Text style={styles.loadingText}>Cargando...</Text>
+                        <Text style={styles.loadingText}>Cargando imagen...</Text>
+                        {retryCount.get(index) ? (
+                          <Text style={styles.retryText}>
+                            Intento {(retryCount.get(index) || 0) + 1}/3
+                          </Text>
+                        ) : null}
                       </View>
                     )}
                   </>
@@ -343,11 +470,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
+    padding: 12,
   },
   errorLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: '#EF4444',
+    textAlign: 'center',
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  retryButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primary,
   },
   imageNumber: {
     position: 'absolute',
@@ -371,6 +515,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
+  },
+  retryText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#fff',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   expandBadge: {
     position: 'absolute',
@@ -383,6 +537,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  helpSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  helpText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -392,7 +558,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   modalContainer: {
     flex: 1,
@@ -434,10 +605,37 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
   },
-  fullscreenErrorUrl: {
-    fontSize: 12,
+  fullscreenErrorSubtext: {
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
+  },
+  fullscreenRetryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  fullscreenRetryText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  fullscreenUrlButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+  fullscreenUrlText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
   },
   fullscreenLoading: {
     ...StyleSheet.absoluteFillObject,
