@@ -11,19 +11,18 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 /**
- * 🆕 SISTEMA ULTRA SIMPLE v6.0 - REBUILD TOTAL
+ * 🆕 NUEVO VISOR DE IMÁGENES v7.0
  * 
- * Visor reconstruido desde CERO:
+ * Sistema completamente reconstruido:
  * - Código minimalista
- * - Sin complejidad innecesaria
- * - Validación simple
- * - Interfaz clara
+ * - Validación robusta
+ * - Manejo de errores mejorado
+ * - Interfaz limpia
  */
 
 interface FreshDocumentViewerProps {
@@ -41,16 +40,21 @@ export default function FreshDocumentViewer({
 }: FreshDocumentViewerProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [loadingImages, setLoadingImages] = useState<Record<number, boolean>>({});
 
-  console.log('[UltraSimpleViewer] 🎬 Iniciado');
-  console.log('[UltraSimpleViewer] 📄 URLs:', imageUrls.length);
+  console.log('[NewViewer] 🎬 Iniciado');
+  console.log('[NewViewer] 📄 URLs recibidas:', imageUrls.length);
 
-  // Validar URLs (simple)
+  // Validar URLs
   const validUrls = imageUrls.filter(url => {
-    return url && typeof url === 'string' && url.startsWith('https://');
+    const isValid = url && typeof url === 'string' && url.startsWith('https://');
+    if (!isValid && url) {
+      console.warn('[NewViewer] ⚠️ URL inválida:', url);
+    }
+    return isValid;
   });
 
-  console.log('[UltraSimpleViewer] ✅ URLs válidas:', validUrls.length);
+  console.log('[NewViewer] ✅ URLs válidas:', validUrls.length);
 
   if (validUrls.length === 0) {
     return (
@@ -67,13 +71,13 @@ export default function FreshDocumentViewer({
   }
 
   const openModal = (index: number) => {
-    console.log('[UltraSimpleViewer] 👁️ Abriendo imagen', index + 1);
+    console.log('[NewViewer] 👁️ Abriendo imagen', index + 1);
     setSelectedIndex(index);
     setModalVisible(true);
   };
 
   const closeModal = () => {
-    console.log('[UltraSimpleViewer] 🚪 Cerrando');
+    console.log('[NewViewer] 🚪 Cerrando modal');
     setModalVisible(false);
   };
 
@@ -107,7 +111,24 @@ export default function FreshDocumentViewer({
               source={{ uri: url }}
               style={styles.thumbnail}
               resizeMode="cover"
+              onLoadStart={() => {
+                console.log('[NewViewer] 🔄 Cargando thumbnail', index + 1);
+                setLoadingImages(prev => ({ ...prev, [index]: true }));
+              }}
+              onLoad={() => {
+                console.log('[NewViewer] ✅ Thumbnail cargado', index + 1);
+                setLoadingImages(prev => ({ ...prev, [index]: false }));
+              }}
+              onError={(error) => {
+                console.error('[NewViewer] ❌ Error thumbnail', index + 1, error.nativeEvent);
+                setLoadingImages(prev => ({ ...prev, [index]: false }));
+              }}
             />
+            {loadingImages[index] && (
+              <View style={styles.thumbnailLoading}>
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            )}
             <View style={styles.expandIcon}>
               <IconSymbol
                 ios_icon_name="arrow.up.left.and.arrow.down.right"
@@ -157,6 +178,15 @@ export default function FreshDocumentViewer({
                   source={{ uri: url }}
                   style={styles.fullscreenImage}
                   resizeMode="contain"
+                  onLoadStart={() => {
+                    console.log('[NewViewer] 🔄 Cargando fullscreen', index + 1);
+                  }}
+                  onLoad={() => {
+                    console.log('[NewViewer] ✅ Fullscreen cargado', index + 1);
+                  }}
+                  onError={(error) => {
+                    console.error('[NewViewer] ❌ Error fullscreen', index + 1, error.nativeEvent);
+                  }}
                 />
               </View>
             ))}
@@ -223,6 +253,16 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     backgroundColor: colors.cardBorder,
+  },
+  thumbnailLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   imageNumber: {
     position: 'absolute',

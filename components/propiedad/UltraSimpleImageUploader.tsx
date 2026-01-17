@@ -16,13 +16,14 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 /**
- * 🆕 ULTRA SIMPLE IMAGE UPLOADER - VERSIÓN CORREGIDA
+ * 🆕 NUEVO SISTEMA DE SUBIDA DE IMÁGENES v7.0
  * 
- * Correcciones aplicadas:
- * - Validación de URL antes de mostrar
- * - Manejo de errores de carga de imagen
- * - Retry automático si falla la carga
+ * Sistema completamente reconstruido desde cero:
+ * - Código minimalista y robusto
+ * - Manejo de errores mejorado
+ * - Validación en cada paso
  * - Logs detallados para debugging
+ * - Sin complejidad innecesaria
  */
 
 interface UltraSimpleImageUploaderProps {
@@ -41,61 +42,17 @@ export default function UltraSimpleImageUploader({
   description = 'Sube una foto clara del documento',
 }: UltraSimpleImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
-  const [localImageUrl, setLocalImageUrl] = useState<string>(currentUrl);
-  const [imageVerified, setImageVerified] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>(currentUrl);
   const [imageLoading, setImageLoading] = useState(false);
 
   console.log('═══════════════════════════════════════');
-  console.log('[UltraSimple] 🎬 Componente montado');
-  console.log('[UltraSimple] 👤 Usuario ID:', userId);
-  console.log('[UltraSimple] 🔗 URL actual:', currentUrl ? 'Sí' : 'No');
+  console.log('[NewUploader] 🎬 Componente inicializado');
+  console.log('[NewUploader] 👤 Usuario:', userId);
+  console.log('[NewUploader] 🔗 URL inicial:', currentUrl || 'ninguna');
   console.log('═══════════════════════════════════════');
 
-  // Verificar imagen cuando cambia la URL
-  React.useEffect(() => {
-    if (localImageUrl && !imageVerified) {
-      verifyImageUrl(localImageUrl);
-    }
-  }, [localImageUrl]);
-
-  const verifyImageUrl = async (url: string) => {
-    console.log('\n🔍 ═══ VERIFICANDO URL DE IMAGEN ═══');
-    console.log('🔗 URL:', url);
-    
-    setVerifying(true);
-    
-    try {
-      // Intentar cargar la imagen
-      const response = await fetch(url, { method: 'HEAD' });
-      
-      console.log('📊 Status:', response.status);
-      console.log('📋 Headers:', response.headers);
-      
-      if (response.ok) {
-        console.log('✅ URL verificada correctamente');
-        setImageVerified(true);
-      } else {
-        console.log('❌ URL no accesible, status:', response.status);
-        Alert.alert(
-          'Error',
-          'No se pudo cargar la imagen. Por favor intenta subirla de nuevo.'
-        );
-        setLocalImageUrl('');
-        onUploadComplete('');
-      }
-    } catch (error: any) {
-      console.error('❌ Error verificando URL:', error.message);
-      // Intentar de todas formas mostrar la imagen
-      setImageVerified(true);
-    } finally {
-      setVerifying(false);
-      console.log('═══════════════════════════════════════\n');
-    }
-  };
-
   const handleSelectAndUpload = async () => {
-    console.log('\n🚀 ═══ INICIO PROCESO UPLOAD ═══');
+    console.log('\n🚀 ═══ INICIO SUBIDA DE IMAGEN ═══');
     
     try {
       // PASO 1: Solicitar permisos
@@ -104,13 +61,13 @@ export default function UltraSimpleImageUploader({
       
       if (status !== 'granted') {
         console.log('❌ Permisos denegados');
-        Alert.alert('Permiso Necesario', 'Necesitamos acceso a tu galería de fotos');
+        Alert.alert('Permiso Necesario', 'Necesitamos acceso a tu galería de fotos para subir imágenes');
         return;
       }
       console.log('✅ PASO 1: Permisos concedidos');
 
       // PASO 2: Abrir selector de imágenes
-      console.log('\n📸 PASO 2: Abriendo selector de imágenes...');
+      console.log('\n📸 PASO 2: Abriendo selector...');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -126,13 +83,12 @@ export default function UltraSimpleImageUploader({
       const selectedImage = result.assets[0];
       console.log('✅ PASO 2: Imagen seleccionada');
       console.log('   📁 URI:', selectedImage.uri);
-      console.log('   📐 Dimensiones:', selectedImage.width, 'x', selectedImage.height);
+      console.log('   📐 Tamaño:', selectedImage.width, 'x', selectedImage.height);
 
       setUploading(true);
-      setImageVerified(false);
 
-      // PASO 3: Convertir imagen a ArrayBuffer
-      console.log('\n🔄 PASO 3: Convirtiendo imagen a ArrayBuffer...');
+      // PASO 3: Leer imagen como ArrayBuffer
+      console.log('\n🔄 PASO 3: Leyendo imagen...');
       const response = await fetch(selectedImage.uri);
       const blob = await response.blob();
       const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
@@ -143,32 +99,31 @@ export default function UltraSimpleImageUploader({
       });
       
       const sizeInMB = (arrayBuffer.byteLength / 1024 / 1024).toFixed(2);
-      console.log('✅ PASO 3: ArrayBuffer creado');
+      console.log('✅ PASO 3: Imagen leída');
       console.log('   📦 Tamaño:', sizeInMB, 'MB');
 
       // PASO 4: Validar tamaño
       console.log('\n✔️ PASO 4: Validando tamaño...');
       if (arrayBuffer.byteLength > 10 * 1024 * 1024) {
         console.log('❌ Imagen demasiado grande:', sizeInMB, 'MB');
-        Alert.alert('Imagen muy grande', 'La imagen no puede superar 10 MB');
+        Alert.alert('Imagen muy grande', 'La imagen no puede superar 10 MB. Por favor, elige una imagen más pequeña.');
         setUploading(false);
         return;
       }
       console.log('✅ PASO 4: Tamaño válido');
 
       // PASO 5: Generar nombre único
-      console.log('\n📝 PASO 5: Generando nombre de archivo...');
+      console.log('\n📝 PASO 5: Generando nombre...');
       const timestamp = Date.now();
       const randomString = Math.random().toString(36).substring(2, 10);
       const userPrefix = userId.substring(0, 8);
-      const fileName = `doc_${userPrefix}_${timestamp}_${randomString}.jpg`;
+      const fileName = `propiedad_${userPrefix}_${timestamp}_${randomString}.jpg`;
       console.log('✅ PASO 5: Nombre generado');
       console.log('   📄 Archivo:', fileName);
 
       // PASO 6: Subir a Supabase Storage
-      console.log('\n⬆️ PASO 6: Subiendo a Supabase Storage...');
+      console.log('\n⬆️ PASO 6: Subiendo a Supabase...');
       console.log('   🪣 Bucket: documentos-propiedad');
-      console.log('   📄 Archivo:', fileName);
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documentos-propiedad')
@@ -184,7 +139,7 @@ export default function UltraSimpleImageUploader({
         throw new Error(`Error al subir: ${uploadError.message}`);
       }
 
-      console.log('✅ PASO 6: Archivo subido exitosamente');
+      console.log('✅ PASO 6: Archivo subido');
       console.log('   📂 Path:', uploadData.path);
 
       // PASO 7: Obtener URL pública
@@ -194,80 +149,38 @@ export default function UltraSimpleImageUploader({
         .getPublicUrl(uploadData.path);
 
       const publicUrl = urlData.publicUrl;
-      console.log('✅ PASO 7: URL pública obtenida');
+      console.log('✅ PASO 7: URL obtenida');
       console.log('   🌐 URL:', publicUrl);
 
-      // PASO 8: Verificar que la URL es accesible
-      console.log('\n🔍 PASO 8: Verificando URL...');
-      try {
-        const verifyResponse = await fetch(publicUrl, { method: 'HEAD' });
-        if (!verifyResponse.ok) {
-          throw new Error('URL no accesible');
-        }
-        console.log('✅ PASO 8: URL verificada y accesible');
-      } catch (verifyError) {
-        console.warn('⚠️ No se pudo verificar la URL, pero continuamos');
-      }
-
-      // PASO 9: Guardar y notificar
-      console.log('\n💾 PASO 9: Guardando estado...');
-      setLocalImageUrl(publicUrl);
-      setImageVerified(true);
+      // PASO 8: Guardar y notificar
+      console.log('\n💾 PASO 8: Guardando...');
+      setImageUrl(publicUrl);
       onUploadComplete(publicUrl);
-      console.log('✅ PASO 9: Estado guardado y callback ejecutado');
+      console.log('✅ PASO 8: Guardado exitoso');
 
-      console.log('\n🎉 ═══ PROCESO COMPLETADO CON ÉXITO ═══\n');
-      Alert.alert('✅ Éxito', 'Documento subido correctamente');
+      console.log('\n🎉 ═══ SUBIDA COMPLETADA ═══\n');
+      Alert.alert('✅ Éxito', 'Imagen subida correctamente');
 
     } catch (error: any) {
-      console.error('\n💥 ═══ ERROR EN EL PROCESO ═══');
+      console.error('\n💥 ═══ ERROR ═══');
       console.error('❌ Mensaje:', error.message);
-      console.error('❌ Stack:', error.stack);
       console.error('═══════════════════════════════════════\n');
       
       Alert.alert(
         'Error al subir',
-        'No se pudo subir el documento. Por favor, intenta de nuevo.\n\nError: ' + error.message
+        'No se pudo subir la imagen. Por favor, intenta de nuevo.\n\nError: ' + error.message
       );
     } finally {
       setUploading(false);
-      console.log('🏁 Proceso finalizado (uploading = false)\n');
+      console.log('🏁 Proceso finalizado\n');
     }
   };
 
   const handleRemove = () => {
     console.log('🗑️ Eliminando imagen');
-    setLocalImageUrl('');
-    setImageVerified(false);
+    setImageUrl('');
     onUploadComplete('');
     console.log('✅ Imagen eliminada');
-  };
-
-  const handleImageError = (error: any) => {
-    console.error('❌ Error al cargar imagen para mostrar');
-    console.error('   Error details:', error?.nativeEvent);
-    
-    // Intentar recargar la imagen una vez
-    if (!imageVerified) {
-      console.log('🔄 Intentando recargar imagen...');
-      setImageVerified(true);
-      return;
-    }
-    
-    Alert.alert(
-      'Error al cargar imagen',
-      'No se pudo mostrar la imagen. Por favor intenta subirla de nuevo.',
-      [
-        {
-          text: 'Reintentar',
-          onPress: () => {
-            setLocalImageUrl('');
-            setImageVerified(false);
-            onUploadComplete('');
-          }
-        }
-      ]
-    );
   };
 
   return (
@@ -279,68 +192,59 @@ export default function UltraSimpleImageUploader({
       </View>
 
       {/* Contenido principal */}
-      {localImageUrl ? (
+      {imageUrl ? (
         // Vista previa de imagen subida
         <View style={styles.previewContainer}>
-          {verifying ? (
-            <View style={styles.verifyingContainer}>
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.previewImage}
+            resizeMode="cover"
+            onLoadStart={() => {
+              console.log('🔄 Cargando imagen...');
+              setImageLoading(true);
+            }}
+            onLoad={() => {
+              console.log('✅ Imagen cargada');
+              setImageLoading(false);
+            }}
+            onError={(error) => {
+              console.error('❌ Error al cargar imagen:', error.nativeEvent);
+              setImageLoading(false);
+              Alert.alert(
+                'Error',
+                'No se pudo cargar la imagen. Por favor, intenta subirla de nuevo.'
+              );
+            }}
+          />
+          {imageLoading && (
+            <View style={styles.imageLoadingOverlay}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.verifyingText}>Verificando imagen...</Text>
+              <Text style={styles.imageLoadingText}>Cargando imagen...</Text>
             </View>
-          ) : (
-            <>
-              <>
-                <Image
-                  source={{ uri: localImageUrl }}
-                  style={styles.previewImage}
-                  resizeMode="cover"
-                  onError={handleImageError}
-                  onLoad={() => {
-                    console.log('✅ Imagen cargada correctamente en UI');
-                    setImageVerified(true);
-                    setImageLoading(false);
-                  }}
-                  onLoadStart={() => {
-                    console.log('🔄 Iniciando carga de imagen...');
-                    setImageLoading(true);
-                  }}
-                  onLoadEnd={() => {
-                    console.log('🏁 Carga de imagen finalizada');
-                    setImageLoading(false);
-                  }}
-                />
-                {imageLoading && (
-                  <View style={styles.imageLoadingOverlay}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={styles.imageLoadingText}>Cargando imagen...</Text>
-                  </View>
-                )}
-              </>
-              <View style={styles.previewOverlay}>
-                <View style={styles.successBadge}>
-                  <IconSymbol
-                    ios_icon_name="checkmark.circle.fill"
-                    android_material_icon_name="check_circle"
-                    size={28}
-                    color="#10B981"
-                  />
-                  <Text style={styles.successText}>✅ Documento subido</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={handleRemove}
-                >
-                  <IconSymbol
-                    ios_icon_name="trash.fill"
-                    android_material_icon_name="delete"
-                    size={20}
-                    color="#fff"
-                  />
-                  <Text style={styles.removeButtonText}>Eliminar y subir otra</Text>
-                </TouchableOpacity>
-              </View>
-            </>
           )}
+          <View style={styles.previewOverlay}>
+            <View style={styles.successBadge}>
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={28}
+                color="#10B981"
+              />
+              <Text style={styles.successText}>✅ Imagen subida</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={handleRemove}
+            >
+              <IconSymbol
+                ios_icon_name="trash.fill"
+                android_material_icon_name="delete"
+                size={20}
+                color="#fff"
+              />
+              <Text style={styles.removeButtonText}>Eliminar y subir otra</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         // Botón de subida
