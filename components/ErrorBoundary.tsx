@@ -1,10 +1,22 @@
-
 /**
- * Error Boundary Component
- * Version: 2.0 - Fixed export
+ * Error Boundary Component Template
  *
  * Catches JavaScript errors anywhere in the child component tree,
  * logs those errors, and displays a fallback UI.
+ *
+ * Usage:
+ * ```tsx
+ * <ErrorBoundary>
+ *   <App />
+ * </ErrorBoundary>
+ * ```
+ *
+ * Or wrap specific screens:
+ * ```tsx
+ * <ErrorBoundary fallback={<CustomErrorScreen />}>
+ *   <ComplexFeature />
+ * </ErrorBoundary>
+ * ```
  */
 
 import React, { Component, ReactNode } from "react";
@@ -41,18 +53,20 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("[ErrorBoundary] Error caught:", error, errorInfo);
-    
+    // Log error to console
+    console.error("Error caught by boundary:", error, errorInfo);
+
+    // Update state with error info
     this.setState({
       error,
       errorInfo,
     });
 
+    // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
   }
 
   handleReset = () => {
-    console.log("[ErrorBoundary] Resetting error state");
     this.setState({
       hasError: false,
       error: null,
@@ -62,20 +76,22 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      // Custom fallback UI
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
+      // Default fallback UI
       return (
         <View style={styles.container}>
-          <Text style={styles.title}>¡Ups! Algo salió mal</Text>
+          <Text style={styles.title}>Oops! Something went wrong</Text>
           <Text style={styles.message}>
-            Lo sentimos por el inconveniente. La aplicación encontró un error.
+            We're sorry for the inconvenience. The app encountered an error.
           </Text>
 
           {__DEV__ && this.state.error && (
             <ScrollView style={styles.errorDetails}>
-              <Text style={styles.errorTitle}>Detalles del Error (Solo Dev):</Text>
+              <Text style={styles.errorTitle}>Error Details (Dev Only):</Text>
               <Text style={styles.errorText}>
                 {this.state.error.toString()}
               </Text>
@@ -88,7 +104,7 @@ export class ErrorBoundary extends Component<Props, State> {
           )}
 
           <TouchableOpacity style={styles.button} onPress={this.handleReset}>
-            <Text style={styles.buttonText}>Intentar de nuevo</Text>
+            <Text style={styles.buttonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       );
@@ -97,8 +113,6 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-
-export default ErrorBoundary;
 
 const styles = StyleSheet.create({
   container: {

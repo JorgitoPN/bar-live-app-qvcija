@@ -90,25 +90,17 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
 }
 
 /**
- * ✅ LOCAL DETAILS MODAL v148.0 - IMPROVED IMAGE ERROR HANDLING
+ * ✅ LOCAL DETAILS MODAL v146.0 - ANDROID PROFESSIONAL ADAPTATION
  * 
- * CRITICAL FIXES v148.0:
- * - ✅ Better error state management for images
- * - ✅ Retry mechanism for failed image loads
- * - ✅ More informative error messages
- * - ✅ Improved fallback placeholder design
- * 
- * Previous fixes maintained (v147.0):
- * - ✅ Better error handling for image loading failures
- * - ✅ Fallback placeholder when images fail to load
- * - ✅ Improved error logging for debugging
- * - ✅ Graceful degradation when images are unavailable
+ * CRITICAL FIXES v146.0 (ANDROID ONLY):
  * - ✅ Full-screen presentation on Android (no modal window effect)
  * - ✅ Professional design matching iOS experience
  * - ✅ Proper StatusBar handling for Android
  * - ✅ All font sizes properly scaled with scaleFontSize()
  * - ✅ All icon sizes properly scaled with scaleIconSize()
  * - ✅ iOS design remains unchanged (reference design)
+ * 
+ * Previous fixes maintained (v55.0):
  * - ✅ Rating synced with actual reviews from reviews_barlive table
  * - ✅ "Estoy en este local" and "Sala Virtual" buttons hidden in propietario mode
  * - ✅ Real-time rating updates
@@ -130,7 +122,6 @@ export default function LocalDetailsModal({
   const [distance, setDistance] = useState<string | null>(null);
   const [actualRating, setActualRating] = useState<number>(0);
   const [reviewCount, setReviewCount] = useState<number>(0);
-  const [imageError, setImageError] = useState(false);
 
   const localIsFavorite = localId ? isFavorite(localId) : false;
 
@@ -201,13 +192,11 @@ export default function LocalDetailsModal({
 
       if (error) throw error;
       setLocal(data);
-      console.log('[LocalDetailsModal v148.0] ✅ Local loaded:', {
+      console.log('[LocalDetailsModal v146.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         plan_activo: data.plan_activo,
         local_profile_id: data.local_profile_id,
-        imagen_url: data.imagen_url,
-        foto_principal: data.foto_principal,
       });
 
       // ✅ CRITICAL FIX v55.0: Load actual rating from reviews_barlive table
@@ -220,7 +209,7 @@ export default function LocalDetailsModal({
         const avgRating = reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length;
         setActualRating(avgRating);
         setReviewCount(reviewsData.length);
-        console.log('[LocalDetailsModal v148.0] ✅ Calculated rating from reviews:', {
+        console.log('[LocalDetailsModal v146.0] ✅ Calculated rating from reviews:', {
           avgRating: avgRating.toFixed(1),
           reviewCount: reviewsData.length,
         });
@@ -229,10 +218,10 @@ export default function LocalDetailsModal({
         const fallbackRating = data.rating || data.google_rating || 0;
         setActualRating(fallbackRating);
         setReviewCount(0);
-        console.log('[LocalDetailsModal v148.0] ℹ️ Using fallback rating:', fallbackRating);
+        console.log('[LocalDetailsModal v146.0] ℹ️ Using fallback rating:', fallbackRating);
       }
     } catch (error) {
-      console.error('[LocalDetailsModal v148.0] Error loading local:', error);
+      console.error('[LocalDetailsModal v146.0] Error loading local:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
     } finally {
       setLoading(false);
@@ -241,22 +230,20 @@ export default function LocalDetailsModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[LocalDetailsModal v148.0] 🚀 Opening modal for local:', localId);
+      console.log('[LocalDetailsModal v146.0] 🚀 Opening modal for local:', localId);
       loadLocalData();
-      setImageError(false);
     } else {
       setLocal(null);
       setLoading(true);
       setActualRating(0);
       setReviewCount(0);
-      setImageError(false);
     }
   }, [visible, localId, loadLocalData]);
 
   // ✅ NEW v55.0: Real-time rating updates
   useEffect(() => {
     if (visible && localId) {
-      console.log('[LocalDetailsModal v148.0] 🔄 Setting up real-time rating listener for:', localId);
+      console.log('[LocalDetailsModal v146.0] 🔄 Setting up real-time rating listener for:', localId);
       
       const subscription = supabase
         .channel(`reviews-${localId}`)
@@ -269,7 +256,7 @@ export default function LocalDetailsModal({
             filter: `local_id=eq.${localId}`,
           },
           async (payload) => {
-            console.log('[LocalDetailsModal v148.0] 🔔 Review updated:', payload);
+            console.log('[LocalDetailsModal v146.0] 🔔 Review updated:', payload);
             
             // Reload rating
             const { data: reviewsData, error: reviewsError } = await supabase
@@ -281,14 +268,14 @@ export default function LocalDetailsModal({
               const avgRating = reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length;
               setActualRating(avgRating);
               setReviewCount(reviewsData.length);
-              console.log('[LocalDetailsModal v148.0] ✅ Rating updated:', avgRating.toFixed(1));
+              console.log('[LocalDetailsModal v146.0] ✅ Rating updated:', avgRating.toFixed(1));
             }
           }
         )
         .subscribe();
 
       return () => {
-        console.log('[LocalDetailsModal v148.0] 🔌 Unsubscribing from rating updates');
+        console.log('[LocalDetailsModal v146.0] 🔌 Unsubscribing from rating updates');
         subscription.unsubscribe();
       };
     }
@@ -344,16 +331,6 @@ export default function LocalDetailsModal({
     ...(local.fotos || []),
     ...(local.galeria_urls || [])
   ].filter(Boolean) : [];
-
-  const handleImageError = (error?: any) => {
-    console.error('[LocalDetailsModal v148.0] ❌ Image failed to load:', error);
-    setImageError(true);
-  };
-
-  const handleImageLoad = () => {
-    console.log('[LocalDetailsModal v148.0] ✅ Image loaded successfully');
-    setImageError(false);
-  };
 
   const estadoLocal = local ? getEstadoLocal(local) : null;
   const isOpen = estadoLocal?.estaAbierto === true;
@@ -639,27 +616,11 @@ export default function LocalDetailsModal({
                 <React.Fragment>
                   {allImages.length > 0 && (
                     <View style={styles.coverContainer}>
-                      {imageError ? (
-                        <View style={[styles.coverImage, styles.imagePlaceholder]}>
-                          <IconSymbol 
-                            ios_icon_name="photo" 
-                            android_material_icon_name="image" 
-                            size={scaleIconSize(64)} 
-                            color={colors.textSecondary} 
-                          />
-                          <Text style={[styles.imagePlaceholderText, { fontSize: scaleFontSize(14) }]}>
-                            Imagen no disponible
-                          </Text>
-                        </View>
-                      ) : (
-                        <OptimizedImage
-                          source={{ uri: allImages[currentImageIndex] }}
-                          style={styles.coverImage}
-                          resizeMode="cover"
-                          onError={handleImageError}
-                          onLoad={handleImageLoad}
-                        />
-                      )}
+                      <OptimizedImage
+                        source={{ uri: allImages[currentImageIndex] }}
+                        style={styles.coverImage}
+                        resizeMode="cover"
+                      />
 
                       <TouchableOpacity 
                         style={[styles.closeButtonFixed, { top: closeButtonTop }]} 
@@ -915,16 +876,6 @@ const styles = StyleSheet.create({
   coverImage: {
     width: '100%',
     height: 250,
-  },
-  imagePlaceholder: {
-    backgroundColor: colors.cardBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  imagePlaceholderText: {
-    color: colors.textSecondary,
-    fontWeight: '600',
   },
   closeButtonFixed: {
     position: 'absolute',

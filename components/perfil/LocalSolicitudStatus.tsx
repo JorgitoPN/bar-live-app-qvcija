@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -42,31 +42,6 @@ export default function LocalSolicitudStatus({ localId }: Props) {
   const [solicitud, setSolicitud] = useState<SolicitudStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ LINT FIX v225.0: Wrapped loadSolicitud in useCallback
-  const loadSolicitud = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('solicitudes_propietario')
-        .select('id, tipo_solicitud, estado, created_at, motivo_denegacion, notas_admin')
-        .eq('local_id', localId)
-        .in('estado', ['pendiente', 'en_revision', 'informacion_adicional'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('[LocalSolicitudStatus] Error loading request:', error);
-        return;
-      }
-
-      setSolicitud(data);
-    } catch (error) {
-      console.error('[LocalSolicitudStatus] Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [localId]);
-
   useEffect(() => {
     loadSolicitud();
 
@@ -91,7 +66,31 @@ export default function LocalSolicitudStatus({ localId }: Props) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [localId, loadSolicitud]);
+  }, [localId]);
+
+  const loadSolicitud = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('solicitudes_propietario')
+        .select('id, tipo_solicitud, estado, created_at, motivo_denegacion, notas_admin')
+        .eq('local_id', localId)
+        .in('estado', ['pendiente', 'en_revision', 'informacion_adicional'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[LocalSolicitudStatus] Error loading request:', error);
+        return;
+      }
+
+      setSolicitud(data);
+    } catch (error) {
+      console.error('[LocalSolicitudStatus] Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getEstadoInfo = (estado: string) => {
     switch (estado) {

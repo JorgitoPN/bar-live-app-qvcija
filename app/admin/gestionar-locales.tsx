@@ -192,7 +192,6 @@ export default function GestionarLocalesScreen() {
     }
   }, []);
 
-  // ✅ LINT FIX v225.0: Removed 'filterTrigger' from useCallback dependencies (line 550)
   const cargarLocales = useCallback(async (reset: boolean = false, currentPage: number = 1) => {
     try {
       console.log('[GestionarLocales v225.0] Loading locales, reset:', reset, 'page:', currentPage);
@@ -292,7 +291,7 @@ export default function GestionarLocalesScreen() {
       setInitialLoading(false);
       setLoadingMore(false);
     }
-  }, [filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente]); // ✅ FIXED: Removed filterTrigger
+  }, [filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente]);
 
   useEffect(() => {
     console.log('[GestionarLocales v225.0] Initial load');
@@ -784,7 +783,6 @@ export default function GestionarLocalesScreen() {
     <LocalCard local={item} />
   ), [LocalCard]);
 
-  // ✅ LINT FIX v225.0: Removed 'filterTrigger' from useMemo dependencies (line 908)
   const renderHeader = useMemo(() => (
     <React.Fragment>
       <View style={styles.statsSection}>
@@ -907,7 +905,7 @@ export default function GestionarLocalesScreen() {
         </Text>
       </View>
     </React.Fragment>
-  ), [contadores, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados, limpiarFiltros, handleSearchChange]); // ✅ FIXED: Removed filterTrigger
+  ), [contadores, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados, limpiarFiltros, handleSearchChange, filterTrigger]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
