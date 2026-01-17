@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,14 +16,14 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 /**
- * 🆕 SISTEMA TOTALMENTE NUEVO v5.0 - FRESH START
+ * 🆕 SISTEMA ULTRA SIMPLE v6.0 - REBUILD TOTAL
  * 
- * Sistema construido desde CERO sin usar código anterior:
- * - Arquitectura completamente nueva
- * - Validación robusta en cada paso
- * - Manejo de errores mejorado
- * - Logs detallados para debugging
- * - Interfaz clara y simple
+ * Sistema reconstruido desde CERO:
+ * - Código minimalista y directo
+ * - Sin complejidad innecesaria
+ * - Validación simple pero efectiva
+ * - Manejo de errores claro
+ * - Logs informativos
  */
 
 interface FreshDocumentUploaderProps {
@@ -43,193 +43,126 @@ export default function FreshDocumentUploader({
 }: FreshDocumentUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>(currentUrl || '');
-  const [progress, setProgress] = useState(0);
 
-  console.log('[FreshUploader] 🎬 Componente montado');
-  console.log('[FreshUploader] 👤 Usuario:', userId);
-  console.log('[FreshUploader] 📄 URL inicial:', imageUrl ? 'Existe' : 'Vacío');
+  console.log('[UltraSimpleUploader] 🎬 Iniciado');
+  console.log('[UltraSimpleUploader] 👤 Usuario:', userId);
 
-  const selectAndUploadImage = async () => {
+  // Sincronizar con prop externa
+  useEffect(() => {
+    if (currentUrl && currentUrl !== imageUrl) {
+      console.log('[UltraSimpleUploader] 🔄 Actualizando URL desde prop');
+      setImageUrl(currentUrl);
+    }
+  }, [currentUrl]);
+
+  const uploadImage = async () => {
     try {
-      console.log('[FreshUploader] 🚀 Iniciando proceso de subida...');
+      console.log('[UltraSimpleUploader] 🚀 INICIO DEL PROCESO');
       
-      // PASO 1: Solicitar permisos
-      console.log('[FreshUploader] 📱 Solicitando permisos...');
+      // 1. Pedir permisos
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
       if (status !== 'granted') {
-        console.log('[FreshUploader] ❌ Permisos denegados');
-        Alert.alert(
-          'Permiso Necesario',
-          'Necesitamos acceso a tu galería para seleccionar la imagen'
-        );
+        Alert.alert('Permiso Necesario', 'Necesitamos acceso a tu galería');
         return;
       }
+      console.log('[UltraSimpleUploader] ✅ Permisos OK');
 
-      console.log('[FreshUploader] ✅ Permisos concedidos');
-
-      // PASO 2: Abrir galería
-      console.log('[FreshUploader] 📸 Abriendo galería...');
+      // 2. Seleccionar imagen
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [4, 3],
         quality: 0.8,
       });
 
       if (result.canceled) {
-        console.log('[FreshUploader] ⚠️ Usuario canceló');
+        console.log('[UltraSimpleUploader] ⚠️ Cancelado por usuario');
         return;
       }
 
       const asset = result.assets[0];
-      console.log('[FreshUploader] ✅ Imagen seleccionada');
-      console.log('[FreshUploader] 📐 Tamaño:', asset.width, 'x', asset.height);
-      console.log('[FreshUploader] 📁 URI:', asset.uri.substring(0, 50) + '...');
+      console.log('[UltraSimpleUploader] ✅ Imagen seleccionada');
+      console.log('[UltraSimpleUploader] 📁 URI:', asset.uri);
 
       setUploading(true);
-      setProgress(10);
 
-      // PASO 3: Validar extensión
-      const extension = asset.uri.split('.').pop()?.toLowerCase();
-      const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
-      
-      if (!extension || !validExtensions.includes(extension)) {
-        console.log('[FreshUploader] ❌ Extensión inválida:', extension);
-        Alert.alert('Error', 'Solo se permiten imágenes JPG, PNG o WEBP');
-        setUploading(false);
-        return;
-      }
-
-      console.log('[FreshUploader] ✅ Extensión válida:', extension);
-      setProgress(20);
-
-      // PASO 4: Convertir a blob
-      console.log('[FreshUploader] 🔄 Convirtiendo a blob...');
+      // 3. Convertir a blob
+      console.log('[UltraSimpleUploader] 🔄 Convirtiendo a blob...');
       const response = await fetch(asset.uri);
       const blob = await response.blob();
-      
-      const sizeInMB = (blob.size / 1024 / 1024).toFixed(2);
-      console.log('[FreshUploader] ✅ Blob creado');
-      console.log('[FreshUploader] 📦 Tamaño:', sizeInMB, 'MB');
-      
+      console.log('[UltraSimpleUploader] ✅ Blob creado:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+
+      // 4. Validar tamaño
       if (blob.size > 10 * 1024 * 1024) {
-        console.log('[FreshUploader] ❌ Archivo muy grande');
         Alert.alert('Error', 'La imagen no puede superar 10 MB');
         setUploading(false);
         return;
       }
 
-      setProgress(40);
-
-      // PASO 5: Generar nombre único
+      // 5. Generar nombre único
       const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(2, 10);
-      const userPrefix = userId.substring(0, 8);
-      const fileName = `fresh_${userPrefix}_${timestamp}_${random}.${extension}`;
-      
-      console.log('[FreshUploader] 📝 Nombre generado:', fileName);
-      setProgress(50);
+      const random = Math.random().toString(36).substring(2, 8);
+      const fileName = `doc_${userId.substring(0, 8)}_${timestamp}_${random}.jpg`;
+      console.log('[UltraSimpleUploader] 📝 Nombre:', fileName);
 
-      // PASO 6: Subir a Supabase
-      console.log('[FreshUploader] ⬆️ Subiendo a Supabase Storage...');
-      console.log('[FreshUploader] 🪣 Bucket: documentos-propiedad');
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // 6. Subir a Supabase
+      console.log('[UltraSimpleUploader] ⬆️ Subiendo a Supabase...');
+      const { data, error } = await supabase.storage
         .from('documentos-propiedad')
         .upload(fileName, blob, {
-          contentType: `image/${extension === 'jpg' ? 'jpeg' : extension}`,
+          contentType: 'image/jpeg',
           cacheControl: '3600',
-          upsert: false,
         });
 
-      if (uploadError) {
-        console.error('[FreshUploader] ❌ Error en upload:', uploadError);
-        console.error('[FreshUploader] ❌ Código:', uploadError.message);
-        throw new Error(`Error al subir: ${uploadError.message}`);
+      if (error) {
+        console.error('[UltraSimpleUploader] ❌ Error upload:', error.message);
+        throw new Error(error.message);
       }
 
-      console.log('[FreshUploader] ✅ Archivo subido');
-      console.log('[FreshUploader] 📁 Path:', uploadData.path);
-      setProgress(80);
+      console.log('[UltraSimpleUploader] ✅ Subido:', data.path);
 
-      // PASO 7: Obtener URL pública
-      console.log('[FreshUploader] 🔗 Generando URL pública...');
+      // 7. Obtener URL pública
       const { data: urlData } = supabase.storage
         .from('documentos-propiedad')
-        .getPublicUrl(uploadData.path);
+        .getPublicUrl(data.path);
 
-      const publicUrl = urlData.publicUrl;
-      
-      console.log('[FreshUploader] ✅ URL generada');
-      console.log('[FreshUploader] 🔗 URL completa:', publicUrl);
+      const url = urlData.publicUrl;
+      console.log('[UltraSimpleUploader] 🔗 URL:', url);
 
-      // PASO 8: Validar URL
-      if (!publicUrl || !publicUrl.startsWith('https://')) {
-        console.error('[FreshUploader] ❌ URL inválida:', publicUrl);
-        throw new Error('La URL generada no es válida');
-      }
+      // 8. Guardar
+      setImageUrl(url);
+      onUploadComplete(url);
 
-      if (!publicUrl.includes('supabase.co')) {
-        console.error('[FreshUploader] ❌ URL no es de Supabase');
-        throw new Error('La URL no pertenece a Supabase');
-      }
-
-      setProgress(100);
-
-      // PASO 9: Guardar y notificar
-      console.log('[FreshUploader] 💾 Guardando URL...');
-      setImageUrl(publicUrl);
-      onUploadComplete(publicUrl);
-
-      console.log('[FreshUploader] 🎉 ¡PROCESO COMPLETADO EXITOSAMENTE!');
+      console.log('[UltraSimpleUploader] 🎉 ¡ÉXITO TOTAL!');
       Alert.alert('✅ Éxito', 'Documento subido correctamente');
 
     } catch (error: any) {
-      console.error('[FreshUploader] ❌ ERROR CRÍTICO:', error);
-      console.error('[FreshUploader] ❌ Mensaje:', error.message);
-      console.error('[FreshUploader] ❌ Stack:', error.stack);
-      
-      Alert.alert(
-        'Error al Subir',
-        error.message || 'No se pudo subir el documento. Por favor intenta de nuevo.',
-        [{ text: 'OK' }]
-      );
+      console.error('[UltraSimpleUploader] ❌ ERROR:', error.message);
+      Alert.alert('Error', 'No se pudo subir el documento. Intenta de nuevo.');
     } finally {
       setUploading(false);
-      setProgress(0);
     }
   };
 
   const removeImage = () => {
-    console.log('[FreshUploader] 🗑️ Eliminando imagen');
+    console.log('[UltraSimpleUploader] 🗑️ Eliminando');
     setImageUrl('');
     onUploadComplete('');
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.description}>{description}</Text>
       </View>
 
-      {/* Content */}
       {imageUrl ? (
-        // Preview de imagen subida
         <View style={styles.preview}>
           <Image
             source={{ uri: imageUrl }}
             style={styles.previewImage}
             resizeMode="cover"
-            onLoadStart={() => console.log('[FreshUploader] 🔄 Cargando preview...')}
-            onLoad={() => console.log('[FreshUploader] ✅ Preview cargado')}
-            onError={(e) => {
-              console.error('[FreshUploader] ❌ Error en preview:', e.nativeEvent.error);
-            }}
           />
-          
           <View style={styles.previewOverlay}>
             <View style={styles.successBadge}>
               <IconSymbol
@@ -240,12 +173,7 @@ export default function FreshDocumentUploader({
               />
               <Text style={styles.successText}>Documento subido</Text>
             </View>
-
-            <TouchableOpacity
-              style={styles.removeButton}
-              onPress={removeImage}
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity style={styles.removeButton} onPress={removeImage}>
               <IconSymbol
                 ios_icon_name="trash.fill"
                 android_material_icon_name="delete"
@@ -257,49 +185,39 @@ export default function FreshDocumentUploader({
           </View>
         </View>
       ) : (
-        // Botón de subida
         <TouchableOpacity
           style={styles.uploadButton}
-          onPress={selectAndUploadImage}
+          onPress={uploadImage}
           disabled={uploading}
-          activeOpacity={0.7}
         >
           {uploading ? (
             <View style={styles.uploadingState}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.uploadingText}>Subiendo documento...</Text>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${progress}%` }]} />
-              </View>
-              <Text style={styles.progressText}>{progress}%</Text>
+              <Text style={styles.uploadingText}>Subiendo...</Text>
             </View>
           ) : (
             <View style={styles.uploadPrompt}>
               <View style={styles.iconCircle}>
                 <IconSymbol
-                  ios_icon_name="doc.badge.plus"
+                  ios_icon_name="photo"
                   android_material_icon_name="add_photo_alternate"
-                  size={64}
+                  size={48}
                   color={colors.primary}
                 />
               </View>
-              <Text style={styles.uploadTitle}>Seleccionar Documento</Text>
-              <Text style={styles.uploadSubtitle}>Toca para elegir una imagen</Text>
-              <View style={styles.formatBadge}>
-                <Text style={styles.formatText}>JPG • PNG • WEBP</Text>
-              </View>
+              <Text style={styles.uploadTitle}>Seleccionar Imagen</Text>
+              <Text style={styles.uploadSubtitle}>Toca para elegir una foto</Text>
             </View>
           )}
         </TouchableOpacity>
       )}
 
-      {/* Info */}
       <View style={styles.infoSection}>
         <IconSymbol
-          ios_icon_name="info.circle.fill"
+          ios_icon_name="info.circle"
           android_material_icon_name="info"
-          size={16}
-          color={colors.primary}
+          size={14}
+          color={colors.textSecondary}
         />
         <Text style={styles.infoText}>
           La imagen debe ser clara y legible
@@ -335,7 +253,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
-    minHeight: 220,
+    minHeight: 240,
     justifyContent: 'center',
   },
   uploadingState: {
@@ -388,6 +306,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     fontWeight: '500',
+    textAlign: 'center',
   },
   formatBadge: {
     backgroundColor: colors.primary + '15',
@@ -400,6 +319,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.primary,
+  },
+  warningBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  warningText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F59E0B',
   },
   preview: {
     borderRadius: 16,
@@ -447,7 +381,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 4,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
   },
   infoText: {
@@ -455,5 +389,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '500',
     flex: 1,
+    lineHeight: 16,
   },
 });
