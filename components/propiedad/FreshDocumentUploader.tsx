@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,14 +16,14 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 /**
- * 🆕 SISTEMA ULTRA SIMPLE v6.0 - REBUILD TOTAL
+ * 🆕 SISTEMA TOTALMENTE NUEVO v5.0 - FRESH START
  * 
- * Sistema reconstruido desde CERO:
- * - Código minimalista y directo
- * - Sin complejidad innecesaria
- * - Validación simple pero efectiva
- * - Manejo de errores claro
- * - Logs informativos
+ * Sistema construido desde CERO sin usar código anterior:
+ * - Arquitectura completamente nueva
+ * - Validación robusta en cada paso
+ * - Manejo de errores mejorado
+ * - Logs detallados para debugging
+ * - Interfaz clara y simple
  */
 
 interface FreshDocumentUploaderProps {
@@ -43,126 +43,193 @@ export default function FreshDocumentUploader({
 }: FreshDocumentUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>(currentUrl || '');
+  const [progress, setProgress] = useState(0);
 
-  console.log('[UltraSimpleUploader] 🎬 Iniciado');
-  console.log('[UltraSimpleUploader] 👤 Usuario:', userId);
+  console.log('[FreshUploader] 🎬 Componente montado');
+  console.log('[FreshUploader] 👤 Usuario:', userId);
+  console.log('[FreshUploader] 📄 URL inicial:', imageUrl ? 'Existe' : 'Vacío');
 
-  // Sincronizar con prop externa
-  useEffect(() => {
-    if (currentUrl && currentUrl !== imageUrl) {
-      console.log('[UltraSimpleUploader] 🔄 Actualizando URL desde prop');
-      setImageUrl(currentUrl);
-    }
-  }, [currentUrl]);
-
-  const uploadImage = async () => {
+  const selectAndUploadImage = async () => {
     try {
-      console.log('[UltraSimpleUploader] 🚀 INICIO DEL PROCESO');
+      console.log('[FreshUploader] 🚀 Iniciando proceso de subida...');
       
-      // 1. Pedir permisos
+      // PASO 1: Solicitar permisos
+      console.log('[FreshUploader] 📱 Solicitando permisos...');
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
       if (status !== 'granted') {
-        Alert.alert('Permiso Necesario', 'Necesitamos acceso a tu galería');
+        console.log('[FreshUploader] ❌ Permisos denegados');
+        Alert.alert(
+          'Permiso Necesario',
+          'Necesitamos acceso a tu galería para seleccionar la imagen'
+        );
         return;
       }
-      console.log('[UltraSimpleUploader] ✅ Permisos OK');
 
-      // 2. Seleccionar imagen
+      console.log('[FreshUploader] ✅ Permisos concedidos');
+
+      // PASO 2: Abrir galería
+      console.log('[FreshUploader] 📸 Abriendo galería...');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
+        aspect: [4, 3],
         quality: 0.8,
       });
 
       if (result.canceled) {
-        console.log('[UltraSimpleUploader] ⚠️ Cancelado por usuario');
+        console.log('[FreshUploader] ⚠️ Usuario canceló');
         return;
       }
 
       const asset = result.assets[0];
-      console.log('[UltraSimpleUploader] ✅ Imagen seleccionada');
-      console.log('[UltraSimpleUploader] 📁 URI:', asset.uri);
+      console.log('[FreshUploader] ✅ Imagen seleccionada');
+      console.log('[FreshUploader] 📐 Tamaño:', asset.width, 'x', asset.height);
+      console.log('[FreshUploader] 📁 URI:', asset.uri.substring(0, 50) + '...');
 
       setUploading(true);
+      setProgress(10);
 
-      // 3. Convertir a blob
-      console.log('[UltraSimpleUploader] 🔄 Convirtiendo a blob...');
+      // PASO 3: Validar extensión
+      const extension = asset.uri.split('.').pop()?.toLowerCase();
+      const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+      
+      if (!extension || !validExtensions.includes(extension)) {
+        console.log('[FreshUploader] ❌ Extensión inválida:', extension);
+        Alert.alert('Error', 'Solo se permiten imágenes JPG, PNG o WEBP');
+        setUploading(false);
+        return;
+      }
+
+      console.log('[FreshUploader] ✅ Extensión válida:', extension);
+      setProgress(20);
+
+      // PASO 4: Convertir a blob
+      console.log('[FreshUploader] 🔄 Convirtiendo a blob...');
       const response = await fetch(asset.uri);
       const blob = await response.blob();
-      console.log('[UltraSimpleUploader] ✅ Blob creado:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
-
-      // 4. Validar tamaño
+      
+      const sizeInMB = (blob.size / 1024 / 1024).toFixed(2);
+      console.log('[FreshUploader] ✅ Blob creado');
+      console.log('[FreshUploader] 📦 Tamaño:', sizeInMB, 'MB');
+      
       if (blob.size > 10 * 1024 * 1024) {
+        console.log('[FreshUploader] ❌ Archivo muy grande');
         Alert.alert('Error', 'La imagen no puede superar 10 MB');
         setUploading(false);
         return;
       }
 
-      // 5. Generar nombre único
-      const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(2, 8);
-      const fileName = `doc_${userId.substring(0, 8)}_${timestamp}_${random}.jpg`;
-      console.log('[UltraSimpleUploader] 📝 Nombre:', fileName);
+      setProgress(40);
 
-      // 6. Subir a Supabase
-      console.log('[UltraSimpleUploader] ⬆️ Subiendo a Supabase...');
-      const { data, error } = await supabase.storage
+      // PASO 5: Generar nombre único
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 10);
+      const userPrefix = userId.substring(0, 8);
+      const fileName = `fresh_${userPrefix}_${timestamp}_${random}.${extension}`;
+      
+      console.log('[FreshUploader] 📝 Nombre generado:', fileName);
+      setProgress(50);
+
+      // PASO 6: Subir a Supabase
+      console.log('[FreshUploader] ⬆️ Subiendo a Supabase Storage...');
+      console.log('[FreshUploader] 🪣 Bucket: documentos-propiedad');
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documentos-propiedad')
         .upload(fileName, blob, {
-          contentType: 'image/jpeg',
+          contentType: `image/${extension === 'jpg' ? 'jpeg' : extension}`,
           cacheControl: '3600',
+          upsert: false,
         });
 
-      if (error) {
-        console.error('[UltraSimpleUploader] ❌ Error upload:', error.message);
-        throw new Error(error.message);
+      if (uploadError) {
+        console.error('[FreshUploader] ❌ Error en upload:', uploadError);
+        console.error('[FreshUploader] ❌ Código:', uploadError.message);
+        throw new Error(`Error al subir: ${uploadError.message}`);
       }
 
-      console.log('[UltraSimpleUploader] ✅ Subido:', data.path);
+      console.log('[FreshUploader] ✅ Archivo subido');
+      console.log('[FreshUploader] 📁 Path:', uploadData.path);
+      setProgress(80);
 
-      // 7. Obtener URL pública
+      // PASO 7: Obtener URL pública
+      console.log('[FreshUploader] 🔗 Generando URL pública...');
       const { data: urlData } = supabase.storage
         .from('documentos-propiedad')
-        .getPublicUrl(data.path);
+        .getPublicUrl(uploadData.path);
 
-      const url = urlData.publicUrl;
-      console.log('[UltraSimpleUploader] 🔗 URL:', url);
+      const publicUrl = urlData.publicUrl;
+      
+      console.log('[FreshUploader] ✅ URL generada');
+      console.log('[FreshUploader] 🔗 URL completa:', publicUrl);
 
-      // 8. Guardar
-      setImageUrl(url);
-      onUploadComplete(url);
+      // PASO 8: Validar URL
+      if (!publicUrl || !publicUrl.startsWith('https://')) {
+        console.error('[FreshUploader] ❌ URL inválida:', publicUrl);
+        throw new Error('La URL generada no es válida');
+      }
 
-      console.log('[UltraSimpleUploader] 🎉 ¡ÉXITO TOTAL!');
+      if (!publicUrl.includes('supabase.co')) {
+        console.error('[FreshUploader] ❌ URL no es de Supabase');
+        throw new Error('La URL no pertenece a Supabase');
+      }
+
+      setProgress(100);
+
+      // PASO 9: Guardar y notificar
+      console.log('[FreshUploader] 💾 Guardando URL...');
+      setImageUrl(publicUrl);
+      onUploadComplete(publicUrl);
+
+      console.log('[FreshUploader] 🎉 ¡PROCESO COMPLETADO EXITOSAMENTE!');
       Alert.alert('✅ Éxito', 'Documento subido correctamente');
 
     } catch (error: any) {
-      console.error('[UltraSimpleUploader] ❌ ERROR:', error.message);
-      Alert.alert('Error', 'No se pudo subir el documento. Intenta de nuevo.');
+      console.error('[FreshUploader] ❌ ERROR CRÍTICO:', error);
+      console.error('[FreshUploader] ❌ Mensaje:', error.message);
+      console.error('[FreshUploader] ❌ Stack:', error.stack);
+      
+      Alert.alert(
+        'Error al Subir',
+        error.message || 'No se pudo subir el documento. Por favor intenta de nuevo.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setUploading(false);
+      setProgress(0);
     }
   };
 
   const removeImage = () => {
-    console.log('[UltraSimpleUploader] 🗑️ Eliminando');
+    console.log('[FreshUploader] 🗑️ Eliminando imagen');
     setImageUrl('');
     onUploadComplete('');
   };
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.description}>{description}</Text>
       </View>
 
+      {/* Content */}
       {imageUrl ? (
+        // Preview de imagen subida
         <View style={styles.preview}>
           <Image
             source={{ uri: imageUrl }}
             style={styles.previewImage}
             resizeMode="cover"
+            onLoadStart={() => console.log('[FreshUploader] 🔄 Cargando preview...')}
+            onLoad={() => console.log('[FreshUploader] ✅ Preview cargado')}
+            onError={(e) => {
+              console.error('[FreshUploader] ❌ Error en preview:', e.nativeEvent.error);
+            }}
           />
+          
           <View style={styles.previewOverlay}>
             <View style={styles.successBadge}>
               <IconSymbol
@@ -173,7 +240,12 @@ export default function FreshDocumentUploader({
               />
               <Text style={styles.successText}>Documento subido</Text>
             </View>
-            <TouchableOpacity style={styles.removeButton} onPress={removeImage}>
+
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={removeImage}
+              activeOpacity={0.8}
+            >
               <IconSymbol
                 ios_icon_name="trash.fill"
                 android_material_icon_name="delete"
@@ -185,39 +257,49 @@ export default function FreshDocumentUploader({
           </View>
         </View>
       ) : (
+        // Botón de subida
         <TouchableOpacity
           style={styles.uploadButton}
-          onPress={uploadImage}
+          onPress={selectAndUploadImage}
           disabled={uploading}
+          activeOpacity={0.7}
         >
           {uploading ? (
             <View style={styles.uploadingState}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.uploadingText}>Subiendo...</Text>
+              <Text style={styles.uploadingText}>Subiendo documento...</Text>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${progress}%` }]} />
+              </View>
+              <Text style={styles.progressText}>{progress}%</Text>
             </View>
           ) : (
             <View style={styles.uploadPrompt}>
               <View style={styles.iconCircle}>
                 <IconSymbol
-                  ios_icon_name="photo"
+                  ios_icon_name="doc.badge.plus"
                   android_material_icon_name="add_photo_alternate"
-                  size={48}
+                  size={64}
                   color={colors.primary}
                 />
               </View>
-              <Text style={styles.uploadTitle}>Seleccionar Imagen</Text>
-              <Text style={styles.uploadSubtitle}>Toca para elegir una foto</Text>
+              <Text style={styles.uploadTitle}>Seleccionar Documento</Text>
+              <Text style={styles.uploadSubtitle}>Toca para elegir una imagen</Text>
+              <View style={styles.formatBadge}>
+                <Text style={styles.formatText}>JPG • PNG • WEBP</Text>
+              </View>
             </View>
           )}
         </TouchableOpacity>
       )}
 
+      {/* Info */}
       <View style={styles.infoSection}>
         <IconSymbol
-          ios_icon_name="info.circle"
+          ios_icon_name="info.circle.fill"
           android_material_icon_name="info"
-          size={14}
-          color={colors.textSecondary}
+          size={16}
+          color={colors.primary}
         />
         <Text style={styles.infoText}>
           La imagen debe ser clara y legible
@@ -253,7 +335,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
-    minHeight: 240,
+    minHeight: 220,
     justifyContent: 'center',
   },
   uploadingState: {
@@ -306,7 +388,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     fontWeight: '500',
-    textAlign: 'center',
   },
   formatBadge: {
     backgroundColor: colors.primary + '15',
@@ -319,21 +400,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.primary,
-  },
-  warningBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  warningText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#F59E0B',
   },
   preview: {
     borderRadius: 16,
@@ -381,7 +447,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 4,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 8,
   },
   infoText: {
@@ -389,6 +455,5 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '500',
     flex: 1,
-    lineHeight: 16,
   },
 });
