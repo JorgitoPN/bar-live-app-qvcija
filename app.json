@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "BarLive",
@@ -17,10 +18,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.barlive.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Esta aplicaci\u00f3n necesita acceso a la c\u00e1mara para tomar fotos.",
-        "NSPhotoLibraryUsageDescription": "Esta aplicaci\u00f3n necesita acceso a tu galer\u00eda de fotos.",
-        "NSLocationWhenInUseUsageDescription": "Esta aplicaci\u00f3n necesita acceso a tu ubicaci\u00f3n para mostrarte locales cercanos.",
-        "NSFaceIDUsageDescription": "Usamos Face ID para autenticaci\u00f3n segura."
+        "NSCameraUsageDescription": "Esta aplicación necesita acceso a la cámara para tomar fotos.",
+        "NSPhotoLibraryUsageDescription": "Esta aplicación necesita acceso a tu galería de fotos.",
+        "NSLocationWhenInUseUsageDescription": "Esta aplicación necesita acceso a tu ubicación para mostrarte locales cercanos.",
+        "NSFaceIDUsageDescription": "Usamos Face ID para autenticación segura."
       }
     },
     "android": {
@@ -74,6 +75,5 @@
         "projectId": "your-project-id"
       }
     }
-  },
-  "scheme": "BarLive"
+  }
 }
