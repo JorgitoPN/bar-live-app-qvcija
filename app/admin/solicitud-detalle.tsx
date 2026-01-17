@@ -734,16 +734,20 @@ export default function SolicitudDetalleScreen() {
       {/* ✅ MODAL DE IMÁGENES SIMPLE - Igual que en la red social */}
       <Modal
         visible={showImageModal}
-        transparent
+        transparent={false}
         animationType="fade"
         onRequestClose={() => setShowImageModal(false)}
       >
         <View style={styles.imageModalOverlay}>
+          {/* Botón de cerrar */}
           <TouchableOpacity 
             style={styles.imageModalClose} 
             onPress={() => setShowImageModal(false)}
+            activeOpacity={0.8}
           >
-            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={36} color="#fff" />
+            <View style={styles.closeButtonCircle}>
+              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color="#fff" />
+            </View>
           </TouchableOpacity>
           
           {/* Imagen a pantalla completa */}
@@ -765,6 +769,12 @@ export default function SolicitudDetalleScreen() {
                   source={{ uri: imageUrl }} 
                   style={styles.fullImage} 
                   resizeMode="contain"
+                  onError={(error) => {
+                    console.error('[SolicitudDetalle v9.0] ❌ Error cargando imagen:', imageUrl, error);
+                  }}
+                  onLoad={() => {
+                    console.log('[SolicitudDetalle v9.0] ✅ Imagen cargada correctamente:', imageUrl);
+                  }}
                 />
               </View>
             ))}
@@ -772,7 +782,9 @@ export default function SolicitudDetalleScreen() {
           
           {/* Contador e indicadores */}
           <View style={styles.imageModalFooter}>
-            <Text style={styles.imageCounter}>{selectedImageIndex + 1} / {allImages.length}</Text>
+            <View style={styles.imageCounterContainer}>
+              <Text style={styles.imageCounter}>{selectedImageIndex + 1} / {allImages.length}</Text>
+            </View>
             {allImages.length > 1 && (
               <View style={styles.imageIndicators}>
                 {allImages.map((_, index) => (
@@ -1256,7 +1268,7 @@ const styles = StyleSheet.create({
   // ✅ NUEVO: Modal de imágenes simple (igual que posts)
   imageModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1266,34 +1278,47 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 10,
   },
-  fullImageScroll: {
-    width: width,
-    height: '100%',
-  },
-  fullImageContainer: {
-    width: width,
-    height: '100%',
+  closeButtonCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  fullImageScroll: {
+    width: width,
+    flex: 1,
+  },
+  fullImageContainer: {
+    width: width,
+    height: Dimensions.get('window').height,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
   fullImage: {
-    width: '100%',
-    height: '100%',
+    width: width,
+    height: Dimensions.get('window').height,
   },
   imageModalFooter: {
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 50 : 30,
+    left: 0,
+    right: 0,
     alignItems: 'center',
     gap: 16,
+  },
+  imageCounterContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
   },
   imageCounter: {
     fontSize: 15,
     fontWeight: '700',
     color: '#fff',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
   },
   imageIndicators: {
     flexDirection: 'row',
