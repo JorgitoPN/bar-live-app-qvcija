@@ -3,7 +3,6 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Location from 'expo-location';
 import { useAuth } from '@/contexts/AuthContext';
-import UltraSimpleImageUploader from '@/components/propiedad/UltraSimpleImageUploader';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -29,9 +28,8 @@ import { WebView } from 'react-native-webview';
  * 🆕 SISTEMA ULTRA SIMPLE - VERSIÓN DEFINITIVA
  * 
  * Sistema completamente reconstruido:
- * - Usa UltraSimpleImageUploader (nuevo componente)
  * - Flujo lineal y claro
- * - Sin complejidad innecesaria
+ * - Sin sistema de subida de imágenes (eliminado por problemas técnicos)
  * - Logs detallados para debugging
  */
 
@@ -53,15 +51,6 @@ const TIPOS_LOCAL = [
   { value: 'pub', label: 'Pub' },
   { value: 'discoteca', label: 'Discoteca' },
   { value: 'cocteleria', label: 'Coctelería' },
-];
-
-const TIPOS_DOCUMENTO = [
-  { value: 'factura_luz', label: 'Factura de Luz' },
-  { value: 'factura_agua', label: 'Factura de Agua' },
-  { value: 'contrato_alquiler', label: 'Contrato de Alquiler' },
-  { value: 'escritura', label: 'Escritura de Propiedad' },
-  { value: 'licencia_actividad', label: 'Licencia de Actividad' },
-  { value: 'otro', label: 'Otro Documento' },
 ];
 
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -99,8 +88,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   const [telefonoContacto, setTelefonoContacto] = useState('');
   const [emailContacto, setEmailContacto] = useState(user?.email || '');
   const [mensaje, setMensaje] = useState('');
-  const [documentoUrl, setDocumentoUrl] = useState<string>('');
-  const [documentoTipo, setDocumentoTipo] = useState<string>('factura_luz');
 
   // Form data for nuevo_local
   const [nombreLocal, setNombreLocal] = useState('');
@@ -115,8 +102,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   const [longitudLocal, setLongitudLocal] = useState<number | null>(null);
   const [horariosLocal, setHorariosLocal] = useState<Record<string, { abierto: boolean; apertura: string; cierre: string }>>({});
   const [serviciosLocal, setServiciosLocal] = useState<string[]>([]);
-
-  const [showDocumentTypeModal, setShowDocumentTypeModal] = useState(false);
 
   console.log('═══════════════════════════════════════');
   console.log('[UltraSimpleScreen] 🎬 Pantalla inicializada');
@@ -400,10 +385,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
             Alert.alert('Teléfono requerido', 'El teléfono es obligatorio');
             return false;
           }
-          if (!documentoUrl) {
-            Alert.alert('Documento requerido', 'Debes subir una imagen del documento de propiedad');
-            return false;
-          }
           return true;
         default:
           return true;
@@ -460,7 +441,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
       console.log('\n🚀 ═══ ENVIANDO SOLICITUD ═══');
       console.log('📋 Tipo:', requestType);
       console.log('👤 Usuario:', user.id);
-      console.log('📄 URL documento:', documentoUrl);
 
       if (requestType === 'reclamar_local') {
         if (!selectedLocal) {
@@ -485,8 +465,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
             telefono_contacto: telefonoContacto || null,
             email_contacto: emailContacto,
             mensaje: mensaje || null,
-            documento_propiedad_url: documentoUrl,
-            documento_propiedad_tipo: documentoTipo,
             estado: 'pendiente',
           });
 
@@ -543,8 +521,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
             longitud_local: longitudLocal,
             horarios_local: horariosLocal,
             servicios_local: serviciosLocal,
-            documento_propiedad_url: documentoUrl || null,
-            documento_propiedad_tipo: documentoTipo,
             estado: 'pendiente',
           });
 
@@ -699,7 +675,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
     <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.stepTitle}>Información de Contacto</Text>
       <Text style={styles.stepDescription}>
-        Proporciona tus datos de contacto y documentación
+        Proporciona tus datos de contacto para verificar tu solicitud
       </Text>
 
       {selectedLocal && (
@@ -739,22 +715,27 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
         />
       </View>
 
-      {/* 🆕 COMPONENTE DE SUBIDA DE IMAGEN */}
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Imagen de Documento de Propiedad *</Text>
-        <Text style={styles.warningText}>
-          ⚠️ Solo imágenes (JPG, PNG, WEBP). NO se aceptan PDF.
+        <Text style={styles.label}>Mensaje Adicional (Opcional)</Text>
+        <Text style={styles.helperText}>
+          Proporciona información adicional que ayude a verificar tu propiedad del local
         </Text>
-        <UltraSimpleImageUploader
-          onUploadComplete={(url) => {
-            console.log('[ReclamarStep2] ✅ Documento subido:', url);
-            setDocumentoUrl(url);
-          }}
-          currentUrl={documentoUrl}
-          userId={user?.id || ''}
-          label=""
-          description="Sube una FOTO del documento que acredite tu relación con el local"
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          placeholder="Ej: Soy el propietario desde hace 5 años, puedo proporcionar documentación adicional si es necesario..."
+          placeholderTextColor={colors.textSecondary}
+          value={mensaje}
+          onChangeText={setMensaje}
+          multiline
+          numberOfLines={4}
         />
+      </View>
+
+      <View style={styles.infoBox}>
+        <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={20} color={colors.primary} />
+        <Text style={styles.infoBoxText}>
+          Nuestro equipo revisará tu solicitud y se pondrá en contacto contigo para verificar la propiedad del local.
+        </Text>
       </View>
     </ScrollView>
   );
@@ -1037,52 +1018,29 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
   const renderNuevoStep5 = () => (
     <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.stepTitle}>Documentación</Text>
+      <Text style={styles.stepTitle}>Información Adicional</Text>
       <Text style={styles.stepDescription}>
-        Añade documentación (opcional)
+        Mensaje adicional (opcional)
       </Text>
-
-      {/* 🆕 COMPONENTE DE SUBIDA DE IMAGEN */}
-      <UltraSimpleImageUploader
-        onUploadComplete={(url) => {
-          console.log('[NuevoStep5] ✅ Documento subido:', url);
-          setDocumentoUrl(url);
-        }}
-        currentUrl={documentoUrl}
-        userId={user?.id || ''}
-        label="Documento de Propiedad (Opcional)"
-        description="Foto del documento que acredite tu propiedad del local"
-      />
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Tipo de Documento</Text>
-        <TouchableOpacity
-          style={styles.documentTypeSelector}
-          onPress={() => setShowDocumentTypeModal(true)}
-        >
-          <Text style={styles.documentTypeSelectorText}>
-            {TIPOS_DOCUMENTO.find(t => t.value === documentoTipo)?.label || 'Seleccionar'}
-          </Text>
-          <IconSymbol 
-            ios_icon_name="chevron.down" 
-            android_material_icon_name="arrow_drop_down" 
-            size={20} 
-            color={colors.textSecondary} 
-          />
-        </TouchableOpacity>
-      </View>
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Mensaje Adicional (Opcional)</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Información adicional..."
+          placeholder="Información adicional sobre tu local..."
           placeholderTextColor={colors.textSecondary}
           value={mensaje}
           onChangeText={setMensaje}
           multiline
           numberOfLines={4}
         />
+      </View>
+
+      <View style={styles.infoBox}>
+        <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={20} color={colors.primary} />
+        <Text style={styles.infoBoxText}>
+          Nuestro equipo revisará tu solicitud y se pondrá en contacto contigo para completar el proceso de alta del local.
+        </Text>
       </View>
     </ScrollView>
   );
@@ -1100,7 +1058,9 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
           <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Reclamar Local</Text>
+          <Text style={styles.headerTitle}>
+            {requestType === 'reclamar_local' ? 'Reclamar Local' : 'Nuevo Local'}
+          </Text>
           <Text style={styles.headerSubtitle}>Solicitud de propiedad</Text>
         </View>
         <View style={{ width: 40 }} />
@@ -1158,47 +1118,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </View>
-
-      {/* Modal de tipo de documento */}
-      <Modal
-        visible={showDocumentTypeModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDocumentTypeModal(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowDocumentTypeModal(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Tipo de Documento</Text>
-            
-            <ScrollView style={styles.documentTypesList}>
-              {TIPOS_DOCUMENTO.map((tipo) => (
-                <TouchableOpacity
-                  key={tipo.value}
-                  style={[styles.documentTypeOption, documentoTipo === tipo.value && styles.documentTypeOptionActive]}
-                  onPress={() => {
-                    setDocumentoTipo(tipo.value);
-                    setShowDocumentTypeModal(false);
-                  }}
-                >
-                  <Text style={[styles.documentTypeOptionText, documentoTipo === tipo.value && styles.documentTypeOptionTextActive]}>
-                    {tipo.label}
-                  </Text>
-                  {documentoTipo === tipo.value && (
-                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setShowDocumentTypeModal(false)}
-            >
-              <Text style={styles.modalCloseButtonText}>Cerrar</Text>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -1458,17 +1377,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 18,
   },
-  warningText: {
-    fontSize: 13,
-    color: '#F59E0B',
-    fontWeight: '600',
-    marginBottom: 12,
-    backgroundColor: '#FEF3C7',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FCD34D',
-  },
   input: {
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
@@ -1483,21 +1391,22 @@ const styles = StyleSheet.create({
     minHeight: 120,
     textAlignVertical: 'top',
   },
-  documentTypeSelector: {
+  infoBox: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: colors.primary + '10',
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: colors.primary + '30',
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    padding: 16,
+    marginTop: 8,
   },
-  documentTypeSelectorText: {
-    fontSize: 16,
+  infoBoxText: {
+    flex: 1,
+    fontSize: 13,
     color: colors.text,
-    fontWeight: '500',
+    lineHeight: 19,
   },
   tipoGrid: {
     flexDirection: 'row',
@@ -1754,61 +1663,5 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontSize: 16,
     fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '70%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 20,
-  },
-  documentTypesList: {
-    maxHeight: 300,
-  },
-  documentTypeOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.background,
-    borderWidth: 2,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
-  },
-  documentTypeOptionActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + '10',
-  },
-  documentTypeOptionText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  documentTypeOptionTextActive: {
-    color: colors.primary,
-  },
-  modalCloseButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  modalCloseButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.headerText,
   },
 });
