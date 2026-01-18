@@ -48,6 +48,7 @@ interface Solicitud {
   galeria_urls?: string[];
   documento_propiedad_url?: string;
   documento_propiedad_tipo?: string;
+  imagen_verificacion_url?: string;
   estado: 'pendiente' | 'en_revision' | 'informacion_adicional' | 'aprobada' | 'denegada';
   tipo_solicitud: 'reclamar_local' | 'nuevo_local';
   motivo_denegacion?: string;
@@ -63,9 +64,10 @@ interface Solicitud {
 }
 
 /**
- * ✅ SOLICITUD DETALLE v4.2 - FIXED IMAGE LOADING ERRORS
+ * ✅ SOLICITUD DETALLE v4.3 - ADDED VERIFICATION IMAGE SECTION
  * 
- * COMPLETE FIXES v4.2:
+ * COMPLETE FIXES v4.3:
+ * - ✅ Added verification image section
  * - ✅ Fixed image loading with proper error handling
  * - ✅ Added loading states for each image
  * - ✅ Added fallback for failed images
@@ -98,7 +100,7 @@ export default function SolicitudDetalleScreen() {
 
   const loadSolicitud = useCallback(async () => {
     try {
-      console.log('[SolicitudDetalle v4.2] Loading request:', solicitudId);
+      console.log('[SolicitudDetalle v4.3] Loading request:', solicitudId);
       
       const { data, error } = await supabase
         .from('solicitudes_propietario')
@@ -116,18 +118,19 @@ export default function SolicitudDetalleScreen() {
         .single();
 
       if (error) {
-        console.error('[SolicitudDetalle v4.2] Error loading request:', error);
+        console.error('[SolicitudDetalle v4.3] Error loading request:', error);
         throw error;
       }
 
-      console.log('[SolicitudDetalle v4.2] Loaded request:', data.nombre_local);
-      console.log('[SolicitudDetalle v4.2] Document URL:', data.documento_propiedad_url);
-      console.log('[SolicitudDetalle v4.2] Cover image URL:', data.imagen_portada_url);
-      console.log('[SolicitudDetalle v4.2] Gallery URLs:', data.galeria_urls);
+      console.log('[SolicitudDetalle v4.3] Loaded request:', data.nombre_local);
+      console.log('[SolicitudDetalle v4.3] Document URL:', data.documento_propiedad_url);
+      console.log('[SolicitudDetalle v4.3] Verification image URL:', data.imagen_verificacion_url);
+      console.log('[SolicitudDetalle v4.3] Cover image URL:', data.imagen_portada_url);
+      console.log('[SolicitudDetalle v4.3] Gallery URLs:', data.galeria_urls);
       
       setSolicitud(data);
     } catch (error) {
-      console.error('[SolicitudDetalle v4.2] Error:', error);
+      console.error('[SolicitudDetalle v4.3] Error:', error);
       Alert.alert('Error', 'No se pudo cargar la solicitud');
       router.back();
     } finally {
@@ -140,18 +143,18 @@ export default function SolicitudDetalleScreen() {
   }, [loadSolicitud]);
 
   const handleImageLoadStart = (uri: string) => {
-    console.log('[SolicitudDetalle v4.2] Image load started:', uri);
+    console.log('[SolicitudDetalle v4.3] Image load started:', uri);
     setImageLoadingStates(prev => ({ ...prev, [uri]: true }));
     setImageErrorStates(prev => ({ ...prev, [uri]: false }));
   };
 
   const handleImageLoadEnd = (uri: string) => {
-    console.log('[SolicitudDetalle v4.2] ✅ Image loaded successfully:', uri);
+    console.log('[SolicitudDetalle v4.3] ✅ Image loaded successfully:', uri);
     setImageLoadingStates(prev => ({ ...prev, [uri]: false }));
   };
 
   const handleImageError = (uri: string, error: any) => {
-    console.error('[SolicitudDetalle v4.2] ❌ Image load error:', uri, error);
+    console.error('[SolicitudDetalle v4.3] ❌ Image load error:', uri, error);
     setImageLoadingStates(prev => ({ ...prev, [uri]: false }));
     setImageErrorStates(prev => ({ ...prev, [uri]: true }));
   };
@@ -161,7 +164,7 @@ export default function SolicitudDetalleScreen() {
     
     // If it's already a full URL, return it
     if (path.startsWith('http')) {
-      console.log('[SolicitudDetalle v4.2] Using full URL:', path);
+      console.log('[SolicitudDetalle v4.3] Using full URL:', path);
       return path;
     }
     
@@ -170,7 +173,7 @@ export default function SolicitudDetalleScreen() {
       .from('documentos-propiedad')
       .getPublicUrl(path);
     
-    console.log('[SolicitudDetalle v4.2] Generated public URL:', data.publicUrl);
+    console.log('[SolicitudDetalle v4.3] Generated public URL:', data.publicUrl);
     return data.publicUrl;
   };
 
@@ -181,7 +184,7 @@ export default function SolicitudDetalleScreen() {
     }
 
     try {
-      console.log('[SolicitudDetalle v4.2] Opening document:', solicitud.documento_propiedad_url);
+      console.log('[SolicitudDetalle v4.3] Opening document:', solicitud.documento_propiedad_url);
       
       const documentUrl = getPublicUrl(solicitud.documento_propiedad_url);
       if (!documentUrl) {
@@ -194,7 +197,7 @@ export default function SolicitudDetalleScreen() {
 
       if (isImage) {
         // For images, show in modal viewer
-        console.log('[SolicitudDetalle v4.2] Opening image in viewer');
+        console.log('[SolicitudDetalle v4.3] Opening image in viewer');
         setSelectedImageIndex(0);
         setShowImageModal(true);
       } else {
@@ -206,7 +209,7 @@ export default function SolicitudDetalleScreen() {
             {
               text: 'Abrir en Navegador',
               onPress: () => {
-                console.log('[SolicitudDetalle v4.2] Opening in browser:', documentUrl);
+                console.log('[SolicitudDetalle v4.3] Opening in browser:', documentUrl);
                 Linking.openURL(documentUrl);
               },
             },
@@ -222,7 +225,7 @@ export default function SolicitudDetalleScreen() {
         );
       }
     } catch (error) {
-      console.error('[SolicitudDetalle v4.2] Error opening document:', error);
+      console.error('[SolicitudDetalle v4.3] Error opening document:', error);
       Alert.alert('Error', 'No se pudo abrir el documento');
     }
   };
@@ -237,7 +240,7 @@ export default function SolicitudDetalleScreen() {
         throw new Error('No se pudo generar la URL del documento');
       }
       
-      console.log('[SolicitudDetalle v4.2] Downloading document:', documentUrl);
+      console.log('[SolicitudDetalle v4.3] Downloading document:', documentUrl);
 
       // Get file extension from URL
       const urlParts = documentUrl.split('.');
@@ -245,7 +248,7 @@ export default function SolicitudDetalleScreen() {
       const fileName = `documento_${solicitud.id}.${extension}`;
       const fileUri = `${FileSystem.documentDirectory}${fileName}`;
 
-      console.log('[SolicitudDetalle v4.2] Downloading to:', fileUri);
+      console.log('[SolicitudDetalle v4.3] Downloading to:', fileUri);
 
       // Download the file
       const downloadResult = await FileSystem.downloadAsync(
@@ -253,10 +256,10 @@ export default function SolicitudDetalleScreen() {
         fileUri
       );
 
-      console.log('[SolicitudDetalle v4.2] Download result:', downloadResult.status);
+      console.log('[SolicitudDetalle v4.3] Download result:', downloadResult.status);
 
       if (downloadResult.status === 200) {
-        console.log('[SolicitudDetalle v4.2] ✅ Document downloaded successfully');
+        console.log('[SolicitudDetalle v4.3] ✅ Document downloaded successfully');
         
         // Try to share the file
         try {
@@ -264,9 +267,9 @@ export default function SolicitudDetalleScreen() {
             url: downloadResult.uri,
             title: 'Documento de Propiedad',
           });
-          console.log('[SolicitudDetalle v4.2] ✅ Document shared successfully');
+          console.log('[SolicitudDetalle v4.3] ✅ Document shared successfully');
         } catch (shareError) {
-          console.log('[SolicitudDetalle v4.2] Share not available, showing alert');
+          console.log('[SolicitudDetalle v4.3] Share not available, showing alert');
           Alert.alert(
             '✅ Descargado',
             `El documento se ha descargado correctamente.\n\nUbicación: ${downloadResult.uri}`,
@@ -283,7 +286,7 @@ export default function SolicitudDetalleScreen() {
         throw new Error('Download failed with status: ' + downloadResult.status);
       }
     } catch (error) {
-      console.error('[SolicitudDetalle v4.2] Error downloading document:', error);
+      console.error('[SolicitudDetalle v4.3] Error downloading document:', error);
       Alert.alert(
         'Error al Descargar',
         'No se pudo descargar el documento. Intenta abrirlo en el navegador.',
@@ -315,7 +318,7 @@ export default function SolicitudDetalleScreen() {
   };
 
   const handleViewImage = (index: number) => {
-    console.log('[SolicitudDetalle v4.2] Opening image viewer at index:', index);
+    console.log('[SolicitudDetalle v4.3] Opening image viewer at index:', index);
     setSelectedImageIndex(index);
     setShowImageModal(true);
   };
@@ -465,7 +468,7 @@ export default function SolicitudDetalleScreen() {
       setMotivoDenegacion('');
       setNotasAdmin('');
     } catch (error) {
-      console.error('[SolicitudDetalle v4.2] Error executing action:', error);
+      console.error('[SolicitudDetalle v4.3] Error executing action:', error);
       Alert.alert('Error', 'No se pudo completar la acción');
     }
   };
@@ -534,7 +537,7 @@ export default function SolicitudDetalleScreen() {
     });
   }
 
-  console.log('[SolicitudDetalle v4.2] All images to display:', allImages);
+  console.log('[SolicitudDetalle v4.3] All images to display:', allImages);
 
   return (
     <View style={styles.container}>
@@ -680,6 +683,78 @@ export default function SolicitudDetalleScreen() {
           </View>
         </View>
 
+        {/* ✅ NEW: Verification Image Section */}
+        {solicitud.imagen_verificacion_url && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🔐 Imagen de Verificación</Text>
+            <TouchableOpacity 
+              style={styles.verificationImageCard}
+              onPress={() => {
+                const url = getPublicUrl(solicitud.imagen_verificacion_url!);
+                if (url) {
+                  console.log('[SolicitudDetalle v4.3] Opening verification image');
+                  // Add verification image to the beginning of allImages array for modal
+                  setSelectedImageIndex(0);
+                  setShowImageModal(true);
+                }
+              }}
+            >
+              <View style={styles.verificationImageContainer}>
+                {imageErrorStates[getPublicUrl(solicitud.imagen_verificacion_url) || ''] ? (
+                  <View style={styles.verificationImageError}>
+                    <IconSymbol 
+                      ios_icon_name="exclamationmark.triangle.fill" 
+                      android_material_icon_name="error" 
+                      size={32} 
+                      color="#EF4444" 
+                    />
+                    <Text style={styles.verificationImageErrorText}>Error al cargar</Text>
+                  </View>
+                ) : (
+                  <>
+                    <Image 
+                      source={{ uri: getPublicUrl(solicitud.imagen_verificacion_url) || '' }} 
+                      style={styles.verificationImage}
+                      resizeMode="cover"
+                      onLoadStart={() => handleImageLoadStart(getPublicUrl(solicitud.imagen_verificacion_url) || '')}
+                      onLoadEnd={() => handleImageLoadEnd(getPublicUrl(solicitud.imagen_verificacion_url) || '')}
+                      onError={(error) => handleImageError(getPublicUrl(solicitud.imagen_verificacion_url) || '', error.nativeEvent.error)}
+                    />
+                    {imageLoadingStates[getPublicUrl(solicitud.imagen_verificacion_url) || ''] && (
+                      <View style={styles.verificationImageLoading}>
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      </View>
+                    )}
+                    <View style={styles.verificationImageOverlay}>
+                      <IconSymbol 
+                        ios_icon_name="arrow.up.left.and.arrow.down.right" 
+                        android_material_icon_name="fullscreen" 
+                        size={20} 
+                        color="#fff" 
+                      />
+                      <Text style={styles.verificationImageOverlayText}>Toca para ampliar</Text>
+                    </View>
+                  </>
+                )}
+              </View>
+              <View style={styles.verificationImageInfo}>
+                <View style={styles.verificationImageHeader}>
+                  <IconSymbol 
+                    ios_icon_name="checkmark.shield.fill" 
+                    android_material_icon_name="verified_user" 
+                    size={20} 
+                    color={colors.primary} 
+                  />
+                  <Text style={styles.verificationImageTitle}>Documento de Verificación</Text>
+                </View>
+                <Text style={styles.verificationImageDescription}>
+                  Imagen subida por el solicitante para verificar su identidad
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Document Card */}
         {solicitud.documento_propiedad_url && (
           <View style={styles.section}>
@@ -711,7 +786,7 @@ export default function SolicitudDetalleScreen() {
           </View>
         )}
 
-        {/* Images Gallery - FIXED v4.2 */}
+        {/* Images Gallery - FIXED v4.3 */}
         {allImages.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🖼️ Imágenes ({allImages.length})</Text>
@@ -846,7 +921,7 @@ export default function SolicitudDetalleScreen() {
         </View>
       )}
 
-      {/* Image Viewer Modal - FIXED v4.2 */}
+      {/* Image Viewer Modal - FIXED v4.3 */}
       <Modal
         visible={showImageModal}
         transparent
@@ -862,77 +937,103 @@ export default function SolicitudDetalleScreen() {
           </TouchableOpacity>
           
           <View style={styles.fullImageContainer}>
-            {imageErrorStates[allImages[selectedImageIndex]] ? (
-              // Show error state
-              <View style={styles.fullImageError}>
-                <IconSymbol 
-                  ios_icon_name="exclamationmark.triangle.fill" 
-                  android_material_icon_name="error" 
-                  size={64} 
-                  color="#fff" 
-                />
-                <Text style={styles.fullImageErrorText}>No se pudo cargar la imagen</Text>
-                <TouchableOpacity 
-                  style={styles.fullImageErrorButton}
-                  onPress={() => {
-                    const url = allImages[selectedImageIndex];
-                    if (url) Linking.openURL(url);
-                  }}
-                >
-                  <Text style={styles.fullImageErrorButtonText}>Abrir en Navegador</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <>
-                <Image 
-                  source={{ uri: allImages[selectedImageIndex] }} 
-                  style={styles.fullImage} 
-                  resizeMode="contain"
-                  onLoadStart={() => handleImageLoadStart(allImages[selectedImageIndex])}
-                  onLoadEnd={() => handleImageLoadEnd(allImages[selectedImageIndex])}
-                  onError={(error) => handleImageError(allImages[selectedImageIndex], error.nativeEvent.error)}
-                />
-                {/* Loading indicator for full image */}
-                {imageLoadingStates[allImages[selectedImageIndex]] && (
-                  <View style={styles.fullImageLoading}>
-                    <ActivityIndicator size="large" color="#fff" />
-                    <Text style={styles.fullImageLoadingText}>Cargando imagen...</Text>
-                  </View>
-                )}
-              </>
-            )}
+            {(() => {
+              // Build complete image array including verification image
+              const modalImages: string[] = [];
+              
+              if (solicitud.imagen_verificacion_url) {
+                const url = getPublicUrl(solicitud.imagen_verificacion_url);
+                if (url) modalImages.push(url);
+              }
+              
+              modalImages.push(...allImages);
+              
+              const currentImageUrl = modalImages[selectedImageIndex];
+              
+              return imageErrorStates[currentImageUrl] ? (
+                // Show error state
+                <View style={styles.fullImageError}>
+                  <IconSymbol 
+                    ios_icon_name="exclamationmark.triangle.fill" 
+                    android_material_icon_name="error" 
+                    size={64} 
+                    color="#fff" 
+                  />
+                  <Text style={styles.fullImageErrorText}>No se pudo cargar la imagen</Text>
+                  <TouchableOpacity 
+                    style={styles.fullImageErrorButton}
+                    onPress={() => {
+                      if (currentImageUrl) Linking.openURL(currentImageUrl);
+                    }}
+                  >
+                    <Text style={styles.fullImageErrorButtonText}>Abrir en Navegador</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  <Image 
+                    source={{ uri: currentImageUrl }} 
+                    style={styles.fullImage} 
+                    resizeMode="contain"
+                    onLoadStart={() => handleImageLoadStart(currentImageUrl)}
+                    onLoadEnd={() => handleImageLoadEnd(currentImageUrl)}
+                    onError={(error) => handleImageError(currentImageUrl, error.nativeEvent.error)}
+                  />
+                  {/* Loading indicator for full image */}
+                  {imageLoadingStates[currentImageUrl] && (
+                    <View style={styles.fullImageLoading}>
+                      <ActivityIndicator size="large" color="#fff" />
+                      <Text style={styles.fullImageLoadingText}>Cargando imagen...</Text>
+                    </View>
+                  )}
+                </>
+              );
+            })()}
           </View>
           
           <View style={styles.imageModalFooter}>
-            <Text style={styles.imageCounter}>{selectedImageIndex + 1} / {allImages.length}</Text>
-            {allImages.length > 1 && (
-              <View style={styles.imageNavigation}>
-                <TouchableOpacity
-                  style={styles.imageNavBtn}
-                  onPress={() => setSelectedImageIndex(Math.max(0, selectedImageIndex - 1))}
-                  disabled={selectedImageIndex === 0}
-                >
-                  <IconSymbol 
-                    ios_icon_name="chevron.left" 
-                    android_material_icon_name="chevron_left" 
-                    size={24} 
-                    color={selectedImageIndex === 0 ? colors.textSecondary : '#fff'} 
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.imageNavBtn}
-                  onPress={() => setSelectedImageIndex(Math.min(allImages.length - 1, selectedImageIndex + 1))}
-                  disabled={selectedImageIndex === allImages.length - 1}
-                >
-                  <IconSymbol 
-                    ios_icon_name="chevron.right" 
-                    android_material_icon_name="chevron_right" 
-                    size={24} 
-                    color={selectedImageIndex === allImages.length - 1 ? colors.textSecondary : '#fff'} 
-                  />
-                </TouchableOpacity>
-              </View>
-            )}
+            {(() => {
+              const modalImages: string[] = [];
+              if (solicitud.imagen_verificacion_url) {
+                const url = getPublicUrl(solicitud.imagen_verificacion_url);
+                if (url) modalImages.push(url);
+              }
+              modalImages.push(...allImages);
+              
+              return (
+                <>
+                  <Text style={styles.imageCounter}>{selectedImageIndex + 1} / {modalImages.length}</Text>
+                  {modalImages.length > 1 && (
+                    <View style={styles.imageNavigation}>
+                      <TouchableOpacity
+                        style={styles.imageNavBtn}
+                        onPress={() => setSelectedImageIndex(Math.max(0, selectedImageIndex - 1))}
+                        disabled={selectedImageIndex === 0}
+                      >
+                        <IconSymbol 
+                          ios_icon_name="chevron.left" 
+                          android_material_icon_name="chevron_left" 
+                          size={24} 
+                          color={selectedImageIndex === 0 ? colors.textSecondary : '#fff'} 
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.imageNavBtn}
+                        onPress={() => setSelectedImageIndex(Math.min(modalImages.length - 1, selectedImageIndex + 1))}
+                        disabled={selectedImageIndex === modalImages.length - 1}
+                      >
+                        <IconSymbol 
+                          ios_icon_name="chevron.right" 
+                          android_material_icon_name="chevron_right" 
+                          size={24} 
+                          color={selectedImageIndex === modalImages.length - 1 ? colors.textSecondary : '#fff'} 
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              );
+            })()}
           </View>
         </View>
       </Modal>
@@ -1255,6 +1356,81 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
     lineHeight: 19,
+  },
+  verificationImageCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    overflow: 'hidden',
+  },
+  verificationImageContainer: {
+    width: '100%',
+    height: 200,
+    backgroundColor: colors.cardBorder,
+    position: 'relative',
+  },
+  verificationImage: {
+    width: '100%',
+    height: '100%',
+  },
+  verificationImageError: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  verificationImageErrorText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  verificationImageLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  verificationImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  verificationImageOverlayText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  verificationImageInfo: {
+    padding: 14,
+  },
+  verificationImageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  verificationImageTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  verificationImageDescription: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
   documentCard: {
     backgroundColor: colors.cardBackground,
