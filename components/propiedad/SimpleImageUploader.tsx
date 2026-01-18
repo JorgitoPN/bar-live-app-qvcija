@@ -15,13 +15,17 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 /**
- * ✅ SISTEMA SIMPLE DE SUBIDA DE IMÁGENES v2.0 - FIXED
+ * ✅ SISTEMA SIMPLE DE SUBIDA DE IMÁGENES v2.1 - RLS POLICY FIX
  * 
  * Correcciones aplicadas:
- * - URL de Supabase Storage correctamente formateada
- * - Validación de URL antes de guardar
- * - Logs detallados para debugging
- * - Manejo robusto de errores
+ * - ✅ Estructura de carpetas con userId para cumplir con RLS policy
+ * - ✅ URL de Supabase Storage correctamente formateada
+ * - ✅ Validación de URL antes de guardar
+ * - ✅ Logs detallados para debugging
+ * - ✅ Manejo robusto de errores
+ * 
+ * IMPORTANTE: La política RLS del bucket 'documentos-propiedad' requiere
+ * que los archivos estén en una carpeta con el ID del usuario: {userId}/filename.jpg
  */
 
 interface SimpleImageUploaderProps {
@@ -109,14 +113,15 @@ export default function SimpleImageUploader({
         type: blob.type,
       });
 
-      // ✅ FIXED: Generar nombre de archivo SIN carpeta de usuario
-      // Esto evita problemas con la estructura de URL
+      // ✅ FIXED: Generar nombre de archivo CON carpeta de usuario
+      // La política RLS requiere que el archivo esté en una carpeta con el userId
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substring(2, 15);
-      const fileName = `${timestamp}-${randomId}-${userId.substring(0, 8)}.${extension}`;
+      const fileName = `${userId}/${timestamp}-${randomId}.${extension}`;
       
       console.log('[SimpleImageUploader v2] ⬆️ Subiendo a bucket:', bucketName);
-      console.log('[SimpleImageUploader v2] 📁 Nombre de archivo:', fileName);
+      console.log('[SimpleImageUploader v2] 📁 Path completo:', fileName);
+      console.log('[SimpleImageUploader v2] 👤 User ID:', userId);
 
       // Subir a Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
