@@ -1142,9 +1142,9 @@ export default function SolicitarPropiedadScreen() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Documento de Propiedad *</Text>
+        <Text style={styles.label}>Imagen de verificación obligatoria</Text>
         <Text style={styles.helperText}>
-          Sube un documento que acredite tu relación con el local (factura, contrato, licencia, etc.) - Obligatorio
+          Sube una foto de algún documento para verificar que eres el propietario (DNI, escrituras, licencia de apertura, etc.)
         </Text>
         
         {documentoUrl ? (
