@@ -1,4 +1,5 @@
-// Initialize Natively console log capture before anything else
-import './utils/errorLogger';
+
+// Temporarily disable error logger for faster startup
+// import './utils/errorLogger';
 
 import 'expo-router/entry';
