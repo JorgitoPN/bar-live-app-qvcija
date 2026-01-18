@@ -754,10 +754,10 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
             size={24} 
             color={colors.primary} 
           />
-          <Text style={styles.verificationTitle}>Verificación de Identidad</Text>
+          <Text style={styles.verificationTitle}>Imagen de verificación obligatoria (nuevo)</Text>
         </View>
         <Text style={styles.verificationDescription}>
-          Sube una foto de un documento que demuestre que eres el propietario del local (DNI, escrituras, licencia de apertura, etc.)
+          Sube una foto de algún documento para verificar que eres el propietario (DNI, escrituras, licencia de apertura, etc.)
         </Text>
         
         <SimpleImageUploader
@@ -768,8 +768,8 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
           currentImageUrl={verificationImageUrl}
           userId={user?.id || ''}
           bucketName="documentos-propiedad"
-          label="Documento de Verificación *"
-          helperText="Foto de DNI, escrituras, licencia de apertura u otro documento que acredite la propiedad"
+          label="Imagen de Verificación *"
+          helperText="Foto de algún documento que acredite tu relación con el local"
         />
       </View>
 
