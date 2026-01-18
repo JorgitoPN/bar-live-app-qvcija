@@ -83,14 +83,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 export default function RootLayout() {
   useEffect(() => {
-    console.log('[RootLayout v141.0] 🚀 App starting...');
-    console.log('[RootLayout v141.0] 📱 Platform:', Platform.OS);
+    console.log('[RootLayout] 🚀 App starting...');
+    console.log('[RootLayout] 📱 Platform:', Platform.OS);
     
     // ✅ CRITICAL FIX v25.0: Initialize Android-specific behavior
     let cleanupAndroid: (() => void) | undefined;
     
     if (Platform.OS === 'android') {
-      console.log('[RootLayout v141.0] 🤖 Initializing Android native behavior...');
+      console.log('[RootLayout] 🤖 Initializing Android native behavior...');
       try {
         cleanupAndroid = initializeAndroidBehavior();
       } catch (error) {
@@ -98,21 +98,18 @@ export default function RootLayout() {
       }
     }
 
-    // Hide splash screen
-    const timer = setTimeout(() => {
-      console.log('[RootLayout v141.0] 🎨 Hiding splash screen...');
-      SplashScreen.hideAsync()
-        .then(() => {
-          console.log('[RootLayout v141.0] ✅ Splash screen hidden');
-        })
-        .catch((error) => {
-          console.error('[RootLayout] Error hiding splash screen:', error);
-        });
-    }, 100);
+    // Hide splash screen immediately for faster startup
+    console.log('[RootLayout] 🎨 Hiding splash screen...');
+    SplashScreen.hideAsync()
+      .then(() => {
+        console.log('[RootLayout] ✅ Splash screen hidden');
+      })
+      .catch((error) => {
+        console.error('[RootLayout] Error hiding splash screen:', error);
+      });
 
     // Cleanup function
     return () => {
-      clearTimeout(timer);
       if (cleanupAndroid) {
         try {
           cleanupAndroid();

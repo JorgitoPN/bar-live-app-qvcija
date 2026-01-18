@@ -7,10 +7,27 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.unstable_enablePackageExports = true;
 
+// Optimize Metro bundler for faster startup
+config.transformer = {
+  ...config.transformer,
+  minifierPath: 'metro-minify-terser',
+  minifierConfig: {
+    compress: {
+      drop_console: false, // Keep console logs for debugging
+    },
+  },
+};
+
 // Use turborepo to restore the cache when possible
 config.cacheStores = [
     new FileStore({ root: path.join(__dirname, 'node_modules', '.cache', 'metro') }),
   ];
+
+// Optimize resolver for faster module resolution
+config.resolver = {
+  ...config.resolver,
+  sourceExts: [...config.resolver.sourceExts, 'cjs'],
+};
 
 // Custom server middleware to receive console.log messages from the app
 const LOG_FILE_PATH = path.join(__dirname, '.natively', 'app_console.log');

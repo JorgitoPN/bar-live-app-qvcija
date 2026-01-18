@@ -52,13 +52,12 @@ export default function Index() {
     setCheckingRecovery(false);
   }, [user, loading, router]);
 
-  // Show loading while checking for recovery or auth is initializing
+  // Show minimal loading while checking for recovery or auth is initializing
   if (loading || checkingRecovery) {
     console.log('[Index] ⏳ Cargando...');
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 16, color: colors.text }}>Cargando...</Text>
       </View>
     );
   }
@@ -68,7 +67,6 @@ export default function Index() {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 16, color: colors.text }}>Redirigiendo a restablecer contraseña...</Text>
       </View>
     );
   }
