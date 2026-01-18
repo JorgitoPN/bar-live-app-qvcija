@@ -47,7 +47,7 @@ export default function RedBullLaunchScreen() {
         >
           <IconSymbol 
             ios_icon_name="chevron.left" 
-            android_material_icon_name="arrow_back" 
+            android_material_icon_name="arrow-back" 
             size={24} 
             color="#fff" 
           />
@@ -63,13 +63,16 @@ export default function RedBullLaunchScreen() {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
       >
-        {/* Main Launch Image */}
+        {/* Main Launch Image - Using Unsplash placeholder */}
         <View style={styles.imageContainer}>
           <Image
-            source={require('@/assets/images/4c5a7cf4-4092-4a0f-917d-d9ca2e1c45f1.jpeg')}
+            source={{ uri: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&h=600&fit=crop' }}
             style={styles.launchImage}
             resizeMode="cover"
           />
+          <View style={styles.imageOverlay}>
+            <Text style={styles.imageOverlayText}>🏎️ 2026 Season Launch</Text>
+          </View>
         </View>
 
         {/* Event Info */}
@@ -97,7 +100,7 @@ export default function RedBullLaunchScreen() {
           <View style={styles.infoRow}>
             <IconSymbol 
               ios_icon_name="location.fill" 
-              android_material_icon_name="location_on" 
+              android_material_icon_name="location-on" 
               size={20} 
               color={colors.textSecondary} 
             />
@@ -141,7 +144,7 @@ export default function RedBullLaunchScreen() {
           >
             <IconSymbol 
               ios_icon_name="play.circle.fill" 
-              android_material_icon_name="play_circle" 
+              android_material_icon_name="play-circle" 
               size={24} 
               color="#fff" 
             />
@@ -214,6 +217,20 @@ const styles = StyleSheet.create({
   launchImage: {
     width: '100%',
     height: '100%',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 16,
+    alignItems: 'center',
+  },
+  imageOverlayText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   infoCard: {
     backgroundColor: colors.cardBackground,
