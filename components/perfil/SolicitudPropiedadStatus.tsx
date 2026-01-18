@@ -42,6 +42,32 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
   const [solicitud, setSolicitud] = useState<SolicitudStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // ✅ LINT FIX: Wrapped loadSolicitud in useCallback to fix dependency warning
+  const loadSolicitud = React.useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('solicitudes_propietario')
+        .select('id, tipo_solicitud, nombre_local, estado, created_at, motivo_denegacion, notas_admin')
+        .eq('usuario_id', userId)
+        .in('estado', ['pendiente', 'en_revision', 'informacion_adicional'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[SolicitudStatus v2.0] Error loading request:', error);
+        return;
+      }
+
+      setSolicitud(data);
+      console.log('[SolicitudStatus v2.0] Loaded request:', data?.estado);
+    } catch (error) {
+      console.error('[SolicitudStatus v2.0] Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
   useEffect(() => {
     loadSolicitud();
 
@@ -66,32 +92,9 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, loadSolicitud]);
 
-  const loadSolicitud = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('solicitudes_propietario')
-        .select('id, tipo_solicitud, nombre_local, estado, created_at, motivo_denegacion, notas_admin')
-        .eq('usuario_id', userId)
-        .in('estado', ['pendiente', 'en_revision', 'informacion_adicional'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
 
-      if (error) {
-        console.error('[SolicitudStatus v2.0] Error loading request:', error);
-        return;
-      }
-
-      setSolicitud(data);
-      console.log('[SolicitudStatus v2.0] Loaded request:', data?.estado);
-    } catch (error) {
-      console.error('[SolicitudStatus v2.0] Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getEstadoInfo = (estado: string) => {
     switch (estado) {

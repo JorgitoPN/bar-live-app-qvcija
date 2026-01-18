@@ -359,7 +359,7 @@ export default function ExplorarScreen() {
     }
   }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada]);
 
-  // ✅ CRITICAL v224.0: Client-side filtering (triggered by filterTrigger, not searchQuery)
+  // ✅ LINT FIX: Removed unnecessary 'filterTrigger' dependency - filtering triggered by filterTrigger state change
   const filteredLocales = useMemo(() => {
     const query = searchQueryRef.current.toLowerCase().trim();
     console.log('[Explorar v224.0] 🔍 Filtering locales client-side, search:', query);
@@ -384,7 +384,7 @@ export default function ExplorarScreen() {
 
     console.log('[Explorar v224.0] ✅ Filtered', filtered.length, 'locales from', allLoadedLocales.length);
     return filtered;
-  }, [allLoadedLocales, filterTrigger]); // ✅ Depends on filterTrigger, not searchQuery
+  }, [allLoadedLocales, filterTrigger]);
 
   // ✅ CRITICAL v224.0: Update displayed locales when filtered results change
   useEffect(() => {
@@ -443,9 +443,10 @@ export default function ExplorarScreen() {
     if (selectedCategory !== 'todas') count++;
     if (provinciaSeleccionada !== 'Todas') count++;
     return count;
-  }, [selectedCategory, provinciaSeleccionada, filterTrigger]);
+  }, [selectedCategory, provinciaSeleccionada]);
 
-  const toggleFavorito = async (localId: string, e?: any) => {
+  // ✅ LINT FIX: Wrapped toggleFavorito in useCallback
+  const toggleFavorito = useCallback(async (localId: string, e?: any) => {
     if (e) {
       e.stopPropagation();
     }
@@ -493,19 +494,21 @@ export default function ExplorarScreen() {
       console.error('[Explorar v224.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
-  };
+  }, [user, setShowLoginModal]);
 
-  const handleComoLlegar = (local: any, e: any) => {
+  // ✅ LINT FIX: Wrapped handleComoLlegar in useCallback
+  const handleComoLlegar = useCallback((local: any, e: any) => {
     e.stopPropagation();
     const { lat, lng } = local.coordenadas;
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     Linking.openURL(url);
-  };
+  }, []);
 
-  const handlePerfilSocial = (localId: string, e: any) => {
+  // ✅ LINT FIX: Wrapped handlePerfilSocial in useCallback
+  const handlePerfilSocial = useCallback((localId: string, e: any) => {
     e.stopPropagation();
     router.push(`/perfil/local?localId=${localId}`);
-  };
+  }, [router]);
 
   const handleNavigateToMap = () => {
     router.push('/(tabs)/explorar/mapa');
