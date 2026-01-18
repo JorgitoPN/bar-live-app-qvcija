@@ -1,5 +1,5 @@
 
-import React, { useEffect, Component, ReactNode } from 'react';
+import React, { useEffect, Component, ReactNode, useState } from 'react';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AvatarProvider } from '@/contexts/AvatarContext';
@@ -14,7 +14,7 @@ import { colors } from '@/styles/commonStyles';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform, View, Text, TouchableOpacity } from 'react-native';
+import { Platform, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { initializeAndroidBehavior } from '@/utils/androidNativeBehavior';
 
 // Error Boundary Component
@@ -73,47 +73,79 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 /**
- * ROOT LAYOUT v143.0 - OPTIMIZED FOR FAST STARTUP
+ * ROOT LAYOUT v144.0 - ULTRA-FAST STARTUP WITH VISUAL FEEDBACK
  * 
- * OPTIMIZATIONS v143.0:
- * - ✅ Disabled errorLogger temporarily (was blocking startup with fetch calls)
- * - ✅ Simplified splash screen hiding (immediate)
- * - ✅ Reduced console.log calls
- * - ✅ Optimized context providers loading
+ * OPTIMIZATIONS v144.0:
+ * - ✅ Immediate visual feedback on mount
+ * - ✅ Splash screen hidden instantly
+ * - ✅ Minimal initialization blocking
+ * - ✅ Better console logging for debugging preview issues
+ * - ✅ Loading indicator shows immediately in preview
  */
 
 export default function RootLayout() {
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
-    // Minimal logging for faster startup
-    console.log('[RootLayout] Starting app...');
+    console.log('[RootLayout] ========================================');
+    console.log('[RootLayout] App starting - Platform:', Platform.OS);
+    console.log('[RootLayout] ========================================');
     
-    // Initialize Android-specific behavior
-    let cleanupAndroid: (() => void) | undefined;
-    
-    if (Platform.OS === 'android') {
+    // Initialize app
+    const initializeApp = async () => {
       try {
-        cleanupAndroid = initializeAndroidBehavior();
+        // Hide splash screen IMMEDIATELY for instant visual feedback
+        await SplashScreen.hideAsync();
+        console.log('[RootLayout] ✅ Splash screen hidden successfully');
       } catch (error) {
-        console.error('[RootLayout] Android init error:', error);
+        console.log('[RootLayout] ⚠️ Splash screen already hidden');
       }
-    }
 
-    // Hide splash screen immediately for faster perceived startup
-    SplashScreen.hideAsync().catch(() => {
-      // Silently ignore errors
-    });
-
-    // Cleanup function
-    return () => {
-      if (cleanupAndroid) {
+      // Initialize Android-specific behavior (non-blocking)
+      if (Platform.OS === 'android') {
         try {
-          cleanupAndroid();
+          initializeAndroidBehavior();
+          console.log('[RootLayout] ✅ Android behavior initialized');
         } catch (error) {
-          // Silently ignore cleanup errors
+          console.error('[RootLayout] ❌ Android init error:', error);
         }
       }
+
+      console.log('[RootLayout] ✅ App ready - rendering UI');
+      setIsReady(true);
     };
+
+    initializeApp();
   }, []);
+
+  // Show immediate loading screen while initializing
+  if (!isReady) {
+    return (
+      <View style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        backgroundColor: colors.background 
+      }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ 
+          color: colors.text, 
+          marginTop: 16, 
+          fontSize: 18,
+          fontWeight: '600'
+        }}>
+          BarLive
+        </Text>
+        <Text style={{ 
+          color: colors.textSecondary, 
+          marginTop: 8, 
+          fontSize: 14 
+        }}>
+          Cargando aplicación...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ErrorBoundary>
