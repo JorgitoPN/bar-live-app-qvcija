@@ -73,12 +73,13 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v225.0 - FIXED NAVIGATION TO ULTRA-SIMPLE
+ * ✅ EXPLORAR SCREEN v226.0 - CLAIM BANNER ENABLED FOR NON-AUTHENTICATED USERS
  * 
- * FIX v225.0:
- * - ✅ FIXED: Navigation now goes to solicitar-propiedad-ultra-simple (with image verification)
- * - ✅ FIXED: No longer uses old solicitar-propiedad (with document upload)
- * - ✅ FIXED: Users will see "Imagen de verificación" instead of "Documento de propiedad"
+ * FIX v226.0:
+ * - ✅ NEW: Banner "¿Tienes un local? Reclámalo o crea uno nuevo" now visible for ALL users
+ * - ✅ NEW: Non-authenticated users see login modal when clicking banner
+ * - ✅ NEW: Modal informs users they need to login/register to claim or create a local
+ * - ✅ PREVIOUS: Navigation goes to solicitar-propiedad-ultra-simple (with image verification)
  */
 
 export default function ExplorarScreen() {
@@ -503,14 +504,18 @@ export default function ExplorarScreen() {
     router.push('/(tabs)/explorar/mapa');
   };
 
-  // ✅ FIX v225.0: Updated navigation to use solicitar-propiedad-ultra-simple
+  // ✅ FIX v226.0: Banner enabled for non-authenticated users with login prompt
   const handleClaimOrCreateLocal = () => {
+    console.log('[Explorar v226.0] User tapped Claim/Create Local button');
+    
+    // ✅ NEW v226.0: Show login modal for non-authenticated users
     if (!user) {
+      console.log('[Explorar v226.0] User not authenticated - showing login modal');
       setShowLoginModal(true);
       return;
     }
     
-    console.log('[Explorar v225.0] User tapped Claim/Create Local button');
+    console.log('[Explorar v226.0] User authenticated - showing options');
     
     Alert.alert(
       'Solicitar Propiedad',
@@ -519,7 +524,7 @@ export default function ExplorarScreen() {
         {
           text: 'Reclamar Local Existente',
           onPress: () => {
-            console.log('[Explorar v225.0] ✅ Navigating to solicitar-propiedad-ultra-simple (reclamar)');
+            console.log('[Explorar v226.0] ✅ Navigating to solicitar-propiedad-ultra-simple (reclamar)');
             router.push({
               pathname: '/solicitudes/solicitar-propiedad-ultra-simple',
               params: { type: 'reclamar_local' },
@@ -529,7 +534,7 @@ export default function ExplorarScreen() {
         {
           text: 'Crear Nuevo Local',
           onPress: () => {
-            console.log('[Explorar v225.0] ✅ Navigating to solicitar-propiedad-ultra-simple (nuevo)');
+            console.log('[Explorar v226.0] ✅ Navigating to solicitar-propiedad-ultra-simple (nuevo)');
             router.push({
               pathname: '/solicitudes/solicitar-propiedad-ultra-simple',
               params: { type: 'nuevo_local' },
