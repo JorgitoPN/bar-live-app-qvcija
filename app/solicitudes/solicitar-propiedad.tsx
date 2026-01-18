@@ -142,12 +142,12 @@ export default function SolicitarPropiedadScreen() {
     }
   }, [user]);
 
-  // ✅ LINT FIX: Added loadPreselectedLocal to dependency array
+  // Load preselected local if provided
   useEffect(() => {
     if (preselectedLocalId && requestType === 'reclamar_local') {
       loadPreselectedLocal(preselectedLocalId);
     }
-  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
+  }, [preselectedLocalId, requestType]);
 
   const loadPreselectedLocal = useCallback(async (localId: string) => {
     try {

@@ -359,7 +359,7 @@ export default function ExplorarScreen() {
     }
   }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada]);
 
-  // ✅ LINT FIX: Removed unnecessary 'filterTrigger' dependency - filtering triggered by filterTrigger state change
+  // ✅ CRITICAL v224.0: Client-side filtering (triggered by filterTrigger, not searchQuery)
   const filteredLocales = useMemo(() => {
     const query = searchQueryRef.current.toLowerCase().trim();
     console.log('[Explorar v224.0] 🔍 Filtering locales client-side, search:', query);
@@ -384,7 +384,7 @@ export default function ExplorarScreen() {
 
     console.log('[Explorar v224.0] ✅ Filtered', filtered.length, 'locales from', allLoadedLocales.length);
     return filtered;
-  }, [allLoadedLocales, filterTrigger]);
+  }, [allLoadedLocales, filterTrigger]); // ✅ Depends on filterTrigger, not searchQuery
 
   // ✅ CRITICAL v224.0: Update displayed locales when filtered results change
   useEffect(() => {
@@ -443,10 +443,9 @@ export default function ExplorarScreen() {
     if (selectedCategory !== 'todas') count++;
     if (provinciaSeleccionada !== 'Todas') count++;
     return count;
-  }, [selectedCategory, provinciaSeleccionada]);
+  }, [selectedCategory, provinciaSeleccionada, filterTrigger]);
 
-  // ✅ LINT FIX: Wrapped toggleFavorito in useCallback
-  const toggleFavorito = useCallback(async (localId: string, e?: any) => {
+  const toggleFavorito = async (localId: string, e?: any) => {
     if (e) {
       e.stopPropagation();
     }
@@ -494,37 +493,32 @@ export default function ExplorarScreen() {
       console.error('[Explorar v224.0] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
-  }, [user, setShowLoginModal]);
+  };
 
-  // ✅ LINT FIX: Wrapped handleComoLlegar in useCallback
-  const handleComoLlegar = useCallback((local: any, e: any) => {
+  const handleComoLlegar = (local: any, e: any) => {
     e.stopPropagation();
     const { lat, lng } = local.coordenadas;
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     Linking.openURL(url);
-  }, []);
+  };
 
-  // ✅ LINT FIX: Wrapped handlePerfilSocial in useCallback
-  const handlePerfilSocial = useCallback((localId: string, e: any) => {
+  const handlePerfilSocial = (localId: string, e: any) => {
     e.stopPropagation();
     router.push(`/perfil/local?localId=${localId}`);
-  }, [router]);
+  };
 
   const handleNavigateToMap = () => {
     router.push('/(tabs)/explorar/mapa');
   };
 
   const handleClaimOrCreateLocal = () => {
-    console.log('[Explorar v224.0] User tapped Claim/Create Local button');
-    
-    // ✅ NEW: Show login modal if user is not authenticated
     if (!user) {
-      console.log('[Explorar v224.0] User not authenticated - showing login modal');
       setShowLoginModal(true);
       return;
     }
     
-    // ✅ User is authenticated - show options
+    console.log('[Explorar v224.0] User tapped Claim/Create Local button');
+    
     Alert.alert(
       'Solicitar Propiedad',
       '¿Qué deseas hacer?',

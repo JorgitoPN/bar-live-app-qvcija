@@ -1,5 +1,5 @@
 
-import React, { useEffect, Component, ReactNode, useState } from 'react';
+import React, { useEffect, Component, ReactNode } from 'react';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AvatarProvider } from '@/contexts/AvatarContext';
@@ -14,7 +14,7 @@ import { colors } from '@/styles/commonStyles';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Platform, View, Text, TouchableOpacity } from 'react-native';
 import { initializeAndroidBehavior } from '@/utils/androidNativeBehavior';
 
 // Error Boundary Component
@@ -69,83 +69,59 @@ class ErrorBoundary extends Component<
 
 // Prevent auto-hiding splash screen
 SplashScreen.preventAutoHideAsync().catch(() => {
-  // Silently ignore if already hidden
+  console.log('[RootLayout] Splash screen already hidden');
 });
 
 /**
- * ROOT LAYOUT v144.0 - ULTRA-FAST STARTUP WITH VISUAL FEEDBACK
+ * ROOT LAYOUT v142.0 - FIXED IMPERSONATION PROVIDER
  * 
- * OPTIMIZATIONS v144.0:
- * - ✅ Immediate visual feedback on mount
- * - ✅ Splash screen hidden instantly
- * - ✅ Minimal initialization blocking
- * - ✅ Better console logging for debugging preview issues
- * - ✅ Loading indicator shows immediately in preview
+ * CRITICAL FIX v142.0:
+ * - ✅ Added ImpersonationProvider back (it exists and is needed by ModeContext)
+ * - ✅ ImpersonationProvider must wrap ModeProvider
+ * - ✅ Fixed "useImpersonation must be used within an ImpersonationProvider" error
  */
 
 export default function RootLayout() {
-  const [isReady, setIsReady] = useState(false);
-
   useEffect(() => {
-    console.log('[RootLayout] ========================================');
-    console.log('[RootLayout] App starting - Platform:', Platform.OS);
-    console.log('[RootLayout] ========================================');
+    console.log('[RootLayout v141.0] 🚀 App starting...');
+    console.log('[RootLayout v141.0] 📱 Platform:', Platform.OS);
     
-    // Initialize app
-    const initializeApp = async () => {
+    // ✅ CRITICAL FIX v25.0: Initialize Android-specific behavior
+    let cleanupAndroid: (() => void) | undefined;
+    
+    if (Platform.OS === 'android') {
+      console.log('[RootLayout v141.0] 🤖 Initializing Android native behavior...');
       try {
-        // Hide splash screen IMMEDIATELY for instant visual feedback
-        await SplashScreen.hideAsync();
-        console.log('[RootLayout] ✅ Splash screen hidden successfully');
+        cleanupAndroid = initializeAndroidBehavior();
       } catch (error) {
-        console.log('[RootLayout] ⚠️ Splash screen already hidden');
+        console.error('[RootLayout] Error initializing Android behavior:', error);
       }
+    }
 
-      // Initialize Android-specific behavior (non-blocking)
-      if (Platform.OS === 'android') {
+    // Hide splash screen
+    const timer = setTimeout(() => {
+      console.log('[RootLayout v141.0] 🎨 Hiding splash screen...');
+      SplashScreen.hideAsync()
+        .then(() => {
+          console.log('[RootLayout v141.0] ✅ Splash screen hidden');
+        })
+        .catch((error) => {
+          console.error('[RootLayout] Error hiding splash screen:', error);
+        });
+    }, 100);
+
+    // Cleanup function
+    return () => {
+      clearTimeout(timer);
+      if (cleanupAndroid) {
         try {
-          initializeAndroidBehavior();
-          console.log('[RootLayout] ✅ Android behavior initialized');
+          cleanupAndroid();
         } catch (error) {
-          console.error('[RootLayout] ❌ Android init error:', error);
+          console.error('[RootLayout] Error cleaning up Android behavior:', error);
         }
       }
-
-      console.log('[RootLayout] ✅ App ready - rendering UI');
-      setIsReady(true);
     };
-
-    initializeApp();
   }, []);
-
-  // Show immediate loading screen while initializing
-  if (!isReady) {
-    return (
-      <View style={{ 
-        flex: 1, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        backgroundColor: colors.background 
-      }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ 
-          color: colors.text, 
-          marginTop: 16, 
-          fontSize: 18,
-          fontWeight: '600'
-        }}>
-          BarLive
-        </Text>
-        <Text style={{ 
-          color: colors.textSecondary, 
-          marginTop: 8, 
-          fontSize: 14 
-        }}>
-          Cargando aplicación...
-        </Text>
-      </View>
-    );
-  }
 
   return (
     <ErrorBoundary>

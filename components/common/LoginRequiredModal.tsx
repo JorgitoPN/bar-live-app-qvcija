@@ -20,34 +20,29 @@ interface LoginRequiredModalProps {
 }
 
 /**
- * ✅ LOGIN REQUIRED MODAL v3.0 - RE-ENABLED FOR SPECIFIC FEATURES
+ * ✅ LOGIN REQUIRED MODAL v2.0 - REMOVED FROM APP
  * 
- * This modal is shown when users try to access features that require authentication:
- * - Claiming or creating a local
- * - Adding favorites
- * - Creating posts
- * - Accessing profile features
+ * This modal is no longer used in the app.
+ * Users can now browse the social page and profile page without logging in.
+ * The modal is kept for backward compatibility but is not displayed anywhere.
  */
 
 export default function LoginRequiredModal({
   visible,
   onClose,
-  message = 'Para realizar esta acción necesitas iniciar sesión o crear una cuenta',
+  message = 'Para acceder a esta función necesitas registrarte en BarLive',
 }: LoginRequiredModalProps) {
   const router = useRouter();
 
   const handleLogin = () => {
-    console.log('[LoginRequiredModal] User tapped Login button');
     onClose();
     router.push('/auth/login-v6');
   };
 
-  const handleRegister = () => {
-    console.log('[LoginRequiredModal] User tapped Register button');
-    onClose();
-    router.push('/auth/registro-v6');
-  };
+  // ✅ CRITICAL FIX: Modal is now disabled - always return null
+  return null;
 
+  /* ORIGINAL CODE - DISABLED
   return (
     <Modal
       visible={visible}
@@ -64,30 +59,30 @@ export default function LoginRequiredModal({
             <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={48} color={colors.headerText} />
           </LinearGradient>
 
-          <Text style={styles.title}>Autenticación Requerida</Text>
+          <Text style={styles.title}>Registro Requerido</Text>
           
           <Text style={styles.message}>{message}</Text>
 
           <Text style={styles.subtitle}>
-            Inicia sesión o crea una cuenta para:
+            Regístrate ahora para disfrutar de toda la app al completo:
           </Text>
 
           <View style={styles.features}>
             <View style={styles.featureItem}>
               <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.primary} />
-              <Text style={styles.featureText}>Reclamar o crear locales</Text>
+              <Text style={styles.featureText}>Crea y comparte publicaciones</Text>
             </View>
             <View style={styles.featureItem}>
               <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.primary} />
-              <Text style={styles.featureText}>Guardar tus locales favoritos</Text>
+              <Text style={styles.featureText}>Guarda tus locales favoritos</Text>
             </View>
             <View style={styles.featureItem}>
               <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.primary} />
-              <Text style={styles.featureText}>Crear y compartir publicaciones</Text>
+              <Text style={styles.featureText}>Accede a tu perfil personalizado</Text>
             </View>
             <View style={styles.featureItem}>
               <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.primary} />
-              <Text style={styles.featureText}>Acceder a tu perfil personalizado</Text>
+              <Text style={styles.featureText}>Recibe notificaciones de eventos</Text>
             </View>
           </View>
 
@@ -96,21 +91,18 @@ export default function LoginRequiredModal({
               colors={[colors.headerGradientStart, colors.headerGradientEnd]}
               style={styles.loginButtonGradient}
             >
-              <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+              <Text style={styles.loginButtonText}>Registrarse / Iniciar Sesión</Text>
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-            <Text style={styles.registerButtonText}>Crear Cuenta Nueva</Text>
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <Text style={styles.cancelButtonText}>Continuar sin registrarse</Text>
           </TouchableOpacity>
         </View>
       </View>
     </Modal>
   );
+  */
 }
 
 const styles = StyleSheet.create({
@@ -188,21 +180,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.headerText,
-  },
-  registerButton: {
-    width: '100%',
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: colors.background,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  registerButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primary,
   },
   cancelButton: {
     paddingVertical: 12,
