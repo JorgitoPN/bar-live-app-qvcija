@@ -497,7 +497,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
         Alert.alert(
           '✅ Solicitud Enviada',
-          'Tu solicitud ha sido enviada correctamente y está siendo revisada por nuestro equipo.',
+          'Nuestro equipo revisará tu solicitud. Una vez sea aprobada o denegada, recibirás una notificación y el estado del proceso de verificación se actualizará en tu perfil.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else {
@@ -555,7 +555,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
         Alert.alert(
           '✅ Solicitud Enviada',
-          'Tu solicitud ha sido enviada correctamente.\n\nRecibirás notificaciones sobre el estado de tu solicitud.',
+          'Nuestro equipo revisará tu solicitud. Una vez sea aprobada o denegada, recibirás una notificación y el estado del proceso de verificación se actualizará en tu perfil.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
       }
@@ -1240,7 +1240,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 120,
+    paddingBottom: 140,
   },
   stepContent: {
     padding: 20,
@@ -1697,7 +1697,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
