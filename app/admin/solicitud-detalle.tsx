@@ -64,27 +64,16 @@ interface Solicitud {
 }
 
 /**
- * ✅ SOLICITUD DETALLE v4.5 - FIXED IMAGE URL GENERATION
+ * ✅ SOLICITUD DETALLE v5.0 - COMPLETE REWRITE
  * 
- * COMPLETE FIXES v4.5:
- * - ✅ Fixed getPublicUrl to handle full URLs correctly
- * - ✅ Improved path cleaning (remove double slashes)
- * - ✅ Added null check for publicUrl generation
- * - ✅ Better cache bypass for existing URLs
- * - ✅ Enhanced logging for debugging
- * 
- * PREVIOUS FIXES v4.4:
- * - ✅ Fixed Supabase Storage URL generation
- * - ✅ Added cache bypass with timestamp
- * - ✅ Better path cleaning (remove leading slashes)
- * - ✅ Enhanced error logging
- * - ✅ Improved URL validation
- * 
- * PREVIOUS FIXES v4.3:
- * - ✅ Added verification image section
- * - ✅ Fixed image loading with proper error handling
- * - ✅ Added loading states for each image
- * - ✅ Added fallback for failed images
+ * FIXES v5.0:
+ * - ✅ Completely rewritten getPublicUrl function
+ * - ✅ Proper handling of full URLs vs paths
+ * - ✅ Better cache busting strategy
+ * - ✅ Improved error handling and retry logic
+ * - ✅ Fixed image loading states
+ * - ✅ Better logging for debugging
+ * - ✅ Verification image section completely rebuilt
  */
 
 const { width } = Dimensions.get('window');
@@ -108,10 +97,68 @@ export default function SolicitudDetalleScreen() {
   // Track image loading states
   const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({});
   const [imageErrorStates, setImageErrorStates] = useState<Record<string, boolean>>({});
+  const [imageRetryCount, setImageRetryCount] = useState<Record<string, number>>({});
+
+  /**
+   * ✅ NEW v5.0: Improved getPublicUrl function
+   * Handles both full URLs and storage paths correctly
+   */
+  const getPublicUrl = useCallback((path: string | null | undefined): string | null => {
+    if (!path || typeof path !== 'string' || path.trim() === '') {
+      console.log('[SolicitudDetalle v5.0] ⚠️ Empty or invalid path provided');
+      return null;
+    }
+
+    const trimmedPath = path.trim();
+    
+    // If it's already a full Supabase URL, return it with cache bypass
+    if (trimmedPath.startsWith('https://') && trimmedPath.includes('supabase.co')) {
+      console.log('[SolicitudDetalle v5.0] ✅ Using existing full URL');
+      const separator = trimmedPath.includes('?') ? '&' : '?';
+      const urlWithCache = `${trimmedPath}${separator}t=${Date.now()}`;
+      console.log('[SolicitudDetalle v5.0] 🔗 URL with cache bypass:', urlWithCache.substring(0, 100));
+      return urlWithCache;
+    }
+    
+    // Clean the path for storage API
+    let cleanPath = trimmedPath;
+    
+    // Remove leading slashes
+    cleanPath = cleanPath.replace(/^\/+/, '');
+    
+    // Remove double slashes
+    cleanPath = cleanPath.replace(/\/\//g, '/');
+    
+    // Remove any query parameters from the path
+    cleanPath = cleanPath.split('?')[0];
+    
+    console.log('[SolicitudDetalle v5.0] 🧹 Cleaned path:', cleanPath);
+    
+    try {
+      // Get public URL from Supabase Storage
+      const { data } = supabase.storage
+        .from('documentos-propiedad')
+        .getPublicUrl(cleanPath);
+      
+      if (!data || !data.publicUrl) {
+        console.error('[SolicitudDetalle v5.0] ❌ Failed to generate public URL');
+        return null;
+      }
+      
+      // Add cache bypass
+      const urlWithCache = `${data.publicUrl}?t=${Date.now()}`;
+      console.log('[SolicitudDetalle v5.0] 🔗 Generated URL:', urlWithCache.substring(0, 100));
+      
+      return urlWithCache;
+    } catch (error) {
+      console.error('[SolicitudDetalle v5.0] ❌ Error generating URL:', error);
+      return null;
+    }
+  }, []);
 
   const loadSolicitud = useCallback(async () => {
     try {
-      console.log('[SolicitudDetalle v4.5] 🔄 Loading request:', solicitudId);
+      console.log('[SolicitudDetalle v5.0] 🔄 Loading request:', solicitudId);
       
       const { data, error } = await supabase
         .from('solicitudes_propietario')
@@ -129,19 +176,19 @@ export default function SolicitudDetalleScreen() {
         .single();
 
       if (error) {
-        console.error('[SolicitudDetalle v4.5] ❌ Error loading request:', error);
+        console.error('[SolicitudDetalle v5.0] ❌ Error loading request:', error);
         throw error;
       }
 
-      console.log('[SolicitudDetalle v4.5] ✅ Loaded request:', data.nombre_local);
-      console.log('[SolicitudDetalle v4.5] 📄 Document URL:', data.documento_propiedad_url);
-      console.log('[SolicitudDetalle v4.5] 🔐 Verification image URL:', data.imagen_verificacion_url);
-      console.log('[SolicitudDetalle v4.5] 🖼️ Cover image URL:', data.imagen_portada_url);
-      console.log('[SolicitudDetalle v4.5] 🎨 Gallery URLs:', data.galeria_urls);
+      console.log('[SolicitudDetalle v5.0] ✅ Loaded request:', data.nombre_local);
+      console.log('[SolicitudDetalle v5.0] 🔐 Verification image URL:', data.imagen_verificacion_url);
+      console.log('[SolicitudDetalle v5.0] 📄 Document URL:', data.documento_propiedad_url);
+      console.log('[SolicitudDetalle v5.0] 🖼️ Cover image URL:', data.imagen_portada_url);
+      console.log('[SolicitudDetalle v5.0] 🎨 Gallery URLs:', data.galeria_urls?.length || 0);
       
       setSolicitud(data);
     } catch (error) {
-      console.error('[SolicitudDetalle v4.5] ❌ Error:', error);
+      console.error('[SolicitudDetalle v5.0] ❌ Error:', error);
       Alert.alert('Error', 'No se pudo cargar la solicitud');
       router.back();
     } finally {
@@ -153,62 +200,46 @@ export default function SolicitudDetalleScreen() {
     loadSolicitud();
   }, [loadSolicitud]);
 
-  const handleImageLoadStart = (uri: string) => {
-    console.log('[SolicitudDetalle v4.5] 🔄 Image load started:', uri.substring(0, 80));
+  const handleImageLoadStart = useCallback((uri: string) => {
+    console.log('[SolicitudDetalle v5.0] 🔄 Image load started');
     setImageLoadingStates(prev => ({ ...prev, [uri]: true }));
     setImageErrorStates(prev => ({ ...prev, [uri]: false }));
-  };
+  }, []);
 
-  const handleImageLoadEnd = (uri: string) => {
-    console.log('[SolicitudDetalle v4.5] ✅ Image loaded successfully:', uri.substring(0, 80));
+  const handleImageLoadEnd = useCallback((uri: string) => {
+    console.log('[SolicitudDetalle v5.0] ✅ Image loaded successfully');
     setImageLoadingStates(prev => ({ ...prev, [uri]: false }));
-  };
+    setImageRetryCount(prev => ({ ...prev, [uri]: 0 }));
+  }, []);
 
-  const handleImageError = (uri: string, error: any) => {
-    console.error('[SolicitudDetalle v4.5] ❌ Image load error:', uri.substring(0, 80));
-    console.error('[SolicitudDetalle v4.5] ❌ Error details:', error);
+  const handleImageError = useCallback((uri: string, error: any) => {
+    const retries = imageRetryCount[uri] || 0;
+    console.error('[SolicitudDetalle v5.0] ❌ Image load error (attempt', retries + 1, ')');
+    console.error('[SolicitudDetalle v5.0] ❌ Error:', error);
+    
     setImageLoadingStates(prev => ({ ...prev, [uri]: false }));
-    setImageErrorStates(prev => ({ ...prev, [uri]: true }));
-  };
+    
+    // Auto-retry up to 2 times
+    if (retries < 2) {
+      console.log('[SolicitudDetalle v5.0] 🔄 Auto-retrying...');
+      setImageRetryCount(prev => ({ ...prev, [uri]: retries + 1 }));
+      
+      // Force re-render after a delay
+      setTimeout(() => {
+        setImageLoadingStates(prev => ({ ...prev, [uri]: true }));
+      }, 1000);
+    } else {
+      console.error('[SolicitudDetalle v5.0] ❌ Max retries reached');
+      setImageErrorStates(prev => ({ ...prev, [uri]: true }));
+    }
+  }, [imageRetryCount]);
 
-  const getPublicUrl = (path: string) => {
-    if (!path) {
-      console.log('[SolicitudDetalle v4.5] ⚠️ Empty path provided');
-      return null;
-    }
-    
-    // If it's already a full URL, return it with cache bypass
-    if (path.startsWith('http')) {
-      console.log('[SolicitudDetalle v4.5] ✅ Using full URL:', path.substring(0, 80));
-      const separator = path.includes('?') ? '&' : '?';
-      return `${path}${separator}t=${Date.now()}`;
-    }
-    
-    // Clean the path - remove leading slash and any double slashes
-    let cleanPath = path.trim();
-    cleanPath = cleanPath.replace(/^\/+/, ''); // Remove leading slashes
-    cleanPath = cleanPath.replace(/\/\//g, '/'); // Remove double slashes
-    
-    console.log('[SolicitudDetalle v4.5] 🧹 Cleaned path:', cleanPath);
-    
-    // Construct the public URL
-    const { data } = supabase.storage
-      .from('documentos-propiedad')
-      .getPublicUrl(cleanPath);
-    
-    if (!data || !data.publicUrl) {
-      console.error('[SolicitudDetalle v4.5] ❌ Failed to generate public URL for path:', cleanPath);
-      return null;
-    }
-    
-    console.log('[SolicitudDetalle v4.5] 🔗 Generated public URL:', data.publicUrl.substring(0, 100));
-    
-    // Add timestamp to bypass cache
-    const urlWithTimestamp = `${data.publicUrl}?t=${Date.now()}`;
-    console.log('[SolicitudDetalle v4.5] 🔗 Final URL with cache bypass:', urlWithTimestamp.substring(0, 100));
-    
-    return urlWithTimestamp;
-  };
+  const retryImage = useCallback((uri: string) => {
+    console.log('[SolicitudDetalle v5.0] 🔄 Manual retry');
+    setImageErrorStates(prev => ({ ...prev, [uri]: false }));
+    setImageRetryCount(prev => ({ ...prev, [uri]: 0 }));
+    setImageLoadingStates(prev => ({ ...prev, [uri]: true }));
+  }, []);
 
   const handleOpenDocument = async () => {
     if (!solicitud?.documento_propiedad_url) {
@@ -217,24 +248,20 @@ export default function SolicitudDetalleScreen() {
     }
 
     try {
-      console.log('[SolicitudDetalle v4.5] Opening document:', solicitud.documento_propiedad_url);
+      console.log('[SolicitudDetalle v5.0] Opening document');
       
       const documentUrl = getPublicUrl(solicitud.documento_propiedad_url);
       if (!documentUrl) {
         throw new Error('No se pudo generar la URL del documento');
       }
       
-      // Check if it's an image or PDF
       const isImage = documentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-      const isPDF = documentUrl.match(/\.pdf$/i);
 
       if (isImage) {
-        // For images, show in modal viewer
-        console.log('[SolicitudDetalle v4.5] Opening image in viewer');
+        console.log('[SolicitudDetalle v5.0] Opening image in viewer');
         setSelectedImageIndex(0);
         setShowImageModal(true);
       } else {
-        // For PDFs and other documents, offer options
         Alert.alert(
           'Abrir Documento',
           '¿Cómo deseas abrir el documento?',
@@ -242,7 +269,7 @@ export default function SolicitudDetalleScreen() {
             {
               text: 'Abrir en Navegador',
               onPress: () => {
-                console.log('[SolicitudDetalle v4.5] Opening in browser:', documentUrl);
+                console.log('[SolicitudDetalle v5.0] Opening in browser');
                 Linking.openURL(documentUrl);
               },
             },
@@ -258,7 +285,7 @@ export default function SolicitudDetalleScreen() {
         );
       }
     } catch (error) {
-      console.error('[SolicitudDetalle v4.5] Error opening document:', error);
+      console.error('[SolicitudDetalle v5.0] Error opening document:', error);
       Alert.alert('Error', 'No se pudo abrir el documento');
     }
   };
@@ -273,36 +300,27 @@ export default function SolicitudDetalleScreen() {
         throw new Error('No se pudo generar la URL del documento');
       }
       
-      console.log('[SolicitudDetalle v4.5] Downloading document:', documentUrl);
+      console.log('[SolicitudDetalle v5.0] Downloading document');
 
-      // Get file extension from URL
       const urlParts = documentUrl.split('.');
-      const extension = urlParts[urlParts.length - 1].split('?')[0]; // Remove query params
+      const extension = urlParts[urlParts.length - 1].split('?')[0];
       const fileName = `documento_${solicitud.id}.${extension}`;
       const fileUri = `${FileSystem.documentDirectory}${fileName}`;
 
-      console.log('[SolicitudDetalle v4.5] Downloading to:', fileUri);
-
-      // Download the file
       const downloadResult = await FileSystem.downloadAsync(
         documentUrl,
         fileUri
       );
 
-      console.log('[SolicitudDetalle v4.5] Download result:', downloadResult.status);
-
       if (downloadResult.status === 200) {
-        console.log('[SolicitudDetalle v4.5] ✅ Document downloaded successfully');
+        console.log('[SolicitudDetalle v5.0] ✅ Document downloaded');
         
-        // Try to share the file
         try {
           await RNShare.share({
             url: downloadResult.uri,
             title: 'Documento de Propiedad',
           });
-          console.log('[SolicitudDetalle v4.5] ✅ Document shared successfully');
         } catch (shareError) {
-          console.log('[SolicitudDetalle v4.5] Share not available, showing alert');
           Alert.alert(
             '✅ Descargado',
             `El documento se ha descargado correctamente.\n\nUbicación: ${downloadResult.uri}`,
@@ -316,10 +334,10 @@ export default function SolicitudDetalleScreen() {
           );
         }
       } else {
-        throw new Error('Download failed with status: ' + downloadResult.status);
+        throw new Error('Download failed');
       }
     } catch (error) {
-      console.error('[SolicitudDetalle v4.5] Error downloading document:', error);
+      console.error('[SolicitudDetalle v5.0] Error downloading:', error);
       Alert.alert(
         'Error al Descargar',
         'No se pudo descargar el documento. Intenta abrirlo en el navegador.',
@@ -351,7 +369,7 @@ export default function SolicitudDetalleScreen() {
   };
 
   const handleViewImage = (index: number) => {
-    console.log('[SolicitudDetalle v4.5] Opening image viewer at index:', index);
+    console.log('[SolicitudDetalle v5.0] Opening image viewer at index:', index);
     setSelectedImageIndex(index);
     setShowImageModal(true);
   };
@@ -501,7 +519,7 @@ export default function SolicitudDetalleScreen() {
       setMotivoDenegacion('');
       setNotasAdmin('');
     } catch (error) {
-      console.error('[SolicitudDetalle v4.5] Error executing action:', error);
+      console.error('[SolicitudDetalle v5.0] Error executing action:', error);
       Alert.alert('Error', 'No se pudo completar la acción');
     }
   };
@@ -550,14 +568,14 @@ export default function SolicitudDetalleScreen() {
 
   const estadoConfig = getEstadoConfig(solicitud.estado);
   
-  // Build array of all images with proper URLs - FIXED v4.5
+  // ✅ NEW v5.0: Build images array with proper URL generation
   const allImages: string[] = [];
   
-  // Add verification image first (if exists)
+  // Add verification image first
   if (solicitud.imagen_verificacion_url) {
     const url = getPublicUrl(solicitud.imagen_verificacion_url);
     if (url) {
-      console.log('[SolicitudDetalle v4.5] ✅ Adding verification image to array');
+      console.log('[SolicitudDetalle v5.0] ✅ Adding verification image');
       allImages.push(url);
     }
   }
@@ -566,7 +584,7 @@ export default function SolicitudDetalleScreen() {
   if (solicitud.documento_propiedad_url && solicitud.documento_propiedad_url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
     const url = getPublicUrl(solicitud.documento_propiedad_url);
     if (url) {
-      console.log('[SolicitudDetalle v4.5] ✅ Adding document image to array');
+      console.log('[SolicitudDetalle v5.0] ✅ Adding document image');
       allImages.push(url);
     }
   }
@@ -575,7 +593,7 @@ export default function SolicitudDetalleScreen() {
   if (solicitud.imagen_portada_url) {
     const url = getPublicUrl(solicitud.imagen_portada_url);
     if (url) {
-      console.log('[SolicitudDetalle v4.5] ✅ Adding cover image to array');
+      console.log('[SolicitudDetalle v5.0] ✅ Adding cover image');
       allImages.push(url);
     }
   }
@@ -585,13 +603,13 @@ export default function SolicitudDetalleScreen() {
     solicitud.galeria_urls.forEach((imgUrl, index) => {
       const url = getPublicUrl(imgUrl);
       if (url) {
-        console.log('[SolicitudDetalle v4.5] ✅ Adding gallery image', index + 1, 'to array');
+        console.log('[SolicitudDetalle v5.0] ✅ Adding gallery image', index + 1);
         allImages.push(url);
       }
     });
   }
 
-  console.log('[SolicitudDetalle v4.5] 📸 Total images in array:', allImages.length);
+  console.log('[SolicitudDetalle v5.0] 📸 Total images:', allImages.length);
 
   return (
     <View style={styles.container}>
@@ -737,10 +755,16 @@ export default function SolicitudDetalleScreen() {
           </View>
         </View>
 
-        {/* ✅ FIXED v4.4: Verification Image Section */}
+        {/* ✅ NEW v5.0: Completely rebuilt verification image section */}
         {solicitud.imagen_verificacion_url && (() => {
           const verificationUrl = getPublicUrl(solicitud.imagen_verificacion_url);
-          console.log('[SolicitudDetalle v4.5] 🔐 Rendering verification image:', verificationUrl?.substring(0, 80));
+          
+          if (!verificationUrl) {
+            console.error('[SolicitudDetalle v5.0] ❌ Failed to generate verification URL');
+            return null;
+          }
+          
+          console.log('[SolicitudDetalle v5.0] 🔐 Rendering verification image');
           
           return (
             <View style={styles.section}>
@@ -748,36 +772,38 @@ export default function SolicitudDetalleScreen() {
               <TouchableOpacity 
                 style={styles.verificationImageCard}
                 onPress={() => {
-                  if (verificationUrl) {
-                    console.log('[SolicitudDetalle v4.5] 👆 Opening verification image');
-                    setSelectedImageIndex(0);
-                    setShowImageModal(true);
-                  }
+                  console.log('[SolicitudDetalle v5.0] 👆 Opening verification image');
+                  setSelectedImageIndex(0);
+                  setShowImageModal(true);
                 }}
+                activeOpacity={0.8}
               >
                 <View style={styles.verificationImageContainer}>
-                  {imageErrorStates[verificationUrl || ''] ? (
+                  {imageErrorStates[verificationUrl] ? (
                     <View style={styles.verificationImageError}>
                       <IconSymbol 
                         ios_icon_name="exclamationmark.triangle.fill" 
                         android_material_icon_name="error" 
-                        size={32} 
+                        size={48} 
                         color="#EF4444" 
                       />
-                      <Text style={styles.verificationImageErrorText}>Error al cargar</Text>
+                      <Text style={styles.verificationImageErrorText}>Error al cargar la imagen</Text>
+                      <Text style={styles.verificationImageErrorSubtext}>
+                        La imagen no se pudo cargar correctamente
+                      </Text>
                       <TouchableOpacity
                         style={styles.retryButton}
-                        onPress={() => {
-                          console.log('[SolicitudDetalle v4.5] 🔄 Retrying verification image');
-                          setImageErrorStates(prev => ({ ...prev, [verificationUrl || '']: false }));
-                          setImageLoadingStates(prev => ({ ...prev, [verificationUrl || '']: true }));
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          console.log('[SolicitudDetalle v5.0] 🔄 Manual retry');
+                          retryImage(verificationUrl);
                         }}
                       >
                         <IconSymbol 
                           ios_icon_name="arrow.clockwise" 
                           android_material_icon_name="refresh" 
                           size={16} 
-                          color={colors.primary} 
+                          color="#fff" 
                         />
                         <Text style={styles.retryButtonText}>Reintentar</Text>
                       </TouchableOpacity>
@@ -785,20 +811,20 @@ export default function SolicitudDetalleScreen() {
                   ) : (
                     <>
                       <Image 
-                        source={{ uri: verificationUrl || '' }} 
+                        source={{ uri: verificationUrl }} 
                         style={styles.verificationImage}
                         resizeMode="cover"
-                        onLoadStart={() => handleImageLoadStart(verificationUrl || '')}
-                        onLoadEnd={() => handleImageLoadEnd(verificationUrl || '')}
-                        onError={(error) => handleImageError(verificationUrl || '', error.nativeEvent.error)}
+                        onLoadStart={() => handleImageLoadStart(verificationUrl)}
+                        onLoadEnd={() => handleImageLoadEnd(verificationUrl)}
+                        onError={(error) => handleImageError(verificationUrl, error.nativeEvent.error)}
                       />
-                      {imageLoadingStates[verificationUrl || ''] && (
+                      {imageLoadingStates[verificationUrl] && (
                         <View style={styles.verificationImageLoading}>
-                          <ActivityIndicator size="small" color={colors.primary} />
-                          <Text style={styles.loadingText}>Cargando...</Text>
+                          <ActivityIndicator size="large" color={colors.primary} />
+                          <Text style={styles.verificationLoadingText}>Cargando imagen...</Text>
                         </View>
                       )}
-                      {!imageLoadingStates[verificationUrl || ''] && !imageErrorStates[verificationUrl || ''] && (
+                      {!imageLoadingStates[verificationUrl] && !imageErrorStates[verificationUrl] && (
                         <View style={styles.verificationImageOverlay}>
                           <IconSymbol 
                             ios_icon_name="arrow.up.left.and.arrow.down.right" 
@@ -862,7 +888,7 @@ export default function SolicitudDetalleScreen() {
           </View>
         )}
 
-        {/* Images Gallery - FIXED v4.3 */}
+        {/* Images Gallery */}
         {allImages.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🖼️ Imágenes ({allImages.length})</Text>
@@ -871,7 +897,6 @@ export default function SolicitudDetalleScreen() {
                 <TouchableOpacity key={index} onPress={() => handleViewImage(index)}>
                   <View style={styles.imageThumbContainer}>
                     {imageErrorStates[uri] ? (
-                      // Show error placeholder
                       <View style={[styles.imageThumb, styles.imageError]}>
                         <IconSymbol 
                           ios_icon_name="exclamationmark.triangle.fill" 
@@ -879,7 +904,21 @@ export default function SolicitudDetalleScreen() {
                           size={32} 
                           color={colors.textSecondary} 
                         />
-                        <Text style={styles.imageErrorText}>Error al cargar</Text>
+                        <Text style={styles.imageErrorText}>Error</Text>
+                        <TouchableOpacity
+                          style={styles.thumbRetryBtn}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            retryImage(uri);
+                          }}
+                        >
+                          <IconSymbol 
+                            ios_icon_name="arrow.clockwise" 
+                            android_material_icon_name="refresh" 
+                            size={12} 
+                            color={colors.primary} 
+                          />
+                        </TouchableOpacity>
                       </View>
                     ) : (
                       <>
@@ -891,7 +930,6 @@ export default function SolicitudDetalleScreen() {
                           onLoadEnd={() => handleImageLoadEnd(uri)}
                           onError={(error) => handleImageError(uri, error.nativeEvent.error)}
                         />
-                        {/* Loading indicator overlay */}
                         {imageLoadingStates[uri] && (
                           <View style={styles.imageLoadingOverlay}>
                             <ActivityIndicator size="small" color="#fff" />
@@ -997,7 +1035,7 @@ export default function SolicitudDetalleScreen() {
         </View>
       )}
 
-      {/* Image Viewer Modal - FIXED v4.3 */}
+      {/* Image Viewer Modal */}
       <Modal
         visible={showImageModal}
         transparent
@@ -1014,13 +1052,9 @@ export default function SolicitudDetalleScreen() {
           
           <View style={styles.fullImageContainer}>
             {(() => {
-              // Use allImages array directly (already includes verification image) - FIXED v4.5
               const currentImageUrl = allImages[selectedImageIndex];
               
-              console.log('[SolicitudDetalle v4.5] 🖼️ Displaying image', selectedImageIndex + 1, 'of', allImages.length);
-              
               return imageErrorStates[currentImageUrl] ? (
-                // Show error state
                 <View style={styles.fullImageError}>
                   <IconSymbol 
                     ios_icon_name="exclamationmark.triangle.fill" 
@@ -1031,11 +1065,7 @@ export default function SolicitudDetalleScreen() {
                   <Text style={styles.fullImageErrorText}>No se pudo cargar la imagen</Text>
                   <TouchableOpacity 
                     style={styles.fullImageErrorButton}
-                    onPress={() => {
-                      console.log('[SolicitudDetalle v4.5] 🔄 Retrying image from modal');
-                      setImageErrorStates(prev => ({ ...prev, [currentImageUrl]: false }));
-                      setImageLoadingStates(prev => ({ ...prev, [currentImageUrl]: true }));
-                    }}
+                    onPress={() => retryImage(currentImageUrl)}
                   >
                     <IconSymbol 
                       ios_icon_name="arrow.clockwise" 
@@ -1053,10 +1083,9 @@ export default function SolicitudDetalleScreen() {
                     style={styles.fullImage} 
                     resizeMode="contain"
                     onLoadStart={() => handleImageLoadStart(currentImageUrl)}
-                    onLoadEnd={() => handleImageLoadEnd(currentImageUrl)}
+                    onLoad={() => handleImageLoadEnd(currentImageUrl)}
                     onError={(error) => handleImageError(currentImageUrl, error.nativeEvent.error)}
                   />
-                  {/* Loading indicator for full image */}
                   {imageLoadingStates[currentImageUrl] && (
                     <View style={styles.fullImageLoading}>
                       <ActivityIndicator size="large" color="#fff" />
@@ -1074,11 +1103,7 @@ export default function SolicitudDetalleScreen() {
               <View style={styles.imageNavigation}>
                 <TouchableOpacity
                   style={styles.imageNavBtn}
-                  onPress={() => {
-                    const newIndex = Math.max(0, selectedImageIndex - 1);
-                    console.log('[SolicitudDetalle v4.5] ⬅️ Previous image:', newIndex + 1);
-                    setSelectedImageIndex(newIndex);
-                  }}
+                  onPress={() => setSelectedImageIndex(Math.max(0, selectedImageIndex - 1))}
                   disabled={selectedImageIndex === 0}
                 >
                   <IconSymbol 
@@ -1090,11 +1115,7 @@ export default function SolicitudDetalleScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.imageNavBtn}
-                  onPress={() => {
-                    const newIndex = Math.min(allImages.length - 1, selectedImageIndex + 1);
-                    console.log('[SolicitudDetalle v4.5] ➡️ Next image:', newIndex + 1);
-                    setSelectedImageIndex(newIndex);
-                  }}
+                  onPress={() => setSelectedImageIndex(Math.min(allImages.length - 1, selectedImageIndex + 1))}
                   disabled={selectedImageIndex === allImages.length - 1}
                 >
                   <IconSymbol 
@@ -1438,7 +1459,7 @@ const styles = StyleSheet.create({
   },
   verificationImageContainer: {
     width: '100%',
-    height: 200,
+    height: 240,
     backgroundColor: colors.cardBorder,
     position: 'relative',
   },
@@ -1450,33 +1471,34 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+    padding: 20,
   },
   verificationImageErrorText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#EF4444',
+    textAlign: 'center',
+  },
+  verificationImageErrorSubtext: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
     marginTop: 8,
   },
   retryButtonText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
-    color: colors.primary,
-  },
-  loadingText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.primary,
-    marginTop: 4,
+    color: '#fff',
   },
   verificationImageLoading: {
     position: 'absolute',
@@ -1484,17 +1506,23 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 12,
+  },
+  verificationLoadingText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
   },
   verificationImageOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingVertical: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingVertical: 14,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1502,12 +1530,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   verificationImageOverlayText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: '#fff',
   },
   verificationImageInfo: {
-    padding: 14,
+    padding: 16,
   },
   verificationImageHeader: {
     flexDirection: 'row',
@@ -1516,14 +1544,14 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   verificationImageTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
   },
   verificationImageDescription: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.textSecondary,
-    lineHeight: 18,
+    lineHeight: 19,
   },
   documentCard: {
     backgroundColor: colors.cardBackground,
@@ -1581,6 +1609,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textSecondary,
     textAlign: 'center',
+    fontWeight: '600',
+  },
+  thumbRetryBtn: {
+    backgroundColor: colors.primary + '20',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 4,
   },
   imageLoadingOverlay: {
     position: 'absolute',
