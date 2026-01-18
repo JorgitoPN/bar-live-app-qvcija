@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { IconSymbol } from '@/components/IconSymbol';
+import SimpleImageUploader from '@/components/propiedad/SimpleImageUploader';
 import {
   View,
   Text,
@@ -88,6 +89,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   const [telefonoContacto, setTelefonoContacto] = useState('');
   const [emailContacto, setEmailContacto] = useState(user?.email || '');
   const [mensaje, setMensaje] = useState('');
+  const [verificationImageUrl, setVerificationImageUrl] = useState<string>('');
 
   // Form data for nuevo_local
   const [nombreLocal, setNombreLocal] = useState('');
@@ -386,6 +388,10 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
             Alert.alert('Teléfono requerido', 'El teléfono es obligatorio');
             return false;
           }
+          if (!verificationImageUrl || verificationImageUrl.trim() === '') {
+            Alert.alert('Documento requerido', 'Debes subir una foto de un documento de verificación');
+            return false;
+          }
           return true;
         default:
           return true;
@@ -451,6 +457,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
         }
 
         console.log('🏢 Local:', selectedLocal.nombre);
+        console.log('📸 Imagen de verificación:', verificationImageUrl ? 'Sí' : 'No');
         console.log('💾 Insertando en base de datos...');
         
         const { error: insertError } = await supabase
@@ -466,6 +473,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
             telefono_contacto: telefonoContacto || null,
             email_contacto: emailContacto,
             mensaje: mensaje || null,
+            imagen_verificacion_url: verificationImageUrl || null,
             estado: 'pendiente',
           });
 
@@ -482,14 +490,14 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
           usuario_id: user.id,
           tipo: 'sistema',
           titulo: '✅ Solicitud enviada',
-          mensaje: `Tu solicitud para reclamar "${selectedLocal.nombre}" ha sido enviada.`,
+          mensaje: `Tu solicitud para reclamar "${selectedLocal.nombre}" ha sido enviada y está siendo revisada por nuestro equipo.`,
         });
 
         console.log('🎉 ═══ PROCESO COMPLETADO ═══\n');
 
         Alert.alert(
           '✅ Solicitud Enviada',
-          'Tu solicitud ha sido enviada correctamente.\n\nRecibirás notificaciones sobre el estado de tu solicitud.',
+          'Tu solicitud ha sido enviada correctamente y está siendo revisada por nuestro equipo.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else {
@@ -678,9 +686,9 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
   const renderReclamarStep2 = () => (
     <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.stepTitle}>Información de Contacto</Text>
+      <Text style={styles.stepTitle}>Información de Contacto y Verificación</Text>
       <Text style={styles.stepDescription}>
-        Proporciona tus datos de contacto e imagen de verificación
+        Proporciona tus datos de contacto y una foto de un documento para verificar tu identidad
       </Text>
 
       {selectedLocal && (
@@ -733,6 +741,35 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
           onChangeText={setMensaje}
           multiline
           numberOfLines={4}
+        />
+      </View>
+
+      <View style={styles.divider} />
+
+      <View style={styles.verificationSection}>
+        <View style={styles.verificationHeader}>
+          <IconSymbol 
+            ios_icon_name="checkmark.shield.fill" 
+            android_material_icon_name="verified_user" 
+            size={24} 
+            color={colors.primary} 
+          />
+          <Text style={styles.verificationTitle}>Verificación de Identidad</Text>
+        </View>
+        <Text style={styles.verificationDescription}>
+          Sube una foto de un documento que demuestre que eres el propietario del local (DNI, escrituras, licencia de apertura, etc.)
+        </Text>
+        
+        <SimpleImageUploader
+          onImageUploaded={(url) => {
+            console.log('[ReclamarStep2] 📸 Imagen de verificación subida:', url);
+            setVerificationImageUrl(url);
+          }}
+          currentImageUrl={verificationImageUrl}
+          userId={user?.id || ''}
+          bucketName="documentos-propiedad"
+          label="Documento de Verificación *"
+          helperText="Foto de DNI, escrituras, licencia de apertura u otro documento que acredite la propiedad"
         />
       </View>
 
@@ -1412,6 +1449,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
     lineHeight: 19,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.cardBorder,
+    marginVertical: 24,
+  },
+  verificationSection: {
+    marginBottom: 20,
+  },
+  verificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  verificationTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  verificationDescription: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 19,
+    marginBottom: 16,
   },
   tipoGrid: {
     flexDirection: 'row',
