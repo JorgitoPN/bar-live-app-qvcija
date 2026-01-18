@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { IconSymbol } from '@/components/IconSymbol';
-import SimpleImageUploader from '@/components/propiedad/SimpleImageUploader';
 import {
   View,
   Text,
@@ -26,13 +25,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { WebView } from 'react-native-webview';
 
 /**
- * 🆕 SISTEMA ULTRA SIMPLE - VERSIÓN DEFINITIVA v4.4
+ * 🆕 SISTEMA ULTRA SIMPLE - VERSIÓN DEFINITIVA
  * 
- * ✅ CAMBIOS v4.4:
- * - Eliminado: Subida de documentos (reemplazado por imagen)
- * - Agregado: Subida de imagen de verificación
- * - Eliminado: Mensaje de "revisar el correo"
- * - Actualizado: Mensaje de confirmación sin mención de email
+ * Sistema completamente reconstruido:
+ * - Flujo lineal y claro
+ * - Sin sistema de subida de imágenes (eliminado por problemas técnicos)
+ * - Logs detallados para debugging
  */
 
 interface LocalSearchResult {
@@ -90,8 +88,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   const [telefonoContacto, setTelefonoContacto] = useState('');
   const [emailContacto, setEmailContacto] = useState(user?.email || '');
   const [mensaje, setMensaje] = useState('');
-  // ✅ NEW: Imagen de verificación en lugar de documento
-  const [imagenVerificacionUrl, setImagenVerificacionUrl] = useState<string>('');
 
   // Form data for nuevo_local
   const [nombreLocal, setNombreLocal] = useState('');
@@ -108,10 +104,10 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   const [serviciosLocal, setServiciosLocal] = useState<string[]>([]);
 
   console.log('═══════════════════════════════════════');
-  console.log('[UltraSimpleScreen v4.4] 🎬 Pantalla inicializada');
-  console.log('[UltraSimpleScreen v4.4] 📋 Tipo:', requestType);
-  console.log('[UltraSimpleScreen v4.4] 👤 Usuario:', user?.nombre);
-  console.log('[UltraSimpleScreen v4.4] 📧 Email:', user?.email);
+  console.log('[UltraSimpleScreen] 🎬 Pantalla inicializada');
+  console.log('[UltraSimpleScreen] 📋 Tipo:', requestType);
+  console.log('[UltraSimpleScreen] 👤 Usuario:', user?.nombre);
+  console.log('[UltraSimpleScreen] 📧 Email:', user?.email);
   console.log('═══════════════════════════════════════');
 
   useEffect(() => {
@@ -128,9 +124,16 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
     }
   }, [user]);
 
+  // ✅ LINT FIX v225.0: Added loadPreselectedLocal to dependencies
+  useEffect(() => {
+    if (preselectedLocalId && requestType === 'reclamar_local') {
+      loadPreselectedLocal(preselectedLocalId);
+    }
+  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
+
   const loadPreselectedLocal = useCallback(async (localId: string) => {
     try {
-      console.log('[UltraSimpleScreen v4.4] 🔍 Cargando local preseleccionado:', localId);
+      console.log('[UltraSimpleScreen] 🔍 Cargando local preseleccionado:', localId);
       
       const { data, error } = await supabase
         .from('locales')
@@ -149,20 +152,14 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
         return;
       }
 
-      console.log('[UltraSimpleScreen v4.4] ✅ Local cargado:', data.nombre);
+      console.log('[UltraSimpleScreen] ✅ Local cargado:', data.nombre);
       setSelectedLocal(data);
       setCurrentStep(2);
     } catch (error) {
-      console.error('[UltraSimpleScreen v4.4] ❌ Error:', error);
+      console.error('[UltraSimpleScreen] ❌ Error:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
     }
   }, [router]);
-
-  useEffect(() => {
-    if (preselectedLocalId && requestType === 'reclamar_local') {
-      loadPreselectedLocal(preselectedLocalId);
-    }
-  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
 
   const searchLocales = useCallback(async (query: string) => {
     if (!query.trim() || query.length < 3) {
@@ -172,7 +169,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
     try {
       setSearchingLocales(true);
-      console.log('[UltraSimpleScreen v4.4] 🔍 Buscando locales:', query);
+      console.log('[UltraSimpleScreen] 🔍 Buscando locales:', query);
 
       const { data, error } = await supabase
         .from('locales')
@@ -184,10 +181,10 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
       if (error) throw error;
 
-      console.log('[UltraSimpleScreen v4.4] ✅ Locales encontrados:', data?.length || 0);
+      console.log('[UltraSimpleScreen] ✅ Locales encontrados:', data?.length || 0);
       setSearchResults(data || []);
     } catch (error) {
-      console.error('[UltraSimpleScreen v4.4] ❌ Error en búsqueda:', error);
+      console.error('[UltraSimpleScreen] ❌ Error en búsqueda:', error);
     } finally {
       setSearchingLocales(false);
     }
@@ -204,7 +201,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   }, [searchQuery, requestType, searchLocales]);
 
   const handleSelectLocal = async (local: LocalSearchResult) => {
-    console.log('[UltraSimpleScreen v4.4] ✅ Local seleccionado:', local.nombre);
+    console.log('[UltraSimpleScreen] ✅ Local seleccionado:', local.nombre);
 
     const { data: existingRequest } = await supabase
       .from('solicitudes_propietario')
@@ -225,7 +222,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   const handleGetCurrentLocation = async () => {
     setLoading(true);
     try {
-      console.log('[UltraSimpleScreen v4.4] 📍 Obteniendo ubicación actual...');
+      console.log('[UltraSimpleScreen] 📍 Obteniendo ubicación actual...');
       
       const { status } = await Location.requestForegroundPermissionsAsync();
       
@@ -241,7 +238,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
         longitude: location.coords.longitude,
       });
 
-      console.log('[UltraSimpleScreen v4.4] ✅ Ubicación obtenida');
+      console.log('[UltraSimpleScreen] ✅ Ubicación obtenida');
 
       if (geocode.length > 0) {
         const place = geocode[0];
@@ -254,7 +251,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
         if (place.postalCode) setCodigoPostalLocal(place.postalCode);
       }
     } catch (error) {
-      console.error('[UltraSimpleScreen v4.4] ❌ Error ubicación:', error);
+      console.error('[UltraSimpleScreen] ❌ Error ubicación:', error);
       Alert.alert('Error', 'No se pudo obtener tu ubicación');
     } finally {
       setLoading(false);
@@ -265,12 +262,12 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'location_selected') {
-        console.log('[UltraSimpleScreen v4.4] 📍 Ubicación seleccionada en mapa:', data.lat, data.lng);
+        console.log('[UltraSimpleScreen] 📍 Ubicación seleccionada en mapa:', data.lat, data.lng);
         setLatitudLocal(data.lat);
         setLongitudLocal(data.lng);
       }
     } catch (error) {
-      console.error('[UltraSimpleScreen v4.4] ❌ Error mensaje webview:', error);
+      console.error('[UltraSimpleScreen] ❌ Error mensaje webview:', error);
     }
   };
 
@@ -389,10 +386,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
             Alert.alert('Teléfono requerido', 'El teléfono es obligatorio');
             return false;
           }
-          if (!imagenVerificacionUrl) {
-            Alert.alert('Imagen requerida', 'Debes subir una imagen de verificación');
-            return false;
-          }
           return true;
         default:
           return true;
@@ -446,7 +439,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
     setLoading(true);
     try {
-      console.log('\n🚀 ═══ ENVIANDO SOLICITUD v4.4 ═══');
+      console.log('\n🚀 ═══ ENVIANDO SOLICITUD ═══');
       console.log('📋 Tipo:', requestType);
       console.log('👤 Usuario:', user.id);
 
@@ -458,7 +451,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
         }
 
         console.log('🏢 Local:', selectedLocal.nombre);
-        console.log('📸 Imagen verificación:', imagenVerificacionUrl ? 'Sí' : 'No');
         console.log('💾 Insertando en base de datos...');
         
         const { error: insertError } = await supabase
@@ -474,7 +466,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
             telefono_contacto: telefonoContacto || null,
             email_contacto: emailContacto,
             mensaje: mensaje || null,
-            imagen_portada_url: imagenVerificacionUrl || null, // ✅ Guardar imagen de verificación
             estado: 'pendiente',
           });
 
@@ -485,20 +476,20 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
         console.log('✅ Solicitud creada exitosamente');
 
-        // ✅ UPDATED: Solo notificación in-app, sin mención de email
+        // ✅ REMOVED: Email notification as per user request
+        // Only in-app notification is sent
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
           tipo: 'sistema',
           titulo: '✅ Solicitud enviada',
-          mensaje: `Tu solicitud para reclamar "${selectedLocal.nombre}" ha sido enviada y está en revisión.`,
+          mensaje: `Tu solicitud para reclamar "${selectedLocal.nombre}" ha sido enviada.`,
         });
 
         console.log('🎉 ═══ PROCESO COMPLETADO ═══\n');
 
-        // ✅ UPDATED: Mensaje sin mención de email
         Alert.alert(
           '✅ Solicitud Enviada',
-          'Tu solicitud ha sido enviada correctamente.\n\nRecibirás notificaciones sobre el estado de tu solicitud en la app.',
+          'Tu solicitud ha sido enviada correctamente.\n\nRecibirás notificaciones sobre el estado de tu solicitud.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else {
@@ -543,20 +534,20 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
         console.log('✅ Solicitud creada exitosamente');
 
-        // ✅ UPDATED: Solo notificación in-app, sin mención de email
+        // ✅ REMOVED: Email notification as per user request
+        // Only in-app notification is sent
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
           tipo: 'sistema',
           titulo: '✅ Solicitud enviada',
-          mensaje: `Tu solicitud para crear "${nombreLocal}" ha sido enviada y está en revisión.`,
+          mensaje: `Tu solicitud para crear "${nombreLocal}" ha sido enviada.`,
         });
 
         console.log('🎉 ═══ PROCESO COMPLETADO ═══\n');
 
-        // ✅ UPDATED: Mensaje sin mención de email
         Alert.alert(
           '✅ Solicitud Enviada',
-          'Tu solicitud ha sido enviada correctamente.\n\nRecibirás notificaciones sobre el estado de tu solicitud en la app.',
+          'Tu solicitud ha sido enviada correctamente.\n\nRecibirás notificaciones sobre el estado de tu solicitud.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
       }
@@ -728,21 +719,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
           keyboardType="phone-pad"
         />
       </View>
-
-      {/* ✅ NEW: Imagen de verificación en lugar de documento */}
-      {user && (
-        <SimpleImageUploader
-          onImageUploaded={(url) => {
-            console.log('[UltraSimpleScreen v4.4] 📸 Imagen subida:', url);
-            setImagenVerificacionUrl(url);
-          }}
-          currentImageUrl={imagenVerificacionUrl}
-          userId={user.id}
-          bucketName="documentos-propiedad"
-          label="Imagen de Verificación *"
-          helperText="Sube una imagen que demuestre tu relación con el local (factura, contrato, foto del interior, etc.) - Obligatorio"
-        />
-      )}
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Mensaje Explicativo *</Text>
