@@ -64,13 +64,6 @@ module.exports = {
       rules: {
         '@typescript-eslint/no-var-requires': 'off'
       }
-    },
-    // ✅ FIX: Ignore Deno URL imports in Supabase Edge Functions
-    {
-      files: ['supabase/functions/**/*.ts'],
-      rules: {
-        'import/no-unresolved': 'off' // Deno uses URL imports which ESLint cannot resolve
-      }
     }
   ]
 };

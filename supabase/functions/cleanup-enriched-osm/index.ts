@@ -12,11 +12,11 @@ interface CleanupResult {
   locales_eliminados: number;
   espacio_liberado_mb: number;
   timestamp: string;
-  detalles: {
+  detalles: Array<{
     id: string;
     nombre: string;
     provincia: string;
-  }[];
+  }>;
 }
 
 /**
@@ -115,7 +115,7 @@ serve(async (req) => {
     // Delete in batches to avoid timeout
     const batchSize = 100;
     let totalDeleted = 0;
-    const detalles: { id: string; nombre: string; provincia: string }[] = [];
+    const detalles: Array<{ id: string; nombre: string; provincia: string }> = [];
     
     for (let i = 0; i < localesAEliminar.length; i += batchSize) {
       const batch = localesAEliminar.slice(i, i + batchSize);

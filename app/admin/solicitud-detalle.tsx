@@ -63,17 +63,15 @@ interface Solicitud {
 }
 
 /**
- * ✅ SOLICITUD DETALLE v4.3 - VERIFICATION IMAGES ONLY
+ * ✅ SOLICITUD DETALLE v4.2 - FIXED IMAGE LOADING ERRORS
  * 
- * COMPLETE FIXES v4.3:
+ * COMPLETE FIXES v4.2:
  * - ✅ Fixed image loading with proper error handling
  * - ✅ Added loading states for each image
  * - ✅ Added fallback for failed images
  * - ✅ Fixed Supabase Storage URL handling
  * - ✅ Better error messages for debugging
  * - ✅ Proper image state management
- * - ✅ REMOVED: Property document section (per user request)
- * - ✅ UPDATED: Only show verification images
  */
 
 const { width } = Dimensions.get('window');
@@ -85,6 +83,7 @@ export default function SolicitudDetalleScreen() {
 
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloadingDocument, setDownloadingDocument] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showActionModal, setShowActionModal] = useState(false);
@@ -99,7 +98,7 @@ export default function SolicitudDetalleScreen() {
 
   const loadSolicitud = useCallback(async () => {
     try {
-      console.log('[SolicitudDetalle v4.3] Loading request:', solicitudId);
+      console.log('[SolicitudDetalle v4.2] Loading request:', solicitudId);
       
       const { data, error } = await supabase
         .from('solicitudes_propietario')
@@ -117,17 +116,18 @@ export default function SolicitudDetalleScreen() {
         .single();
 
       if (error) {
-        console.error('[SolicitudDetalle v4.3] Error loading request:', error);
+        console.error('[SolicitudDetalle v4.2] Error loading request:', error);
         throw error;
       }
 
-      console.log('[SolicitudDetalle v4.3] Loaded request:', data.nombre_local);
-      console.log('[SolicitudDetalle v4.3] Cover image URL:', data.imagen_portada_url);
-      console.log('[SolicitudDetalle v4.3] Gallery URLs:', data.galeria_urls);
+      console.log('[SolicitudDetalle v4.2] Loaded request:', data.nombre_local);
+      console.log('[SolicitudDetalle v4.2] Document URL:', data.documento_propiedad_url);
+      console.log('[SolicitudDetalle v4.2] Cover image URL:', data.imagen_portada_url);
+      console.log('[SolicitudDetalle v4.2] Gallery URLs:', data.galeria_urls);
       
       setSolicitud(data);
     } catch (error) {
-      console.error('[SolicitudDetalle v4.3] Error:', error);
+      console.error('[SolicitudDetalle v4.2] Error:', error);
       Alert.alert('Error', 'No se pudo cargar la solicitud');
       router.back();
     } finally {
@@ -140,18 +140,18 @@ export default function SolicitudDetalleScreen() {
   }, [loadSolicitud]);
 
   const handleImageLoadStart = (uri: string) => {
-    console.log('[SolicitudDetalle v4.3] Image load started:', uri);
+    console.log('[SolicitudDetalle v4.2] Image load started:', uri);
     setImageLoadingStates(prev => ({ ...prev, [uri]: true }));
     setImageErrorStates(prev => ({ ...prev, [uri]: false }));
   };
 
   const handleImageLoadEnd = (uri: string) => {
-    console.log('[SolicitudDetalle v4.3] ✅ Image loaded successfully:', uri);
+    console.log('[SolicitudDetalle v4.2] ✅ Image loaded successfully:', uri);
     setImageLoadingStates(prev => ({ ...prev, [uri]: false }));
   };
 
   const handleImageError = (uri: string, error: any) => {
-    console.error('[SolicitudDetalle v4.3] ❌ Image load error:', uri, error);
+    console.error('[SolicitudDetalle v4.2] ❌ Image load error:', uri, error);
     setImageLoadingStates(prev => ({ ...prev, [uri]: false }));
     setImageErrorStates(prev => ({ ...prev, [uri]: true }));
   };
@@ -161,7 +161,7 @@ export default function SolicitudDetalleScreen() {
     
     // If it's already a full URL, return it
     if (path.startsWith('http')) {
-      console.log('[SolicitudDetalle v4.3] Using full URL:', path);
+      console.log('[SolicitudDetalle v4.2] Using full URL:', path);
       return path;
     }
     
@@ -170,11 +170,138 @@ export default function SolicitudDetalleScreen() {
       .from('documentos-propiedad')
       .getPublicUrl(path);
     
-    console.log('[SolicitudDetalle v4.3] Generated public URL:', data.publicUrl);
+    console.log('[SolicitudDetalle v4.2] Generated public URL:', data.publicUrl);
     return data.publicUrl;
   };
 
-  // ✅ REMOVED: Document handling functions (no longer needed)
+  const handleOpenDocument = async () => {
+    if (!solicitud?.documento_propiedad_url) {
+      Alert.alert('Error', 'No hay documento disponible');
+      return;
+    }
+
+    try {
+      console.log('[SolicitudDetalle v4.2] Opening document:', solicitud.documento_propiedad_url);
+      
+      const documentUrl = getPublicUrl(solicitud.documento_propiedad_url);
+      if (!documentUrl) {
+        throw new Error('No se pudo generar la URL del documento');
+      }
+      
+      // Check if it's an image or PDF
+      const isImage = documentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+      const isPDF = documentUrl.match(/\.pdf$/i);
+
+      if (isImage) {
+        // For images, show in modal viewer
+        console.log('[SolicitudDetalle v4.2] Opening image in viewer');
+        setSelectedImageIndex(0);
+        setShowImageModal(true);
+      } else {
+        // For PDFs and other documents, offer options
+        Alert.alert(
+          'Abrir Documento',
+          '¿Cómo deseas abrir el documento?',
+          [
+            {
+              text: 'Abrir en Navegador',
+              onPress: () => {
+                console.log('[SolicitudDetalle v4.2] Opening in browser:', documentUrl);
+                Linking.openURL(documentUrl);
+              },
+            },
+            {
+              text: 'Descargar y Compartir',
+              onPress: () => handleDownloadDocument(),
+            },
+            {
+              text: 'Cancelar',
+              style: 'cancel',
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('[SolicitudDetalle v4.2] Error opening document:', error);
+      Alert.alert('Error', 'No se pudo abrir el documento');
+    }
+  };
+
+  const handleDownloadDocument = async () => {
+    if (!solicitud?.documento_propiedad_url) return;
+
+    setDownloadingDocument(true);
+    try {
+      const documentUrl = getPublicUrl(solicitud.documento_propiedad_url);
+      if (!documentUrl) {
+        throw new Error('No se pudo generar la URL del documento');
+      }
+      
+      console.log('[SolicitudDetalle v4.2] Downloading document:', documentUrl);
+
+      // Get file extension from URL
+      const urlParts = documentUrl.split('.');
+      const extension = urlParts[urlParts.length - 1].split('?')[0]; // Remove query params
+      const fileName = `documento_${solicitud.id}.${extension}`;
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+
+      console.log('[SolicitudDetalle v4.2] Downloading to:', fileUri);
+
+      // Download the file
+      const downloadResult = await FileSystem.downloadAsync(
+        documentUrl,
+        fileUri
+      );
+
+      console.log('[SolicitudDetalle v4.2] Download result:', downloadResult.status);
+
+      if (downloadResult.status === 200) {
+        console.log('[SolicitudDetalle v4.2] ✅ Document downloaded successfully');
+        
+        // Try to share the file
+        try {
+          await RNShare.share({
+            url: downloadResult.uri,
+            title: 'Documento de Propiedad',
+          });
+          console.log('[SolicitudDetalle v4.2] ✅ Document shared successfully');
+        } catch (shareError) {
+          console.log('[SolicitudDetalle v4.2] Share not available, showing alert');
+          Alert.alert(
+            '✅ Descargado',
+            `El documento se ha descargado correctamente.\n\nUbicación: ${downloadResult.uri}`,
+            [
+              {
+                text: 'Abrir',
+                onPress: () => Linking.openURL(downloadResult.uri),
+              },
+              { text: 'OK' },
+            ]
+          );
+        }
+      } else {
+        throw new Error('Download failed with status: ' + downloadResult.status);
+      }
+    } catch (error) {
+      console.error('[SolicitudDetalle v4.2] Error downloading document:', error);
+      Alert.alert(
+        'Error al Descargar',
+        'No se pudo descargar el documento. Intenta abrirlo en el navegador.',
+        [
+          {
+            text: 'Abrir en Navegador',
+            onPress: () => {
+              const url = getPublicUrl(solicitud.documento_propiedad_url!);
+              if (url) Linking.openURL(url);
+            },
+          },
+          { text: 'Cancelar', style: 'cancel' },
+        ]
+      );
+    } finally {
+      setDownloadingDocument(false);
+    }
+  };
 
   const handleOpenMap = () => {
     if (solicitud?.latitud_local && solicitud?.longitud_local) {
@@ -188,7 +315,7 @@ export default function SolicitudDetalleScreen() {
   };
 
   const handleViewImage = (index: number) => {
-    console.log('[SolicitudDetalle v4.3] Opening image viewer at index:', index);
+    console.log('[SolicitudDetalle v4.2] Opening image viewer at index:', index);
     setSelectedImageIndex(index);
     setShowImageModal(true);
   };
@@ -338,7 +465,7 @@ export default function SolicitudDetalleScreen() {
       setMotivoDenegacion('');
       setNotasAdmin('');
     } catch (error) {
-      console.error('[SolicitudDetalle v4.3] Error executing action:', error);
+      console.error('[SolicitudDetalle v4.2] Error executing action:', error);
       Alert.alert('Error', 'No se pudo completar la acción');
     }
   };
@@ -360,7 +487,17 @@ export default function SolicitudDetalleScreen() {
     }
   };
 
-  // ✅ REMOVED: getTipoDocumentoLabel function (no longer needed)
+  const getTipoDocumentoLabel = (tipo?: string) => {
+    switch (tipo) {
+      case 'factura_luz': return 'Factura de Luz';
+      case 'factura_agua': return 'Factura de Agua';
+      case 'contrato_alquiler': return 'Contrato de Alquiler';
+      case 'escritura': return 'Escritura de Propiedad';
+      case 'licencia_actividad': return 'Licencia de Actividad';
+      case 'otro': return 'Otro Documento';
+      default: return 'Documento';
+    }
+  };
 
   if (loading) {
     return (
@@ -377,17 +514,19 @@ export default function SolicitudDetalleScreen() {
 
   const estadoConfig = getEstadoConfig(solicitud.estado);
   
-  // Build array of verification images only (excluding property document)
-  // ✅ UPDATED: Only show verification images, not property documents
+  // Build array of all images with proper URLs
   const allImages: string[] = [];
   
-  // Add cover image if exists
+  if (solicitud.documento_propiedad_url && solicitud.documento_propiedad_url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+    const url = getPublicUrl(solicitud.documento_propiedad_url);
+    if (url) allImages.push(url);
+  }
+  
   if (solicitud.imagen_portada_url) {
     const url = getPublicUrl(solicitud.imagen_portada_url);
     if (url) allImages.push(url);
   }
   
-  // Add gallery images if exist
   if (solicitud.galeria_urls && solicitud.galeria_urls.length > 0) {
     solicitud.galeria_urls.forEach(imgUrl => {
       const url = getPublicUrl(imgUrl);
@@ -395,7 +534,7 @@ export default function SolicitudDetalleScreen() {
     });
   }
 
-  console.log('[SolicitudDetalle v4.3] Verification images to display:', allImages);
+  console.log('[SolicitudDetalle v4.2] All images to display:', allImages);
 
   return (
     <View style={styles.container}>
@@ -541,13 +680,41 @@ export default function SolicitudDetalleScreen() {
           </View>
         </View>
 
-        {/* Images Gallery - Verification Images Only */}
+        {/* Document Card */}
+        {solicitud.documento_propiedad_url && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>📄 Documento de Propiedad</Text>
+            <TouchableOpacity 
+              style={styles.documentCard} 
+              onPress={handleOpenDocument}
+              disabled={downloadingDocument}
+            >
+              <View style={styles.documentCardContent}>
+                <View style={styles.documentIconBox}>
+                  <IconSymbol ios_icon_name="doc.fill" android_material_icon_name="description" size={32} color={colors.primary} />
+                </View>
+                <View style={styles.documentTextBox}>
+                  <Text style={styles.documentTitle}>
+                    {getTipoDocumentoLabel(solicitud.documento_propiedad_tipo)}
+                  </Text>
+                  <Text style={styles.documentSubtitle}>
+                    {downloadingDocument ? 'Descargando...' : 'Toca para ver o descargar'}
+                  </Text>
+                </View>
+                {downloadingDocument ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <IconSymbol ios_icon_name="arrow.up.right" android_material_icon_name="open_in_new" size={20} color={colors.primary} />
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Images Gallery - FIXED v4.2 */}
         {allImages.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📸 Imágenes de Verificación ({allImages.length})</Text>
-            <Text style={styles.sectionDescription}>
-              Imágenes proporcionadas por el solicitante para verificar la propiedad del local
-            </Text>
+            <Text style={styles.sectionTitle}>🖼️ Imágenes ({allImages.length})</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
               {allImages.map((uri, index) => (
                 <TouchableOpacity key={index} onPress={() => handleViewImage(index)}>
@@ -949,12 +1116,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     marginBottom: 10,
-  },
-  sectionDescription: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 12,
-    lineHeight: 18,
   },
   userCard: {
     flexDirection: 'row',

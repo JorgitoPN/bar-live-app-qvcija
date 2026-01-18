@@ -301,7 +301,7 @@ export default function FavoritosScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation]);
 
-  // ✅ LINT FIX: Removed unnecessary 'filterTrigger' dependency - filtering triggered by filterTrigger state change
+  // ✅ CRITICAL v224.0: Client-side filtering (triggered by filterTrigger)
   const filteredLocales = useMemo(() => {
     const query = searchQueryRef.current.toLowerCase().trim();
     console.log('[Favoritos v224.0] 🔍 Filtering locales client-side, search:', query);
@@ -339,7 +339,7 @@ export default function FavoritosScreen() {
 
     console.log('[Favoritos v224.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
     return filtered;
-  }, [selectedCategory, provinciaSeleccionada, allSavedLocales, filterTrigger]);
+  }, [filterTrigger, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
   // ✅ CRITICAL v224.0: Update displayed locales with pagination
   useEffect(() => {

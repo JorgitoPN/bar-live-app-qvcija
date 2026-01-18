@@ -192,7 +192,6 @@ export default function GestionarLocalesScreen() {
     }
   }, []);
 
-  // ✅ LINT FIX: Removed unnecessary 'filterTrigger' dependency - filtering triggered by filterTrigger state change
   const cargarLocales = useCallback(async (reset: boolean = false, currentPage: number = 1) => {
     try {
       console.log('[GestionarLocales v225.0] Loading locales, reset:', reset, 'page:', currentPage);
@@ -292,7 +291,7 @@ export default function GestionarLocalesScreen() {
       setInitialLoading(false);
       setLoadingMore(false);
     }
-  }, [filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente, filterTrigger]);
+  }, [filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente]);
 
   useEffect(() => {
     console.log('[GestionarLocales v225.0] Initial load');
@@ -540,7 +539,6 @@ export default function GestionarLocalesScreen() {
     setFilterTrigger(prev => prev + 1);
   }, []);
 
-  // ✅ LINT FIX: Removed unnecessary 'filterTrigger' dependency
   const hayFiltrosActivos = useCallback(() => {
     return filtroPropietario !== 'todos' ||
            filtroTipo !== 'todos' ||
@@ -549,7 +547,7 @@ export default function GestionarLocalesScreen() {
            filtroDestacado !== 'todos' ||
            filtroFuente !== 'todos' ||
            busquedaRef.current !== '';
-  }, [filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente]);
+  }, [filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente, filterTrigger]);
 
   const handleLoadMore = useCallback(() => {
     if (hasMore && !loadingMore && !initialLoading) {
@@ -785,7 +783,6 @@ export default function GestionarLocalesScreen() {
     <LocalCard local={item} />
   ), [LocalCard]);
 
-  // ✅ LINT FIX: Removed unnecessary 'filterTrigger' dependency from useMemo
   const renderHeader = useMemo(() => (
     <React.Fragment>
       <View style={styles.statsSection}>
@@ -908,7 +905,7 @@ export default function GestionarLocalesScreen() {
         </Text>
       </View>
     </React.Fragment>
-  ), [contadores, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados, limpiarFiltros, handleSearchChange]);
+  ), [contadores, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados, limpiarFiltros, handleSearchChange, filterTrigger]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
