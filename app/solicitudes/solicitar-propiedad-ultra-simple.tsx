@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { IconSymbol } from '@/components/IconSymbol';
-import SimpleImageUploader from '@/components/propiedad/SimpleImageUploader';
+import PostStyleImageUploader from '@/components/propiedad/PostStyleImageUploader';
 import {
   View,
   Text,
@@ -760,16 +760,15 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
           Sube una foto de algún documento para verificar que eres el propietario (DNI, escrituras, licencia de apertura, etc.)
         </Text>
         
-        <SimpleImageUploader
+        <PostStyleImageUploader
           onImageUploaded={(url) => {
             console.log('[ReclamarStep2] 📸 Imagen de verificación subida:', url);
             setVerificationImageUrl(url);
           }}
           currentImageUrl={verificationImageUrl}
           userId={user?.id || ''}
-          bucketName="documentos-propiedad"
           label="Imagen de Verificación *"
-          helperText="Foto de algún documento que acredite tu relación con el local"
+          helperText="Sube una foto de un documento que acredite tu relación con el local (DNI, escrituras, licencia, etc.)"
         />
       </View>
 
