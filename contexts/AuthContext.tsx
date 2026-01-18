@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/utils/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 
@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,6 +60,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
+  const refreshUser = useCallback(async () => {
+    try {
+      console.log('[AuthContext] Refreshing user session...');
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('[AuthContext] Error refreshing session:', error);
+        return;
+      }
+      
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+        console.log('[AuthContext] ✅ User session refreshed');
+      }
+    } catch (error) {
+      console.error('[AuthContext] Error in refreshUser:', error);
+    }
+  }, []);
+
   const value = {
     user,
     session,
@@ -66,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
+    refreshUser,
   };
 
   return (
