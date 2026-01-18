@@ -754,7 +754,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
             size={24} 
             color={colors.primary} 
           />
-          <Text style={styles.verificationTitle}>Imagen de verificación obligatoria (nuevo)</Text>
+          <Text style={styles.verificationTitle}>Imagen de verificación obligatoria</Text>
         </View>
         <Text style={styles.verificationDescription}>
           Sube una foto de algún documento para verificar que eres el propietario (DNI, escrituras, licencia de apertura, etc.)
