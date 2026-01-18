@@ -126,13 +126,6 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
     }
   }, [user]);
 
-  // ✅ LINT FIX v225.0: Added loadPreselectedLocal to dependencies
-  useEffect(() => {
-    if (preselectedLocalId && requestType === 'reclamar_local') {
-      loadPreselectedLocal(preselectedLocalId);
-    }
-  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
-
   const loadPreselectedLocal = useCallback(async (localId: string) => {
     try {
       console.log('[UltraSimpleScreen] 🔍 Cargando local preseleccionado:', localId);
@@ -162,6 +155,13 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
       Alert.alert('Error', 'No se pudo cargar el local');
     }
   }, [router]);
+
+  // ✅ LINT FIX v225.0: Added loadPreselectedLocal to dependencies
+  useEffect(() => {
+    if (preselectedLocalId && requestType === 'reclamar_local') {
+      loadPreselectedLocal(preselectedLocalId);
+    }
+  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
 
   const searchLocales = useCallback(async (query: string) => {
     if (!query.trim() || query.length < 3) {
@@ -685,7 +685,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   );
 
   const renderReclamarStep2 = () => (
-    <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 120 }}>
       <Text style={styles.stepTitle}>Información de Contacto y Verificación</Text>
       <Text style={styles.stepDescription}>
         Proporciona tus datos de contacto y una foto de un documento para verificar tu identidad
@@ -775,7 +775,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
       <View style={styles.infoBox}>
         <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={20} color={colors.primary} />
         <Text style={styles.infoBoxText}>
-          Nuestro equipo revisará tu solicitud y se pondrá en contacto contigo para completar el proceso de verificación.
+          Nuestro equipo revisará tu solicitud. Una vez sea aprobada o denegada, recibirás una notificación y el estado del proceso de verificación se actualizará en tu perfil.
         </Text>
       </View>
     </ScrollView>
@@ -1058,7 +1058,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   );
 
   const renderNuevoStep5 = () => (
-    <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 120 }}>
       <Text style={styles.stepTitle}>Información Adicional</Text>
       <Text style={styles.stepDescription}>
         Mensaje adicional (opcional)
@@ -1080,7 +1080,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
       <View style={styles.infoBox}>
         <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={20} color={colors.primary} />
         <Text style={styles.infoBoxText}>
-          Nuestro equipo revisará tu solicitud y se pondrá en contacto contigo para completar el proceso de alta del local.
+          Nuestro equipo revisará tu solicitud. Una vez sea aprobada o denegada, recibirás una notificación y el estado del proceso de verificación se actualizará en tu perfil.
         </Text>
       </View>
     </ScrollView>
