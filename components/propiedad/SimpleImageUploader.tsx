@@ -230,55 +230,20 @@ export default function SimpleImageUploader({
 
       {imageUrl ? (
         <View style={styles.imagePreviewContainer}>
-          {imageLoadError ? (
-            <View style={styles.imageErrorContainer}>
-              <IconSymbol 
-                ios_icon_name="exclamationmark.triangle.fill" 
-                android_material_icon_name="warning" 
-                size={48} 
-                color="#F59E0B" 
-              />
-              <Text style={styles.imageErrorText}>
-                Error al cargar la vista previa
-              </Text>
-              <Text style={styles.imageErrorSubtext}>
-                La imagen se subió correctamente pero no se puede mostrar
-              </Text>
-            </View>
-          ) : (
-            <Image 
-              source={{ 
-                uri: imageUrl,
-                cache: 'reload', // Forzar recarga para evitar cache corrupto
-              }} 
-              style={styles.imagePreview}
-              resizeMode="cover"
-              onLoadStart={() => {
-                console.log('[SimpleImageUploader v2] 🔄 Cargando preview...');
-                console.log('[SimpleImageUploader v2] 🔗 URL:', imageUrl);
-                setImageLoadError(false);
-              }}
-              onLoad={() => {
-                console.log('[SimpleImageUploader v2] ✅ Preview cargado exitosamente');
-                setImageLoadError(false);
-              }}
-              onError={(error) => {
-                console.error('[SimpleImageUploader v2] ❌ Error cargando preview');
-                console.error('[SimpleImageUploader v2] ❌ URL:', imageUrl);
-                console.error('[SimpleImageUploader v2] ❌ Error:', error.nativeEvent?.error || 'Unknown error');
-                setImageLoadError(true);
-              }}
-            />
-          )}
-          <View style={styles.imageOverlay}>
-            <View style={styles.imageSuccessIndicator}>
+          <View style={styles.imageSuccessCard}>
+            <View style={styles.imageSuccessHeader}>
               <IconSymbol 
                 ios_icon_name="checkmark.circle.fill" 
                 android_material_icon_name="check_circle" 
-                size={24} 
+                size={32} 
                 color="#10B981" 
               />
-              <Text style={styles.imageSuccessText}>Imagen subida</Text>
+              <View style={styles.imageSuccessInfo}>
+                <Text style={styles.imageSuccessTitle}>Imagen subida correctamente</Text>
+                <Text style={styles.imageSuccessSubtitle}>
+                  La imagen se ha guardado y será revisada por el equipo
+                </Text>
+              </View>
             </View>
             <TouchableOpacity
               style={styles.removeButton}
@@ -290,7 +255,7 @@ export default function SimpleImageUploader({
                 size={18} 
                 color="#fff" 
               />
-              <Text style={styles.removeButtonText}>Eliminar</Text>
+              <Text style={styles.removeButtonText}>Eliminar y subir otra</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -365,55 +330,34 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   imagePreviewContainer: {
-    position: 'relative',
-    borderRadius: 12,
-    overflow: 'hidden',
+    marginBottom: 0,
+  },
+  imageSuccessCard: {
+    backgroundColor: '#10B981' + '15',
     borderWidth: 2,
-    borderColor: colors.primary,
+    borderColor: '#10B981',
+    borderRadius: 12,
+    padding: 16,
+    gap: 16,
   },
-  imagePreview: {
-    width: '100%',
-    height: 250,
-    backgroundColor: colors.cardBorder,
-  },
-  imageErrorContainer: {
-    width: '100%',
-    height: 250,
-    backgroundColor: colors.cardBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
+  imageSuccessHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: 12,
-    padding: 20,
   },
-  imageErrorText: {
+  imageSuccessInfo: {
+    flex: 1,
+  },
+  imageSuccessTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: colors.text,
-    textAlign: 'center',
+    marginBottom: 4,
   },
-  imageErrorSubtext: {
+  imageSuccessSubtitle: {
     fontSize: 13,
     color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    padding: 12,
-    gap: 10,
-  },
-  imageSuccessIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  imageSuccessText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
+    lineHeight: 18,
   },
   removeButton: {
     flexDirection: 'row',
