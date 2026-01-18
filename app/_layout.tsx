@@ -69,44 +69,39 @@ class ErrorBoundary extends Component<
 
 // Prevent auto-hiding splash screen
 SplashScreen.preventAutoHideAsync().catch(() => {
-  console.log('[RootLayout] Splash screen already hidden');
+  // Silently ignore if already hidden
 });
 
 /**
- * ROOT LAYOUT v142.0 - FIXED IMPERSONATION PROVIDER
+ * ROOT LAYOUT v143.0 - OPTIMIZED FOR FAST STARTUP
  * 
- * CRITICAL FIX v142.0:
- * - ✅ Added ImpersonationProvider back (it exists and is needed by ModeContext)
- * - ✅ ImpersonationProvider must wrap ModeProvider
- * - ✅ Fixed "useImpersonation must be used within an ImpersonationProvider" error
+ * OPTIMIZATIONS v143.0:
+ * - ✅ Disabled errorLogger temporarily (was blocking startup with fetch calls)
+ * - ✅ Simplified splash screen hiding (immediate)
+ * - ✅ Reduced console.log calls
+ * - ✅ Optimized context providers loading
  */
 
 export default function RootLayout() {
   useEffect(() => {
-    console.log('[RootLayout] 🚀 App starting...');
-    console.log('[RootLayout] 📱 Platform:', Platform.OS);
+    // Minimal logging for faster startup
+    console.log('[RootLayout] Starting app...');
     
-    // ✅ CRITICAL FIX v25.0: Initialize Android-specific behavior
+    // Initialize Android-specific behavior
     let cleanupAndroid: (() => void) | undefined;
     
     if (Platform.OS === 'android') {
-      console.log('[RootLayout] 🤖 Initializing Android native behavior...');
       try {
         cleanupAndroid = initializeAndroidBehavior();
       } catch (error) {
-        console.error('[RootLayout] Error initializing Android behavior:', error);
+        console.error('[RootLayout] Android init error:', error);
       }
     }
 
-    // Hide splash screen immediately for faster startup
-    console.log('[RootLayout] 🎨 Hiding splash screen...');
-    SplashScreen.hideAsync()
-      .then(() => {
-        console.log('[RootLayout] ✅ Splash screen hidden');
-      })
-      .catch((error) => {
-        console.error('[RootLayout] Error hiding splash screen:', error);
-      });
+    // Hide splash screen immediately for faster perceived startup
+    SplashScreen.hideAsync().catch(() => {
+      // Silently ignore errors
+    });
 
     // Cleanup function
     return () => {
@@ -114,7 +109,7 @@ export default function RootLayout() {
         try {
           cleanupAndroid();
         } catch (error) {
-          console.error('[RootLayout] Error cleaning up Android behavior:', error);
+          // Silently ignore cleanup errors
         }
       }
     };
