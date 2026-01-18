@@ -685,7 +685,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   );
 
   const renderReclamarStep2 = () => (
-    <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 120 }}>
+    <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 180 }}>
       <Text style={styles.stepTitle}>Información de Contacto y Verificación</Text>
       <Text style={styles.stepDescription}>
         Proporciona tus datos de contacto y una foto de un documento para verificar tu identidad
@@ -1058,7 +1058,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   );
 
   const renderNuevoStep5 = () => (
-    <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 120 }}>
+    <ScrollView style={styles.stepContent} contentContainerStyle={{ paddingBottom: 180 }}>
       <Text style={styles.stepTitle}>Información Adicional</Text>
       <Text style={styles.stepDescription}>
         Mensaje adicional (opcional)
@@ -1240,7 +1240,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 140,
+    paddingBottom: 180,
   },
   stepContent: {
     padding: 20,
