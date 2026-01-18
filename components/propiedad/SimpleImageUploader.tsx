@@ -47,6 +47,7 @@ export default function SimpleImageUploader({
 }: SimpleImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(currentImageUrl || null);
+  const [imageLoadError, setImageLoadError] = useState(false);
 
   console.log('[SimpleImageUploader v2] 🎬 Componente inicializado');
   console.log('[SimpleImageUploader v2] 📸 Imagen actual:', imageUrl ? 'Sí' : 'No');
@@ -145,9 +146,10 @@ export default function SimpleImageUploader({
         .from(bucketName)
         .getPublicUrl(uploadData.path);
 
-      const publicUrl = urlData.publicUrl;
+      let publicUrl = urlData.publicUrl;
       
       console.log('[SimpleImageUploader v2] 🔗 URL pública generada:', publicUrl);
+      console.log('[SimpleImageUploader v2] 📁 Path usado:', uploadData.path);
 
       // ✅ FIXED: Validación estricta de URL
       if (!publicUrl || !publicUrl.startsWith('https://')) {
@@ -163,10 +165,38 @@ export default function SimpleImageUploader({
         throw new Error('Estructura de URL incorrecta');
       }
 
+      // ✅ NUEVO: Verificar que el archivo existe antes de continuar
+      console.log('[SimpleImageUploader v2] 🔍 Verificando que el archivo existe...');
+      const { data: fileData, error: fileError } = await supabase.storage
+        .from(bucketName)
+        .list(userId, {
+          limit: 100,
+          offset: 0,
+          sortBy: { column: 'created_at', order: 'desc' },
+        });
+
+      if (fileError) {
+        console.error('[SimpleImageUploader v2] ❌ Error verificando archivo:', fileError);
+      } else {
+        console.log('[SimpleImageUploader v2] ✅ Archivos en carpeta:', fileData?.length || 0);
+        const uploadedFile = fileData?.find(f => uploadData.path.includes(f.name));
+        if (uploadedFile) {
+          console.log('[SimpleImageUploader v2] ✅ Archivo encontrado:', uploadedFile.name);
+        } else {
+          console.warn('[SimpleImageUploader v2] ⚠️ Archivo no encontrado en listado');
+        }
+      }
+
+      // ✅ NUEVO: Agregar timestamp para evitar cache
+      // Esto ayuda a que React Native Image cargue la imagen correctamente
+      publicUrl = `${publicUrl}?t=${Date.now()}`;
+      
       console.log('[SimpleImageUploader v2] ✅ URL validada correctamente');
+      console.log('[SimpleImageUploader v2] 🔗 URL final con timestamp:', publicUrl);
 
       // Guardar y notificar
       setImageUrl(publicUrl);
+      setImageLoadError(false); // Reset error state
       onImageUploaded(publicUrl);
       
       console.log('[SimpleImageUploader v2] ✅ Proceso completado exitosamente');
@@ -200,23 +230,46 @@ export default function SimpleImageUploader({
 
       {imageUrl ? (
         <View style={styles.imagePreviewContainer}>
-          <Image 
-            source={{ uri: imageUrl }} 
-            style={styles.imagePreview}
-            resizeMode="cover"
-            onLoadStart={() => {
-              console.log('[SimpleImageUploader v2] 🔄 Cargando preview...');
-              console.log('[SimpleImageUploader v2] 🔗 URL:', imageUrl);
-            }}
-            onLoad={() => {
-              console.log('[SimpleImageUploader v2] ✅ Preview cargado exitosamente');
-            }}
-            onError={(error) => {
-              console.error('[SimpleImageUploader v2] ❌ Error cargando preview');
-              console.error('[SimpleImageUploader v2] ❌ URL:', imageUrl);
-              console.error('[SimpleImageUploader v2] ❌ Error:', error.nativeEvent.error);
-            }}
-          />
+          {imageLoadError ? (
+            <View style={styles.imageErrorContainer}>
+              <IconSymbol 
+                ios_icon_name="exclamationmark.triangle.fill" 
+                android_material_icon_name="warning" 
+                size={48} 
+                color="#F59E0B" 
+              />
+              <Text style={styles.imageErrorText}>
+                Error al cargar la vista previa
+              </Text>
+              <Text style={styles.imageErrorSubtext}>
+                La imagen se subió correctamente pero no se puede mostrar
+              </Text>
+            </View>
+          ) : (
+            <Image 
+              source={{ 
+                uri: imageUrl,
+                cache: 'reload', // Forzar recarga para evitar cache corrupto
+              }} 
+              style={styles.imagePreview}
+              resizeMode="cover"
+              onLoadStart={() => {
+                console.log('[SimpleImageUploader v2] 🔄 Cargando preview...');
+                console.log('[SimpleImageUploader v2] 🔗 URL:', imageUrl);
+                setImageLoadError(false);
+              }}
+              onLoad={() => {
+                console.log('[SimpleImageUploader v2] ✅ Preview cargado exitosamente');
+                setImageLoadError(false);
+              }}
+              onError={(error) => {
+                console.error('[SimpleImageUploader v2] ❌ Error cargando preview');
+                console.error('[SimpleImageUploader v2] ❌ URL:', imageUrl);
+                console.error('[SimpleImageUploader v2] ❌ Error:', error.nativeEvent?.error || 'Unknown error');
+                setImageLoadError(true);
+              }}
+            />
+          )}
           <View style={styles.imageOverlay}>
             <View style={styles.imageSuccessIndicator}>
               <IconSymbol 
@@ -322,6 +375,26 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
     backgroundColor: colors.cardBorder,
+  },
+  imageErrorContainer: {
+    width: '100%',
+    height: 250,
+    backgroundColor: colors.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    padding: 20,
+  },
+  imageErrorText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  imageErrorSubtext: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   imageOverlay: {
     position: 'absolute',
