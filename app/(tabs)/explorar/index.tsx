@@ -73,20 +73,12 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v224.0 - FINAL SEARCH FIX FOR NATIVE
+ * ✅ EXPLORAR SCREEN v225.0 - FIXED NAVIGATION TO ULTRA-SIMPLE
  * 
- * CRITICAL FIX v224.0:
- * - ✅ FIXED: TextInput now uses useRef to store value instead of state
- * - ✅ FIXED: No re-renders when typing - component stays stable
- * - ✅ FIXED: Keyboard stays visible throughout typing
- * - ✅ FIXED: Users can type complete words without interruption
- * - ✅ FIXED: Filtering happens on a timer, not on every keystroke
- * 
- * HOW IT WORKS NOW:
- * 1. TextInput value is stored in a ref (searchQueryRef) - no re-renders
- * 2. Filtering happens after 300ms of no typing (debounced)
- * 3. Component doesn't re-render while user is typing
- * 4. FlatList has keyboardShouldPersistTaps="handled" to keep keyboard open
+ * FIX v225.0:
+ * - ✅ FIXED: Navigation now goes to solicitar-propiedad-ultra-simple (with image verification)
+ * - ✅ FIXED: No longer uses old solicitar-propiedad (with document upload)
+ * - ✅ FIXED: Users will see "Imagen de verificación" instead of "Documento de propiedad"
  */
 
 export default function ExplorarScreen() {
@@ -511,13 +503,14 @@ export default function ExplorarScreen() {
     router.push('/(tabs)/explorar/mapa');
   };
 
+  // ✅ FIX v225.0: Updated navigation to use solicitar-propiedad-ultra-simple
   const handleClaimOrCreateLocal = () => {
     if (!user) {
       setShowLoginModal(true);
       return;
     }
     
-    console.log('[Explorar v224.0] User tapped Claim/Create Local button');
+    console.log('[Explorar v225.0] User tapped Claim/Create Local button');
     
     Alert.alert(
       'Solicitar Propiedad',
@@ -526,8 +519,9 @@ export default function ExplorarScreen() {
         {
           text: 'Reclamar Local Existente',
           onPress: () => {
+            console.log('[Explorar v225.0] ✅ Navigating to solicitar-propiedad-ultra-simple (reclamar)');
             router.push({
-              pathname: '/solicitudes/solicitar-propiedad',
+              pathname: '/solicitudes/solicitar-propiedad-ultra-simple',
               params: { type: 'reclamar_local' },
             });
           },
@@ -535,8 +529,9 @@ export default function ExplorarScreen() {
         {
           text: 'Crear Nuevo Local',
           onPress: () => {
+            console.log('[Explorar v225.0] ✅ Navigating to solicitar-propiedad-ultra-simple (nuevo)');
             router.push({
-              pathname: '/solicitudes/solicitar-propiedad',
+              pathname: '/solicitudes/solicitar-propiedad-ultra-simple',
               params: { type: 'nuevo_local' },
             });
           },
