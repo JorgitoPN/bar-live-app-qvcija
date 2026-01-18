@@ -807,7 +807,7 @@ export default function PerfilScreen() {
               <Text style={[styles.profileUsername, { fontSize: scaleFontSize(15) }]}>@{user.username}</Text>
             )}
           </View>
-          {(isPropietario || ownedLocals.length > 0) && (
+          {(isPropietario || (ownedLocals && ownedLocals.length > 0)) && (
             <TouchableOpacity 
               style={styles.switchProfileButton}
               onPress={() => setShowProfileSwitcher(true)}
