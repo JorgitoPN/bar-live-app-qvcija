@@ -27,7 +27,7 @@ import { addPubCategoryIfNeeded, getPrimaryIconForVenue } from '@/utils/categori
 const { width, height } = Dimensions.get('window');
 
 /**
- * 🚀🚀🚀 NUEVA PÁGINA DE MAPA - ARQUITECTURA REVOLUCIONARIA 🚀🚀🚀
+ * 🚀🚀🚀 NUEVA PÁGINA DE MAPA v400.0 - ARQUITECTURA REVOLUCIONARIA 🚀🚀🚀
  * 
  * ⚡ CAMBIOS RADICALES PARA VELOCIDAD INSTANTÁNEA:
  * 1. HTML pre-compilado y ultra-minificado (carga en <10ms)
@@ -40,6 +40,8 @@ const { width, height } = Dimensions.get('window');
  * 8. Zero animations que bloqueen
  * 
  * RESULTADO: Apertura en <50ms, interacción fluida
+ * 
+ * ✅ VERSIÓN ACTUAL: v400.0 - NUEVO MAPA OPTIMIZADO
  */
 
 const CATEGORIAS = [
@@ -53,7 +55,9 @@ const CATEGORIAS = [
 ];
 
 export default function MapaScreen() {
-  console.log('🚀🚀🚀 [NUEVO MAPA] Iniciando carga instantánea');
+  console.log('🚀🚀🚀 [NUEVO MAPA v400.0] ===== VERSIÓN NUEVA OPTIMIZADA =====');
+  console.log('🚀🚀🚀 [NUEVO MAPA v400.0] Iniciando carga instantánea');
+  console.log('🚀🚀🚀 [NUEVO MAPA v400.0] Si ves este mensaje, estás en la versión correcta');
   
   const router = useRouter();
   const { filtros: globalFiltros } = useFilters();
@@ -412,19 +416,19 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
             javaScriptEnabled={true}
             domStorageEnabled={true}
             startInLoadingState={false}
-            cacheEnabled={true}
-            cacheMode="LOAD_CACHE_ELSE_NETWORK"
+            cacheEnabled={false}
+            incognito={true}
             androidLayerType="hardware"
             androidHardwareAccelerationDisabled={false}
             onLoadStart={() => {
-              console.log('⚡ [NUEVO MAPA] WebView iniciando carga');
+              console.log('⚡ [NUEVO MAPA v400.0] WebView iniciando carga - SIN CACHE');
             }}
             onLoadEnd={() => {
-              console.log('✅ [NUEVO MAPA] WebView carga completada');
+              console.log('✅ [NUEVO MAPA v400.0] WebView carga completada - VERSIÓN NUEVA');
             }}
             onError={(syntheticEvent) => {
               const { nativeEvent } = syntheticEvent;
-              console.error('❌ [NUEVO MAPA] Error en WebView:', nativeEvent);
+              console.error('❌ [NUEVO MAPA v400.0] Error en WebView:', nativeEvent);
             }}
           />
         )}
@@ -590,6 +594,13 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
           color={colors.primary} 
         />
       </TouchableOpacity>
+
+      {/* Badge de versión - NUEVO MAPA */}
+      <View style={styles.versionBadge}>
+        <Text style={[styles.versionBadgeText, { fontSize: scaleFontSize(10) }]}>
+          🚀 NUEVO MAPA v400.0
+        </Text>
+      </View>
 
       {/* Indicador de carga de marcadores */}
       {isLoadingMarkers && (
@@ -818,5 +829,27 @@ const styles = StyleSheet.create({
   loadingText: {
     fontWeight: '600',
     color: colors.text,
+  },
+  versionBadge: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 140 : 130,
+    left: 16,
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+    zIndex: 15,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  versionBadgeText: {
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
 });

@@ -501,6 +501,7 @@ export default function ExplorarScreen() {
   };
 
   const handleNavigateToMap = () => {
+    console.log('[Explorar v226.0] 🗺️ Navegando al NUEVO mapa optimizado');
     router.push('/(tabs)/explorar/mapa');
   };
 
