@@ -92,18 +92,14 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "your-project-id"
-      }
+      "router": {}
     },
     "notification": {
       "icon": "./assets/images/natively-dark.png",
       "color": "#14B8A6",
       "androidMode": "default",
       "androidCollapsedTitle": "BarLive"
-    },
-    "owner": "your-expo-username"
+    }
   },
   "scheme": "BarLive"
 }
