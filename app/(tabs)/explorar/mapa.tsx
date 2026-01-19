@@ -119,7 +119,7 @@ export default function MapaScreen() {
 
   // ⚡ HTML ultra-optimizado con Debounce y Clustering Agresivo
   const mapHTML = useMemo(() => {
-    console.log('⚡ [MAPA] Generando HTML optimizado con debounce 300ms');
+    console.log('⚡ [MAPA] Generando HTML optimizado con debounce 300ms y marcador de usuario');
     
     const markerSize = Platform.OS === 'android' ? 36 : 40;
     const markerIconSize = Platform.OS === 'android' ? 18 : 20;
@@ -127,7 +127,7 @@ export default function MapaScreen() {
     // Usar ubicación del usuario si está disponible, sino Madrid con zoom lejano
     const initialLat = userLocation?.lat || 40.4168;
     const initialLng = userLocation?.lng || -3.7038;
-    const initialZoom = userLocation ? 10 : 6; // Zoom lejano: 6-10 en lugar de 11
+    const initialZoom = userLocation ? 13 : 6; // Zoom lejano: 6 para España, 13 para ubicación del usuario
     
     return `<!DOCTYPE html>
 <html>
@@ -171,6 +171,9 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 .marker-cluster-medium div{background:#FFF;color:#14B8A6;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center}
 .marker-cluster-large{background:rgba(20,184,166,.8)}
 .marker-cluster-large div{background:#FFF;color:#14B8A6;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center}
+.user-location-marker{width:20px;height:20px;border-radius:50%;background:#4285F4;border:4px solid #FFF;box-shadow:0 2px 8px rgba(66,133,244,.5);position:relative;z-index:10000}
+.user-location-pulse{width:40px;height:40px;border-radius:50%;background:rgba(66,133,244,.3);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse-user 2s infinite}
+@keyframes pulse-user{0%{transform:translate(-50%,-50%) scale(1);opacity:.7}100%{transform:translate(-50%,-50%) scale(2);opacity:0}}
 </style>
 </head>
 <body>
@@ -235,6 +238,30 @@ var markers=L.markerClusterGroup({
   }
 });
 map.addLayer(markers);
+
+// Marcador de ubicación del usuario (estilo Google Maps)
+var userLocationMarker = null;
+window.updateUserLocation = function(lat, lng) {
+  console.log('📍 [MAPA HTML] Actualizando ubicación del usuario:', lat, lng);
+  
+  if (userLocationMarker) {
+    map.removeLayer(userLocationMarker);
+  }
+  
+  var userIcon = L.divIcon({
+    className: 'user-location-marker',
+    html: '<div class="user-location-pulse"></div>',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+  });
+  
+  userLocationMarker = L.marker([lat, lng], {
+    icon: userIcon,
+    zIndexOffset: 10000 // Asegurar que esté por encima de otros marcadores
+  }).addTo(map);
+  
+  console.log('✅ [MAPA HTML] Marcador de usuario añadido');
+};
 
 // PASO 2: Debounce de 300ms para evitar sobrecarga
 var debounceTimer = null;
@@ -387,6 +414,7 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
 
         if (error) {
           console.error('❌ [MAPA] Error cargando locales:', error);
+          console.error('❌ [MAPA] Detalles del error:', JSON.stringify(error, null, 2));
           setIsLoadingMarkers(false);
           return;
         }
@@ -570,6 +598,28 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
       true;
     `);
   }, [markersData, isMapReady]);
+
+  // ⚡ Actualizar ubicación del usuario en el mapa
+  useEffect(() => {
+    if (!webViewRef.current || !userLocation || !isMapReady) {
+      return;
+    }
+
+    console.log('📍 [MAPA] Actualizando marcador de ubicación del usuario');
+    
+    webViewRef.current.injectJavaScript(`
+      (function() {
+        try {
+          if (typeof window.updateUserLocation !== 'undefined') {
+            window.updateUserLocation(${userLocation.lat}, ${userLocation.lng});
+          }
+        } catch (error) {
+          console.error('[MAPA HTML] Error actualizando ubicación:', error);
+        }
+      })();
+      true;
+    `);
+  }, [userLocation, isMapReady]);
 
   // Centrar en usuario
   const centerOnUser = useCallback(() => {
