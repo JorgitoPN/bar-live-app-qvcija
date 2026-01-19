@@ -450,6 +450,7 @@ window.updateUserLocation = function(lat, lng) {
 var allMarkers = new Map();
 var currentFilter = 'abiertos';
 var currentOpenPopup = null; // ✅ FIX: Guardar referencia al popup abierto
+var isPopupOpen = false; // ✅ FIX: Flag para saber si hay un popup abierto
 
 // ⚡ OPTIMIZACIÓN 2: Filtrado instantáneo sin re-renderizar
 window.applyFilter = function(filterType) {
@@ -471,22 +472,14 @@ window.applyFilter = function(filterType) {
       visibleCount++;
     } else {
       if (markers.hasLayer(marker)) {
-        markers.removeLayer(marker);
+        // ✅ FIX: No remover el marcador si tiene el popup abierto
+        if (!isPopupOpen || !currentOpenPopup || currentOpenPopup.id !== id) {
+          markers.removeLayer(marker);
+        }
       }
       hiddenCount++;
     }
   });
-  
-  // ✅ FIX: Reabrir el popup si estaba abierto antes del filtrado
-  if (currentOpenPopup && currentOpenPopup.marker) {
-    var markerData = allMarkers.get(currentOpenPopup.id);
-    if (markerData && markers.hasLayer(markerData.marker)) {
-      setTimeout(function() {
-        markerData.marker.openPopup();
-        console.log('🔵 [MAPA] Popup reabierto después de filtrar:', currentOpenPopup.id);
-      }, 50);
-    }
-  }
   
   var end = performance.now();
   console.log('✅ [MAPA v1000.0] Filtro aplicado en', (end - start).toFixed(2), 'ms - Visibles:', visibleCount, 'Ocultos:', hiddenCount);
@@ -505,16 +498,26 @@ window.addAllMarkers = function(data) {
   console.log('⚡ [MAPA v1000.0] Añadiendo TODOS los marcadores:', data.length);
   var start = performance.now();
   
-  // ✅ FIX: Guardar el ID del popup abierto antes de limpiar
-  var wasPopupOpen = currentOpenPopup ? currentOpenPopup.id : null;
+  // ✅ FIX: Si hay un popup abierto, NO limpiar los marcadores, solo actualizar
+  var shouldPreservePopup = isPopupOpen && currentOpenPopup;
   
-  // Limpiar marcadores anteriores
-  markers.clearLayers();
-  allMarkers.clear();
+  if (!shouldPreservePopup) {
+    // Limpiar marcadores anteriores solo si no hay popup abierto
+    markers.clearLayers();
+    allMarkers.clear();
+  }
   
   var toAdd = [];
+  var toUpdate = [];
   
   data.forEach(function(d) {
+    // ✅ FIX: Si este marcador ya existe y tiene el popup abierto, NO recrearlo
+    if (shouldPreservePopup && currentOpenPopup.id === d.id) {
+      console.log('🔵 [MAPA] Preservando marcador con popup abierto:', d.nombre);
+      toUpdate.push(d.id);
+      return; // Saltar este marcador
+    }
+    
     var cls = 'custom-marker marker-' + d.estado;
     if (d.destacado) cls += ' marker-destacado';
     
@@ -573,14 +576,20 @@ window.addAllMarkers = function(data) {
       // Prevenir el comportamiento por defecto
       L.DomEvent.stopPropagation(e);
       
+      // ✅ FIX: Marcar que hay un popup abierto
+      isPopupOpen = true;
+      
       // ✅ FIX: Guardar referencia al popup abierto
       currentOpenPopup = {
         id: d.id,
-        marker: marker
+        marker: marker,
+        nombre: d.nombre
       };
       
       // Abrir el popup explícitamente
       marker.openPopup();
+      
+      console.log('🔵 [MAPA] Popup abierto y protegido:', d.nombre);
       
       // Centrar el mapa en el marcador después de un pequeño delay
       setTimeout(function() {
@@ -591,10 +600,22 @@ window.addAllMarkers = function(data) {
       }, 100);
     });
     
+    // ✅ FIX: Evento cuando se abre el popup
+    marker.on('popupopen', function() {
+      console.log('🔵 [MAPA] Popup abierto:', d.nombre);
+      isPopupOpen = true;
+      currentOpenPopup = {
+        id: d.id,
+        marker: marker,
+        nombre: d.nombre
+      };
+    });
+    
     // ✅ FIX: Evento cuando se cierra el popup (solo cuando el usuario lo cierra)
     marker.on('popupclose', function() {
       console.log('🔵 [MAPA] Popup cerrado por el usuario:', d.nombre);
       if (currentOpenPopup && currentOpenPopup.id === d.id) {
+        isPopupOpen = false;
         currentOpenPopup = null;
       }
     });
@@ -617,28 +638,14 @@ window.addAllMarkers = function(data) {
     markers.addLayers(toAdd);
   }
   
-  // ✅ FIX: Reabrir el popup si estaba abierto antes de recargar
-  if (wasPopupOpen) {
-    var markerData = allMarkers.get(wasPopupOpen);
-    if (markerData && markers.hasLayer(markerData.marker)) {
-      setTimeout(function() {
-        markerData.marker.openPopup();
-        currentOpenPopup = {
-          id: wasPopupOpen,
-          marker: markerData.marker
-        };
-        console.log('🔵 [MAPA] Popup reabierto después de recargar marcadores:', wasPopupOpen);
-      }, 100);
-    }
-  }
-  
   var end = performance.now();
-  console.log('✅ [MAPA v1000.0] Marcadores añadidos en', (end - start).toFixed(2), 'ms - Total:', data.length, 'Visibles:', toAdd.length);
+  console.log('✅ [MAPA v1000.0] Marcadores añadidos en', (end - start).toFixed(2), 'ms - Total:', data.length, 'Visibles:', toAdd.length, 'Preservados:', toUpdate.length);
   
   window.ReactNativeWebView.postMessage(JSON.stringify({
     type: 'markers_loaded',
     total: data.length,
     visible: toAdd.length,
+    preserved: toUpdate.length,
     time: end - start
   }));
 };
@@ -651,6 +658,12 @@ window.flyToLocation = function(lat, lng, zoom) {
 // ⚡ OPTIMIZACIÓN v1000.0: Lazy loading con evento 'moveend'
 // Se dispara cuando el usuario termina de mover/zoom el mapa
 map.on('moveend', function() {
+  // ✅ FIX: Si hay un popup abierto, NO recargar marcadores para evitar parpadeo
+  if (isPopupOpen && currentOpenPopup) {
+    console.log('🔵 [MAPA] Popup abierto, OMITIENDO recarga de marcadores para evitar parpadeo');
+    return;
+  }
+  
   var bounds = map.getBounds();
   var zoom = map.getZoom();
   
@@ -667,6 +680,13 @@ map.on('moveend', function() {
     maxLng: bounds.getEast(),
     zoom: zoom
   }));
+});
+
+// ✅ FIX: Listener global para detectar cuando se cierra cualquier popup
+map.on('popupclose', function() {
+  console.log('🔵 [MAPA] Popup cerrado globalmente');
+  isPopupOpen = false;
+  currentOpenPopup = null;
 });
 
 map.whenReady(function() {
