@@ -19,7 +19,6 @@ import {
   ScrollView,
   Platform,
   Dimensions,
-  ActivityIndicator,
 } from 'react-native';
 import { calcularDistancia } from '@/utils/locationUtils';
 import { addPubCategoryIfNeeded, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
@@ -95,7 +94,6 @@ export default function MapaScreen() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(false);
   const [currentBounds, setCurrentBounds] = useState<{
     minLat: number;
     minLng: number;
@@ -127,7 +125,6 @@ export default function MapaScreen() {
     console.log(`   BBox: [${minLat.toFixed(4)}, ${minLng.toFixed(4)}] → [${maxLat.toFixed(4)}, ${maxLng.toFixed(4)}]`);
     
     const start = performance.now();
-    setIsLoadingData(true);
     
     try {
       // Llamar a la función RPC de PostGIS con bounding box
@@ -141,7 +138,6 @@ export default function MapaScreen() {
 
       if (error) {
         console.error('❌ [MAPA v900.0] Error cargando locales en bbox:', error);
-        setIsLoadingData(false);
         return;
       }
 
@@ -213,15 +209,12 @@ export default function MapaScreen() {
           true;
         `);
       }
-      
-      setIsLoadingData(false);
     } catch (error) {
       console.error('❌ [MAPA v900.0] Error en loadLocalesInBounds:', error);
-      setIsLoadingData(false);
     }
   }, [userLocation, isMapReady]);
 
-  // ⚡ OPTIMIZACIÓN v900.0: Debounce para evitar llamadas excesivas durante pan/zoom
+  // ⚡ OPTIMIZACIÓN v900.0: Debounce ultra-rápido para carga instantánea
   const debouncedLoadLocales = useCallback((
     minLat: number,
     minLng: number,
@@ -234,10 +227,10 @@ export default function MapaScreen() {
       clearTimeout(loadingTimeoutRef.current);
     }
     
-    // Esperar 300ms después de que el usuario deje de mover el mapa
+    // Esperar solo 50ms para respuesta casi instantánea
     loadingTimeoutRef.current = setTimeout(() => {
       loadLocalesInBounds(minLat, minLng, maxLat, maxLng, zoom);
-    }, 300);
+    }, 50);
   }, [loadLocalesInBounds]);
 
   // ⚡ HTML ultra-optimizado con filtrado instantáneo en cliente
@@ -945,18 +938,6 @@ map.whenReady(function() {
         />
       </TouchableOpacity>
 
-      {/* Indicador de carga de datos */}
-      {isLoadingData && (
-        <View style={styles.loadingIndicator}>
-          <View style={styles.loadingBadge}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.loadingBadgeText, { fontSize: scaleFontSize(12) }]}>
-              Cargando...
-            </Text>
-          </View>
-        </View>
-      )}
-
       {/* Modal de filtros */}
       <FiltrosAvanzadosSheet
         visible={mostrarFiltros}
@@ -1150,31 +1131,5 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     zIndex: 5,
-  },
-  loadingIndicator: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 140 : 130,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 15,
-  },
-  loadingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.cardBackground,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  loadingBadgeText: {
-    fontWeight: '600',
-    color: colors.text,
   },
 });
