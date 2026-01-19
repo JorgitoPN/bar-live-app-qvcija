@@ -509,8 +509,16 @@ window.addAllMarkers = function(data) {
   
   var toAdd = [];
   var toUpdate = [];
+  var duplicateCount = 0;
   
   data.forEach(function(d) {
+    // ✅ FIX DUPLICADOS: Si este marcador ya existe en el mapa, NO recrearlo
+    if (allMarkers.has(d.id)) {
+      console.log('🔵 [MAPA] Marcador ya existe, omitiendo duplicado:', d.nombre, 'ID:', d.id);
+      duplicateCount++;
+      return; // Saltar este marcador para evitar duplicados
+    }
+    
     // ✅ FIX: Si este marcador ya existe y tiene el popup abierto, NO recrearlo
     if (shouldPreservePopup && currentOpenPopup.id === d.id) {
       console.log('🔵 [MAPA] Preservando marcador con popup abierto:', d.nombre);
@@ -645,13 +653,14 @@ window.addAllMarkers = function(data) {
   }
   
   var end = performance.now();
-  console.log('✅ [MAPA v1000.0] Marcadores añadidos en', (end - start).toFixed(2), 'ms - Total:', data.length, 'Visibles:', toAdd.length, 'Preservados:', toUpdate.length);
+  console.log('✅ [MAPA v1000.0] Marcadores añadidos en', (end - start).toFixed(2), 'ms - Total:', data.length, 'Visibles:', toAdd.length, 'Preservados:', toUpdate.length, 'Duplicados omitidos:', duplicateCount);
   
   window.ReactNativeWebView.postMessage(JSON.stringify({
     type: 'markers_loaded',
     total: data.length,
     visible: toAdd.length,
     preserved: toUpdate.length,
+    duplicates: duplicateCount,
     time: end - start
   }));
 };
