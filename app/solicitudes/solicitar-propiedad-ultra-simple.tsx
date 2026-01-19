@@ -688,7 +688,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
     <ScrollView 
       style={styles.stepContent} 
       contentContainerStyle={{ 
-        paddingBottom: Platform.OS === 'ios' ? 220 : 200 
+        paddingBottom: Platform.OS === 'ios' ? 280 : 260 
       }}
     >
       <Text style={styles.stepTitle}>Información de Contacto y Verificación</Text>
@@ -1066,7 +1066,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
     <ScrollView 
       style={styles.stepContent} 
       contentContainerStyle={{ 
-        paddingBottom: Platform.OS === 'ios' ? 220 : 200 
+        paddingBottom: Platform.OS === 'ios' ? 280 : 260 
       }}
     >
       <Text style={styles.stepTitle}>Información Adicional</Text>
