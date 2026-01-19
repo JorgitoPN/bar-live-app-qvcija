@@ -6,8 +6,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { SystemBars } from "react-native-edge-to-edge";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useColorScheme, Alert } from "react-native";
-import { useNetworkState } from "expo-network";
+import { useColorScheme } from "react-native";
 import {
   DarkTheme,
   DefaultTheme,
@@ -15,7 +14,6 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
-import { WidgetProvider } from "@/contexts/WidgetContext";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -25,31 +23,21 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  console.log('[RootLayout] Rendering...');
   const colorScheme = useColorScheme();
-  const networkState = useNetworkState();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
   useEffect(() => {
+    console.log('[RootLayout] Fonts loaded:', loaded);
     if (loaded) {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
 
-  useEffect(() => {
-    if (
-      !networkState.isConnected &&
-      networkState.isInternetReachable === false
-    ) {
-      Alert.alert(
-        "🔌 You are offline",
-        "You can keep using the app! Your changes will be saved locally and synced when you are back online."
-      );
-    }
-  }, [networkState.isConnected, networkState.isInternetReachable]);
-
   if (!loaded) {
+    console.log('[RootLayout] Waiting for fonts...');
     return null;
   }
 
@@ -78,18 +66,18 @@ export default function RootLayout() {
     },
   };
 
+  console.log('[RootLayout] Rendering app with theme:', colorScheme);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider
         value={colorScheme === "dark" ? CustomDarkTheme : CustomDefaultTheme}
       >
-        <WidgetProvider>
-          <StatusBar style="auto" animated />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack>
-          <SystemBars style="auto" />
-        </WidgetProvider>
+        <StatusBar style="auto" animated />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
+        <SystemBars style="auto" />
       </ThemeProvider>
     </GestureHandlerRootView>
   );
