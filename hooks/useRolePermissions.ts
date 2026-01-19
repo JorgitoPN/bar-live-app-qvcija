@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/app/integrations/supabase/client';
+import { supabase } from '@/utils/supabase';
 
 export type UserRole = 'admin' | 'propietario' | 'cliente';
 export type SubscriptionPlan = 'free' | 'basic' | 'premium' | 'enterprise';
