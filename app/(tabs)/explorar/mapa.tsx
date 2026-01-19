@@ -21,6 +21,7 @@ import {
   Platform,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { calcularDistancia } from '@/utils/locationUtils';
 import { supabase } from '@/utils/supabase';
@@ -132,25 +133,29 @@ interface LocalWithEvent extends Local {
 }
 
 /**
- * ✅ MAP SCREEN v230.0 - INSTANT LOADING OPTIMIZATION
+ * ✅ MAP SCREEN v231.0 - ULTRA-INSTANT LOADING OPTIMIZATION
  * 
- * CRITICAL PERFORMANCE FIXES v230.0:
+ * CRITICAL PERFORMANCE FIXES v231.0:
+ * - ⚡⚡⚡ ULTRA-INSTANT: Map displays immediately on screen open (no blank screen)
+ * - ⚡⚡⚡ ULTRA-INSTANT: WebView loads with startInLoadingState=false
+ * - ⚡⚡⚡ ULTRA-INSTANT: Map HTML generated immediately without waiting
+ * - ⚡⚡⚡ ULTRA-INSTANT: Leaflet preferCanvas for better performance
+ * - ⚡⚡⚡ ULTRA-INSTANT: All animations disabled (zoom, fade, marker)
+ * - ⚡⚡⚡ ULTRA-INSTANT: Tiles load with updateWhenIdle for instant display
+ * - ⚡⚡⚡ ULTRA-INSTANT: Clustering optimized (120px radius, 10ms chunks, 5ms delay)
+ * - ⚡⚡⚡ ULTRA-INSTANT: Map ready notification sent immediately (no setTimeout)
+ * - ⚡⚡⚡ ULTRA-INSTANT: No loading overlay blocking the map view
+ * 
+ * PREVIOUS FIXES v230.0:
  * - ⚡ INSTANT: Markers load immediately without waiting for events
  * - ⚡ INSTANT: No ratings DB query - uses cached ratings from locales table
  * - ⚡ INSTANT: No check-ins loading - loads in background after map ready
- * - ⚡ INSTANT: Optimized clustering (100px radius, animate: false)
- * - ⚡ INSTANT: Faster chunk loading (20ms interval, 10ms delay)
  * - ⚡ INSTANT: Shows ALL filtered locales (no artificial 200 limit)
  * - ⚡ INSTANT: Events loaded in background after 500ms
- * - ⚡ INSTANT: Reduced events limit to 30 for faster loading
  * 
  * PREVIOUS FIXES v222.0:
  * - ✅ iOS center button positioned higher (bottom: 120 on iOS vs 100 on Android)
  * - ✅ Button no longer hidden below bottom menu on iOS
- * 
- * PREVIOUS FIXES v111.1:
- * - ✅ Web not supported message scales properly on all devices
- * - ✅ Uses scaleFontSize for responsive text sizing
  */
 
 export default function MapaScreen() {
@@ -169,28 +174,28 @@ export default function MapaScreen() {
   const [mapHTML, setMapHTML] = useState<string>('');
   const previousFiltersRef = useRef<string>('');
   const [isMapReady, setIsMapReady] = useState(false);
-  const [isLoadingMarkers, setIsLoadingMarkers] = useState(true);
+  const [isLoadingMarkers, setIsLoadingMarkers] = useState(false); // ✅ v231.0: Start with false for instant display
 
   useEffect(() => {
     (async () => {
       try {
-        console.log('[MAP v230.0] 🔍 Requesting location permissions...');
+        console.log('⚡⚡⚡ [MAP v231.0] 🔍 Requesting location permissions...');
         
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[MAP v230.0] ⚠️ Location services are disabled, using default location (Madrid)');
+          console.log('⚡⚡⚡ [MAP v231.0] ⚠️ Location services are disabled, using default location (Madrid)');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[MAP v230.0] ⚠️ Location permission denied, using default location (Madrid)');
+          console.log('⚡⚡⚡ [MAP v231.0] ⚠️ Location permission denied, using default location (Madrid)');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
-        console.log('[MAP v230.0] ✅ Location permission granted, getting position...');
+        console.log('⚡⚡⚡ [MAP v231.0] ✅ Location permission granted, getting position...');
         
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -202,29 +207,29 @@ export default function MapaScreen() {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
-        console.log('[MAP v230.0] 📍 User location obtained:', {
+        console.log('⚡⚡⚡ [MAP v231.0] 📍 User location obtained:', {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
       } catch (error: any) {
-        console.error('[MAP v230.0] ❌ Error getting location:', {
+        console.error('❌ [MAP v231.0] Error getting location:', {
           message: error?.message || 'Unknown error',
           code: error?.code,
         });
-        console.log('[MAP v230.0] ⚠️ Using default location (Madrid) due to error');
+        console.log('⚡⚡⚡ [MAP v231.0] ⚠️ Using default location (Madrid) due to error');
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
   }, []);
 
-  // ✅ CRITICAL PERFORMANCE FIX v230.0: INSTANT loading - no waiting for events
+  // ✅ CRITICAL PERFORMANCE FIX v231.0: ULTRA-INSTANT loading - generate map HTML immediately
   useEffect(() => {
-    console.log('⚡ [MAP v230.0] ========================================');
-    console.log('⚡ [MAP v230.0] INSTANT HYDRATION from GlobalDataContext');
-    console.log('⚡ [MAP v230.0] Total locales available:', globalLocales.length);
+    console.log('⚡⚡⚡ [MAP v231.0] ========================================');
+    console.log('⚡⚡⚡ [MAP v231.0] ULTRA-INSTANT HYDRATION from GlobalDataContext');
+    console.log('⚡⚡⚡ [MAP v231.0] Total locales available:', globalLocales.length);
     
     if (globalLocales.length > 0) {
-      // ✅ INSTANT: Transform locales immediately without waiting for events
+      // ✅ ULTRA-INSTANT: Transform locales immediately without waiting for events
       const localesTransformados: LocalWithEvent[] = globalLocales.map((local) => ({
         ...local,
         evento: null, // Events loaded in background
@@ -232,8 +237,7 @@ export default function MapaScreen() {
       }));
 
       setTodosLosLocales(localesTransformados);
-      setIsLoadingMarkers(false);
-      console.log(`⚡ [MAP v230.0] ✅ INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
+      console.log(`⚡⚡⚡ [MAP v231.0] ✅ ULTRA-INSTANT HYDRATION complete with ${localesTransformados.length} locals`);
       
       // ✅ Load events in background (non-blocking, after map is ready)
       setTimeout(() => {
@@ -273,10 +277,10 @@ export default function MapaScreen() {
               evento: eventsByLocal.get(local.id) || null,
             })));
             
-            console.log(`⚡ [MAP v230.0] 🎵 Events loaded in background: ${eventsByLocal.size} active events`);
+            console.log(`⚡⚡⚡ [MAP v231.0] 🎵 Events loaded in background: ${eventsByLocal.size} active events`);
           })
           .catch(err => {
-            console.error('[MAP v230.0] Error loading events:', err);
+            console.error('[MAP v231.0] Error loading events:', err);
           });
       }, 500); // Load events after map is ready
     }
@@ -284,7 +288,7 @@ export default function MapaScreen() {
 
   useEffect(() => {
     const backgroundRefresh = async () => {
-      console.log('🔄 [MAP v230.0] Background refresh triggered');
+      console.log('🔄 [MAP v231.0] Background refresh triggered');
       await refreshData(true);
     };
 
@@ -294,7 +298,7 @@ export default function MapaScreen() {
   }, [refreshData]);
 
   const localesFiltradosMemo = useMemo(() => {
-    console.log('[MAP v230.0] ⚡ INSTANT FILTERING FOR MAP DISPLAY');
+    console.log('⚡⚡⚡ [MAP v231.0] ULTRA-INSTANT FILTERING FOR MAP DISPLAY');
     
     let filtrados = todosLosLocales.filter(local => {
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
@@ -369,7 +373,7 @@ export default function MapaScreen() {
       return matchCategoria && matchEstado && matchGlobalFilters;
     });
     
-    console.log(`[MAP v230.0] ⚡ INSTANT filtering complete: ${filtrados.length} of ${todosLosLocales.length} locales`);
+    console.log(`⚡⚡⚡ [MAP v231.0] ULTRA-INSTANT filtering complete: ${filtrados.length} of ${todosLosLocales.length} locales`);
     
     return filtrados;
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado, globalFiltros, userLocation]);
@@ -378,18 +382,18 @@ export default function MapaScreen() {
     setLocalesFiltrados(localesFiltradosMemo);
   }, [localesFiltradosMemo]);
 
-  // ✅ CRITICAL PERFORMANCE FIX v230.0: Skip ratings fetch - use cached ratings from locales table
+  // ✅ CRITICAL PERFORMANCE FIX v231.0: Skip ratings fetch - use cached ratings from locales table
   const [localRatings] = useState<Map<string, { rating: number; count: number }>>(new Map());
 
-  // ✅ v230.0: Ratings are already in the locales data (rating, google_rating)
+  // ✅ v231.0: Ratings are already in the locales data (rating, google_rating)
   // No need to fetch from reviews_barlive table - this was causing delays
 
-  // ✅ CRITICAL PERFORMANCE FIX v230.0: INSTANT marker generation - no complex calculations
+  // ✅ CRITICAL PERFORMANCE FIX v231.0: ULTRA-INSTANT marker generation - no complex calculations
   const markersData = useMemo(() => {
-    console.log('[MAP v230.0] ⚡ INSTANT marker generation...');
+    console.log('⚡⚡⚡ [MAP v231.0] ULTRA-INSTANT marker generation...');
     
     // ✅ Show ALL filtered locales (no artificial limit)
-    console.log('[MAP v230.0] 📊 Generating markers for', localesFiltrados.length, 'locales');
+    console.log('⚡⚡⚡ [MAP v231.0] 📊 Generating markers for', localesFiltrados.length, 'locales');
     
     return localesFiltrados.map(local => {
       // ✅ INSTANT: Use pre-calculated estado from getEstadoLocal (cached)
@@ -471,7 +475,7 @@ export default function MapaScreen() {
     const centerLat = userLocation?.lat || 40.4168;
     const centerLng = userLocation?.lng || -3.7038;
 
-    // ✅ CRITICAL PERFORMANCE FIX v230.0: Skip check-ins loading for instant map
+    // ✅ CRITICAL PERFORMANCE FIX v231.0: Skip check-ins loading for instant map
     // Check-ins can be loaded in background after map is ready
     const markersWithCheckIns = markersData.map(marker => ({
       ...marker,
@@ -479,7 +483,7 @@ export default function MapaScreen() {
       friendsHereCount: 0,
     }));
 
-    console.log(`[MAP v230.0] ⚡ INSTANT MAP HTML GENERATION WITH ${markersWithCheckIns.length} MARKERS`);
+    console.log(`⚡⚡⚡ [MAP v231.0] ULTRA-INSTANT MAP HTML GENERATION WITH ${markersWithCheckIns.length} MARKERS`);
 
     const popupFontSize = Platform.OS === 'android' ? Math.round(14 * 0.80) : 14;
     const popupTitleSize = Platform.OS === 'android' ? Math.round(16 * 0.80) : 16;
@@ -790,30 +794,40 @@ export default function MapaScreen() {
   <div id="map"></div>
   <script>
     try {
-      console.log('[MAP HTML v230.0] ⚡⚡⚡ INSTANT INITIALIZATION');
+      console.log('⚡⚡⚡ [MAP HTML v231.0] ULTRA-INSTANT INITIALIZATION');
       
+      // ✅ v231.0: Create map with preferCanvas for better performance
       var map = L.map('map', {
         zoomControl: false,
-        attributionControl: false
+        attributionControl: false,
+        preferCanvas: true, // Use canvas renderer for better performance
+        zoomAnimation: false, // Disable zoom animation for instant display
+        fadeAnimation: false, // Disable fade animation for instant display
+        markerZoomAnimation: false // Disable marker zoom animation
       }).setView([${centerLat}, ${centerLng}], 11);
 
+      // ✅ v231.0: Load tiles with updateWhenIdle for instant display
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
-        attribution: ''
+        attribution: '',
+        updateWhenIdle: true, // Only update tiles when map is idle
+        updateWhenZooming: false, // Don't update while zooming
+        keepBuffer: 2 // Keep fewer tiles in buffer
       }).addTo(map);
 
-      // ✅ CRITICAL PERFORMANCE FIX v230.0: INSTANT clustering with optimized settings
+      // ✅ CRITICAL PERFORMANCE FIX v231.0: ULTRA-INSTANT clustering with maximum optimization
       var markers = L.markerClusterGroup({
-        maxClusterRadius: 100, // More aggressive clustering for better performance
+        maxClusterRadius: 120, // More aggressive clustering for better performance
         spiderfyOnMaxZoom: true,
         showCoverageOnHover: false,
         zoomToBoundsOnClick: true,
-        disableClusteringAtZoom: 17, // Cluster until zoom 17 for better performance
+        disableClusteringAtZoom: 18, // Cluster until zoom 18 for better performance
         chunkedLoading: true, // Load markers in chunks
-        chunkInterval: 20, // 20ms between chunks (faster)
-        chunkDelay: 10, // 10ms delay before starting (faster)
+        chunkInterval: 10, // 10ms between chunks (ultra-fast)
+        chunkDelay: 5, // 5ms delay before starting (ultra-fast)
         removeOutsideVisibleBounds: true, // Remove markers outside viewport
         animate: false, // Disable animations for instant rendering
+        animateAddingMarkers: false, // Disable marker add animation
         iconCreateFunction: function(cluster) {
           var count = cluster.getChildCount();
           var size = count < 10 ? 'small' : count < 100 ? 'medium' : 'large';
@@ -998,12 +1012,13 @@ export default function MapaScreen() {
 
       map.addLayer(markers);
       
-      console.log('[MAP HTML v230.0] ⚡⚡⚡ Map initialized INSTANTLY');
+      console.log('⚡⚡⚡ [MAP HTML v231.0] Map initialized ULTRA-INSTANTLY');
       
-      setTimeout(function() {
-        map.invalidateSize();
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
-      }, 50); // Reduced from 100ms to 50ms
+      // ✅ v231.0: Notify immediately that map is ready (no delay)
+      map.invalidateSize();
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
+      
+      console.log('⚡⚡⚡ [MAP HTML v231.0] Map ready notification sent immediately');
       
       window.flyToLocation = function(lat, lng, zoom) {
         console.log('[MAP HTML v230.0] 🛫 Flying to:', lat, lng, 'zoom:', zoom);
@@ -1015,7 +1030,11 @@ export default function MapaScreen() {
       };
       
     } catch (error) {
-      console.error('[MAP HTML v230.0] Map initialization error:', error);
+      console.error('❌ [MAP HTML v231.0] Map initialization error:', error);
+      window.ReactNativeWebView.postMessage(JSON.stringify({ 
+        type: 'map_error',
+        error: error.message || 'Unknown error'
+      }));
     }
   </script>
 </body>
@@ -1023,17 +1042,21 @@ export default function MapaScreen() {
     `;
   }, [markersData, user, userLocation]);
 
+  // ✅ CRITICAL FIX v231.0: Generate map HTML IMMEDIATELY on mount
   useEffect(() => {
     const generateHTML = async () => {
-      if (localesFiltrados.length > 0 && !isLoadingMarkers) {
-        console.log('[MAP v230.0] ⚡ INSTANT map HTML generation with', localesFiltrados.length, 'markers');
-        const html = await generateMapHTML();
-        setMapHTML(html);
-      }
+      console.log('⚡⚡⚡ [MAP v231.0] ULTRA-INSTANT map HTML generation');
+      console.log('⚡⚡⚡ [MAP v231.0] Filtered locales:', localesFiltrados.length);
+      
+      // ✅ Generate HTML even with 0 markers - map will show immediately
+      const html = await generateMapHTML();
+      setMapHTML(html);
+      console.log('⚡⚡⚡ [MAP v231.0] ✅ Map HTML ready for display');
     };
     
+    // ✅ Generate immediately, don't wait for markers
     generateHTML();
-  }, [localesFiltrados, user, generateMapHTML, isLoadingMarkers]);
+  }, [localesFiltrados, user, generateMapHTML]);
 
   useEffect(() => {
     const currentFiltersKey = JSON.stringify({
@@ -1046,7 +1069,7 @@ export default function MapaScreen() {
       
       if (globalFiltros.provincia && PROVINCIA_COORDINATES[globalFiltros.provincia]) {
         const coords = PROVINCIA_COORDINATES[globalFiltros.provincia];
-        console.log(`[MAP v230.0] 🛫 FLY-TO: Province "${globalFiltros.provincia}"`, coords);
+        console.log(`⚡⚡⚡ [MAP v231.0] 🛫 FLY-TO: Province "${globalFiltros.provincia}"`, coords);
         
         webViewRef.current.injectJavaScript(`
           if (typeof window.flyToLocation !== 'undefined') {
@@ -1057,7 +1080,7 @@ export default function MapaScreen() {
       }
       else if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades' && COMUNIDAD_COORDINATES[globalFiltros.comunidad]) {
         const coords = COMUNIDAD_COORDINATES[globalFiltros.comunidad];
-        console.log(`[MAP v230.0] 🛫 FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
+        console.log(`⚡⚡⚡ [MAP v231.0] 🛫 FLY-TO: Community "${globalFiltros.comunidad}"`, coords);
         
         webViewRef.current.injectJavaScript(`
           if (typeof window.flyToLocation !== 'undefined') {
@@ -1104,23 +1127,26 @@ export default function MapaScreen() {
   };
 
   const handleVerDetalles = (localId: string) => {
-    console.log('[MAP v230.0] Navigating to local details:', localId);
+    console.log('⚡⚡⚡ [MAP v231.0] Navigating to local details:', localId);
     router.push(`/detalle/local?id=${localId}`);
   };
 
   const handleWebViewMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      console.log('📨 [MAP v230.0] Received message from WebView:', data);
+      console.log('📨 [MAP v231.0] Received message from WebView:', data);
       
       if (data.type === 'navigate' && data.id) {
         handleVerDetalles(data.id);
       } else if (data.type === 'map_ready') {
-        console.log('✅ [MAP v230.0] Map is ready for interactions');
+        console.log('✅✅✅ [MAP v231.0] Map is ready for interactions - ULTRA-INSTANT');
         setIsMapReady(true);
+      } else if (data.type === 'map_error') {
+        console.error('❌ [MAP v231.0] Map error:', data.error);
+        Alert.alert('Error', 'No se pudo cargar el mapa. Por favor, intenta de nuevo.');
       }
     } catch (error) {
-      console.error('❌ [MAP v230.0] Error parsing WebView message:', error);
+      console.error('❌ [MAP v231.0] Error parsing WebView message:', error);
     }
   };
 
@@ -1152,7 +1178,28 @@ export default function MapaScreen() {
           </View>
         ) : (
           <>
-            {isLoadingMarkers && (
+            {/* ✅ v231.0: Show map immediately, no loading overlay */}
+            {mapHTML ? (
+              <WebView
+                ref={webViewRef}
+                source={{ html: mapHTML }}
+                style={styles.webview}
+                onMessage={handleWebViewMessage}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                startInLoadingState={false}
+                onError={(syntheticEvent) => {
+                  const { nativeEvent } = syntheticEvent;
+                  console.error('❌ [MAP v231.0] WebView error:', nativeEvent);
+                }}
+                onLoadStart={() => {
+                  console.log('⚡⚡⚡ [MAP v231.0] WebView started loading');
+                }}
+                onLoadEnd={() => {
+                  console.log('⚡⚡⚡ [MAP v231.0] WebView finished loading');
+                }}
+              />
+            ) : (
               <View style={styles.loadingOverlay}>
                 <View style={styles.loadingContent}>
                   <View style={styles.mapIconContainer}>
@@ -1167,20 +1214,6 @@ export default function MapaScreen() {
                   <Text style={[styles.loadingText, { fontSize: scaleFontSize(18) }]}>Preparando mapa...</Text>
                 </View>
               </View>
-            )}
-            {mapHTML && (
-              <WebView
-                ref={webViewRef}
-                source={{ html: mapHTML }}
-                style={styles.webview}
-                onMessage={handleWebViewMessage}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                onError={(syntheticEvent) => {
-                  const { nativeEvent } = syntheticEvent;
-                  console.error('[MAP v230.0] WebView error:', nativeEvent);
-                }}
-              />
             )}
           </>
         )}
