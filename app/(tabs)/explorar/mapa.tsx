@@ -576,6 +576,12 @@ window.addAllMarkers = function(data) {
       // Prevenir el comportamiento por defecto
       L.DomEvent.stopPropagation(e);
       
+      // ✅ FIX: Cerrar el popup anterior si existe (solo un popup abierto a la vez)
+      if (currentOpenPopup && currentOpenPopup.id !== d.id) {
+        console.log('🔵 [MAPA] Cerrando popup anterior:', currentOpenPopup.nombre);
+        currentOpenPopup.marker.closePopup();
+      }
+      
       // ✅ FIX: Marcar que hay un popup abierto
       isPopupOpen = true;
       
@@ -687,6 +693,19 @@ map.on('popupclose', function() {
   console.log('🔵 [MAPA] Popup cerrado globalmente');
   isPopupOpen = false;
   currentOpenPopup = null;
+});
+
+// ✅ FIX: Cerrar popup al hacer clic en el mapa (fuera del popup)
+map.on('click', function(e) {
+  console.log('🔵 [MAPA] Click en el mapa detectado');
+  
+  // Si hay un popup abierto, cerrarlo
+  if (isPopupOpen && currentOpenPopup) {
+    console.log('🔵 [MAPA] Cerrando popup por click fuera:', currentOpenPopup.nombre);
+    currentOpenPopup.marker.closePopup();
+    isPopupOpen = false;
+    currentOpenPopup = null;
+  }
 });
 
 map.whenReady(function() {
