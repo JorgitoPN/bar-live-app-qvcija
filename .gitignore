@@ -1,3 +1,4 @@
+
 node_modules/
 
 .git/
@@ -32,8 +33,15 @@ yarn-error.*
 android/
 ios/
 
+netlify.toml
+.netlify/
+
 pnpm-lock.yaml
 package-lock.json
 
-# Chat history contains presigned URLs that get flagged by GitHub
+# Chat history and large temporary files
 chat_history.json
+*.log
+*.tmp
+temp/
+cache/

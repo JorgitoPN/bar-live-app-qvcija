@@ -66,7 +66,7 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, loadSolicitud]);
+  }, [userId]);
 
   const loadSolicitud = async () => {
     try {

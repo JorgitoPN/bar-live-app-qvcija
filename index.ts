@@ -1,3 +1,5 @@
+// Initialize Natively console log capture before anything else
+import './utils/errorLogger';
 
-// Start the Expo Router app
+
 import 'expo-router/entry';

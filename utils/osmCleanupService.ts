@@ -26,11 +26,11 @@ export interface OSMCleanupResult {
   success: boolean;
   localesMovidos: number;
   espacioLiberadoMB: number;
-  detalles: {
+  detalles: Array<{
     id: string;
     nombre: string;
     provincia: string;
-  }[];
+  }>;
   error?: string;
 }
 
@@ -87,7 +87,7 @@ export async function limpiarOSMEnriquecidos(dryRun: boolean = false): Promise<O
     // Real migration: Change source_type from 'osm' to 'google' in batches
     const batchSize = 100;
     let totalMigrated = 0;
-    const detalles: { id: string; nombre: string; provincia: string }[] = [];
+    const detalles: Array<{ id: string; nombre: string; provincia: string }> = [];
     
     for (let i = 0; i < localesAMover.length; i += batchSize) {
       const batch = localesAMover.slice(i, i + batchSize);

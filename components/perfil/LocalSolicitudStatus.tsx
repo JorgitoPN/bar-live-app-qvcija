@@ -66,7 +66,7 @@ export default function LocalSolicitudStatus({ localId }: Props) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [localId, loadSolicitud]);
+  }, [localId]);
 
   const loadSolicitud = async () => {
     try {
