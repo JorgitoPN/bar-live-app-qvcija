@@ -3139,3 +3139,19 @@ To reconnect:
 - Ensure that Metro is running and available on the same network
 - Reload this app (will trigger further help if Metro cannot be connected to)
       
+[2026-01-19T14:32:54.750Z] [Web] [LOG] [GlobalData v199.0] ⏰ Background refresh triggered
+[2026-01-19T14:32:55.222Z] [Web] [LOG] [GlobalData v199.0] ✅ Eventos loaded: 0
+[2026-01-19T14:32:55.223Z] [Web] [LOG] [GlobalData v199.0] ✅ Data saved to cache
+[2026-01-19T14:32:55.223Z] [Web] [LOG] [GlobalData v199.0] 💾 Caching 0 eventos
+[2026-01-19T14:32:55.221Z] [Web] [LOG] [GlobalData v199.0] ✅ Initial locales loaded: 99
+[2026-01-19T14:32:54.750Z] [Web] [LOG] [GlobalData v199.0] 🌐 Loading initial data from Supabase...
+[2026-01-19T14:32:55.223Z] [Web] [LOG] [GlobalData v199.0] 💾 Caching 99 locales
+[2026-01-19T14:32:55.223Z] [Web] [LOG] [GlobalData v199.0] ✅ Initial data loaded and cached
+[2026-01-19T14:32:55.256Z] [Web] [LOG] [GlobalData v199.0] ⏰ Background refresh triggered
+[2026-01-19T14:32:55.463Z] [Web] [LOG] [GlobalData v199.0] ✅ Initial locales loaded: 99
+[2026-01-19T14:32:55.463Z] [Web] [LOG] [GlobalData v199.0] 💾 Caching 0 eventos
+[2026-01-19T14:32:55.463Z] [Web] [LOG] [GlobalData v199.0] 💾 Caching 99 locales
+[2026-01-19T14:32:55.463Z] [Web] [LOG] [GlobalData v199.0] ✅ Eventos loaded: 0
+[2026-01-19T14:32:55.464Z] [Web] [LOG] [GlobalData v199.0] ✅ Initial data loaded and cached
+[2026-01-19T14:32:55.256Z] [Web] [LOG] [GlobalData v199.0] 🌐 Loading initial data from Supabase...
+[2026-01-19T14:32:55.464Z] [Web] [LOG] [GlobalData v199.0] ✅ Data saved to cache
