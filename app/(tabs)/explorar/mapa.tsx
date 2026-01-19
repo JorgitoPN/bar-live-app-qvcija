@@ -405,9 +405,9 @@ var markers=L.markerClusterGroup({
   showCoverageOnHover:false,
   zoomToBoundsOnClick:true,
   disableClusteringAtZoom:17,
-  chunkedLoading:true,
-  chunkInterval:200,
-  chunkDelay:50,
+  chunkedLoading:false,
+  chunkInterval:0,
+  chunkDelay:0,
   removeOutsideVisibleBounds:false,
   animate:false,
   animateAddingMarkers:false,
@@ -451,6 +451,7 @@ var allMarkers = new Map();
 var currentFilter = 'abiertos';
 var currentOpenPopup = null; // ✅ FIX: Guardar referencia al popup abierto
 var isPopupOpen = false; // ✅ FIX: Flag para saber si hay un popup abierto
+var currentOpenPopupId = null; // ✅ FIX: ID del popup abierto para control estricto
 
 // ⚡ OPTIMIZACIÓN 2: Filtrado instantáneo sin re-renderizar
 window.applyFilter = function(filterType) {
@@ -498,32 +499,20 @@ window.addAllMarkers = function(data) {
   console.log('⚡ [MAPA v1000.0] Añadiendo TODOS los marcadores:', data.length);
   var start = performance.now();
   
-  // ✅ FIX: Si hay un popup abierto, NO limpiar los marcadores, solo actualizar
-  var shouldPreservePopup = isPopupOpen && currentOpenPopup;
-  
-  if (!shouldPreservePopup) {
-    // Limpiar marcadores anteriores solo si no hay popup abierto
-    markers.clearLayers();
-    allMarkers.clear();
-  }
+  // ✅ FIX: Crear un Set con los IDs que vienen en esta carga para detección rápida
+  var incomingIds = new Set();
+  data.forEach(function(d) {
+    incomingIds.add(d.id);
+  });
   
   var toAdd = [];
-  var toUpdate = [];
   var duplicateCount = 0;
   
   data.forEach(function(d) {
     // ✅ FIX DUPLICADOS: Si este marcador ya existe en el mapa, NO recrearlo
     if (allMarkers.has(d.id)) {
-      console.log('🔵 [MAPA] Marcador ya existe, omitiendo duplicado:', d.nombre, 'ID:', d.id);
       duplicateCount++;
       return; // Saltar este marcador para evitar duplicados
-    }
-    
-    // ✅ FIX: Si este marcador ya existe y tiene el popup abierto, NO recrearlo
-    if (shouldPreservePopup && currentOpenPopup.id === d.id) {
-      console.log('🔵 [MAPA] Preservando marcador con popup abierto:', d.nombre);
-      toUpdate.push(d.id);
-      return; // Saltar este marcador
     }
     
     var cls = 'custom-marker marker-' + d.estado;
@@ -571,29 +560,36 @@ window.addAllMarkers = function(data) {
       offset: [0, -10],
       autoPan: true,
       autoPanPadding: [50, 50],
-      autoClose: false,
+      autoClose: true,
       closeOnClick: false,
-      closeOnEscapeKey: false,
+      closeOnEscapeKey: true,
       keepInView: true
     });
     
-    // ✅ FIX: Evento click que abre el popup y lo mantiene abierto
+    // ✅ FIX: Evento click que abre el popup y CIERRA el anterior
     marker.on('click', function(e) {
-      console.log('🔵 [MAPA] Marcador clickeado:', d.nombre);
+      console.log('🔵 [MAPA] Marcador clickeado:', d.nombre, 'ID:', d.id);
       
       // Prevenir el comportamiento por defecto
       L.DomEvent.stopPropagation(e);
       
-      // ✅ FIX: Cerrar el popup anterior si existe (solo un popup abierto a la vez)
-      if (currentOpenPopup && currentOpenPopup.id !== d.id) {
-        console.log('🔵 [MAPA] Cerrando popup anterior:', currentOpenPopup.nombre);
-        currentOpenPopup.marker.closePopup();
+      // ✅ FIX CRÍTICO: Cerrar el popup anterior ANTES de abrir el nuevo
+      if (currentOpenPopupId !== null && currentOpenPopupId !== d.id) {
+        console.log('🔵 [MAPA] Cerrando popup anterior ID:', currentOpenPopupId);
+        
+        // Buscar el marcador anterior y cerrar su popup
+        var previousMarkerData = allMarkers.get(currentOpenPopupId);
+        if (previousMarkerData && previousMarkerData.marker) {
+          previousMarkerData.marker.closePopup();
+        }
+        
+        // Cerrar TODOS los popups abiertos en el mapa (por si acaso)
+        map.closePopup();
       }
       
       // ✅ FIX: Marcar que hay un popup abierto
       isPopupOpen = true;
-      
-      // ✅ FIX: Guardar referencia al popup abierto
+      currentOpenPopupId = d.id;
       currentOpenPopup = {
         id: d.id,
         marker: marker,
@@ -603,7 +599,7 @@ window.addAllMarkers = function(data) {
       // Abrir el popup explícitamente
       marker.openPopup();
       
-      console.log('🔵 [MAPA] Popup abierto y protegido:', d.nombre);
+      console.log('🔵 [MAPA] Popup abierto:', d.nombre, 'ID:', d.id);
       
       // Centrar el mapa en el marcador después de un pequeño delay
       setTimeout(function() {
@@ -616,8 +612,9 @@ window.addAllMarkers = function(data) {
     
     // ✅ FIX: Evento cuando se abre el popup
     marker.on('popupopen', function() {
-      console.log('🔵 [MAPA] Popup abierto:', d.nombre);
+      console.log('🔵 [MAPA] Popup abierto (evento):', d.nombre, 'ID:', d.id);
       isPopupOpen = true;
+      currentOpenPopupId = d.id;
       currentOpenPopup = {
         id: d.id,
         marker: marker,
@@ -627,9 +624,10 @@ window.addAllMarkers = function(data) {
     
     // ✅ FIX: Evento cuando se cierra el popup (solo cuando el usuario lo cierra)
     marker.on('popupclose', function() {
-      console.log('🔵 [MAPA] Popup cerrado por el usuario:', d.nombre);
-      if (currentOpenPopup && currentOpenPopup.id === d.id) {
+      console.log('🔵 [MAPA] Popup cerrado (evento):', d.nombre, 'ID:', d.id);
+      if (currentOpenPopupId === d.id) {
         isPopupOpen = false;
+        currentOpenPopupId = null;
         currentOpenPopup = null;
       }
     });
@@ -647,19 +645,19 @@ window.addAllMarkers = function(data) {
     }
   });
   
-  // Añadir todos los marcadores visibles de una vez
+  // ✅ FIX: Añadir todos los marcadores visibles de una vez SIN DELAY
   if (toAdd.length > 0) {
+    // Añadir marcadores de forma INSTANTÁNEA sin chunking
     markers.addLayers(toAdd);
   }
   
   var end = performance.now();
-  console.log('✅ [MAPA v1000.0] Marcadores añadidos en', (end - start).toFixed(2), 'ms - Total:', data.length, 'Visibles:', toAdd.length, 'Preservados:', toUpdate.length, 'Duplicados omitidos:', duplicateCount);
+  console.log('✅ [MAPA v1000.0] Marcadores añadidos INSTANTÁNEAMENTE en', (end - start).toFixed(2), 'ms - Total:', data.length, 'Visibles:', toAdd.length, 'Duplicados omitidos:', duplicateCount);
   
   window.ReactNativeWebView.postMessage(JSON.stringify({
     type: 'markers_loaded',
     total: data.length,
     visible: toAdd.length,
-    preserved: toUpdate.length,
     duplicates: duplicateCount,
     time: end - start
   }));
@@ -673,12 +671,6 @@ window.flyToLocation = function(lat, lng, zoom) {
 // ⚡ OPTIMIZACIÓN v1000.0: Lazy loading con evento 'moveend'
 // Se dispara cuando el usuario termina de mover/zoom el mapa
 map.on('moveend', function() {
-  // ✅ FIX: Si hay un popup abierto, NO recargar marcadores para evitar parpadeo
-  if (isPopupOpen && currentOpenPopup) {
-    console.log('🔵 [MAPA] Popup abierto, OMITIENDO recarga de marcadores para evitar parpadeo');
-    return;
-  }
-  
   var bounds = map.getBounds();
   var zoom = map.getZoom();
   
@@ -701,6 +693,7 @@ map.on('moveend', function() {
 map.on('popupclose', function() {
   console.log('🔵 [MAPA] Popup cerrado globalmente');
   isPopupOpen = false;
+  currentOpenPopupId = null;
   currentOpenPopup = null;
 });
 
@@ -709,10 +702,14 @@ map.on('click', function(e) {
   console.log('🔵 [MAPA] Click en el mapa detectado');
   
   // Si hay un popup abierto, cerrarlo
-  if (isPopupOpen && currentOpenPopup) {
-    console.log('🔵 [MAPA] Cerrando popup por click fuera:', currentOpenPopup.nombre);
-    currentOpenPopup.marker.closePopup();
+  if (isPopupOpen && currentOpenPopupId !== null) {
+    console.log('🔵 [MAPA] Cerrando popup por click fuera, ID:', currentOpenPopupId);
+    
+    // Cerrar TODOS los popups abiertos
+    map.closePopup();
+    
     isPopupOpen = false;
+    currentOpenPopupId = null;
     currentOpenPopup = null;
   }
 });
