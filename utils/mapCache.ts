@@ -1,85 +1,172 @@
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+/**
+ * 🚀 MAP CACHE v2.0 - CACHE DE SESIÓN EN RAM
+ * 
+ * ⚡ OPTIMIZACIÓN: Cache en memoria RAM (no AsyncStorage)
+ * - Mantiene Set de IDs de locales descargados en la sesión actual
+ * - Evita re-descargas al volver a zonas visitadas
+ * - Se limpia automáticamente al cerrar la app
+ * - Tiempo de acceso: O(1) con Set
+ * 
+ * USO:
+ * - sessionCache.add(localId) - Añadir local al cache
+ * - sessionCache.has(localId) - Verificar si está en cache
+ * - sessionCache.size - Número de locales en cache
+ * - sessionCache.clear() - Limpiar cache (al cambiar categoría)
+ */
 
-const MAP_CACHE_KEY = '@map_markers_cache';
-const MAP_CACHE_TIMESTAMP_KEY = '@map_markers_cache_timestamp';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// ⚡ Cache de sesión en RAM (Set para O(1) lookup)
+class SessionCache {
+  private cache: Set<string>;
+  private stats: {
+    hits: number;
+    misses: number;
+    totalRequests: number;
+  };
 
-export interface CachedMapData {
-  markers: any[];
-  timestamp: number;
+  constructor() {
+    this.cache = new Set<string>();
+    this.stats = {
+      hits: 0,
+      misses: 0,
+      totalRequests: 0,
+    };
+    console.log('💾 [SessionCache] Inicializado');
+  }
+
+  /**
+   * Añadir local al cache
+   */
+  add(localId: string): void {
+    if (!this.cache.has(localId)) {
+      this.cache.add(localId);
+      console.log(`💾 [SessionCache] ➕ Añadido: ${localId} (Total: ${this.cache.size})`);
+    }
+  }
+
+  /**
+   * Verificar si local está en cache
+   */
+  has(localId: string): boolean {
+    this.stats.totalRequests++;
+    const exists = this.cache.has(localId);
+    
+    if (exists) {
+      this.stats.hits++;
+      console.log(`💾 [SessionCache] ✅ HIT: ${localId}`);
+    } else {
+      this.stats.misses++;
+      console.log(`💾 [SessionCache] ❌ MISS: ${localId}`);
+    }
+    
+    return exists;
+  }
+
+  /**
+   * Añadir múltiples locales
+   */
+  addBatch(localIds: string[]): { new: number; existing: number } {
+    let newCount = 0;
+    let existingCount = 0;
+    
+    localIds.forEach(id => {
+      if (!this.cache.has(id)) {
+        this.cache.add(id);
+        newCount++;
+      } else {
+        existingCount++;
+      }
+    });
+    
+    console.log(`💾 [SessionCache] Batch añadido: ${newCount} nuevos | ${existingCount} ya existían | Total: ${this.cache.size}`);
+    
+    return { new: newCount, existing: existingCount };
+  }
+
+  /**
+   * Limpiar cache (al cambiar categoría o filtros)
+   */
+  clear(): void {
+    const size = this.cache.size;
+    this.cache.clear();
+    this.stats = {
+      hits: 0,
+      misses: 0,
+      totalRequests: 0,
+    };
+    console.log(`💾 [SessionCache] 🧹 Cache limpiado (${size} locales eliminados)`);
+  }
+
+  /**
+   * Obtener tamaño del cache
+   */
+  get size(): number {
+    return this.cache.size;
+  }
+
+  /**
+   * Obtener estadísticas
+   */
+  getStats(): {
+    size: number;
+    hits: number;
+    misses: number;
+    totalRequests: number;
+    hitRate: number;
+  } {
+    const hitRate = this.stats.totalRequests > 0 
+      ? (this.stats.hits / this.stats.totalRequests) * 100 
+      : 0;
+    
+    return {
+      size: this.cache.size,
+      hits: this.stats.hits,
+      misses: this.stats.misses,
+      totalRequests: this.stats.totalRequests,
+      hitRate: Math.round(hitRate * 100) / 100,
+    };
+  }
+
+  /**
+   * Imprimir estadísticas en consola
+   */
+  printStats(): void {
+    const stats = this.getStats();
+    console.log('📊 [SessionCache] Estadísticas:');
+    console.log(`   Tamaño: ${stats.size} locales`);
+    console.log(`   Hits: ${stats.hits} (${stats.hitRate}%)`);
+    console.log(`   Misses: ${stats.misses}`);
+    console.log(`   Total requests: ${stats.totalRequests}`);
+  }
+
+  /**
+   * Verificar si un área ya está cubierta por el cache
+   * (Opcional - para optimización futura)
+   */
+  hasArea(localIds: string[]): boolean {
+    return localIds.every(id => this.cache.has(id));
+  }
 }
 
-export const mapCache = {
-  async get(): Promise<CachedMapData | null> {
-    try {
-      const [cachedData, cachedTimestamp] = await Promise.all([
-        AsyncStorage.getItem(MAP_CACHE_KEY),
-        AsyncStorage.getItem(MAP_CACHE_TIMESTAMP_KEY),
-      ]);
+// Exportar instancia singleton
+export const sessionCache = new SessionCache();
 
-      if (!cachedData || !cachedTimestamp) {
-        console.log('[MapCache] ❌ No cached data found');
-        return null;
-      }
+// Exportar clase para testing
+export { SessionCache };
 
-      const timestamp = parseInt(cachedTimestamp, 10);
-      const now = Date.now();
-      const age = now - timestamp;
-
-      if (age > CACHE_DURATION) {
-        console.log(`[MapCache] ⏰ Cache expired (age: ${Math.round(age / 1000)}s)`);
-        return null;
-      }
-
-      const markers = JSON.parse(cachedData);
-      console.log(`[MapCache] ✅ Cache hit! ${markers.length} markers (age: ${Math.round(age / 1000)}s)`);
-      
-      return {
-        markers,
-        timestamp,
-      };
-    } catch (error) {
-      console.error('[MapCache] ❌ Error reading cache:', error);
-      return null;
-    }
-  },
-
-  async set(markers: any[]): Promise<void> {
-    try {
-      const timestamp = Date.now();
-      await Promise.all([
-        AsyncStorage.setItem(MAP_CACHE_KEY, JSON.stringify(markers)),
-        AsyncStorage.setItem(MAP_CACHE_TIMESTAMP_KEY, timestamp.toString()),
-      ]);
-      console.log(`[MapCache] 💾 Cached ${markers.length} markers`);
-    } catch (error) {
-      console.error('[MapCache] ❌ Error writing cache:', error);
-    }
-  },
-
-  async clear(): Promise<void> {
-    try {
-      await Promise.all([
-        AsyncStorage.removeItem(MAP_CACHE_KEY),
-        AsyncStorage.removeItem(MAP_CACHE_TIMESTAMP_KEY),
-      ]);
-      console.log('[MapCache] 🧹 Cache cleared');
-    } catch (error) {
-      console.error('[MapCache] ❌ Error clearing cache:', error);
-    }
-  },
-
-  async getAge(): Promise<number | null> {
-    try {
-      const cachedTimestamp = await AsyncStorage.getItem(MAP_CACHE_TIMESTAMP_KEY);
-      if (!cachedTimestamp) return null;
-      
-      const timestamp = parseInt(cachedTimestamp, 10);
-      return Date.now() - timestamp;
-    } catch (error) {
-      console.error('[MapCache] ❌ Error getting cache age:', error);
-      return null;
-    }
-  },
-};
+/**
+ * EJEMPLO DE USO:
+ * 
+ * import { sessionCache } from '@/utils/mapCache';
+ * 
+ * // Al cargar locales
+ * const { data } = await supabase.rpc('get_locales_in_bbox', {...});
+ * const result = sessionCache.addBatch(data.map(l => l.id));
+ * console.log(`Nuevos: ${result.new} | Ya en cache: ${result.existing}`);
+ * 
+ * // Al cambiar categoría
+ * sessionCache.clear();
+ * 
+ * // Ver estadísticas
+ * sessionCache.printStats();
+ */
