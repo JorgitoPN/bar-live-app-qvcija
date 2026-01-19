@@ -2,10 +2,10 @@
 // Global error logging for runtime errors
 // Simplified version that won't block app startup
 
+import { Platform } from "react-native";
+
 // Declare __DEV__ global (React Native global for development mode detection)
 declare const __DEV__: boolean;
-
-import { Platform } from "react-native";
 
 // Simple debouncing to prevent duplicate logs
 const recentLogs: { [key: string]: boolean } = {};

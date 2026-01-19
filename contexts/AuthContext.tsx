@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase } from '@/app/integrations/supabase/client';
+import { supabase } from '@/utils/supabase';
 import { AuthUser, getCurrentUser } from '@/utils/auth';
 import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
 import { Session } from '@supabase/supabase-js';
