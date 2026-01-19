@@ -100,5 +100,6 @@
       "androidMode": "default",
       "androidCollapsedTitle": "BarLive"
     }
-  }
+  },
+  "scheme": "BarLive"
 }
