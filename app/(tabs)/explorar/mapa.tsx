@@ -509,10 +509,7 @@ window.addAllMarkers = function(data) {
       iconSize: [${markerSize}, ${markerSize}]
     });
     
-    var marker = L.marker([d.lat, d.lng], { icon: icon });
-    
-    // ✅ OPTIMIZACIÓN 3: Popup con categorías restaurado
-    // Crear el popup una sola vez y vincularlo al marcador
+    // ✅ FIX: Crear el popup ANTES de crear el marcador
     var estadoText = d.estadoBadge || (d.estado === 'abierto' ? 'Abierto ahora' : d.estado === 'cerrado' ? 'Cerrado' : 'Sin información');
     
     // Generar badges de categorías
@@ -537,23 +534,31 @@ window.addAllMarkers = function(data) {
       '</div>' +
       '</div>';
     
-    // Vincular el popup al marcador ANTES del evento click
+    // ✅ FIX: Crear el marcador Y vincular el popup INMEDIATAMENTE
+    var marker = L.marker([d.lat, d.lng], { icon: icon });
+    
+    // ✅ FIX: Vincular el popup con configuración que evita el cierre automático
     marker.bindPopup(popupContent, {
       maxWidth: ${Platform.OS === 'android' ? 260 : 280},
+      minWidth: ${Platform.OS === 'android' ? 260 : 280},
       closeButton: true,
       offset: [0, -10],
       autoPan: true,
       autoPanPadding: [50, 50],
       autoClose: false,
       closeOnClick: false,
+      closeOnEscapeKey: false,
       keepInView: true
     });
     
-    // Evento click solo abre el popup y centra el mapa
+    // ✅ FIX: Evento click que abre el popup y lo mantiene abierto
     marker.on('click', function(e) {
       console.log('🔵 [MAPA] Marcador clickeado:', d.nombre);
       
-      // Abrir el popup
+      // Prevenir el comportamiento por defecto
+      L.DomEvent.stopPropagation(e);
+      
+      // Abrir el popup explícitamente
       marker.openPopup();
       
       // Centrar el mapa en el marcador después de un pequeño delay
