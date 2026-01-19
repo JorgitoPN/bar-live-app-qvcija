@@ -62,7 +62,7 @@ const CATEGORIAS = [
 ];
 
 export default function MapaScreen() {
-  console.log('🚀🚀🚀 [MAPA v500.0] ===== VERSIÓN OPTIMIZADA CON BBOX =====');
+  console.log('🚀 [MAPA] Cargando mapa optimizado con ubicación del usuario');
   
   const router = useRouter();
   const { filtros: globalFiltros } = useFilters();
@@ -83,6 +83,11 @@ export default function MapaScreen() {
     
     const markerSize = Platform.OS === 'android' ? 36 : 40;
     const markerIconSize = Platform.OS === 'android' ? 18 : 20;
+    
+    // Usar ubicación del usuario si está disponible, sino Madrid con zoom lejano
+    const initialLat = userLocation?.lat || 40.4168;
+    const initialLng = userLocation?.lng || -3.7038;
+    const initialZoom = userLocation ? 8 : 6; // Zoom lejano: 6-8 en lugar de 11
     
     return `<!DOCTYPE html>
 <html>
@@ -131,8 +136,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 <body>
 <div id="map"></div>
 <script>
-console.log('⚡ [MAPA HTML] Inicializando mapa con BBox');
-var map=L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false,trackResize:false,boxZoom:false,doubleClickZoom:true,keyboard:false,tap:true,touchZoom:true,scrollWheelZoom:true,dragging:true,renderer:L.canvas({tolerance:5})}).setView([40.4168,-3.7038],11);
+console.log('⚡ [MAPA HTML] Inicializando mapa con BBox en ubicación del usuario');
+var map=L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false,trackResize:false,boxZoom:false,doubleClickZoom:true,keyboard:false,tap:true,touchZoom:true,scrollWheelZoom:true,dragging:true,renderer:L.canvas({tolerance:5})}).setView([${initialLat},${initialLng}],${initialZoom});
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,minZoom:6,updateWhenIdle:true,updateWhenZooming:false,keepBuffer:4,tileSize:256,crossOrigin:true,maxNativeZoom:18}).addTo(map);
 var markers=L.markerClusterGroup({maxClusterRadius:100,spiderfyOnMaxZoom:true,showCoverageOnHover:false,zoomToBoundsOnClick:true,disableClusteringAtZoom:18,chunkedLoading:true,chunkInterval:100,chunkDelay:10,removeOutsideVisibleBounds:true,animate:false,animateAddingMarkers:false,iconCreateFunction:function(cluster){var count=cluster.getChildCount();var size=count<10?'small':count<100?'medium':'large';return L.divIcon({html:'<div>'+count+'</div>',className:'marker-cluster marker-cluster-'+size,iconSize:L.point(40,40)})}});
 map.addLayer(markers);
@@ -193,7 +198,7 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
 </script>
 </body>
 </html>`;
-  }, []);
+  }, [userLocation]);
 
   // ⚡ Obtener ubicación en background
   useEffect(() => {
@@ -267,7 +272,7 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
               barlive_type: local.barlive_type,
               barlive_types: local.barlive_types,
               imagen_url: local.imagen_url,
-              imagenes: local.imagenes,
+              galeria_urls: local.galeria_urls,
               rating: local.rating,
               google_rating: local.google_rating,
               destacado: local.destacado,
@@ -390,7 +395,7 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
         estadoBadge: estadoCompleto.badge,
         icon: icon,
         rating: displayRating,
-        imagen: local.imagen_url || local.imagenes?.[0] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400',
+        imagen: local.imagen_url || local.galeria_urls?.[0] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400',
         distancia: distancia,
         destacado: local.destacado || false,
       };
@@ -500,14 +505,14 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
             androidLayerType="hardware"
             androidHardwareAccelerationDisabled={false}
             onLoadStart={() => {
-              console.log('⚡ [MAPA v500.0] WebView iniciando carga - BBOX OPTIMIZADO');
+              console.log('⚡ [MAPA] WebView iniciando carga');
             }}
             onLoadEnd={() => {
-              console.log('✅ [MAPA v500.0] WebView carga completada - VERSIÓN BBOX');
+              console.log('✅ [MAPA] WebView carga completada');
             }}
             onError={(syntheticEvent) => {
               const { nativeEvent } = syntheticEvent;
-              console.error('❌ [MAPA v500.0] Error en WebView:', nativeEvent);
+              console.error('❌ [MAPA] Error en WebView:', nativeEvent);
             }}
           />
         )}
@@ -673,13 +678,6 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
           color={colors.primary} 
         />
       </TouchableOpacity>
-
-      {/* Badge de versión - OPTIMIZADO BBOX */}
-      <View style={styles.versionBadge}>
-        <Text style={[styles.versionBadgeText, { fontSize: scaleFontSize(10) }]}>
-          🚀 BBOX v500.0
-        </Text>
-      </View>
 
       {/* Indicador de carga de marcadores */}
       {isLoadingMarkers && (
@@ -908,27 +906,5 @@ const styles = StyleSheet.create({
   loadingText: {
     fontWeight: '600',
     color: colors.text,
-  },
-  versionBadge: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 140 : 130,
-    left: 16,
-    backgroundColor: '#22C55E',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 6,
-    zIndex: 15,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  versionBadgeText: {
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
   },
 });
