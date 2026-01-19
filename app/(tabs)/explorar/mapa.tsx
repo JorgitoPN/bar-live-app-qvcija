@@ -512,45 +512,57 @@ window.addAllMarkers = function(data) {
     var marker = L.marker([d.lat, d.lng], { icon: icon });
     
     // ✅ OPTIMIZACIÓN 3: Popup con categorías restaurado
-    marker.on('click', function() {
-      var estadoText = d.estadoBadge || (d.estado === 'abierto' ? 'Abierto ahora' : d.estado === 'cerrado' ? 'Cerrado' : 'Sin información');
+    // Crear el popup una sola vez y vincularlo al marcador
+    var estadoText = d.estadoBadge || (d.estado === 'abierto' ? 'Abierto ahora' : d.estado === 'cerrado' ? 'Cerrado' : 'Sin información');
+    
+    // Generar badges de categorías
+    var categoriesBadges = '';
+    if (d.categories && d.categories.length > 0) {
+      d.categories.forEach(function(cat) {
+        var catClass = 'cat-' + cat.toLowerCase().replace(/[^a-z]/g, '');
+        categoriesBadges += '<span class="popup-category-badge ' + catClass + '">' + cat + '</span>';
+      });
+    }
+    
+    var popupContent = '<div>' +
+      '<img src="' + d.imagen + '" class="popup-img" onerror="this.src=\\'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400\\'"/>' +
+      '<div class="popup-info">' +
+      '<div class="popup-title">' + d.nombre + '</div>' +
+      (categoriesBadges ? '<div class="popup-categories">' + categoriesBadges + '</div>' : '') +
+      '<span class="popup-estado estado-' + d.estado + '">' + estadoText + '</span>' +
+      '<div class="popup-rating">⭐ ' + d.rating.toFixed(1) + ' • ' + d.distancia.toFixed(1) + ' km</div>' +
+      '<a href="#" class="popup-btn" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\\'navigate\\',id:\\''+d.id+'\\'}));return false">' +
+      '<span style="color:#FFF">📍 Ver detalles</span>' +
+      '</a>' +
+      '</div>' +
+      '</div>';
+    
+    // Vincular el popup al marcador ANTES del evento click
+    marker.bindPopup(popupContent, {
+      maxWidth: ${Platform.OS === 'android' ? 260 : 280},
+      closeButton: true,
+      offset: [0, -10],
+      autoPan: true,
+      autoPanPadding: [50, 50],
+      autoClose: false,
+      closeOnClick: false,
+      keepInView: true
+    });
+    
+    // Evento click solo abre el popup y centra el mapa
+    marker.on('click', function(e) {
+      console.log('🔵 [MAPA] Marcador clickeado:', d.nombre);
       
-      // Generar badges de categorías
-      var categoriesBadges = '';
-      if (d.categories && d.categories.length > 0) {
-        d.categories.forEach(function(cat) {
-          var catClass = 'cat-' + cat.toLowerCase().replace(/[^a-z]/g, '');
-          categoriesBadges += '<span class="popup-category-badge ' + catClass + '">' + cat + '</span>';
-        });
-      }
+      // Abrir el popup
+      marker.openPopup();
       
-      var popupContent = '<div>' +
-        '<img src="' + d.imagen + '" class="popup-img" onerror="this.src=\\'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400\\'"/>' +
-        '<div class="popup-info">' +
-        '<div class="popup-title">' + d.nombre + '</div>' +
-        (categoriesBadges ? '<div class="popup-categories">' + categoriesBadges + '</div>' : '') +
-        '<span class="popup-estado estado-' + d.estado + '">' + estadoText + '</span>' +
-        '<div class="popup-rating">⭐ ' + d.rating.toFixed(1) + ' • ' + d.distancia.toFixed(1) + ' km</div>' +
-        '<a href="#" class="popup-btn" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\\'navigate\\',id:\\''+d.id+'\\'}));return false">' +
-        '<span style="color:#FFF">📍 Ver detalles</span>' +
-        '</a>' +
-        '</div>' +
-        '</div>';
-      
-      marker.bindPopup(popupContent, {
-        maxWidth: ${Platform.OS === 'android' ? 260 : 280},
-        closeButton: true,
-        offset: [0, -10],
-        autoPan: true,
-        autoPanPadding: [50, 50]
-      }).openPopup();
-      
+      // Centrar el mapa en el marcador después de un pequeño delay
       setTimeout(function() {
         var px = map.project(marker.getLatLng());
         px.y -= ${Platform.OS === 'android' ? 100 : 120};
         var newLatLng = map.unproject(px);
         map.panTo(newLatLng, { animate: true, duration: .3 });
-      }, 50);
+      }, 100);
     });
     
     // Almacenar en cache con estado
