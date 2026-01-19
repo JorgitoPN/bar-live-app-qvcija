@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { scaleIconSize, scaleFontSize } from '@/utils/androidScaling';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { useRouter } from 'expo-router';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -23,25 +22,33 @@ import {
 } from 'react-native';
 import { calcularDistancia } from '@/utils/locationUtils';
 import { addPubCategoryIfNeeded, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
+import { supabase } from '@/utils/supabase';
 
 const { width, height } = Dimensions.get('window');
 
 /**
- * 🚀🚀🚀 NUEVA PÁGINA DE MAPA v400.0 - ARQUITECTURA REVOLUCIONARIA 🚀🚀🚀
+ * 🚀🚀🚀 MAPA OPTIMIZADO v500.0 - ARQUITECTURA DE ALTO RENDIMIENTO 🚀🚀🚀
  * 
- * ⚡ CAMBIOS RADICALES PARA VELOCIDAD INSTANTÁNEA:
- * 1. HTML pre-compilado y ultra-minificado (carga en <10ms)
- * 2. Mapa visible INMEDIATAMENTE (sin loading screens)
- * 3. Marcadores se cargan en background (no bloquean UI)
- * 4. Clustering ultra-agresivo (máximo rendimiento)
- * 5. Tiles con cache permanente
- * 6. Filtrado instantáneo en cliente
- * 7. Lazy popup generation (solo cuando se abre)
- * 8. Zero animations que bloqueen
+ * ⚡ OPTIMIZACIONES IMPLEMENTADAS:
  * 
- * RESULTADO: Apertura en <50ms, interacción fluida
+ * PASO 1: BASE DE DATOS (PostGIS)
+ * - Índice espacial GIST en coordenadas (búsquedas instantáneas)
+ * - Función RPC get_locales_in_view(min_lat, min_long, max_lat, max_long)
+ * - Solo devuelve locales dentro del Bounding Box visible
  * 
- * ✅ VERSIÓN ACTUAL: v400.0 - NUEVO MAPA OPTIMIZADO
+ * PASO 2: LÓGICA DE CARGA (Fetch por BBox)
+ * - Carga dinámica al mover/hacer zoom (evento moveend)
+ * - Obtiene límites del mapa actual (getBounds)
+ * - Llama a RPC con bounding box
+ * - Actualización sin duplicados (Map con IDs)
+ * 
+ * PASO 3: RENDERIZADO EFICIENTE (Clustering)
+ * - Leaflet.markercluster con clustering agresivo
+ * - Marcadores se agrupan automáticamente
+ * - Expansión al hacer zoom
+ * - Renderizado con Canvas (GPU)
+ * 
+ * RESULTADO: Carga instantánea, fluida con miles de puntos
  */
 
 const CATEGORIAS = [
@@ -55,13 +62,10 @@ const CATEGORIAS = [
 ];
 
 export default function MapaScreen() {
-  console.log('🚀🚀🚀 [NUEVO MAPA v400.0] ===== VERSIÓN NUEVA OPTIMIZADA =====');
-  console.log('🚀🚀🚀 [NUEVO MAPA v400.0] Iniciando carga instantánea');
-  console.log('🚀🚀🚀 [NUEVO MAPA v400.0] Si ves este mensaje, estás en la versión correcta');
+  console.log('🚀🚀🚀 [MAPA v500.0] ===== VERSIÓN OPTIMIZADA CON BBOX =====');
   
   const router = useRouter();
   const { filtros: globalFiltros } = useFilters();
-  const { locales: globalLocales } = useGlobalData();
   
   const webViewRef = useRef<WebView>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todos');
@@ -70,10 +74,12 @@ export default function MapaScreen() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const [isLoadingMarkers, setIsLoadingMarkers] = useState(false);
+  const [localesCache, setLocalesCache] = useState<Map<string, any>>(new Map());
+  const [currentBounds, setCurrentBounds] = useState<any>(null);
 
-  // ⚡ HTML ultra-compacto pre-compilado
+  // ⚡ HTML ultra-compacto con soporte para BBox
   const mapHTML = useMemo(() => {
-    console.log('⚡ [NUEVO MAPA] Generando HTML pre-compilado');
+    console.log('⚡ [MAPA] Generando HTML con soporte BBox');
     
     const markerSize = Platform.OS === 'android' ? 36 : 40;
     const markerIconSize = Platform.OS === 'android' ? 18 : 20;
@@ -125,11 +131,28 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 <body>
 <div id="map"></div>
 <script>
-console.log('⚡ [MAPA HTML] Inicializando mapa instantáneo');
+console.log('⚡ [MAPA HTML] Inicializando mapa con BBox');
 var map=L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false,trackResize:false,boxZoom:false,doubleClickZoom:true,keyboard:false,tap:true,touchZoom:true,scrollWheelZoom:true,dragging:true,renderer:L.canvas({tolerance:5})}).setView([40.4168,-3.7038],11);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,minZoom:6,updateWhenIdle:true,updateWhenZooming:false,keepBuffer:4,tileSize:256,crossOrigin:true,maxNativeZoom:18}).addTo(map);
 var markers=L.markerClusterGroup({maxClusterRadius:100,spiderfyOnMaxZoom:true,showCoverageOnHover:false,zoomToBoundsOnClick:true,disableClusteringAtZoom:18,chunkedLoading:true,chunkInterval:100,chunkDelay:10,removeOutsideVisibleBounds:true,animate:false,animateAddingMarkers:false,iconCreateFunction:function(cluster){var count=cluster.getChildCount();var size=count<10?'small':count<100?'medium':'large';return L.divIcon({html:'<div>'+count+'</div>',className:'marker-cluster marker-cluster-'+size,iconSize:L.point(40,40)})}});
 map.addLayer(markers);
+
+// PASO 2: Evento moveend para cargar locales del BBox actual
+map.on('moveend', function() {
+  var bounds = map.getBounds();
+  var bbox = {
+    minLat: bounds.getSouth(),
+    minLng: bounds.getWest(),
+    maxLat: bounds.getNorth(),
+    maxLng: bounds.getEast()
+  };
+  console.log('📍 [MAPA HTML] Mapa movido, enviando BBox:', bbox);
+  window.ReactNativeWebView.postMessage(JSON.stringify({
+    type: 'bounds_changed',
+    bounds: bbox
+  }));
+});
+
 window.addMarkers=function(data){
 console.log('⚡ [MAPA HTML] Inyectando',data.length,'marcadores');
 var start=performance.now();
@@ -172,15 +195,15 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
 </html>`;
   }, []);
 
-  // ⚡ Obtener ubicación en background (no bloquea)
+  // ⚡ Obtener ubicación en background
   useEffect(() => {
-    console.log('⚡ [NUEVO MAPA] Obteniendo ubicación en background');
+    console.log('⚡ [MAPA] Obteniendo ubicación en background');
     
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[NUEVO MAPA] Sin permisos, usando Madrid');
+          console.log('[MAPA] Sin permisos, usando Madrid');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
@@ -193,20 +216,84 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
-        console.log('✅ [NUEVO MAPA] Ubicación obtenida:', location.coords.latitude, location.coords.longitude);
+        console.log('✅ [MAPA] Ubicación obtenida:', location.coords.latitude, location.coords.longitude);
       } catch (error) {
-        console.log('[NUEVO MAPA] Error ubicación, usando Madrid');
+        console.log('[MAPA] Error ubicación, usando Madrid');
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
   }, []);
 
-  // ⚡ Filtrado instantáneo en cliente
+  // ⚡ PASO 2: Cargar locales desde Supabase usando BBox
+  const loadLocalesInBounds = useCallback(async (bounds: any) => {
+    if (!bounds) return;
+    
+    console.log('📍 [MAPA] Cargando locales en BBox:', bounds);
+    setIsLoadingMarkers(true);
+    
+    const start = performance.now();
+    
+    try {
+      // Llamar a la función RPC con el bounding box
+      const { data, error } = await supabase.rpc('get_locales_in_view', {
+        min_lat: bounds.minLat,
+        min_long: bounds.minLng,
+        max_lat: bounds.maxLat,
+        max_long: bounds.maxLng,
+      });
+
+      if (error) {
+        console.error('❌ [MAPA] Error cargando locales:', error);
+        setIsLoadingMarkers(false);
+        return;
+      }
+
+      const end = performance.now();
+      console.log(`✅ [MAPA] Locales cargados en ${(end - start).toFixed(2)}ms:`, data?.length || 0);
+
+      // Actualizar cache sin duplicados
+      if (data && data.length > 0) {
+        setLocalesCache(prevCache => {
+          const newCache = new Map(prevCache);
+          data.forEach((local: any) => {
+            newCache.set(local.id, {
+              id: local.id,
+              nombre: local.nombre,
+              coordenadas: {
+                lat: local.latitude,
+                lng: local.longitude,
+              },
+              tipo: local.tipo,
+              barlive_type: local.barlive_type,
+              barlive_types: local.barlive_types,
+              imagen_url: local.imagen_url,
+              imagenes: local.imagenes,
+              rating: local.rating,
+              google_rating: local.google_rating,
+              destacado: local.destacado,
+              horarios_completos: local.horarios_completos,
+              provincia: local.provincia,
+              comunidad: local.comunidad,
+            });
+          });
+          return newCache;
+        });
+      }
+    } catch (error) {
+      console.error('❌ [MAPA] Error en loadLocalesInBounds:', error);
+    } finally {
+      setIsLoadingMarkers(false);
+    }
+  }, []);
+
+  // ⚡ Filtrado instantáneo en cliente (sobre cache)
   const localesFiltrados = useMemo(() => {
     const start = performance.now();
-    console.log('⚡ [NUEVO MAPA] Filtrando locales...');
+    console.log('⚡ [MAPA] Filtrando locales del cache...');
     
-    const filtered = globalLocales.filter(local => {
+    const localesArray = Array.from(localesCache.values());
+    
+    const filtered = localesArray.filter(local => {
       if (!local.coordenadas?.lat || !local.coordenadas?.lng) return false;
       
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
@@ -256,15 +343,15 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
     });
     
     const end = performance.now();
-    console.log('✅ [NUEVO MAPA] Filtrado completo en', (end - start).toFixed(2), 'ms -', filtered.length, 'locales');
+    console.log('✅ [MAPA] Filtrado completo en', (end - start).toFixed(2), 'ms -', filtered.length, 'locales');
     
     return filtered;
-  }, [globalLocales, categoriaSeleccionada, filtroEstado, globalFiltros, userLocation]);
+  }, [localesCache, categoriaSeleccionada, filtroEstado, globalFiltros, userLocation]);
 
   // ⚡ Generar datos de marcadores
   const markersData = useMemo(() => {
     const start = performance.now();
-    console.log('⚡ [NUEVO MAPA] Generando datos de marcadores...');
+    console.log('⚡ [MAPA] Generando datos de marcadores...');
     
     const data = localesFiltrados.map(local => {
       const estadoCompleto = getEstadoLocal(local);
@@ -310,35 +397,24 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
     });
     
     const end = performance.now();
-    console.log('✅ [NUEVO MAPA] Datos generados en', (end - start).toFixed(2), 'ms');
+    console.log('✅ [MAPA] Datos generados en', (end - start).toFixed(2), 'ms');
     
     return data;
   }, [localesFiltrados, userLocation]);
 
-  // ⚡ Inyectar marcadores cuando el mapa esté listo
+  // ⚡ Inyectar marcadores cuando cambien
   useEffect(() => {
     if (!webViewRef.current || markersData.length === 0 || !isMapReady) {
-      console.log('[NUEVO MAPA] Esperando:', {
-        webView: !!webViewRef.current,
-        markers: markersData.length,
-        ready: isMapReady
-      });
       return;
     }
 
-    console.log('⚡ [NUEVO MAPA] Inyectando', markersData.length, 'marcadores');
-    setIsLoadingMarkers(true);
+    console.log('⚡ [MAPA] Inyectando', markersData.length, 'marcadores');
     
-    // Inyectar inmediatamente
     webViewRef.current.injectJavaScript(`
       (function() {
         try {
           if (typeof window.addMarkers !== 'undefined') {
-            console.log('[MAPA HTML] Iniciando inyección');
             window.addMarkers(${JSON.stringify(markersData)});
-            console.log('[MAPA HTML] Inyección completada');
-          } else {
-            console.error('[MAPA HTML] addMarkers no disponible');
           }
         } catch (error) {
           console.error('[MAPA HTML] Error en inyección:', error);
@@ -350,7 +426,7 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
 
   // Centrar en usuario
   const centerOnUser = useCallback(() => {
-    console.log('[NUEVO MAPA] Centrando en usuario');
+    console.log('[MAPA] Centrando en usuario');
     if (userLocation && webViewRef.current && isMapReady) {
       webViewRef.current.injectJavaScript(`
         if (typeof map !== 'undefined') {
@@ -367,19 +443,22 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
       const data = JSON.parse(event.nativeEvent.data);
       
       if (data.type === 'navigate' && data.id) {
-        console.log('⚡ [NUEVO MAPA] Navegando a:', data.id);
+        console.log('⚡ [MAPA] Navegando a:', data.id);
         router.push(`/detalle/local?id=${data.id}`);
       } else if (data.type === 'map_ready') {
-        console.log('✅ [NUEVO MAPA] Mapa listo');
+        console.log('✅ [MAPA] Mapa listo');
         setIsMapReady(true);
+      } else if (data.type === 'bounds_changed' && data.bounds) {
+        console.log('📍 [MAPA] Bounds cambiados:', data.bounds);
+        setCurrentBounds(data.bounds);
+        loadLocalesInBounds(data.bounds);
       } else if (data.type === 'markers_loaded') {
-        console.log('✅ [NUEVO MAPA] Marcadores cargados:', data.count, 'en', data.time?.toFixed(2), 'ms');
-        setIsLoadingMarkers(false);
+        console.log('✅ [MAPA] Marcadores cargados:', data.count, 'en', data.time?.toFixed(2), 'ms');
       }
     } catch (error) {
-      console.error('❌ [NUEVO MAPA] Error en mensaje:', error);
+      console.error('❌ [MAPA] Error en mensaje:', error);
     }
-  }, [router]);
+  }, [router, loadLocalesInBounds]);
 
   const categoryIconSize = 56;
   const categoryIconInnerSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
@@ -421,14 +500,14 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
             androidLayerType="hardware"
             androidHardwareAccelerationDisabled={false}
             onLoadStart={() => {
-              console.log('⚡ [NUEVO MAPA v400.0] WebView iniciando carga - SIN CACHE');
+              console.log('⚡ [MAPA v500.0] WebView iniciando carga - BBOX OPTIMIZADO');
             }}
             onLoadEnd={() => {
-              console.log('✅ [NUEVO MAPA v400.0] WebView carga completada - VERSIÓN NUEVA');
+              console.log('✅ [MAPA v500.0] WebView carga completada - VERSIÓN BBOX');
             }}
             onError={(syntheticEvent) => {
               const { nativeEvent } = syntheticEvent;
-              console.error('❌ [NUEVO MAPA v400.0] Error en WebView:', nativeEvent);
+              console.error('❌ [MAPA v500.0] Error en WebView:', nativeEvent);
             }}
           />
         )}
@@ -453,7 +532,7 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
                 key={categoria.id}
                 style={styles.categoriaButton}
                 onPress={() => {
-                  console.log('⚡ [NUEVO MAPA] Categoría seleccionada:', categoria.id);
+                  console.log('⚡ [MAPA] Categoría seleccionada:', categoria.id);
                   setCategoriaSeleccionada(categoria.id);
                 }}
               >
@@ -595,10 +674,10 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
         />
       </TouchableOpacity>
 
-      {/* Badge de versión - NUEVO MAPA */}
+      {/* Badge de versión - OPTIMIZADO BBOX */}
       <View style={styles.versionBadge}>
         <Text style={[styles.versionBadgeText, { fontSize: scaleFontSize(10) }]}>
-          🚀 NUEVO MAPA v400.0
+          🚀 BBOX v500.0
         </Text>
       </View>
 
@@ -607,7 +686,7 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_ready'}));
         <View style={styles.loadingIndicator}>
           <ActivityIndicator size="small" color={colors.primary} />
           <Text style={[styles.loadingText, { fontSize: scaleFontSize(12) }]}>
-            Cargando {markersData.length} locales...
+            Cargando locales...
           </Text>
         </View>
       )}
