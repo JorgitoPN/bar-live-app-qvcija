@@ -1,5 +1,5 @@
 
-import { supabase } from '@/app/integrations/supabase/client';
+import { supabase } from '@/utils/supabase';
 import { Alert } from 'react-native';
 
 export interface AuthUser {
