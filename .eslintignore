@@ -1,0 +1,21 @@
+
+# Ignore generated files
+_expo/
+dist/
+web-build/
+
+# Ignore node modules
+node_modules/
+
+# Ignore build artifacts
+*.bundle.js
+*.bundle.js.map
+
+# Ignore directories that may not exist yet or are external
+hooks/
+supabase/functions/
+contexts/
+backend/
+
+# Ignore babel plugins (already in .eslintrc.js ignorePatterns)
+babel-plugins/

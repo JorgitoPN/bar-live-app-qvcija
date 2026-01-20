@@ -18,17 +18,20 @@ module.exports = {
       jsx: true
     }
   },
-  ignorePatterns: ['/dist/*', '/public/*', '/babel-plugins/*', '/backend/*'],
+  ignorePatterns: ['/dist/*', '/public/*', '/babel-plugins/*', '/backend/*', '/supabase/functions/*', '/hooks/*'],
   env: {
     browser: true,
   },
   settings: {
     'import/resolver': {
+      typescript: {
+        alwaysTryTypes: true,
+        project: './tsconfig.json'
+      },
       node: {
         extensions: ['.js', '.jsx', '.ts', '.tsx'],
-        paths: ['node_modules', '.']
-      },
-      typescript: {}
+        paths: ['.']
+      }
     },
     'import/ignore': [
       'node_modules',
@@ -46,8 +49,20 @@ module.exports = {
     "@typescript-eslint/ban-tslint-comment": "off",
     "react/no-unescaped-entities": "off",
     "import/no-unresolved": ["error", { 
-      ignore: ['^expo-file-system/legacy$']
+      ignore: [
+        '^https://',
+        '^jsr:',
+        '^expo-',
+        '^@expo/',
+        '^@react-native',
+        '^react-native',
+        '^@supabase/',
+        'base64-arraybuffer',
+        'expo-file-system/legacy$'
+      ]
     }],
+    "@typescript-eslint/array-type": ["warn", { "default": "array" }],
+    "import/first": "warn",
     "prefer-const": "off",
     "react/prop-types": 1,
     "no-case-declarations": "off",
