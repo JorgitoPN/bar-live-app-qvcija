@@ -1,4 +1,3 @@
-
 const { getDefaultConfig } = require('expo/metro-config');
 const { FileStore } = require('metro-cache');
 const path = require('path');
@@ -7,61 +6,6 @@ const fs = require('fs');
 const config = getDefaultConfig(__dirname);
 
 config.resolver.unstable_enablePackageExports = true;
-
-// Fix for ws package missing ./limiter module
-// Create a mock limiter.js file if it doesn't exist
-const limiterPath = path.join(__dirname, 'node_modules', 'ws', 'lib', 'limiter.js');
-if (!fs.existsSync(limiterPath)) {
-  const limiterDir = path.dirname(limiterPath);
-  if (!fs.existsSync(limiterDir)) {
-    fs.mkdirSync(limiterDir, { recursive: true });
-  }
-  // Create a mock limiter module that exports an empty object
-  fs.writeFileSync(limiterPath, `'use strict';
-
-// Mock limiter module for Metro bundler compatibility
-module.exports = {};
-`);
-}
-
-// Fix for ws package missing ./lib/stream module
-// Create a mock stream.js file if it doesn't exist
-const streamPath = path.join(__dirname, 'node_modules', 'ws', 'lib', 'stream.js');
-if (!fs.existsSync(streamPath)) {
-  const streamDir = path.dirname(streamPath);
-  if (!fs.existsSync(streamDir)) {
-    fs.mkdirSync(streamDir, { recursive: true });
-  }
-  // Create a mock stream module that exports an empty object
-  fs.writeFileSync(streamPath, `'use strict';
-
-// Mock stream module for Metro bundler compatibility
-module.exports = {};
-`);
-}
-
-config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Check if the module being requested is './limiter' from within the 'ws' package
-  if (moduleName === './limiter' && context.originModulePath && context.originModulePath.includes('ws')) {
-    // Return the mock limiter module
-    return {
-      filePath: limiterPath,
-      type: 'sourceFile',
-    };
-  }
-  
-  // Check if the module being requested is './lib/stream' from within the 'ws' package
-  if (moduleName === './lib/stream' && context.originModulePath && context.originModulePath.includes('ws')) {
-    // Return the mock stream module
-    return {
-      filePath: streamPath,
-      type: 'sourceFile',
-    };
-  }
-  
-  // For all other modules, use the default resolver
-  return context.resolveRequest(context, moduleName, platform);
-};
 
 // Use turborepo to restore the cache when possible
 config.cacheStores = [
