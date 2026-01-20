@@ -1,3 +1,4 @@
+
 const { getDefaultConfig } = require('expo/metro-config');
 const { FileStore } = require('metro-cache');
 const path = require('path');
@@ -6,6 +7,21 @@ const fs = require('fs');
 const config = getDefaultConfig(__dirname);
 
 config.resolver.unstable_enablePackageExports = true;
+
+// Fix for ws package missing limiter module
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Handle ws package limiter module issue
+  if (moduleName === './limiter' && context.originModulePath?.includes('ws/lib/permessage-deflate.js')) {
+    console.log('[METRO] Mocking ws limiter module');
+    // Return a mock module that exports an empty object
+    return {
+      type: 'empty',
+    };
+  }
+
+  // Use default resolver for everything else
+  return context.resolveRequest(context, moduleName, platform);
+};
 
 // Use turborepo to restore the cache when possible
 config.cacheStores = [
