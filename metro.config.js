@@ -1,3 +1,4 @@
+
 const { getDefaultConfig } = require('expo/metro-config');
 const { FileStore } = require('metro-cache');
 const path = require('path');
@@ -8,7 +9,8 @@ const config = getDefaultConfig(__dirname);
 config.resolver.unstable_enablePackageExports = true;
 
 // Fix for ws package missing limiter module in React Native
-// Use custom resolver to redirect limiter imports to our mock
+// Fix for image-size package missing bmp module
+// Use custom resolver to redirect missing imports to our mocks
 const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   // Intercept the limiter module request from ws package
@@ -17,6 +19,16 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       context.originModulePath.includes('node_modules/ws/lib/permessage-deflate.js')) {
     return {
       filePath: path.resolve(__dirname, 'utils/ws-limiter-mock.js'),
+      type: 'sourceFile',
+    };
+  }
+  
+  // Intercept the bmp module request from image-size package
+  if (moduleName === './bmp' && 
+      context.originModulePath && 
+      context.originModulePath.includes('node_modules/image-size/dist/types/index.js')) {
+    return {
+      filePath: path.resolve(__dirname, 'utils/image-size-bmp-mock.js'),
       type: 'sourceFile',
     };
   }
