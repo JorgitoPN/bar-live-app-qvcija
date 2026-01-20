@@ -13,9 +13,10 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   // Handle ws package limiter module issue
   if (moduleName === './limiter' && context.originModulePath?.includes('ws/lib/permessage-deflate.js')) {
     console.log('[METRO] Mocking ws limiter module');
-    // Return a mock module that exports an empty object
+    // Return path to our mock limiter module
     return {
-      type: 'empty',
+      type: 'sourceFile',
+      filePath: path.resolve(__dirname, 'utils/ws-limiter-mock.js'),
     };
   }
 
