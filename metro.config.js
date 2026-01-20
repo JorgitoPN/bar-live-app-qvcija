@@ -1,3 +1,4 @@
+
 const { getDefaultConfig } = require('expo/metro-config');
 const { FileStore } = require('metro-cache');
 const path = require('path');
@@ -23,12 +24,37 @@ module.exports = {};
 `);
 }
 
+// Fix for ws package missing ./lib/stream module
+// Create a mock stream.js file if it doesn't exist
+const streamPath = path.join(__dirname, 'node_modules', 'ws', 'lib', 'stream.js');
+if (!fs.existsSync(streamPath)) {
+  const streamDir = path.dirname(streamPath);
+  if (!fs.existsSync(streamDir)) {
+    fs.mkdirSync(streamDir, { recursive: true });
+  }
+  // Create a mock stream module that exports an empty object
+  fs.writeFileSync(streamPath, `'use strict';
+
+// Mock stream module for Metro bundler compatibility
+module.exports = {};
+`);
+}
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   // Check if the module being requested is './limiter' from within the 'ws' package
   if (moduleName === './limiter' && context.originModulePath && context.originModulePath.includes('ws')) {
     // Return the mock limiter module
     return {
       filePath: limiterPath,
+      type: 'sourceFile',
+    };
+  }
+  
+  // Check if the module being requested is './lib/stream' from within the 'ws' package
+  if (moduleName === './lib/stream' && context.originModulePath && context.originModulePath.includes('ws')) {
+    // Return the mock stream module
+    return {
+      filePath: streamPath,
       type: 'sourceFile',
     };
   }
