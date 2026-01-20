@@ -1,4 +1,3 @@
-
 const { getDefaultConfig } = require('expo/metro-config');
 const { FileStore } = require('metro-cache');
 const path = require('path');
@@ -8,19 +7,24 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.unstable_enablePackageExports = true;
 
-// Fix for ws package missing limiter module
+// Fix for ws package missing limiter module in React Native
+// Use custom resolver to redirect limiter imports to our mock
+const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Handle ws package limiter module issue
-  if (moduleName === './limiter' && context.originModulePath?.includes('ws/lib/permessage-deflate.js')) {
-    console.log('[METRO] Mocking ws limiter module');
-    // Return path to our mock limiter module
+  // Intercept the limiter module request from ws package
+  if (moduleName === './limiter' && 
+      context.originModulePath && 
+      context.originModulePath.includes('node_modules/ws/lib/permessage-deflate.js')) {
     return {
-      type: 'sourceFile',
       filePath: path.resolve(__dirname, 'utils/ws-limiter-mock.js'),
+      type: 'sourceFile',
     };
   }
-
+  
   // Use default resolver for everything else
+  if (originalResolveRequest) {
+    return originalResolveRequest(context, moduleName, platform);
+  }
   return context.resolveRequest(context, moduleName, platform);
 };
 
