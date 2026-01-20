@@ -8,35 +8,17 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.unstable_enablePackageExports = true;
 
-// Fix for ws package missing limiter module in React Native
-// Fix for image-size package missing bmp module
-// Use custom resolver to redirect missing imports to our mocks
-const originalResolveRequest = config.resolver.resolveRequest;
+// Custom resolver to mock missing image-size modules
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Intercept the limiter module request from ws package
-  if (moduleName === './limiter' && 
-      context.originModulePath && 
-      context.originModulePath.includes('node_modules/ws/lib/permessage-deflate.js')) {
-    return {
-      filePath: path.resolve(__dirname, 'utils/ws-limiter-mock.js'),
-      type: 'sourceFile',
-    };
-  }
-  
-  // Intercept the bmp module request from image-size package
-  if (moduleName === './bmp' && 
-      context.originModulePath && 
-      context.originModulePath.includes('node_modules/image-size/dist/types/index.js')) {
+  // Mock the missing BMP module from image-size package
+  if (moduleName === './bmp' && context.originModulePath && context.originModulePath.includes('node_modules/image-size/dist/types/index.js')) {
     return {
       filePath: path.resolve(__dirname, 'utils/image-size-bmp-mock.js'),
       type: 'sourceFile',
     };
   }
-  
-  // Use default resolver for everything else
-  if (originalResolveRequest) {
-    return originalResolveRequest(context, moduleName, platform);
-  }
+
+  // Fall back to default resolution
   return context.resolveRequest(context, moduleName, platform);
 };
 
