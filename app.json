@@ -23,7 +23,7 @@
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
-              "natively",
+              "barlive",
               "com.barlive.app"
             ]
           }
@@ -56,7 +56,7 @@
               "pathPrefix": "/auth/v1/callback"
             },
             {
-              "scheme": "natively"
+              "scheme": "barlive"
             },
             {
               "scheme": "com.barlive.app"
@@ -88,7 +88,7 @@
         }
       ]
     ],
-    "scheme": "natively",
+    "scheme": "barlive",
     "experiments": {
       "typedRoutes": true
     },
