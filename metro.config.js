@@ -7,6 +7,36 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.unstable_enablePackageExports = true;
 
+// Fix for ws package missing ./limiter module
+// Create a mock limiter.js file if it doesn't exist
+const limiterPath = path.join(__dirname, 'node_modules', 'ws', 'lib', 'limiter.js');
+if (!fs.existsSync(limiterPath)) {
+  const limiterDir = path.dirname(limiterPath);
+  if (!fs.existsSync(limiterDir)) {
+    fs.mkdirSync(limiterDir, { recursive: true });
+  }
+  // Create a mock limiter module that exports an empty object
+  fs.writeFileSync(limiterPath, `'use strict';
+
+// Mock limiter module for Metro bundler compatibility
+module.exports = {};
+`);
+}
+
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Check if the module being requested is './limiter' from within the 'ws' package
+  if (moduleName === './limiter' && context.originModulePath && context.originModulePath.includes('ws')) {
+    // Return the mock limiter module
+    return {
+      filePath: limiterPath,
+      type: 'sourceFile',
+    };
+  }
+  
+  // For all other modules, use the default resolver
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 // Use turborepo to restore the cache when possible
 config.cacheStores = [
     new FileStore({ root: path.join(__dirname, 'node_modules', '.cache', 'metro') }),
