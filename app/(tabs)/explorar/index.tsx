@@ -47,8 +47,7 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 // ✅ CRITICAL PERFORMANCE FIX v229.0: INFINITE SCROLL WITH PROPER PAGINATION
 const ITEMS_PER_PAGE = 20;
 
-// ✅ ULTRA COMPACT HEADER v271.0: Maximum compactness with proper list margin
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 145 : 165;
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 260 : 360;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -74,21 +73,22 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v271.0 - ULTRA COMPACT HEADER + PROPER LIST MARGIN
+ * ✅ EXPLORAR SCREEN v264.0 - OPTIMISTIC UI FOR FAVORITES
  * 
- * NEW FEATURES v271.0:
- * - ✅ ULTRA COMPACT HEADER: Reduced to 145dp Android / 165pt iOS (was 160/180)
- * - ✅ MINIMAL SPACING: All padding reduced to absolute minimum
- * - ✅ PROPER LIST MARGIN: Increased top margin to prevent first item being covered
- * - ✅ COMPACT BANNER: "¿Tienes un local?" banner is now more compact
- * - ✅ TIGHTER GAPS: Reduced gaps between all header elements
- * - ✅ MAINTAINED FUNCTIONALITY: All features preserved, just ultra compact
- * 
- * Previous fixes maintained (v270.0):
+ * NEW FEATURES v264.0:
  * - ✅ OPTIMISTIC UI: Uses FavoritesContext for instant heart icon updates
  * - ✅ NO LOADING INDICATORS: Heart icon changes immediately
  * - ✅ BACKGROUND SYNC: Server request happens asynchronously
  * - ✅ ERROR HANDLING: Reverts UI state if server request fails
+ * 
+ * Previous fixes maintained (v240.0):
+ * - ✅ CRITICAL: TextInput is DIRECTLY in return (no conditional rendering)
+ * - ✅ CRITICAL: Controlled component with value={searchQuery}
+ * - ✅ CRITICAL: Debounce with useEffect + cleanup (300ms)
+ * - ✅ CRITICAL: Separate states: searchQuery (immediate) vs debouncedQuery (filtered)
+ * - ✅ CRITICAL: FlatList has keyboardShouldPersistTaps="handled"
+ * - ✅ CRITICAL: TextInput has blurOnSubmit={false}
+ * - ✅ CRITICAL: No component functions declared inside parent
  */
 
 export default function ExplorarScreen() {
@@ -131,10 +131,10 @@ export default function ExplorarScreen() {
 
   // ✅ FIX v240.0: Debounce with cleanup (300ms)
   useEffect(() => {
-    console.log('[Explorar v271.0] 📝 Search query changed:', searchQuery);
+    console.log('[Explorar v264.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Explorar v271.0] 🔍 Applying debounced search');
+      console.log('[Explorar v264.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -153,7 +153,7 @@ export default function ExplorarScreen() {
     const isValid = lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
     
     if (!isValid) {
-      console.warn('[Explorar v271.0] ⚠️ Invalid coordinates detected:', { lat, lng });
+      console.warn('[Explorar v264.0] ⚠️ Invalid coordinates detected:', { lat, lng });
     }
     
     return isValid;
@@ -164,19 +164,19 @@ export default function ExplorarScreen() {
     
     (async () => {
       try {
-        console.log('[Explorar v271.0] 📍 Step 1: Requesting location permission...');
+        console.log('[Explorar v264.0] 📍 Step 1: Requesting location permission...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         
         if (!isMounted) return;
         
         if (status !== 'granted') {
-          console.log('[Explorar v271.0] ⚠️ Location permission denied - proceeding without location');
+          console.log('[Explorar v264.0] ⚠️ Location permission denied - proceeding without location');
           setLocationError('Permiso de ubicación denegado. Las distancias no estarán disponibles.');
           setLocationReady(true);
           return;
         }
 
-        console.log('[Explorar v271.0] 📍 Step 2: Getting current position...');
+        console.log('[Explorar v264.0] 📍 Step 2: Getting current position...');
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
@@ -186,10 +186,10 @@ export default function ExplorarScreen() {
         const lat = location.coords.latitude;
         const lng = location.coords.longitude;
         
-        console.log('[Explorar v271.0] 📍 Step 3: Location obtained:', { lat, lng });
+        console.log('[Explorar v264.0] 📍 Step 3: Location obtained:', { lat, lng });
         
         if (!isValidSpainCoordinate(lat, lng)) {
-          console.error('[Explorar v271.0] ❌ Location outside Spain bounds!');
+          console.error('[Explorar v264.0] ❌ Location outside Spain bounds!');
           setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
           setUserLocation(null);
           setLocationReady(true);
@@ -198,13 +198,13 @@ export default function ExplorarScreen() {
         
         setUserLocation({ lat, lng });
         setLocationError(null);
-        console.log('[Explorar v271.0] ✅ Step 4: Valid location set:', { lat, lng });
-        console.log('[Explorar v271.0] 🎯 Step 5: Marking location as READY - data will now load');
+        console.log('[Explorar v264.0] ✅ Step 4: Valid location set:', { lat, lng });
+        console.log('[Explorar v264.0] 🎯 Step 5: Marking location as READY - data will now load');
         setLocationReady(true);
         
       } catch (error: any) {
         if (!isMounted) return;
-        console.error('[Explorar v271.0] ❌ Error getting location:', error);
+        console.error('[Explorar v264.0] ❌ Error getting location:', error);
         setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
         setUserLocation(null);
         setLocationReady(true);
@@ -217,15 +217,15 @@ export default function ExplorarScreen() {
   }, [isValidSpainCoordinate]);
 
   const loadLocales = useCallback(async (page: number = 1, append: boolean = false) => {
-    console.log('[Explorar v271.0] 🚀 loadLocales called - page:', page, 'append:', append, 'locationReady:', locationReady);
+    console.log('[Explorar v264.0] 🚀 loadLocales called - page:', page, 'append:', append, 'locationReady:', locationReady);
     
     if (!locationReady && !hasLoadedInitialDataRef.current) {
-      console.log('[Explorar v271.0] ⏸️ Location not ready yet, waiting...');
+      console.log('[Explorar v264.0] ⏸️ Location not ready yet, waiting...');
       return;
     }
     
     if (isLoadingMore && append) {
-      console.log('[Explorar v271.0] ⏸️ Already loading more, skipping...');
+      console.log('[Explorar v264.0] ⏸️ Already loading more, skipping...');
       return;
     }
 
@@ -233,7 +233,7 @@ export default function ExplorarScreen() {
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
     if (filtersChanged) {
-      console.log('[Explorar v271.0] 🔄 Filters changed, resetting...');
+      console.log('[Explorar v264.0] 🔄 Filters changed, resetting...');
       lastFiltersRef.current = filtersKey;
       setCurrentPage(1);
       setAllLoadedLocales([]);
@@ -246,18 +246,18 @@ export default function ExplorarScreen() {
     }
 
     if (append) {
-      console.log('[Explorar v271.0] 📥 Setting isLoadingMore = true');
+      console.log('[Explorar v264.0] 📥 Setting isLoadingMore = true');
       setIsLoadingMore(true);
     } else {
       if (!hasLoadedInitialDataRef.current) {
-        console.log('[Explorar v271.0] ⚡ First load - showing skeleton UI');
+        console.log('[Explorar v264.0] ⚡ First load - showing skeleton UI');
         setInitialLoading(true);
         setDataReady(false);
       }
     }
 
     try {
-      console.log('[Explorar v271.0] 📡 Loading page', page, 'from server...');
+      console.log('[Explorar v264.0] 📡 Loading page', page, 'from server...');
       
       const hasValidLocation = userLocation && isValidSpainCoordinate(userLocation.lat, userLocation.lng);
       
@@ -265,8 +265,8 @@ export default function ExplorarScreen() {
         ? { user_lat: userLocation.lat, user_lng: userLocation.lng }
         : { user_lat: null, user_lng: null };
       
-      console.log('[Explorar v271.0] 📍 Using location params:', locationParams);
-      console.log('[Explorar v271.0] 🎯 hasValidLocation:', hasValidLocation);
+      console.log('[Explorar v264.0] 📍 Using location params:', locationParams);
+      console.log('[Explorar v264.0] 🎯 hasValidLocation:', hasValidLocation);
       
       const offset = (page - 1) * ITEMS_PER_PAGE;
       const { data, error } = await supabase.rpc('get_locales_paginados', {
@@ -276,11 +276,11 @@ export default function ExplorarScreen() {
       });
 
       if (error) {
-        console.error('[Explorar v271.0] Error loading locales:', error);
+        console.error('[Explorar v264.0] Error loading locales:', error);
         throw error;
       }
 
-      console.log('[Explorar v271.0] ✅ Loaded', data?.length || 0, 'locales from server');
+      console.log('[Explorar v264.0] ✅ Loaded', data?.length || 0, 'locales from server');
 
       if (data && data.length > 0) {
         const transformedLocales = data.map((local: any) => {
@@ -321,11 +321,11 @@ export default function ExplorarScreen() {
         if (append) {
           setAllLoadedLocales(prev => {
             const newLocales = [...prev, ...transformedLocales];
-            console.log('[Explorar v271.0] ➕ Appending', transformedLocales.length, 'locales. Total now:', newLocales.length);
+            console.log('[Explorar v264.0] ➕ Appending', transformedLocales.length, 'locales. Total now:', newLocales.length);
             return newLocales;
           });
         } else {
-          console.log('[Explorar v271.0] 🔄 Replacing with', transformedLocales.length, 'locales');
+          console.log('[Explorar v264.0] 🔄 Replacing with', transformedLocales.length, 'locales');
           setAllLoadedLocales(transformedLocales);
           setDataReady(true);
         }
@@ -354,13 +354,13 @@ export default function ExplorarScreen() {
               setSocialProfiles(prev => new Map([...prev, ...newSocialProfiles]));
             }
           } catch (error) {
-            console.error('[Explorar v271.0] Error checking social profiles:', error);
+            console.error('[Explorar v264.0] Error checking social profiles:', error);
           }
         }
         
         hasLoadedInitialDataRef.current = true;
       } else {
-        console.log('[Explorar v271.0] ⚠️ No more data available');
+        console.log('[Explorar v264.0] ⚠️ No more data available');
         setHasMore(false);
         if (!append) {
           setAllLoadedLocales([]);
@@ -368,13 +368,13 @@ export default function ExplorarScreen() {
         }
       }
     } catch (error) {
-      console.error('[Explorar v271.0] Error loading locales:', error);
+      console.error('[Explorar v264.0] Error loading locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
       setDataReady(true);
     } finally {
       setLoading(false);
       setInitialLoading(false);
-      console.log('[Explorar v271.0] 📥 Setting isLoadingMore = false');
+      console.log('[Explorar v264.0] 📥 Setting isLoadingMore = false');
       setIsLoadingMore(false);
     }
   }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, isLoadingMore, locationReady, allLoadedLocales]);
@@ -444,35 +444,35 @@ export default function ExplorarScreen() {
 
   useEffect(() => {
     if (locationReady) {
-      console.log('[Explorar v271.0] 🚀 Location is ready - loading initial data');
+      console.log('[Explorar v264.0] 🚀 Location is ready - loading initial data');
       loadLocales(1, false);
     }
   }, [locationReady, selectedCategory, provinciaSeleccionada]);
 
   const loadMoreLocales = useCallback(() => {
-    console.log('[Explorar v271.0] 🔄 loadMoreLocales called - hasMore:', hasMore, 'isLoadingMore:', isLoadingMore, 'loading:', loading);
+    console.log('[Explorar v264.0] 🔄 loadMoreLocales called - hasMore:', hasMore, 'isLoadingMore:', isLoadingMore, 'loading:', loading);
     
     if (!hasMore) {
-      console.log('[Explorar v271.0] ⏸️ No more data available');
+      console.log('[Explorar v264.0] ⏸️ No more data available');
       return;
     }
     
     if (isLoadingMore) {
-      console.log('[Explorar v271.0] ⏸️ Already loading more');
+      console.log('[Explorar v264.0] ⏸️ Already loading more');
       return;
     }
     
     if (loading) {
-      console.log('[Explorar v271.0] ⏸️ Initial loading in progress');
+      console.log('[Explorar v264.0] ⏸️ Initial loading in progress');
       return;
     }
 
-    console.log('[Explorar v271.0] 📥 Loading page', currentPage + 1);
+    console.log('[Explorar v264.0] 📥 Loading page', currentPage + 1);
     loadLocales(currentPage + 1, true);
   }, [hasMore, isLoadingMore, loading, currentPage, loadLocales]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v271.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v264.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setDataReady(false);
     setSearchQuery('');
@@ -490,7 +490,7 @@ export default function ExplorarScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v271.0] 🧹 Clearing all filters');
+    console.log('[Explorar v264.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setSelectedCategory('todas');
@@ -520,12 +520,12 @@ export default function ExplorarScreen() {
       return;
     }
 
-    console.log('[Explorar v271.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
+    console.log('[Explorar v264.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
     
     // ✅ OPTIMISTIC UI: toggleFavorite updates UI instantly
     await toggleFavorite(localId);
     
-    console.log('[Explorar v271.0] ✅ Favorite toggle completed (optimistic UI + background sync)');
+    console.log('[Explorar v264.0] ✅ Favorite toggle completed (optimistic UI + background sync)');
   }, [user, router, toggleFavorite]);
 
   const handleComoLlegar = useCallback((local: any, e: any) => {
@@ -570,7 +570,7 @@ export default function ExplorarScreen() {
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v271.0] Error changing mode:', error);
+      console.error('[Explorar v264.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
@@ -748,7 +748,7 @@ export default function ExplorarScreen() {
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={(e) => {
-              console.log('[Explorar v271.0] 👆 User tapped favorite button for local:', item.id);
+              console.log('[Explorar v264.0] 👆 User tapped favorite button for local:', item.id);
               handleToggleFavorito(item.id, e);
             }}
           >
@@ -913,8 +913,8 @@ export default function ExplorarScreen() {
   const categoryIconInnerSize = getCategoryIconInnerSize();
   const modeIcon = getModeIcon();
 
-  const headerTitleSize = Platform.OS === 'android' ? scaleFontSize(28) : 28;
-  const headerIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const headerTitleSize = Platform.OS === 'android' ? scaleFontSize(32) : 32;
+  const headerIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
 
   return (
     <View style={styles.container}>
@@ -942,16 +942,16 @@ export default function ExplorarScreen() {
                   <IconSymbol 
                     ios_icon_name={modeIcon.ios} 
                     android_material_icon_name={modeIcon.android} 
-                    size={scaleIconSize(16)} 
+                    size={scaleIconSize(18)} 
                     color={colors.headerText} 
                   />
-                  <Text style={[styles.modeSelectorText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
+                  <Text style={[styles.modeSelectorText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
                     {getModeLabel()}
                   </Text>
                   <IconSymbol 
                     ios_icon_name="chevron.down" 
                     android_material_icon_name="arrow_drop_down" 
-                    size={scaleIconSize(14)} 
+                    size={scaleIconSize(16)} 
                     color={colors.headerText} 
                   />
                 </TouchableOpacity>
@@ -976,7 +976,7 @@ export default function ExplorarScreen() {
                   onPress={clearFilters}
                   activeOpacity={0.7}
                 >
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(18)} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(20)} color={colors.headerText} />
                 </TouchableOpacity>
               )}
             </View>
@@ -984,8 +984,8 @@ export default function ExplorarScreen() {
           
           {locationError && (
             <View style={styles.locationWarningBanner}>
-              <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={scaleIconSize(14)} color="#F97316" />
-              <Text style={[styles.locationWarningText, { fontSize: scaleFontSize(11) }]} numberOfLines={2}>
+              <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={scaleIconSize(16)} color="#F97316" />
+              <Text style={[styles.locationWarningText, { fontSize: scaleFontSize(12) }]} numberOfLines={2}>
                 {locationError}
               </Text>
             </View>
@@ -993,16 +993,16 @@ export default function ExplorarScreen() {
         
         <View style={[styles.searchContainer, { 
           height: searchBoxHeight,
-          paddingVertical: Platform.OS === 'android' ? 6 : 6,
+          paddingVertical: Platform.OS === 'android' ? 10 : 10,
         }]}>
           <IconSymbol 
             ios_icon_name="magnifyingglass" 
             android_material_icon_name="search"
-            size={scaleIconSize(18)} 
+            size={scaleIconSize(20)} 
             color={colors.textSecondary}
           />
           <TextInput
-            style={[styles.searchInput, { fontSize: scaleFontSize(15) }]}
+            style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
             placeholder="Buscar locales..."
             placeholderTextColor={colors.textSecondary}
             value={searchQuery}
@@ -1025,7 +1025,7 @@ export default function ExplorarScreen() {
               <IconSymbol 
                 ios_icon_name="xmark.circle.fill" 
                 android_material_icon_name="cancel"
-                size={scaleIconSize(18)} 
+                size={scaleIconSize(20)} 
                 color={colors.textSecondary}
               />
             </TouchableOpacity>
@@ -1038,7 +1038,7 @@ export default function ExplorarScreen() {
             <IconSymbol 
               ios_icon_name="slider.horizontal.3" 
               android_material_icon_name="tune" 
-              size={scaleIconSize(18)} 
+              size={scaleIconSize(20)} 
               color={colors.primary} 
             />
           </TouchableOpacity>
@@ -1056,7 +1056,7 @@ export default function ExplorarScreen() {
               key={categoria.id}
               style={styles.categoriaButton}
               onPress={() => {
-                console.log('[Explorar v271.0] 👆 Usuario seleccionó categoría:', categoria.id);
+                console.log('[Explorar v264.0] 👆 Usuario seleccionó categoría:', categoria.id);
                 setSelectedCategory(categoria.id);
               }}
               activeOpacity={0.7}
@@ -1082,7 +1082,7 @@ export default function ExplorarScreen() {
               <Text
                 style={[
                   styles.categoriaLabel,
-                  { fontSize: scaleFontSize(11) },
+                  { fontSize: scaleFontSize(12) },
                   selectedCategory === categoria.id && styles.categoriaLabelActive,
                 ]}
               >
@@ -1101,21 +1101,21 @@ export default function ExplorarScreen() {
             <IconSymbol 
               ios_icon_name="building.2.fill" 
               android_material_icon_name="store" 
-              size={scaleIconSize(18)} 
+              size={scaleIconSize(24)} 
               color={colors.headerText} 
             />
             <View style={styles.claimBannerTextContainer}>
-              <Text style={[styles.claimBannerTitle, { fontSize: scaleFontSize(13) }]}>
+              <Text style={[styles.claimBannerTitle, { fontSize: scaleFontSize(15) }]}>
                 ¿Tienes un local?
               </Text>
-              <Text style={[styles.claimBannerSubtitle, { fontSize: scaleFontSize(11) }]}>
+              <Text style={[styles.claimBannerSubtitle, { fontSize: scaleFontSize(13) }]}>
                 Reclámalo o crea uno nuevo
               </Text>
             </View>
             <IconSymbol 
               ios_icon_name="chevron.right" 
               android_material_icon_name="chevron_right" 
-              size={scaleIconSize(16)} 
+              size={scaleIconSize(20)} 
               color={colors.headerText} 
             />
           </View>
@@ -1130,7 +1130,7 @@ export default function ExplorarScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 20 : HEADER_MAX_HEIGHT + 20,
+            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 48 : HEADER_MAX_HEIGHT,
             paddingBottom: getContentBottomPadding(100)
           },
         ]}
@@ -1311,7 +1311,7 @@ export default function ExplorarScreen() {
                         selectedCategory === categoria.id && styles.categoryFilterItemActive,
                       ]}
                       onPress={() => {
-                        console.log('[Explorar Modal v271.0] 👆 Usuario seleccionó categoría:', categoria.id);
+                        console.log('[Explorar Modal v264.0] 👆 Usuario seleccionó categoría:', categoria.id);
                         setSelectedCategory(categoria.id);
                       }}
                       activeOpacity={0.7}
@@ -1409,15 +1409,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerGradient: {
-    paddingTop: Platform.OS === 'android' ? 36 : 40,
-    paddingBottom: Platform.OS === 'android' ? 4 : 6,
-    paddingHorizontal: 14,
+    paddingTop: Platform.OS === 'android' ? 44 : 50,
+    paddingBottom: Platform.OS === 'android' ? 16 : 20,
+    paddingHorizontal: 16,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'android' ? 3 : 4,
+    marginBottom: Platform.OS === 'android' ? 10 : 12,
   },
   headerTitle: {
     fontWeight: 'bold',
@@ -1427,17 +1427,17 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   modeSelectorButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    maxWidth: 140,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    maxWidth: 150,
   },
   modeSelectorText: {
     fontWeight: '600',
@@ -1445,17 +1445,17 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   mapButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   clearFiltersHeaderButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1463,12 +1463,12 @@ const styles = StyleSheet.create({
   locationWarningBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     backgroundColor: 'rgba(249, 115, 22, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: 'rgba(249, 115, 22, 0.3)',
   },
@@ -1481,38 +1481,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    marginBottom: Platform.OS === 'android' ? 3 : 4,
-    gap: 6,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: Platform.OS === 'android' ? 10 : 12,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
     color: colors.text,
     padding: 0,
-    marginLeft: 6,
+    marginLeft: 8,
   },
   clearButton: {
-    padding: 3,
+    padding: 4,
   },
   filterIconButton: {
-    padding: 3,
+    padding: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoriesScroll: {
-    marginBottom: Platform.OS === 'android' ? 3 : 4,
-    marginRight: -14,
+    marginBottom: Platform.OS === 'android' ? 10 : 12,
+    marginRight: -16,
   },
   categoriesContent: {
     paddingHorizontal: 0,
-    paddingRight: 14,
-    gap: 12,
+    paddingRight: 16,
+    gap: 16,
   },
   categoriaButton: {
     alignItems: 'center',
-    gap: 3,
-    minWidth: 64,
+    gap: 6,
+    minWidth: 70,
   },
   categoriaIconContainer: {
     alignItems: 'center',
@@ -1536,8 +1536,8 @@ const styles = StyleSheet.create({
   },
   claimBanner: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 10,
-    marginBottom: Platform.OS === 'android' ? 2 : 3,
+    borderRadius: 12,
+    marginBottom: Platform.OS === 'android' ? 8 : 12,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
@@ -1545,8 +1545,8 @@ const styles = StyleSheet.create({
   claimBannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 5,
-    gap: 5,
+    padding: 12,
+    gap: 12,
   },
   claimBannerTextContainer: {
     flex: 1,
@@ -1554,7 +1554,7 @@ const styles = StyleSheet.create({
   claimBannerTitle: {
     fontWeight: '700',
     color: colors.headerText,
-    marginBottom: 1,
+    marginBottom: 2,
   },
   claimBannerSubtitle: {
     fontWeight: '500',
