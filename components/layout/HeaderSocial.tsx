@@ -14,9 +14,14 @@ interface HeaderSocialProps {
 }
 
 /**
- * ✅ HEADER SOCIAL v106.0 - ANDROID ICON FIX
+ * ✅ HEADER SOCIAL v107.0 - SEARCH BUTTON ADDED
  * 
- * CRITICAL FIXES v106.0:
+ * NEW FEATURES v107.0:
+ * - ✅ Added search button to navigate to profile search screen
+ * - ✅ Uses valid Material icon "search" for Android
+ * - ✅ Positioned between title and action buttons for easy access
+ * 
+ * Previous fixes maintained (v106.0):
  * - ✅ Fixed + icon on Android: Changed from "add_box" to "add_circle" (valid Material icon)
  * - ✅ "add_box" was showing "?" on Android because it's not a valid Material Icons name
  * - ✅ "add_circle" is the correct Material icon for a plus button
@@ -45,6 +50,20 @@ export default function HeaderSocial({
           Social
         </Text>
         <View style={styles.headerActions}>
+          {/* ✅ NEW v107.0: Search button for profile search */}
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => router.push('/social/buscar-usuario')}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="magnifyingglass" 
+              android_material_icon_name="search" 
+              size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+              color={colors.headerText} 
+            />
+          </TouchableOpacity>
+
           {/* ✅ CRITICAL FIX v106.0: Changed android_material_icon_name from "add_box" to "add_circle" */}
           <TouchableOpacity 
             style={styles.headerButton}
