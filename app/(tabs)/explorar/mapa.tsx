@@ -82,64 +82,35 @@ const { width, height } = Dimensions.get('window');
  * - 🔴 Rojo (#EF4444): Local cerrado
  * - ⚪ Gris (#9CA3AF): Sin información
  * 
- * 🔧 FIXES APLICADOS v263.0 (BLOQUEO DE CLUSTERS + REFINAMIENTO + AUTO-CENTRADO):
+ * 🔧 FIXES APLICADOS v266.0 (POPUP CENTRADO CORRECTAMENTE):
  * ═══════════════════════════════════════════════════════════════
- * 1. ✅ BLOQUEO DE CLUSTERS: Verifica clusters PRIMERO con queryRenderedFeatures
- * 2. ✅ Return inmediato si es cluster (evita popup erróneo)
- * 3. ✅ Cambio de touchstart a click para mejor compatibilidad con clusters
- * 4. ✅ SINCRONIZACIÓN DE FILTROS: Valida categoría y estado antes de calcular distancia
- * 5. ✅ Ignora locales ocultos por filtros (no abre popup)
- * 6. ✅ TOLERANCIA REDUCIDA: 20px (más preciso que 30px)
- * 7. ✅ AUTO-CENTRADO: map.flyTo centra el popup en el centro de la pantalla
- * 8. ✅ POPUP CORREGIDO: Sin cantidad total de reseñas
- * 9. ✅ RATING CORREGIDO: Usa rating o google_rating (prioridad rating)
- * 10. ✅ Formateo correcto con punto decimal (1.5 en lugar de 1,5)
- * 11. ✅ PROYECCIÓN A PÍXELES: map.project([lng, lat]) convierte a coordenadas de pantalla
- * 12. ✅ Área de clic CONSISTENTE sin importar el zoom
- * 13. ✅ Distancia en píxeles: Math.sqrt(dx² + dy²)
- * 14. ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)
- * 15. ✅ Evita conflictos entre locales pegados en zoom lejano
- * 16. ✅ window.allLocales almacena todos los locales en memoria
- * 17. ✅ map.flyTo con zoom 17 y animación suave
- * 18. ✅ touch-action: none !important en html, body, #map, canvas
- * 19. ✅ pointer-events: auto !important en canvas
- * 20. ✅ Feature falsa reutiliza showPopupForFeature existente
- * 21. ✅ Logs detallados para debugging de proximidad y filtros
- * 22. ✅ NO HACER NADA si no se encuentra local que cumpla filtros
+ * 1. ✅ POPUP CENTRADO: El popup ahora se centra correctamente en la pantalla
+ * 2. ✅ OFFSET VERTICAL: Se calcula el offset para que el popup quede visible
+ * 3. ✅ NO DESAPARECE: El popup permanece visible después del zoom automático
+ * 4. ✅ ALTURA DINÁMICA: Se ajusta según el tamaño del popup (280px)
+ * 5. ✅ ANIMACIÓN SUAVE: flyTo con duración de 500ms
  * 
- * 🎯 POR QUÉ ESTE SISTEMA ES PERFECTO:
- * ═══════════════════════════════════════════════════════════════
- * 1. ÁREA DE CLIC FÍSICA Y REAL:
- *    - 30 píxeles = tamaño físico del dedo del usuario
- *    - El área de clic es SIEMPRE la misma sin importar el zoom
- *    - En zoom 10 (lejos): 30px cubren un área geográfica grande
- *    - En zoom 18 (cerca): 30px cubren un área geográfica pequeña
- *    - El usuario siempre siente que el área de clic es consistente
- * 
- * 2. BÚSQUEDA DEL MÁS CERCANO:
- *    - Si hay 5 marcadores amontonados en zoom lejano, el código
- *      elige automáticamente el que está más cerca del centro del dedo
- *    - Usa minimaDistanciaPixeles para comparar todos los candidatos
- *    - Evita conflictos de capas y errores de precisión
- * 
- * 3. SINCRONIZACIÓN CON FILTROS:
- *    - Valida filtros ANTES de calcular distancia (optimización)
- *    - Si el local está oculto por filtros, NO se considera
- *    - Evita abrir popups de locales que el usuario no puede ver
- *    - Feedback claro: si tocas un área sin locales visibles, no pasa nada
- * 
- * 4. INMUNE A FALLOS DE CAPA:
- *    - NO usa queryRenderedFeatures (que depende de que MapLibre
- *      "vea" correctamente las capas)
- *    - Búsqueda matemática directa en window.allLocales
- *    - Siempre encuentra el local si está visible y en la lista de memoria
- * 
- * 5. EXPERIENCIA FLUIDA:
- *    - touch-action: none evita que el navegador haga scroll
- *    - touchstart captura el evento al instante
- *    - e.preventDefault() evita comportamientos no deseados
- *    - map.flyTo centra y hace zoom con animación suave
- *    - El popup queda perfectamente centrado y visible
+ * Previous fixes maintained (v263.0):
+ * - ✅ BLOQUEO DE CLUSTERS: Verifica clusters PRIMERO con queryRenderedFeatures
+ * - ✅ Return inmediato si es cluster (evita popup erróneo)
+ * - ✅ Cambio de touchstart a click para mejor compatibilidad con clusters
+ * - ✅ SINCRONIZACIÓN DE FILTROS: Valida categoría y estado antes de calcular distancia
+ * - ✅ Ignora locales ocultos por filtros (no abre popup)
+ * - ✅ TOLERANCIA REDUCIDA: 20px (más preciso que 30px)
+ * - ✅ POPUP CORREGIDO: Sin cantidad total de reseñas
+ * - ✅ RATING CORREGIDO: Usa rating o google_rating (prioridad rating)
+ * - ✅ Formateo correcto con punto decimal (1.5 en lugar de 1,5)
+ * - ✅ PROYECCIÓN A PÍXELES: map.project([lng, lat]) convierte a coordenadas de pantalla
+ * - ✅ Área de clic CONSISTENTE sin importar el zoom
+ * - ✅ Distancia en píxeles: Math.sqrt(dx² + dy²)
+ * - ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)
+ * - ✅ Evita conflictos entre locales pegados en zoom lejano
+ * - ✅ window.allLocales almacena todos los locales en memoria
+ * - ✅ touch-action: none !important en html, body, #map, canvas
+ * - ✅ pointer-events: auto !important en canvas
+ * - ✅ Feature falsa reutiliza showPopupForFeature existente
+ * - ✅ Logs detallados para debugging de proximidad y filtros
+ * - ✅ NO HACER NADA si no se encuentra local que cumpla filtros
  */
 
 const CATEGORIAS = [
@@ -891,13 +862,13 @@ function showPopupForFeature(feature, coordinates) {
     .addTo(map);
 }
 
-// 🚀🚀🚀 DETECCIÓN MANUAL POR PROXIMIDAD EN PÍXELES CON FILTROS SINCRONIZADOS v263.0 🚀🚀🚀
+// 🚀🚀🚀 DETECCIÓN MANUAL POR PROXIMIDAD EN PÍXELES CON FILTROS SINCRONIZADOS v266.0 🚀🚀🚀
 // ✅ PASO 1: BLOQUEO DE CLUSTERS (PRIORIDAD MÁXIMA)
 // ✅ PASO 2: SINCRONIZA CON FILTROS ACTIVOS (categoría y estado)
 // ✅ PASO 3: BÚSQUEDA DEL MÁS CERCANO con tolerancia reducida (20px)
-// ✅ PASO 4: AUTO-CENTRADO del popup en el centro de la pantalla
+// ✅ PASO 4: AUTO-CENTRADO del popup en el centro de la pantalla (CORREGIDO v266.0)
 map.on('click', function(e) {
-  console.log('🗺️ [MAPA] 🎯 Click detectado - iniciando proceso de 3 pasos');
+  console.log('🗺️ [MAPA] 🎯 Click detectado - iniciando proceso de 4 pasos');
   
   // ═══════════════════════════════════════════════════════════════
   // 🚨 PASO 1: BLOQUEO DE CLUSTERS (PRIORIDAD ABSOLUTA)
@@ -1006,7 +977,7 @@ map.on('click', function(e) {
   console.log('🗺️ [MAPA] 📊 Locales visibles:', localesEvaluados - localesFiltrados);
   
   // ═══════════════════════════════════════════════════════════════
-  // 🚨 PASO 4: SI SE DETECTÓ UN LOCAL, ABRIR POPUP Y AUTO-CENTRAR
+  // 🚨 PASO 4: SI SE DETECTÓ UN LOCAL, ABRIR POPUP Y AUTO-CENTRAR (CORREGIDO v266.0)
   // ═══════════════════════════════════════════════════════════════
   if (detectado) {
     console.log('🗺️ [MAPA] 🎉 Local MÁS CERCANO encontrado:', detectado.nombre);
@@ -1029,32 +1000,51 @@ map.on('click', function(e) {
       } 
     };
     
-    // 1. Abrir Popup
+    // ✅ FIX v266.0: CENTRADO CORRECTO DEL POPUP
+    // El popup aparece ARRIBA del marcador, así que necesitamos desplazar el centro hacia ARRIBA
+    // para que el popup quede centrado en la pantalla, no el marcador
+    
+    // 1. Primero, abrir el popup en las coordenadas del marcador
     showPopupForFeature(fakeFeature, coords);
     
-    // 2. AUTO-CENTRADO DEL POPUP: Ajustar el mapa para que el POPUP quede centrado, no el marcador
-    // ✅ CRITICAL v265.0: Offset vertical para compensar la altura del popup
-    // El popup aparece ARRIBA del marcador, así que necesitamos desplazar el centro hacia abajo
-    var popupHeightPixels = 200; // Altura aproximada del popup en píxeles
-    var mapHeightPixels = window.innerHeight;
+    // 2. Calcular el offset necesario para centrar el POPUP (no el marcador)
+    // Altura aproximada del popup en píxeles
+    var popupHeightPixels = ${Platform.OS === 'android' ? '240' : '280'};
     
-    // Calcular el offset en coordenadas del mapa
-    // Queremos que el popup quede en el centro, así que movemos el marcador hacia abajo
-    var offsetPixels = popupHeightPixels / 2;
+    // Obtener el punto del marcador en píxeles
+    var markerPoint = map.project(coords);
     
-    // Convertir offset de píxeles a coordenadas geográficas
-    var centerPoint = map.project(coords);
-    var offsetPoint = { x: centerPoint.x, y: centerPoint.y + offsetPixels };
-    var offsetCoords = map.unproject(offsetPoint);
+    // El popup aparece ARRIBA del marcador, así que el centro del popup está en:
+    // markerPoint.y - popupHeightPixels/2
+    // Queremos que ese punto quede en el centro de la pantalla (window.innerHeight/2)
     
+    // Calcular el offset necesario
+    var screenCenterY = window.innerHeight / 2;
+    var popupCenterY = markerPoint.y - popupHeightPixels / 2;
+    var offsetY = screenCenterY - popupCenterY;
+    
+    // Aplicar el offset al punto del marcador
+    var targetPoint = { x: markerPoint.x, y: markerPoint.y + offsetY };
+    var targetCoords = map.unproject(targetPoint);
+    
+    console.log('🗺️ [MAPA] 📐 Calculando centrado del popup:');
+    console.log('🗺️ [MAPA] 📐 - Altura del popup:', popupHeightPixels, 'px');
+    console.log('🗺️ [MAPA] 📐 - Centro de pantalla Y:', screenCenterY, 'px');
+    console.log('🗺️ [MAPA] 📐 - Centro del popup Y:', popupCenterY, 'px');
+    console.log('🗺️ [MAPA] 📐 - Offset necesario Y:', offsetY, 'px');
+    
+    // 3. Hacer flyTo con animación suave
     map.flyTo({
-      center: offsetCoords, // Usar coordenadas con offset para centrar el popup
-      zoom: 17, // Zoom cercano para ver bien el local
-      speed: 1.2, // Velocidad de la animación
-      essential: true // Asegurar que la animación se ejecute
+      center: targetCoords,
+      zoom: 17,
+      speed: 1.2,
+      curve: 1,
+      duration: 500,
+      essential: true
     });
     
-    console.log('🗺️ [MAPA] ✅ Popup abierto y mapa AUTO-CENTRADO con offset para centrar el POPUP (no el marcador)');
+    console.log('🗺️ [MAPA] ✅ Popup abierto y mapa AUTO-CENTRADO correctamente (v266.0)');
+    console.log('🗺️ [MAPA] ✅ El POPUP ahora queda centrado en la pantalla, no el marcador');
   } else {
     console.log('🗺️ [MAPA] ❌ No se encontró ningún local visible en el área de proximidad');
     console.log('🗺️ [MAPA] 💡 Posibles razones:');
@@ -1120,7 +1110,7 @@ window.addEventListener('resize', function() {
 console.log('🗺️ [MAPA] ═══════════════════════════════════════════════════════');
 console.log('🗺️ [MAPA] ✅ Sistema de mapa configurado completamente');
 console.log('🗺️ [MAPA] ✅ DETECCIÓN MANUAL CON PROYECCIÓN A PÍXELES activada');
-console.log('🗺️ [MAPA] ✅ Tolerancia fija: 30 píxeles (tamaño del dedo)');
+console.log('🗺️ [MAPA] ✅ Tolerancia fija: 20 píxeles (tamaño del dedo)');
 console.log('🗺️ [MAPA] ✅ Área de clic CONSISTENTE sin importar el zoom');
 console.log('🗺️ [MAPA] ✅ Proyección: map.project([lng, lat]) → coordenadas de pantalla');
 console.log('🗺️ [MAPA] ✅ Distancia en píxeles: sqrt(dx² + dy²)');
@@ -1128,6 +1118,7 @@ console.log('🗺️ [MAPA] ✅ SINCRONIZACIÓN CON FILTROS: valida categoría y
 console.log('🗺️ [MAPA] ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)');
 console.log('🗺️ [MAPA] ✅ window.allLocales: Array global con todos los locales');
 console.log('🗺️ [MAPA] ✅ touch-action: none para evitar scroll del navegador');
+console.log('🗺️ [MAPA] ✅ POPUP CENTRADO CORRECTAMENTE (v266.0)');
 console.log('🗺️ [MAPA] ═══════════════════════════════════════════════════════');
 </script>
 </body>

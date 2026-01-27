@@ -32,9 +32,15 @@ interface SearchResult {
 }
 
 /**
- * ✅ SOCIAL FEED SEARCH v9.0 - FIXED KEYBOARD FOCUS LOSS (FINAL FIX)
+ * ✅ SOCIAL FEED SEARCH v10.0 - FULL PAGE WITH NAVIGATION
  * 
- * FIX v9.0:
+ * NEW FEATURES v10.0:
+ * - ✅ FULL PAGE: No longer a modal, now a full-page screen
+ * - ✅ NAVIGATION: Clicking on results navigates to profiles
+ * - ✅ USER PROFILES: Navigates to /perfil/usuario?userId={userId}
+ * - ✅ LOCAL PROFILES: Navigates to /perfil/local?localId={localId}
+ * 
+ * Previous features maintained (v9.0):
  * - ✅ CRITICAL: TextInput is ALWAYS rendered (no conditional rendering)
  * - ✅ CRITICAL: TextInput is a CONTROLLED component with stable state
  * - ✅ CRITICAL: Debounce with useEffect + cleanup (300ms)
@@ -67,7 +73,7 @@ export default function SocialSearchScreen() {
       const ids = new Set(data?.map(f => f.seguido_id) || []);
       setFollowedUserIds(ids);
     } catch (error) {
-      console.error('[SocialSearch v9.0] Error loading followed users:', error);
+      console.error('[SocialSearch v10.0] Error loading followed users:', error);
     }
   }, [user]);
 
@@ -87,7 +93,7 @@ export default function SocialSearchScreen() {
 
     setLoading(true);
     try {
-      console.log('[SocialSearch v9.0] 🔍 Searching for:', cleanQuery);
+      console.log('[SocialSearch v10.0] 🔍 Searching for:', cleanQuery);
       
       const allResults: SearchResult[] = [];
 
@@ -108,14 +114,14 @@ export default function SocialSearchScreen() {
             tipo: 'usuario' as const,
             isFollowing: followedUserIds.has(u.id),
           })));
-          console.log('[SocialSearch v9.0] ✅ Found', usersData.length, 'users');
+          console.log('[SocialSearch v10.0] ✅ Found', usersData.length, 'users');
         }
       } catch (error) {
-        console.error('[SocialSearch v9.0] Error searching users:', error);
+        console.error('[SocialSearch v10.0] Error searching users:', error);
       }
 
       try {
-        console.log('[SocialSearch v9.0] 🔍 Searching locals with query:', cleanQuery);
+        console.log('[SocialSearch v10.0] 🔍 Searching locals with query:', cleanQuery);
         
         const { data: localsData, error: localsError } = await supabase
           .from('locales')
@@ -125,9 +131,9 @@ export default function SocialSearchScreen() {
           .limit(50);
 
         if (localsError) {
-          console.error('[SocialSearch v9.0] ❌ Error searching locals:', localsError);
+          console.error('[SocialSearch v10.0] ❌ Error searching locals:', localsError);
         } else if (localsData && localsData.length > 0) {
-          console.log('[SocialSearch v9.0] 📍 Found', localsData.length, 'locals matching query');
+          console.log('[SocialSearch v10.0] 📍 Found', localsData.length, 'locals matching query');
           
           const localIds = localsData.map(l => l.id);
           
@@ -138,9 +144,9 @@ export default function SocialSearchScreen() {
             .eq('estado', 'activa');
 
           if (subsError) {
-            console.error('[SocialSearch v9.0] ❌ Error fetching subscriptions:', subsError);
+            console.error('[SocialSearch v10.0] ❌ Error fetching subscriptions:', subsError);
           } else if (subscriptionsData && subscriptionsData.length > 0) {
-            console.log('[SocialSearch v9.0] 📊 Found', subscriptionsData.length, 'active subscriptions');
+            console.log('[SocialSearch v10.0] 📊 Found', subscriptionsData.length, 'active subscriptions');
             
             const planIds = [...new Set(subscriptionsData.map(sub => sub.plan_id))];
             
@@ -150,9 +156,9 @@ export default function SocialSearchScreen() {
               .in('id', planIds);
 
             if (plansError) {
-              console.error('[SocialSearch v9.0] ❌ Error fetching plans:', plansError);
+              console.error('[SocialSearch v10.0] ❌ Error fetching plans:', plansError);
             } else if (plansData) {
-              console.log('[SocialSearch v9.0] 📋 Found', plansData.length, 'plans');
+              console.log('[SocialSearch v10.0] 📋 Found', plansData.length, 'plans');
               
               const planMap = new Map(plansData.map(plan => [plan.id, plan.nombre?.toLowerCase()]));
               
@@ -164,13 +170,13 @@ export default function SocialSearchScreen() {
                 })
                 .map(sub => sub.local_id);
 
-              console.log('[SocialSearch v9.0] ✅ Valid local IDs with paid plans:', validLocalIds);
+              console.log('[SocialSearch v10.0] ✅ Valid local IDs with paid plans:', validLocalIds);
 
               const filteredLocalsData = localsData.filter(local => 
                 validLocalIds.includes(local.id)
               );
 
-              console.log('[SocialSearch v9.0] ✅ Filtered locals with active plans:', filteredLocalsData.length);
+              console.log('[SocialSearch v10.0] ✅ Filtered locals with active plans:', filteredLocalsData.length);
 
               allResults.push(...filteredLocalsData.map(l => ({
                 id: l.id,
@@ -185,7 +191,7 @@ export default function SocialSearchScreen() {
           }
         }
       } catch (error) {
-        console.error('[SocialSearch v9.0] ❌ Error searching locals:', error);
+        console.error('[SocialSearch v10.0] ❌ Error searching locals:', error);
       }
 
       const sortedResults = allResults.sort((a, b) => {
@@ -208,13 +214,13 @@ export default function SocialSearchScreen() {
         return 0;
       });
 
-      console.log('[SocialSearch v9.0] ✅ Total results:', sortedResults.length, {
+      console.log('[SocialSearch v10.0] ✅ Total results:', sortedResults.length, {
         users: sortedResults.filter(r => r.tipo === 'usuario').length,
         locals: sortedResults.filter(r => r.tipo === 'local').length,
       });
       setResults(sortedResults);
     } catch (error) {
-      console.error('[SocialSearch v9.0] ❌ Error in searchUsersAndLocals:', error);
+      console.error('[SocialSearch v10.0] ❌ Error in searchUsersAndLocals:', error);
       setResults([]);
     } finally {
       setLoading(false);
@@ -223,11 +229,11 @@ export default function SocialSearchScreen() {
 
   // ✅ FIX v9.0: Debounce search with 300ms delay + cleanup
   useEffect(() => {
-    console.log('[SocialSearch v9.0] 📝 Search query changed:', searchQuery);
+    console.log('[SocialSearch v10.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
       if (searchQuery.length > 0) {
-        console.log('[SocialSearch v9.0] 🔍 Executing search after 300ms pause');
+        console.log('[SocialSearch v10.0] 🔍 Executing search after 300ms pause');
         searchUsersAndLocals(searchQuery);
       } else {
         setResults([]);
@@ -240,23 +246,23 @@ export default function SocialSearchScreen() {
     };
   }, [searchQuery, searchUsersAndLocals]);
 
+  // ✅ NEW v10.0: Navigate to profile on result click
   const handleSelectResult = (result: SearchResult) => {
+    console.log('[SocialSearch v10.0] 🚀 Navigating to profile:', result.tipo, result.id);
+    
     Keyboard.dismiss();
     
     if (result.tipo === 'usuario') {
       if (user && result.id === user.id) {
+        console.log('[SocialSearch v10.0] 👤 Navigating to own profile');
         router.push('/(tabs)/perfil');
       } else {
-        router.push({
-          pathname: '/perfil/usuario',
-          params: { userId: result.id },
-        });
+        console.log('[SocialSearch v10.0] 👤 Navigating to user profile:', result.id);
+        router.push(`/perfil/usuario?userId=${result.id}`);
       }
     } else {
-      router.push({
-        pathname: '/perfil/local',
-        params: { localId: result.id },
-      });
+      console.log('[SocialSearch v10.0] 🏪 Navigating to local profile:', result.id);
+      router.push(`/perfil/local?localId=${result.id}`);
     }
   };
 
