@@ -57,7 +57,8 @@ interface ProfileTabProps {
 }
 
 const ProfileTab = memo(({ isActive, onPress, avatarUrl }: ProfileTabProps) => {
-  const avatarSize = Platform.OS === 'android' ? 28 : 32;
+  // ✅ COMPACT TAB BAR v265.0: Reduced avatar size
+  const avatarSize = Platform.OS === 'android' ? 26 : 28;
   const [imageError, setImageError] = React.useState(false);
   const [imageLoaded, setImageLoaded] = React.useState(false);
   
@@ -199,8 +200,9 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     }
 
     if (isCenter) {
-      const centerButtonSize = Platform.OS === 'android' ? 56 : 64;
-      const centerIconSize = Platform.OS === 'android' ? 28 : 32;
+      // ✅ COMPACT TAB BAR v265.0: Reduced center button size
+      const centerButtonSize = Platform.OS === 'android' ? 52 : 56;
+      const centerIconSize = Platform.OS === 'android' ? 26 : 28;
 
       return (
         <TouchableOpacity
@@ -233,7 +235,8 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
       );
     }
 
-    const iconSize = Platform.OS === 'android' ? 24 : 28;
+    // ✅ COMPACT TAB BAR v265.0: Reduced icon size
+    const iconSize = Platform.OS === 'android' ? 22 : 24;
     
     return (
       <TouchableOpacity
@@ -252,8 +255,11 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     );
   }, [isTabActive, handleTabPress, avatarUrl, getAndroidIcon]);
 
-  const bottomNavHeight = Platform.OS === 'android' ? 60 : 70;
-  const tabBarPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 8) : Math.max(insets.bottom, 12);
+  // ✅ COMPACT TAB BAR v265.0: Reduced height and iOS bottom spacing
+  const bottomNavHeight = Platform.OS === 'android' ? 56 : 60;
+  const tabBarPaddingBottom = Platform.OS === 'android' 
+    ? Math.max(insets.bottom, 8) 
+    : Math.max(insets.bottom - 8, 4); // Reduced iOS bottom spacing
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
@@ -311,9 +317,10 @@ const styles = StyleSheet.create({
     right: 0,
     width: '100%',
   },
+  // ✅ COMPACT TAB BAR v265.0: Reduced padding
   tabBar: {
     flexDirection: 'row',
-    paddingTop: Platform.OS === 'android' ? 8 : 12,
+    paddingTop: Platform.OS === 'android' ? 6 : 8,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'space-evenly',

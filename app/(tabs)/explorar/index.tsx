@@ -47,7 +47,8 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 // ✅ CRITICAL PERFORMANCE FIX v229.0: INFINITE SCROLL WITH PROPER PAGINATION
 const ITEMS_PER_PAGE = 20;
 
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 260 : 360;
+// ✅ COMPACT HEADER v265.0: Reduced header height significantly
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 180 : 220;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -991,55 +992,60 @@ export default function ExplorarScreen() {
             </View>
           )}
         
-        <View style={[styles.searchContainer, { 
-          height: searchBoxHeight,
-          paddingVertical: Platform.OS === 'android' ? 10 : 10,
-        }]}>
-          <IconSymbol 
-            ios_icon_name="magnifyingglass" 
-            android_material_icon_name="search"
-            size={scaleIconSize(20)} 
-            color={colors.textSecondary}
-          />
-          <TextInput
-            style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
-            placeholder="Buscar locales..."
-            placeholderTextColor={colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-            blurOnSubmit={false}
-            enablesReturnKeyAutomatically={false}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity 
-              onPress={() => {
-                setSearchQuery('');
-                setDebouncedQuery('');
-              }}
-              style={styles.clearButton}
-              activeOpacity={0.7}
-            >
-              <IconSymbol 
-                ios_icon_name="xmark.circle.fill" 
-                android_material_icon_name="cancel"
-                size={scaleIconSize(20)} 
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          )}
+        {/* ✅ COMPACT HEADER v265.0: Redesigned compact layout */}
+        <View style={styles.compactSearchRow}>
+          <View style={[styles.searchContainer, { 
+            height: searchBoxHeight,
+            paddingVertical: Platform.OS === 'android' ? 8 : 8,
+            flex: 1,
+          }]}>
+            <IconSymbol 
+              ios_icon_name="magnifyingglass" 
+              android_material_icon_name="search"
+              size={scaleIconSize(18)} 
+              color={colors.textSecondary}
+            />
+            <TextInput
+              style={[styles.searchInput, { fontSize: scaleFontSize(15) }]}
+              placeholder="Buscar..."
+              placeholderTextColor={colors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+              blurOnSubmit={false}
+              enablesReturnKeyAutomatically={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity 
+                onPress={() => {
+                  setSearchQuery('');
+                  setDebouncedQuery('');
+                }}
+                style={styles.clearButton}
+                activeOpacity={0.7}
+              >
+                <IconSymbol 
+                  ios_icon_name="xmark.circle.fill" 
+                  android_material_icon_name="cancel"
+                  size={scaleIconSize(18)} 
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+          
           <TouchableOpacity 
             onPress={() => setMostrarFiltros(true)}
-            style={styles.filterIconButton}
+            style={styles.filterIconButtonCompact}
             activeOpacity={0.7}
           >
             <IconSymbol 
               ios_icon_name="slider.horizontal.3" 
               android_material_icon_name="tune" 
               size={scaleIconSize(20)} 
-              color={colors.primary} 
+              color={colors.headerText} 
             />
           </TouchableOpacity>
         </View>
@@ -1054,37 +1060,32 @@ export default function ExplorarScreen() {
           {CATEGORIAS.map((categoria) => (
             <TouchableOpacity
               key={categoria.id}
-              style={styles.categoriaButton}
+              style={styles.categoriaButtonCompact}
               onPress={() => {
-                console.log('[Explorar v264.0] 👆 Usuario seleccionó categoría:', categoria.id);
+                console.log('[Explorar v265.0] 👆 Usuario seleccionó categoría:', categoria.id);
                 setSelectedCategory(categoria.id);
               }}
               activeOpacity={0.7}
             >
               <View
                 style={[
-                  styles.categoriaIconContainer,
-                  {
-                    width: categoryIconSize,
-                    height: categoryIconSize,
-                    borderRadius: categoryIconSize / 4,
-                  },
+                  styles.categoriaIconContainerCompact,
                   selectedCategory === categoria.id && styles.categoriaIconContainerActive,
                 ]}
               >
                 <IconSymbol
                   ios_icon_name={categoria.iosIcon}
                   android_material_icon_name={categoria.androidIcon}
-                  size={categoryIconInnerSize}
+                  size={Platform.OS === 'android' ? 16 : 18}
                   color={selectedCategory === categoria.id ? colors.primary : colors.white}
                 />
               </View>
               <Text
                 style={[
-                  styles.categoriaLabel,
-                  { fontSize: scaleFontSize(12) },
+                  styles.categoriaLabelCompact,
                   selectedCategory === categoria.id && styles.categoriaLabelActive,
                 ]}
+                numberOfLines={1}
               >
                 {categoria.nombre}
               </Text>
@@ -1093,29 +1094,24 @@ export default function ExplorarScreen() {
         </ScrollView>
 
         <TouchableOpacity 
-          style={styles.claimBanner}
+          style={styles.claimBannerCompact}
           onPress={handleClaimOrCreateLocal}
           activeOpacity={0.8}
         >
-          <View style={styles.claimBannerContent}>
+          <View style={styles.claimBannerContentCompact}>
             <IconSymbol 
               ios_icon_name="building.2.fill" 
               android_material_icon_name="store" 
-              size={scaleIconSize(24)} 
+              size={scaleIconSize(20)} 
               color={colors.headerText} 
             />
-            <View style={styles.claimBannerTextContainer}>
-              <Text style={[styles.claimBannerTitle, { fontSize: scaleFontSize(15) }]}>
-                ¿Tienes un local?
-              </Text>
-              <Text style={[styles.claimBannerSubtitle, { fontSize: scaleFontSize(13) }]}>
-                Reclámalo o crea uno nuevo
-              </Text>
-            </View>
+            <Text style={[styles.claimBannerTitleCompact, { fontSize: scaleFontSize(14) }]}>
+              ¿Tienes un local?
+            </Text>
             <IconSymbol 
               ios_icon_name="chevron.right" 
               android_material_icon_name="chevron_right" 
-              size={scaleIconSize(20)} 
+              size={scaleIconSize(18)} 
               color={colors.headerText} 
             />
           </View>
@@ -1130,7 +1126,9 @@ export default function ExplorarScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
+            // ✅ COMPACT HEADER v265.0: Added margin to prevent content being covered
             marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 48 : HEADER_MAX_HEIGHT,
+            paddingTop: 16,
             paddingBottom: getContentBottomPadding(100)
           },
         ]}
@@ -1408,16 +1406,18 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     backgroundColor: colors.background,
   },
+  // ✅ COMPACT HEADER v265.0: Reduced padding significantly
   headerGradient: {
     paddingTop: Platform.OS === 'android' ? 44 : 50,
-    paddingBottom: Platform.OS === 'android' ? 16 : 20,
+    paddingBottom: Platform.OS === 'android' ? 8 : 12,
     paddingHorizontal: 16,
   },
+  // ✅ COMPACT HEADER v265.0: Reduced margins
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'android' ? 10 : 12,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
   },
   headerTitle: {
     fontWeight: 'bold',
@@ -1477,14 +1477,20 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontWeight: '500',
   },
+  // ✅ COMPACT HEADER v265.0: Compact search container
+  compactSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: Platform.OS === 'android' ? 10 : 12,
-    gap: 8,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    gap: 6,
   },
   searchInput: {
     flex: 1,
@@ -1500,8 +1506,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // ✅ COMPACT HEADER v265.0: Compact filter button
+  filterIconButtonCompact: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // ✅ COMPACT HEADER v265.0: Reduced margins
   categoriesScroll: {
-    marginBottom: Platform.OS === 'android' ? 10 : 12,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
     marginRight: -16,
   },
   categoriesContent: {
@@ -1514,7 +1530,24 @@ const styles = StyleSheet.create({
     gap: 6,
     minWidth: 70,
   },
+  // ✅ COMPACT HEADER v265.0: Compact category button
+  categoriaButtonCompact: {
+    alignItems: 'center',
+    gap: 4,
+    minWidth: 60,
+  },
   categoriaIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  // ✅ COMPACT HEADER v265.0: Compact category icon
+  categoriaIconContainerCompact: {
+    width: Platform.OS === 'android' ? 36 : 40,
+    height: Platform.OS === 'android' ? 36 : 40,
+    borderRadius: Platform.OS === 'android' ? 9 : 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary,
@@ -1526,6 +1559,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   categoriaLabel: {
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
+  // ✅ COMPACT HEADER v265.0: Compact category label
+  categoriaLabelCompact: {
+    fontSize: Platform.OS === 'android' ? 11 : 12,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
@@ -1559,6 +1599,27 @@ const styles = StyleSheet.create({
   claimBannerSubtitle: {
     fontWeight: '500',
     color: 'rgba(255, 255, 255, 0.8)',
+  },
+  // ✅ COMPACT HEADER v265.0: Compact claim banner
+  claimBannerCompact: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 10,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  claimBannerContentCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    gap: 8,
+  },
+  claimBannerTitleCompact: {
+    fontWeight: '600',
+    color: colors.headerText,
+    flex: 1,
   },
   listContent: {
     padding: 16,
