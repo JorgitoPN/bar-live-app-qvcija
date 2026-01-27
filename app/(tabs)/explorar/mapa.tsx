@@ -27,20 +27,33 @@ import { supabase } from '@/utils/supabase';
 const { width, height } = Dimensions.get('window');
 
 /**
- * 🚀🚀🚀 MAPA PROFESIONAL v1007.0 - ARQUITECTURA DE DOBLE CAPA OPTIMIZADA PARA 200K LOCALES 🚀🚀🚀
+ * 🚀🚀🚀 MAPA PROFESIONAL v1008.0 - ARQUITECTURA DE DOBLE CAPA OPTIMIZADA PARA 200K LOCALES 🚀🚀🚀
  * 
- * 📋 OPTIMIZACIONES CRÍTICAS v1007.0 - ESCALA A 200K LOCALES:
+ * 📋 OPTIMIZACIONES CRÍTICAS v1008.0 - ESCALA A 200K LOCALES:
  * 
- * 🔥🔥🔥 CAMBIOS IMPLEMENTADOS v1007.0:
+ * 🔥🔥🔥 CAMBIOS IMPLEMENTADOS v1008.0:
  * 
- * 1️⃣ DOBLE CAPA EN RAM (INSTANTANEIDAD) ✅ COMPLETADO
+ * 1️⃣ POPUP CENTRADO AUTOMÁTICO ✅ COMPLETADO
+ *    ✅ Al hacer clic en marcador, el mapa se centra automáticamente
+ *    ✅ El popup queda visible en el centro de la pantalla
+ *    ✅ Animación suave de centrado
+ * 
+ * 2️⃣ POPUP CUADRADO ✅ COMPLETADO
+ *    ✅ Ancho y alto iguales (280x280px)
+ *    ✅ Diseño cuadrado perfecto
+ * 
+ * 3️⃣ SIN ICONO DE CERRAR ✅ COMPLETADO
+ *    ✅ Eliminado el botón "x" de cerrar
+ *    ✅ Popup se cierra al hacer clic fuera
+ * 
+ * 4️⃣ DOBLE CAPA EN RAM (INSTANTANEIDAD) ✅ COMPLETADO
  *    ✅ clusterTodos y clusterAbiertos - Dos instancias separadas pre-calculadas
  *    ✅ Al descargar datos: añadir a clusterTodos SIEMPRE
  *    ✅ Al descargar datos: añadir a clusterAbiertos SOLO si está abierto
  *    ✅ Selector 'Todos/Abiertos': SOLO map.removeLayer() + map.addLayer()
  *    ✅ Garantiza 0ms de retraso - Intercambio instantáneo sin recálculo
  * 
- * 2️⃣ REPARACIÓN DE CATEGORÍAS ✅ COMPLETADO
+ * 5️⃣ REPARACIÓN DE CATEGORÍAS ✅ COMPLETADO
  *    ✅ filtrarCategoria(id) reconstruida desde cero
  *    ✅ clusterTodos.clearLayers() + clusterAbiertos.clearLayers()
  *    ✅ Recupera locales desde window.categoryIndex[id] (RAM)
@@ -48,27 +61,30 @@ const { width, height } = Dimensions.get('window');
  *    ✅ Reconstruye ambas capas simultáneamente
  *    ✅ Acceso desde RAM - Respuesta en milisegundos
  * 
- * 3️⃣ CARGA FLUIDA (chunkedLoading) ✅ COMPLETADO
+ * 6️⃣ CARGA FLUIDA (chunkedLoading) ✅ COMPLETADO
  *    ✅ chunkedLoading: true en ambos grupos de clústeres
  *    ✅ chunkInterval: 50ms - Intervalo optimizado para fluidez
  *    ✅ chunkDelay: 50ms - Delay entre chunks
  *    ✅ Elimina lag inicial al aparecer marcadores
  *    ✅ Mapa movible durante la carga progresiva
  * 
- * 4️⃣ SINCRONIZACIÓN DE MEMORIA ✅ COMPLETADO
+ * 7️⃣ SINCRONIZACIÓN DE MEMORIA ✅ COMPLETADO
  *    ✅ window.allLocales (Map) - Única fuente de verdad
  *    ✅ window.categoryIndex - Índice por categorías
  *    ✅ Si local no está en Map, no se dibuja
  *    ✅ Validación con window.allLocales.has(id)
  *    ✅ Evita duplicados y garantiza consistencia total
  * 
- * 5️⃣ LIMPIEZA DE LOGS ✅ COMPLETADO
+ * 8️⃣ LIMPIEZA DE LOGS ✅ COMPLETADO
  *    ✅ Eliminados todos los console.log pesados
  *    ✅ Solo comunicación crítica con React Native
  *    ✅ Reduce saturación del puente de comunicación
  *    ✅ Mejora fluidez general del sistema
  * 
  * 🎯 RESULTADOS ESPERADOS:
+ * ⚡ Popup: Centrado automático al hacer clic
+ * ⚡ Popup: Diseño cuadrado (280x280px)
+ * ⚡ Popup: Sin botón de cerrar
  * ⚡ Categorías: Actualización en <10ms (datos pre-organizados en RAM)
  * ⚡ Selector Abiertos: Interruptor instantáneo (0ms - solo swap de capas)
  * ⚡ Fluidez: Mapa movible sin congelación durante carga
@@ -81,6 +97,7 @@ const { width, height } = Dimensions.get('window');
  * - Carga progresiva con chunkedLoading
  * - Comunicación mínima con React Native
  * - Validación de duplicados con Map
+ * - Popup centrado automáticamente
  */
 
 const CATEGORIAS = [
@@ -254,11 +271,14 @@ export default function MapaScreen() {
     }, 250);
   }, [loadLocalesInBounds]);
 
-  // HTML con LEAFLET - ARQUITECTURA DE DOBLE CAPA
+  // HTML con LEAFLET - ARQUITECTURA DE DOBLE CAPA + POPUP CENTRADO
   const mapHTML = useMemo(() => {
     const initialLat = userLocation?.lat || 40.4168;
     const initialLng = userLocation?.lng || -3.7038;
     const initialZoom = userLocation ? 13 : 6;
+    
+    // Tamaño del popup cuadrado
+    const popupSize = 280;
     
     return `<!DOCTYPE html>
 <html>
@@ -274,13 +294,14 @@ export default function MapaScreen() {
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 #map{width:100%;height:100%;position:absolute;top:0;left:0;background:#A8E0FF}
-.leaflet-popup-content-wrapper{border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3)}
-.leaflet-popup-content{margin:0;max-width:${Platform.OS === 'android' ? '260px' : '280px'}!important}
-.popup-img{width:100%;height:${Platform.OS === 'android' ? '120px' : '140px'};object-fit:cover;display:block}
-.popup-info{padding:${Platform.OS === 'android' ? '10px' : '12px'}}
-.popup-title{font-size:${Platform.OS === 'android' ? '15px' : '16px'};font-weight:700;margin-bottom:8px;color:#202124}
-.popup-categories{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-.popup-category-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:${Platform.OS === 'android' ? '11px' : '12px'};font-weight:700;color:#FFF}
+.leaflet-popup-content-wrapper{border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);width:${popupSize}px!important;height:${popupSize}px!important}
+.leaflet-popup-content{margin:0;width:${popupSize}px!important;height:${popupSize}px!important;display:flex;flex-direction:column}
+.leaflet-popup-close-button{display:none!important}
+.popup-img{width:100%;height:${Math.floor(popupSize * 0.5)}px;object-fit:cover;display:block;flex-shrink:0}
+.popup-info{padding:12px;flex:1;display:flex;flex-direction:column;overflow:hidden}
+.popup-title{font-size:14px;font-weight:700;margin-bottom:6px;color:#202124;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.popup-categories{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.popup-category-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;color:#FFF}
 .cat-bar{background:#F59E0B}
 .cat-restaurante{background:#EF4444}
 .cat-cafe{background:#8B5CF6}
@@ -288,12 +309,12 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 .cat-pub{background:#10B981}
 .cat-discoteca{background:#EC4899}
 .cat-cocteleria{background:#3B82F6}
-.popup-estado{display:inline-block;padding:4px 10px;border-radius:6px;font-size:${Platform.OS === 'android' ? '11px' : '12px'};font-weight:600;color:#FFF;margin-bottom:8px}
+.popup-estado{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;color:#FFF;margin-bottom:6px}
 .estado-abierto{background:#22C55E}
 .estado-cerrado{background:#EF4444}
 .estado-sin_info{background:#9CA3AF}
-.popup-rating{display:flex;align-items:center;gap:4px;margin-bottom:10px;font-size:${Platform.OS === 'android' ? '12px' : '13px'};color:#70757A}
-.popup-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#14B8A6;color:#FFF!important;padding:${Platform.OS === 'android' ? '9px' : '10px'};border-radius:8px;text-decoration:none;font-weight:700;font-size:${Platform.OS === 'android' ? '12px' : '13px'};transition:background .2s;cursor:pointer}
+.popup-rating{display:flex;align-items:center;gap:4px;margin-bottom:8px;font-size:11px;color:#70757A}
+.popup-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#14B8A6;color:#FFF!important;padding:8px;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;transition:background .2s;cursor:pointer;margin-top:auto}
 .popup-btn:hover{background:#0D9488}
 .leaflet-control-attribution{display:none!important}
 .marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background-color:rgba(20,184,166,0.6)!important}
@@ -412,7 +433,7 @@ window.addAllMarkers = function(localesData) {
       });
     }
     
-    var popupContent = '<div>' +
+    var popupContent = '<div style="width:100%;height:100%;display:flex;flex-direction:column">' +
       '<img src="' + local.imagen + '" class="popup-img" onerror="this.src=\\'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400\\'"/>' +
       '<div class="popup-info">' +
       '<div class="popup-title">' + local.nombre + '</div>' +
@@ -425,7 +446,21 @@ window.addAllMarkers = function(localesData) {
       '</div>' +
       '</div>';
     
-    marker.bindPopup(popupContent);
+    // 🚀🚀🚀 CENTRADO AUTOMÁTICO AL ABRIR POPUP
+    marker.bindPopup(popupContent, {
+      closeButton: false,
+      maxWidth: ${popupSize},
+      minWidth: ${popupSize}
+    });
+    
+    // Evento al abrir popup - centrar mapa
+    marker.on('popupopen', function(e) {
+      var px = map.project(e.target.getLatLng());
+      var popupHeight = ${popupSize};
+      px.y -= popupHeight / 2;
+      var newLatLng = map.unproject(px);
+      map.panTo(newLatLng, { animate: true, duration: 0.5 });
+    });
     
     // 🔥 DISTRIBUIR EN AMBAS CAPAS
     // Añadir a clusterTodos SIEMPRE
