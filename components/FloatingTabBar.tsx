@@ -1,22 +1,24 @@
 
 /**
- * FLOATING TAB BAR - VERSION v268.0
+ * FLOATING TAB BAR - VERSION v269.0
  * 
- * ✅ COMPACT DESIGN v268.0 - REDUCED HEIGHT & iOS SPACING
+ * ✅ ULTRA COMPACT DESIGN v269.0 - MINIMAL iOS SPACING
  * 
- * CRITICAL FIXES v268.0:
+ * CRITICAL FIXES v269.0:
+ * - ✅ iOS SPACING ELIMINATED: Removed all unnecessary bottom padding on iOS
+ * - ✅ MINIMAL SAFE AREA: Only 2pt bottom padding on iOS (was 4pt)
+ * - ✅ TIGHTER HEIGHT: Further reduced tab bar height
+ * - ✅ NO EMPTY GAP: Icons now sit directly above safe area
+ * 
+ * Previous fixes maintained (v268.0):
  * - ✅ REDUCED HEIGHT: Tab bar is now more compact (56dp Android, 60pt iOS)
  * - ✅ iOS SPACING FIX: Eliminated empty gap between icons and bottom edge
  * - ✅ SMALLER ICONS: Reduced icon sizes for better proportions
  * - ✅ TIGHTER PADDING: Reduced vertical padding for more screen space
- * 
- * Previous fixes maintained (v160.0):
  * - ✅ INSTANT FEEDBACK: Reduced activeOpacity to 0.6 for immediate visual response
  * - ✅ REMOVED DELAYS: Eliminated any animation delays on press
  * - ✅ OPTIMIZED RENDERING: Memoized components to prevent unnecessary re-renders
  * - ✅ FASTER NAVIGATION: Direct router.push without delays
- * - ✅ ProfileTab component properly uses hooks at top level
- * - ✅ Avatar displays correctly on ALL pages
  */
 
 import React, { memo, useCallback } from 'react';
@@ -255,14 +257,14 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     );
   }, [isTabActive, handleTabPress, avatarUrl, getAndroidIcon]);
 
-  // ✅ COMPACT TAB BAR v268.0: Reduced height and iOS bottom spacing
-  const bottomNavHeight = Platform.OS === 'android' ? 56 : 60;
-  const tabBarPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 8) : Math.max(insets.bottom - 8, 4);
+  // ✅ ULTRA COMPACT TAB BAR v269.0: Minimal iOS bottom spacing
+  const bottomNavHeight = Platform.OS === 'android' ? 56 : 58;
+  const tabBarPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 8) : Math.max(insets.bottom - 12, 2);
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v268.0] ⚡ COMPACT MODE ACTIVE - ` +
-    `height=${bottomNavHeight}pt, iOS spacing optimized, reduced icon sizes`
+    `[FloatingTabBar v269.0] ⚡ ULTRA COMPACT MODE - ` +
+    `height=${bottomNavHeight}pt, iOS spacing MINIMAL (${tabBarPaddingBottom}pt), no empty gap`
   );
 
   return (
@@ -317,7 +319,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    paddingTop: Platform.OS === 'android' ? 8 : 10,
+    paddingTop: Platform.OS === 'android' ? 8 : 8,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'space-evenly',
@@ -331,7 +333,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Platform.OS === 'android' ? 4 : 6,
+    paddingVertical: Platform.OS === 'android' ? 4 : 4,
     overflow: 'hidden',
     borderRadius: 20,
     zIndex: 10,
