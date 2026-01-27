@@ -47,8 +47,8 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 // ✅ CRITICAL PERFORMANCE FIX v229.0: INFINITE SCROLL WITH PROPER PAGINATION
 const ITEMS_PER_PAGE = 20;
 
-// ✅ COMPACT HEADER v268.0: Reduced header height for more content space
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 300;
+// ✅ ULTRA COMPACT HEADER v269.0: Further reduced header height for maximum content space
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 260;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -74,26 +74,22 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v268.0 - COMPACT HEADER DESIGN
+ * ✅ EXPLORAR SCREEN v269.0 - ULTRA COMPACT HEADER DESIGN
  * 
- * NEW FEATURES v268.0:
- * - ✅ COMPACT HEADER: Reduced header height (220dp Android, 300pt iOS)
+ * NEW FEATURES v269.0:
+ * - ✅ ULTRA COMPACT HEADER: Further reduced header height (200dp Android, 260pt iOS)
+ * - ✅ MINIMAL SPACING: Reduced all padding and margins to absolute minimum
+ * - ✅ MAXIMUM CONTENT SPACE: Users can see significantly more venues
+ * - ✅ MAINTAINED FUNCTIONALITY: All features preserved, just ultra compact
+ * 
+ * Previous fixes maintained (v268.0):
+ * - ✅ COMPACT HEADER: Reduced header height
  * - ✅ TIGHTER SPACING: Reduced padding and margins throughout header
  * - ✅ MORE CONTENT SPACE: Users can see more venues without scrolling
- * - ✅ MAINTAINED FUNCTIONALITY: All features preserved, just more compact
- * 
- * Previous fixes maintained (v264.0):
  * - ✅ OPTIMISTIC UI: Uses FavoritesContext for instant heart icon updates
  * - ✅ NO LOADING INDICATORS: Heart icon changes immediately
  * - ✅ BACKGROUND SYNC: Server request happens asynchronously
  * - ✅ ERROR HANDLING: Reverts UI state if server request fails
- * - ✅ CRITICAL: TextInput is DIRECTLY in return (no conditional rendering)
- * - ✅ CRITICAL: Controlled component with value={searchQuery}
- * - ✅ CRITICAL: Debounce with useEffect + cleanup (300ms)
- * - ✅ CRITICAL: Separate states: searchQuery (immediate) vs debouncedQuery (filtered)
- * - ✅ CRITICAL: FlatList has keyboardShouldPersistTaps="handled"
- * - ✅ CRITICAL: TextInput has blurOnSubmit={false}
- * - ✅ CRITICAL: No component functions declared inside parent
  */
 
 export default function ExplorarScreen() {
@@ -1415,14 +1411,14 @@ const styles = StyleSheet.create({
   },
   headerGradient: {
     paddingTop: Platform.OS === 'android' ? 40 : 44,
-    paddingBottom: Platform.OS === 'android' ? 12 : 14,
+    paddingBottom: Platform.OS === 'android' ? 8 : 10,
     paddingHorizontal: 16,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'android' ? 8 : 10,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
   },
   headerTitle: {
     fontWeight: 'bold',
@@ -1488,7 +1484,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     paddingHorizontal: 12,
-    marginBottom: Platform.OS === 'android' ? 8 : 10,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
     gap: 8,
   },
   searchInput: {
@@ -1506,7 +1502,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoriesScroll: {
-    marginBottom: Platform.OS === 'android' ? 8 : 10,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
     marginRight: -16,
   },
   categoriesContent: {
@@ -1542,7 +1538,7 @@ const styles = StyleSheet.create({
   claimBanner: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 12,
-    marginBottom: Platform.OS === 'android' ? 6 : 8,
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
@@ -1550,8 +1546,8 @@ const styles = StyleSheet.create({
   claimBannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
-    gap: 10,
+    padding: 8,
+    gap: 8,
   },
   claimBannerTextContainer: {
     flex: 1,
