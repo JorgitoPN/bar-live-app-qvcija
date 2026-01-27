@@ -27,9 +27,9 @@ import { supabase } from '@/utils/supabase';
 const { width, height } = Dimensions.get('window');
 
 /**
- * 🚀🚀🚀 MAPA PROFESIONAL v1008.0 - ARQUITECTURA DE DOBLE CAPA OPTIMIZADA PARA 200K LOCALES 🚀🚀🚀
+ * 🚀🚀🚀 MAPA PROFESIONAL v1009.0 - POPUP RESPONSIVE + ARQUITECTURA DE DOBLE CAPA 🚀🚀🚀
  * 
- * 📋 OPTIMIZACIONES CRÍTICAS v1008.0 - ESCALA A 200K LOCALES:
+ * 📋 OPTIMIZACIONES CRÍTICAS v1009.0 - POPUP RESPONSIVE:
  * 
  * 🔥🔥🔥 CAMBIOS IMPLEMENTADOS v1008.0:
  * 
@@ -38,9 +38,10 @@ const { width, height } = Dimensions.get('window');
  *    ✅ El popup queda visible en el centro de la pantalla
  *    ✅ Animación suave de centrado
  * 
- * 2️⃣ POPUP CUADRADO ✅ COMPLETADO
- *    ✅ Ancho y alto iguales (280x280px)
- *    ✅ Diseño cuadrado perfecto
+ * 2️⃣ POPUP RESPONSIVE ✅ COMPLETADO v1009.0
+ *    ✅ Dimensiones: 260px ancho x 300px alto (ligeramente más alto que ancho)
+ *    ✅ Diseño responsive con contenido adaptable
+ *    ✅ Mejor proporción para mostrar información
  * 
  * 3️⃣ SIN ICONO DE CERRAR ✅ COMPLETADO
  *    ✅ Eliminado el botón "x" de cerrar
@@ -277,8 +278,9 @@ export default function MapaScreen() {
     const initialLng = userLocation?.lng || -3.7038;
     const initialZoom = userLocation ? 13 : 6;
     
-    // Tamaño del popup cuadrado
-    const popupSize = 280;
+    // Tamaño del popup - ligeramente más alto que ancho para mejor responsividad
+    const popupWidth = 260;
+    const popupHeight = 300;
     
     return `<!DOCTYPE html>
 <html>
@@ -294,11 +296,11 @@ export default function MapaScreen() {
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 #map{width:100%;height:100%;position:absolute;top:0;left:0;background:#A8E0FF}
-.leaflet-popup-content-wrapper{border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);width:${popupSize}px!important;height:${popupSize}px!important}
-.leaflet-popup-content{margin:0;width:${popupSize}px!important;height:${popupSize}px!important;display:flex;flex-direction:column}
+.leaflet-popup-content-wrapper{border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);width:${popupWidth}px!important;height:${popupHeight}px!important}
+.leaflet-popup-content{margin:0;width:${popupWidth}px!important;height:${popupHeight}px!important;display:flex;flex-direction:column}
 .leaflet-popup-close-button{display:none!important}
-.popup-img{width:100%;height:${Math.floor(popupSize * 0.5)}px;object-fit:cover;display:block;flex-shrink:0}
-.popup-info{padding:12px;flex:1;display:flex;flex-direction:column;overflow:hidden}
+.popup-img{width:100%;height:${Math.floor(popupHeight * 0.45)}px;object-fit:cover;display:block;flex-shrink:0}
+.popup-info{padding:12px;flex:1;display:flex;flex-direction:column;overflow:hidden;justify-content:space-between}
 .popup-title{font-size:14px;font-weight:700;margin-bottom:6px;color:#202124;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .popup-categories{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
 .popup-category-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;color:#FFF}
@@ -449,15 +451,15 @@ window.addAllMarkers = function(localesData) {
     // 🚀🚀🚀 CENTRADO AUTOMÁTICO AL ABRIR POPUP
     marker.bindPopup(popupContent, {
       closeButton: false,
-      maxWidth: ${popupSize},
-      minWidth: ${popupSize}
+      maxWidth: ${popupWidth},
+      minWidth: ${popupWidth}
     });
     
     // Evento al abrir popup - centrar mapa
     marker.on('popupopen', function(e) {
       var px = map.project(e.target.getLatLng());
-      var popupHeight = ${popupSize};
-      px.y -= popupHeight / 2;
+      var popupHeightValue = ${popupHeight};
+      px.y -= popupHeightValue / 2;
       var newLatLng = map.unproject(px);
       map.panTo(newLatLng, { animate: true, duration: 0.5 });
     });
