@@ -1,12 +1,11 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
-import SearchModal from '@/components/social/SearchModal';
 
 interface HeaderSocialProps {
   unreadNotifications: number;
@@ -15,14 +14,14 @@ interface HeaderSocialProps {
 }
 
 /**
- * ✅ HEADER SOCIAL v107.0 - SEARCH FUNCTIONALITY ADDED
+ * ✅ HEADER SOCIAL v108.0 - SEARCH AS FULL PAGE
  * 
- * NEW FEATURES v107.0:
- * - ✅ Added search icon button in header
- * - ✅ Opens SearchModal with predictive search for users and locals with active plans
- * - ✅ Follow/unfollow buttons in search results
+ * NEW FEATURES v108.0:
+ * - ✅ NAVIGATION: Search button now navigates to /social/search (full page)
+ * - ✅ NO MODAL: Removed SearchModal component usage
+ * - ✅ BETTER UX: Full-page search provides better navigation consistency
  * 
- * Previous fixes maintained (v106.0):
+ * Previous fixes maintained (v107.0):
  * - ✅ Fixed + icon on Android: Changed from "add_box" to "add_circle" (valid Material icon)
  * - ✅ All icons use valid Material Icons names
  */
@@ -33,104 +32,98 @@ export default function HeaderSocial({
   onCreatePost 
 }: HeaderSocialProps) {
   const router = useRouter();
-  const [searchModalVisible, setSearchModalVisible] = useState(false);
 
   return (
-    <>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
-      >
-        <View style={styles.headerContent}>
-          <Text style={[
-            styles.headerTitle,
-            { fontSize: Platform.OS === 'android' ? scaleFontSize(30) : 32 }
-          ]}>
-            Social
-          </Text>
-          <View style={styles.headerActions}>
-            {/* ✅ NEW v107.0: Search button */}
-            <TouchableOpacity 
-              style={styles.headerButton}
-              onPress={() => setSearchModalVisible(true)}
-              activeOpacity={0.7}
-            >
-              <IconSymbol 
-                ios_icon_name="magnifyingglass" 
-                android_material_icon_name="search" 
-                size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
-                color={colors.headerText} 
-              />
-            </TouchableOpacity>
+    <LinearGradient
+      colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+      style={styles.header}
+    >
+      <View style={styles.headerContent}>
+        <Text style={[
+          styles.headerTitle,
+          { fontSize: Platform.OS === 'android' ? scaleFontSize(30) : 32 }
+        ]}>
+          Social
+        </Text>
+        <View style={styles.headerActions}>
+          {/* ✅ NEW v108.0: Navigate to full-page search instead of modal */}
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => {
+              console.log('[HeaderSocial v108.0] 🔍 Navigating to full-page search');
+              router.push('/social/search');
+            }}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="magnifyingglass" 
+              android_material_icon_name="search" 
+              size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+              color={colors.headerText} 
+            />
+          </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={styles.headerButton}
-              onPress={onCreatePost}
-              activeOpacity={0.7}
-            >
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={onCreatePost}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="plus.app" 
+              android_material_icon_name="add_circle" 
+              size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+              color={colors.headerText} 
+            />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => router.push('/(tabs)/perfil/notificaciones')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.iconContainer}>
               <IconSymbol 
-                ios_icon_name="plus.app" 
-                android_material_icon_name="add_circle" 
+                ios_icon_name="bell.fill" 
+                android_material_icon_name="notifications" 
                 size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
                 color={colors.headerText} 
               />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.headerButton}
-              onPress={() => router.push('/(tabs)/perfil/notificaciones')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.iconContainer}>
-                <IconSymbol 
-                  ios_icon_name="bell.fill" 
-                  android_material_icon_name="notifications" 
-                  size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
-                  color={colors.headerText} 
-                />
-                {unreadNotifications > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
-                      {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.headerButton}
-              onPress={() => router.push('/(tabs)/perfil/chats')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.iconContainer}>
-                <IconSymbol 
-                  ios_icon_name="message.fill" 
-                  android_material_icon_name="message" 
-                  size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
-                  color={colors.headerText} 
-                />
-                {unreadMessages > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
-                      {unreadMessages > 99 ? '99+' : unreadMessages}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
+              {unreadNotifications > 0 && (
+                <View style={styles.badge}>
+                  <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => router.push('/(tabs)/perfil/chats')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.iconContainer}>
+              <IconSymbol 
+                ios_icon_name="message.fill" 
+                android_material_icon_name="message" 
+                size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+                color={colors.headerText} 
+              />
+              {unreadMessages > 0 && (
+                <View style={styles.badge}>
+                  <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
+                    {unreadMessages > 99 ? '99+' : unreadMessages}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
         </View>
-      </LinearGradient>
-
-      {/* ✅ NEW v107.0: Search modal */}
-      <SearchModal
-        visible={searchModalVisible}
-        onClose={() => setSearchModalVisible(false)}
-      />
-    </>
+      </View>
+    </LinearGradient>
   );
 }
 

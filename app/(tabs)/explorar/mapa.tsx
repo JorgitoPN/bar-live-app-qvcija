@@ -82,18 +82,18 @@ const { width, height } = Dimensions.get('window');
  * - 🔴 Rojo (#EF4444): Local cerrado
  * - ⚪ Gris (#9CA3AF): Sin información
  * 
- * 🔧 FIXES APLICADOS v266.0 (POPUP CENTRADO CORRECTAMENTE):
+ * 🔧 FIXES APLICADOS v267.0 (POPUP CENTRADO DINÁMICAMENTE):
  * ═══════════════════════════════════════════════════════════════
- * 1. ✅ POPUP CENTRADO: El popup ahora se centra correctamente en la pantalla
- * 2. ✅ OFFSET VERTICAL: Se calcula el offset para que el popup quede visible
- * 3. ✅ NO DESAPARECE: El popup permanece visible después del zoom automático
- * 4. ✅ ALTURA DINÁMICA: Se ajusta según el tamaño del popup (280px)
- * 5. ✅ ANIMACIÓN SUAVE: flyTo con duración de 500ms
+ * 1. ✅ CENTRADO DINÁMICO: El popup se centra DESPUÉS del zoom automático
+ * 2. ✅ CALLBACK ENCADENADO: flyTo → onMoveEnd → centrar popup
+ * 3. ✅ ALTURA DINÁMICA: Calcula la altura real del popup desde el DOM
+ * 4. ✅ OFFSET PRECISO: Usa map.project/unproject para calcular el desplazamiento exacto
+ * 5. ✅ SIEMPRE VISIBLE: El popup permanece completamente visible en pantalla
+ * 6. ✅ ANIMACIÓN SUAVE: Segundo flyTo con duración de 400ms
  * 
- * Previous fixes maintained (v263.0):
+ * Previous fixes maintained (v266.0):
  * - ✅ BLOQUEO DE CLUSTERS: Verifica clusters PRIMERO con queryRenderedFeatures
  * - ✅ Return inmediato si es cluster (evita popup erróneo)
- * - ✅ Cambio de touchstart a click para mejor compatibilidad con clusters
  * - ✅ SINCRONIZACIÓN DE FILTROS: Valida categoría y estado antes de calcular distancia
  * - ✅ Ignora locales ocultos por filtros (no abre popup)
  * - ✅ TOLERANCIA REDUCIDA: 20px (más preciso que 30px)
@@ -578,6 +578,9 @@ map.on('load', function() {
 // 🚀 VARIABLE GLOBAL PARA ALMACENAR TODOS LOS LOCALES
 window.allLocales = [];
 
+// 🚀 VARIABLE GLOBAL PARA ALMACENAR EL POPUP ACTUAL
+window.currentPopup = null;
+
 // 🚀 FILTROS PARA MAPLIBRE
 window.filtros = {
   cat: 'todas',
@@ -851,7 +854,14 @@ function showPopupForFeature(feature, coordinates) {
     '</div>' +
     '</div>';
   
-  new maplibregl.Popup({
+  // ✅ Cerrar popup anterior si existe
+  if (window.currentPopup) {
+    window.currentPopup.remove();
+    window.currentPopup = null;
+  }
+  
+  // ✅ Crear nuevo popup
+  window.currentPopup = new maplibregl.Popup({
     closeButton: false,
     closeOnClick: true,
     maxWidth: '${Platform.OS === 'android' ? '260px' : '280px'}',
@@ -862,11 +872,11 @@ function showPopupForFeature(feature, coordinates) {
     .addTo(map);
 }
 
-// 🚀🚀🚀 DETECCIÓN MANUAL POR PROXIMIDAD EN PÍXELES CON FILTROS SINCRONIZADOS v266.0 🚀🚀🚀
+// 🚀🚀🚀 DETECCIÓN MANUAL POR PROXIMIDAD EN PÍXELES CON CENTRADO DINÁMICO v267.0 🚀🚀🚀
 // ✅ PASO 1: BLOQUEO DE CLUSTERS (PRIORIDAD MÁXIMA)
 // ✅ PASO 2: SINCRONIZA CON FILTROS ACTIVOS (categoría y estado)
 // ✅ PASO 3: BÚSQUEDA DEL MÁS CERCANO con tolerancia reducida (20px)
-// ✅ PASO 4: AUTO-CENTRADO del popup en el centro de la pantalla (CORREGIDO v266.0)
+// ✅ PASO 4: AUTO-CENTRADO DINÁMICO del popup DESPUÉS del zoom (NUEVO v267.0)
 map.on('click', function(e) {
   console.log('🗺️ [MAPA] 🎯 Click detectado - iniciando proceso de 4 pasos');
   
@@ -977,7 +987,7 @@ map.on('click', function(e) {
   console.log('🗺️ [MAPA] 📊 Locales visibles:', localesEvaluados - localesFiltrados);
   
   // ═══════════════════════════════════════════════════════════════
-  // 🚨 PASO 4: SI SE DETECTÓ UN LOCAL, ABRIR POPUP Y AUTO-CENTRAR (CORREGIDO v266.0)
+  // 🚨 PASO 4: SI SE DETECTÓ UN LOCAL, ABRIR POPUP Y AUTO-CENTRAR DINÁMICAMENTE (NUEVO v267.0)
   // ═══════════════════════════════════════════════════════════════
   if (detectado) {
     console.log('🗺️ [MAPA] 🎉 Local MÁS CERCANO encontrado:', detectado.nombre);
@@ -1000,42 +1010,19 @@ map.on('click', function(e) {
       } 
     };
     
-    // ✅ FIX v266.0: CENTRADO CORRECTO DEL POPUP
-    // El popup aparece ARRIBA del marcador, así que necesitamos desplazar el centro hacia ARRIBA
-    // para que el popup quede centrado en la pantalla, no el marcador
+    // ✅ FIX v267.0: CENTRADO DINÁMICO DEL POPUP DESPUÉS DEL ZOOM
+    // ESTRATEGIA:
+    // 1. Hacer zoom al marcador (zoom 17)
+    // 2. ESPERAR a que termine el zoom (evento 'moveend')
+    // 3. Abrir el popup
+    // 4. Calcular la altura REAL del popup desde el DOM
+    // 5. Ajustar el centro del mapa para que el popup quede centrado en pantalla
     
-    // 1. Primero, abrir el popup en las coordenadas del marcador
-    showPopupForFeature(fakeFeature, coords);
+    console.log('🗺️ [MAPA] 🎯 v267.0: Iniciando centrado dinámico del popup');
     
-    // 2. Calcular el offset necesario para centrar el POPUP (no el marcador)
-    // Altura aproximada del popup en píxeles
-    var popupHeightPixels = ${Platform.OS === 'android' ? '240' : '280'};
-    
-    // Obtener el punto del marcador en píxeles
-    var markerPoint = map.project(coords);
-    
-    // El popup aparece ARRIBA del marcador, así que el centro del popup está en:
-    // markerPoint.y - popupHeightPixels/2
-    // Queremos que ese punto quede en el centro de la pantalla (window.innerHeight/2)
-    
-    // Calcular el offset necesario
-    var screenCenterY = window.innerHeight / 2;
-    var popupCenterY = markerPoint.y - popupHeightPixels / 2;
-    var offsetY = screenCenterY - popupCenterY;
-    
-    // Aplicar el offset al punto del marcador
-    var targetPoint = { x: markerPoint.x, y: markerPoint.y + offsetY };
-    var targetCoords = map.unproject(targetPoint);
-    
-    console.log('🗺️ [MAPA] 📐 Calculando centrado del popup:');
-    console.log('🗺️ [MAPA] 📐 - Altura del popup:', popupHeightPixels, 'px');
-    console.log('🗺️ [MAPA] 📐 - Centro de pantalla Y:', screenCenterY, 'px');
-    console.log('🗺️ [MAPA] 📐 - Centro del popup Y:', popupCenterY, 'px');
-    console.log('🗺️ [MAPA] 📐 - Offset necesario Y:', offsetY, 'px');
-    
-    // 3. Hacer flyTo con animación suave
+    // Paso 1: Hacer zoom al marcador
     map.flyTo({
-      center: targetCoords,
+      center: coords,
       zoom: 17,
       speed: 1.2,
       curve: 1,
@@ -1043,8 +1030,63 @@ map.on('click', function(e) {
       essential: true
     });
     
-    console.log('🗺️ [MAPA] ✅ Popup abierto y mapa AUTO-CENTRADO correctamente (v266.0)');
-    console.log('🗺️ [MAPA] ✅ El POPUP ahora queda centrado en la pantalla, no el marcador');
+    // Paso 2: Esperar a que termine el zoom
+    var onMoveEnd = function() {
+      console.log('🗺️ [MAPA] ✅ Zoom completado, abriendo popup');
+      
+      // Paso 3: Abrir el popup
+      showPopupForFeature(fakeFeature, coords);
+      
+      // Paso 4: Esperar un frame para que el popup se renderice en el DOM
+      setTimeout(function() {
+        // Obtener la altura REAL del popup desde el DOM
+        var popupElement = document.querySelector('.maplibregl-popup-content');
+        var popupHeight = popupElement ? popupElement.offsetHeight : ${Platform.OS === 'android' ? '240' : '280'};
+        
+        console.log('🗺️ [MAPA] 📐 Altura real del popup:', popupHeight, 'px');
+        
+        // Paso 5: Calcular el offset necesario para centrar el POPUP (no el marcador)
+        var markerPoint = map.project(coords);
+        var screenCenterY = window.innerHeight / 2;
+        
+        // El popup aparece ARRIBA del marcador con un offset de ~10px
+        var popupTopY = markerPoint.y - popupHeight - 10;
+        var popupCenterY = popupTopY + (popupHeight / 2);
+        
+        // Calcular cuánto necesitamos desplazar el mapa
+        var offsetY = screenCenterY - popupCenterY;
+        
+        console.log('🗺️ [MAPA] 📐 Calculando centrado del popup:');
+        console.log('🗺️ [MAPA] 📐 - Altura del popup:', popupHeight, 'px');
+        console.log('🗺️ [MAPA] 📐 - Centro de pantalla Y:', screenCenterY, 'px');
+        console.log('🗺️ [MAPA] 📐 - Centro del popup Y:', popupCenterY, 'px');
+        console.log('🗺️ [MAPA] 📐 - Offset necesario Y:', offsetY, 'px');
+        
+        // Aplicar el offset al punto del marcador
+        var targetPoint = { x: markerPoint.x, y: markerPoint.y + offsetY };
+        var targetCoords = map.unproject(targetPoint);
+        
+        // Paso 6: Hacer un segundo flyTo para centrar el popup
+        map.flyTo({
+          center: targetCoords,
+          zoom: 17,
+          speed: 1.5,
+          curve: 1,
+          duration: 400,
+          essential: true
+        });
+        
+        console.log('🗺️ [MAPA] ✅ Popup centrado dinámicamente en la pantalla (v267.0)');
+        console.log('🗺️ [MAPA] ✅ El POPUP ahora queda completamente visible y centrado');
+      }, 100);
+      
+      // Remover el listener para evitar múltiples ejecuciones
+      map.off('moveend', onMoveEnd);
+    };
+    
+    // Registrar el listener
+    map.on('moveend', onMoveEnd);
+    
   } else {
     console.log('🗺️ [MAPA] ❌ No se encontró ningún local visible en el área de proximidad');
     console.log('🗺️ [MAPA] 💡 Posibles razones:');
@@ -1118,7 +1160,8 @@ console.log('🗺️ [MAPA] ✅ SINCRONIZACIÓN CON FILTROS: valida categoría y
 console.log('🗺️ [MAPA] ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)');
 console.log('🗺️ [MAPA] ✅ window.allLocales: Array global con todos los locales');
 console.log('🗺️ [MAPA] ✅ touch-action: none para evitar scroll del navegador');
-console.log('🗺️ [MAPA] ✅ POPUP CENTRADO CORRECTAMENTE (v266.0)');
+console.log('🗺️ [MAPA] ✅ POPUP CENTRADO DINÁMICAMENTE (v267.0)');
+console.log('🗺️ [MAPA] ✅ Altura del popup calculada desde el DOM');
 console.log('🗺️ [MAPA] ═══════════════════════════════════════════════════════');
 </script>
 </body>
