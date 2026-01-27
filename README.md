@@ -2,6 +2,7 @@
 # Bar Live App
 
 <!-- This is a comment in the README file -->
+<!-- 123 -->
 
 A React Native + Expo 54 application for discovering and managing bars, clubs, and nightlife venues.
 
