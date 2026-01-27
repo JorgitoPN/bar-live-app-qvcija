@@ -47,7 +47,8 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 // ✅ CRITICAL PERFORMANCE FIX v229.0: INFINITE SCROLL WITH PROPER PAGINATION
 const ITEMS_PER_PAGE = 20;
 
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 260 : 360;
+// ✅ COMPACT HEADER v268.0: Reduced header height for more content space
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 300;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -73,15 +74,19 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v264.0 - OPTIMISTIC UI FOR FAVORITES
+ * ✅ EXPLORAR SCREEN v268.0 - COMPACT HEADER DESIGN
  * 
- * NEW FEATURES v264.0:
+ * NEW FEATURES v268.0:
+ * - ✅ COMPACT HEADER: Reduced header height (220dp Android, 300pt iOS)
+ * - ✅ TIGHTER SPACING: Reduced padding and margins throughout header
+ * - ✅ MORE CONTENT SPACE: Users can see more venues without scrolling
+ * - ✅ MAINTAINED FUNCTIONALITY: All features preserved, just more compact
+ * 
+ * Previous fixes maintained (v264.0):
  * - ✅ OPTIMISTIC UI: Uses FavoritesContext for instant heart icon updates
  * - ✅ NO LOADING INDICATORS: Heart icon changes immediately
  * - ✅ BACKGROUND SYNC: Server request happens asynchronously
  * - ✅ ERROR HANDLING: Reverts UI state if server request fails
- * 
- * Previous fixes maintained (v240.0):
  * - ✅ CRITICAL: TextInput is DIRECTLY in return (no conditional rendering)
  * - ✅ CRITICAL: Controlled component with value={searchQuery}
  * - ✅ CRITICAL: Debounce with useEffect + cleanup (300ms)
@@ -1409,15 +1414,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerGradient: {
-    paddingTop: Platform.OS === 'android' ? 44 : 50,
-    paddingBottom: Platform.OS === 'android' ? 16 : 20,
+    paddingTop: Platform.OS === 'android' ? 40 : 44,
+    paddingBottom: Platform.OS === 'android' ? 12 : 14,
     paddingHorizontal: 16,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'android' ? 10 : 12,
+    marginBottom: Platform.OS === 'android' ? 8 : 10,
   },
   headerTitle: {
     fontWeight: 'bold',
@@ -1483,7 +1488,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     paddingHorizontal: 12,
-    marginBottom: Platform.OS === 'android' ? 10 : 12,
+    marginBottom: Platform.OS === 'android' ? 8 : 10,
     gap: 8,
   },
   searchInput: {
@@ -1501,7 +1506,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoriesScroll: {
-    marginBottom: Platform.OS === 'android' ? 10 : 12,
+    marginBottom: Platform.OS === 'android' ? 8 : 10,
     marginRight: -16,
   },
   categoriesContent: {
@@ -1537,7 +1542,7 @@ const styles = StyleSheet.create({
   claimBanner: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 12,
-    marginBottom: Platform.OS === 'android' ? 8 : 12,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
@@ -1545,8 +1550,8 @@ const styles = StyleSheet.create({
   claimBannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    gap: 12,
+    padding: 10,
+    gap: 10,
   },
   claimBannerTextContainer: {
     flex: 1,
