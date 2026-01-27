@@ -4,7 +4,6 @@ import { scaleIconSize, scaleFontSize } from '@/utils/androidScaling';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { getEstadoLocal } from '@/utils/timeUtils';
 import { IconSymbol } from '@/components/IconSymbol';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
@@ -82,7 +81,7 @@ const CATEGORIAS = [
   { id: 'pub', label: 'Pubs', icon: 'mug.fill', androidIcon: 'sports_bar' },
   { id: 'cocteleria', label: 'Coctelería', icon: 'wineglass', androidIcon: 'local_drink' },
   { id: 'discoteca', label: 'Discotecas', icon: 'music.note', androidIcon: 'nightlife' },
-};
+];
 
 // Mapeo de categorías a colores
 const CATEGORY_COLORS: Record<string, string> = {
@@ -94,18 +93,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   discoteca: '#EC4899',
   cocteleria: '#3B82F6',
   otros: '#9CA3AF',
-};
-
-// Mapeo de categorías a iconos (emojis para SDF)
-const CATEGORY_ICONS: Record<string, string> = {
-  bar: '🍺',
-  restaurante: '🍽️',
-  cafe: '☕',
-  cafeteria: '☕',
-  pub: '🍻',
-  discoteca: '💃',
-  cocteleria: '🍸',
-  otros: '📍',
 };
 
 export default function MapaMVTScreen() {
@@ -241,7 +228,7 @@ map.on('load', function() {
     source: 'locales',
     'source-layer': 'locales_layer',
     layout: {
-      'icon-image': 'bar-icon', // Usaremos un icono personalizado
+      'icon-image': 'bar-icon',
       'icon-size': [
         'interpolate',
         ['linear'],
@@ -252,7 +239,7 @@ map.on('load', function() {
       ],
       'icon-allow-overlap': false,
       'icon-ignore-placement': false,
-      'symbol-sort-key': ['get', 'priority'], // Priorizar por importancia
+      'symbol-sort-key': ['get', 'priority'],
       'text-field': ['get', 'name'],
       'text-font': ['Open Sans Regular'],
       'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
@@ -279,7 +266,7 @@ map.on('load', function() {
         'pub', '#10B981',
         'discoteca', '#EC4899',
         'cocteleria', '#3B82F6',
-        '#9CA3AF' // default
+        '#9CA3AF'
       ],
       'text-color': '#202124',
       'text-halo-color': '#FFFFFF',

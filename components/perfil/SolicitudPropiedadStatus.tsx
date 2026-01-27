@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -29,12 +29,12 @@ interface Props {
 }
 
 /**
- * ✅ SOLICITUD PROPIEDAD STATUS v2.0 - FIXED NAVIGATION
+ * ✅ SOLICITUD PROPIEDAD STATUS v2.1 - LINT FIXES
  * 
- * FIXES v2.0:
- * - ✅ Fixed "Ver Detalles" button navigation (now goes to /admin/solicitud-detalle, not /perfil/notificaciones)
- * - ✅ Proper route parameters passing
- * - ✅ Console logs for debugging navigation
+ * FIXES v2.1:
+ * - ✅ FIXED: Wrapped loadSolicitud in useCallback
+ * - ✅ FIXED: Added loadSolicitud to useEffect dependency array (line 69)
+ * - ✅ COMPLIANT: All React Hooks now follow exhaustive-deps rules
  */
 
 export default function SolicitudPropiedadStatus({ userId }: Props) {
@@ -42,33 +42,8 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
   const [solicitud, setSolicitud] = useState<SolicitudStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadSolicitud();
-
-    // Subscribe to changes
-    const channel = supabase
-      .channel(`solicitud-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'solicitudes_propietario',
-          filter: `usuario_id=eq.${userId}`,
-        },
-        () => {
-          console.log('[SolicitudStatus v2.0] Request changed, reloading...');
-          loadSolicitud();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId]);
-
-  const loadSolicitud = async () => {
+  // ✅ FIXED v2.1: Wrap loadSolicitud in useCallback
+  const loadSolicitud = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('solicitudes_propietario')
@@ -80,18 +55,44 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
         .maybeSingle();
 
       if (error) {
-        console.error('[SolicitudStatus v2.0] Error loading request:', error);
+        console.error('[SolicitudStatus v2.1] Error loading request:', error);
         return;
       }
 
       setSolicitud(data);
-      console.log('[SolicitudStatus v2.0] Loaded request:', data?.estado);
+      console.log('[SolicitudStatus v2.1] Loaded request:', data?.estado);
     } catch (error) {
-      console.error('[SolicitudStatus v2.0] Error:', error);
+      console.error('[SolicitudStatus v2.1] Error:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  // ✅ FIXED v2.1: Added loadSolicitud to dependencies
+  useEffect(() => {
+    loadSolicitud();
+
+    const channel = supabase
+      .channel(`solicitud-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'solicitudes_propietario',
+          filter: `usuario_id=eq.${userId}`,
+        },
+        () => {
+          console.log('[SolicitudStatus v2.1] Request changed, reloading...');
+          loadSolicitud();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, loadSolicitud]);
 
   const getEstadoInfo = (estado: string) => {
     switch (estado) {
@@ -211,11 +212,10 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
             <TouchableOpacity
               style={styles.viewDetailsButton}
               onPress={() => {
-                console.log('[SolicitudStatus v2.0] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
-                console.log('[SolicitudStatus v2.0] Route: /admin/solicitud-detalle');
-                console.log('[SolicitudStatus v2.0] Params:', { id: solicitud.id });
+                console.log('[SolicitudStatus v2.1] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
+                console.log('[SolicitudStatus v2.1] Route: /admin/solicitud-detalle');
+                console.log('[SolicitudStatus v2.1] Params:', { id: solicitud.id });
                 
-                // ✅ FIX: Correct navigation to solicitud-detalle (not notificaciones)
                 router.push({
                   pathname: '/admin/solicitud-detalle',
                   params: { id: solicitud.id },
