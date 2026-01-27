@@ -27,11 +27,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
 
 /**
- * ✅ SOLICITAR PROPIEDAD v2.2 - LINT FIXES
+ * ✅ SOLICITAR PROPIEDAD v2.1 - FIXED NAVIGATION & DOCUMENT UPLOAD
  * 
- * FIXES v2.2:
- * - ✅ FIXED: Added 'loadPreselectedLocal' to useEffect dependency array (line 150)
- * - ✅ COMPLIANT: All React Hooks now follow exhaustive-deps rules
+ * FIXES v2.1:
+ * - ✅ Fixed redirect after submission (now goes to solicitud-detalle, not notificaciones)
+ * - ✅ Proper MIME type handling for documents
+ * - ✅ Correct blob conversion for file uploads
+ * - ✅ Preserved file extension and metadata
+ * - ✅ Support for PDF, JPG, PNG formats
+ * - ✅ Console logs for debugging navigation
  */
 
 interface LocalSearchResult {
@@ -84,6 +88,7 @@ export default function SolicitarPropiedadScreen() {
   const { user } = useAuth();
   const webViewRef = useRef<WebView>(null);
 
+  // Determine request type from params
   const requestType = (params.type as 'reclamar_local' | 'nuevo_local') || 'reclamar_local';
   const preselectedLocalId = params.localId as string | undefined;
 
@@ -94,6 +99,7 @@ export default function SolicitarPropiedadScreen() {
   const [searchingLocales, setSearchingLocales] = useState(false);
   const [selectedLocal, setSelectedLocal] = useState<LocalSearchResult | null>(null);
 
+  // Form data for reclamar_local
   const [telefonoContacto, setTelefonoContacto] = useState('');
   const [emailContacto, setEmailContacto] = useState(user?.email || '');
   const [mensaje, setMensaje] = useState('');
@@ -101,9 +107,10 @@ export default function SolicitarPropiedadScreen() {
   const [documentoTipo, setDocumentoTipo] = useState<string>('factura_luz');
   const [documentoNombre, setDocumentoNombre] = useState<string>('');
 
+  // Form data for nuevo_local
   const [nombreLocal, setNombreLocal] = useState('');
   const [tipoLocal, setTipoLocal] = useState('');
-  const [tiposLocalMultiple, setTiposLocalMultiple] = useState<string[]>([]);
+  const [tiposLocalMultiple, setTiposLocalMultiple] = useState<string[]>([]); // Multiple categories for nuevo_local
   const [descripcionLocal, setDescripcionLocal] = useState('');
   const [direccionLocal, setDireccionLocal] = useState('');
   const [ciudadLocal, setCiudadLocal] = useState('');
@@ -119,6 +126,7 @@ export default function SolicitarPropiedadScreen() {
 
   const [showDocumentTypeModal, setShowDocumentTypeModal] = useState(false);
 
+  // Initialize horarios with default values
   useEffect(() => {
     const defaultHorarios: Record<string, { abierto: boolean; apertura: string; cierre: string }> = {};
     DIAS_SEMANA.forEach(dia => {
@@ -127,13 +135,20 @@ export default function SolicitarPropiedadScreen() {
     setHorariosLocal(defaultHorarios);
   }, []);
 
+  // Pre-fill email with user's email
   useEffect(() => {
     if (user?.email) {
       setEmailContacto(user.email);
     }
   }, [user]);
 
-  // ✅ FIXED v2.2: Wrap loadPreselectedLocal in useCallback
+  // Load preselected local if provided
+  useEffect(() => {
+    if (preselectedLocalId && requestType === 'reclamar_local') {
+      loadPreselectedLocal(preselectedLocalId);
+    }
+  }, [preselectedLocalId, requestType]);
+
   const loadPreselectedLocal = useCallback(async (localId: string) => {
     try {
       const { data, error } = await supabase
@@ -154,19 +169,12 @@ export default function SolicitarPropiedadScreen() {
       }
 
       setSelectedLocal(data);
-      setCurrentStep(2);
+      setCurrentStep(2); // Skip search step
     } catch (error) {
       console.error('[SolicitarPropiedad] Error loading preselected local:', error);
       Alert.alert('Error', 'No se pudo cargar el local seleccionado');
     }
   }, [router]);
-
-  // ✅ FIXED v2.2: Added loadPreselectedLocal to dependencies
-  useEffect(() => {
-    if (preselectedLocalId && requestType === 'reclamar_local') {
-      loadPreselectedLocal(preselectedLocalId);
-    }
-  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
 
   const searchLocales = useCallback(async (query: string) => {
     if (!query.trim() || query.length < 3) {
@@ -182,7 +190,7 @@ export default function SolicitarPropiedadScreen() {
         .from('locales')
         .select('id, nombre, direccion, ciudad, provincia, imagen_url, tipo, propietario_id')
         .or(`nombre.ilike.%${query}%,direccion.ilike.%${query}%,ciudad.ilike.%${query}%`)
-        .is('propietario_id', null)
+        .is('propietario_id', null) // Only show locales without owner
         .eq('activo', true)
         .limit(20);
 
@@ -210,6 +218,7 @@ export default function SolicitarPropiedadScreen() {
   const handleSelectLocal = async (local: LocalSearchResult) => {
     console.log('[SolicitarPropiedad] Local selected:', local.nombre);
 
+    // Check if there's already an active request for this local
     const { data: existingRequest, error } = await supabase
       .from('solicitudes_propietario')
       .select('id, estado')
@@ -236,35 +245,37 @@ export default function SolicitarPropiedadScreen() {
 
   const handleUploadDocument = async () => {
     try {
-      console.log('[SolicitarPropiedad v2.2] Opening document picker...');
+      console.log('[SolicitarPropiedad v2.0] Opening document picker...');
       
       const result = await DocumentPicker.getDocumentAsync({
         type: ['image/*', 'application/pdf'],
         copyToCacheDirectory: true,
       });
 
-      console.log('[SolicitarPropiedad v2.2] Document picker result:', result);
+      console.log('[SolicitarPropiedad v2.0] Document picker result:', result);
 
       if (result.canceled) {
-        console.log('[SolicitarPropiedad v2.2] Document selection cancelled');
+        console.log('[SolicitarPropiedad v2.0] Document selection cancelled');
         return;
       }
 
       if (!result.assets || result.assets.length === 0) {
-        console.log('[SolicitarPropiedad v2.2] No document selected');
+        console.log('[SolicitarPropiedad v2.0] No document selected');
         return;
       }
 
       const file = result.assets[0];
-      console.log('[SolicitarPropiedad v2.2] Selected file:', {
+      console.log('[SolicitarPropiedad v2.0] Selected file:', {
         name: file.name,
         mimeType: file.mimeType,
         size: file.size,
         uri: file.uri,
       });
 
+      // ✅ FIX: Proper MIME type detection and blob conversion
       let mimeType = file.mimeType || 'application/octet-stream';
       
+      // Detect MIME type from file extension if not provided
       if (!file.mimeType || file.mimeType === 'application/octet-stream') {
         const extension = file.name.split('.').pop()?.toLowerCase();
         switch (extension) {
@@ -289,20 +300,22 @@ export default function SolicitarPropiedadScreen() {
         }
       }
 
-      console.log('[SolicitarPropiedad v2.2] Detected MIME type:', mimeType);
+      console.log('[SolicitarPropiedad v2.0] Detected MIME type:', mimeType);
 
+      // ✅ FIX: Proper blob conversion with correct MIME type
       const response = await fetch(file.uri);
       const blob = await response.blob();
       
-      console.log('[SolicitarPropiedad v2.2] Blob created:', {
+      console.log('[SolicitarPropiedad v2.0] Blob created:', {
         size: blob.size,
         type: blob.type,
       });
 
+      // ✅ FIX: Preserve file extension in storage path
       const fileExtension = file.name.split('.').pop() || 'pdf';
       const fileName = `${user?.id}/documentos/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
       
-      console.log('[SolicitarPropiedad v2.2] Uploading to:', fileName);
+      console.log('[SolicitarPropiedad v2.0] Uploading to:', fileName);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documentos-propiedad')
@@ -312,12 +325,13 @@ export default function SolicitarPropiedadScreen() {
         });
 
       if (uploadError) {
-        console.error('[SolicitarPropiedad v2.2] Upload error:', uploadError);
+        console.error('[SolicitarPropiedad v2.0] Upload error:', uploadError);
         throw uploadError;
       }
 
-      console.log('[SolicitarPropiedad v2.2] Upload successful:', uploadData.path);
+      console.log('[SolicitarPropiedad v2.0] Upload successful:', uploadData.path);
 
+      // Get public URL
       const { data: urlData } = supabase.storage
         .from('documentos-propiedad')
         .getPublicUrl(fileName);
@@ -325,12 +339,12 @@ export default function SolicitarPropiedadScreen() {
       setDocumentoUrl(urlData.publicUrl);
       setDocumentoNombre(file.name);
       
-      console.log('[SolicitarPropiedad v2.2] ✅ Document uploaded successfully');
-      console.log('[SolicitarPropiedad v2.2] Public URL:', urlData.publicUrl);
+      console.log('[SolicitarPropiedad v2.0] ✅ Document uploaded successfully');
+      console.log('[SolicitarPropiedad v2.0] Public URL:', urlData.publicUrl);
       
       Alert.alert('✅ Éxito', 'Documento subido correctamente');
     } catch (error) {
-      console.error('[SolicitarPropiedad v2.2] Error uploading document:', error);
+      console.error('[SolicitarPropiedad v2.0] Error uploading document:', error);
       Alert.alert('Error', 'No se pudo subir el documento. Intenta de nuevo.');
     }
   };
@@ -537,6 +551,7 @@ export default function SolicitarPropiedadScreen() {
           }
           return true;
         case 2:
+          // All fields are mandatory for reclamar_local
           if (!emailContacto.trim()) {
             Alert.alert('Email requerido', 'El email de contacto es obligatorio');
             return false;
@@ -558,6 +573,7 @@ export default function SolicitarPropiedadScreen() {
           return true;
       }
     } else {
+      // nuevo_local validation
       switch (step) {
         case 1:
           if (!nombreLocal.trim()) {
@@ -606,7 +622,7 @@ export default function SolicitarPropiedadScreen() {
 
     setLoading(true);
     try {
-      console.log('[SolicitarPropiedad v2.2] Submitting request:', requestType);
+      console.log('[SolicitarPropiedad v2.0] Submitting request:', requestType);
 
       if (requestType === 'reclamar_local') {
         if (!selectedLocal) {
@@ -615,6 +631,7 @@ export default function SolicitarPropiedadScreen() {
           return;
         }
 
+        // Check for existing active requests
         const { data: existingRequest } = await supabase
           .from('solicitudes_propietario')
           .select('id')
@@ -632,11 +649,13 @@ export default function SolicitarPropiedadScreen() {
           return;
         }
 
+        // ✅ FIX: Upload document with proper MIME type if it's a local file
         let finalDocumentoUrl = documentoUrl;
         if (documentoUrl && documentoUrl.startsWith('file://')) {
           const response = await fetch(documentoUrl);
           const blob = await response.blob();
           
+          // Detect MIME type from blob or file extension
           let mimeType = blob.type || 'application/octet-stream';
           const extension = documentoNombre.split('.').pop()?.toLowerCase();
           
@@ -674,6 +693,7 @@ export default function SolicitarPropiedadScreen() {
           }
         }
 
+        // Create request
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
           .insert({
@@ -694,8 +714,9 @@ export default function SolicitarPropiedadScreen() {
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedad v2.2] ✅ Claim request created successfully');
+        console.log('[SolicitarPropiedad v2.0] ✅ Claim request created successfully');
 
+        // Send confirmation email
         try {
           await supabase.functions.invoke('send-ownership-request-confirmation', {
             body: {
@@ -706,9 +727,10 @@ export default function SolicitarPropiedadScreen() {
             },
           });
         } catch (emailError) {
-          console.error('[SolicitarPropiedad v2.2] Error sending confirmation email:', emailError);
+          console.error('[SolicitarPropiedad v2.0] Error sending confirmation email:', emailError);
         }
 
+        // Create notification
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
           tipo: 'sistema',
@@ -716,6 +738,7 @@ export default function SolicitarPropiedadScreen() {
           mensaje: `Hemos enviado un correo de confirmación a ${emailContacto}. Por favor, confirma tu email para que tu solicitud pase a revisión.`,
         });
 
+        // ✅ FIX v2.1: Redirect to solicitud-detalle instead of notificaciones
         const { data: createdRequest } = await supabase
           .from('solicitudes_propietario')
           .select('id')
@@ -735,7 +758,7 @@ export default function SolicitarPropiedadScreen() {
             text: 'Ver Detalles', 
             onPress: () => {
               if (createdRequest?.id) {
-                console.log('[SolicitarPropiedad v2.2] ✅ Redirecting to solicitud-detalle:', createdRequest.id);
+                console.log('[SolicitarPropiedad v2.1] ✅ Redirecting to solicitud-detalle:', createdRequest.id);
                 router.replace({
                   pathname: '/admin/solicitud-detalle',
                   params: { id: createdRequest.id },
@@ -747,6 +770,7 @@ export default function SolicitarPropiedadScreen() {
           }]
         );
       } else {
+        // nuevo_local request
         if (!nombreLocal.trim() || tiposLocalMultiple.length === 0 || !direccionLocal.trim() || !ciudadLocal.trim() || !provinciaLocal.trim()) {
           Alert.alert('Campos requeridos', 'Por favor completa todos los campos obligatorios');
           setLoading(false);
@@ -759,7 +783,8 @@ export default function SolicitarPropiedadScreen() {
           return;
         }
 
-        console.log('[SolicitarPropiedad v2.2] Checking for duplicate locals...');
+        // Check for duplicates
+        console.log('[SolicitarPropiedad v2.0] Checking for duplicate locals...');
         const { data: duplicates, error: duplicateError } = await supabase
           .rpc('check_duplicate_local', {
             p_nombre: nombreLocal,
@@ -768,7 +793,7 @@ export default function SolicitarPropiedadScreen() {
           });
 
         if (duplicateError) {
-          console.error('[SolicitarPropiedad v2.2] Error checking duplicates:', duplicateError);
+          console.error('[SolicitarPropiedad v2.0] Error checking duplicates:', duplicateError);
         } else if (duplicates && duplicates.length > 0) {
           const duplicate = duplicates[0];
           Alert.alert(
@@ -783,6 +808,7 @@ export default function SolicitarPropiedadScreen() {
           return;
         }
 
+        // Upload images
         let finalPortadaUrl = imagenPortadaUrl;
         if (imagenPortadaUrl && imagenPortadaUrl.startsWith('file://')) {
           const response = await fetch(imagenPortadaUrl);
@@ -819,6 +845,7 @@ export default function SolicitarPropiedadScreen() {
           }
         }
 
+        // ✅ FIX: Upload document with proper MIME type if provided
         let finalDocumentoUrl = documentoUrl;
         if (documentoUrl && documentoUrl.startsWith('file://')) {
           const response = await fetch(documentoUrl);
@@ -861,14 +888,15 @@ export default function SolicitarPropiedadScreen() {
           }
         }
 
+        // Create request with multiple categories
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
           .insert({
             usuario_id: user.id,
             tipo_solicitud: 'nuevo_local',
             nombre_local: nombreLocal,
-            tipo_local: tiposLocalMultiple[0],
-            tipos_local_multiple: tiposLocalMultiple,
+            tipo_local: tiposLocalMultiple[0], // Primary category (first selected)
+            tipos_local_multiple: tiposLocalMultiple, // All selected categories
             descripcion: descripcionLocal || null,
             direccion_local: direccionLocal,
             ciudad_local: ciudadLocal,
@@ -891,8 +919,9 @@ export default function SolicitarPropiedadScreen() {
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedad v2.2] ✅ New local request created successfully');
+        console.log('[SolicitarPropiedad v2.0] ✅ New local request created successfully');
 
+        // Send confirmation email
         try {
           await supabase.functions.invoke('send-ownership-request-confirmation', {
             body: {
@@ -903,9 +932,10 @@ export default function SolicitarPropiedadScreen() {
             },
           });
         } catch (emailError) {
-          console.error('[SolicitarPropiedad v2.2] Error sending confirmation email:', emailError);
+          console.error('[SolicitarPropiedad v2.0] Error sending confirmation email:', emailError);
         }
 
+        // Create notification
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
           tipo: 'sistema',
@@ -913,6 +943,7 @@ export default function SolicitarPropiedadScreen() {
           mensaje: `Hemos enviado un correo de confirmación a ${emailContacto}. Por favor, confirma tu email para que tu solicitud pase a revisión.`,
         });
 
+        // ✅ FIX v2.1: Redirect to solicitud-detalle instead of notificaciones
         const { data: createdRequest } = await supabase
           .from('solicitudes_propietario')
           .select('id')
@@ -932,7 +963,7 @@ export default function SolicitarPropiedadScreen() {
             text: 'Ver Detalles', 
             onPress: () => {
               if (createdRequest?.id) {
-                console.log('[SolicitarPropiedad v2.2] ✅ Redirecting to solicitud-detalle:', createdRequest.id);
+                console.log('[SolicitarPropiedad v2.1] ✅ Redirecting to solicitud-detalle:', createdRequest.id);
                 router.replace({
                   pathname: '/admin/solicitud-detalle',
                   params: { id: createdRequest.id },
@@ -945,7 +976,7 @@ export default function SolicitarPropiedadScreen() {
         );
       }
     } catch (error) {
-      console.error('[SolicitarPropiedad v2.2] Error submitting request:', error);
+      console.error('[SolicitarPropiedad v2.0] Error submitting request:', error);
       Alert.alert('Error', 'No se pudo enviar la solicitud. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -972,6 +1003,7 @@ export default function SolicitarPropiedadScreen() {
     );
   };
 
+  // RECLAMAR LOCAL STEPS
   const renderReclamarStep1 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Buscar Local</Text>
@@ -1183,6 +1215,7 @@ export default function SolicitarPropiedadScreen() {
     </View>
   );
 
+  // Helper function to toggle multiple categories
   const toggleTipoLocal = (tipoValue: string) => {
     setTiposLocalMultiple(prev => {
       if (prev.includes(tipoValue)) {
@@ -1193,6 +1226,7 @@ export default function SolicitarPropiedadScreen() {
     });
   };
 
+  // NUEVO LOCAL STEPS
   const renderNuevoStep1 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Información Básica</Text>
@@ -1674,6 +1708,7 @@ export default function SolicitarPropiedadScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Document Type Modal */}
       <Modal
         visible={showDocumentTypeModal}
         transparent

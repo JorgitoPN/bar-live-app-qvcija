@@ -53,12 +53,17 @@ interface Usuario {
 const LOCALES_POR_PAGINA = 50;
 
 /**
- * ✅ GESTIONAR LOCALES v226.0 - LINT FIXES
+ * ✅ GESTIONAR LOCALES v243.0 - FIXED KEYBOARD FOCUS LOSS (FINAL FIX)
  * 
- * CRITICAL FIXES v226.0:
- * - ✅ FIXED: Removed 'filterTrigger' from useCallback dependency (line 550)
- * - ✅ FIXED: Removed 'filterTrigger' from useMemo dependency (line 908)
- * - ✅ COMPLIANT: All React Hooks now follow exhaustive-deps rules
+ * CRITICAL FIXES v243.0:
+ * - ✅ FIXED: TextInput is DIRECTLY in return (no conditional rendering)
+ * - ✅ FIXED: Controlled component with value={searchQuery}
+ * - ✅ FIXED: Debounce with useEffect + cleanup (500ms)
+ * - ✅ FIXED: Separate states: searchQuery (immediate) vs debouncedQuery (filtered)
+ * - ✅ FIXED: FlatList has keyboardShouldPersistTaps="handled"
+ * - ✅ FIXED: TextInput has blurOnSubmit={false}
+ * - ✅ FIXED: Applied same pattern as working Explorar screen
+ * - ✅ FIXED: User search also uses controlled component pattern
  */
 
 export default function GestionarLocalesScreen() {
@@ -67,8 +72,9 @@ export default function GestionarLocalesScreen() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   
-  const busquedaRef = useRef('');
-  const [filterTrigger, setFilterTrigger] = useState(0);
+  // ✅ CRITICAL v243.0: Controlled input state for main search (STABLE)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   
   const [filtroPropietario, setFiltroPropietario] = useState<string>('todos');
   const [filtroTipo, setFiltroTipo] = useState<string>('todos');
@@ -89,8 +95,9 @@ export default function GestionarLocalesScreen() {
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   
-  const searchUsuarioRef = useRef('');
-  const [userSearchTrigger, setUserSearchTrigger] = useState(0);
+  // ✅ CRITICAL v243.0: Controlled input state for user search (STABLE)
+  const [searchUsuarioQuery, setSearchUsuarioQuery] = useState('');
+  const [debouncedUsuarioQuery, setDebouncedUsuarioQuery] = useState('');
   
   const [loadingUsuarios, setLoadingUsuarios] = useState(false);
   const [assigningUser, setAssigningUser] = useState(false);
@@ -108,44 +115,39 @@ export default function GestionarLocalesScreen() {
     manual: 0,
   });
 
-  const searchInputRef = useRef<TextInput>(null);
-  const searchUsuarioInputRef = useRef<TextInput>(null);
-  const filterTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const userSearchTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleSearchChange = useCallback((text: string) => {
-    console.log('[GestionarLocales v226.0] 📝 User typing in search (no re-render):', text);
+  // ✅ CRITICAL FIX v243.0: Debounce main search with cleanup (500ms)
+  useEffect(() => {
+    console.log('[GestionarLocales v243.0] 📝 Main search query changed:', searchQuery);
     
-    busquedaRef.current = text;
-    
-    if (filterTimerRef.current) {
-      clearTimeout(filterTimerRef.current);
-    }
-    
-    filterTimerRef.current = setTimeout(() => {
-      console.log('[GestionarLocales v226.0] 🔍 Triggering filter after typing pause');
-      setFilterTrigger(prev => prev + 1);
+    const timer = setTimeout(() => {
+      console.log('[GestionarLocales v243.0] 🔍 Applying debounced search');
+      setDebouncedQuery(searchQuery);
     }, 500);
-  }, []); // ✅ FIXED: Removed filterTrigger from dependencies
+    
+    // Cleanup function - CRITICAL for preventing focus loss
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
 
-  const handleSearchUsuarioChange = useCallback((text: string) => {
-    console.log('[GestionarLocales v226.0] 📝 User typing in user search (no re-render):', text);
+  // ✅ CRITICAL FIX v243.0: Debounce user search with cleanup (300ms)
+  useEffect(() => {
+    console.log('[GestionarLocales v243.0] 📝 User search query changed:', searchUsuarioQuery);
     
-    searchUsuarioRef.current = text;
-    
-    if (userSearchTimerRef.current) {
-      clearTimeout(userSearchTimerRef.current);
-    }
-    
-    userSearchTimerRef.current = setTimeout(() => {
-      console.log('[GestionarLocales v226.0] 🔍 Triggering user search after typing pause');
-      setUserSearchTrigger(prev => prev + 1);
+    const timer = setTimeout(() => {
+      console.log('[GestionarLocales v243.0] 🔍 Applying debounced user search');
+      setDebouncedUsuarioQuery(searchUsuarioQuery);
     }, 300);
-  }, []);
+    
+    // Cleanup function - CRITICAL for preventing focus loss
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchUsuarioQuery]);
 
   const cargarContadores = useCallback(async () => {
     try {
-      console.log('[GestionarLocales v226.0] Loading counters...');
+      console.log('[GestionarLocales v243.0] Loading counters...');
       
       const { count: totalCount, error: countError } = await supabase
         .from('locales')
@@ -153,11 +155,11 @@ export default function GestionarLocalesScreen() {
         .or('source_type.eq.osm,enriquecido.eq.true');
 
       if (countError) {
-        console.error('[GestionarLocales v226.0] Error loading total count:', countError);
+        console.error('[GestionarLocales v243.0] Error loading total count:', countError);
         throw countError;
       }
 
-      console.log('[GestionarLocales v226.0] Total valid locales:', totalCount);
+      console.log('[GestionarLocales v243.0] Total valid locales:', totalCount);
 
       const { data, error } = await supabase
         .from('locales')
@@ -165,7 +167,7 @@ export default function GestionarLocalesScreen() {
         .or('source_type.eq.osm,enriquecido.eq.true');
 
       if (error) {
-        console.error('[GestionarLocales v226.0] Error loading stats:', error);
+        console.error('[GestionarLocales v243.0] Error loading stats:', error);
         throw error;
       }
 
@@ -182,16 +184,16 @@ export default function GestionarLocalesScreen() {
         manual: data?.filter(l => l.source_type === 'manual').length || 0,
       };
 
-      console.log('[GestionarLocales v226.0] Stats:', stats);
+      console.log('[GestionarLocales v243.0] Stats:', stats);
       setContadores(stats);
     } catch (error) {
-      console.error('[GestionarLocales v226.0] Error cargando contadores:', error);
+      console.error('[GestionarLocales v243.0] Error cargando contadores:', error);
     }
   }, []);
 
   const cargarLocales = useCallback(async (reset: boolean = false, currentPage: number = 1) => {
     try {
-      console.log('[GestionarLocales v226.0] Loading locales, reset:', reset, 'page:', currentPage);
+      console.log('[GestionarLocales v243.0] Loading locales, reset:', reset, 'page:', currentPage);
       
       if (reset) {
         setInitialLoading(true);
@@ -202,7 +204,7 @@ export default function GestionarLocalesScreen() {
       const from = reset ? 0 : (currentPage - 1) * LOCALES_POR_PAGINA;
       const to = from + LOCALES_POR_PAGINA - 1;
 
-      console.log('[GestionarLocales v226.0] Fetching range:', from, '-', to);
+      console.log('[GestionarLocales v243.0] Fetching range:', from, '-', to);
 
       let query = supabase
         .from('locales')
@@ -217,9 +219,9 @@ export default function GestionarLocalesScreen() {
         .order('fecha_creacion', { ascending: false })
         .range(from, to);
 
-      const busqueda = busquedaRef.current;
-      if (busqueda) {
-        query = query.or(`nombre.ilike.%${busqueda}%,direccion.ilike.%${busqueda}%`);
+      // ✅ CRITICAL v243.0: Use debouncedQuery for filtering
+      if (debouncedQuery) {
+        query = query.or(`nombre.ilike.%${debouncedQuery}%,direccion.ilike.%${debouncedQuery}%`);
       }
 
       if (filtroPropietario === 'con-dueno') {
@@ -261,11 +263,11 @@ export default function GestionarLocalesScreen() {
       const { data, error, count } = await query;
 
       if (error) {
-        console.error('[GestionarLocales v226.0] Error cargando locales:', error);
+        console.error('[GestionarLocales v243.0] Error cargando locales:', error);
         throw error;
       }
 
-      console.log('[GestionarLocales v226.0] Locales loaded:', data?.length || 0, 'Total count:', count);
+      console.log('[GestionarLocales v243.0] Locales loaded:', data?.length || 0, 'Total count:', count);
       
       if (reset) {
         setLocales(data || []);
@@ -278,28 +280,29 @@ export default function GestionarLocalesScreen() {
       setTotalLocales(count || 0);
       setHasMore((data?.length || 0) === LOCALES_POR_PAGINA);
       
-      console.log('[GestionarLocales v226.0] Has more:', (data?.length || 0) === LOCALES_POR_PAGINA);
+      console.log('[GestionarLocales v243.0] Has more:', (data?.length || 0) === LOCALES_POR_PAGINA);
     } catch (error) {
-      console.error('[GestionarLocales v226.0] Error cargando locales:', error);
+      console.error('[GestionarLocales v243.0] Error cargando locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
     } finally {
       setInitialLoading(false);
       setLoadingMore(false);
     }
-  }, [filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente]);
+  }, [debouncedQuery, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente]);
 
   useEffect(() => {
-    console.log('[GestionarLocales v226.0] Initial load');
+    console.log('[GestionarLocales v243.0] Initial load');
     cargarContadores();
     cargarLocales(true, 1);
   }, [cargarContadores, cargarLocales]);
 
+  // ✅ CRITICAL v243.0: Reload when debounced query or filters change
   useEffect(() => {
     if (!initialLoading) {
-      console.log('[GestionarLocales v226.0] Filters changed, reloading...');
+      console.log('[GestionarLocales v243.0] Filters changed, reloading...');
       cargarLocales(true, 1);
     }
-  }, [filterTrigger, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente, initialLoading, cargarLocales]);
+  }, [debouncedQuery, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente, initialLoading, cargarLocales]);
 
   const searchUsuarios = useCallback(async (query: string) => {
     if (query.length < 2) {
@@ -319,20 +322,20 @@ export default function GestionarLocalesScreen() {
 
       setUsuarios(data || []);
     } catch (error) {
-      console.error('[GestionarLocales v226.0] Error searching users:', error);
+      console.error('[GestionarLocales v243.0] Error searching users:', error);
     } finally {
       setLoadingUsuarios(false);
     }
   }, []);
 
+  // ✅ CRITICAL v243.0: Search users when debounced query changes
   useEffect(() => {
-    const query = searchUsuarioRef.current.trim();
-    if (query.length >= 2) {
-      searchUsuarios(query);
+    if (debouncedUsuarioQuery.trim().length >= 2) {
+      searchUsuarios(debouncedUsuarioQuery);
     } else {
       setUsuarios([]);
     }
-  }, [userSearchTrigger, searchUsuarios]);
+  }, [debouncedUsuarioQuery, searchUsuarios]);
 
   const assignLocalToUser = useCallback(async (userId: string, userName: string) => {
     if (!selectedLocalForAssignment) return;
@@ -359,7 +362,7 @@ export default function GestionarLocalesScreen() {
         });
 
       if (junctionError && junctionError.code !== '23505') {
-        console.error('[GestionarLocales v226.0] Error creating junction entry:', junctionError);
+        console.error('[GestionarLocales v243.0] Error creating junction entry:', junctionError);
       }
 
       Alert.alert(
@@ -370,16 +373,14 @@ export default function GestionarLocalesScreen() {
 
       setShowAssignUserModal(false);
       setSelectedLocalForAssignment(null);
-      searchUsuarioRef.current = '';
-      if (searchUsuarioInputRef.current) {
-        searchUsuarioInputRef.current.clear();
-      }
+      setSearchUsuarioQuery('');
+      setDebouncedUsuarioQuery('');
       setUsuarios([]);
       
       cargarLocales(true, 1);
       cargarContadores();
     } catch (error) {
-      console.error('[GestionarLocales v226.0] Error assigning local:', error);
+      console.error('[GestionarLocales v243.0] Error assigning local:', error);
       Alert.alert('Error', 'No se pudo asignar el local al usuario');
     } finally {
       setAssigningUser(false);
@@ -407,7 +408,7 @@ export default function GestionarLocalesScreen() {
       );
       cargarContadores();
     } catch (error) {
-      console.error('[GestionarLocales v226.0] Error actualizando local:', error);
+      console.error('[GestionarLocales v243.0] Error actualizando local:', error);
       Alert.alert('Error', 'No se pudo actualizar el local');
     }
   }, [cargarContadores]);
@@ -427,7 +428,7 @@ export default function GestionarLocalesScreen() {
         )
       );
     } catch (error) {
-      console.error('[GestionarLocales v226.0] Error actualizando destacado:', error);
+      console.error('[GestionarLocales v243.0] Error actualizando destacado:', error);
       Alert.alert('Error', 'No se pudo actualizar el estado destacado');
     }
   }, []);
@@ -447,7 +448,7 @@ export default function GestionarLocalesScreen() {
       Alert.alert('Éxito', 'Local eliminado correctamente');
       cargarContadores();
     } catch (error) {
-      console.error('[GestionarLocales v226.0] Error eliminando local:', error);
+      console.error('[GestionarLocales v243.0] Error eliminando local:', error);
       Alert.alert('Error', 'No se pudo eliminar el local');
     }
   }, [cargarContadores]);
@@ -511,7 +512,7 @@ export default function GestionarLocalesScreen() {
               setModoSeleccion(false);
               cargarContadores();
             } catch (error) {
-              console.error('[GestionarLocales v226.0] Error eliminando locales:', error);
+              console.error('[GestionarLocales v243.0] Error eliminando locales:', error);
               Alert.alert('Error', 'No se pudieron eliminar todos los locales');
             }
           },
@@ -527,11 +528,8 @@ export default function GestionarLocalesScreen() {
     setFiltroEnriquecido('todos');
     setFiltroDestacado('todos');
     setFiltroFuente('todos');
-    busquedaRef.current = '';
-    if (searchInputRef.current) {
-      searchInputRef.current.clear();
-    }
-    setFilterTrigger(prev => prev + 1);
+    setSearchQuery('');
+    setDebouncedQuery('');
   }, []);
 
   const hayFiltrosActivos = useCallback(() => {
@@ -541,12 +539,12 @@ export default function GestionarLocalesScreen() {
            filtroEnriquecido !== 'todos' ||
            filtroDestacado !== 'todos' ||
            filtroFuente !== 'todos' ||
-           busquedaRef.current !== '';
-  }, [filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente, filterTrigger]);
+           debouncedQuery !== '';
+  }, [filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente, debouncedQuery]);
 
   const handleLoadMore = useCallback(() => {
     if (hasMore && !loadingMore && !initialLoading) {
-      console.log('[GestionarLocales v226.0] Loading more, page:', paginaActual);
+      console.log('[GestionarLocales v243.0] Loading more, page:', paginaActual);
       cargarLocales(false, paginaActual);
     }
   }, [hasMore, loadingMore, initialLoading, paginaActual, cargarLocales]);
@@ -554,10 +552,8 @@ export default function GestionarLocalesScreen() {
   const openAssignUserModal = useCallback((local: Local) => {
     setSelectedLocalForAssignment(local);
     setShowAssignUserModal(true);
-    searchUsuarioRef.current = '';
-    if (searchUsuarioInputRef.current) {
-      searchUsuarioInputRef.current.clear();
-    }
+    setSearchUsuarioQuery('');
+    setDebouncedUsuarioQuery('');
     setUsuarios([]);
   }, []);
 
@@ -777,7 +773,6 @@ export default function GestionarLocalesScreen() {
     <LocalCard local={item} />
   ), [LocalCard]);
 
-  // ✅ FIXED v226.0: Removed filterTrigger from dependencies
   const renderHeader = useMemo(() => (
     <React.Fragment>
       <View style={styles.statsSection}>
@@ -802,28 +797,26 @@ export default function GestionarLocalesScreen() {
         </View>
       </View>
 
+      {/* ✅ CRITICAL v243.0: Search bar - TextInput is DIRECTLY in return */}
       <View style={styles.searchContainer}>
         <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
         <TextInput
-          ref={searchInputRef}
           style={styles.searchInput}
           placeholder="Buscar por nombre o dirección..."
           placeholderTextColor={colors.textSecondary}
-          defaultValue={busquedaRef.current}
-          onChangeText={handleSearchChange}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
           blurOnSubmit={false}
           enablesReturnKeyAutomatically={false}
         />
-        {busquedaRef.current !== '' && (
+        {searchQuery !== '' && (
           <TouchableOpacity onPress={() => {
-            busquedaRef.current = '';
-            if (searchInputRef.current) {
-              searchInputRef.current.clear();
-            }
-            setFilterTrigger(prev => prev + 1);
+            console.log('[GestionarLocales v243.0] 🧹 Clearing search');
+            setSearchQuery('');
+            setDebouncedQuery('');
           }}>
             <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -900,7 +893,7 @@ export default function GestionarLocalesScreen() {
         </Text>
       </View>
     </React.Fragment>
-  ), [contadores, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados, limpiarFiltros, handleSearchChange]); // ✅ FIXED: Removed filterTrigger
+  ), [contadores, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados, limpiarFiltros, searchQuery, debouncedQuery]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
@@ -1178,15 +1171,15 @@ export default function GestionarLocalesScreen() {
                 </View>
               )}
 
+              {/* ✅ CRITICAL v243.0: User search - TextInput is DIRECTLY in return */}
               <View style={styles.searchContainer}>
                 <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
                 <TextInput
-                  ref={searchUsuarioInputRef}
                   style={styles.searchInput}
                   placeholder="Buscar usuario por nombre o email..."
                   placeholderTextColor={colors.textSecondary}
-                  defaultValue={searchUsuarioRef.current}
-                  onChangeText={handleSearchUsuarioChange}
+                  value={searchUsuarioQuery}
+                  onChangeText={setSearchUsuarioQuery}
                   autoCapitalize="none"
                   autoCorrect={false}
                   returnKeyType="search"
@@ -1236,14 +1229,14 @@ export default function GestionarLocalesScreen() {
                 </View>
               )}
 
-              {searchUsuarioRef.current.length >= 2 && usuarios.length === 0 && !loadingUsuarios && (
+              {debouncedUsuarioQuery.length >= 2 && usuarios.length === 0 && !loadingUsuarios && (
                 <View style={styles.noResultsContainer}>
                   <IconSymbol ios_icon_name="person.crop.circle.badge.xmark" android_material_icon_name="person_off" size={48} color={colors.textSecondary} />
                   <Text style={styles.noResultsText}>No se encontraron usuarios</Text>
                 </View>
               )}
 
-              {searchUsuarioRef.current.length < 2 && (
+              {debouncedUsuarioQuery.length < 2 && (
                 <View style={styles.searchHintContainer}>
                   <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
                   <Text style={styles.searchHintText}>

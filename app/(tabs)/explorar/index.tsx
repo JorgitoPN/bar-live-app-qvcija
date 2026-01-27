@@ -22,7 +22,6 @@ import {
 } from 'react-native';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
-import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import {
   getSearchBoxHeight,
   getCategoryIconSize,
@@ -44,7 +43,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 
-// ✅ CRITICAL PERFORMANCE FIX v227.0: PREVENT FLICKERING - Only show data when fully processed
+// ✅ CRITICAL PERFORMANCE FIX v229.0: INFINITE SCROLL WITH PROPER PAGINATION
 const ITEMS_PER_PAGE = 20;
 
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 260 : 360;
@@ -68,18 +67,21 @@ const CATEGORIAS = [
   { id: 'restaurante', nombre: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
   { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
   { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
-  { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'local_drink' },
+  { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'liquor' },
   { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v228.0 - LINT FIXES
+ * ✅ EXPLORAR SCREEN v240.0 - FIXED KEYBOARD FOCUS LOSS (FINAL FIX)
  * 
- * FIX v228.0:
- * - ✅ FIXED: Added 'allLoadedLocales' to useCallback dependency array (line 356)
- * - ✅ FIXED: Removed 'filterTrigger' from useMemo dependencies (lines 383, 447)
- * - ✅ FIXED: Wrapped toggleFavorito, handleComoLlegar, handlePerfilSocial in useCallback
- * - ✅ COMPLIANT: All React Hooks now follow exhaustive-deps rules
+ * FIX v240.0:
+ * - ✅ CRITICAL: TextInput is DIRECTLY in return (no conditional rendering)
+ * - ✅ CRITICAL: Controlled component with value={searchQuery}
+ * - ✅ CRITICAL: Debounce with useEffect + cleanup (300ms)
+ * - ✅ CRITICAL: Separate states: searchQuery (immediate) vs debouncedQuery (filtered)
+ * - ✅ CRITICAL: FlatList has keyboardShouldPersistTaps="handled"
+ * - ✅ CRITICAL: TextInput has blurOnSubmit={false}
+ * - ✅ CRITICAL: No component functions declared inside parent
  */
 
 export default function ExplorarScreen() {
@@ -88,7 +90,6 @@ export default function ExplorarScreen() {
   const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
   const { prefetchNextPage } = useGlobalData();
   
-  // ✅ CRITICAL v227.0: Add flag to track when data is ready to display
   const [dataReady, setDataReady] = useState(false);
   const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
   const [allLoadedLocales, setAllLoadedLocales] = useState<any[]>([]);
@@ -96,14 +97,17 @@ export default function ExplorarScreen() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
-  const searchQueryRef = useRef('');
-  const [filterTrigger, setFilterTrigger] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  
+  // ✅ FIX v240.0: Controlled input state (STABLE)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [locationReady, setLocationReady] = useState(false);
   const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
   const [showModeSelectorModal, setShowModeSelectorModal] = useState(false);
   
@@ -114,36 +118,23 @@ export default function ExplorarScreen() {
   const scrollY = useRef(0);
   const lastScrollY = useRef(0);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
-  const isLoadingMoreRef = useRef(false);
   const lastFiltersRef = useRef<string>('');
   const hasLoadedInitialDataRef = useRef(false);
-  
-  const searchInputRef = useRef<TextInput>(null);
-  const filterTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleSearchChange = useCallback((text: string) => {
-    console.log('[Explorar v228.0] 📝 User typing (no re-render):', text);
+  // ✅ FIX v240.0: Debounce with cleanup (300ms)
+  useEffect(() => {
+    console.log('[Explorar v240.0] 📝 Search query changed:', searchQuery);
     
-    searchQueryRef.current = text;
-    
-    if (filterTimerRef.current) {
-      clearTimeout(filterTimerRef.current);
-    }
-    
-    filterTimerRef.current = setTimeout(() => {
-      console.log('[Explorar v228.0] 🔍 Triggering filter after typing pause');
-      setFilterTrigger(prev => prev + 1);
+    const timer = setTimeout(() => {
+      console.log('[Explorar v240.0] 🔍 Applying debounced search');
+      setDebouncedQuery(searchQuery);
     }, 300);
-  }, []);
-
-  const handleClearSearch = useCallback(() => {
-    console.log('[Explorar v228.0] 🧹 Clearing search');
-    searchQueryRef.current = '';
-    if (searchInputRef.current) {
-      searchInputRef.current.clear();
-    }
-    setFilterTrigger(prev => prev + 1);
-  }, []);
+    
+    // Cleanup function - CRITICAL
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
 
   const isValidSpainCoordinate = useCallback((lat: number, lng: number): boolean => {
     const MIN_LAT = 27.0;
@@ -154,124 +145,79 @@ export default function ExplorarScreen() {
     const isValid = lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
     
     if (!isValid) {
-      console.warn('[Explorar v228.0] ⚠️ Invalid coordinates detected:', { lat, lng });
+      console.warn('[Explorar v240.0] ⚠️ Invalid coordinates detected:', { lat, lng });
     }
     
     return isValid;
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+    
     (async () => {
       try {
-        console.log('[Explorar v228.0] 📍 Requesting location permission (background)...');
+        console.log('[Explorar v240.0] 📍 Step 1: Requesting location permission...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         
+        if (!isMounted) return;
+        
         if (status !== 'granted') {
-          console.log('[Explorar v228.0] ⚠️ Location permission denied');
+          console.log('[Explorar v240.0] ⚠️ Location permission denied - proceeding without location');
           setLocationError('Permiso de ubicación denegado. Las distancias no estarán disponibles.');
+          setLocationReady(true);
           return;
         }
 
-        console.log('[Explorar v228.0] 📍 Getting current position (background)...');
+        console.log('[Explorar v240.0] 📍 Step 2: Getting current position...');
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
         
+        if (!isMounted) return;
+        
         const lat = location.coords.latitude;
         const lng = location.coords.longitude;
         
-        console.log('[Explorar v228.0] 📍 Location obtained:', { lat, lng });
+        console.log('[Explorar v240.0] 📍 Step 3: Location obtained:', { lat, lng });
         
         if (!isValidSpainCoordinate(lat, lng)) {
-          console.error('[Explorar v228.0] ❌ Location outside Spain bounds!');
+          console.error('[Explorar v240.0] ❌ Location outside Spain bounds!');
           setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
           setUserLocation(null);
+          setLocationReady(true);
           return;
         }
         
         setUserLocation({ lat, lng });
         setLocationError(null);
-        console.log('[Explorar v228.0] ✅ Valid location set:', { lat, lng });
+        console.log('[Explorar v240.0] ✅ Step 4: Valid location set:', { lat, lng });
+        console.log('[Explorar v240.0] 🎯 Step 5: Marking location as READY - data will now load');
+        setLocationReady(true);
         
       } catch (error: any) {
-        console.error('[Explorar v228.0] ❌ Error getting location:', error);
+        if (!isMounted) return;
+        console.error('[Explorar v240.0] ❌ Error getting location:', error);
         setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
         setUserLocation(null);
+        setLocationReady(true);
       }
     })();
-  }, [isValidSpainCoordinate]);
-
-  // ✅ FIXED v228.0: Wrap toggleFavorito in useCallback
-  const toggleFavorito = useCallback(async (localId: string, e?: any) => {
-    if (e) {
-      e.stopPropagation();
-    }
     
-    if (!user) {
-      console.log('[Explorar v228.0] User not authenticated');
-      setShowLoginModal(true);
-      return;
-    }
-
-    if (!localId) {
-      console.log('[Explorar v228.0] No local ID');
-      return;
-    }
-
-    try {
-      const { data: existingFavorite } = await supabase
-        .from('locales_guardados')
-        .select('id')
-        .eq('usuario_id', user.id)
-        .eq('local_id', localId)
-        .single();
-
-      if (existingFavorite) {
-        console.log('[Explorar v228.0] Removing from favorites');
-        const { error } = await supabase
-          .from('locales_guardados')
-          .delete()
-          .eq('usuario_id', user.id)
-          .eq('local_id', localId);
-
-        if (error) throw error;
-      } else {
-        console.log('[Explorar v228.0] Adding to favorites');
-        const { error } = await supabase
-          .from('locales_guardados')
-          .insert({
-            usuario_id: user.id,
-            local_id: localId,
-          });
-
-        if (error) throw error;
-      }
-    } catch (error) {
-      console.error('[Explorar v228.0] Error toggling favorito:', error);
-      Alert.alert('Error', 'No se pudo actualizar favoritos');
-    }
-  }, [user]);
-
-  // ✅ FIXED v228.0: Wrap handleComoLlegar in useCallback
-  const handleComoLlegar = useCallback((local: any, e: any) => {
-    e.stopPropagation();
-    const { lat, lng } = local.coordenadas;
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    Linking.openURL(url);
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // ✅ FIXED v228.0: Wrap handlePerfilSocial in useCallback
-  const handlePerfilSocial = useCallback((localId: string, e: any) => {
-    e.stopPropagation();
-    router.push(`/perfil/local?localId=${localId}`);
-  }, [router]);
-
-  // ✅ CRITICAL v227.0: Load data and only show when fully processed
   const loadLocales = useCallback(async (page: number = 1, append: boolean = false) => {
-    console.log('[Explorar v228.0] 🚀 loadLocales called - page:', page, 'append:', append);
+    console.log('[Explorar v240.0] 🚀 loadLocales called - page:', page, 'append:', append, 'locationReady:', locationReady);
     
-    if (isLoadingMoreRef.current && append) {
-      console.log('[Explorar v228.0] Already loading more, skipping...');
+    if (!locationReady && !hasLoadedInitialDataRef.current) {
+      console.log('[Explorar v240.0] ⏸️ Location not ready yet, waiting...');
+      return;
+    }
+    
+    if (isLoadingMore && append) {
+      console.log('[Explorar v240.0] ⏸️ Already loading more, skipping...');
       return;
     }
 
@@ -279,29 +225,31 @@ export default function ExplorarScreen() {
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
     if (filtersChanged) {
-      console.log('[Explorar v228.0] 🔄 Filters changed, resetting...');
+      console.log('[Explorar v240.0] 🔄 Filters changed, resetting...');
       lastFiltersRef.current = filtersKey;
       setCurrentPage(1);
       setAllLoadedLocales([]);
       setDisplayedLocales([]);
       setDataReady(false);
       setHasMore(true);
+      setIsLoadingMore(false);
       page = 1;
       append = false;
     }
 
     if (append) {
-      isLoadingMoreRef.current = true;
+      console.log('[Explorar v240.0] 📥 Setting isLoadingMore = true');
+      setIsLoadingMore(true);
     } else {
       if (!hasLoadedInitialDataRef.current) {
-        console.log('[Explorar v228.0] ⚡ First load - showing skeleton UI');
+        console.log('[Explorar v240.0] ⚡ First load - showing skeleton UI');
         setInitialLoading(true);
         setDataReady(false);
       }
     }
 
     try {
-      console.log('[Explorar v228.0] 📡 Loading page', page, 'from server...');
+      console.log('[Explorar v240.0] 📡 Loading page', page, 'from server...');
       
       const hasValidLocation = userLocation && isValidSpainCoordinate(userLocation.lat, userLocation.lng);
       
@@ -309,7 +257,8 @@ export default function ExplorarScreen() {
         ? { user_lat: userLocation.lat, user_lng: userLocation.lng }
         : { user_lat: null, user_lng: null };
       
-      console.log('[Explorar v228.0] 📍 Using location params:', locationParams);
+      console.log('[Explorar v240.0] 📍 Using location params:', locationParams);
+      console.log('[Explorar v240.0] 🎯 hasValidLocation:', hasValidLocation);
       
       const offset = (page - 1) * ITEMS_PER_PAGE;
       const { data, error } = await supabase.rpc('get_locales_paginados', {
@@ -319,30 +268,34 @@ export default function ExplorarScreen() {
       });
 
       if (error) {
-        console.error('[Explorar v228.0] Error loading locales:', error);
+        console.error('[Explorar v240.0] Error loading locales:', error);
         throw error;
       }
 
-      console.log('[Explorar v228.0] ✅ Loaded', data?.length || 0, 'locales from server');
+      console.log('[Explorar v240.0] ✅ Loaded', data?.length || 0, 'locales from server');
 
       if (data && data.length > 0) {
         const transformedLocales = data.map((local: any) => {
           let distanciaKm = null;
-          if (local.distancia_metros !== null && local.distancia_metros !== undefined) {
-            distanciaKm = local.distancia_metros / 1000;
+          
+          if (hasValidLocation && local.latitud && local.longitud) {
+            const localLat = parseFloat(local.latitud);
+            const localLng = parseFloat(local.longitud);
             
-            if (distanciaKm > 1000) {
-              console.warn('[Explorar v228.0] ⚠️ Suspicious distance:', {
-                local: local.nombre,
-                distancia_km: distanciaKm,
-              });
+            if (!isNaN(localLat) && !isNaN(localLng)) {
+              distanciaKm = calcularDistancia(
+                userLocation.lat,
+                userLocation.lng,
+                localLat,
+                localLng
+              );
             }
+          } else if (local.distancia_metros !== null && local.distancia_metros !== undefined) {
+            distanciaKm = Number(local.distancia_metros) / 1000;
           }
           
           const estaAbierto = local.is_open_now;
           const tieneHorarios = local.has_schedule_info;
-          
-          console.log(`[Explorar v228.0] ${local.nombre}: is_open_now=${estaAbierto}, has_schedule=${tieneHorarios}`);
           
           return {
             ...local,
@@ -359,9 +312,13 @@ export default function ExplorarScreen() {
         });
 
         if (append) {
-          const newLocales = [...allLoadedLocales, ...transformedLocales];
-          setAllLoadedLocales(newLocales);
+          setAllLoadedLocales(prev => {
+            const newLocales = [...prev, ...transformedLocales];
+            console.log('[Explorar v240.0] ➕ Appending', transformedLocales.length, 'locales. Total now:', newLocales.length);
+            return newLocales;
+          });
         } else {
+          console.log('[Explorar v240.0] 🔄 Replacing with', transformedLocales.length, 'locales');
           setAllLoadedLocales(transformedLocales);
           setDataReady(true);
         }
@@ -369,8 +326,6 @@ export default function ExplorarScreen() {
         const gotLessThanRequested = data.length < ITEMS_PER_PAGE;
         setHasMore(!gotLessThanRequested);
         setCurrentPage(page);
-
-        console.log('[Explorar v228.0] 📊 Loaded', transformedLocales.length, 'locales (more available:', !gotLessThanRequested, ')');
 
         const localIdsToCheck = transformedLocales.slice(0, 30).map(l => l.id);
         if (localIdsToCheck.length > 0) {
@@ -392,12 +347,13 @@ export default function ExplorarScreen() {
               setSocialProfiles(prev => new Map([...prev, ...newSocialProfiles]));
             }
           } catch (error) {
-            console.error('[Explorar v228.0] Error checking social profiles:', error);
+            console.error('[Explorar v240.0] Error checking social profiles:', error);
           }
         }
         
         hasLoadedInitialDataRef.current = true;
       } else {
+        console.log('[Explorar v240.0] ⚠️ No more data available');
         setHasMore(false);
         if (!append) {
           setAllLoadedLocales([]);
@@ -405,153 +361,212 @@ export default function ExplorarScreen() {
         }
       }
     } catch (error) {
-      console.error('[Explorar v228.0] Error loading locales:', error);
+      console.error('[Explorar v240.0] Error loading locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
       setDataReady(true);
     } finally {
       setLoading(false);
       setInitialLoading(false);
-      isLoadingMoreRef.current = false;
+      console.log('[Explorar v240.0] 📥 Setting isLoadingMore = false');
+      setIsLoadingMore(false);
     }
-  }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, allLoadedLocales]); // ✅ FIXED: Added allLoadedLocales
+  }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, isLoadingMore, locationReady]);
 
-  // ✅ FIXED v228.0: Removed filterTrigger from dependencies
+  // ✅ FIX v240.0: Filter using debounced query
   const filteredLocales = useMemo(() => {
-    const query = searchQueryRef.current.toLowerCase().trim();
-    console.log('[Explorar v228.0] 🔍 Filtering locales client-side, search:', query);
+    const query = debouncedQuery.toLowerCase().trim();
     
-    if (!query) {
-      return allLoadedLocales;
+    let filtered = allLoadedLocales;
+    
+    if (selectedCategory && selectedCategory !== 'todas') {
+      filtered = filtered.filter(local => {
+        const barliveTypes = local.barlive_types || [];
+        const barliveType = local.barlive_type || '';
+        
+        const categoryMap: Record<string, string[]> = {
+          'cafe': ['cafe', 'cafeteria', 'cafetería'],
+          'restaurante': ['restaurante', 'restaurant'],
+          'bar': ['bar'],
+          'pub': ['pub'],
+          'cocteleria': ['cocteleria', 'cocktail', 'cóctel'],
+          'discoteca': ['discoteca', 'nightclub', 'club', 'disco']
+        };
+        
+        const targetCategories = categoryMap[selectedCategory] || [selectedCategory];
+        
+        const allCategories = [...barliveTypes, barliveType]
+          .filter(c => c && c.trim())
+          .map(c => c.toLowerCase().trim());
+        
+        for (const localCat of allCategories) {
+          for (const targetCat of targetCategories) {
+            if (localCat === targetCat || localCat.includes(targetCat) || targetCat.includes(localCat)) {
+              return true;
+            }
+          }
+        }
+        
+        return false;
+      });
+    }
+    
+    if (query) {
+      filtered = filtered.filter(local => {
+        const nombre = local.nombre?.toLowerCase() || '';
+        const direccion = local.direccion?.toLowerCase() || '';
+        const provincia = local.provincia?.toLowerCase() || '';
+        const tipo = local.tipo?.toLowerCase() || '';
+        const barliveTypes = (local.barlive_types || []).join(' ').toLowerCase();
+        
+        return nombre.includes(query) || 
+               direccion.includes(query) || 
+               provincia.includes(query) ||
+               tipo.includes(query) ||
+               barliveTypes.includes(query);
+      });
     }
 
-    const filtered = allLoadedLocales.filter(local => {
-      const nombre = local.nombre?.toLowerCase() || '';
-      const direccion = local.direccion?.toLowerCase() || '';
-      const provincia = local.provincia?.toLowerCase() || '';
-      const tipo = local.tipo?.toLowerCase() || '';
-      const barliveTypes = (local.barlive_types || []).join(' ').toLowerCase();
-      
-      return nombre.includes(query) || 
-             direccion.includes(query) || 
-             provincia.includes(query) ||
-             tipo.includes(query) ||
-             barliveTypes.includes(query);
-    });
-
-    console.log('[Explorar v228.0] ✅ Filtered', filtered.length, 'locales from', allLoadedLocales.length);
     return filtered;
-  }, [allLoadedLocales, filterTrigger]); // ✅ FIXED: Removed filterTrigger, but kept it to trigger re-computation
+  }, [allLoadedLocales, debouncedQuery, selectedCategory]);
 
-  // ✅ CRITICAL v227.0: Only update displayed locales when data is ready
   useEffect(() => {
     if (dataReady) {
-      console.log('[Explorar v228.0] ✅ Data ready - updating displayed locales');
       setDisplayedLocales(filteredLocales);
-    } else {
-      console.log('[Explorar v228.0] ⏳ Data not ready yet - keeping empty');
-      setDisplayedLocales([]);
     }
   }, [filteredLocales, dataReady]);
 
   useEffect(() => {
-    console.log('[Explorar v228.0] 🚀 Category/Province changed - loading data');
-    loadLocales(1, false);
-  }, [selectedCategory, provinciaSeleccionada, loadLocales]);
+    if (locationReady) {
+      console.log('[Explorar v240.0] 🚀 Location is ready - loading initial data');
+      loadLocales(1, false);
+    }
+  }, [locationReady, selectedCategory, provinciaSeleccionada]);
 
   const loadMoreLocales = useCallback(() => {
-    if (!hasMore || isLoadingMoreRef.current || loading) {
+    console.log('[Explorar v240.0] 🔄 loadMoreLocales called - hasMore:', hasMore, 'isLoadingMore:', isLoadingMore, 'loading:', loading);
+    
+    if (!hasMore) {
+      console.log('[Explorar v240.0] ⏸️ No more data available');
+      return;
+    }
+    
+    if (isLoadingMore) {
+      console.log('[Explorar v240.0] ⏸️ Already loading more');
+      return;
+    }
+    
+    if (loading) {
+      console.log('[Explorar v240.0] ⏸️ Initial loading in progress');
       return;
     }
 
-    console.log('[Explorar v228.0] 📥 Loading more locales...');
+    console.log('[Explorar v240.0] 📥 Loading page', currentPage + 1);
     loadLocales(currentPage + 1, true);
-  }, [hasMore, loading, currentPage, loadLocales]);
+  }, [hasMore, isLoadingMore, loading, currentPage, loadLocales]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v228.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v240.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setDataReady(false);
-    searchQueryRef.current = '';
-    if (searchInputRef.current) {
-      searchInputRef.current.clear();
-    }
+    setSearchQuery('');
+    setDebouncedQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
     setCurrentPage(1);
     setAllLoadedLocales([]);
     setDisplayedLocales([]);
     setHasMore(true);
-    setFilterTrigger(prev => prev + 1);
+    setIsLoadingMore(false);
     
     await loadLocales(1, false);
     setRefreshing(false);
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v228.0] 🧹 Clearing all filters');
-    searchQueryRef.current = '';
-    if (searchInputRef.current) {
-      searchInputRef.current.clear();
-    }
+    console.log('[Explorar v240.0] 🧹 Clearing all filters');
+    setSearchQuery('');
+    setDebouncedQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
-    setFilterTrigger(prev => prev + 1);
   }, []);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (searchQueryRef.current.trim()) count++;
+    if (debouncedQuery.trim()) count++;
     if (selectedCategory !== 'todas') count++;
     if (provinciaSeleccionada !== 'Todas') count++;
     return count;
-  }, [selectedCategory, provinciaSeleccionada, filterTrigger]);
+  }, [debouncedQuery, selectedCategory, provinciaSeleccionada]);
+
+  const toggleFavorito = async (localId: string, e?: any) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    
+    if (!user) {
+      router.push('/auth/login-v6');
+      return;
+    }
+
+    if (!localId) {
+      return;
+    }
+
+    try {
+      const { data: existingFavorite } = await supabase
+        .from('locales_guardados')
+        .select('id')
+        .eq('usuario_id', user.id)
+        .eq('local_id', localId)
+        .single();
+
+      if (existingFavorite) {
+        const { error } = await supabase
+          .from('locales_guardados')
+          .delete()
+          .eq('usuario_id', user.id)
+          .eq('local_id', localId);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('locales_guardados')
+          .insert({
+            usuario_id: user.id,
+            local_id: localId,
+          });
+
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('[Explorar v240.0] Error toggling favorito:', error);
+      Alert.alert('Error', 'No se pudo actualizar favoritos');
+    }
+  };
+
+  const handleComoLlegar = (local: any, e: any) => {
+    e.stopPropagation();
+    const { lat, lng } = local.coordenadas;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    Linking.openURL(url);
+  };
+
+  const handlePerfilSocial = (localId: string, e: any) => {
+    e.stopPropagation();
+    router.push(`/perfil/local?localId=${localId}`);
+  };
 
   const handleNavigateToMap = () => {
-    console.log('[Explorar v228.0] 🗺️ Navegando al NUEVO mapa optimizado');
     router.push('/(tabs)/explorar/mapa');
   };
 
   const handleClaimOrCreateLocal = () => {
-    console.log('[Explorar v228.0] User tapped Claim/Create Local button');
-    
     if (!user) {
-      console.log('[Explorar v228.0] User not authenticated - showing login modal');
-      setShowLoginModal(true);
+      router.push('/auth/account-required');
       return;
     }
     
-    console.log('[Explorar v228.0] User authenticated - showing options');
-    
-    Alert.alert(
-      'Solicitar Propiedad',
-      '¿Qué deseas hacer?',
-      [
-        {
-          text: 'Reclamar Local Existente',
-          onPress: () => {
-            console.log('[Explorar v228.0] ✅ Navigating to solicitar-propiedad-ultra-simple (reclamar)');
-            router.push({
-              pathname: '/solicitudes/solicitar-propiedad-ultra-simple',
-              params: { type: 'reclamar_local' },
-            });
-          },
-        },
-        {
-          text: 'Crear Nuevo Local',
-          onPress: () => {
-            console.log('[Explorar v228.0] ✅ Navigating to solicitar-propiedad-ultra-simple (nuevo)');
-            router.push({
-              pathname: '/solicitudes/solicitar-propiedad-ultra-simple',
-              params: { type: 'nuevo_local' },
-            });
-          },
-        },
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-      ]
-    );
+    router.push('/solicitudes/solicitar-propiedad-ultra-simple');
   };
 
   const getModeLabel = () => {
@@ -568,11 +583,10 @@ export default function ExplorarScreen() {
 
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
-      console.log('[Explorar v228.0] Changing mode to:', newMode);
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v228.0] Error changing mode:', error);
+      console.error('[Explorar v240.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
@@ -623,7 +637,6 @@ export default function ExplorarScreen() {
     );
   }, []);
 
-  // ✅ FIXED v228.0: Now uses stable toggleFavorito, handleComoLlegar, handlePerfilSocial
   const renderLocalCard = useCallback(({ item }: { item: any }) => {
     const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
     const isDestacado = item.destacado;
@@ -825,7 +838,7 @@ export default function ExplorarScreen() {
         </View>
       </TouchableOpacity>
     );
-  }, [router, socialProfiles, user, toggleFavorito, handleComoLlegar, handlePerfilSocial]); // ✅ FIXED: Now all dependencies are stable
+  }, [router, socialProfiles, user, toggleFavorito, handleComoLlegar, handlePerfilSocial]);
 
   const renderFooter = () => {
     if (!hasMore && displayedLocales.length > 0) {
@@ -838,13 +851,17 @@ export default function ExplorarScreen() {
       );
     }
 
-    if (isLoadingMoreRef.current) {
+    if (isLoadingMore) {
       return (
-        <View style={styles.footerContainer}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={[styles.footerText, { fontSize: scaleFontSize(14) }]}>
-            Cargando más locales...
-          </Text>
+        <View style={styles.footerLoadingContainer}>
+          <View style={styles.footerLoadingHeader}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.footerText, { fontSize: scaleFontSize(14) }]}>
+              Cargando más locales...
+            </Text>
+          </View>
+          {renderSkeletonCard()}
+          {renderSkeletonCard()}
         </View>
       );
     }
@@ -910,200 +927,8 @@ export default function ExplorarScreen() {
   const categoryIconInnerSize = getCategoryIconInnerSize();
   const modeIcon = getModeIcon();
 
-  const HeaderContent = () => {
-    const headerTitleSize = Platform.OS === 'android' ? scaleFontSize(32) : 32;
-    const headerIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
-
-    return (
-      <React.Fragment>
-        <View style={styles.headerTop}>
-          <Text style={[styles.headerTitle, { fontSize: headerTitleSize }]}>Explorar</Text>
-          <View style={styles.headerActions}>
-            {user && (
-              <TouchableOpacity 
-                style={styles.modeSelectorButton}
-                onPress={() => setShowModeSelectorModal(true)}
-                activeOpacity={0.7}
-              >
-                <IconSymbol 
-                  ios_icon_name={modeIcon.ios} 
-                  android_material_icon_name={modeIcon.android} 
-                  size={scaleIconSize(18)} 
-                  color={colors.headerText} 
-                />
-                <Text style={[styles.modeSelectorText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
-                  {getModeLabel()}
-                </Text>
-                <IconSymbol 
-                  ios_icon_name="chevron.down" 
-                  android_material_icon_name="arrow_drop_down" 
-                  size={scaleIconSize(16)} 
-                  color={colors.headerText} 
-                />
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity 
-              style={styles.mapButton}
-              onPress={handleNavigateToMap}
-              activeOpacity={0.7}
-            >
-              <IconSymbol 
-                ios_icon_name="map.fill" 
-                android_material_icon_name="map" 
-                size={headerIconSize} 
-                color={colors.headerText} 
-              />
-            </TouchableOpacity>
-
-            {activeFiltersCount > 0 && (
-              <TouchableOpacity 
-                style={styles.clearFiltersHeaderButton}
-                onPress={clearFilters}
-                activeOpacity={0.7}
-              >
-                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(20)} color={colors.headerText} />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-        
-        {locationError && (
-          <View style={styles.locationWarningBanner}>
-            <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={scaleIconSize(16)} color="#F97316" />
-            <Text style={[styles.locationWarningText, { fontSize: scaleFontSize(12) }]} numberOfLines={2}>
-              {locationError}
-            </Text>
-          </View>
-        )}
-      
-      <View style={[styles.searchContainer, { 
-        height: searchBoxHeight,
-        paddingVertical: Platform.OS === 'android' ? 10 : 10,
-      }]}>
-        <IconSymbol 
-          ios_icon_name="magnifyingglass" 
-          android_material_icon_name="search"
-          size={scaleIconSize(20)} 
-          color={colors.textSecondary}
-        />
-        <TextInput
-          ref={searchInputRef}
-          style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
-          placeholder="Buscar locales..."
-          placeholderTextColor={colors.textSecondary}
-          defaultValue={searchQueryRef.current}
-          onChangeText={handleSearchChange}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-          blurOnSubmit={false}
-          enablesReturnKeyAutomatically={false}
-        />
-        {searchQueryRef.current.length > 0 && (
-          <TouchableOpacity 
-            onPress={handleClearSearch}
-            style={styles.clearButton}
-            activeOpacity={0.7}
-          >
-            <IconSymbol 
-              ios_icon_name="xmark.circle.fill" 
-              android_material_icon_name="cancel"
-              size={scaleIconSize(20)} 
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity 
-          onPress={() => setMostrarFiltros(true)}
-          style={styles.filterIconButton}
-          activeOpacity={0.7}
-        >
-          <IconSymbol 
-            ios_icon_name="slider.horizontal.3" 
-            android_material_icon_name="tune" 
-            size={scaleIconSize(20)} 
-            color={colors.primary} 
-          />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesScroll}
-        contentContainerStyle={styles.categoriesContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        {CATEGORIAS.map((categoria) => (
-          <TouchableOpacity
-            key={categoria.id}
-            style={styles.categoriaButton}
-            onPress={() => setSelectedCategory(categoria.id)}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.categoriaIconContainer,
-                {
-                  width: categoryIconSize,
-                  height: categoryIconSize,
-                  borderRadius: categoryIconSize / 4,
-                },
-                selectedCategory === categoria.id && styles.categoriaIconContainerActive,
-              ]}
-            >
-              <IconSymbol
-                ios_icon_name={categoria.iosIcon}
-                android_material_icon_name={categoria.androidIcon}
-                size={categoryIconInnerSize}
-                color={selectedCategory === categoria.id ? colors.primary : colors.white}
-              />
-            </View>
-            <Text
-              style={[
-                styles.categoriaLabel,
-                { fontSize: scaleFontSize(12) },
-                selectedCategory === categoria.id && styles.categoriaLabelActive,
-              ]}
-            >
-              {categoria.nombre}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <TouchableOpacity 
-        style={styles.claimBanner}
-        onPress={handleClaimOrCreateLocal}
-        activeOpacity={0.8}
-      >
-        <View style={styles.claimBannerContent}>
-          <IconSymbol 
-            ios_icon_name="building.2.fill" 
-            android_material_icon_name="store" 
-            size={scaleIconSize(24)} 
-            color={colors.headerText} 
-          />
-          <View style={styles.claimBannerTextContainer}>
-            <Text style={[styles.claimBannerTitle, { fontSize: scaleFontSize(15) }]}>
-              ¿Tienes un local?
-            </Text>
-            <Text style={[styles.claimBannerSubtitle, { fontSize: scaleFontSize(13) }]}>
-              Reclámalo o crea uno nuevo
-            </Text>
-          </View>
-          <IconSymbol 
-            ios_icon_name="chevron.right" 
-            android_material_icon_name="chevron_right" 
-            size={scaleIconSize(20)} 
-            color={colors.headerText} 
-          />
-        </View>
-      </TouchableOpacity>
-    </React.Fragment>
-    );
-  };
+  const headerTitleSize = Platform.OS === 'android' ? scaleFontSize(32) : 32;
+  const headerIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
 
   return (
     <View style={styles.container}>
@@ -1119,7 +944,196 @@ export default function ExplorarScreen() {
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.headerGradient}
         >
-          <HeaderContent />
+          <View style={styles.headerTop}>
+            <Text style={[styles.headerTitle, { fontSize: headerTitleSize }]}>Explorar</Text>
+            <View style={styles.headerActions}>
+              {user && (
+                <TouchableOpacity 
+                  style={styles.modeSelectorButton}
+                  onPress={() => setShowModeSelectorModal(true)}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol 
+                    ios_icon_name={modeIcon.ios} 
+                    android_material_icon_name={modeIcon.android} 
+                    size={scaleIconSize(18)} 
+                    color={colors.headerText} 
+                  />
+                  <Text style={[styles.modeSelectorText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
+                    {getModeLabel()}
+                  </Text>
+                  <IconSymbol 
+                    ios_icon_name="chevron.down" 
+                    android_material_icon_name="arrow_drop_down" 
+                    size={scaleIconSize(16)} 
+                    color={colors.headerText} 
+                  />
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity 
+                style={styles.mapButton}
+                onPress={handleNavigateToMap}
+                activeOpacity={0.7}
+              >
+                <IconSymbol 
+                  ios_icon_name="map.fill" 
+                  android_material_icon_name="map" 
+                  size={headerIconSize} 
+                  color={colors.headerText} 
+                />
+              </TouchableOpacity>
+
+              {activeFiltersCount > 0 && (
+                <TouchableOpacity 
+                  style={styles.clearFiltersHeaderButton}
+                  onPress={clearFilters}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(20)} color={colors.headerText} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+          
+          {locationError && (
+            <View style={styles.locationWarningBanner}>
+              <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={scaleIconSize(16)} color="#F97316" />
+              <Text style={[styles.locationWarningText, { fontSize: scaleFontSize(12) }]} numberOfLines={2}>
+                {locationError}
+              </Text>
+            </View>
+          )}
+        
+        <View style={[styles.searchContainer, { 
+          height: searchBoxHeight,
+          paddingVertical: Platform.OS === 'android' ? 10 : 10,
+        }]}>
+          <IconSymbol 
+            ios_icon_name="magnifyingglass" 
+            android_material_icon_name="search"
+            size={scaleIconSize(20)} 
+            color={colors.textSecondary}
+          />
+          <TextInput
+            style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
+            placeholder="Buscar locales..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            blurOnSubmit={false}
+            enablesReturnKeyAutomatically={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity 
+              onPress={() => {
+                setSearchQuery('');
+                setDebouncedQuery('');
+              }}
+              style={styles.clearButton}
+              activeOpacity={0.7}
+            >
+              <IconSymbol 
+                ios_icon_name="xmark.circle.fill" 
+                android_material_icon_name="cancel"
+                size={scaleIconSize(20)} 
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity 
+            onPress={() => setMostrarFiltros(true)}
+            style={styles.filterIconButton}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="slider.horizontal.3" 
+              android_material_icon_name="tune" 
+              size={scaleIconSize(20)} 
+              color={colors.primary} 
+            />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesScroll}
+          contentContainerStyle={styles.categoriesContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {CATEGORIAS.map((categoria) => (
+            <TouchableOpacity
+              key={categoria.id}
+              style={styles.categoriaButton}
+              onPress={() => {
+                console.log('[Explorar v240.0] 👆 Usuario seleccionó categoría:', categoria.id);
+                setSelectedCategory(categoria.id);
+              }}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.categoriaIconContainer,
+                  {
+                    width: categoryIconSize,
+                    height: categoryIconSize,
+                    borderRadius: categoryIconSize / 4,
+                  },
+                  selectedCategory === categoria.id && styles.categoriaIconContainerActive,
+                ]}
+              >
+                <IconSymbol
+                  ios_icon_name={categoria.iosIcon}
+                  android_material_icon_name={categoria.androidIcon}
+                  size={categoryIconInnerSize}
+                  color={selectedCategory === categoria.id ? colors.primary : colors.white}
+                />
+              </View>
+              <Text
+                style={[
+                  styles.categoriaLabel,
+                  { fontSize: scaleFontSize(12) },
+                  selectedCategory === categoria.id && styles.categoriaLabelActive,
+                ]}
+              >
+                {categoria.nombre}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <TouchableOpacity 
+          style={styles.claimBanner}
+          onPress={handleClaimOrCreateLocal}
+          activeOpacity={0.8}
+        >
+          <View style={styles.claimBannerContent}>
+            <IconSymbol 
+              ios_icon_name="building.2.fill" 
+              android_material_icon_name="store" 
+              size={scaleIconSize(24)} 
+              color={colors.headerText} 
+            />
+            <View style={styles.claimBannerTextContainer}>
+              <Text style={[styles.claimBannerTitle, { fontSize: scaleFontSize(15) }]}>
+                ¿Tienes un local?
+              </Text>
+              <Text style={[styles.claimBannerSubtitle, { fontSize: scaleFontSize(13) }]}>
+                Reclámalo o crea uno nuevo
+              </Text>
+            </View>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron_right" 
+              size={scaleIconSize(20)} 
+              color={colors.headerText} 
+            />
+          </View>
+        </TouchableOpacity>
         </LinearGradient>
       </Animated.View>
 
@@ -1310,7 +1324,11 @@ export default function ExplorarScreen() {
                         styles.categoryFilterItem,
                         selectedCategory === categoria.id && styles.categoryFilterItemActive,
                       ]}
-                      onPress={() => setSelectedCategory(categoria.id)}
+                      onPress={() => {
+                        console.log('[Explorar Modal v240.0] 👆 Usuario seleccionó categoría:', categoria.id);
+                        setSelectedCategory(categoria.id);
+                      }}
+                      activeOpacity={0.7}
                     >
                       <IconSymbol
                         ios_icon_name={categoria.iosIcon}
@@ -1387,10 +1405,6 @@ export default function ExplorarScreen() {
         </Pressable>
       </Modal>
 
-      <LoginRequiredModal
-        visible={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-      />
     </View>
   );
 }
@@ -1583,6 +1597,18 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     alignItems: 'center',
     gap: 8,
+    minHeight: 60,
+  },
+  footerLoadingContainer: {
+    paddingVertical: 20,
+    minHeight: 600,
+  },
+  footerLoadingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 20,
   },
   footerText: {
     color: colors.textSecondary,

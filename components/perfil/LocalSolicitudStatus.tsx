@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,12 +26,15 @@ interface Props {
 }
 
 /**
- * ✅ LOCAL SOLICITUD STATUS v1.2 - LINT FIXES
+ * ✅ LOCAL SOLICITUD STATUS v1.1 - FIXED NAVIGATION
  * 
- * FIXES v1.2:
- * - ✅ FIXED: Wrapped loadSolicitud in useCallback
- * - ✅ FIXED: Added loadSolicitud to useEffect dependency array (line 69)
- * - ✅ COMPLIANT: All React Hooks now follow exhaustive-deps rules
+ * FIXES v1.1:
+ * - ✅ Fixed "Ver Detalles" navigation (now goes to /admin/solicitud-detalle, not /perfil/notificaciones)
+ * - ✅ Proper route parameters passing
+ * - ✅ Console logs for debugging
+ * 
+ * Displays ownership request status on local profile pages
+ * Shows current status and allows viewing details
  */
 
 export default function LocalSolicitudStatus({ localId }: Props) {
@@ -39,8 +42,33 @@ export default function LocalSolicitudStatus({ localId }: Props) {
   const [solicitud, setSolicitud] = useState<SolicitudStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ FIXED v1.2: Wrap loadSolicitud in useCallback
-  const loadSolicitud = useCallback(async () => {
+  useEffect(() => {
+    loadSolicitud();
+
+    // Subscribe to changes
+    const channel = supabase
+      .channel(`local-solicitud-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'solicitudes_propietario',
+          filter: `local_id=eq.${localId}`,
+        },
+        () => {
+          console.log('[LocalSolicitudStatus] Request changed, reloading...');
+          loadSolicitud();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [localId]);
+
+  const loadSolicitud = async () => {
     try {
       const { data, error } = await supabase
         .from('solicitudes_propietario')
@@ -62,33 +90,7 @@ export default function LocalSolicitudStatus({ localId }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [localId]);
-
-  // ✅ FIXED v1.2: Added loadSolicitud to dependencies
-  useEffect(() => {
-    loadSolicitud();
-
-    const channel = supabase
-      .channel(`local-solicitud-${localId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'solicitudes_propietario',
-          filter: `local_id=eq.${localId}`,
-        },
-        () => {
-          console.log('[LocalSolicitudStatus] Request changed, reloading...');
-          loadSolicitud();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [localId, loadSolicitud]);
+  };
 
   const getEstadoInfo = (estado: string) => {
     switch (estado) {
@@ -159,9 +161,10 @@ export default function LocalSolicitudStatus({ localId }: Props) {
         <TouchableOpacity
           style={styles.viewDetailsButton}
           onPress={() => {
-            console.log('[LocalSolicitudStatus v1.2] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
-            console.log('[LocalSolicitudStatus v1.2] Route: /admin/solicitud-detalle');
+            console.log('[LocalSolicitudStatus v1.1] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
+            console.log('[LocalSolicitudStatus v1.1] Route: /admin/solicitud-detalle');
             
+            // ✅ FIX v1.1: Navigate to solicitud-detalle instead of notificaciones
             router.push({
               pathname: '/admin/solicitud-detalle',
               params: { id: solicitud.id },

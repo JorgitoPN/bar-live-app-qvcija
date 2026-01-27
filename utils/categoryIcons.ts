@@ -10,8 +10,9 @@ export const getCategoryIcon = (category: string): string => {
     'bares': '🍷',
     'pub': '🍺',
     'pubs': '🍺',
-    'cocteleria': '🍸',
-    'coctelería': '🍸',
+    'cocteleria': '🍹',  // ✅ CHANGED: Tropical drink icon (more distinct from wine glass)
+    'coctelería': '🍹',  // ✅ CHANGED: Tropical drink icon (more distinct from wine glass)
+    'cocktail': '🍹',    // ✅ CHANGED: Tropical drink icon (more distinct from wine glass)
     'discoteca': '🎵',
     'discotecas': '🎵',
     'club': '🎉',

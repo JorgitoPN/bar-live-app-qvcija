@@ -75,9 +75,13 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   const { user } = useAuth();
   const webViewRef = useRef<WebView>(null);
 
-  const requestType = (params.type as 'reclamar_local' | 'nuevo_local') || 'reclamar_local';
+  const requestType = params.type as 'reclamar_local' | 'nuevo_local' | undefined;
   const preselectedLocalId = params.localId as string | undefined;
 
+  const [showSelectionScreen, setShowSelectionScreen] = useState(!requestType);
+  const [selectedRequestType, setSelectedRequestType] = useState<'reclamar_local' | 'nuevo_local' | null>(
+    requestType || null
+  );
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,7 +111,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
   console.log('═══════════════════════════════════════');
   console.log('[UltraSimpleScreen] 🎬 Pantalla inicializada');
-  console.log('[UltraSimpleScreen] 📋 Tipo:', requestType);
+  console.log('[UltraSimpleScreen] 📋 Tipo:', selectedRequestType);
   console.log('[UltraSimpleScreen] 👤 Usuario:', user?.nombre);
   console.log('[UltraSimpleScreen] 📧 Email:', user?.email);
   console.log('═══════════════════════════════════════');
@@ -158,10 +162,10 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
   // ✅ LINT FIX v225.0: Added loadPreselectedLocal to dependencies
   useEffect(() => {
-    if (preselectedLocalId && requestType === 'reclamar_local') {
+    if (preselectedLocalId && selectedRequestType === 'reclamar_local') {
       loadPreselectedLocal(preselectedLocalId);
     }
-  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
+  }, [preselectedLocalId, selectedRequestType, loadPreselectedLocal]);
 
   const searchLocales = useCallback(async (query: string) => {
     if (!query.trim() || query.length < 3) {
@@ -194,13 +198,13 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (requestType === 'reclamar_local') {
+      if (selectedRequestType === 'reclamar_local') {
         searchLocales(searchQuery);
       }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, requestType, searchLocales]);
+  }, [searchQuery, selectedRequestType, searchLocales]);
 
   const handleSelectLocal = async (local: LocalSearchResult) => {
     console.log('[UltraSimpleScreen] ✅ Local seleccionado:', local.nombre);
@@ -371,7 +375,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
   };
 
   const validateStep = (step: number): boolean => {
-    if (requestType === 'reclamar_local') {
+    if (selectedRequestType === 'reclamar_local') {
       switch (step) {
         case 1:
           if (!selectedLocal) {
@@ -426,7 +430,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      const maxSteps = requestType === 'reclamar_local' ? 2 : 5;
+      const maxSteps = selectedRequestType === 'reclamar_local' ? 2 : 5;
       if (currentStep < maxSteps) {
         setCurrentStep(prev => prev + 1);
       }
@@ -446,10 +450,10 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
     setLoading(true);
     try {
       console.log('\n🚀 ═══ ENVIANDO SOLICITUD ═══');
-      console.log('📋 Tipo:', requestType);
+      console.log('📋 Tipo:', selectedRequestType);
       console.log('👤 Usuario:', user.id);
 
-      if (requestType === 'reclamar_local') {
+      if (selectedRequestType === 'reclamar_local') {
         if (!selectedLocal) {
           Alert.alert('Error', 'No se ha seleccionado ningún local');
           setLoading(false);
@@ -569,8 +573,110 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
     }
   };
 
+  const handleSelectRequestType = (type: 'reclamar_local' | 'nuevo_local') => {
+    console.log('[UltraSimpleScreen] ✅ Tipo de solicitud seleccionado:', type);
+    setSelectedRequestType(type);
+    setShowSelectionScreen(false);
+  };
+
+  const renderSelectionScreen = () => (
+    <View style={styles.selectionContainer}>
+      <ScrollView 
+        style={styles.selectionContent}
+        contentContainerStyle={styles.selectionScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.selectionHeader}>
+          <IconSymbol 
+            ios_icon_name="building.2.fill" 
+            android_material_icon_name="store" 
+            size={56} 
+            color={colors.primary} 
+          />
+          <Text style={styles.selectionTitle}>¿Qué deseas hacer?</Text>
+          <Text style={styles.selectionDescription}>
+            Selecciona una opción para continuar con tu solicitud
+          </Text>
+        </View>
+
+        <View style={styles.optionsContainer}>
+          <TouchableOpacity
+            style={styles.optionCard}
+            onPress={() => handleSelectRequestType('reclamar_local')}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+              style={styles.optionGradient}
+            >
+              <View style={styles.optionIconContainer}>
+                <IconSymbol 
+                  ios_icon_name="checkmark.shield.fill" 
+                  android_material_icon_name="verified_user" 
+                  size={40} 
+                  color={colors.headerText} 
+                />
+              </View>
+              <Text style={styles.optionTitle}>Reclamar Local Existente</Text>
+              <Text style={styles.optionDescription}>
+                Si tu local ya está en BarLive, reclámalo para gestionarlo
+              </Text>
+              <View style={styles.optionArrow}>
+                <IconSymbol 
+                  ios_icon_name="arrow.right" 
+                  android_material_icon_name="arrow_forward" 
+                  size={20} 
+                  color={colors.headerText} 
+                />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.optionCard}
+            onPress={() => handleSelectRequestType('nuevo_local')}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={[colors.secondary, colors.secondary + 'CC']}
+              style={styles.optionGradient}
+            >
+              <View style={styles.optionIconContainer}>
+                <IconSymbol 
+                  ios_icon_name="plus.circle.fill" 
+                  android_material_icon_name="add_circle" 
+                  size={40} 
+                  color={colors.headerText} 
+                />
+              </View>
+              <Text style={styles.optionTitle}>Crear Nuevo Local</Text>
+              <Text style={styles.optionDescription}>
+                Si tu local no está en BarLive, créalo desde cero
+              </Text>
+              <View style={styles.optionArrow}>
+                <IconSymbol 
+                  ios_icon_name="arrow.right" 
+                  android_material_icon_name="arrow_forward" 
+                  size={20} 
+                  color={colors.headerText} 
+                />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.cancelSelectionButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.cancelSelectionText}>Cancelar</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+
   const renderStepIndicator = () => {
-    const maxSteps = requestType === 'reclamar_local' ? 2 : 5;
+    const maxSteps = selectedRequestType === 'reclamar_local' ? 2 : 5;
     const steps = Array.from({ length: maxSteps }, (_, i) => i + 1);
 
     return (
@@ -1096,6 +1202,29 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
     </ScrollView>
   );
 
+  // ✅ PANTALLA DE SELECCIÓN: Mostrar cuando no hay tipo seleccionado
+  if (showSelectionScreen) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.header}
+        >
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Solicitar Propiedad</Text>
+            <Text style={styles.headerSubtitle}>Elige una opción</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </LinearGradient>
+
+        {renderSelectionScreen()}
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -1110,7 +1239,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>
-            {requestType === 'reclamar_local' ? 'Reclamar Local' : 'Nuevo Local'}
+            {selectedRequestType === 'reclamar_local' ? 'Reclamar Local' : 'Nuevo Local'}
           </Text>
           <Text style={styles.headerSubtitle}>Solicitud de propiedad</Text>
         </View>
@@ -1120,7 +1249,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
       {renderStepIndicator()}
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {requestType === 'reclamar_local' ? (
+        {selectedRequestType === 'reclamar_local' ? (
           <>
             {currentStep === 1 && renderReclamarStep1()}
             {currentStep === 2 && renderReclamarStep2()}
@@ -1146,7 +1275,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
         <TouchableOpacity 
           style={styles.primaryButton} 
           onPress={() => {
-            const maxSteps = requestType === 'reclamar_local' ? 2 : 5;
+            const maxSteps = selectedRequestType === 'reclamar_local' ? 2 : 5;
             if (currentStep === maxSteps) {
               handleSubmit();
             } else {
@@ -1163,7 +1292,7 @@ export default function SolicitarPropiedadUltraSimpleScreen() {
               <ActivityIndicator size="small" color={colors.headerText} />
             ) : (
               <Text style={styles.primaryButtonText}>
-                {currentStep === (requestType === 'reclamar_local' ? 2 : 5) ? 'Enviar Solicitud' : 'Siguiente'}
+                {currentStep === (selectedRequestType === 'reclamar_local' ? 2 : 5) ? 'Enviar Solicitud' : 'Siguiente'}
               </Text>
             )}
           </LinearGradient>
@@ -1203,6 +1332,98 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 2,
+  },
+  selectionContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  selectionContent: {
+    flex: 1,
+  },
+  selectionScrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    justifyContent: 'center',
+  },
+  selectionHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  selectionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  selectionDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 16,
+  },
+  optionsContainer: {
+    gap: 16,
+    marginBottom: 24,
+  },
+  optionCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  optionGradient: {
+    padding: 20,
+    minHeight: 160,
+    justifyContent: 'space-between',
+  },
+  optionIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  optionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.headerText,
+    marginBottom: 6,
+  },
+  optionDescription: {
+    fontSize: 13,
+    color: colors.headerText,
+    opacity: 0.9,
+    lineHeight: 19,
+    marginBottom: 12,
+  },
+  optionArrow: {
+    alignSelf: 'flex-end',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelSelectionButton: {
+    alignSelf: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  cancelSelectionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   stepIndicator: {
     flexDirection: 'row',
@@ -1718,8 +1939,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
     borderRadius: 12,
-    paddingVertical: 16,
+    height: 56,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   secondaryButtonText: {
     color: colors.primary,
@@ -1730,10 +1952,12 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
+    height: 56,
   },
   primaryGradient: {
-    paddingVertical: 16,
+    height: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
     color: colors.headerText,

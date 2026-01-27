@@ -49,14 +49,13 @@ const PROVINCIAS = [
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
-// ✅ CRITICAL FIX v104.0: Category filters use TEAL ICONS (not emojis)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
   { id: 'restaurante', nombre: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
   { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
   { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
-  { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'local_drink' },
+  { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'liquor' },
   { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
 ];
 
@@ -84,14 +83,20 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v104.0 - TEAL ICON FIX
+ * ✅ EVENTOS SCREEN v243.0 - KEYBOARD FOCUS LOSS COMPLETELY FIXED
  * 
- * CRITICAL FIXES v104.0:
- * - ✅ Category filters now use TEAL-COLORED ICONS (not emojis)
- * - ✅ Icons match the design system with proper Material Icons
- * - ✅ Active state shows white background with teal icon
- * - ✅ Inactive state shows teal background with white icon
- * - ✅ All previous Android fixes maintained
+ * CRITICAL FIXES v243.0:
+ * - ✅ FIXED: NO component functions (HeaderContent removed)
+ * - ✅ FIXED: TextInput is DIRECTLY in return JSX (no wrapper functions)
+ * - ✅ FIXED: Controlled component with value={searchQuery}
+ * - ✅ FIXED: Debounce with useEffect + cleanup (300ms)
+ * - ✅ FIXED: Separate states: searchQuery (immediate) vs debouncedQuery (filtered)
+ * - ✅ FIXED: ScrollView has keyboardShouldPersistTaps="handled"
+ * - ✅ FIXED: TextInput has blurOnSubmit={false}
+ * - ✅ FIXED: Same architecture as working Explorar screen
+ * 
+ * THE PROBLEM WAS: const HeaderContent = () => ... inside the component
+ * React recreated HeaderContent on every render, destroying the TextInput
  */
 
 export default function EventosScreen() {
@@ -99,7 +104,11 @@ export default function EventosScreen() {
   const { user } = useAuth();
   const { currentMode } = useMode();
   const [tabActual, setTabActual] = useState<'hoy' | 'proximos'>('hoy');
-  const [busqueda, setBusqueda] = useState('');
+  
+  // ✅ CRITICAL v242.0: Controlled input state (STABLE) - same as Explorar
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todas');
@@ -125,6 +134,21 @@ export default function EventosScreen() {
     extrapolate: 'clamp',
   });
 
+  // ✅ CRITICAL FIX v242.0: Debounce with cleanup (300ms) - same as Explorar
+  useEffect(() => {
+    console.log('[Eventos v242.0] 📝 Search query changed:', searchQuery);
+    
+    const timer = setTimeout(() => {
+      console.log('[Eventos v242.0] 🔍 Applying debounced search');
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    
+    // Cleanup function - CRITICAL for preventing focus loss
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
+
   const userRole = user?.rol_app || 'cliente';
   
   const canCreateEvents = (userRole === 'propietario' && currentMode === 'propietario') || 
@@ -143,7 +167,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v104.0] Cargando eventos...');
+      console.log('[Eventos v242.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -175,11 +199,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v104.0] Error cargando eventos:', error);
+        console.error('[Eventos v242.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v104.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v242.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -214,7 +238,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v104.0] Error:', error);
+      console.error('[Eventos v242.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -226,13 +250,15 @@ export default function EventosScreen() {
   }, [cargarEventos]);
 
   const onRefresh = () => {
-    console.log('[Eventos v104.0] 🔄 Manual refresh triggered');
+    console.log('[Eventos v242.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     cargarEventos();
   };
 
+  // ✅ CRITICAL v242.0: Filter using debouncedQuery - same as Explorar
   const eventosFiltrados = eventos.filter((evento) => {
-    const matchBusqueda = evento.titulo.toLowerCase().includes(busqueda.toLowerCase());
+    const query = debouncedQuery.toLowerCase().trim();
+    const matchBusqueda = evento.titulo.toLowerCase().includes(query);
     const matchProvincia = provinciaSeleccionada === 'Todas' || evento.provincia === provinciaSeleccionada;
     
     let matchCategoria = true;
@@ -271,6 +297,9 @@ export default function EventosScreen() {
   });
 
   const limpiarFiltros = () => {
+    console.log('[Eventos v242.0] 🧹 Clearing all filters');
+    setSearchQuery('');
+    setDebouncedQuery('');
     setProvinciaSeleccionada('Todas');
     setCategoriaSeleccionada('todas');
     setFechaInicio(null);
@@ -282,6 +311,15 @@ export default function EventosScreen() {
     return date.toLocaleDateString('es-ES', {
       day: 'numeric',
       month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  const formatDateShort = (date: Date | null): string => {
+    if (!date) return 'Seleccionar';
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
     });
   };
@@ -349,7 +387,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v104.0] Deleting event:', eventoId);
+              console.log('[Eventos v242.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -357,14 +395,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v104.0] Error deleting event:', error);
+                console.error('[Eventos v242.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v104.0] Error deleting event:', error);
+              console.error('[Eventos v242.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -390,126 +428,7 @@ export default function EventosScreen() {
   const categoryIconSize = getCategoryIconSize();
   const categoryIconInnerSize = getCategoryIconInnerSize();
 
-  const HeaderContent = () => (
-    <React.Fragment>
-      <Text style={[
-        commonStyles.headerTitle, 
-        { 
-          color: colors.white,
-          fontSize: scaleFontSize(32),
-        }
-      ]}>
-        Eventos
-      </Text>
-
-      <View style={[styles.searchContainer, { 
-        height: searchBoxHeight,
-      }]}>
-        <IconSymbol 
-          ios_icon_name="magnifyingglass" 
-          android_material_icon_name="search" 
-          size={scaleIconSize(20)} 
-          color={colors.textSecondary} 
-        />
-        <TextInput
-          style={[styles.searchInput, { 
-            fontSize: scaleFontSize(16),
-            textAlignVertical: Platform.OS === 'android' ? 'center' : 'auto',
-            paddingVertical: Platform.OS === 'android' ? 0 : 12,
-          }]}
-          placeholder="Buscar eventos..."
-          placeholderTextColor={colors.textSecondary}
-          value={busqueda}
-          onChangeText={setBusqueda}
-        />
-        <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
-          <IconSymbol 
-            ios_icon_name="slider.horizontal.3" 
-            android_material_icon_name="tune" 
-            size={scaleIconSize(20)} 
-            color={colors.primary} 
-          />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, tabActual === 'hoy' && styles.tabActive]}
-          onPress={() => setTabActual('hoy')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              { fontSize: scaleFontSize(15) },
-              tabActual === 'hoy' && styles.tabTextActive,
-            ]}
-          >
-            Hoy
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, tabActual === 'proximos' && styles.tabActive]}
-          onPress={() => setTabActual('proximos')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              { fontSize: scaleFontSize(15) },
-              tabActual === 'proximos' && styles.tabTextActive,
-            ]}
-          >
-            Próximos
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ✅ CRITICAL FIX v104.0: Category filters use TEAL ICONS */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesScroll}
-        contentContainerStyle={styles.categoriesContent}
-      >
-        {CATEGORIAS.map((categoria) => (
-          <TouchableOpacity
-            key={categoria.id}
-            style={styles.categoriaButton}
-            onPress={() => setCategoriaSeleccionada(categoria.id)}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.categoriaIconContainer,
-                {
-                  width: categoryIconSize,
-                  height: categoryIconSize,
-                  borderRadius: categoryIconSize / 4,
-                },
-                categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive,
-              ]}
-            >
-              <IconSymbol
-                ios_icon_name={categoria.iosIcon}
-                android_material_icon_name={categoria.androidIcon}
-                size={categoryIconInnerSize}
-                color={categoriaSeleccionada === categoria.id ? colors.primary : colors.white}
-              />
-            </View>
-            <Text
-              style={[
-                styles.categoriaLabel,
-                { fontSize: scaleFontSize(12) },
-                categoriaSeleccionada === categoria.id && styles.categoriaLabelActive,
-              ]}
-            >
-              {categoria.nombre}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </React.Fragment>
-  );
-
+  // ✅ CRITICAL v243.0: NO COMPONENT FUNCTIONS - All JSX directly in return
   return (
     <View style={commonStyles.container}>
       {Platform.OS === 'android' ? (
@@ -527,7 +446,145 @@ export default function EventosScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.headerGradient}
           >
-            <HeaderContent />
+            <Text style={[
+              commonStyles.headerTitle, 
+              { 
+                color: colors.white,
+                fontSize: scaleFontSize(32),
+              }
+            ]}>
+              Eventos
+            </Text>
+
+            {/* ✅ CRITICAL v243.0: TextInput DIRECTLY in return - NO function wrapper */}
+            <View style={[styles.searchContainer, { 
+              height: searchBoxHeight,
+            }]}>
+              <IconSymbol 
+                ios_icon_name="magnifyingglass" 
+                android_material_icon_name="search" 
+                size={scaleIconSize(20)} 
+                color={colors.textSecondary} 
+              />
+              <TextInput
+                style={[styles.searchInput, { 
+                  fontSize: scaleFontSize(16),
+                  textAlignVertical: Platform.OS === 'android' ? 'center' : 'auto',
+                  paddingVertical: Platform.OS === 'android' ? 0 : 12,
+                }]}
+                placeholder="Buscar eventos..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                blurOnSubmit={false}
+                enablesReturnKeyAutomatically={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity 
+                  onPress={() => {
+                    console.log('[Eventos v243.0] 🧹 Clearing search');
+                    setSearchQuery('');
+                    setDebouncedQuery('');
+                  }}
+                  style={styles.clearButton}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol 
+                    ios_icon_name="xmark.circle.fill" 
+                    android_material_icon_name="cancel"
+                    size={scaleIconSize(20)} 
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
+                <IconSymbol 
+                  ios_icon_name="slider.horizontal.3" 
+                  android_material_icon_name="tune" 
+                  size={scaleIconSize(20)} 
+                  color={colors.primary} 
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.tabs}>
+              <TouchableOpacity
+                style={[styles.tab, tabActual === 'hoy' && styles.tabActive]}
+                onPress={() => setTabActual('hoy')}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    { fontSize: scaleFontSize(15) },
+                    tabActual === 'hoy' && styles.tabTextActive,
+                  ]}
+                >
+                  Hoy
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, tabActual === 'proximos' && styles.tabActive]}
+                onPress={() => setTabActual('proximos')}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    { fontSize: scaleFontSize(15) },
+                    tabActual === 'proximos' && styles.tabTextActive,
+                  ]}
+                >
+                  Próximos
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoriesScroll}
+              contentContainerStyle={styles.categoriesContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              {CATEGORIAS.map((categoria) => (
+                <TouchableOpacity
+                  key={categoria.id}
+                  style={styles.categoriaButton}
+                  onPress={() => setCategoriaSeleccionada(categoria.id)}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.categoriaIconContainer,
+                      {
+                        width: categoryIconSize,
+                        height: categoryIconSize,
+                        borderRadius: categoryIconSize / 4,
+                      },
+                      categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive,
+                    ]}
+                  >
+                    <IconSymbol
+                      ios_icon_name={categoria.iosIcon}
+                      android_material_icon_name={categoria.androidIcon}
+                      size={categoryIconInnerSize}
+                      color={categoriaSeleccionada === categoria.id ? colors.primary : colors.white}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.categoriaLabel,
+                      { fontSize: scaleFontSize(12) },
+                      categoriaSeleccionada === categoria.id && styles.categoriaLabelActive,
+                    ]}
+                  >
+                    {categoria.nombre}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </LinearGradient>
         </Animated.View>
       ) : (
@@ -537,7 +594,145 @@ export default function EventosScreen() {
           end={{ x: 1, y: 0 }}
           style={commonStyles.headerGradient}
         >
-          <HeaderContent />
+          <Text style={[
+            commonStyles.headerTitle, 
+            { 
+              color: colors.white,
+              fontSize: scaleFontSize(32),
+            }
+          ]}>
+            Eventos
+          </Text>
+
+          {/* ✅ CRITICAL v243.0: TextInput DIRECTLY in return - NO function wrapper */}
+          <View style={[styles.searchContainer, { 
+            height: searchBoxHeight,
+          }]}>
+            <IconSymbol 
+              ios_icon_name="magnifyingglass" 
+              android_material_icon_name="search" 
+              size={scaleIconSize(20)} 
+              color={colors.textSecondary} 
+            />
+            <TextInput
+              style={[styles.searchInput, { 
+                fontSize: scaleFontSize(16),
+                textAlignVertical: Platform.OS === 'android' ? 'center' : 'auto',
+                paddingVertical: Platform.OS === 'android' ? 0 : 12,
+              }]}
+              placeholder="Buscar eventos..."
+              placeholderTextColor={colors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+              blurOnSubmit={false}
+              enablesReturnKeyAutomatically={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity 
+                onPress={() => {
+                  console.log('[Eventos v243.0] 🧹 Clearing search');
+                  setSearchQuery('');
+                  setDebouncedQuery('');
+                }}
+                style={styles.clearButton}
+                activeOpacity={0.7}
+              >
+                <IconSymbol 
+                  ios_icon_name="xmark.circle.fill" 
+                  android_material_icon_name="cancel"
+                  size={scaleIconSize(20)} 
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
+              <IconSymbol 
+                ios_icon_name="slider.horizontal.3" 
+                android_material_icon_name="tune" 
+                size={scaleIconSize(20)} 
+                color={colors.primary} 
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.tabs}>
+            <TouchableOpacity
+              style={[styles.tab, tabActual === 'hoy' && styles.tabActive]}
+              onPress={() => setTabActual('hoy')}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  { fontSize: scaleFontSize(15) },
+                  tabActual === 'hoy' && styles.tabTextActive,
+                ]}
+              >
+                Hoy
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, tabActual === 'proximos' && styles.tabActive]}
+              onPress={() => setTabActual('proximos')}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  { fontSize: scaleFontSize(15) },
+                  tabActual === 'proximos' && styles.tabTextActive,
+                ]}
+              >
+                Próximos
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoriesScroll}
+            contentContainerStyle={styles.categoriesContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {CATEGORIAS.map((categoria) => (
+              <TouchableOpacity
+                key={categoria.id}
+                style={styles.categoriaButton}
+                onPress={() => setCategoriaSeleccionada(categoria.id)}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={[
+                    styles.categoriaIconContainer,
+                    {
+                      width: categoryIconSize,
+                      height: categoryIconSize,
+                      borderRadius: categoryIconSize / 4,
+                    },
+                    categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive,
+                  ]}
+                >
+                  <IconSymbol
+                    ios_icon_name={categoria.iosIcon}
+                    android_material_icon_name={categoria.androidIcon}
+                    size={categoryIconInnerSize}
+                    color={categoriaSeleccionada === categoria.id ? colors.primary : colors.white}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.categoriaLabel,
+                    { fontSize: scaleFontSize(12) },
+                    categoriaSeleccionada === categoria.id && styles.categoriaLabelActive,
+                  ]}
+                >
+                  {categoria.nombre}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </LinearGradient>
       )}
 
@@ -559,6 +754,8 @@ export default function EventosScreen() {
           }
           onScroll={Platform.OS === 'android' ? handleScroll : undefined}
           scrollEventThrottle={16}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {eventosFiltrados.length === 0 ? (
             <View style={styles.emptyState}>
@@ -617,6 +814,7 @@ export default function EventosScreen() {
               style={styles.modalScrollView}
               showsHorizontalScrollIndicator={false}
               bounces={false}
+              keyboardShouldPersistTaps="handled"
             >
               <View style={styles.filterSection}>
                 <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Categoría de Local</Text>
@@ -716,6 +914,7 @@ export default function EventosScreen() {
                               textColor={colors.text}
                               style={styles.datePicker}
                               themeVariant="light"
+                              locale="es-ES"
                             />
                             {Platform.OS === 'ios' && (
                               <TouchableOpacity
@@ -758,6 +957,7 @@ export default function EventosScreen() {
                               textColor={colors.text}
                               style={styles.datePicker}
                               themeVariant="light"
+                              locale="es-ES"
                             />
                             {Platform.OS === 'ios' && (
                               <TouchableOpacity
@@ -856,6 +1056,9 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     color: colors.text,
+  },
+  clearButton: {
+    padding: 4,
   },
   tabs: {
     flexDirection: 'row',

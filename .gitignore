@@ -1,47 +1,47 @@
-# --- PROTECCIÓN ANTI-BLOQUEO (NATIVELY/GITHUB) ---
-node_modules/
-.natively/
-chat_history.json
-*.log
-*.tmp
-temp/
-cache/
-.expo/
-.git/
 
-# --- ARCHIVOS DE EXPO Y COMPILACIÓN ---
+node_modules/
+
+.git/
+.expo/
+
 dist/
 web-build/
 expo-env.d.ts
-.metro-health-check*
-*.tsbuildinfo
 
-# --- SEGURIDAD Y LLAVES (MUY IMPORTANTE) ---
+*.orig.*
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
-*.pem
-.env*.local
 
-# --- SISTEMA Y BASURA ---
-.DS_Store
-*.orig.*
+.metro-health-check*
 
-# --- GESTORES DE PAQUETES ---
-# Bloqueamos los locks porque a veces Natively se confunde con versiones locales
-pnpm-lock.yaml
-package-lock.json
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# --- CARPETAS NATIVAS ---
-# Expo las genera en la nube, no las necesitamos en GitHub
+.DS_Store
+*.pem
+
+.env*.local
+
+*.tsbuildinfo
+
+.natively/
+
 android/
 ios/
 
-# --- DESPLIEGUE ---
 netlify.toml
 .netlify/
+
+pnpm-lock.yaml
+package-lock.json
+
+# Chat history and large temporary files
+chat_history.json
+*.log
+*.tmp
+temp/
+cache/

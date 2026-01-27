@@ -20,23 +20,19 @@ import { supabase } from '@/utils/supabase';
 import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize, scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 /**
- * ✅ RECUPERAR PASSWORD TOKEN SCREEN v144.0 - ANDROID SCROLL & SCALING FIX
+ * ✅ RECUPERAR PASSWORD TOKEN SCREEN v145.0 - AUTH FIX
  * 
- * CRITICAL FIXES v144.0 (ANDROID ONLY):
- * - ✅ Enabled proper keyboard-aware scrolling (INCLUDES HEADER)
- * - ✅ Added bottom padding for Android navigation buttons
- * - ✅ Consistent header title and icon sizes
- * - ✅ ALL text uses scaleFontSize() for consistency
- * - ✅ ALL icons use scaleIconSize() for consistency
- * - ✅ Content no longer hidden by keyboard or nav buttons
- * - ✅ iOS design remains unchanged
+ * CRITICAL FIXES v145.0:
+ * - ✅ Fixed "Invalid JWT" error by using anon key instead of access_token
+ * - ✅ Removed authentication requirement for password reset flow
+ * - ✅ Edge Functions now work without user session
  */
 
 export default function RecuperarPasswordTokenScreen() {
   const router = useRouter();
   
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState('');
   const [emailSent, setEmailSent] = useState(false);
   const [token, setToken] = useState(['', '', '', '', '', '']);
   const [validatingToken, setValidatingToken] = useState(false);
@@ -77,30 +73,26 @@ export default function RecuperarPasswordTokenScreen() {
       console.log('[RecuperarPasswordToken] 📧 Email:', normalizedEmail);
       console.log('[RecuperarPasswordToken] ⏰ Timestamp:', new Date().toISOString());
 
-      const { data: { project_url } } = await supabase.functions.getProjectUrl();
-      const functionsUrl = project_url || 'https://embntaqwlwmgazvrglaf.supabase.co';
-
-      const response = await fetch(`${functionsUrl}/functions/v1/request-password-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
-        },
-        body: JSON.stringify({ email: normalizedEmail }),
+      // ✅ FIX: Use supabase.functions.invoke instead of manual fetch
+      // This automatically handles authentication with anon key
+      const { data, error } = await supabase.functions.invoke('request-password-token', {
+        body: { email: normalizedEmail },
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        console.error('[RecuperarPasswordToken] ❌ Error:', result);
-        throw new Error(result.error || 'Error al enviar el código');
+      if (error) {
+        console.error('[RecuperarPasswordToken] ❌ Error:', error);
+        throw new Error(error.message || 'Error al enviar el código');
       }
 
       console.log('[RecuperarPasswordToken] ✅ Token enviado exitosamente');
+      console.log('[RecuperarPasswordToken] 📧 Respuesta:', data);
       setEmailSent(true);
     } catch (error: any) {
       console.error('[RecuperarPasswordToken] ❌ Error:', error);
-      setEmailSent(true);
+      Alert.alert(
+        'Error',
+        'No se pudo enviar el código de recuperación. Por favor, intenta nuevamente.'
+      );
     } finally {
       setLoading(false);
       console.log('[RecuperarPasswordToken] 🏁 Proceso finalizado');
@@ -145,28 +137,24 @@ export default function RecuperarPasswordTokenScreen() {
       console.log('[RecuperarPasswordToken] 📧 Email:', email);
       console.log('[RecuperarPasswordToken] 🔢 Token:', fullToken);
 
-      const { data: { project_url } } = await supabase.functions.getProjectUrl();
-      const functionsUrl = project_url || 'https://embntaqwlwmgazvrglaf.supabase.co';
-
-      const response = await fetch(`${functionsUrl}/functions/v1/validate-password-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
-        },
-        body: JSON.stringify({ 
+      // ✅ FIX: Use supabase.functions.invoke instead of manual fetch
+      const { data, error } = await supabase.functions.invoke('validate-password-token', {
+        body: { 
           email: email.trim().toLowerCase(), 
           token: fullToken 
-        }),
+        },
       });
 
-      const result = await response.json();
+      if (error) {
+        console.error('[RecuperarPasswordToken] ❌ Error:', error);
+        throw new Error(error.message || 'Error al validar el código');
+      }
 
-      if (!result.valid) {
-        console.error('[RecuperarPasswordToken] ❌ Token inválido:', result.error);
+      if (!data?.valid) {
+        console.error('[RecuperarPasswordToken] ❌ Token inválido:', data?.error);
         Alert.alert(
           'Código inválido',
-          result.error || 'El código ingresado es inválido o ha expirado. Por favor, verifica e intenta nuevamente.',
+          data?.error || 'El código ingresado es inválido o ha expirado. Por favor, verifica e intenta nuevamente.',
           [
             {
               text: 'Solicitar nuevo código',
@@ -493,7 +481,6 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    // paddingBottom set dynamically via getContentBottomPadding()
   },
   header: {
     paddingTop: Platform.OS === 'android' ? 60 : 60,
@@ -510,13 +497,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    // fontSize set dynamically via getHeaderTitleSize()
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 8,
   },
   headerSubtitle: {
-    // fontSize set dynamically via scaleFontSize()
     color: 'rgba(255, 255, 255, 0.9)',
   },
   content: {
@@ -545,14 +530,12 @@ const styles = StyleSheet.create({
     }),
   },
   infoTitle: {
-    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 20,
     marginBottom: 12,
   },
   infoText: {
-    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
@@ -561,7 +544,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   label: {
-    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 12,
@@ -581,7 +563,6 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     padding: 16,
-    // fontSize set dynamically via scaleFontSize()
     color: colors.text,
   },
   button: {
@@ -612,7 +593,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
   },
   securityNote: {
@@ -626,7 +606,6 @@ const styles = StyleSheet.create({
   },
   securityText: {
     flex: 1,
-    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     marginLeft: 12,
     lineHeight: 18,
@@ -650,14 +629,12 @@ const styles = StyleSheet.create({
     }),
   },
   successTitle: {
-    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 20,
     marginBottom: 12,
   },
   successText: {
-    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
@@ -672,13 +649,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   emailText: {
-    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.primary,
     marginLeft: 8,
   },
   successSubtext: {
-    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
@@ -690,7 +665,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   instructionsTitle: {
-    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 20,
@@ -709,7 +683,6 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   stepNumberText: {
-    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: '#fff',
   },
@@ -717,13 +690,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stepTitle: {
-    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
   },
   stepText: {
-    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     lineHeight: 18,
   },
@@ -747,14 +718,12 @@ const styles = StyleSheet.create({
     }),
   },
   tokenSectionTitle: {
-    // fontSize set dynamically via scaleFontSize()
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 16,
     textAlign: 'center',
   },
   tokenLabel: {
-    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 16,
@@ -800,13 +769,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   tipsTitle: {
-    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
     color: colors.text,
     marginBottom: 12,
   },
   tipText: {
-    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
     marginBottom: 6,
     lineHeight: 18,
@@ -827,7 +794,6 @@ const styles = StyleSheet.create({
   },
   resendButtonText: {
     color: colors.primary,
-    // fontSize set dynamically via scaleFontSize()
     fontWeight: '600',
   },
   backToLoginButton: {
@@ -840,7 +806,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   backToLoginText: {
-    // fontSize set dynamically via scaleFontSize()
     color: colors.textSecondary,
   },
   backToLoginTextBold: {
