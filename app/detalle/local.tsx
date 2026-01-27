@@ -316,9 +316,14 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL SCREEN v101.0 - ANDROID SCALING COMPLETE
+ * ✅ DETALLE LOCAL SCREEN v102.0 - OPTIMISTIC FAVORITES UI
  * 
- * CRITICAL FIXES v101.0 (ANDROID ONLY):
+ * CRITICAL FIXES v102.0:
+ * - ✅ Removed ActivityIndicator from favorite button for instant UI updates
+ * - ✅ Heart icon changes immediately when tapped (optimistic UI)
+ * - ✅ No loading spinner - instant visual feedback
+ * 
+ * Previous fixes maintained (v101.0):
  * - ✅ All text elements use scaleFontSize() for consistency
  * - ✅ Header icons properly sized with scaleIconSize()
  * - ✅ All buttons and badges scaled appropriately
@@ -1077,18 +1082,14 @@ export default function DetalleLocalScreen() {
               </View>
             )}
 
-            <TouchableOpacity style={styles.favoritoButton} onPress={handleToggleFavorito} disabled={loadingFavorite}>
+            <TouchableOpacity style={styles.favoritoButton} onPress={handleToggleFavorito}>
               <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
-                {loadingFavorite ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <IconSymbol
-                    ios_icon_name={localIsFavorite ? 'heart.fill' : 'heart'}
-                    android_material_icon_name={localIsFavorite ? 'favorite' : 'favorite_border'}
-                    size={22}
-                    color={localIsFavorite ? '#EF4444' : '#FFFFFF'}
-                  />
-                )}
+                <IconSymbol
+                  ios_icon_name={localIsFavorite ? 'heart.fill' : 'heart'}
+                  android_material_icon_name={localIsFavorite ? 'favorite' : 'favorite_border'}
+                  size={22}
+                  color={localIsFavorite ? '#EF4444' : '#FFFFFF'}
+                />
               </BlurView>
             </TouchableOpacity>
           </View>
