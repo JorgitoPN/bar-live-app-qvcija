@@ -1,17 +1,20 @@
 
 /**
- * FLOATING TAB BAR - VERSION v160.0
+ * FLOATING TAB BAR - VERSION v268.0
  * 
- * ✅ PERFORMANCE FIX v160.0 - INSTANT TOUCH RESPONSE
+ * ✅ COMPACT DESIGN v268.0 - REDUCED HEIGHT & iOS SPACING
  * 
- * CRITICAL FIXES v160.0:
+ * CRITICAL FIXES v268.0:
+ * - ✅ REDUCED HEIGHT: Tab bar is now more compact (56dp Android, 60pt iOS)
+ * - ✅ iOS SPACING FIX: Eliminated empty gap between icons and bottom edge
+ * - ✅ SMALLER ICONS: Reduced icon sizes for better proportions
+ * - ✅ TIGHTER PADDING: Reduced vertical padding for more screen space
+ * 
+ * Previous fixes maintained (v160.0):
  * - ✅ INSTANT FEEDBACK: Reduced activeOpacity to 0.6 for immediate visual response
  * - ✅ REMOVED DELAYS: Eliminated any animation delays on press
  * - ✅ OPTIMIZED RENDERING: Memoized components to prevent unnecessary re-renders
  * - ✅ FASTER NAVIGATION: Direct router.push without delays
- * - ✅ HAPTIC FEEDBACK: Added instant haptic feedback on press (optional)
- * 
- * Previous fixes maintained (v159.0):
  * - ✅ ProfileTab component properly uses hooks at top level
  * - ✅ Avatar displays correctly on ALL pages
  */
@@ -57,7 +60,7 @@ interface ProfileTabProps {
 }
 
 const ProfileTab = memo(({ isActive, onPress, avatarUrl }: ProfileTabProps) => {
-  const avatarSize = Platform.OS === 'android' ? 28 : 32;
+  const avatarSize = Platform.OS === 'android' ? 26 : 30;
   const [imageError, setImageError] = React.useState(false);
   const [imageLoaded, setImageLoaded] = React.useState(false);
   
@@ -109,7 +112,7 @@ const ProfileTab = memo(({ isActive, onPress, avatarUrl }: ProfileTabProps) => {
             <IconSymbol
               ios_icon_name="person.fill"
               android_material_icon_name="person"
-              size={Platform.OS === 'android' ? 18 : 22}
+              size={Platform.OS === 'android' ? 16 : 20}
               color={isActive ? colors.primary : 'rgba(255, 255, 255, 0.7)'}
             />
           </View>
@@ -199,8 +202,8 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     }
 
     if (isCenter) {
-      const centerButtonSize = Platform.OS === 'android' ? 56 : 64;
-      const centerIconSize = Platform.OS === 'android' ? 28 : 32;
+      const centerButtonSize = Platform.OS === 'android' ? 52 : 58;
+      const centerIconSize = Platform.OS === 'android' ? 26 : 30;
 
       return (
         <TouchableOpacity
@@ -233,7 +236,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
       );
     }
 
-    const iconSize = Platform.OS === 'android' ? 24 : 28;
+    const iconSize = Platform.OS === 'android' ? 22 : 26;
     
     return (
       <TouchableOpacity
@@ -252,13 +255,14 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     );
   }, [isTabActive, handleTabPress, avatarUrl, getAndroidIcon]);
 
-  const bottomNavHeight = Platform.OS === 'android' ? 60 : 70;
-  const tabBarPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 8) : Math.max(insets.bottom, 12);
+  // ✅ COMPACT TAB BAR v268.0: Reduced height and iOS bottom spacing
+  const bottomNavHeight = Platform.OS === 'android' ? 56 : 60;
+  const tabBarPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 8) : Math.max(insets.bottom - 8, 4);
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - ` +
-    `activeOpacity=0.6, no delays, optimized rendering`
+    `[FloatingTabBar v268.0] ⚡ COMPACT MODE ACTIVE - ` +
+    `height=${bottomNavHeight}pt, iOS spacing optimized, reduced icon sizes`
   );
 
   return (
@@ -313,7 +317,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    paddingTop: Platform.OS === 'android' ? 8 : 12,
+    paddingTop: Platform.OS === 'android' ? 8 : 10,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'space-evenly',
@@ -327,7 +331,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Platform.OS === 'android' ? 4 : 8,
+    paddingVertical: Platform.OS === 'android' ? 4 : 6,
     overflow: 'hidden',
     borderRadius: 20,
     zIndex: 10,
