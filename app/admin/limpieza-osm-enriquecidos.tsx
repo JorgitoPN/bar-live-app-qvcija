@@ -24,29 +24,43 @@ interface CleanupStats {
   total_osm_pendientes: number;
   total_google_enriquecidos: number;
   espacio_estimado_mb: number;
-  por_provincia: {
+  por_provincia: Array<{
     provincia: string;
     total: number;
     enriquecidos: number;
-  }[]; // ✅ FIXED: Changed from Array<{...}> to {...}[]
+  }>;
 }
 
 interface CleanupResult {
   locales_migrados: number;
   espacio_liberado_mb: number;
-  detalles: {
+  detalles: Array<{
     id: string;
     nombre: string;
     provincia: string;
-  }[]; // ✅ FIXED: Changed from Array<{...}> to {...}[]
+  }>;
 }
 
 /**
- * 🗑️ SISTEMA DE SEPARACIÓN DE CATÁLOGOS OSM Y GOOGLE PLACES v2.1
+ * 🗑️ SISTEMA DE SEPARACIÓN DE CATÁLOGOS OSM Y GOOGLE PLACES v2.0
  * 
- * LINT FIXES v2.1:
- * - ✅ FIXED: Changed Array<T> to T[] for TypeScript array types (lines 27, 37)
- * - ✅ COMPLIANT: All array types now follow @typescript-eslint/array-type rules
+ * REDISEÑO COMPLETO después del incidente crítico v1.0
+ * 
+ * NUEVA LÓGICA v2.0:
+ * - Los locales OSM enriquecidos NO se eliminan
+ * - En su lugar, se cambia su source_type de 'osm' a 'google'
+ * - Esto separa claramente los dos catálogos:
+ *   • Catálogo OSM (source_type='osm'): Locales pendientes de enriquecer
+ *   • Catálogo Google (source_type='google'): Locales enriquecidos y activos
+ * 
+ * OBJETIVO: Mantener catálogos separados sin pérdida de datos
+ * 
+ * BENEFICIOS:
+ * - ✅ Separación clara de catálogos
+ * - ✅ Sin pérdida de datos ni referencias
+ * - ✅ Los locales siguen visibles en "Explorar" y "Mapa"
+ * - ✅ Se mantienen likes, posts, check-ins, etc.
+ * - ✅ Mejora el rendimiento al reducir el catálogo OSM
  */
 
 export default function LimpiezaOSMEnriquecidosScreen() {
@@ -87,8 +101,9 @@ export default function LimpiezaOSMEnriquecidosScreen() {
 
   const loadStats = async () => {
     try {
-      console.log('[OSM Cleanup v2.1] 📊 Loading statistics...');
+      console.log('[OSM Cleanup v2.0] 📊 Loading statistics...');
       
+      // Query OSM locales statistics
       const { data: osmLocales, error: osmError } = await supabase
         .from('locales')
         .select('id, nombre, provincia, activo, enriquecido')
@@ -96,6 +111,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
 
       if (osmError) throw osmError;
 
+      // Query Google locales statistics (enriched catalog)
       const { data: googleLocales, error: googleError } = await supabase
         .from('locales')
         .select('id, nombre, provincia, activo, enriquecido')
@@ -111,8 +127,10 @@ export default function LimpiezaOSMEnriquecidosScreen() {
       const totalGoogle = googleLocales?.length || 0;
       const googleEnriquecidos = googleLocales?.filter(l => l.enriquecido && l.activo).length || 0;
 
+      // Estimate space (rough estimate: ~5KB per local)
       const espacioEstimadoMB = Math.round((osmEnriquecidos * 5) / 1024);
 
+      // Group by province
       const porProvincia: Record<string, { total: number; enriquecidos: number }> = {};
       osmLocales?.forEach(local => {
         const provincia = local.provincia || 'Desconocida';
@@ -133,7 +151,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
         }))
         .sort((a, b) => b.enriquecidos - a.enriquecidos);
 
-      console.log('[OSM Cleanup v2.1] ✅ Statistics loaded:', {
+      console.log('[OSM Cleanup v2.0] ✅ Statistics loaded:', {
         totalOSM,
         osmEnriquecidos,
         osmActivos,
@@ -152,7 +170,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
         por_provincia: porProvinciaArray,
       });
     } catch (error) {
-      console.error('[OSM Cleanup v2.1] ❌ Error loading statistics:', error);
+      console.error('[OSM Cleanup v2.0] ❌ Error loading statistics:', error);
       Alert.alert('Error', 'No se pudieron cargar las estadísticas');
     } finally {
       setLoading(false);
@@ -171,17 +189,18 @@ export default function LimpiezaOSMEnriquecidosScreen() {
       if (!error && data) {
         setAutoCleanupEnabled(data.value?.enabled !== false);
       } else {
+        // Por defecto, activada
         setAutoCleanupEnabled(true);
       }
     } catch (error) {
-      console.error('[OSM Cleanup v2.1] Error checking auto-cleanup status:', error);
+      console.error('[OSM Cleanup v2.0] Error checking auto-cleanup status:', error);
       setAutoCleanupEnabled(true);
     }
   };
 
   const toggleAutoCleanup = async (enabled: boolean) => {
     try {
-      console.log('[OSM Cleanup v2.1] Toggling auto-migration:', enabled);
+      console.log('[OSM Cleanup v2.0] Toggling auto-migration:', enabled);
 
       const { error } = await supabase
         .from('app_config')
@@ -202,7 +221,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           : 'La migración automática ha sido desactivada. Los locales OSM enriquecidos permanecerán en el catálogo OSM.'
       );
     } catch (error) {
-      console.error('[OSM Cleanup v2.1] Error toggling auto-migration:', error);
+      console.error('[OSM Cleanup v2.0] Error toggling auto-migration:', error);
       Alert.alert('Error', 'No se pudo cambiar la configuración de migración automática');
     }
   };
@@ -251,10 +270,11 @@ export default function LimpiezaOSMEnriquecidosScreen() {
     setLastResult(null);
     
     try {
-      console.log('[OSM Cleanup v2.1] 🔄 Executing migration...');
-      console.log('[OSM Cleanup v2.1] Dry run:', isDryRun);
+      console.log('[OSM Cleanup v2.0] 🔄 Executing migration...');
+      console.log('[OSM Cleanup v2.0] Dry run:', isDryRun);
       
       if (isDryRun) {
+        // Simulation: Just count what would be migrated
         const { data: localesAMigrar, error } = await supabase
           .from('locales')
           .select('id, nombre, provincia')
@@ -285,6 +305,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           [{ text: 'OK', onPress: () => loadStats() }]
         );
       } else {
+        // Real migration: Change source_type from 'osm' to 'google'
         const { data: localesAMigrar, error: fetchError } = await supabase
           .from('locales')
           .select('id, nombre, provincia')
@@ -294,7 +315,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
 
         if (fetchError) throw fetchError;
 
-        console.log('[OSM Cleanup v2.1] Found locales to migrate:', localesAMigrar?.length || 0);
+        console.log('[OSM Cleanup v2.0] Found locales to migrate:', localesAMigrar?.length || 0);
 
         if (!localesAMigrar || localesAMigrar.length === 0) {
           Alert.alert('Sin locales', 'No hay locales OSM enriquecidos para migrar');
@@ -302,6 +323,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           return;
         }
 
+        // Migrate in batches
         const batchSize = 100;
         let totalMigrated = 0;
         
@@ -309,7 +331,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           const batch = localesAMigrar.slice(i, i + batchSize);
           const ids = batch.map(l => l.id);
           
-          console.log(`[OSM Cleanup v2.1] Migrating batch ${i / batchSize + 1}:`, ids.length, 'locales');
+          console.log(`[OSM Cleanup v2.0] Migrating batch ${i / batchSize + 1}:`, ids.length, 'locales');
           
           const { error: updateError } = await supabase
             .from('locales')
@@ -320,12 +342,12 @@ export default function LimpiezaOSMEnriquecidosScreen() {
             .in('id', ids);
 
           if (updateError) {
-            console.error('[OSM Cleanup v2.1] Error migrating batch:', updateError);
+            console.error('[OSM Cleanup v2.0] Error migrating batch:', updateError);
             throw updateError;
           }
 
           totalMigrated += ids.length;
-          console.log(`[OSM Cleanup v2.1] ✅ Migrated ${totalMigrated}/${localesAMigrar.length} locales`);
+          console.log(`[OSM Cleanup v2.0] ✅ Migrated ${totalMigrated}/${localesAMigrar.length} locales`);
         }
 
         const result: CleanupResult = {
@@ -340,7 +362,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
 
         setLastResult(result);
 
-        console.log('[OSM Cleanup v2.1] ✅ Migration completed:', result);
+        console.log('[OSM Cleanup v2.0] ✅ Migration completed:', result);
 
         Alert.alert(
           'Migración Completada',
@@ -354,7 +376,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
         );
       }
     } catch (error) {
-      console.error('[OSM Cleanup v2.1] ❌ Error executing migration:', error);
+      console.error('[OSM Cleanup v2.0] ❌ Error executing migration:', error);
       Alert.alert('Error', 'No se pudo ejecutar la migración');
     } finally {
       setProcessing(false);
@@ -409,10 +431,11 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
+        {/* Info Card */}
         <View style={styles.infoCard}>
           <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
           <Text style={styles.infoText}>
-            <Text style={styles.infoBold}>Sistema de Separación de Catálogos v2.1</Text>
+            <Text style={styles.infoBold}>Sistema de Separación de Catálogos v2.0</Text>
             {'\n\n'}
             El sistema mantiene DOS catálogos separados:
             {'\n\n'}
@@ -438,6 +461,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           </Text>
         </View>
 
+        {/* Statistics Cards */}
         {stats && (
           <>
             <View style={styles.statsGrid}>
@@ -470,6 +494,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
               </View>
             </View>
 
+            {/* Catalog Explanation */}
             <View style={styles.catalogCard}>
               <View style={styles.catalogHeader}>
                 <IconSymbol ios_icon_name="square.stack.3d.up.fill" android_material_icon_name="layers" size={24} color={colors.primary} />
@@ -507,6 +532,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
               </Text>
             </View>
 
+            {/* Auto-Cleanup Configuration */}
             <View style={styles.autoCleanupCard}>
               <View style={styles.autoCleanupHeader}>
                 <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="autorenew" size={24} color={colors.primary} />
@@ -543,6 +569,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
               </View>
             </View>
 
+            {/* Province Breakdown */}
             {stats.por_provincia.length > 0 && (
               <View style={styles.provinceCard}>
                 <Text style={styles.provinceTitle}>Desglose por Provincia</Text>
@@ -574,6 +601,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           </>
         )}
 
+        {/* Configuration */}
         <View style={styles.configCard}>
           <Text style={styles.configTitle}>Configuración de Migración Manual</Text>
           
@@ -593,6 +621,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           </View>
         </View>
 
+        {/* Execute Button */}
         <TouchableOpacity
           style={[styles.executeButton, (processing || !stats || stats.total_osm_enriquecidos === 0) && styles.executeButtonDisabled]}
           onPress={handleExecuteCleanup}
@@ -615,6 +644,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           )}
         </TouchableOpacity>
 
+        {/* Info about automatic migration */}
         {stats && stats.total_osm_enriquecidos === 0 && (
           <View style={styles.successCard}>
             <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={32} color="#10B981" />
@@ -633,6 +663,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           </View>
         )}
 
+        {/* Last Results */}
         {lastResult && (
           <View style={styles.resultsCard}>
             <Text style={styles.resultsTitle}>
@@ -671,10 +702,11 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           </View>
         )}
 
+        {/* Safety Card */}
         <View style={styles.warningCard}>
           <IconSymbol ios_icon_name="checkmark.shield.fill" android_material_icon_name="verified_user" size={20} color="#10B981" />
           <Text style={styles.warningText}>
-            <Text style={styles.warningBold}>Seguridad Garantizada v2.1:</Text>
+            <Text style={styles.warningBold}>Seguridad Garantizada v2.0:</Text>
             {'\n\n'}
             ✅ NO se eliminan locales de la base de datos
             {'\n'}
@@ -690,8 +722,9 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           </Text>
         </View>
 
+        {/* Technical Info */}
         <View style={styles.technicalCard}>
-          <Text style={styles.technicalTitle}>Información Técnica v2.1</Text>
+          <Text style={styles.technicalTitle}>Información Técnica v2.0</Text>
           <Text style={styles.technicalText}>
             <Text style={styles.technicalBold}>Criterios de migración:</Text>
             {'\n\n'}
@@ -727,6 +760,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
           </Text>
         </View>
 
+        {/* History Note */}
         <View style={styles.historyCard}>
           <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={20} color="#EF4444" />
           <Text style={styles.historyText}>
@@ -734,7 +768,7 @@ export default function LimpiezaOSMEnriquecidosScreen() {
             {'\n\n'}
             La versión anterior (v1.0) de este sistema eliminaba locales de la base de datos, lo que causó la pérdida de 700+ locales enriquecidos.
             {'\n\n'}
-            <Text style={styles.historyBold}>Nueva versión v2.1:</Text>
+            <Text style={styles.historyBold}>Nueva versión v2.0:</Text>
             {'\n\n'}
             ✅ NO elimina locales
             {'\n'}

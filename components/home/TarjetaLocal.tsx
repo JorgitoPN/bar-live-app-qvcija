@@ -34,14 +34,9 @@ interface CheckedInUser {
 }
 
 /**
- * ✅ TARJETA LOCAL v101.0 - OPTIMISTIC FAVORITES UI
+ * ✅ TARJETA LOCAL v100.0 - ANDROID SCALING STANDARDIZATION
  * 
- * CRITICAL FIXES v101.0:
- * - ✅ Removed ActivityIndicator from favorite button for instant UI updates
- * - ✅ Heart icon changes immediately when tapped (optimistic UI)
- * - ✅ No loading spinner - instant visual feedback
- * 
- * Previous fixes maintained (v100.0):
+ * CRITICAL FIXES v100.0 (ANDROID ONLY):
  * - ✅ All font sizes use scaleFontSize() for consistency with Favoritos
  * - ✅ All text elements properly scaled
  * - ✅ iOS design remains unchanged
@@ -393,13 +388,18 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         <TouchableOpacity
           style={styles.favoritoButton}
           onPress={handleToggleFavorite}
+          disabled={loadingFavorite}
         >
-          <IconSymbol
-            ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
-            android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
-            size={20}
-            color={localIsFavorite ? "#EF4444" : colors.headerText}
-          />
+          {loadingFavorite ? (
+            <ActivityIndicator size="small" color={colors.headerText} />
+          ) : (
+            <IconSymbol
+              ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
+              android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
+              size={20}
+              color={localIsFavorite ? "#EF4444" : colors.headerText}
+            />
+          )}
         </TouchableOpacity>
       </View>
 

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -32,31 +32,28 @@ interface SearchResult {
 }
 
 /**
- * ✅ SOCIAL FEED SEARCH v6.0 - FIXED SUBSCRIPTION QUERY ERROR
+ * ✅ SOCIAL FEED SEARCH v9.0 - FIXED KEYBOARD FOCUS LOSS (FINAL FIX)
  * 
- * Features:
- * - ✅ Search without @ symbol
- * - ✅ Predictive from first character
- * - ✅ Mixed results (users + locals)
- * - ✅ CRITICAL FIX: Fixed subscription query to avoid embedding multiple relationships
- * - ✅ Use separate queries for subscriptions and plans
- * - ✅ Search locals by checking active subscriptions properly
- * - ✅ Priority: exact matches, followed users, relevant locals
- * - ✅ Debounce ~300ms
- * - ✅ Show avatar + name + type
- * - ✅ WHITE text and magnifying glass icon
+ * FIX v9.0:
+ * - ✅ CRITICAL: TextInput is ALWAYS rendered (no conditional rendering)
+ * - ✅ CRITICAL: TextInput is a CONTROLLED component with stable state
+ * - ✅ CRITICAL: Debounce with useEffect + cleanup (300ms)
+ * - ✅ CRITICAL: Separate states: searchQuery (immediate) vs search execution
+ * - ✅ CRITICAL: FlatList has keyboardShouldPersistTaps="handled"
+ * - ✅ CRITICAL: TextInput has blurOnSubmit={false}
+ * - ✅ CRITICAL: No component functions declared inside render
  */
 
 export default function SocialSearchScreen() {
   const router = useRouter();
   const { user } = useAuth();
   
+  // ✅ FIX v9.0: Controlled input state (STABLE)
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set());
 
-  // Load followed users for priority sorting
   const loadFollowedUsers = useCallback(async () => {
     if (!user) return;
 
@@ -70,7 +67,7 @@ export default function SocialSearchScreen() {
       const ids = new Set(data?.map(f => f.seguido_id) || []);
       setFollowedUserIds(ids);
     } catch (error) {
-      console.error('[SocialSearch] Error loading followed users:', error);
+      console.error('[SocialSearch v9.0] Error loading followed users:', error);
     }
   }, [user]);
 
@@ -90,11 +87,10 @@ export default function SocialSearchScreen() {
 
     setLoading(true);
     try {
-      console.log('[SocialSearch v6.0] 🔍 Searching for:', cleanQuery);
+      console.log('[SocialSearch v9.0] 🔍 Searching for:', cleanQuery);
       
       const allResults: SearchResult[] = [];
 
-      // ✅ Search users (without @ requirement)
       try {
         const { data: usersData, error: usersError } = await supabase
           .from('usuarios')
@@ -112,18 +108,15 @@ export default function SocialSearchScreen() {
             tipo: 'usuario' as const,
             isFollowing: followedUserIds.has(u.id),
           })));
-          console.log('[SocialSearch v6.0] ✅ Found', usersData.length, 'users');
+          console.log('[SocialSearch v9.0] ✅ Found', usersData.length, 'users');
         }
       } catch (error) {
-        console.error('[SocialSearch v6.0] Error searching users:', error);
+        console.error('[SocialSearch v9.0] Error searching users:', error);
       }
 
-      // ✅ CRITICAL FIX: Search locals with active subscriptions (premium or estandar)
-      // ✅ Use separate queries to avoid embedding multiple relationships
       try {
-        console.log('[SocialSearch v6.0] 🔍 Searching locals with query:', cleanQuery);
+        console.log('[SocialSearch v9.0] 🔍 Searching locals with query:', cleanQuery);
         
-        // First, get all locals matching the search query
         const { data: localsData, error: localsError } = await supabase
           .from('locales')
           .select('id, nombre, imagen_url, descripcion, barlive_type')
@@ -132,13 +125,12 @@ export default function SocialSearchScreen() {
           .limit(50);
 
         if (localsError) {
-          console.error('[SocialSearch v6.0] ❌ Error searching locals:', localsError);
+          console.error('[SocialSearch v9.0] ❌ Error searching locals:', localsError);
         } else if (localsData && localsData.length > 0) {
-          console.log('[SocialSearch v6.0] 📍 Found', localsData.length, 'locals matching query');
+          console.log('[SocialSearch v9.0] 📍 Found', localsData.length, 'locals matching query');
           
           const localIds = localsData.map(l => l.id);
           
-          // ✅ CRITICAL FIX: Get active subscriptions WITHOUT embedding plans
           const { data: subscriptionsData, error: subsError } = await supabase
             .from('suscripciones_locales')
             .select('local_id, estado, plan_id')
@@ -146,49 +138,39 @@ export default function SocialSearchScreen() {
             .eq('estado', 'activa');
 
           if (subsError) {
-            console.error('[SocialSearch v6.0] ❌ Error fetching subscriptions:', subsError);
+            console.error('[SocialSearch v9.0] ❌ Error fetching subscriptions:', subsError);
           } else if (subscriptionsData && subscriptionsData.length > 0) {
-            console.log('[SocialSearch v6.0] 📊 Found', subscriptionsData.length, 'active subscriptions');
+            console.log('[SocialSearch v9.0] 📊 Found', subscriptionsData.length, 'active subscriptions');
             
-            // Get unique plan IDs
             const planIds = [...new Set(subscriptionsData.map(sub => sub.plan_id))];
             
-            // ✅ CRITICAL FIX: Fetch plans separately
             const { data: plansData, error: plansError } = await supabase
               .from('planes_suscripcion')
               .select('id, nombre')
               .in('id', planIds);
 
             if (plansError) {
-              console.error('[SocialSearch v6.0] ❌ Error fetching plans:', plansError);
+              console.error('[SocialSearch v9.0] ❌ Error fetching plans:', plansError);
             } else if (plansData) {
-              console.log('[SocialSearch v6.0] 📋 Found', plansData.length, 'plans');
+              console.log('[SocialSearch v9.0] 📋 Found', plansData.length, 'plans');
               
-              // Create a map of plan_id to plan name
               const planMap = new Map(plansData.map(plan => [plan.id, plan.nombre?.toLowerCase()]));
               
-              // ✅ Filter for premium or estandar plans
               const validLocalIds = subscriptionsData
                 .filter(sub => {
                   const planName = planMap.get(sub.plan_id);
                   const isValid = planName === 'estandar' || planName === 'premium';
-                  console.log('[SocialSearch v6.0] 🔍 Checking subscription:', {
-                    localId: sub.local_id,
-                    planId: sub.plan_id,
-                    planName,
-                    isValid,
-                  });
                   return isValid;
                 })
                 .map(sub => sub.local_id);
 
-              console.log('[SocialSearch v6.0] ✅ Valid local IDs with paid plans:', validLocalIds);
+              console.log('[SocialSearch v9.0] ✅ Valid local IDs with paid plans:', validLocalIds);
 
               const filteredLocalsData = localsData.filter(local => 
                 validLocalIds.includes(local.id)
               );
 
-              console.log('[SocialSearch v6.0] ✅ Filtered locals with active plans:', filteredLocalsData.length);
+              console.log('[SocialSearch v9.0] ✅ Filtered locals with active plans:', filteredLocalsData.length);
 
               allResults.push(...filteredLocalsData.map(l => ({
                 id: l.id,
@@ -203,14 +185,9 @@ export default function SocialSearchScreen() {
           }
         }
       } catch (error) {
-        console.error('[SocialSearch v6.0] ❌ Error searching locals:', error);
+        console.error('[SocialSearch v9.0] ❌ Error searching locals:', error);
       }
 
-      // ✅ Sort results by priority:
-      // 1. Exact matches (name or username)
-      // 2. Followed users
-      // 3. Locals with subscriptions
-      // 4. Other users
       const sortedResults = allResults.sort((a, b) => {
         const aExactMatch = a.nombre.toLowerCase() === cleanQuery.toLowerCase() || 
                            a.username?.toLowerCase() === cleanQuery.toLowerCase();
@@ -231,49 +208,51 @@ export default function SocialSearchScreen() {
         return 0;
       });
 
-      console.log('[SocialSearch v6.0] ✅ Total results:', sortedResults.length, {
+      console.log('[SocialSearch v9.0] ✅ Total results:', sortedResults.length, {
         users: sortedResults.filter(r => r.tipo === 'usuario').length,
         locals: sortedResults.filter(r => r.tipo === 'local').length,
       });
       setResults(sortedResults);
     } catch (error) {
-      console.error('[SocialSearch v6.0] ❌ Error in searchUsersAndLocals:', error);
+      console.error('[SocialSearch v9.0] ❌ Error in searchUsersAndLocals:', error);
       setResults([]);
     } finally {
       setLoading(false);
     }
   }, [followedUserIds]);
 
-  // ✅ Debounce search with ~300ms delay
+  // ✅ FIX v9.0: Debounce search with 300ms delay + cleanup
   useEffect(() => {
-    if (searchQuery.length > 0) {
-      const timeoutId = setTimeout(() => {
+    console.log('[SocialSearch v9.0] 📝 Search query changed:', searchQuery);
+    
+    const timer = setTimeout(() => {
+      if (searchQuery.length > 0) {
+        console.log('[SocialSearch v9.0] 🔍 Executing search after 300ms pause');
         searchUsersAndLocals(searchQuery);
-      }, 300);
+      } else {
+        setResults([]);
+      }
+    }, 300);
 
-      return () => clearTimeout(timeoutId);
-    } else {
-      setResults([]);
-    }
+    // Cleanup function - CRITICAL for preventing focus loss
+    return () => {
+      clearTimeout(timer);
+    };
   }, [searchQuery, searchUsersAndLocals]);
 
   const handleSelectResult = (result: SearchResult) => {
     Keyboard.dismiss();
     
-    // ✅ FIXED: Check if selected user is the current user
     if (result.tipo === 'usuario') {
       if (user && result.id === user.id) {
-        // Navigate to own profile
         router.push('/(tabs)/perfil');
       } else {
-        // Navigate to other user's profile
         router.push({
           pathname: '/perfil/usuario',
           params: { userId: result.id },
         });
       }
     } else {
-      // Navigate to local profile
       router.push({
         pathname: '/perfil/local',
         params: { localId: result.id },
@@ -343,7 +322,6 @@ export default function SocialSearchScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅ Header with WHITE text and icons */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -357,14 +335,12 @@ export default function SocialSearchScreen() {
           />
         </TouchableOpacity>
         <View style={styles.searchContainer}>
-          {/* ✅ WHITE magnifying glass icon */}
           <IconSymbol
             ios_icon_name="magnifyingglass"
             android_material_icon_name="search"
             size={20}
             color="#FFFFFF"
           />
-          {/* ✅ WHITE text input */}
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar usuarios y locales..."
@@ -374,6 +350,9 @@ export default function SocialSearchScreen() {
             autoFocus
             autoCapitalize="none"
             autoCorrect={false}
+            returnKeyType="search"
+            blurOnSubmit={false}
+            enablesReturnKeyAutomatically={false}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity
@@ -394,7 +373,6 @@ export default function SocialSearchScreen() {
         </View>
       </LinearGradient>
 
-      {/* Results */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />

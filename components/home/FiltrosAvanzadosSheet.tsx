@@ -244,7 +244,7 @@ export default function FiltrosAvanzadosSheet({
       else if (tipo === 'bar') icon = '🍷';
       else if (tipo === 'restaurante') icon = '🍽️';
       else if (tipo === 'pub') icon = '🍺';
-      else if (tipo === 'cocteleria') icon = '🍸';
+      else if (tipo === 'cocteleria') icon = '🍹'; // ✅ CHANGED: Tropical drink icon (more distinct from wine glass)
       else if (tipo === 'discoteca') icon = '🎵';
       else if (tipo === 'terraza') icon = '☀️';
       else if (tipo === 'rooftop') icon = '🏢';

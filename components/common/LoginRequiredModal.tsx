@@ -20,12 +20,13 @@ interface LoginRequiredModalProps {
 }
 
 /**
- * ✅ LOGIN REQUIRED MODAL v3.0 - RE-ENABLED FOR CLAIM LOCAL FEATURE
+ * ✅ LOGIN REQUIRED MODAL v4.0 - DIRECT NAVIGATION TO AUTH
  * 
- * v3.0 Changes:
- * - ✅ RE-ENABLED: Modal now shows for claim/create local feature
- * - ✅ NEW: Custom message support for different contexts
- * - ✅ NEW: Specific features list for claiming/creating locals
+ * v4.0 Changes:
+ * - ✅ NEW: Navigate directly to auth page without showing modal options
+ * - ✅ NEW: Full page navigation instead of modal window
+ * - ✅ PREVIOUS: Custom message support for different contexts
+ * - ✅ PREVIOUS: Specific features list for claiming/creating locals
  */
 
 export default function LoginRequiredModal({
@@ -36,8 +37,9 @@ export default function LoginRequiredModal({
   const router = useRouter();
 
   const handleLogin = () => {
-    console.log('[LoginRequiredModal v3.0] User tapped Login button');
+    console.log('[LoginRequiredModal v4.0] User tapped Login button - navigating to full page auth');
     onClose();
+    // ✅ NAVEGACIÓN DIRECTA: Ir a la página de autenticación completa
     router.push('/auth/login-v6');
   };
 

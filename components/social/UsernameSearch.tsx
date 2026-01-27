@@ -53,16 +53,14 @@ export function UsernameSearch({
   }, [query]);
 
   const handleSelectUser = (userId: string) => {
-    console.log('[UsernameSearch] 🔍 User selected, navigating to profile:', userId);
     if (onSelectUser) {
       onSelectUser(userId);
     } else {
-      router.push(`/perfil/usuario?userId=${userId}`);
+      router.push(`/perfil/usuario?id=${userId}`);
     }
   };
 
   const handleSelectLocal = (localId: string) => {
-    console.log('[UsernameSearch] 🏪 Local selected, navigating to details:', localId);
     if (onSelectLocal) {
       onSelectLocal(localId);
     } else {

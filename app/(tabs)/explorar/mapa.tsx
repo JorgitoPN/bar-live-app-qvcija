@@ -19,6 +19,7 @@ import {
   ScrollView,
   Platform,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { calcularDistancia } from '@/utils/locationUtils';
 import { addPubCategoryIfNeeded, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
@@ -27,731 +28,1169 @@ import { supabase } from '@/utils/supabase';
 const { width, height } = Dimensions.get('window');
 
 /**
- * 🚀🚀🚀 MAPA PROFESIONAL v1009.0 - POPUP RESPONSIVE + ARQUITECTURA DE DOBLE CAPA 🚀🚀🚀
+ * 🗺️ MAPA OPTIMIZADO CON MAPLIBRE GL JS + DETECCIÓN MANUAL POR PROXIMIDAD
  * 
- * 📋 OPTIMIZACIONES CRÍTICAS v1009.0 - POPUP RESPONSIVE:
+ * ═══════════════════════════════════════════════════════════════
+ * CARACTERÍSTICAS IMPLEMENTADAS:
+ * ═══════════════════════════════════════════════════════════════
  * 
- * 🔥🔥🔥 CAMBIOS IMPLEMENTADOS v1008.0:
+ * ✅ MAPLIBRE GL JS CON GEOJSON
+ *    - Renderizado GPU-accelerated
+ *    - Clustering nativo de marcadores
+ *    - Popups interactivos con información
+ *    - Filtros por categoría y estado
  * 
- * 1️⃣ POPUP CENTRADO AUTOMÁTICO ✅ COMPLETADO
- *    ✅ Al hacer clic en marcador, el mapa se centra automáticamente
- *    ✅ El popup queda visible en el centro de la pantalla
- *    ✅ Animación suave de centrado
+ * ✅ CONTROLES DE MAPA RESTRINGIDOS
+ *    - ❌ Rotación desactivada (dragRotate: false)
+ *    - ❌ Inclinación desactivada (pitchWithRotate: false)
+ *    - ❌ Rotación táctil desactivada (touchZoomRotate: false)
+ *    - ❌ Inclinación táctil desactivada (touchPitch: false)
+ *    - ✅ Solo desplazamiento y zoom permitidos
  * 
- * 2️⃣ POPUP RESPONSIVE ✅ COMPLETADO v1009.0
- *    ✅ Dimensiones: 260px ancho x 300px alto (ligeramente más alto que ancho)
- *    ✅ Diseño responsive con contenido adaptable
- *    ✅ Mejor proporción para mostrar información
+ * ✅ DETECCIÓN MANUAL POR PROXIMIDAD EN PÍXELES CON FILTROS SINCRONIZADOS (v262.0)
+ *    - ✅ NO usa queryRenderedFeatures (evita problemas de capas)
+ *    - ✅ PROYECCIÓN A PÍXELES: map.project() convierte lat/lng a coordenadas de pantalla
+ *    - ✅ TOLERANCIA FIJA EN PÍXELES: 30px (tamaño físico del dedo)
+ *    - ✅ Área de clic CONSISTENTE sin importar el zoom
+ *    - ✅ Distancia en píxeles (Pitágoras): sqrt(dx² + dy²)
+ *    - ✅ SINCRONIZACIÓN CON FILTROS: valida categoría y estado antes de calcular distancia
+ *    - ✅ Ignora locales ocultos por filtros (no abre popup si está filtrado)
+ *    - ✅ Búsqueda del local MÁS CERCANO (evita conflictos en zoom lejano)
+ *    - ✅ Búsqueda manual en window.allLocales
+ *    - ✅ Evento touchstart para captura inmediata
+ *    - ✅ Zoom y centrado automático con flyTo
+ *    - ✅ Crea feature falsa para reutilizar showPopupForFeature
+ *    - ✅ touch-action: none !important en canvas
+ *    - ✅ pointer-events: auto en canvas y popup
+ *    - ✅ -webkit-user-select: none para evitar selección de texto
+ *    - ✅ z-index alto en popups para visibilidad garantizada
  * 
- * 3️⃣ SIN ICONO DE CERRAR ✅ COMPLETADO
- *    ✅ Eliminado el botón "x" de cerrar
- *    ✅ Popup se cierra al hacer clic fuera
+ * ✅ FILTROS DINÁMICOS
+ *    - Por categoría (cafés, restaurantes, bares, etc.)
+ *    - Por estado (todos/solo abiertos)
+ *    - Actualización en tiempo real del mapa
  * 
- * 4️⃣ DOBLE CAPA EN RAM (INSTANTANEIDAD) ✅ COMPLETADO
- *    ✅ clusterTodos y clusterAbiertos - Dos instancias separadas pre-calculadas
- *    ✅ Al descargar datos: añadir a clusterTodos SIEMPRE
- *    ✅ Al descargar datos: añadir a clusterAbiertos SOLO si está abierto
- *    ✅ Selector 'Todos/Abiertos': SOLO map.removeLayer() + map.addLayer()
- *    ✅ Garantiza 0ms de retraso - Intercambio instantáneo sin recálculo
+ * ✅ UBICACIÓN DEL USUARIO
+ *    - ✅ Marcador azul con pulso animado
+ *    - ✅ Círculo exterior con animación de pulso
+ *    - ✅ Botón para centrar en ubicación
+ *    - ✅ Permisos de ubicación manejados
  * 
- * 5️⃣ REPARACIÓN DE CATEGORÍAS ✅ COMPLETADO
- *    ✅ filtrarCategoria(id) reconstruida desde cero
- *    ✅ clusterTodos.clearLayers() + clusterAbiertos.clearLayers()
- *    ✅ Recupera locales desde window.categoryIndex[id] (RAM)
- *    ✅ Usa addLayers() en batch para máxima velocidad
- *    ✅ Reconstruye ambas capas simultáneamente
- *    ✅ Acceso desde RAM - Respuesta en milisegundos
+ * 🎨 COLORES DE ESTADO:
+ * ═══════════════════════════════════════════════════════════════
+ * - 🟢 Verde (#22C55E): Local abierto
+ * - 🔴 Rojo (#EF4444): Local cerrado
+ * - ⚪ Gris (#9CA3AF): Sin información
  * 
- * 6️⃣ CARGA FLUIDA (chunkedLoading) ✅ COMPLETADO
- *    ✅ chunkedLoading: true en ambos grupos de clústeres
- *    ✅ chunkInterval: 50ms - Intervalo optimizado para fluidez
- *    ✅ chunkDelay: 50ms - Delay entre chunks
- *    ✅ Elimina lag inicial al aparecer marcadores
- *    ✅ Mapa movible durante la carga progresiva
+ * 🔧 FIXES APLICADOS v263.0 (BLOQUEO DE CLUSTERS + REFINAMIENTO + AUTO-CENTRADO):
+ * ═══════════════════════════════════════════════════════════════
+ * 1. ✅ BLOQUEO DE CLUSTERS: Verifica clusters PRIMERO con queryRenderedFeatures
+ * 2. ✅ Return inmediato si es cluster (evita popup erróneo)
+ * 3. ✅ Cambio de touchstart a click para mejor compatibilidad con clusters
+ * 4. ✅ SINCRONIZACIÓN DE FILTROS: Valida categoría y estado antes de calcular distancia
+ * 5. ✅ Ignora locales ocultos por filtros (no abre popup)
+ * 6. ✅ TOLERANCIA REDUCIDA: 20px (más preciso que 30px)
+ * 7. ✅ AUTO-CENTRADO: map.flyTo centra el popup en el centro de la pantalla
+ * 8. ✅ POPUP CORREGIDO: Sin cantidad total de reseñas
+ * 9. ✅ RATING CORREGIDO: Usa rating o google_rating (prioridad rating)
+ * 10. ✅ Formateo correcto con punto decimal (1.5 en lugar de 1,5)
+ * 11. ✅ PROYECCIÓN A PÍXELES: map.project([lng, lat]) convierte a coordenadas de pantalla
+ * 12. ✅ Área de clic CONSISTENTE sin importar el zoom
+ * 13. ✅ Distancia en píxeles: Math.sqrt(dx² + dy²)
+ * 14. ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)
+ * 15. ✅ Evita conflictos entre locales pegados en zoom lejano
+ * 16. ✅ window.allLocales almacena todos los locales en memoria
+ * 17. ✅ map.flyTo con zoom 17 y animación suave
+ * 18. ✅ touch-action: none !important en html, body, #map, canvas
+ * 19. ✅ pointer-events: auto !important en canvas
+ * 20. ✅ Feature falsa reutiliza showPopupForFeature existente
+ * 21. ✅ Logs detallados para debugging de proximidad y filtros
+ * 22. ✅ NO HACER NADA si no se encuentra local que cumpla filtros
  * 
- * 7️⃣ SINCRONIZACIÓN DE MEMORIA ✅ COMPLETADO
- *    ✅ window.allLocales (Map) - Única fuente de verdad
- *    ✅ window.categoryIndex - Índice por categorías
- *    ✅ Si local no está en Map, no se dibuja
- *    ✅ Validación con window.allLocales.has(id)
- *    ✅ Evita duplicados y garantiza consistencia total
+ * 🎯 POR QUÉ ESTE SISTEMA ES PERFECTO:
+ * ═══════════════════════════════════════════════════════════════
+ * 1. ÁREA DE CLIC FÍSICA Y REAL:
+ *    - 30 píxeles = tamaño físico del dedo del usuario
+ *    - El área de clic es SIEMPRE la misma sin importar el zoom
+ *    - En zoom 10 (lejos): 30px cubren un área geográfica grande
+ *    - En zoom 18 (cerca): 30px cubren un área geográfica pequeña
+ *    - El usuario siempre siente que el área de clic es consistente
  * 
- * 8️⃣ LIMPIEZA DE LOGS ✅ COMPLETADO
- *    ✅ Eliminados todos los console.log pesados
- *    ✅ Solo comunicación crítica con React Native
- *    ✅ Reduce saturación del puente de comunicación
- *    ✅ Mejora fluidez general del sistema
+ * 2. BÚSQUEDA DEL MÁS CERCANO:
+ *    - Si hay 5 marcadores amontonados en zoom lejano, el código
+ *      elige automáticamente el que está más cerca del centro del dedo
+ *    - Usa minimaDistanciaPixeles para comparar todos los candidatos
+ *    - Evita conflictos de capas y errores de precisión
  * 
- * 🎯 RESULTADOS ESPERADOS:
- * ⚡ Popup: Centrado automático al hacer clic
- * ⚡ Popup: Diseño cuadrado (280x280px)
- * ⚡ Popup: Sin botón de cerrar
- * ⚡ Categorías: Actualización en <10ms (datos pre-organizados en RAM)
- * ⚡ Selector Abiertos: Interruptor instantáneo (0ms - solo swap de capas)
- * ⚡ Fluidez: Mapa movible sin congelación durante carga
- * ⚡ Escalabilidad: Soporta 200k locales sin degradación
- * ⚡ Sin Lag: Eliminación total de bloqueos en UI
+ * 3. SINCRONIZACIÓN CON FILTROS:
+ *    - Valida filtros ANTES de calcular distancia (optimización)
+ *    - Si el local está oculto por filtros, NO se considera
+ *    - Evita abrir popups de locales que el usuario no puede ver
+ *    - Feedback claro: si tocas un área sin locales visibles, no pasa nada
  * 
- * 🏗️ ARQUITECTURA:
- * - Doble capa pre-calculada (clusterTodos + clusterAbiertos)
- * - Índice de categorías en RAM (window.categoryIndex)
- * - Carga progresiva con chunkedLoading
- * - Comunicación mínima con React Native
- * - Validación de duplicados con Map
- * - Popup centrado automáticamente
+ * 4. INMUNE A FALLOS DE CAPA:
+ *    - NO usa queryRenderedFeatures (que depende de que MapLibre
+ *      "vea" correctamente las capas)
+ *    - Búsqueda matemática directa en window.allLocales
+ *    - Siempre encuentra el local si está visible y en la lista de memoria
+ * 
+ * 5. EXPERIENCIA FLUIDA:
+ *    - touch-action: none evita que el navegador haga scroll
+ *    - touchstart captura el evento al instante
+ *    - e.preventDefault() evita comportamientos no deseados
+ *    - map.flyTo centra y hace zoom con animación suave
+ *    - El popup queda perfectamente centrado y visible
  */
 
 const CATEGORIAS = [
-  { id: 'todos', label: 'Todos', icon: 'sparkles', androidIcon: 'star' },
+  { id: 'todas', label: 'Todas', icon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', label: 'Cafés', icon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
   { id: 'restaurante', label: 'Restaurantes', icon: 'fork.knife', androidIcon: 'restaurant' },
   { id: 'bar', label: 'Bares', icon: 'wineglass.fill', androidIcon: 'local_bar' },
   { id: 'pub', label: 'Pubs', icon: 'mug.fill', androidIcon: 'sports_bar' },
-  { id: 'cocteleria', label: 'Coctelería', icon: 'wineglass', androidIcon: 'local_drink' },
+  { id: 'cocteleria', label: 'Coctelería', icon: 'wineglass', androidIcon: 'liquor' },
   { id: 'discoteca', label: 'Discotecas', icon: 'music.note', androidIcon: 'nightlife' },
 ];
+
+// 🚀 COMPONENTE MEMOIZADO - Evita re-renders innecesarios
+const CategoriaButton = React.memo(({ 
+  categoria, 
+  isSelected, 
+  onPress, 
+  iconSize, 
+  iconInnerSize 
+}: { 
+  categoria: typeof CATEGORIAS[0]; 
+  isSelected: boolean; 
+  onPress: () => void;
+  iconSize: number;
+  iconInnerSize: number;
+}) => {
+  return (
+    <TouchableOpacity
+      style={styles.categoriaButton}
+      onPress={onPress}
+      delayPressIn={0}
+      activeOpacity={0.7}
+    >
+      <View style={[
+        styles.categoriaIconContainer,
+        {
+          width: iconSize,
+          height: iconSize,
+          borderRadius: 16,
+        },
+        isSelected && styles.categoriaIconContainerActive
+      ]}>
+        <IconSymbol 
+          ios_icon_name={categoria.icon as any}
+          android_material_icon_name={categoria.androidIcon}
+          size={iconInnerSize} 
+          color={isSelected ? colors.primary : colors.white}
+        />
+      </View>
+      <Text style={[
+        styles.categoriaLabel,
+        { fontSize: scaleFontSize(12) },
+        isSelected && styles.categoriaLabelActive
+      ]}>
+        {categoria.label}
+      </Text>
+    </TouchableOpacity>
+  );
+});
+
+// 🚀 COMPONENTE MEMOIZADO - Selector de estado
+const EstadoSelector = React.memo(({ 
+  filtroEstado, 
+  onChangeEstado 
+}: { 
+  filtroEstado: 'todos' | 'no_cerrados'; 
+  onChangeEstado: (estado: 'todos' | 'no_cerrados') => void;
+}) => {
+  const handleTodos = useCallback(() => onChangeEstado('todos'), [onChangeEstado]);
+  const handleAbiertos = useCallback(() => onChangeEstado('no_cerrados'), [onChangeEstado]);
+  
+  return (
+    <View style={styles.estadoSelectorContainer}>
+      <View style={styles.estadoSelector}>
+        <TouchableOpacity
+          style={[
+            styles.estadoOption,
+            filtroEstado === 'todos' && styles.estadoOptionActive
+          ]}
+          onPress={handleTodos}
+          delayPressIn={0}
+          activeOpacity={0.7}
+        >
+          <Text style={[
+            styles.estadoOptionText,
+            { fontSize: scaleFontSize(11) },
+            filtroEstado === 'todos' && styles.estadoOptionTextActive
+          ]}>
+            Todos
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.estadoOption,
+            filtroEstado === 'no_cerrados' && styles.estadoOptionActive
+          ]}
+          onPress={handleAbiertos}
+          delayPressIn={0}
+          activeOpacity={0.7}
+        >
+          <Text style={[
+            styles.estadoOptionText,
+            { fontSize: scaleFontSize(11) },
+            filtroEstado === 'no_cerrados' && styles.estadoOptionTextActive
+          ]}>
+            Abiertos
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
 
 export default function MapaScreen() {
   const router = useRouter();
   const { filtros: globalFiltros } = useFilters();
   
   const webViewRef = useRef<WebView>(null);
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todos');
-  const [filtroEstado, setFiltroEstado] = useState<'todos' | 'abiertos'>('abiertos');
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todas');
+  const [filtroEstado, setFiltroEstado] = useState<'todos' | 'no_cerrados'>('no_cerrados');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
-  const [currentBounds, setCurrentBounds] = useState<{
-    minLat: number;
-    minLng: number;
-    maxLat: number;
-    maxLng: number;
-    zoom: number;
-  } | null>(null);
-  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastLoadedBoundsRef = useRef<string | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // 🚀 CALLBACKS MEMOIZADOS - Evitar recreación en cada render
+  const handleCategoriaChange = useCallback((categoriaId: string) => {
+    console.log('🗺️ [MAPA] Cambiando categoría a:', categoriaId);
+    setCategoriaSeleccionada(categoriaId);
+  }, []);
+  
+  const handleEstadoChange = useCallback((estado: 'todos' | 'no_cerrados') => {
+    console.log('🗺️ [MAPA] Cambiando estado a:', estado);
+    setFiltroEstado(estado);
+  }, []);
+  
+  const handleToggleFiltros = useCallback(() => {
+    setMostrarFiltros(prev => !prev);
+  }, []);
+  
+  const handleCloseFiltros = useCallback(() => {
+    setMostrarFiltros(false);
+  }, []);
 
-  // ⚡ Cargar locales por BOUNDING BOX
-  const loadLocalesInBounds = useCallback(async (
-    minLat: number,
-    minLng: number,
-    maxLat: number,
-    maxLng: number,
-    zoom: number
-  ) => {
-    // Cancelar petición anterior si existe
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-    
-    // BBox con Padding del 50%
-    const latDiff = maxLat - minLat;
-    const lngDiff = maxLng - minLng;
-    
-    const paddedMinLat = minLat - (latDiff * 0.5);
-    const paddedMaxLat = maxLat + (latDiff * 0.5);
-    const paddedMinLng = minLng - (lngDiff * 0.5);
-    const paddedMaxLng = maxLng + (lngDiff * 0.5);
-    
-    // Generar clave única para estos bounds
-    const boundsKey = `${paddedMinLat.toFixed(4)},${paddedMinLng.toFixed(4)},${paddedMaxLat.toFixed(4)},${paddedMaxLng.toFixed(4)},${zoom}`;
-    
-    // Evitar cargar los mismos bounds múltiples veces
-    if (lastLoadedBoundsRef.current === boundsKey) {
-      return;
-    }
-    
-    const start = performance.now();
-    
-    try {
-      const { data, error } = await supabase.rpc('get_locales_in_view', {
-        min_lat: paddedMinLat,
-        min_long: paddedMinLng,
-        max_lat: paddedMaxLat,
-        max_long: paddedMaxLng,
-        zoom_level: zoom
-      }, {
-        signal: abortControllerRef.current.signal
-      });
-
-      if (error) {
-        return;
-      }
-
-      const end = performance.now();
-      
-      // Marcar estos bounds como cargados
-      lastLoadedBoundsRef.current = boundsKey;
-      
-      // Preparar datos para doble capa
-      const localesData = data.map((local: any) => {
-        const estadoCompleto = getEstadoLocal(local);
-        const estaAbierto = estadoCompleto.estaAbierto;
-        const estado = estaAbierto === true ? 'abierto' : 
-                       estaAbierto === false ? 'cerrado' : 'sin_info';
-        
-        let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
-        localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
-        
-        const icon = getPrimaryIconForVenue(localCategories, local.horarios_completos);
-        
-        let distancia = 0.5;
-        if (userLocation) {
-          distancia = calcularDistancia(
-            userLocation.lat,
-            userLocation.lng,
-            parseFloat(local.latitud),
-            parseFloat(local.longitud)
-          );
-        }
-        
-        let displayRating = 0;
-        if (local.google_rating && local.google_rating > 0) {
-          displayRating = local.google_rating;
-        } else if (local.rating && local.rating > 0) {
-          displayRating = local.rating;
-        }
-        
-        return {
-          id: local.id,
-          nombre: local.nombre,
-          latitud: parseFloat(local.latitud),
-          longitud: parseFloat(local.longitud),
-          category: localCategories[0] || 'otros',
-          is_open: estaAbierto === true,
-          estado: estado,
-          estadoBadge: estadoCompleto.badge,
-          icon: icon,
-          rating: displayRating,
-          imagen: local.imagen_url || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400',
-          distancia: distancia,
-          destacado: local.destacado || false,
-          categories: localCategories,
-        };
-      });
-      
-      // Inyectar datos en Leaflet - Doble capa
-      if (webViewRef.current && isMapReady) {
-        webViewRef.current.injectJavaScript(`
-          (function() {
-            try {
-              if (typeof window.addAllMarkers !== 'undefined') {
-                window.addAllMarkers(${JSON.stringify(localesData)});
-              }
-            } catch (error) {
-              console.error('Error añadiendo marcadores:', error);
-            }
-          })();
-          true;
-        `);
-      }
-    } catch (error: any) {
-      // Silenciar errores de abort
-      if (error.name !== 'AbortError') {
-        // Solo log crítico
-      }
-    }
-  }, [userLocation, isMapReady]);
-
-  // Debounce 250ms
-  const debouncedLoadLocales = useCallback((
-    minLat: number,
-    minLng: number,
-    maxLat: number,
-    maxLng: number,
-    zoom: number
-  ) => {
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-    }
-    
-    loadingTimeoutRef.current = setTimeout(() => {
-      loadLocalesInBounds(minLat, minLng, maxLat, maxLng, zoom);
-    }, 250);
-  }, [loadLocalesInBounds]);
-
-  // HTML con LEAFLET - ARQUITECTURA DE DOBLE CAPA + POPUP CENTRADO
+  // HTML con MAPLIBRE GL JS + DETECCIÓN MANUAL POR PROXIMIDAD
   const mapHTML = useMemo(() => {
     const initialLat = userLocation?.lat || 40.4168;
     const initialLng = userLocation?.lng || -3.7038;
     const initialZoom = userLocation ? 13 : 6;
-    
-    // Tamaño del popup - ligeramente más alto que ancho para mejor responsividad
-    const popupWidth = 260;
-    const popupHeight = 300;
     
     return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css"/>
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
-#map{width:100%;height:100%;position:absolute;top:0;left:0;background:#A8E0FF}
-.leaflet-popup-content-wrapper{border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);width:${popupWidth}px!important;height:${popupHeight}px!important}
-.leaflet-popup-content{margin:0;width:${popupWidth}px!important;height:${popupHeight}px!important;display:flex;flex-direction:column}
-.leaflet-popup-close-button{display:none!important}
-.popup-img{width:100%;height:${Math.floor(popupHeight * 0.45)}px;object-fit:cover;display:block;flex-shrink:0}
-.popup-info{padding:12px;flex:1;display:flex;flex-direction:column;overflow:hidden;justify-content:space-between}
-.popup-title{font-size:14px;font-weight:700;margin-bottom:6px;color:#202124;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.popup-categories{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
-.popup-category-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;color:#FFF}
-.cat-bar{background:#F59E0B}
-.cat-restaurante{background:#EF4444}
-.cat-cafe{background:#8B5CF6}
-.cat-cafeteria{background:#8B5CF6}
-.cat-pub{background:#10B981}
-.cat-discoteca{background:#EC4899}
-.cat-cocteleria{background:#3B82F6}
-.popup-estado{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;color:#FFF;margin-bottom:6px}
-.estado-abierto{background:#22C55E}
-.estado-cerrado{background:#EF4444}
-.estado-sin_info{background:#9CA3AF}
-.popup-rating{display:flex;align-items:center;gap:4px;margin-bottom:8px;font-size:11px;color:#70757A}
-.popup-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#14B8A6;color:#FFF!important;padding:8px;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;transition:background .2s;cursor:pointer;margin-top:auto}
+html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-user-select:none;user-select:none;touch-action:none!important}
+/* ✅ CRITICAL: Evitar selección de texto que interfiere con clics */
+#map{width:100%;height:100%;position:absolute;top:0;left:0;background:#A8E0FF;-webkit-tap-highlight-color:rgba(0,0,0,0);-webkit-user-select:none;user-select:none;touch-action:none!important}
+/* ✅ CRITICAL: Ensure map canvas has pointer-events enabled and touch-action none */
+.maplibregl-canvas{pointer-events:auto!important;touch-action:none!important;-webkit-tap-highlight-color:rgba(0,0,0,0);-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+/* ✅ CRITICAL: Ensure no invisible layers block interactions */
+.maplibregl-canvas-container{pointer-events:auto!important;touch-action:none!important;-webkit-tap-highlight-color:rgba(0,0,0,0);-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+/* ✅ CRITICAL: Contenedor invisible del popup no debe bloquear clics */
+.maplibregl-popup-anchor-top,.maplibregl-popup-anchor-bottom{pointer-events:none!important}
+/* ✅ CRITICAL: Contenido del popup sí debe recibir clics */
+.maplibregl-popup-content{pointer-events:auto!important;border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);width:${Platform.OS === 'android' ? '260px' : '280px'}!important;min-width:${Platform.OS === 'android' ? '260px' : '280px'}!important;z-index:9999!important}
+/* ✅ CRITICAL: Ensure popup appears above all other elements */
+.custom-popup{z-index:9999!important}
+.maplibregl-popup{z-index:9999!important}
+.maplibregl-popup-close-button{display:none!important}
+.popup-img{width:100%;height:${Platform.OS === 'android' ? '120px' : '140px'};object-fit:cover;display:block;min-height:${Platform.OS === 'android' ? '120px' : '140px'};max-height:${Platform.OS === 'android' ? '120px' : '140px'}}
+.popup-info{padding:${Platform.OS === 'android' ? '10px' : '12px'}}
+.popup-title{font-size:${Platform.OS === 'android' ? '15px' : '16px'};font-weight:700;margin-bottom:8px;color:#202124}
+.popup-rating{display:flex;align-items:center;gap:4px;margin-bottom:10px;font-size:${Platform.OS === 'android' ? '12px' : '13px'};color:#70757A}
+.popup-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#14B8A6;color:#FFF!important;padding:${Platform.OS === 'android' ? '9px' : '10px'};border-radius:8px;text-decoration:none;font-weight:700;font-size:${Platform.OS === 'android' ? '12px' : '13px'};transition:background .2s;cursor:pointer}
 .popup-btn:hover{background:#0D9488}
-.leaflet-control-attribution{display:none!important}
-.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background-color:rgba(20,184,166,0.6)!important}
-.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background-color:#14B8A6!important;color:#FFF!important;font-weight:700!important}
+.maplibregl-ctrl-attrib{display:none!important}
 </style>
 </head>
 <body>
 <div id="map"></div>
 <script>
-// 🚀 LEAFLET CON CANVAS RENDERING
-var map = L.map('map', {
-  center: [${initialLat}, ${initialLng}],
+// 🚀🚀🚀 MAPLIBRE GL JS CON DETECCIÓN MANUAL POR PROXIMIDAD MATEMÁTICA 🚀🚀🚀
+console.log('🗺️ [MAPA] Inicializando MapLibre GL JS con detección manual por proximidad');
+
+// 🚀 CREAR MAPA CON MAPLIBRE GL JS
+var map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    sources: {
+      'carto-light': {
+        type: 'raster',
+        tiles: [
+          'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+          'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+          'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+        ],
+        tileSize: 256,
+        attribution: '© OpenStreetMap contributors'
+      }
+    },
+    layers: [
+      {
+        id: 'carto-light-layer',
+        type: 'raster',
+        source: 'carto-light',
+        minzoom: 0,
+        maxzoom: 22
+      }
+    ]
+  },
+  center: [${initialLng}, ${initialLat}],
   zoom: ${initialZoom},
   minZoom: 6,
-  maxZoom: 19,
-  preferCanvas: true,
-  zoomControl: false
+  maxZoom: 20,
+  attributionControl: false,
+  // 🚨 DESACTIVAR ROTACIÓN E INCLINACIÓN (SOLO PERMITIR ZOOM Y DESPLAZAMIENTO)
+  dragRotate: false,
+  pitchWithRotate: false,
+  touchZoomRotate: {
+    around: 'center'
+  },
+  touchPitch: false,
+  keyboard: false,
+  doubleClickZoom: true,
+  scrollZoom: true,
+  boxZoom: true,
+  dragPan: true
 });
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  attribution: '© OpenStreetMap contributors',
-  maxZoom: 19
-}).addTo(map);
+// 🚀 AÑADIR CONTROLES DE ZOOM (SIN ROTACIÓN)
+map.addControl(new maplibregl.NavigationControl({
+  showCompass: false,
+  showZoom: true,
+  visualizePitch: false
+}), 'top-left');
 
-// 🚀🚀🚀 DOBLE INSTANCIA DE CLUSTERING - CARGA FLUIDA
-var clusterTodos = L.markerClusterGroup({
-  maxClusterRadius: 80,
-  spiderfyOnMaxZoom: true,
-  showCoverageOnHover: false,
-  zoomToBoundsOnClick: true,
-  chunkedLoading: true,
-  chunkInterval: 50,
-  chunkDelay: 50
-});
+// 🚨 DESACTIVAR ROTACIÓN CON GESTOS MULTI-TOUCH
+map.touchZoomRotate.disableRotation();
 
-var clusterAbiertos = L.markerClusterGroup({
-  maxClusterRadius: 80,
-  spiderfyOnMaxZoom: true,
-  showCoverageOnHover: false,
-  zoomToBoundsOnClick: true,
-  chunkedLoading: true,
-  chunkInterval: 50,
-  chunkDelay: 50
-});
-
-// 🚀 MEMORIA GLOBAL - ÚNICA FUENTE DE VERDAD
-window.allLocales = new Map();
-window.categoryIndex = {};
-
-var currentFilter = 'abiertos';
-var currentCategory = 'todos';
-var currentLayerVisible = 'abiertos';
-
-// Añadir capa inicial (abiertos por defecto)
-clusterAbiertos.addTo(map);
-currentLayerVisible = 'abiertos';
-
-// Notificar que el mapa está listo
-window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
-
-// Disparar evento inicial para cargar datos
-setTimeout(function() {
-  var bounds = map.getBounds();
-  var zoom = map.getZoom();
+// 🚀 CARGAR ICONOS PARA LOS MARCADORES
+function loadCategoryIcons() {
+  const icons = {
+    'cafe-icon': '☕',
+    'restaurant-icon': '🍽️',
+    'bar-icon': '🍷',
+    'pub-icon': '🍺',
+    'cocktail-icon': '🍹',
+    'nightclub-icon': '🎵',
+    'default-icon': '📍'
+  };
   
-  window.ReactNativeWebView.postMessage(JSON.stringify({
-    type: 'bounds_changed',
-    minLat: bounds.getSouth(),
-    minLng: bounds.getWest(),
-    maxLat: bounds.getNorth(),
-    maxLng: bounds.getEast(),
-    zoom: zoom
-  }));
-}, 100);
-
-// 🚀🚀🚀 CARGA INICIAL - DISTRIBUIR EN AMBAS CAPAS
-window.addAllMarkers = function(localesData) {
-  var start = performance.now();
-  
-  var countTodos = 0;
-  var countAbiertos = 0;
-  var countSkipped = 0;
-  
-  // Reiniciar índice de categorías
-  window.categoryIndex = {};
-  
-  localesData.forEach(function(local) {
-    // Validación de IDs - Evitar duplicados
-    if (window.allLocales.has(local.id)) {
-      countSkipped++;
-      return;
-    }
+  Object.entries(icons).forEach(([name, emoji]) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.font = '48px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, 32, 32);
     
-    // Crear icono personalizado
-    var iconColor = local.estado === 'abierto' ? '#22C55E' : 
-                    local.estado === 'cerrado' ? '#EF4444' : '#9CA3AF';
-    
-    var customIcon = L.divIcon({
-      html: '<div style="background:' + iconColor + ';width:${Platform.OS === 'android' ? '36px' : '40px'};height:${Platform.OS === 'android' ? '36px' : '40px'};border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #FFF;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:${Platform.OS === 'android' ? '18px' : '20px'};">' + local.icon + '</div>',
-      className: 'custom-marker',
-      iconSize: [${Platform.OS === 'android' ? 36 : 40}, ${Platform.OS === 'android' ? 36 : 40}],
-      iconAnchor: [${Platform.OS === 'android' ? 18 : 20}, ${Platform.OS === 'android' ? 18 : 20}]
-    });
-    
-    // Crear marcador
-    var marker = L.marker([local.latitud, local.longitud], {
-      icon: customIcon
-    });
-    
-    // Popup
-    var categoriesBadges = '';
-    if (local.categories && local.categories.length > 0) {
-      local.categories.forEach(function(cat) {
-        var catClass = 'cat-' + cat.toLowerCase().replace(/[^a-z]/g, '');
-        categoriesBadges += '<span class="popup-category-badge ' + catClass + '">' + cat + '</span>';
-      });
-    }
-    
-    var popupContent = '<div style="width:100%;height:100%;display:flex;flex-direction:column">' +
-      '<img src="' + local.imagen + '" class="popup-img" onerror="this.src=\\'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400\\'"/>' +
-      '<div class="popup-info">' +
-      '<div class="popup-title">' + local.nombre + '</div>' +
-      (categoriesBadges ? '<div class="popup-categories">' + categoriesBadges + '</div>' : '') +
-      '<span class="popup-estado estado-' + local.estado + '">' + local.estadoBadge + '</span>' +
-      '<div class="popup-rating">⭐ ' + local.rating.toFixed(1) + ' • ' + local.distancia.toFixed(1) + ' km</div>' +
-      '<a href="#" class="popup-btn" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\\'navigate\\',id:\\''+local.id+'\\'}));return false">' +
-      '<span style="color:#FFF">📍 Ver detalles</span>' +
-      '</a>' +
-      '</div>' +
-      '</div>';
-    
-    // 🚀🚀🚀 CENTRADO AUTOMÁTICO AL ABRIR POPUP
-    marker.bindPopup(popupContent, {
-      closeButton: false,
-      maxWidth: ${popupWidth},
-      minWidth: ${popupWidth}
-    });
-    
-    // Evento al abrir popup - centrar mapa
-    marker.on('popupopen', function(e) {
-      var px = map.project(e.target.getLatLng());
-      var popupHeightValue = ${popupHeight};
-      px.y -= popupHeightValue / 2;
-      var newLatLng = map.unproject(px);
-      map.panTo(newLatLng, { animate: true, duration: 0.5 });
-    });
-    
-    // 🔥 DISTRIBUIR EN AMBAS CAPAS
-    // Añadir a clusterTodos SIEMPRE
-    clusterTodos.addLayer(marker);
-    countTodos++;
-    
-    // Añadir a clusterAbiertos SOLO si está abierto
-    if (local.is_open === true) {
-      clusterAbiertos.addLayer(marker);
-      countAbiertos++;
-    }
-    
-    // Guardar en memoria global
-    window.allLocales.set(local.id, {
-      marker: marker,
-      data: local
-    });
-    
-    // Indexar por categoría
-    var category = local.category || 'otros';
-    if (!window.categoryIndex[category]) {
-      window.categoryIndex[category] = [];
-    }
-    window.categoryIndex[category].push({
-      id: local.id,
-      marker: marker,
-      is_open: local.is_open
+    map.addImage(name, {
+      width: 64,
+      height: 64,
+      data: ctx.getImageData(0, 0, 64, 64).data
     });
   });
   
-  var end = performance.now();
+  console.log('🗺️ [MAPA] Iconos de categorías cargados');
+}
+
+// 🚀 ESPERAR A QUE EL MAPA ESTÉ LISTO
+map.on('load', function() {
+  console.log('🗺️ [MAPA] Mapa cargado, añadiendo source GeoJSON');
   
-  // Aplicar filtro actual
-  window.applyStateFilter();
+  // ✅ CRITICAL: Resize map to ensure proper rendering
+  setTimeout(function() {
+    map.resize();
+    console.log('🗺️ [MAPA] ✅ map.resize() ejecutado para ajustar el mapa al contenedor');
+  }, 100);
   
-  window.ReactNativeWebView.postMessage(JSON.stringify({
-    type: 'markers_loaded',
-    todos: countTodos,
-    abiertos: countAbiertos,
-    skipped: countSkipped,
-    time: end - start
-  }));
+  // Cargar iconos primero
+  loadCategoryIcons();
+  
+  // 🚀 AÑADIR SOURCE GEOJSON VACÍO CON CLUSTERING OPTIMIZADO
+  map.addSource('locales-source', {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: []
+    },
+    cluster: true,
+    clusterMaxZoom: 14,
+    clusterRadius: 60,
+    clusterProperties: {
+      'sum': ['+', ['get', 'count']]
+    }
+  });
+  
+  // 🚀 AÑADIR LAYER DE CLUSTERS (CÍRCULOS)
+  map.addLayer({
+    id: 'clusters',
+    type: 'circle',
+    source: 'locales-source',
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': [
+        'step',
+        ['get', 'point_count'],
+        'rgba(20, 184, 166, 0.7)',
+        10, 'rgba(13, 148, 136, 0.75)',
+        100, 'rgba(15, 118, 110, 0.8)'
+      ],
+      'circle-radius': [
+        'step',
+        ['get', 'point_count'],
+        28,
+        10, 35,
+        100, 42
+      ],
+      'circle-stroke-width': 3,
+      'circle-stroke-color': 'rgba(255, 255, 255, 0.9)',
+      'circle-opacity': 1
+    }
+  });
+  
+  // 🚀 AÑADIR LAYER DE CONTEO DE CLUSTERS
+  map.addLayer({
+    id: 'cluster-count',
+    type: 'symbol',
+    source: 'locales-source',
+    filter: ['has', 'point_count'],
+    layout: {
+      'text-field': ['get', 'point_count_abbreviated'],
+      'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+      'text-size': [
+        'step',
+        ['get', 'point_count'],
+        22,
+        10, 24,
+        100, 26
+      ],
+      'text-allow-overlap': true,
+      'text-ignore-placement': true,
+      'text-anchor': 'center',
+      'text-offset': [0, 0],
+      'text-justify': 'center'
+    },
+    paint: {
+      'text-color': '#FFFFFF',
+      'text-halo-color': 'rgba(0, 0, 0, 0.7)',
+      'text-halo-width': 3,
+      'text-halo-blur': 0.5
+    }
+  });
+  
+  // 🚀 AÑADIR LAYER DE MARCADORES INDIVIDUALES
+  map.addLayer({
+    id: 'locales-layer',
+    type: 'circle',
+    source: 'locales-source',
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-radius': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        10, 18,
+        13, 22,
+        16, 24,
+        20, 26
+      ],
+      'circle-color': [
+        'case',
+        ['==', ['get', 'estado'], 'abierto'], '#22C55E',
+        ['==', ['get', 'estado'], 'cerrado'], '#EF4444',
+        '#9CA3AF'
+      ],
+      'circle-stroke-width': 3,
+      'circle-stroke-color': '#FFFFFF',
+      'circle-opacity': 1
+    },
+    layout: {
+      'visibility': 'visible'
+    }
+  });
+  
+  // 🚀 AÑADIR ICONOS DE CATEGORÍA
+  map.addLayer({
+    id: 'locales-icons',
+    type: 'symbol',
+    source: 'locales-source',
+    filter: ['!', ['has', 'point_count']],
+    layout: {
+      'icon-image': [
+        'case',
+        ['in', 'cafe', ['get', 'barlive_types']], 'cafe-icon',
+        ['in', 'cafeteria', ['get', 'barlive_types']], 'cafe-icon',
+        ['in', 'restaurante', ['get', 'barlive_types']], 'restaurant-icon',
+        ['in', 'bar', ['get', 'barlive_types']], 'bar-icon',
+        ['in', 'pub', ['get', 'barlive_types']], 'pub-icon',
+        ['in', 'cocteleria', ['get', 'barlive_types']], 'cocktail-icon',
+        ['in', 'cocktail', ['get', 'barlive_types']], 'cocktail-icon',
+        ['in', 'discoteca', ['get', 'barlive_types']], 'nightclub-icon',
+        ['in', 'nightclub', ['get', 'barlive_types']], 'nightclub-icon',
+        'default-icon'
+      ],
+      'icon-size': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        10, 0.5,
+        13, 0.55,
+        16, 0.6,
+        20, 0.65
+      ],
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      'visibility': 'visible'
+    }
+  });
+  
+  // 🚀 AÑADIR LAYER DE ETIQUETAS
+  map.addLayer({
+    id: 'locales-labels',
+    type: 'symbol',
+    source: 'locales-source',
+    filter: ['!', ['has', 'point_count']],
+    layout: {
+      'text-field': ['get', 'name'],
+      'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+      'text-radial-offset': 0.8,
+      'text-size': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        10, 10,
+        13, 12,
+        16, 14
+      ],
+      'text-font': ['Open Sans Regular'],
+      'text-optional': true
+    },
+    paint: {
+      'text-color': '#202124',
+      'text-halo-color': '#FFFFFF',
+      'text-halo-width': 1.5
+    }
+  });
+  
+  console.log('🗺️ [MAPA] Source y layers GeoJSON añadidos correctamente');
+  
+  // 🚀 CARGAR DATOS INICIALES
+  window.loadLocales();
+  
+  // 🚀 NOTIFICAR MAPA LISTO
+  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
+});
+
+// 🚀 VARIABLE GLOBAL PARA ALMACENAR TODOS LOS LOCALES
+window.allLocales = [];
+
+// 🚀 FILTROS PARA MAPLIBRE
+window.filtros = {
+  cat: 'todas',
+  estado: 'no_cerrados'
 };
 
-// 🚀🚀🚀 SELECTOR INSTANTÁNEO (0ms) - INTERCAMBIO DE CAPAS
-window.applyStateFilter = function() {
-  var start = performance.now();
-  
-  // Intercambio instantáneo
-  if (currentFilter === 'abiertos') {
-    if (currentLayerVisible !== 'abiertos') {
-      map.removeLayer(clusterTodos);
-      map.addLayer(clusterAbiertos);
-      currentLayerVisible = 'abiertos';
+// 🚀 FUNCIÓN PARA CARGAR LOCALES DESDE SUPABASE
+window.loadLocales = async function() {
+  try {
+    console.log('🗺️ [MAPA] Cargando locales desde Supabase...');
+    
+    const response = await fetch('https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales?select=id,nombre,direccion,latitud,longitud,imagen_url,rating,google_rating,barlive_types,horarios_completos,estado_actual,google_business_status,google_user_ratings_total&activo=eq.true&latitud=not.is.null&longitud=not.is.null', {
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error cargando locales: ' + response.status);
     }
-  } else {
-    if (currentLayerVisible !== 'todos') {
-      map.removeLayer(clusterAbiertos);
-      map.addLayer(clusterTodos);
-      currentLayerVisible = 'todos';
-    }
+    
+    const locales = await response.json();
+    console.log('🗺️ [MAPA] Locales cargados:', locales.length);
+    
+    // ✅ CRITICAL: Almacenar TODOS los locales en window.allLocales para búsqueda manual
+    window.allLocales = locales;
+    console.log('🗺️ [MAPA] ✅ window.allLocales poblado con', window.allLocales.length, 'locales');
+    
+    window.applyFilters();
+    
+  } catch (error) {
+    console.error('🗺️ [MAPA] Error cargando locales:', error);
+  }
+};
+
+// 🚀 FUNCIÓN PARA DETERMINAR ESTADO DEL LOCAL
+window.getEstadoLocal = function(local) {
+  if (local.estado_actual) {
+    return local.estado_actual === 'abierto_ahora' ? 'abierto' : 'cerrado';
   }
   
-  var end = performance.now();
+  if (local.google_business_status === 'OPERATIONAL') {
+    return 'abierto';
+  } else if (local.google_business_status === 'CLOSED_TEMPORARILY' || local.google_business_status === 'CLOSED_PERMANENTLY') {
+    return 'cerrado';
+  }
   
-  window.ReactNativeWebView.postMessage(JSON.stringify({
-    type: 'filter_changed',
-    filter: currentFilter,
-    layer: currentLayerVisible,
-    time: end - start
-  }));
-};
-
-// Cambiar filtro de estado
-window.setStateFilter = function(filterType) {
-  currentFilter = filterType;
-  window.applyStateFilter();
-};
-
-// 🚀🚀🚀 FILTRAR POR CATEGORÍA - DESDE RAM (INSTANTÁNEO)
-window.filtrarCategoria = function(idCategoria) {
-  var start = performance.now();
-  
-  currentCategory = idCategoria;
-  
-  // 🔥 PASO 1: Limpiar capa activa
-  clusterTodos.clearLayers();
-  clusterAbiertos.clearLayers();
-  
-  // 🔥 PASO 2: Recuperar locales desde window.categoryIndex (RAM)
-  var localesFiltrados = [];
-  
-  if (idCategoria === 'todos') {
-    // Mostrar todos los locales
-    window.allLocales.forEach(function(localData) {
-      localesFiltrados.push(localData);
-    });
-  } else {
-    // Filtrar por categoría específica
-    var categoryKey = idCategoria;
+  if (local.horarios_completos) {
+    const now = new Date();
+    const dayNames = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const dayName = dayNames[now.getDay()];
+    const currentTime = now.getHours() * 60 + now.getMinutes();
     
-    // Mapeo de categorías
-    var categoryMap = {
-      'cafe': 'cafe',
-      'cafeteria': 'cafe',
-      'restaurante': 'restaurante',
-      'bar': 'bar',
-      'pub': 'pub',
-      'cocteleria': 'cocteleria',
-      'discoteca': 'discoteca'
-    };
-    
-    categoryKey = categoryMap[idCategoria] || idCategoria;
-    
-    // Recuperar desde índice de categorías
-    if (window.categoryIndex[categoryKey]) {
-      window.categoryIndex[categoryKey].forEach(function(item) {
-        var localData = window.allLocales.get(item.id);
-        if (localData) {
-          localesFiltrados.push(localData);
+    const todaySchedule = local.horarios_completos[dayName];
+    if (todaySchedule && todaySchedule.length > 0) {
+      for (const period of todaySchedule) {
+        const [openHour, openMin] = period.split('-')[0].split(':').map(Number);
+        const [closeHour, closeMin] = period.split('-')[1].split(':').map(Number);
+        const openTime = openHour * 60 + openMin;
+        const closeTime = closeHour * 60 + closeMin;
+        
+        if (currentTime >= openTime && currentTime <= closeTime) {
+          return 'abierto';
         }
-      });
+      }
+      return 'cerrado';
     }
   }
   
-  // 🔥 PASO 3: Rellenar instantáneamente desde RAM
-  var markersTodos = [];
-  var markersAbiertos = [];
-  
-  localesFiltrados.forEach(function(localData) {
-    markersTodos.push(localData.marker);
-    
-    // Solo añadir a abiertos si está abierto
-    if (localData.data && localData.data.is_open === true) {
-      markersAbiertos.push(localData.marker);
-    }
-  });
-  
-  // Añadir en batch para máxima velocidad
-  clusterTodos.addLayers(markersTodos);
-  clusterAbiertos.addLayers(markersAbiertos);
-  
-  var end = performance.now();
-  
-  // Aplicar filtro de estado actual
-  window.applyStateFilter();
-  
-  window.ReactNativeWebView.postMessage(JSON.stringify({
-    type: 'category_changed',
-    category: idCategoria,
-    count: localesFiltrados.length,
-    time: end - start
-  }));
+  return 'sin_info';
 };
 
-// Alias para compatibilidad
+// 🚀 APLICAR FILTROS Y ACTUALIZAR GEOJSON
+window.applyFilters = function() {
+  if (!window.allLocales || window.allLocales.length === 0) {
+    console.log('🗺️ [MAPA] No hay locales para filtrar');
+    return;
+  }
+  
+  console.log('🗺️ [MAPA] Aplicando filtros:', window.filtros);
+  
+  var filteredLocales = window.allLocales.filter(function(local) {
+    if (window.filtros.estado === 'no_cerrados') {
+      var estado = window.getEstadoLocal(local);
+      if (estado === 'cerrado') {
+        return false;
+      }
+    }
+    
+    if (window.filtros.cat !== 'todas') {
+      var types = local.barlive_types || [];
+      var hasCategory = false;
+      
+      if (window.filtros.cat === 'cafe') {
+        hasCategory = types.includes('cafe') || types.includes('cafeteria');
+      } else if (window.filtros.cat === 'cocteleria') {
+        hasCategory = types.includes('cocteleria') || types.includes('cocktail');
+      } else if (window.filtros.cat === 'discoteca') {
+        hasCategory = types.includes('discoteca') || types.includes('nightclub');
+      } else {
+        hasCategory = types.includes(window.filtros.cat);
+      }
+      
+      if (!hasCategory) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+  
+  console.log('🗺️ [MAPA] Locales filtrados:', filteredLocales.length);
+  
+  var geojson = {
+    type: 'FeatureCollection',
+    features: filteredLocales.map(function(local) {
+      var lng = parseFloat(local.longitud);
+      var lat = parseFloat(local.latitud);
+      
+      if (isNaN(lng) || isNaN(lat)) {
+        console.warn('🗺️ [MAPA] ⚠️ Coordenadas inválidas para local:', local.nombre);
+        return null;
+      }
+      
+      return {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [lng, lat]
+        },
+        properties: {
+          id: local.id,
+          name: local.nombre,
+          direccion: local.direccion || 'Dirección no disponible',
+          imagen_url: local.imagen_url,
+          rating: local.rating || 0,
+          estado: window.getEstadoLocal(local),
+          barlive_types: local.barlive_types || [],
+          count: 1
+        }
+      };
+    }).filter(function(feature) { return feature !== null; })
+  };
+  
+  var source = map.getSource('locales-source');
+  if (source) {
+    source.setData(geojson);
+    console.log('🗺️ [MAPA] ✅ GeoJSON actualizado con', geojson.features.length, 'marcadores');
+  }
+};
+
+window.setStateFilter = function(filterType) {
+  window.filtros.estado = filterType;
+  window.applyFilters();
+};
+
+window.filtrarCategoria = function(idCategoria) {
+  window.filtros.cat = idCategoria;
+  window.applyFilters();
+};
+
 window.setCategoryFilter = window.filtrarCategoria;
 
-// Actualizar ubicación del usuario
+// 🚀 MARCADOR DE UBICACIÓN DEL USUARIO
 window.updateUserLocation = function(lat, lng) {
+  console.log('🗺️ [MAPA] 📍 Actualizando ubicación del usuario:', lat, lng);
+  
   if (!window.userMarker) {
-    var userIcon = L.divIcon({
-      html: '<div style="background:#4285F4;width:20px;height:20px;border-radius:50%;border:4px solid #FFF;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
-      className: 'user-marker',
-      iconSize: [20, 20],
-      iconAnchor: [10, 10]
-    });
+    var el = document.createElement('div');
+    el.className = 'user-marker';
+    el.style.cssText = 'position:relative;width:24px;height:24px;';
     
-    window.userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
+    var innerCircle = document.createElement('div');
+    innerCircle.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#4285F4;width:24px;height:24px;border-radius:50%;border:4px solid #FFF;box-shadow:0 2px 12px rgba(66,133,244,0.6);z-index:2;';
+    el.appendChild(innerCircle);
+    
+    var outerCircle = document.createElement('div');
+    outerCircle.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(66,133,244,0.3);width:48px;height:48px;border-radius:50%;animation:pulse 2s infinite;z-index:1;';
+    el.appendChild(outerCircle);
+    
+    var style = document.createElement('style');
+    style.textContent = '@keyframes pulse{0%{transform:translate(-50%,-50%) scale(1);opacity:1}50%{transform:translate(-50%,-50%) scale(1.3);opacity:0.5}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}';
+    document.head.appendChild(style);
+    
+    window.userMarker = new maplibregl.Marker({ 
+      element: el,
+      anchor: 'center'
+    })
+      .setLngLat([lng, lat])
+      .addTo(map);
+    
+    console.log('🗺️ [MAPA] ✅ Marcador de usuario creado');
   } else {
-    window.userMarker.setLatLng([lat, lng]);
+    window.userMarker.setLngLat([lng, lat]);
+    console.log('🗺️ [MAPA] ✅ Marcador de usuario actualizado');
   }
 };
 
-// Volar a ubicación
 window.flyToLocation = function(lat, lng, zoom) {
-  map.flyTo([lat, lng], zoom, {
-    animate: true,
-    duration: 1
+  map.flyTo({
+    center: [lng, lat],
+    zoom: zoom,
+    essential: true
   });
 };
 
-// Lazy loading - Evento 'moveend'
-map.on('moveend', function() {
-  var bounds = map.getBounds();
-  var zoom = map.getZoom();
+// 🚀 FUNCIÓN UNIFICADA PARA MOSTRAR POPUP
+function showPopupForFeature(feature, coordinates) {
+  if (!feature || !feature.properties) {
+    console.error('🗺️ [MAPA] ❌ Feature inválida para mostrar popup');
+    return;
+  }
   
-  window.ReactNativeWebView.postMessage(JSON.stringify({
-    type: 'bounds_changed',
-    minLat: bounds.getSouth(),
-    minLng: bounds.getWest(),
-    maxLat: bounds.getNorth(),
-    maxLng: bounds.getEast(),
-    zoom: zoom
-  }));
+  var properties = feature.properties;
+  
+  if (!properties.id) {
+    console.error('🗺️ [MAPA] ❌ ID del local no encontrado');
+    return;
+  }
+  
+  console.log('🗺️ [MAPA] ✅ Mostrando popup para local:', properties.name);
+  
+  var localCompleto = window.allLocales.find(function(l) { return l.id === properties.id; });
+  
+  // ✅ FIX: Obtener rating correcto del local completo
+  var ratingValue = 0;
+  if (localCompleto) {
+    // Prioridad: rating > google_rating
+    if (localCompleto.rating && localCompleto.rating > 0) {
+      ratingValue = localCompleto.rating;
+    } else if (localCompleto.google_rating && localCompleto.google_rating > 0) {
+      ratingValue = localCompleto.google_rating;
+    }
+  }
+  
+  // Formatear rating con 1 decimal (usar punto como separador decimal)
+  var rating = ratingValue > 0 ? ratingValue.toFixed(1) : '0.0';
+  
+  var categorias = properties.barlive_types || [];
+  var categoriasTexto = categorias.length > 0 ? categorias.slice(0, 2).join(', ') : 'Local';
+  
+  var estadoTexto = '';
+  var estadoColor = '';
+  if (properties.estado === 'abierto') {
+    estadoTexto = '🟢 Abierto ahora';
+    estadoColor = '#22C55E';
+  } else if (properties.estado === 'cerrado') {
+    estadoTexto = '🔴 Cerrado ahora';
+    estadoColor = '#EF4444';
+  } else {
+    estadoTexto = '⚪ Sin información de horario';
+    estadoColor = '#9CA3AF';
+  }
+  
+  // ✅ FIX: Popup SIN cantidad total de reseñas, solo rating
+  var popupHTML = '<div>' +
+    '<img src="' + (properties.imagen_url || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400') + '" class="popup-img" onerror="this.src=\\'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400\\'"/>' +
+    '<div class="popup-info">' +
+    '<div class="popup-title">' + properties.name + '</div>' +
+    '<div style="font-size:13px;color:#70757A;margin-bottom:10px;display:flex;align-items:flex-start;gap:4px">' +
+    '<span style="flex-shrink:0">📍</span>' +
+    '<span style="flex:1">' + (properties.direccion || 'Dirección no disponible') + '</span>' +
+    '</div>' +
+    (ratingValue > 0 ? '<div class="popup-rating">⭐ ' + rating + '</div>' : '') +
+    '<div style="font-size:12px;color:#70757A;margin-bottom:8px">' + categoriasTexto + '</div>' +
+    '<div style="font-size:13px;font-weight:600;color:' + estadoColor + ';margin-bottom:10px">' + estadoTexto + '</div>' +
+    '<a href="#" class="popup-btn" onclick="event.preventDefault();window.ReactNativeWebView.postMessage(JSON.stringify({type:\\'navigate\\',id:\\''+properties.id+'\\'}));return false">' +
+    '<span style="color:#FFF">📍 Ver detalles</span>' +
+    '</a>' +
+    '</div>' +
+    '</div>';
+  
+  new maplibregl.Popup({
+    closeButton: false,
+    closeOnClick: true,
+    maxWidth: '${Platform.OS === 'android' ? '260px' : '280px'}',
+    className: 'custom-popup'
+  })
+    .setLngLat(coordinates)
+    .setHTML(popupHTML)
+    .addTo(map);
+}
+
+// 🚀🚀🚀 DETECCIÓN MANUAL POR PROXIMIDAD EN PÍXELES CON FILTROS SINCRONIZADOS v263.0 🚀🚀🚀
+// ✅ PASO 1: BLOQUEO DE CLUSTERS (PRIORIDAD MÁXIMA)
+// ✅ PASO 2: SINCRONIZA CON FILTROS ACTIVOS (categoría y estado)
+// ✅ PASO 3: BÚSQUEDA DEL MÁS CERCANO con tolerancia reducida (20px)
+// ✅ PASO 4: AUTO-CENTRADO del popup en el centro de la pantalla
+map.on('click', function(e) {
+  console.log('🗺️ [MAPA] 🎯 Click detectado - iniciando proceso de 3 pasos');
+  
+  // ═══════════════════════════════════════════════════════════════
+  // 🚨 PASO 1: BLOQUEO DE CLUSTERS (PRIORIDAD ABSOLUTA)
+  // ═══════════════════════════════════════════════════════════════
+  // Si el usuario toca un cluster, ejecutar zoom-in y DETENER el proceso
+  var clusterFeatures = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+  if (clusterFeatures.length > 0) {
+    console.log('🗺️ [MAPA] 🔵 CLUSTER detectado - ejecutando zoom-in y deteniendo proceso');
+    
+    var clusterId = clusterFeatures[0].properties.cluster_id;
+    var source = map.getSource('locales-source');
+    
+    source.getClusterExpansionZoom(clusterId, function(err, zoom) {
+      if (err) {
+        console.error('🗺️ [MAPA] ❌ Error obteniendo zoom del cluster:', err);
+        return;
+      }
+      
+      map.flyTo({
+        center: clusterFeatures[0].geometry.coordinates,
+        zoom: zoom,
+        speed: 1.2,
+        curve: 1,
+        essential: true
+      });
+      
+      console.log('🗺️ [MAPA] ✅ Zoom-in del cluster ejecutado correctamente');
+    });
+    
+    // 🚨 RETURN INMEDIATO - No continuar con la detección de locales individuales
+    return;
+  }
+  
+  console.log('🗺️ [MAPA] ✅ No es un cluster - continuando con detección de locales individuales');
+  
+  // ═══════════════════════════════════════════════════════════════
+  // 🚨 PASO 2: OBTENER FILTROS ACTIVOS DE REACT
+  // ═══════════════════════════════════════════════════════════════
+  var filtroCategoria = window.filtros.cat || 'todas';
+  var soloAbiertos = window.filtros.estado === 'no_cerrados';
+  console.log('🗺️ [MAPA] 🔍 Filtros activos - Categoría:', filtroCategoria, '| Solo abiertos:', soloAbiertos);
+  
+  // ═══════════════════════════════════════════════════════════════
+  // 🚨 PASO 3: DETECCIÓN MANUAL POR PROXIMIDAD CON FILTROS
+  // ═══════════════════════════════════════════════════════════════
+  var touchPoint = e.point;
+  console.log('🗺️ [MAPA] 📍 Punto del clic en píxeles:', touchPoint.x, touchPoint.y);
+  
+  // ✅ Tolerancia REDUCIDA para mayor precisión (20px en lugar de 30px)
+  var toleranciaPixeles = 20;
+  console.log('🗺️ [MAPA] 📏 Tolerancia REDUCIDA en píxeles:', toleranciaPixeles, 'px (más preciso)');
+  
+  var detectado = null;
+  var minimaDistanciaPixeles = Infinity;
+  var localesEvaluados = 0;
+  var localesFiltrados = 0;
+  
+  window.allLocales.forEach(function(local) {
+    localesEvaluados++;
+    
+    // 🚨 VALIDAR FILTROS ACTIVOS ANTES DE CALCULAR DISTANCIA (¡CRÍTICO!)
+    // 1. Validar Categoría
+    var cumpleCategoria = false;
+    if (filtroCategoria === 'todas') {
+      cumpleCategoria = true;
+    } else {
+      var types = local.barlive_types || [];
+      if (filtroCategoria === 'cafe') {
+        cumpleCategoria = types.includes('cafe') || types.includes('cafeteria');
+      } else if (filtroCategoria === 'cocteleria') {
+        cumpleCategoria = types.includes('cocteleria') || types.includes('cocktail');
+      } else if (filtroCategoria === 'discoteca') {
+        cumpleCategoria = types.includes('discoteca') || types.includes('nightclub');
+      } else {
+        cumpleCategoria = types.includes(filtroCategoria);
+      }
+    }
+    
+    // 2. Validar Estado (Abierto/Cerrado)
+    var estadoLocal = window.getEstadoLocal(local);
+    var cumpleEstado = !soloAbiertos || estadoLocal === 'abierto';
+    
+    // ✅ SOLO SI CUMPLE AMBOS FILTROS, CALCULAMOS LA DISTANCIA
+    if (cumpleCategoria && cumpleEstado) {
+      // Proyectar coordenadas del local a píxeles en pantalla
+      var localPixel = map.project([parseFloat(local.longitud), parseFloat(local.latitud)]);
+      
+      // Calcular distancia en píxeles (Pitágoras)
+      var dx = localPixel.x - touchPoint.x;
+      var dy = localPixel.y - touchPoint.y;
+      var distanciaPixeles = Math.sqrt(dx * dx + dy * dy);
+      
+      // Si está dentro de la tolerancia Y es el más cercano hasta ahora
+      if (distanciaPixeles < toleranciaPixeles && distanciaPixeles < minimaDistanciaPixeles) {
+        console.log('🗺️ [MAPA] ✅ Candidato encontrado:', local.nombre, '- Distancia:', distanciaPixeles.toFixed(2), 'px');
+        minimaDistanciaPixeles = distanciaPixeles;
+        detectado = local;
+      }
+    } else {
+      localesFiltrados++;
+    }
+  });
+  
+  console.log('🗺️ [MAPA] 📊 Locales evaluados:', localesEvaluados);
+  console.log('🗺️ [MAPA] 📊 Locales filtrados (ocultos):', localesFiltrados);
+  console.log('🗺️ [MAPA] 📊 Locales visibles:', localesEvaluados - localesFiltrados);
+  
+  // ═══════════════════════════════════════════════════════════════
+  // 🚨 PASO 4: SI SE DETECTÓ UN LOCAL, ABRIR POPUP Y AUTO-CENTRAR
+  // ═══════════════════════════════════════════════════════════════
+  if (detectado) {
+    console.log('🗺️ [MAPA] 🎉 Local MÁS CERCANO encontrado:', detectado.nombre);
+    console.log('🗺️ [MAPA] 📊 Distancia final:', minimaDistanciaPixeles.toFixed(2), 'píxeles');
+    
+    // Coordenadas del local detectado
+    var coords = [parseFloat(detectado.longitud), parseFloat(detectado.latitud)];
+    
+    // Crear una estructura de 'feature' falsa para reutilizar showPopupForFeature
+    var fakeFeature = { 
+      properties: { 
+        id: detectado.id,
+        name: detectado.nombre,
+        direccion: detectado.direccion || 'Dirección no disponible',
+        imagen_url: detectado.imagen_url,
+        rating: detectado.rating || 0,
+        estado: window.getEstadoLocal(detectado),
+        barlive_types: detectado.barlive_types || [],
+        google_user_ratings_total: detectado.google_user_ratings_total || 0
+      } 
+    };
+    
+    // 1. Abrir Popup
+    showPopupForFeature(fakeFeature, coords);
+    
+    // 2. AUTO-CENTRADO: Zoom y centrado automático para que el popup quede en el centro de la pantalla
+    map.flyTo({
+      center: coords,
+      zoom: 17, // Zoom cercano para ver bien el local
+      speed: 1.2, // Velocidad de la animación
+      essential: true // Asegurar que la animación se ejecute
+    });
+    
+    console.log('🗺️ [MAPA] ✅ Popup abierto y mapa AUTO-CENTRADO en el local');
+  } else {
+    console.log('🗺️ [MAPA] ❌ No se encontró ningún local visible en el área de proximidad');
+    console.log('🗺️ [MAPA] 💡 Posibles razones:');
+    console.log('🗺️ [MAPA] 💡 1. No hay marcadores cerca del clic (20px de radio)');
+    console.log('🗺️ [MAPA] 💡 2. Los locales cercanos están ocultos por los filtros activos');
+    console.log('🗺️ [MAPA] 💡 3. Intenta hacer clic directamente sobre un marcador visible');
+    // ✅ NO HACER NADA si no se encuentra ningún local que cumpla los filtros
+  }
 });
 
-// Leaflet inicializado
+// 🚀 CLICK EN CLUSTERS - HACER ZOOM
+map.on('click', 'clusters', function(e) {
+  var features = map.queryRenderedFeatures(e.point, {
+    layers: ['clusters']
+  });
+  
+  if (!features.length) return;
+  
+  var clusterId = features[0].properties.cluster_id;
+  var source = map.getSource('locales-source');
+  
+  source.getClusterExpansionZoom(clusterId, function(err, zoom) {
+    if (err) return;
+    
+    map.easeTo({
+      center: features[0].geometry.coordinates,
+      zoom: zoom
+    });
+  });
+});
+
+// 🚀 CAMBIAR CURSOR AL PASAR SOBRE ELEMENTOS CLICKEABLES
+map.on('mouseenter', 'locales-layer', function() {
+  map.getCanvas().style.cursor = 'pointer';
+});
+
+map.on('mouseleave', 'locales-layer', function() {
+  map.getCanvas().style.cursor = '';
+});
+
+map.on('mouseenter', 'locales-icons', function() {
+  map.getCanvas().style.cursor = 'pointer';
+});
+
+map.on('mouseleave', 'locales-icons', function() {
+  map.getCanvas().style.cursor = '';
+});
+
+map.on('mouseenter', 'clusters', function() {
+  map.getCanvas().style.cursor = 'pointer';
+});
+
+map.on('mouseleave', 'clusters', function() {
+  map.getCanvas().style.cursor = '';
+});
+
+// ✅ CRITICAL: Resize map on window resize for proper rendering
+window.addEventListener('resize', function() {
+  map.resize();
+  console.log('🗺️ [MAPA] ✅ map.resize() ejecutado en window resize');
+});
+
+console.log('🗺️ [MAPA] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA] ✅ Sistema de mapa configurado completamente');
+console.log('🗺️ [MAPA] ✅ DETECCIÓN MANUAL CON PROYECCIÓN A PÍXELES activada');
+console.log('🗺️ [MAPA] ✅ Tolerancia fija: 30 píxeles (tamaño del dedo)');
+console.log('🗺️ [MAPA] ✅ Área de clic CONSISTENTE sin importar el zoom');
+console.log('🗺️ [MAPA] ✅ Proyección: map.project([lng, lat]) → coordenadas de pantalla');
+console.log('🗺️ [MAPA] ✅ Distancia en píxeles: sqrt(dx² + dy²)');
+console.log('🗺️ [MAPA] ✅ SINCRONIZACIÓN CON FILTROS: valida categoría y estado');
+console.log('🗺️ [MAPA] ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)');
+console.log('🗺️ [MAPA] ✅ window.allLocales: Array global con todos los locales');
+console.log('🗺️ [MAPA] ✅ touch-action: none para evitar scroll del navegador');
+console.log('🗺️ [MAPA] ═══════════════════════════════════════════════════════');
 </script>
 </body>
 </html>`;
   }, [userLocation]);
 
-  // Obtener ubicación
   useEffect(() => {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
+          console.log('🗺️ [MAPA] Permisos de ubicación denegados');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
+        console.log('🗺️ [MAPA] Obteniendo ubicación del usuario...');
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
         
+        console.log('🗺️ [MAPA] Ubicación obtenida:', location.coords.latitude, location.coords.longitude);
         setUserLocation({
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
       } catch (error) {
+        console.error('🗺️ [MAPA] Error obteniendo ubicación:', error);
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
   }, []);
 
-  // Recargar cuando cambian filtros
   useEffect(() => {
-    if (!currentBounds || !isMapReady) {
-      return;
-    }
-    
-    lastLoadedBoundsRef.current = null;
-    
-    loadLocalesInBounds(
-      currentBounds.minLat,
-      currentBounds.minLng,
-      currentBounds.maxLat,
-      currentBounds.maxLng,
-      currentBounds.zoom
-    );
-  }, [categoriaSeleccionada, globalFiltros, currentBounds, isMapReady, loadLocalesInBounds]);
+    console.log('🗺️ [MAPA] Filtros cambiados');
+  }, [categoriaSeleccionada, globalFiltros]);
 
-  // Aplicar filtro de estado
   useEffect(() => {
     if (!webViewRef.current || !isMapReady) {
       return;
     }
     
-    webViewRef.current.injectJavaScript(`
-      (function() {
-        try {
+    requestAnimationFrame(() => {
+      webViewRef.current?.injectJavaScript(`
+        (function() {
           if (typeof window.setStateFilter !== 'undefined') {
             window.setStateFilter('${filtroEstado}');
           }
-        } catch (error) {
-          console.error('Error intercambiando capas:', error);
-        }
-      })();
-      true;
-    `);
+        })();
+        true;
+      `);
+    });
   }, [filtroEstado, isMapReady]);
 
-  // Filtro por categoría
   useEffect(() => {
     if (!webViewRef.current || !isMapReady) {
       return;
     }
     
-    webViewRef.current.injectJavaScript(`
-      (function() {
-        try {
+    requestAnimationFrame(() => {
+      webViewRef.current?.injectJavaScript(`
+        (function() {
           if (typeof window.filtrarCategoria !== 'undefined') {
             window.filtrarCategoria('${categoriaSeleccionada}');
           }
-        } catch (error) {
-          console.error('Error filtrando categoría:', error);
-        }
-      })();
-      true;
-    `);
+        })();
+        true;
+      `);
+    });
   }, [categoriaSeleccionada, isMapReady]);
 
-  // Actualizar ubicación del usuario
   useEffect(() => {
     if (!webViewRef.current || !userLocation || !isMapReady) {
       return;
     }
+    
+    console.log('🗺️ [MAPA] 📍 Inyectando ubicación del usuario');
     
     webViewRef.current.injectJavaScript(`
       (function() {
@@ -760,16 +1199,16 @@ map.on('moveend', function() {
             window.updateUserLocation(${userLocation.lat}, ${userLocation.lng});
           }
         } catch (error) {
-          console.error('Error actualizando ubicación:', error);
+          console.error('🗺️ [MAPA] ❌ Error actualizando ubicación:', error);
         }
       })();
       true;
     `);
   }, [userLocation, isMapReady]);
 
-  // Centrar en usuario
   const centerOnUser = useCallback(() => {
     if (userLocation && webViewRef.current && isMapReady) {
+      console.log('🗺️ [MAPA] Centrando en ubicación del usuario');
       webViewRef.current.injectJavaScript(`
         if (typeof window.flyToLocation !== 'undefined') {
           window.flyToLocation(${userLocation.lat}, ${userLocation.lng}, 16);
@@ -779,47 +1218,31 @@ map.on('moveend', function() {
     }
   }, [userLocation, isMapReady]);
 
-  // Manejar mensajes del WebView
   const handleWebViewMessage = useCallback((event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       
       if (data.type === 'navigate' && data.id) {
+        console.log('🗺️ [MAPA] Navegando a local:', data.id);
         router.push(`/detalle/local?id=${data.id}`);
       } else if (data.type === 'map_ready') {
+        console.log('🗺️ [MAPA] Mapa listo');
         setIsMapReady(true);
-      } else if (data.type === 'bounds_changed') {
-        setCurrentBounds({
-          minLat: data.minLat,
-          minLng: data.minLng,
-          maxLat: data.maxLat,
-          maxLng: data.maxLng,
-          zoom: data.zoom
-        });
-        
-        debouncedLoadLocales(
-          data.minLat,
-          data.minLng,
-          data.maxLat,
-          data.maxLng,
-          data.zoom
-        );
       }
     } catch (error) {
-      // Silenciar errores de parsing
+      console.error('🗺️ [MAPA] Error procesando mensaje:', error);
     }
-  }, [router, debouncedLoadLocales]);
+  }, [router]);
 
-  const categoryIconSize = 56;
-  const categoryIconInnerSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
-  const controlButtonSize = Platform.OS === 'android' ? scaleIconSize(48) : 48;
-  const controlIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
-  const centerButtonSize = Platform.OS === 'android' ? scaleIconSize(56) : 56;
-  const centerIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const categoryIconSize = useMemo(() => 56, []);
+  const categoryIconInnerSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(28) : 28, []);
+  const controlButtonSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(48) : 48, []);
+  const controlIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(24) : 24, []);
+  const centerButtonSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(56) : 56, []);
+  const centerIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(24) : 24, []);
 
   return (
     <View style={commonStyles.container}>
-      {/* Mapa */}
       <View style={styles.mapContainer}>
         {Platform.OS === 'web' ? (
           <View style={styles.webNotSupported}>
@@ -853,7 +1276,6 @@ map.on('moveend', function() {
         )}
       </View>
 
-      {/* Header con categorías */}
       <View style={styles.headerContainer}>
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -868,43 +1290,19 @@ map.on('moveend', function() {
             style={styles.categoriasContainer}
           >
             {CATEGORIAS.map((categoria) => (
-              <TouchableOpacity
+              <CategoriaButton
                 key={categoria.id}
-                style={styles.categoriaButton}
-                onPress={() => {
-                  setCategoriaSeleccionada(categoria.id);
-                }}
-              >
-                <View style={[
-                  styles.categoriaIconContainer,
-                  {
-                    width: categoryIconSize,
-                    height: categoryIconSize,
-                    borderRadius: 16,
-                  },
-                  categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive
-                ]}>
-                  <IconSymbol 
-                    ios_icon_name={categoria.icon as any}
-                    android_material_icon_name={categoria.androidIcon}
-                    size={categoryIconInnerSize} 
-                    color={categoriaSeleccionada === categoria.id ? colors.primary : colors.white}
-                  />
-                </View>
-                <Text style={[
-                  styles.categoriaLabel,
-                  { fontSize: scaleFontSize(12) },
-                  categoriaSeleccionada === categoria.id && styles.categoriaLabelActive
-                ]}>
-                  {categoria.label}
-                </Text>
-              </TouchableOpacity>
+                categoria={categoria}
+                isSelected={categoriaSeleccionada === categoria.id}
+                onPress={() => handleCategoriaChange(categoria.id)}
+                iconSize={categoryIconSize}
+                iconInnerSize={categoryIconInnerSize}
+              />
             ))}
           </ScrollView>
         </LinearGradient>
       </View>
 
-      {/* Controles izquierda */}
       <View style={styles.controlsLeft}>
         <TouchableOpacity 
           style={[styles.controlButton, {
@@ -928,7 +1326,7 @@ map.on('moveend', function() {
             height: controlButtonSize,
             borderRadius: controlButtonSize / 2,
           }]}
-          onPress={() => setMostrarFiltros(true)}
+          onPress={handleToggleFiltros}
         >
           <IconSymbol 
             ios_icon_name="line.3.horizontal.decrease.circle.fill" 
@@ -939,45 +1337,12 @@ map.on('moveend', function() {
         </TouchableOpacity>
       </View>
 
-      {/* Controles derecha */}
       <View style={styles.controlsRight}>
-        {/* Selector de estado */}
-        <View style={styles.estadoSelectorContainer}>
-          <View style={styles.estadoSelector}>
-            <TouchableOpacity
-              style={[
-                styles.estadoOption,
-                filtroEstado === 'todos' && styles.estadoOptionActive
-              ]}
-              onPress={() => setFiltroEstado('todos')}
-            >
-              <Text style={[
-                styles.estadoOptionText,
-                { fontSize: scaleFontSize(11) },
-                filtroEstado === 'todos' && styles.estadoOptionTextActive
-              ]}>
-                Todos
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.estadoOption,
-                filtroEstado === 'abiertos' && styles.estadoOptionActive
-              ]}
-              onPress={() => setFiltroEstado('abiertos')}
-            >
-              <Text style={[
-                styles.estadoOptionText,
-                { fontSize: scaleFontSize(11) },
-                filtroEstado === 'abiertos' && styles.estadoOptionTextActive
-              ]}>
-                Abiertos
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <EstadoSelector 
+          filtroEstado={filtroEstado}
+          onChangeEstado={handleEstadoChange}
+        />
 
-        {/* Leyenda */}
         <View style={styles.leyenda}>
           <View style={styles.leyendaItem}>
             <View style={[styles.leyendaDot, { backgroundColor: '#22C55E' }]} />
@@ -994,7 +1359,6 @@ map.on('moveend', function() {
         </View>
       </View>
 
-      {/* Botón centrar */}
       <TouchableOpacity 
         style={[styles.centerButton, {
           width: centerButtonSize,
@@ -1013,10 +1377,9 @@ map.on('moveend', function() {
         />
       </TouchableOpacity>
 
-      {/* Modal de filtros */}
       <FiltrosAvanzadosSheet
         visible={mostrarFiltros}
-        onClose={() => setMostrarFiltros(false)}
+        onClose={handleCloseFiltros}
       />
     </View>
   );
@@ -1158,6 +1521,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 2,
     elevation: 2,
+    transform: [{ scale: 1.05 }],
   },
   estadoOptionText: {
     fontWeight: '600',

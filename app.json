@@ -87,7 +87,7 @@
         }
       ]
     ],
-    "scheme": "BarLive",
+    "scheme": "barlive",
     "experiments": {
       "typedRoutes": true
     },

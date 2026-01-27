@@ -18,6 +18,15 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 
+/**
+ * ✅ NUEVA PASSWORD TOKEN SCREEN v145.0 - AUTH FIX
+ * 
+ * CRITICAL FIXES v145.0:
+ * - ✅ Fixed "Invalid JWT" error by using supabase.functions.invoke
+ * - ✅ Removed manual fetch with access_token
+ * - ✅ Edge Functions now work without user session
+ */
+
 export default function NuevaPasswordTokenScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -77,96 +86,39 @@ export default function NuevaPasswordTokenScreen() {
 
     try {
       console.log('═══════════════════════════════════════════════════════');
-      console.log('🔄 ACTUALIZACIÓN DE CONTRASEÑA');
+      console.log('[NuevaPasswordToken] 🔄 ACTUALIZACIÓN DE CONTRASEÑA');
       console.log('═══════════════════════════════════════════════════════');
-      console.log('📧 Email:', email);
-      console.log('🔐 Google User:', isGoogleUser);
+      console.log('[NuevaPasswordToken] 📧 Email:', email);
+      console.log('[NuevaPasswordToken] 🔐 Google User:', isGoogleUser);
 
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
-      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-      
-      console.log('🌐 Using Supabase URL:', supabaseUrl);
-
-      if (!supabaseAnonKey) {
-        console.error('❌ SUPABASE_ANON_KEY not found');
-        Alert.alert('Error', 'Configuración incorrecta. Por favor, contacta con soporte.');
-        setLoading(false);
-        return;
-      }
-
-      // Call the Edge Function to update password
-      // Note: We use the anon key in the apikey header, not Authorization
-      // The Edge Function validates the token itself, no user authentication needed
-      const response = await fetch(`${supabaseUrl}/functions/v1/update-password-with-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseAnonKey,
-        },
-        body: JSON.stringify({ 
+      // ✅ FIX: Use supabase.functions.invoke instead of manual fetch
+      const { data, error } = await supabase.functions.invoke('update-password-with-token', {
+        body: { 
           email: email.trim().toLowerCase(), 
           token: token.trim(),
           newPassword,
           isGoogleUser
-        }),
+        },
       });
 
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response ok:', response.ok);
-
-      // Check if response is ok
-      if (!response.ok) {
-        console.error('❌ HTTP Error:', response.status, response.statusText);
-        Alert.alert(
-          'Error de conexión',
-          `No se pudo conectar con el servidor (${response.status}). Por favor, intenta nuevamente.`
-        );
-        setLoading(false);
-        return;
+      if (error) {
+        console.error('[NuevaPasswordToken] ❌ Error:', error);
+        throw new Error(error.message || 'Error al actualizar contraseña');
       }
 
-      // Parse JSON response
-      let result;
-      try {
-        const responseText = await response.text();
-        console.log('📡 Response text:', responseText);
-        result = JSON.parse(responseText);
-        console.log('📡 Parsed result:', result);
-      } catch (parseError) {
-        console.error('❌ JSON Parse Error:', parseError);
-        Alert.alert(
-          'Error',
-          'Respuesta inválida del servidor. Por favor, intenta nuevamente.'
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Check if result is valid
-      if (!result || typeof result !== 'object') {
-        console.error('❌ Invalid result object:', result);
-        Alert.alert(
-          'Error',
-          'Respuesta inválida del servidor. Por favor, intenta nuevamente.'
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Check if operation was successful
-      if (!result.success) {
-        const errorMessage = result.error || 'No se pudo actualizar tu contraseña. Por favor, intenta nuevamente.';
-        console.error('❌ Error:', errorMessage);
+      if (!data?.success) {
+        const errorMessage = data?.error || 'No se pudo actualizar tu contraseña. Por favor, intenta nuevamente.';
+        console.error('[NuevaPasswordToken] ❌ Error:', errorMessage);
         Alert.alert('Error', errorMessage);
         setLoading(false);
         return;
       }
 
-      console.log('✅ Contraseña actualizada exitosamente');
+      console.log('[NuevaPasswordToken] ✅ Contraseña actualizada exitosamente');
 
       // ✅ FIXED: Update provider field in usuarios table if this was a Google user
       if (isGoogleUser) {
-        console.log('🔄 Actualizando provider a "barlive"...');
+        console.log('[NuevaPasswordToken] 🔄 Actualizando provider a "barlive"...');
         
         const { error: updateError } = await supabase
           .from('usuarios')
@@ -174,10 +126,10 @@ export default function NuevaPasswordTokenScreen() {
           .eq('email', email.trim().toLowerCase());
 
         if (updateError) {
-          console.error('⚠️ Error actualizando provider:', updateError);
+          console.error('[NuevaPasswordToken] ⚠️ Error actualizando provider:', updateError);
           // Don't fail the whole operation if this fails
         } else {
-          console.log('✅ Provider actualizado a "barlive"');
+          console.log('[NuevaPasswordToken] ✅ Provider actualizado a "barlive"');
         }
       }
 
@@ -198,19 +150,19 @@ export default function NuevaPasswordTokenScreen() {
         ]
       );
     } catch (error: any) {
-      console.error('❌ Unexpected Error:', error);
-      console.error('❌ Error name:', error?.name);
-      console.error('❌ Error message:', error?.message);
-      console.error('❌ Error stack:', error?.stack);
+      console.error('[NuevaPasswordToken] ❌ Unexpected Error:', error);
+      console.error('[NuevaPasswordToken] ❌ Error name:', error?.name);
+      console.error('[NuevaPasswordToken] ❌ Error message:', error?.message);
+      console.error('[NuevaPasswordToken] ❌ Error stack:', error?.stack);
       
       const errorMessage = error?.message || 'Ocurrió un error inesperado';
       Alert.alert(
         'Error inesperado',
         `${errorMessage}. Por favor, intenta nuevamente o contacta con soporte.`
       );
-      setLoading(false);
     } finally {
-      console.log('🏁 Proceso finalizado');
+      setLoading(false);
+      console.log('[NuevaPasswordToken] 🏁 Proceso finalizado');
       console.log('═══════════════════════════════════════════════════════');
     }
   };

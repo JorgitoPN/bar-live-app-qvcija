@@ -362,6 +362,14 @@ export default function AdminIndexScreen() {
       route: '/admin/fix-avatar-urls',
       description: 'Corrige avatares con URLs locales inválidas',
     },
+    {
+      title: 'Seguridad de Funciones',
+      icon: 'lock.shield.fill' as const,
+      androidIcon: 'security' as const,
+      color: '#DC2626',
+      route: '/admin/seguridad-funciones',
+      description: 'Audita y corrige funciones SECURITY DEFINER (50/115 corregidas)',
+    },
   ];
 
   // Show loading while checking permissions

@@ -171,6 +171,18 @@ export default function EnriquecimientoGoogleScreen() {
   
   const [cargando, setCargando] = useState(false);
 
+  // 📊 NUEVO: Estado de monitoreo de API
+  const [apiStats, setApiStats] = useState({
+    totalCalls: 0,
+    successfulCalls: 0,
+    failedCalls: 0,
+    rateLimitErrors: 0,
+    callsPerMinute: 0,
+    averageResponseTime: 0,
+    lastCallTimestamp: null as Date | null,
+    callTimestamps: [] as Date[],
+  });
+
   const agregarLog = useCallback((tipo: LogEntry['tipo'], mensaje: string) => {
     const nuevoLog: LogEntry = {
       timestamp: new Date().toLocaleTimeString(),
@@ -179,6 +191,53 @@ export default function EnriquecimientoGoogleScreen() {
     };
     setLogs(prev => [nuevoLog, ...prev].slice(0, MAX_LOGS));
   }, []);
+
+  // 📊 NUEVO: Función para registrar llamada API
+  const registrarLlamadaAPI = useCallback((exitosa: boolean, tiempoRespuesta: number, esRateLimit: boolean = false) => {
+    const ahora = new Date();
+    
+    setApiStats(prev => {
+      // Mantener solo las llamadas del último minuto
+      const unMinutoAtras = new Date(ahora.getTime() - 60000);
+      const llamadasRecientes = [...prev.callTimestamps, ahora].filter(
+        timestamp => timestamp > unMinutoAtras
+      );
+      
+      // Calcular llamadas por minuto
+      const callsPerMinute = llamadasRecientes.length;
+      
+      // Calcular tiempo promedio de respuesta
+      const totalCalls = prev.totalCalls + 1;
+      const averageResponseTime = 
+        (prev.averageResponseTime * prev.totalCalls + tiempoRespuesta) / totalCalls;
+      
+      return {
+        totalCalls: totalCalls,
+        successfulCalls: exitosa ? prev.successfulCalls + 1 : prev.successfulCalls,
+        failedCalls: exitosa ? prev.failedCalls : prev.failedCalls + 1,
+        rateLimitErrors: esRateLimit ? prev.rateLimitErrors + 1 : prev.rateLimitErrors,
+        callsPerMinute,
+        averageResponseTime,
+        lastCallTimestamp: ahora,
+        callTimestamps: llamadasRecientes,
+      };
+    });
+  }, []);
+
+  // 📊 NUEVO: Función para resetear estadísticas
+  const resetearEstadisticasAPI = useCallback(() => {
+    setApiStats({
+      totalCalls: 0,
+      successfulCalls: 0,
+      failedCalls: 0,
+      rateLimitErrors: 0,
+      callsPerMinute: 0,
+      averageResponseTime: 0,
+      lastCallTimestamp: null,
+      callTimestamps: [],
+    });
+    agregarLog('info', '📊 Estadísticas de API reseteadas');
+  }, [agregarLog]);
 
   const copiarLogs = async () => {
     try {
@@ -678,10 +737,15 @@ export default function EnriquecimientoGoogleScreen() {
     performanceMonitor.start('procesarEnriquecimiento');
     setProcesando(true);
     setProgreso({ actual: 0, total: numLocales });
+    
+    // 📊 NUEVO: Resetear estadísticas de API al iniciar
+    resetearEstadisticasAPI();
+    
     agregarLog('info', `🚀 Iniciando enriquecimiento de ${numLocales} locales...`);
     agregarLog('info', '📸 Las fotos se descargarán y subirán a Supabase Storage');
     agregarLog('info', '🔍 Usando búsqueda multi-estrategia (5 estrategias)');
     agregarLog('info', '🗑️ Los locales rechazados o duplicados se eliminarán automáticamente');
+    agregarLog('info', '📊 Monitoreo de API activado - detectando límites de velocidad');
 
     let exitosos = 0;
     let fallidos = 0;
@@ -699,15 +763,66 @@ export default function EnriquecimientoGoogleScreen() {
         try {
           performanceMonitor.start(`enrich_${local.id}`);
           
+          // 📊 NUEVO: Registrar inicio de llamada API
+          const inicioLlamada = Date.now();
+          
           // 🔍 PASO 1: Buscar en Google Places con múltiples estrategias
-          const placeResult = await buscarLocalConEstrategias({
-            nombre: local.nombre,
-            direccion: local.direccion,
-            provincia: local.provincia,
-            tipo: local.tipo,
-            latitud: local.latitud,
-            longitud: local.longitud,
-          });
+          let placeResult;
+          try {
+            placeResult = await buscarLocalConEstrategias({
+              nombre: local.nombre,
+              direccion: local.direccion,
+              provincia: local.provincia,
+              tipo: local.tipo,
+              latitud: local.latitud,
+              longitud: local.longitud,
+            });
+            
+            // 📊 NUEVO: Registrar llamada exitosa
+            const tiempoRespuesta = Date.now() - inicioLlamada;
+            registrarLlamadaAPI(true, tiempoRespuesta);
+            
+          } catch (error: any) {
+            // 📊 NUEVO: Detectar error de rate limit
+            const tiempoRespuesta = Date.now() - inicioLlamada;
+            const esRateLimit = error?.response?.status === 429 || 
+                               error?.message?.includes('429') ||
+                               error?.message?.includes('rate limit') ||
+                               error?.message?.includes('RESOURCE_EXHAUSTED');
+            
+            registrarLlamadaAPI(false, tiempoRespuesta, esRateLimit);
+            
+            if (esRateLimit) {
+              agregarLog('error', `⚠️ RATE LIMIT DETECTADO - Pausando 60 segundos...`);
+              agregarLog('warning', `📊 Llamadas por minuto: ${apiStats.callsPerMinute}`);
+              agregarLog('warning', `📊 Total de errores de rate limit: ${apiStats.rateLimitErrors + 1}`);
+              
+              // Pausar por 60 segundos
+              await new Promise(resolve => setTimeout(resolve, 60000));
+              
+              agregarLog('info', '✅ Reanudando después de pausa por rate limit');
+              
+              // Reintentar la llamada
+              try {
+                const inicioReintento = Date.now();
+                placeResult = await buscarLocalConEstrategias({
+                  nombre: local.nombre,
+                  direccion: local.direccion,
+                  provincia: local.provincia,
+                  tipo: local.tipo,
+                  latitud: local.latitud,
+                  longitud: local.longitud,
+                });
+                const tiempoReintento = Date.now() - inicioReintento;
+                registrarLlamadaAPI(true, tiempoReintento);
+              } catch (retryError) {
+                agregarLog('error', `❌ Error en reintento: ${retryError}`);
+                throw retryError;
+              }
+            } else {
+              throw error;
+            }
+          }
           
           if (!placeResult || !placeResult.place_id) {
             agregarLog('warning', `⚠️ No encontrado en Google: ${local.nombre}`);
@@ -722,25 +837,77 @@ export default function EnriquecimientoGoogleScreen() {
           }
           
           // 🔍 PASO 2: Obtener detalles completos
-          const details = await googlePlacesDetails(placeResult.place_id, [
-            'name',
-            'formatted_address',
-            'geometry',
-            'rating',
-            'user_ratings_total',
-            'website',
-            'formatted_phone_number',
-            'international_phone_number',
-            'opening_hours',
-            'photos',
-            'types',
-            'price_level',
-            'url',
-            'reviews',
-            'editorial_summary',
-            'business_status',
-            'plus_code',
-          ]);
+          let details;
+          try {
+            const inicioDetalles = Date.now();
+            details = await googlePlacesDetails(placeResult.place_id, [
+              'name',
+              'formatted_address',
+              'geometry',
+              'rating',
+              'user_ratings_total',
+              'website',
+              'formatted_phone_number',
+              'international_phone_number',
+              'opening_hours',
+              'photos',
+              'types',
+              'price_level',
+              'url',
+              'reviews',
+              'editorial_summary',
+              'business_status',
+              'plus_code',
+            ]);
+            
+            // 📊 NUEVO: Registrar llamada de detalles
+            const tiempoDetalles = Date.now() - inicioDetalles;
+            registrarLlamadaAPI(true, tiempoDetalles);
+            
+          } catch (error: any) {
+            const tiempoDetalles = Date.now() - inicioLlamada;
+            const esRateLimit = error?.response?.status === 429 || 
+                               error?.message?.includes('429') ||
+                               error?.message?.includes('rate limit') ||
+                               error?.message?.includes('RESOURCE_EXHAUSTED');
+            
+            registrarLlamadaAPI(false, tiempoDetalles, esRateLimit);
+            
+            if (esRateLimit) {
+              agregarLog('error', `⚠️ RATE LIMIT en detalles - Pausando 60 segundos...`);
+              agregarLog('warning', `📊 Llamadas por minuto: ${apiStats.callsPerMinute}`);
+              
+              await new Promise(resolve => setTimeout(resolve, 60000));
+              
+              agregarLog('info', '✅ Reanudando después de pausa');
+              
+              // Reintentar
+              const inicioReintento = Date.now();
+              details = await googlePlacesDetails(placeResult.place_id, [
+                'name',
+                'formatted_address',
+                'geometry',
+                'rating',
+                'user_ratings_total',
+                'website',
+                'formatted_phone_number',
+                'international_phone_number',
+                'opening_hours',
+                'photos',
+                'types',
+                'price_level',
+                'url',
+                'reviews',
+                'editorial_summary',
+                'business_status',
+                'plus_code',
+              ]);
+              const tiempoReintento = Date.now() - inicioReintento;
+              registrarLlamadaAPI(true, tiempoReintento);
+            } else {
+              throw error;
+            }
+          }
           
           if (!details) {
             agregarLog('warning', `⚠️ Sin detalles: ${local.nombre}`);
@@ -1124,16 +1291,30 @@ export default function EnriquecimientoGoogleScreen() {
         ? '\n\n🔄 Migración automática: Los locales OSM enriquecidos han sido movidos al catálogo Google Places'
         : '\n\n💡 Tip: Activa la migración automática en "Separación de Catálogos" para mantener los catálogos organizados';
       
+      // 📊 NUEVO: Mostrar estadísticas finales de API
       agregarLog('success', `🎉 Completado: ${exitosos} exitosos, ${fallidos} fallidos, ${rechazados} rechazados y eliminados`);
+      agregarLog('info', '📊 ========== ESTADÍSTICAS DE API ==========');
+      agregarLog('info', `📊 Total de llamadas: ${apiStats.totalCalls}`);
+      agregarLog('info', `📊 Llamadas exitosas: ${apiStats.successfulCalls}`);
+      agregarLog('info', `📊 Llamadas fallidas: ${apiStats.failedCalls}`);
+      agregarLog('info', `📊 Errores de rate limit: ${apiStats.rateLimitErrors}`);
+      agregarLog('info', `📊 Llamadas por minuto (promedio): ${apiStats.callsPerMinute}`);
+      agregarLog('info', `📊 Tiempo de respuesta promedio: ${apiStats.averageResponseTime.toFixed(0)}ms`);
+      agregarLog('info', '📊 ==========================================');
       
       if (autoCleanupEnabled) {
         agregarLog('info', `🔄 Migración automática: ${exitosos} locales movidos de catálogo OSM a Google Places`);
         agregarLog('info', '✅ Los locales siguen visibles en "Explorar" y "Mapa" con datos de Google Places');
       }
       
+      // Determinar si hubo problemas de rate limit
+      const rateLimitWarning = apiStats.rateLimitErrors > 0 
+        ? `\n\n⚠️ Se detectaron ${apiStats.rateLimitErrors} errores de rate limit. Considera reducir la velocidad de procesamiento.`
+        : '';
+      
       Alert.alert(
         'Enriquecimiento Completado',
-        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🗑️ Rechazados y eliminados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage\n🔍 Búsqueda multi-estrategia activada\n🗑️ Los locales rechazados y duplicados han sido eliminados del catálogo${cleanupMessage}`,
+        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🗑️ Rechazados y eliminados: ${rechazados}\n\n📊 ESTADÍSTICAS DE API:\n• Total llamadas: ${apiStats.totalCalls}\n• Llamadas exitosas: ${apiStats.successfulCalls}\n• Errores rate limit: ${apiStats.rateLimitErrors}\n• Llamadas/min: ${apiStats.callsPerMinute}\n• Tiempo respuesta: ${apiStats.averageResponseTime.toFixed(0)}ms\n\n📸 Las fotos se han guardado en Supabase Storage\n🔍 Búsqueda multi-estrategia activada\n🗑️ Los locales rechazados y duplicados han sido eliminados del catálogo${cleanupMessage}${rateLimitWarning}`,
         [
           {
             text: 'Ver Estadísticas',
@@ -1503,6 +1684,153 @@ export default function EnriquecimientoGoogleScreen() {
         </View>
       )}
 
+      {/* 📊 NUEVO: Estadísticas de API en tiempo real */}
+      {(procesando || apiStats.totalCalls > 0) && (
+        <View style={styles.apiStatsCard}>
+          <View style={styles.apiStatsHeader}>
+            <Text style={[styles.apiStatsTitle, { fontSize: scaleFontSize(16) }]}>
+              📊 Monitoreo de API en Tiempo Real
+            </Text>
+            {!procesando && (
+              <TouchableOpacity
+                style={styles.resetStatsButton}
+                onPress={resetearEstadisticasAPI}
+              >
+                <IconSymbol 
+                  ios_icon_name="arrow.clockwise" 
+                  android_material_icon_name="refresh" 
+                  size={Platform.OS === 'android' ? scaleIconSize(18) : 18} 
+                  color={colors.primary} 
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Indicador de rate limit */}
+          {apiStats.rateLimitErrors > 0 && (
+            <View style={[styles.rateLimitWarning, { backgroundColor: '#FEE2E2' }]}>
+              <IconSymbol 
+                ios_icon_name="exclamationmark.triangle.fill" 
+                android_material_icon_name="warning" 
+                size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+                color="#DC2626" 
+              />
+              <Text style={[styles.rateLimitWarningText, { fontSize: scaleFontSize(13) }]}>
+                ⚠️ {apiStats.rateLimitErrors} errores de rate limit detectados
+              </Text>
+            </View>
+          )}
+
+          {/* Indicador de velocidad */}
+          {apiStats.callsPerMinute > 50 && (
+            <View style={[styles.speedWarning, { backgroundColor: '#FEF3C7' }]}>
+              <IconSymbol 
+                ios_icon_name="speedometer" 
+                android_material_icon_name="speed" 
+                size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+                color="#D97706" 
+              />
+              <Text style={[styles.speedWarningText, { fontSize: scaleFontSize(13) }]}>
+                ⚡ Alta velocidad: {apiStats.callsPerMinute} llamadas/min
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.apiStatsGrid}>
+            <View style={styles.apiStatItem}>
+              <Text style={[styles.apiStatValue, { fontSize: scaleFontSize(24), color: colors.primary }]}>
+                {apiStats.totalCalls}
+              </Text>
+              <Text style={[styles.apiStatLabel, { fontSize: scaleFontSize(11) }]}>
+                Total Llamadas
+              </Text>
+            </View>
+
+            <View style={styles.apiStatItem}>
+              <Text style={[styles.apiStatValue, { fontSize: scaleFontSize(24), color: '#10B981' }]}>
+                {apiStats.successfulCalls}
+              </Text>
+              <Text style={[styles.apiStatLabel, { fontSize: scaleFontSize(11) }]}>
+                Exitosas
+              </Text>
+            </View>
+
+            <View style={styles.apiStatItem}>
+              <Text style={[styles.apiStatValue, { fontSize: scaleFontSize(24), color: '#EF4444' }]}>
+                {apiStats.failedCalls}
+              </Text>
+              <Text style={[styles.apiStatLabel, { fontSize: scaleFontSize(11) }]}>
+                Fallidas
+              </Text>
+            </View>
+
+            <View style={styles.apiStatItem}>
+              <Text style={[styles.apiStatValue, { fontSize: scaleFontSize(24), color: '#F59E0B' }]}>
+                {apiStats.rateLimitErrors}
+              </Text>
+              <Text style={[styles.apiStatLabel, { fontSize: scaleFontSize(11) }]}>
+                Rate Limits
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.apiStatsDetails}>
+            <View style={styles.apiStatDetailRow}>
+              <Text style={[styles.apiStatDetailLabel, { fontSize: scaleFontSize(12) }]}>
+                Llamadas por minuto:
+              </Text>
+              <Text style={[styles.apiStatDetailValue, { fontSize: scaleFontSize(12) }]}>
+                {apiStats.callsPerMinute}
+              </Text>
+            </View>
+
+            <View style={styles.apiStatDetailRow}>
+              <Text style={[styles.apiStatDetailLabel, { fontSize: scaleFontSize(12) }]}>
+                Tiempo respuesta promedio:
+              </Text>
+              <Text style={[styles.apiStatDetailValue, { fontSize: scaleFontSize(12) }]}>
+                {apiStats.averageResponseTime.toFixed(0)}ms
+              </Text>
+            </View>
+
+            {apiStats.lastCallTimestamp && (
+              <View style={styles.apiStatDetailRow}>
+                <Text style={[styles.apiStatDetailLabel, { fontSize: scaleFontSize(12) }]}>
+                  Última llamada:
+                </Text>
+                <Text style={[styles.apiStatDetailValue, { fontSize: scaleFontSize(12) }]}>
+                  {apiStats.lastCallTimestamp.toLocaleTimeString()}
+                </Text>
+              </View>
+            )}
+
+            {/* Tasa de éxito */}
+            <View style={styles.apiStatDetailRow}>
+              <Text style={[styles.apiStatDetailLabel, { fontSize: scaleFontSize(12) }]}>
+                Tasa de éxito:
+              </Text>
+              <Text style={[styles.apiStatDetailValue, { fontSize: scaleFontSize(12), color: '#10B981' }]}>
+                {apiStats.totalCalls > 0 
+                  ? ((apiStats.successfulCalls / apiStats.totalCalls) * 100).toFixed(1)
+                  : 0}%
+              </Text>
+            </View>
+          </View>
+
+          {/* Información sobre límites de Google Places */}
+          <View style={[styles.infoBox, { marginTop: 10, backgroundColor: '#DBEAFE' }]}>
+            <Text style={[styles.infoBoxTitle, { color: '#1E40AF', fontSize: scaleFontSize(12) }]}>
+              ℹ️ Límites de Google Places API
+            </Text>
+            <Text style={[styles.infoBoxText, { color: '#1E40AF', fontSize: scaleFontSize(11) }]}>
+              • Límite estándar: 100 llamadas/segundo{'\n'}
+              • Límite diario: Según tu plan de facturación{'\n'}
+              • El sistema pausa automáticamente si detecta rate limit (429)
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* Logs en tiempo real */}
       {logs.length > 0 && (
         <View style={styles.logsCard}>
@@ -1564,7 +1892,7 @@ export default function EnriquecimientoGoogleScreen() {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { fontSize: scaleFontSize(24) }]}>Enriquecimiento con Google Places</Text>
         <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(14) }]}>
-          v130.0 - Auto-eliminación de duplicados y rechazados
+          v131.0 - Monitoreo de API y detección de límites
         </Text>
       </LinearGradient>
 
@@ -2092,5 +2420,90 @@ const styles = StyleSheet.create({
   modalItemTextSelected: {
     fontWeight: '600',
     color: colors.primary,
+  },
+  // 📊 NUEVO: Estilos para estadísticas de API
+  apiStatsCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 15,
+    marginTop: 20,
+    ...commonStyles.shadow,
+  },
+  apiStatsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  apiStatsTitle: {
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  resetStatsButton: {
+    padding: 8,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+  },
+  rateLimitWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  rateLimitWarningText: {
+    fontWeight: '600',
+    color: '#DC2626',
+    marginLeft: 8,
+    flex: 1,
+  },
+  speedWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  speedWarningText: {
+    fontWeight: '600',
+    color: '#D97706',
+    marginLeft: 8,
+    flex: 1,
+  },
+  apiStatsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 15,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  apiStatItem: {
+    alignItems: 'center',
+  },
+  apiStatValue: {
+    fontWeight: 'bold',
+  },
+  apiStatLabel: {
+    color: colors.textSecondary,
+    marginTop: 5,
+    textAlign: 'center',
+  },
+  apiStatsDetails: {
+    marginTop: 10,
+  },
+  apiStatDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  apiStatDetailLabel: {
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  apiStatDetailValue: {
+    fontWeight: '700',
+    color: colors.text,
   },
 });
