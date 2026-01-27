@@ -151,10 +151,10 @@ export default function MapaMVTScreen() {
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 #map{width:100%;height:100%;position:absolute;top:0;left:0}
-.maplibregl-popup-content{border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);width:260px!important;max-width:260px!important}
+.maplibregl-popup-content{border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);width:240px!important;max-width:90vw!important}
 .maplibregl-popup-close-button{display:none!important}
-.popup-img{width:100%;height:135px;object-fit:cover;display:block}
-.popup-info{padding:12px}
+.popup-img{width:100%;height:120px;object-fit:cover;display:block}
+.popup-info{padding:12px;min-height:100px}
 .popup-title{font-size:14px;font-weight:700;margin-bottom:6px;color:#202124;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .popup-category-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;color:#FFF;margin-bottom:6px}
 .cat-bar{background:#F59E0B}
@@ -348,16 +348,30 @@ map.on('load', function() {
     currentPopup = new maplibregl.Popup({
       closeButton: false,
       closeOnClick: true,
-      maxWidth: '260px'
+      maxWidth: '260px',
+      offset: [0, -10]
     })
       .setLngLat(coordinates)
       .setHTML(popupContent)
       .addTo(map);
     
-    // Centrar mapa en el marcador
+    // ✅ CRITICAL v3001.0: Center the POPUP in the screen, not the marker
+    // Calculate offset to center the popup (popup height ~200px, so offset by 100px)
+    var bounds = map.getBounds();
+    var mapHeight = map.getContainer().clientHeight;
+    var popupHeight = 200; // Approximate popup height
+    var offsetPixels = popupHeight / 2;
+    
+    // Convert pixel offset to lat/lng offset
+    var point = map.project(coordinates);
+    var offsetPoint = { x: point.x, y: point.y - offsetPixels };
+    var offsetCoords = map.unproject(offsetPoint);
+    
+    // Animate to the offset position so popup is centered
     map.easeTo({
-      center: coordinates,
-      duration: 500
+      center: offsetCoords,
+      duration: 500,
+      padding: { top: 50, bottom: 50, left: 20, right: 20 }
     });
   });
   

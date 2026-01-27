@@ -24,21 +24,21 @@ interface CleanupStats {
   total_osm_pendientes: number;
   total_google_enriquecidos: number;
   espacio_estimado_mb: number;
-  por_provincia: Array<{
+  por_provincia: {
     provincia: string;
     total: number;
     enriquecidos: number;
-  }>;
+  }[];
 }
 
 interface CleanupResult {
   locales_migrados: number;
   espacio_liberado_mb: number;
-  detalles: Array<{
+  detalles: {
     id: string;
     nombre: string;
     provincia: string;
-  }>;
+  }[];
 }
 
 /**

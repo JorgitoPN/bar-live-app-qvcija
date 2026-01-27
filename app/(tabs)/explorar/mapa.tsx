@@ -1032,15 +1032,29 @@ map.on('click', function(e) {
     // 1. Abrir Popup
     showPopupForFeature(fakeFeature, coords);
     
-    // 2. AUTO-CENTRADO: Zoom y centrado automático para que el popup quede en el centro de la pantalla
+    // 2. AUTO-CENTRADO DEL POPUP: Ajustar el mapa para que el POPUP quede centrado, no el marcador
+    // ✅ CRITICAL v265.0: Offset vertical para compensar la altura del popup
+    // El popup aparece ARRIBA del marcador, así que necesitamos desplazar el centro hacia abajo
+    var popupHeightPixels = 200; // Altura aproximada del popup en píxeles
+    var mapHeightPixels = window.innerHeight;
+    
+    // Calcular el offset en coordenadas del mapa
+    // Queremos que el popup quede en el centro, así que movemos el marcador hacia abajo
+    var offsetPixels = popupHeightPixels / 2;
+    
+    // Convertir offset de píxeles a coordenadas geográficas
+    var centerPoint = map.project(coords);
+    var offsetPoint = { x: centerPoint.x, y: centerPoint.y + offsetPixels };
+    var offsetCoords = map.unproject(offsetPoint);
+    
     map.flyTo({
-      center: coords,
+      center: offsetCoords, // Usar coordenadas con offset para centrar el popup
       zoom: 17, // Zoom cercano para ver bien el local
       speed: 1.2, // Velocidad de la animación
       essential: true // Asegurar que la animación se ejecute
     });
     
-    console.log('🗺️ [MAPA] ✅ Popup abierto y mapa AUTO-CENTRADO en el local');
+    console.log('🗺️ [MAPA] ✅ Popup abierto y mapa AUTO-CENTRADO con offset para centrar el POPUP (no el marcador)');
   } else {
     console.log('🗺️ [MAPA] ❌ No se encontró ningún local visible en el área de proximidad');
     console.log('🗺️ [MAPA] 💡 Posibles razones:');
