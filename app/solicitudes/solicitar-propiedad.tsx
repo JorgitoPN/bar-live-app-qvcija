@@ -147,7 +147,7 @@ export default function SolicitarPropiedadScreen() {
     if (preselectedLocalId && requestType === 'reclamar_local') {
       loadPreselectedLocal(preselectedLocalId);
     }
-  }, [preselectedLocalId, requestType]);
+  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
 
   const loadPreselectedLocal = useCallback(async (localId: string) => {
     try {

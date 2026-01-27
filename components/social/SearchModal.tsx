@@ -37,9 +37,15 @@ interface SearchModalProps {
 }
 
 /**
- * ✅ SEARCH MODAL v1.0 - PREDICTIVE SEARCH WITH FOLLOW/UNFOLLOW
+ * ✅ SEARCH MODAL v2.0 - NAVIGATION ON CLICK ENABLED
  * 
- * FEATURES:
+ * NEW FEATURES v2.0:
+ * - ✅ NAVIGATION: Clicking on a search result navigates to the profile
+ * - ✅ USER PROFILES: Navigates to /perfil/usuario?id={userId}
+ * - ✅ LOCAL PROFILES: Navigates to /perfil/local?localId={localId}
+ * - ✅ MODAL CLOSES: Modal closes automatically after navigation
+ * 
+ * Previous features maintained (v1.0):
  * - ✅ Predictive search for users and locals with active paid plans
  * - ✅ Debounced search (300ms delay)
  * - ✅ Follow/unfollow buttons for each result
@@ -85,9 +91,9 @@ export default function SearchModal({ visible, onClose }: SearchModalProps) {
       });
 
       setFollowingIds(ids);
-      console.log('[SearchModal] ✅ Loaded following status:', ids.size, 'entities');
+      console.log('[SearchModal v2.0] ✅ Loaded following status:', ids.size, 'entities');
     } catch (error) {
-      console.error('[SearchModal] Error loading following status:', error);
+      console.error('[SearchModal v2.0] Error loading following status:', error);
     }
   }, [userId]);
 
@@ -106,7 +112,7 @@ export default function SearchModal({ visible, onClose }: SearchModalProps) {
 
     try {
       setLoading(true);
-      console.log('[SearchModal] 🔍 Searching for:', debouncedQuery);
+      console.log('[SearchModal v2.0] 🔍 Searching for:', debouncedQuery);
 
       const searchTerm = debouncedQuery.toLowerCase().trim();
 
@@ -153,9 +159,9 @@ export default function SearchModal({ visible, onClose }: SearchModalProps) {
       const combinedResults = [...userResults, ...localResults];
       setResults(combinedResults);
 
-      console.log('[SearchModal] ✅ Found', userResults.length, 'users and', localResults.length, 'locals');
+      console.log('[SearchModal v2.0] ✅ Found', userResults.length, 'users and', localResults.length, 'locals');
     } catch (error) {
-      console.error('[SearchModal] Error searching:', error);
+      console.error('[SearchModal v2.0] Error searching:', error);
     } finally {
       setLoading(false);
     }
@@ -166,11 +172,14 @@ export default function SearchModal({ visible, onClose }: SearchModalProps) {
   }, [performSearch]);
 
   // Follow/unfollow handler
-  const handleFollowToggle = async (result: SearchResult) => {
+  const handleFollowToggle = async (result: SearchResult, e: any) => {
+    // ✅ CRITICAL: Stop propagation to prevent navigation
+    e.stopPropagation();
+    
     if (!userId) return;
 
     try {
-      console.log('[SearchModal] Toggling follow for:', result.type, result.id);
+      console.log('[SearchModal v2.0] Toggling follow for:', result.type, result.id);
 
       if (result.isFollowing) {
         // Unfollow
@@ -196,7 +205,7 @@ export default function SearchModal({ visible, onClose }: SearchModalProps) {
             : r
         ));
 
-        console.log('[SearchModal] ✅ Unfollowed successfully');
+        console.log('[SearchModal v2.0] ✅ Unfollowed successfully');
       } else {
         // Follow
         const insertData = result.type === 'user'
@@ -219,20 +228,27 @@ export default function SearchModal({ visible, onClose }: SearchModalProps) {
             : r
         ));
 
-        console.log('[SearchModal] ✅ Followed successfully');
+        console.log('[SearchModal v2.0] ✅ Followed successfully');
       }
     } catch (error) {
-      console.error('[SearchModal] Error toggling follow:', error);
+      console.error('[SearchModal v2.0] Error toggling follow:', error);
     }
   };
 
-  // Navigate to profile
+  // ✅ NEW v2.0: Navigate to profile on result click
   const handleNavigateToProfile = (result: SearchResult) => {
+    console.log('[SearchModal v2.0] 🚀 Navigating to profile:', result.type, result.id);
+    
+    // Close modal first
     onClose();
+    
+    // Navigate to profile
     if (result.type === 'user') {
+      console.log('[SearchModal v2.0] 👤 Navigating to user profile:', result.id);
       router.push(`/perfil/usuario?id=${result.id}`);
     } else {
-      router.push(`/detalle/local?id=${result.id}`);
+      console.log('[SearchModal v2.0] 🏪 Navigating to local profile:', result.id);
+      router.push(`/perfil/local?localId=${result.id}`);
     }
   };
 
@@ -298,10 +314,7 @@ export default function SearchModal({ visible, onClose }: SearchModalProps) {
 
         <TouchableOpacity
           style={followButtonStyle}
-          onPress={(e) => {
-            e.stopPropagation();
-            handleFollowToggle(item);
-          }}
+          onPress={(e) => handleFollowToggle(item, e)}
           activeOpacity={0.7}
         >
           <Text style={[
