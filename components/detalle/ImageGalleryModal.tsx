@@ -85,6 +85,7 @@ export default function ImageGalleryModal({
       visible={visible}
       transparent={false}
       animationType="fade"
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
       <View style={styles.container}>

@@ -226,18 +226,20 @@ export default function TaggingModalV5({
   return (
     <Modal
       visible={visible}
-      transparent
+      transparent={Platform.OS === 'android' ? false : true}
       animationType="fade"
+      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
       onRequestClose={handleClose}
     >
       <TouchableWithoutFeedback onPress={handleClose}>
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, Platform.OS === 'android' && styles.modalOverlayAndroid]}>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={styles.overlayTouchable}>
               <View 
                 style={[
-                  styles.modalContent, 
-                  { 
+                  styles.modalContent,
+                  Platform.OS === 'android' && styles.modalContentAndroid,
+                  Platform.OS !== 'android' && { 
                     height: modalHeight,
                     bottom: keyboardHeight,
                   }
@@ -403,6 +405,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
+  modalOverlayAndroid: {
+    backgroundColor: colors.background,
+  },
   overlayTouchable: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -420,6 +425,12 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 15,
     overflow: 'hidden',
+  },
+  modalContentAndroid: {
+    position: 'relative',
+    flex: 1,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
   },
   modalHeader: {
     flexDirection: 'row',

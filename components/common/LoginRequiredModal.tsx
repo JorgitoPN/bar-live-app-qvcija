@@ -46,12 +46,13 @@ export default function LoginRequiredModal({
   return (
     <Modal
       visible={visible}
-      transparent
+      transparent={Platform.OS === 'android' ? false : true}
       animationType="fade"
+      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
+      <View style={[styles.overlay, Platform.OS === 'android' && styles.overlayAndroid]}>
+        <View style={[styles.container, Platform.OS === 'android' && styles.containerAndroid]}>
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             style={styles.iconContainer}
@@ -112,6 +113,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
   },
+  overlayAndroid: {
+    backgroundColor: colors.background,
+    padding: 0,
+  },
   container: {
     backgroundColor: colors.cardBackground,
     borderRadius: 24,
@@ -119,6 +124,12 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     alignItems: 'center',
+  },
+  containerAndroid: {
+    flex: 1,
+    borderRadius: 0,
+    maxWidth: '100%',
+    justifyContent: 'center',
   },
   iconContainer: {
     width: 96,

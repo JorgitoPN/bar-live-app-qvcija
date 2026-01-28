@@ -10,6 +10,7 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -333,12 +334,12 @@ export default function FiltrosAvanzadosSheet({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="fullScreen"
-      transparent={true}
+      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
+      transparent={Platform.OS === 'android' ? false : true}
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.sheet}>
+      <View style={[styles.modalOverlay, Platform.OS === 'android' && styles.modalOverlayAndroid]}>
+        <View style={[styles.sheet, Platform.OS === 'android' && styles.sheetAndroid]}>
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             start={{ x: 0, y: 0 }}
@@ -855,9 +856,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
+  modalOverlayAndroid: {
+    backgroundColor: colors.background,
+  },
   sheet: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  sheetAndroid: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
