@@ -1,15 +1,16 @@
 
 /**
- * ANDROID SCALING UTILITY - v282.0 - USER LOCATION MARKER FIX
+ * ANDROID SCALING UTILITY - v283.0 - ANDROID POPUP TEXT SCALING + USER MARKER FIX
  * 
  * Centralized scaling system for Android UI parity with iOS.
  * This utility provides platform-specific scaling factors to ensure
  * consistent visual appearance across Android and iOS devices.
  * 
- * CRITICAL FIXES v282.0 - USER LOCATION MARKER REFINEMENT:
- * - ✅ REDUCED user location marker to 24px (both iOS and Android)
- * - ✅ More subtle and less intrusive on the map
- * - ✅ Better visual balance with venue markers
+ * CRITICAL FIXES v283.0 - ANDROID POPUP TEXT SCALING:
+ * - ✅ INCREASED popup text sizes on Android (rating, button, name, category)
+ * - ✅ REDUCED user location marker to 20px on Android (more subtle)
+ * - ✅ INSTANT user location marker display (no delay)
+ * - ✅ Better visual balance and readability on Android
  * 
  * Previous fixes maintained (v281.0):
  * - ✅ EXPLORAR LOCAL CARDS = REFERENCE STANDARD (NO CHANGES)
@@ -111,11 +112,12 @@ export const getMapMarkerScale = (): number => {
 };
 
 /**
- * ✅ NEW v282.0: Scale for user location marker (FURTHER REDUCED)
- * Returns 24px on BOTH iOS and Android for more subtle appearance
+ * ✅ NEW v283.0: Scale for user location marker (ANDROID SMALLER)
+ * Returns 20px on Android (more subtle), 24px on iOS
  */
 export const getUserLocationMarkerSize = (): number => {
-  return 24; // ✅ REDUCED to 24px for both platforms (more subtle)
+  if (Platform.OS === 'android') return 20; // ✅ REDUCED to 20px on Android only
+  return 24; // iOS keeps 24px
 };
 
 /**
@@ -324,7 +326,7 @@ export const getCardMarginBottom = (): number => {
 export const logScalingInfo = () => {
   if (Platform.OS !== 'android') return;
   
-  console.log('[AndroidScaling v282.0] 📊 REFINED VISUAL CONSISTENCY + USER MARKER FIX:');
+  console.log('[AndroidScaling v283.0] 📊 ANDROID POPUP TEXT SCALING + USER MARKER FIX:');
   console.log('  Screen Width:', SCREEN_WIDTH);
   console.log('  Screen Height:', SCREEN_HEIGHT);
   console.log('  Pixel Ratio:', PixelRatio.get());
@@ -333,7 +335,11 @@ export const logScalingInfo = () => {
   console.log('  ✅ Map Popup Width:', getMapPopupWidth(), 'px (REDUCED from 260 to 240)');
   console.log('  ✅ Map Popup Image Height:', getMapPopupImageHeight(), 'px (REDUCED from 120 to 110)');
   console.log('  ✅ Map Marker Scale:', getMapMarkerScale(), '(REDUCED by 15%)');
-  console.log('  ✅ User Location Marker:', getUserLocationMarkerSize(), 'px (REDUCED to 24px for both platforms)');
+  console.log('  ✅ User Location Marker:', getUserLocationMarkerSize(), 'px (20px en Android, 24px en iOS)');
+  console.log('  ✅ Popup Title Size: scaleFontSize(16) en Android (INCREASED for readability)');
+  console.log('  ✅ Popup Rating Size: scaleFontSize(13) en Android (INCREASED for readability)');
+  console.log('  ✅ Popup Button Size: scaleFontSize(13) en Android (INCREASED for readability)');
+  console.log('  ✅ Popup Category Size: scaleFontSize(12) en Android (INCREASED for readability)');
   console.log('  ✅ Action Button Padding:', getActionButtonPaddingVertical(), 'px (REDUCED from 14 to 11)');
   console.log('  ✅ Gallery Thumbnail Size:', getGalleryThumbnailSize(), 'px (REDUCED from 100 to 90)');
   console.log('  ✅ Cover Photo Button Size:', getCoverPhotoButtonSize(), 'px (REDUCED from 40 to 36)');
