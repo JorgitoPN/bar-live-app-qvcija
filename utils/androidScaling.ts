@@ -1,19 +1,31 @@
 
 /**
- * ANDROID SCALING UTILITY - v280.0 - COMPREHENSIVE ANDROID SCALING FIX
+ * ANDROID SCALING UTILITY - v144.0 - ANDROID COMPACT HEADERS
  * 
- * CRITICAL FIXES v280.0 - COMPREHENSIVE ANDROID SCALING:
- * - ✅ INCREASED global scale factor to 0.88 (from 0.82) for better readability
- * - ✅ REFINED font scaling to 0.85 (from 0.80) for better text appearance
- * - ✅ REFINED icon scaling to 0.90 (from 0.92) for better proportions
- * - ✅ ADDED letter spacing function for cleaner text rendering on Android
- * - ✅ ADDED modal margin function for proper spacing
- * - ✅ ADDED elevation reduction function for subtle shadows
- * - ✅ REDUCED header sizes for more compact appearance
- * - ✅ REDUCED button heights and paddings
- * - ✅ REDUCED badge sizes for better proportions
- * - ✅ REDUCED marker sizes for map elements
- * - ✅ ALL dimensions now properly scaled for Android
+ * Centralized scaling system for Android UI parity with iOS.
+ * This utility provides platform-specific scaling factors to ensure
+ * consistent visual appearance across Android and iOS devices.
+ * 
+ * CRITICAL FIXES v144.0 - ANDROID COMPACT HEADERS:
+ * - ✅ REDUCED header title size to 20sp on Android (matching venue card text)
+ * - ✅ REDUCED header icon size to 20dp on Android (more compact)
+ * - ✅ Headers now take less vertical space on Android
+ * - ✅ Consistent with venue card text sizes
+ * 
+ * Previous fixes maintained (v143.0):
+ * - ✅ Consistent header title size across ALL pages (24sp on Android)
+ * - ✅ Consistent header icon size across ALL pages (24dp on Android)
+ * - ✅ Added bottom safe area padding for Android navigation buttons
+ * - ✅ Keyboard-aware scroll enabled for auth screens
+ * - ✅ All modals and screens adapted for Android navigation buttons
+ * 
+ * Previous fixes maintained (v101.0):
+ * - ✅ Added scaleIconSize() for proper icon scaling
+ * - ✅ Significantly reduced font sizes on Android (20-25% reduction)
+ * - ✅ Reduced header heights and padding to save screen space
+ * - ✅ Adjusted all dimensions for better Android responsiveness
+ * - ✅ Content no longer appears oversized on Android
+ * - ✅ Bottom navigation white stripe eliminated
  * 
  * IMPORTANT: iOS design is the reference - DO NOT modify iOS values
  */
@@ -25,18 +37,14 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BASE_WIDTH = 375;
 const BASE_HEIGHT = 812;
 
-// ✅ NEW v280.0: INCREASED global scale factor for better readability
-const ANDROID_GLOBAL_SCALE = 0.88; // Increased from 0.82
-
 export const getPixelDensityScale = (): number => {
   if (Platform.OS !== 'android') return 1;
   
   const pixelRatio = PixelRatio.get();
   
-  // ✅ NEW v280.0: Refined density scaling
-  if (pixelRatio >= 3.5) return 0.88; // Increased from 0.85
-  if (pixelRatio >= 3.0) return 0.92; // Increased from 0.90
-  if (pixelRatio >= 2.0) return 0.96; // Increased from 0.95
+  if (pixelRatio >= 3.5) return 0.85;
+  if (pixelRatio >= 3.0) return 0.90;
+  if (pixelRatio >= 2.0) return 0.95;
   if (pixelRatio >= 1.5) return 0.98;
   
   return 1;
@@ -48,7 +56,7 @@ export const scaleWidth = (size: number): number => {
   const scale = SCREEN_WIDTH / BASE_WIDTH;
   const densityScale = getPixelDensityScale();
   
-  return Math.round(size * scale * densityScale * ANDROID_GLOBAL_SCALE);
+  return Math.round(size * scale * densityScale);
 };
 
 export const scaleHeight = (size: number): number => {
@@ -57,12 +65,12 @@ export const scaleHeight = (size: number): number => {
   const scale = SCREEN_HEIGHT / BASE_HEIGHT;
   const densityScale = getPixelDensityScale();
   
-  return Math.round(size * scale * densityScale * ANDROID_GLOBAL_SCALE);
+  return Math.round(size * scale * densityScale);
 };
 
 /**
- * ✅ NEW v280.0: Scale font size with REFINED density adjustment
- * Increased from 0.80 to 0.85 for better readability
+ * Scale font size with proper density adjustment
+ * ✅ CRITICAL FIX v93.0: Significantly reduced font scaling on Android
  */
 export const scaleFontSize = (size: number): number => {
   if (Platform.OS !== 'android') return size;
@@ -70,143 +78,41 @@ export const scaleFontSize = (size: number): number => {
   const scale = SCREEN_WIDTH / BASE_WIDTH;
   const densityScale = getPixelDensityScale();
   
-  // ✅ REFINED: 0.85 instead of 0.80 for better text appearance
-  return Math.round(size * scale * densityScale * 0.85);
+  return Math.round(size * scale * densityScale * 0.80);
 };
 
 /**
- * ✅ NEW v280.0: Scale icon size with REFINED density adjustment
- * Reduced from 0.92 to 0.90 for better proportions
+ * Scale icon size with proper density adjustment
+ * ✅ NEW v101.0: Dedicated icon scaling function
  */
 export const scaleIconSize = (size: number): number => {
   if (Platform.OS !== 'android') return size;
   
   const densityScale = getPixelDensityScale();
   
-  // ✅ REFINED: 0.90 instead of 0.92 for better icon proportions
-  return Math.round(size * densityScale * 0.90);
+  return Math.round(size * densityScale * 0.92);
 };
 
 /**
- * ✅ NEW v280.0: Letter spacing for cleaner text rendering on Android
- * Android renders fonts differently - adding subtle letter spacing improves readability
- */
-export const getLetterSpacing = (fontSize: number): number => {
-  if (Platform.OS !== 'android') return 0;
-  
-  // ✅ Subtle letter spacing (2% of font size) for cleaner text
-  return fontSize * 0.02;
-};
-
-/**
- * ✅ NEW v280.0: Elevation reduction for subtle shadows on Android
- * Android shadows are too heavy by default - reduce them for iOS-like appearance
- */
-export const getElevation = (elevation: number): number => {
-  if (Platform.OS !== 'android') return 0;
-  
-  // ✅ Reduce elevation by 50% for subtle shadows
-  return Math.max(0, Math.round(elevation * 0.5));
-};
-
-/**
- * ✅ NEW v280.0: Modal horizontal margin for Android
- * Modals should not touch screen edges on Android
- */
-export const getModalHorizontalMargin = (): number => {
-  if (Platform.OS !== 'android') return 0;
-  return 20; // 20px margin on each side
-};
-
-/**
- * ✅ NEW v280.0: Border radius scaling
- */
-export const scaleBorderRadius = (radius: number): number => {
-  if (Platform.OS !== 'android') return radius;
-  return Math.round(radius * ANDROID_GLOBAL_SCALE);
-};
-
-/**
- * ✅ NEW v280.0: COMPACT header title size for ALL pages
- * Returns 18sp on Android (reduced from 20sp), original size on iOS
+ * ✅ NEW v144.0: COMPACT header title size for ALL pages
+ * Returns 20sp on Android (matching venue card text), original size on iOS
  */
 export const getHeaderTitleSize = (): number => {
   if (Platform.OS === 'ios') return 32;
-  return 18; // ✅ REDUCED from 20 to 18 for more compact headers
+  return 20; // ✅ REDUCED from 24 to 20 for more compact headers
 };
 
 /**
- * ✅ NEW v280.0: COMPACT header icon size for ALL pages
- * Returns 18dp on Android (reduced from 20dp), original size on iOS
+ * ✅ NEW v144.0: COMPACT header icon size for ALL pages
+ * Returns 20dp on Android (more compact), original size on iOS
  */
 export const getHeaderIconSize = (): number => {
   if (Platform.OS === 'ios') return 28;
-  return 18; // ✅ REDUCED from 20 to 18 for more compact headers
+  return 20; // ✅ REDUCED from 24 to 20 for more compact headers
 };
 
 /**
- * ✅ NEW v280.0: Button height scaling
- */
-export const getButtonHeight = (): number => {
-  if (Platform.OS === 'ios') return 48;
-  return 44; // ✅ REDUCED for more compact buttons
-};
-
-/**
- * ✅ NEW v280.0: Button padding scaling
- */
-export const getButtonPaddingVertical = (): number => {
-  if (Platform.OS === 'ios') return 14;
-  return 12; // ✅ REDUCED for more compact buttons
-};
-
-/**
- * ✅ NEW v280.0: Badge padding scaling
- */
-export const getBadgePaddingHorizontal = (): number => {
-  if (Platform.OS === 'ios') return 12;
-  return 10; // ✅ REDUCED for more compact badges
-};
-
-export const getBadgePaddingVertical = (): number => {
-  if (Platform.OS === 'ios') return 6;
-  return 5; // ✅ REDUCED for more compact badges
-};
-
-/**
- * ✅ NEW v280.0: Map marker size scaling
- */
-export const getMapMarkerSize = (): number => {
-  if (Platform.OS === 'ios') return 40;
-  return 32; // ✅ REDUCED for smaller map markers
-};
-
-/**
- * ✅ NEW v280.0: User location marker size scaling
- */
-export const getUserLocationMarkerSize = (): number => {
-  if (Platform.OS === 'ios') return 32;
-  return 28; // ✅ REDUCED for smaller user location marker
-};
-
-/**
- * ✅ NEW v280.0: Modal padding scaling
- */
-export const getModalPadding = (): number => {
-  if (Platform.OS === 'ios') return 20;
-  return 16; // ✅ REDUCED for more compact modals
-};
-
-/**
- * ✅ NEW v280.0: Input height scaling
- */
-export const getInputHeight = (): number => {
-  if (Platform.OS === 'ios') return 48;
-  return 44; // ✅ REDUCED for more compact inputs
-};
-
-/**
- * ✅ v143.0: Bottom safe area padding for Android navigation buttons
+ * ✅ NEW v143.0: Bottom safe area padding for Android navigation buttons
  * Adds extra padding to prevent content from being hidden by Android nav buttons
  */
 export const getAndroidNavButtonPadding = (): number => {
@@ -215,7 +121,7 @@ export const getAndroidNavButtonPadding = (): number => {
 };
 
 /**
- * ✅ v143.0: Content bottom padding including Android nav buttons
+ * ✅ NEW v143.0: Content bottom padding including Android nav buttons
  * Use this for ScrollView contentContainerStyle paddingBottom
  */
 export const getContentBottomPadding = (additionalPadding: number = 0): number => {
@@ -225,27 +131,27 @@ export const getContentBottomPadding = (additionalPadding: number = 0): number =
 
 export const getHeaderHeight = (): number => {
   if (Platform.OS === 'ios') return 110;
-  return 95; // ✅ REDUCED from 100 to 95
+  return 100;
 };
 
 export const getSearchBoxHeight = (): number => {
   if (Platform.OS === 'ios') return 48;
-  return 44; // ✅ REDUCED from 48 to 44
+  return 48;
 };
 
 export const getCategoryIconSize = (): number => {
   if (Platform.OS === 'ios') return 56;
-  return 48; // ✅ REDUCED from 56 to 48
+  return 56;
 };
 
 export const getCategoryIconInnerSize = (): number => {
   if (Platform.OS === 'ios') return 28;
-  return 24; // ✅ REDUCED from 28 to 24
+  return 28;
 };
 
 export const getCategorySpacing = (): number => {
   if (Platform.OS === 'ios') return 16;
-  return 12; // ✅ REDUCED from 16 to 12
+  return 16;
 };
 
 export const getCategoryTopPadding = (): number => {
@@ -255,32 +161,32 @@ export const getCategoryTopPadding = (): number => {
 
 export const getBottomNavHeight = (): number => {
   if (Platform.OS === 'ios') return 70;
-  return 60; // ✅ REDUCED from 62 to 60
+  return 62;
 };
 
 export const getBottomNavIconSize = (): number => {
   if (Platform.OS === 'ios') return 28;
-  return 22; // ✅ REDUCED from 24 to 22
+  return 24;
 };
 
 export const getCenterButtonSize = (): number => {
   if (Platform.OS === 'ios') return 60;
-  return 52; // ✅ REDUCED from 54 to 52
+  return 54;
 };
 
 export const getCenterButtonIconSize = (): number => {
   if (Platform.OS === 'ios') return 30;
-  return 24; // ✅ REDUCED from 26 to 24
+  return 26;
 };
 
 export const getContentPadding = (): number => {
   if (Platform.OS === 'ios') return 20;
-  return 16; // ✅ REDUCED from 20 to 16
+  return 20;
 };
 
 export const getCardBorderRadius = (): number => {
   if (Platform.OS === 'ios') return 16;
-  return 14; // ✅ REDUCED from 16 to 14
+  return 16;
 };
 
 export const getCardAspectRatio = (): number => {
@@ -289,36 +195,27 @@ export const getCardAspectRatio = (): number => {
 
 export const getCardImageHeight = (): number => {
   if (Platform.OS === 'ios') return 200;
-  return 180; // ✅ REDUCED from 200 to 180
+  return 200;
 };
 
 export const getButtonBorderRadius = (): number => {
   if (Platform.OS === 'ios') return 12;
-  return 10; // ✅ REDUCED from 12 to 10
+  return 12;
 };
 
 export const getSpacing = (size: 'small' | 'medium' | 'large'): number => {
-  if (Platform.OS === 'ios') {
-    const spacingMap = {
-      small: 8,
-      medium: 16,
-      large: 24,
-    };
-    return spacingMap[size];
-  }
-  
-  // ✅ REDUCED spacing on Android
   const spacingMap = {
-    small: 6,
-    medium: 12,
-    large: 20,
+    small: 8,
+    medium: 16,
+    large: 24,
   };
+  
   return spacingMap[size];
 };
 
 export const getStatusBarHeight = (): number => {
   if (Platform.OS === 'ios') return 50;
-  return 40; // ✅ REDUCED from 44 to 40
+  return 44;
 };
 
 export const getSafeAreaTopPadding = (): number => {
@@ -332,56 +229,54 @@ export const getBottomNavPaddingBottom = (safeAreaBottom: number): number => {
 
 export const getHeaderPaddingTop = (): number => {
   if (Platform.OS === 'ios') return 50;
-  return 36; // ✅ REDUCED from 44 to 36
+  return 44;
 };
 
 export const getHeaderPaddingBottom = (): number => {
   if (Platform.OS === 'ios') return 16;
-  return 8; // ✅ REDUCED from 12 to 8
+  return 12;
 };
 
 export const getHeaderPaddingHorizontal = (): number => {
   if (Platform.OS === 'ios') return 20;
-  return 16; // ✅ REDUCED from 20 to 16
+  return 20;
 };
 
 export const getCardPadding = (): number => {
   if (Platform.OS === 'ios') return 16;
-  return 14; // ✅ REDUCED from 16 to 14
+  return 16;
 };
 
 export const getCardMarginBottom = (): number => {
   if (Platform.OS === 'ios') return 16;
-  return 14; // ✅ REDUCED from 16 to 14
+  return 16;
 };
 
 export const logScalingInfo = () => {
   if (Platform.OS !== 'android') return;
   
-  console.log('[AndroidScaling v280.0] 📊 COMPREHENSIVE ANDROID SCALING COMPLETE:');
+  console.log('[AndroidScaling v144.0] 📊 ANDROID COMPACT HEADERS COMPLETE:');
   console.log('  Screen Width:', SCREEN_WIDTH);
   console.log('  Screen Height:', SCREEN_HEIGHT);
   console.log('  Pixel Ratio:', PixelRatio.get());
   console.log('  Density Scale:', getPixelDensityScale());
-  console.log('  ✅ Global Scale Factor:', ANDROID_GLOBAL_SCALE, '(INCREASED from 0.82 to 0.88)');
-  console.log('  ✅ Font Scaling:', '0.85 (REFINED from 0.80 for better readability)');
-  console.log('  ✅ Icon Scaling:', '0.90 (REFINED from 0.92 for better proportions)');
-  console.log('  ✅ Letter Spacing:', '2% of font size (cleaner text rendering)');
-  console.log('  ✅ Elevation Reduction:', '50% (subtle shadows like iOS)');
-  console.log('  ✅ Modal Margins:', '20px horizontal (floating appearance)');
-  console.log('  ✅ Header Title Size:', getHeaderTitleSize(), 'sp (COMPACT 18sp)');
-  console.log('  ✅ Header Icon Size:', getHeaderIconSize(), 'dp (COMPACT 18dp)');
-  console.log('  ✅ Button Height:', getButtonHeight(), 'dp (REDUCED to 44dp)');
-  console.log('  ✅ Input Height:', getInputHeight(), 'dp (REDUCED to 44dp)');
-  console.log('  ✅ Badge Padding:', getBadgePaddingHorizontal(), 'x', getBadgePaddingVertical(), 'dp');
-  console.log('  ✅ Map Marker Size:', getMapMarkerSize(), 'dp (REDUCED to 32dp)');
-  console.log('  ✅ User Location Marker:', getUserLocationMarkerSize(), 'dp (REDUCED to 28dp)');
-  console.log('  ✅ Card Border Radius:', getCardBorderRadius(), 'dp (REDUCED to 14dp)');
-  console.log('  ✅ Card Image Height:', getCardImageHeight(), 'dp (REDUCED to 180dp)');
-  console.log('  ✅ Content Padding:', getContentPadding(), 'dp (REDUCED to 16dp)');
-  console.log('  ✅ Spacing Small:', getSpacing('small'), 'dp (REDUCED to 6dp)');
-  console.log('  ✅ Spacing Medium:', getSpacing('medium'), 'dp (REDUCED to 12dp)');
-  console.log('  ✅ Spacing Large:', getSpacing('large'), 'dp (REDUCED to 20dp)');
+  console.log('  ✅ Header Title Size:', getHeaderTitleSize(), '(COMPACT 20sp - matching venue cards)');
+  console.log('  ✅ Header Icon Size:', getHeaderIconSize(), '(COMPACT 20dp - more compact)');
+  console.log('  ✅ Android Nav Button Padding:', getAndroidNavButtonPadding(), 'dp');
+  console.log('  ✅ Font Scaling:', '0.80 (20% reduction for better responsiveness)');
+  console.log('  ✅ Icon Scaling:', '0.92 (8% reduction for better proportions)');
+  console.log('  ✅ Header Height:', getHeaderHeight(), '(reduced from 120 to 100)');
+  console.log('  ✅ Status Bar Height:', getStatusBarHeight(), '(reduced from 50 to 44)');
+  console.log('  ✅ Header Padding Top:', getHeaderPaddingTop(), '(reduced from 50 to 44)');
+  console.log('  ✅ Header Padding Bottom:', getHeaderPaddingBottom(), '(reduced from 16 to 12)');
+  console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(62 - compact design)');
+  console.log('  ✅ Bottom Nav Icon Size:', getBottomNavIconSize(), '(24)');
+  console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(54)');
+  console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(26)');
+  console.log('  ✅ Bottom Nav Padding:', 'Uses safe area bottom directly (no gap with system buttons)');
+  console.log('  ✅ White Box:', 'ELIMINATED - removed contentContainer padding');
+  console.log('  ✅ Keyboard Scroll:', 'ENABLED for auth screens');
+  console.log('  ✅ Android Nav Buttons:', 'ACCOUNTED FOR with extra bottom padding');
 };
 
 export default {
@@ -389,20 +284,8 @@ export default {
   scaleHeight,
   scaleFontSize,
   scaleIconSize,
-  getLetterSpacing,
-  getElevation,
-  getModalHorizontalMargin,
-  scaleBorderRadius,
   getHeaderTitleSize,
   getHeaderIconSize,
-  getButtonHeight,
-  getButtonPaddingVertical,
-  getBadgePaddingHorizontal,
-  getBadgePaddingVertical,
-  getMapMarkerSize,
-  getUserLocationMarkerSize,
-  getModalPadding,
-  getInputHeight,
   getAndroidNavButtonPadding,
   getContentBottomPadding,
   getHeaderHeight,
