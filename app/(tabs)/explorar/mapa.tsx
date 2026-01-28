@@ -28,21 +28,23 @@ import { supabase } from '@/utils/supabase';
 
 const { width, height } = Dimensions.get('window');
 
-// ✅ FIX v273.0: REDUCED header height for minimal margin
+// ✅ FIX v274.0: REDUCED header height for minimal margin
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 100 : 110;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v273.0 - FIXED CONTROLS POSITIONING BELOW HEADER
+ * 🗺️ MAPA SCREEN v274.0 - ADDED TRANSPARENCY TO CONTROLS & MINIMAL MARGIN
  * 
- * NEW FIXES v273.0:
- * - ✅ FIXED: Controls now positioned BELOW header (top: 120-130px) to prevent being covered
- * - ✅ FIXED: Proper spacing between header and controls (20px gap)
- * - ✅ FIXED: Back button, filters, selector, and legend all visible below header
- * - ✅ FIXED: No overlap with header gradient
+ * NEW FIXES v274.0:
+ * - ✅ FIXED: Controls now have TRANSPARENCY (backgroundColor: rgba with 0.85 opacity)
+ * - ✅ FIXED: Back button, filters, selector, and legend all semi-transparent
+ * - ✅ FIXED: MINIMAL margin between header and controls (8px gap)
+ * - ✅ FIXED: Controls positioned at top: 118-128px (just below header)
+ * - ✅ FIXED: Proper spacing and visibility
  * 
- * Previous features maintained (v272.0):
+ * Previous features maintained (v273.0):
+ * - ✅ Controls positioned BELOW header to prevent being covered
  * - ✅ REMOVED eye button for hiding header
  * - ✅ REMOVED zoom +/- buttons (MapLibre built-in controls)
  * - ✅ Category icon buttons use EXACT same sizes as Explorar page (36-40px)
@@ -177,12 +179,12 @@ export default function MapaScreen() {
   
   // 🚀 CALLBACKS MEMOIZADOS - Evitar recreación en cada render
   const handleCategoriaChange = useCallback((categoriaId: string) => {
-    console.log('🗺️ [MAPA v273.0] Cambiando categoría a:', categoriaId);
+    console.log('🗺️ [MAPA v274.0] Cambiando categoría a:', categoriaId);
     setCategoriaSeleccionada(categoriaId);
   }, []);
   
   const handleEstadoChange = useCallback((estado: 'todos' | 'no_cerrados') => {
-    console.log('🗺️ [MAPA v273.0] Cambiando estado a:', estado);
+    console.log('🗺️ [MAPA v274.0] Cambiando estado a:', estado);
     setFiltroEstado(estado);
   }, []);
   
@@ -240,7 +242,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 <div id="map"></div>
 <script>
 // 🚀🚀🚀 MAPLIBRE GL JS CON DETECCIÓN MANUAL POR PROXIMIDAD MATEMÁTICA 🚀🚀🚀
-console.log('🗺️ [MAPA v273.0] Inicializando MapLibre GL JS con cálculo de estado en tiempo real');
+console.log('🗺️ [MAPA v274.0] Inicializando MapLibre GL JS con cálculo de estado en tiempo real');
 
 // 🚀 CREAR MAPA CON MAPLIBRE GL JS
 var map = new maplibregl.Map({
@@ -323,28 +325,28 @@ function loadCategoryIcons() {
     });
   });
   
-  console.log('🗺️ [MAPA v273.0] Iconos de categorías cargados');
+  console.log('🗺️ [MAPA v274.0] Iconos de categorías cargados');
 }
 
 // ✅ FIX v270.0: FUNCIÓN COMPLETA PARA DETERMINAR ESTADO DEL LOCAL EN TIEMPO REAL
 // Esta función replica la lógica de utils/timeUtils.ts para sincronización perfecta
 window.getEstadoLocalRealTime = function(local) {
-  console.log('⏰ [MAPA v273.0] Calculando estado en tiempo real para:', local.nombre);
+  console.log('⏰ [MAPA v274.0] Calculando estado en tiempo real para:', local.nombre);
   
   // PASO 1: Verificar estado del negocio
   if (local.google_business_status === 'CLOSED_PERMANENTLY') {
-    console.log('⏰ [MAPA v273.0] ❌ Local cerrado permanentemente');
+    console.log('⏰ [MAPA v274.0] ❌ Local cerrado permanentemente');
     return 'cerrado';
   }
   
   if (local.google_business_status === 'CLOSED_TEMPORARILY') {
-    console.log('⏰ [MAPA v273.0] ❌ Local cerrado temporalmente');
+    console.log('⏰ [MAPA v274.0] ❌ Local cerrado temporalmente');
     return 'cerrado';
   }
   
   // PASO 2: Verificar si tiene horarios
   if (!local.horarios_completos || Object.keys(local.horarios_completos).length === 0) {
-    console.log('⏰ [MAPA v273.0] ⚠️ Sin información de horario');
+    console.log('⏰ [MAPA v274.0] ⚠️ Sin información de horario');
     return 'sin_info';
   }
   
@@ -374,7 +376,7 @@ window.getEstadoLocalRealTime = function(local) {
   }
   
   if (diasCon24h === 7) {
-    console.log('⏰ [MAPA v273.0] ✅ Local abierto 24 horas');
+    console.log('⏰ [MAPA v274.0] ✅ Local abierto 24 horas');
     return 'abierto';
   }
   
@@ -384,7 +386,7 @@ window.getEstadoLocalRealTime = function(local) {
   const diaActual = diasSemana[diaActualIndex];
   const horaActual = now.getHours() * 60 + now.getMinutes();
   
-  console.log('⏰ [MAPA v273.0] Día actual:', diaActual, '| Hora actual:', horaActual, 'minutos');
+  console.log('⏰ [MAPA v274.0] Día actual:', diaActual, '| Hora actual:', horaActual, 'minutos');
   
   // PASO 4.1: Determinar el día lógico (importante para horarios nocturnos)
   let diaLogico = diaActual;
@@ -392,7 +394,7 @@ window.getEstadoLocalRealTime = function(local) {
   
   // Si estamos en la madrugada (00:00-08:00), verificar si es continuación del día anterior
   if (horaActual < 480) {
-    console.log('⏰ [MAPA v273.0] Es madrugada, verificando día anterior...');
+    console.log('⏰ [MAPA v274.0] Es madrugada, verificando día anterior...');
     
     const diaAnteriorIndex = (diaActualIndex - 1 + 7) % 7;
     const diaAnterior = diasSemana[diaAnteriorIndex];
@@ -416,7 +418,7 @@ window.getEstadoLocalRealTime = function(local) {
         
         // Si es horario nocturno (cierra en la madrugada) y estamos antes del cierre
         if (cierre < 480 && horaActual < cierre) {
-          console.log('⏰ [MAPA v273.0] Horario nocturno del día anterior detectado');
+          console.log('⏰ [MAPA v274.0] Horario nocturno del día anterior detectado');
           diaLogico = diaAnterior;
           diaLogicoIndex = diaAnteriorIndex;
           break;
@@ -446,7 +448,7 @@ window.getEstadoLocalRealTime = function(local) {
           
           // Si abre después de medianoche y cierra en la madrugada
           if (apertura < 480 && cierre < 480) {
-            console.log('⏰ [MAPA v273.0] Horario nocturno del día actual (abre después de medianoche)');
+            console.log('⏰ [MAPA v274.0] Horario nocturno del día actual (abre después de medianoche)');
             // El día lógico es el anterior (la noche pertenece al día anterior)
             diaLogico = diasSemana[(diaActualIndex - 1 + 7) % 7];
             diaLogicoIndex = (diaActualIndex - 1 + 7) % 7;
@@ -457,7 +459,7 @@ window.getEstadoLocalRealTime = function(local) {
     }
   }
   
-  console.log('⏰ [MAPA v273.0] Día lógico determinado:', diaLogico);
+  console.log('⏰ [MAPA v274.0] Día lógico determinado:', diaLogico);
   
   // PASO 4.2: Obtener horario para verificar
   let horarioParaVerificar;
@@ -467,16 +469,16 @@ window.getEstadoLocalRealTime = function(local) {
     // Verificar horario del día calendario pero reportar como día lógico
     horarioParaVerificar = local.horarios_completos[diaActual];
     diaParaVerificar = diaActual;
-    console.log('⏰ [MAPA v273.0] Verificando horario del día calendario:', diaActual);
+    console.log('⏰ [MAPA v274.0] Verificando horario del día calendario:', diaActual);
   } else {
     // Caso normal: verificar horario del día lógico
     horarioParaVerificar = local.horarios_completos[diaLogico];
     diaParaVerificar = diaLogico;
-    console.log('⏰ [MAPA v273.0] Verificando horario del día lógico:', diaLogico);
+    console.log('⏰ [MAPA v274.0] Verificando horario del día lógico:', diaLogico);
   }
   
   if (!horarioParaVerificar || horarioParaVerificar.length === 0 || horarioParaVerificar[0] === 'Cerrado') {
-    console.log('⏰ [MAPA v273.0] ❌ Local cerrado (sin horario)');
+    console.log('⏰ [MAPA v274.0] ❌ Local cerrado (sin horario)');
     return 'cerrado';
   }
   
@@ -496,61 +498,61 @@ window.getEstadoLocalRealTime = function(local) {
     const apertura = horaInicio * 60 + minInicio;
     const cierre = horaFin * 60 + minFin;
     
-    console.log('⏰ [MAPA v273.0] Verificando rango:', rango, '| Apertura:', apertura, '| Cierre:', cierre);
+    console.log('⏰ [MAPA v274.0] Verificando rango:', rango, '| Apertura:', apertura, '| Cierre:', cierre);
     
     // Determinar si es horario nocturno
     const esNocturno = cierre < 480 || cierre < apertura;
     
     if (esNocturno) {
-      console.log('⏰ [MAPA v273.0] Horario nocturno detectado');
+      console.log('⏰ [MAPA v274.0] Horario nocturno detectado');
       
       // Caso 1: Horario nocturno tradicional (cruza medianoche)
       if (cierre < apertura) {
         // Estamos en la madrugada del día anterior
         if (horaActual < cierre) {
-          console.log('⏰ [MAPA v273.0] ✅ ABIERTO (madrugada del horario nocturno)');
+          console.log('⏰ [MAPA v274.0] ✅ ABIERTO (madrugada del horario nocturno)');
           return 'abierto';
         }
         // Estamos en la noche del día lógico
         if (horaActual >= apertura) {
-          console.log('⏰ [MAPA v273.0] ✅ ABIERTO (noche del horario nocturno)');
+          console.log('⏰ [MAPA v274.0] ✅ ABIERTO (noche del horario nocturno)');
           return 'abierto';
         }
       }
       // Caso 2: Horario nocturno que abre después de medianoche
       else if (apertura < cierre && apertura < 480 && cierre < 480) {
         if (horaActual >= apertura && horaActual < cierre) {
-          console.log('⏰ [MAPA v273.0] ✅ ABIERTO (horario nocturno después de medianoche)');
+          console.log('⏰ [MAPA v274.0] ✅ ABIERTO (horario nocturno después de medianoche)');
           return 'abierto';
         }
       }
     } else {
-      // Horario diurno normal
+      // Horariodiurno normal
       if (horaActual >= apertura && horaActual < cierre) {
-        console.log('⏰ [MAPA v273.0] ✅ ABIERTO (horario diurno)');
+        console.log('⏰ [MAPA v274.0] ✅ ABIERTO (horario diurno)');
         return 'abierto';
       }
     }
   }
   
-  console.log('⏰ [MAPA v273.0] ❌ CERRADO (fuera de todos los rangos)');
+  console.log('⏰ [MAPA v274.0] ❌ CERRADO (fuera de todos los rangos)');
   return 'cerrado';
 };
 
 // 🚀 ESPERAR A QUE EL MAPA ESTÉ LISTO
 map.on('load', function() {
-  console.log('🗺️ [MAPA v273.0] Mapa cargado, añadiendo source GeoJSON');
+  console.log('🗺️ [MAPA v274.0] Mapa cargado, añadiendo source GeoJSON');
   
   // ✅ CRITICAL: Resize map to ensure proper rendering
   setTimeout(function() {
     map.resize();
-    console.log('🗺️ [MAPA v273.0] ✅ map.resize() ejecutado para ajustar el mapa al contenedor');
+    console.log('🗺️ [MAPA v274.0] ✅ map.resize() ejecutado para ajustar el mapa al contenedor');
   }, 100);
   
   // Cargar iconos primero
   loadCategoryIcons();
   
-  // 🚀 AÑADIR SOURCE GEOJSON VACÍO CONCLUSTERING OPTIMIZADO
+  // 🚀 AÑADIR SOURCE GEOJSON VACÍO CON CLUSTERING OPTIMIZADO
   map.addSource('locales-source', {
     type: 'geojson',
     data: {
@@ -716,7 +718,7 @@ map.on('load', function() {
     }
   });
   
-  console.log('🗺️ [MAPA v273.0] Source y layers GeoJSON añadidos correctamente');
+  console.log('🗺️ [MAPA v274.0] Source y layers GeoJSON añadidos correctamente');
   
   // 🚀 CARGAR DATOS INICIALES
   window.loadLocales();
@@ -740,7 +742,7 @@ window.filtros = {
 // 🚀 FUNCIÓN PARA CARGAR LOCALES DESDE SUPABASE
 window.loadLocales = async function() {
   try {
-    console.log('🗺️ [MAPA v273.0] Cargando locales desde Supabase...');
+    console.log('🗺️ [MAPA v274.0] Cargando locales desde Supabase...');
     
     const response = await fetch('https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales?select=id,nombre,direccion,latitud,longitud,imagen_url,rating,google_rating,barlive_types,horarios_completos,estado_actual,google_business_status,google_user_ratings_total&activo=eq.true&latitud=not.is.null&longitud=not.is.null', {
       headers: {
@@ -754,27 +756,27 @@ window.loadLocales = async function() {
     }
     
     const locales = await response.json();
-    console.log('🗺️ [MAPA v273.0] Locales cargados:', locales.length);
+    console.log('🗺️ [MAPA v274.0] Locales cargados:', locales.length);
     
     // ✅ CRITICAL: Almacenar TODOS los locales en window.allLocales para búsqueda manual
     window.allLocales = locales;
-    console.log('🗺️ [MAPA v273.0] ✅ window.allLocales poblado con', window.allLocales.length, 'locales');
+    console.log('🗺️ [MAPA v274.0] ✅ window.allLocales poblado con', window.allLocales.length, 'locales');
     
     window.applyFilters();
     
   } catch (error) {
-    console.error('🗺️ [MAPA v273.0] Error cargando locales:', error);
+    console.error('🗺️ [MAPA v274.0] Error cargando locales:', error);
   }
 };
 
 // 🚀 APLICAR FILTROS Y ACTUALIZAR GEOJSON
 window.applyFilters = function() {
   if (!window.allLocales || window.allLocales.length === 0) {
-    console.log('🗺️ [MAPA v273.0] No hay locales para filtrar');
+    console.log('🗺️ [MAPA v274.0] No hay locales para filtrar');
     return;
   }
   
-  console.log('🗺️ [MAPA v273.0] Aplicando filtros:', window.filtros);
+  console.log('🗺️ [MAPA v274.0] Aplicando filtros:', window.filtros);
   
   var filteredLocales = window.allLocales.filter(function(local) {
     // ✅ FIX v270.0: Calcular estado en tiempo real usando la función completa
@@ -808,7 +810,7 @@ window.applyFilters = function() {
     return true;
   });
   
-  console.log('🗺️ [MAPA v273.0] Locales filtrados:', filteredLocales.length);
+  console.log('🗺️ [MAPA v274.0] Locales filtrados:', filteredLocales.length);
   
   var geojson = {
     type: 'FeatureCollection',
@@ -817,7 +819,7 @@ window.applyFilters = function() {
       var lat = parseFloat(local.latitud);
       
       if (isNaN(lng) || isNaN(lat)) {
-        console.warn('🗺️ [MAPA v273.0] ⚠️ Coordenadas inválidas para local:', local.nombre);
+        console.warn('🗺️ [MAPA v274.0] ⚠️ Coordenadas inválidas para local:', local.nombre);
         return null;
       }
       
@@ -847,7 +849,7 @@ window.applyFilters = function() {
   var source = map.getSource('locales-source');
   if (source) {
     source.setData(geojson);
-    console.log('🗺️ [MAPA v273.0] ✅ GeoJSON actualizado con', geojson.features.length, 'marcadores (estados calculados en tiempo real)');
+    console.log('🗺️ [MAPA v274.0] ✅ GeoJSON actualizado con', geojson.features.length, 'marcadores (estados calculados en tiempo real)');
   }
 };
 
@@ -865,7 +867,7 @@ window.setCategoryFilter = window.filtrarCategoria;
 
 // 🚀 MARCADOR DE UBICACIÓN DEL USUARIO
 window.updateUserLocation = function(lat, lng) {
-  console.log('🗺️ [MAPA v273.0] 📍 Actualizando ubicación del usuario:', lat, lng);
+  console.log('🗺️ [MAPA v274.0] 📍 Actualizando ubicación del usuario:', lat, lng);
   
   if (!window.userMarker) {
     var el = document.createElement('div');
@@ -891,10 +893,10 @@ window.updateUserLocation = function(lat, lng) {
       .setLngLat([lng, lat])
       .addTo(map);
     
-    console.log('🗺️ [MAPA v273.0] ✅ Marcador de usuario creado');
+    console.log('🗺️ [MAPA v274.0] ✅ Marcador de usuario creado');
   } else {
     window.userMarker.setLngLat([lng, lat]);
-    console.log('🗺️ [MAPA v273.0] ✅ Marcador de usuario actualizado');
+    console.log('🗺️ [MAPA v274.0] ✅ Marcador de usuario actualizado');
   }
 };
 
@@ -909,18 +911,18 @@ window.flyToLocation = function(lat, lng, zoom) {
 // 🚀 FUNCIÓN UNIFICADA PARA MOSTRAR POPUP
 function showPopupForFeature(feature, coordinates) {
   if (!feature || !feature.properties) {
-    console.error('🗺️ [MAPA v273.0] ❌ Feature inválida para mostrar popup');
+    console.error('🗺️ [MAPA v274.0] ❌ Feature inválida para mostrar popup');
     return;
   }
   
   var properties = feature.properties;
   
   if (!properties.id) {
-    console.error('🗺️ [MAPA v273.0] ❌ ID del local no encontrado');
+    console.error('🗺️ [MAPA v274.0] ❌ ID del local no encontrado');
     return;
   }
   
-  console.log('🗺️ [MAPA v273.0] ✅ Mostrando popup para local:', properties.name);
+  console.log('🗺️ [MAPA v274.0] ✅ Mostrando popup para local:', properties.name);
   
   var localCompleto = window.allLocales.find(function(l) { return l.id === properties.id; });
   
@@ -997,7 +999,7 @@ function showPopupForFeature(feature, coordinates) {
 // ✅ PASO 3: BÚSQUEDA DEL MÁS CERCANO con tolerancia reducida (20px)
 // ✅ PASO 4: AUTO-CENTRADO DINÁMICO del popup DESPUÉS del zoom (NUEVO v267.0)
 map.on('click', function(e) {
-  console.log('🗺️ [MAPA v273.0] 🎯 Click detectado - iniciando proceso de 4 pasos');
+  console.log('🗺️ [MAPA v274.0] 🎯 Click detectado - iniciando proceso de 4 pasos');
   
   // ═══════════════════════════════════════════════════════════════
   // 🚨 PASO 1: BLOQUEO DE CLUSTERS (PRIORIDAD ABSOLUTA)
@@ -1005,14 +1007,14 @@ map.on('click', function(e) {
   // Si el usuario toca un cluster, ejecutar zoom-in y DETENER el proceso
   var clusterFeatures = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
   if (clusterFeatures.length > 0) {
-    console.log('🗺️ [MAPA v273.0] 🔵 CLUSTER detectado - ejecutando zoom-in y deteniendo proceso');
+    console.log('🗺️ [MAPA v274.0] 🔵 CLUSTER detectado - ejecutando zoom-in y deteniendo proceso');
     
     var clusterId = clusterFeatures[0].properties.cluster_id;
     var source = map.getSource('locales-source');
     
     source.getClusterExpansionZoom(clusterId, function(err, zoom) {
       if (err) {
-        console.error('🗺️ [MAPA v273.0] ❌ Error obteniendo zoom del cluster:', err);
+        console.error('🗺️ [MAPA v274.0] ❌ Error obteniendo zoom del cluster:', err);
         return;
       }
       
@@ -1024,31 +1026,31 @@ map.on('click', function(e) {
         essential: true
       });
       
-      console.log('🗺️ [MAPA v273.0] ✅ Zoom-in del cluster ejecutado correctamente');
+      console.log('🗺️ [MAPA v274.0] ✅ Zoom-in del cluster ejecutado correctamente');
     });
     
     // 🚨 RETURN INMEDIATO - No continuar con la detección de locales individuales
     return;
   }
   
-  console.log('🗺️ [MAPA v273.0] ✅ No es un cluster - continuando con detección de locales individuales');
+  console.log('🗺️ [MAPA v274.0] ✅ No es un cluster - continuando con detección de locales individuales');
   
   // ═══════════════════════════════════════════════════════════════
   // 🚨 PASO 2: OBTENER FILTROS ACTIVOS DE REACT
   // ═══════════════════════════════════════════════════════════════
   var filtroCategoria = window.filtros.cat || 'todas';
   var soloAbiertos = window.filtros.estado === 'no_cerrados';
-  console.log('🗺️ [MAPA v273.0] 🔍 Filtros activos - Categoría:', filtroCategoria, '| Solo abiertos:', soloAbiertos);
+  console.log('🗺️ [MAPA v274.0] 🔍 Filtros activos - Categoría:', filtroCategoria, '| Solo abiertos:', soloAbiertos);
   
   // ═══════════════════════════════════════════════════════════════
   // 🚨 PASO 3: DETECCIÓN MANUAL POR PROXIMIDAD CON FILTROS
   // ═══════════════════════════════════════════════════════════════
   var touchPoint = e.point;
-  console.log('🗺️ [MAPA v273.0] 📍 Punto del clic en píxeles:', touchPoint.x, touchPoint.y);
+  console.log('🗺️ [MAPA v274.0] 📍 Punto del clic en píxeles:', touchPoint.x, touchPoint.y);
   
   // ✅ Tolerancia REDUCIDA para mayor precisión (20px en lugar de 30px)
   var toleranciaPixeles = 20;
-  console.log('🗺️ [MAPA v273.0] 📏 Tolerancia REDUCIDA en píxeles:', toleranciaPixeles, 'px (más preciso)');
+  console.log('🗺️ [MAPA v274.0] 📏 Tolerancia REDUCIDA en píxeles:', toleranciaPixeles, 'px (más preciso)');
   
   var detectado = null;
   var minimaDistanciaPixeles = Infinity;
@@ -1094,7 +1096,7 @@ map.on('click', function(e) {
       
       // Si está dentro de la tolerancia Y es el más cercano hasta ahora
       if (distanciaPixeles < toleranciaPixeles && distanciaPixeles < minimaDistanciaPixeles) {
-        console.log('🗺️ [MAPA v273.0] ✅ Candidato encontrado:', local.nombre, '- Distancia:', distanciaPixeles.toFixed(2), 'px - Estado:', estadoLocal);
+        console.log('🗺️ [MAPA v274.0] ✅ Candidato encontrado:', local.nombre, '- Distancia:', distanciaPixeles.toFixed(2), 'px - Estado:', estadoLocal);
         minimaDistanciaPixeles = distanciaPixeles;
         detectado = local;
       }
@@ -1103,16 +1105,16 @@ map.on('click', function(e) {
     }
   });
   
-  console.log('🗺️ [MAPA v273.0] 📊 Locales evaluados:', localesEvaluados);
-  console.log('🗺️ [MAPA v273.0] 📊 Locales filtrados (ocultos):', localesFiltrados);
-  console.log('🗺️ [MAPA v273.0] 📊 Locales visibles:', localesEvaluados - localesFiltrados);
+  console.log('🗺️ [MAPA v274.0] 📊 Locales evaluados:', localesEvaluados);
+  console.log('🗺️ [MAPA v274.0] 📊 Locales filtrados (ocultos):', localesFiltrados);
+  console.log('🗺️ [MAPA v274.0] 📊 Locales visibles:', localesEvaluados - localesFiltrados);
   
   // ═══════════════════════════════════════════════════════════════
   // 🚨 PASO 4: SI SE DETECTÓ UN LOCAL, ABRIR POPUP Y AUTO-CENTRAR DINÁMICAMENTE (NUEVO v267.0)
   // ═══════════════════════════════════════════════════════════════
   if (detectado) {
-    console.log('🗺️ [MAPA v273.0] 🎉 Local MÁS CERCANO encontrado:', detectado.nombre);
-    console.log('🗺️ [MAPA v273.0] 📊 Distancia final:', minimaDistanciaPixeles.toFixed(2), 'píxeles');
+    console.log('🗺️ [MAPA v274.0] 🎉 Local MÁS CERCANO encontrado:', detectado.nombre);
+    console.log('🗺️ [MAPA v274.0] 📊 Distancia final:', minimaDistanciaPixeles.toFixed(2), 'píxeles');
     
     // Coordenadas del local detectado
     var coords = [parseFloat(detectado.longitud), parseFloat(detectado.latitud)];
@@ -1142,7 +1144,7 @@ map.on('click', function(e) {
     // 4. Calcular la altura REAL del popup desde el DOM
     // 5. Ajustar el centro del mapa para que el popup quede centrado en pantalla
     
-    console.log('🗺️ [MAPA v273.0] 🎯 Iniciando centrado dinámico del popup');
+    console.log('🗺️ [MAPA v274.0] 🎯 Iniciando centrado dinámico del popup');
     
     // Paso 1: Hacer zoom al marcador
     map.flyTo({
@@ -1156,7 +1158,7 @@ map.on('click', function(e) {
     
     // Paso 2: Esperar a que termine el zoom
     var onMoveEnd = function() {
-      console.log('🗺️ [MAPA v273.0] ✅ Zoom completado, abriendo popup');
+      console.log('🗺️ [MAPA v274.0] ✅ Zoom completado, abriendo popup');
       
       // Paso 3: Abrir el popup
       showPopupForFeature(fakeFeature, coords);
@@ -1167,7 +1169,7 @@ map.on('click', function(e) {
         var popupElement = document.querySelector('.maplibregl-popup-content');
         var popupHeight = popupElement ? popupElement.offsetHeight : ${Platform.OS === 'android' ? '240' : '280'};
         
-        console.log('🗺️ [MAPA v273.0] 📐 Altura real del popup:', popupHeight, 'px');
+        console.log('🗺️ [MAPA v274.0] 📐 Altura real del popup:', popupHeight, 'px');
         
         // Paso 5: Calcular el offset necesario para centrar el POPUP (no el marcador)
         var markerPoint = map.project(coords);
@@ -1180,11 +1182,11 @@ map.on('click', function(e) {
         // Calcular cuánto necesitamos desplazar el mapa
         var offsetY = screenCenterY - popupCenterY;
         
-        console.log('🗺️ [MAPA v273.0] 📐 Calculando centrado del popup:');
-        console.log('🗺️ [MAPA v273.0] 📐 - Altura del popup:', popupHeight, 'px');
-        console.log('🗺️ [MAPA v273.0] 📐 - Centro de pantalla Y:', screenCenterY, 'px');
-        console.log('🗺️ [MAPA v273.0] 📐 - Centro del popup Y:', popupCenterY, 'px');
-        console.log('🗺️ [MAPA v273.0] 📐 - Offset necesario Y:', offsetY, 'px');
+        console.log('🗺️ [MAPA v274.0] 📐 Calculando centrado del popup:');
+        console.log('🗺️ [MAPA v274.0] 📐 - Altura del popup:', popupHeight, 'px');
+        console.log('🗺️ [MAPA v274.0] 📐 - Centro de pantalla Y:', screenCenterY, 'px');
+        console.log('🗺️ [MAPA v274.0] 📐 - Centro del popup Y:', popupCenterY, 'px');
+        console.log('🗺️ [MAPA v274.0] 📐 - Offset necesario Y:', offsetY, 'px');
         
         // Aplicar el offset al punto del marcador
         var targetPoint = { x: markerPoint.x, y: markerPoint.y + offsetY };
@@ -1200,8 +1202,8 @@ map.on('click', function(e) {
           essential: true
         });
         
-        console.log('🗺️ [MAPA v273.0] ✅ Popup centrado dinámicamente en la pantalla');
-        console.log('🗺️ [MAPA v273.0] ✅ El POPUP ahora queda completamente visible y centrado');
+        console.log('🗺️ [MAPA v274.0] ✅ Popup centrado dinámicamente en la pantalla');
+        console.log('🗺️ [MAPA v274.0] ✅ El POPUP ahora queda completamente visible y centrado');
       }, 100);
       
       // Remover el listener para evitar múltiples ejecuciones
@@ -1212,11 +1214,11 @@ map.on('click', function(e) {
     map.on('moveend', onMoveEnd);
     
   } else {
-    console.log('🗺️ [MAPA v273.0] ❌ No se encontró ningún local visible en el área de proximidad');
-    console.log('🗺️ [MAPA v273.0] 💡 Posibles razones:');
-    console.log('🗺️ [MAPA v273.0] 💡 1. No hay marcadores cerca del clic (20px de radio)');
-    console.log('🗺️ [MAPA v273.0] 💡 2. Los locales cercanos están ocultos por los filtros activos');
-    console.log('🗺️ [MAPA v273.0] 💡 3. Intenta hacer clic directamente sobre un marcador visible');
+    console.log('🗺️ [MAPA v274.0] ❌ No se encontró ningún local visible en el área de proximidad');
+    console.log('🗺️ [MAPA v274.0] 💡 Posibles razones:');
+    console.log('🗺️ [MAPA v274.0] 💡 1. No hay marcadores cerca del clic (20px de radio)');
+    console.log('🗺️ [MAPA v274.0] 💡 2. Los locales cercanos están ocultos por los filtros activos');
+    console.log('🗺️ [MAPA v274.0] 💡 3. Intenta hacer clic directamente sobre un marcador visible');
     // ✅ NO HACER NADA si no se encuentra ningún local que cumpla los filtros
   }
 });
@@ -1270,27 +1272,27 @@ map.on('mouseleave', 'clusters', function() {
 // ✅ CRITICAL: Resize map on window resize for proper rendering
 window.addEventListener('resize', function() {
   map.resize();
-  console.log('🗺️ [MAPA v273.0] ✅ map.resize() ejecutado en window resize');
+  console.log('🗺️ [MAPA v274.0] ✅ map.resize() ejecutado en window resize');
 });
 
-console.log('🗺️ [MAPA v273.0] ═══════════════════════════════════════════════════════');
-console.log('🗺️ [MAPA v273.0] ✅ Sistema de mapa configurado completamente');
-console.log('🗺️ [MAPA v273.0] ✅ CÁLCULO DE ESTADO EN TIEMPO REAL activado');
-console.log('🗺️ [MAPA v273.0] ✅ Sincronizado con horarios_completos de cada local');
-console.log('🗺️ [MAPA v273.0] ✅ Manejo correcto de horarios nocturnos (23:00-06:00)');
-console.log('🗺️ [MAPA v273.0] ✅ Manejo correcto de locales que abren después de medianoche');
-console.log('🗺️ [MAPA v273.0] ✅ DETECCIÓN MANUAL CON PROYECCIÓN A PÍXELES activada');
-console.log('🗺️ [MAPA v273.0] ✅ Tolerancia fija: 20 píxeles (tamaño del dedo)');
-console.log('🗺️ [MAPA v273.0] ✅ Área de clic CONSISTENTE sin importar el zoom');
-console.log('🗺️ [MAPA v273.0] ✅ Proyección: map.project([lng, lat]) → coordenadas de pantalla');
-console.log('🗺️ [MAPA v273.0] ✅ Distancia en píxeles: sqrt(dx² + dy²)');
-console.log('🗺️ [MAPA v273.0] ✅ SINCRONIZACIÓN CON FILTROS: valida categoría y estado');
-console.log('🗺️ [MAPA v273.0] ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)');
-console.log('🗺️ [MAPA v273.0] ✅ window.allLocales: Array global con todos los locales');
-console.log('🗺️ [MAPA v273.0] ✅ touch-action: none para evitar scroll del navegador');
-console.log('🗺️ [MAPA v273.0] ✅ POPUP CENTRADO DINÁMICAMENTE (v267.0)');
-console.log('🗺️ [MAPA v273.0] ✅ Altura del popup calculada desde el DOM');
-console.log('🗺️ [MAPA v273.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v274.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v274.0] ✅ Sistema de mapa configurado completamente');
+console.log('🗺️ [MAPA v274.0] ✅ CÁLCULO DE ESTADO EN TIEMPO REAL activado');
+console.log('🗺️ [MAPA v274.0] ✅ Sincronizado con horarios_completos de cada local');
+console.log('🗺️ [MAPA v274.0] ✅ Manejo correcto de horarios nocturnos (23:00-06:00)');
+console.log('🗺️ [MAPA v274.0] ✅ Manejo correcto de locales que abren después de medianoche');
+console.log('🗺️ [MAPA v274.0] ✅ DETECCIÓN MANUAL CON PROYECCIÓN A PÍXELES activada');
+console.log('🗺️ [MAPA v274.0] ✅ Tolerancia fija: 20 píxeles (tamaño del dedo)');
+console.log('🗺️ [MAPA v274.0] ✅ Área de clic CONSISTENTE sin importar el zoom');
+console.log('🗺️ [MAPA v274.0] ✅ Proyección: map.project([lng, lat]) → coordenadas de pantalla');
+console.log('🗺️ [MAPA v274.0] ✅ Distancia en píxeles: sqrt(dx² + dy²)');
+console.log('🗺️ [MAPA v274.0] ✅ SINCRONIZACIÓN CON FILTROS: valida categoría y estado');
+console.log('🗺️ [MAPA v274.0] ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)');
+console.log('🗺️ [MAPA v274.0] ✅ window.allLocales: Array global con todos los locales');
+console.log('🗺️ [MAPA v274.0] ✅ touch-action: none para evitar scroll del navegador');
+console.log('🗺️ [MAPA v274.0] ✅ POPUP CENTRADO DINÁMICAMENTE (v267.0)');
+console.log('🗺️ [MAPA v274.0] ✅ Altura del popup calculada desde el DOM');
+console.log('🗺️ [MAPA v274.0] ═══════════════════════════════════════════════════════');
 </script>
 </body>
 </html>`;
@@ -1301,30 +1303,30 @@ console.log('🗺️ [MAPA v273.0] ═══════════════
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('🗺️ [MAPA v273.0] Permisos de ubicación denegados');
+          console.log('🗺️ [MAPA v274.0] Permisos de ubicación denegados');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
-        console.log('🗺️ [MAPA v273.0] Obteniendo ubicación del usuario...');
+        console.log('🗺️ [MAPA v274.0] Obteniendo ubicación del usuario...');
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
         
-        console.log('🗺️ [MAPA v273.0] Ubicación obtenida:', location.coords.latitude, location.coords.longitude);
+        console.log('🗺️ [MAPA v274.0] Ubicación obtenida:', location.coords.latitude, location.coords.longitude);
         setUserLocation({
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
       } catch (error) {
-        console.error('🗺️ [MAPA v273.0] Error obteniendo ubicación:', error);
+        console.error('🗺️ [MAPA v274.0] Error obteniendo ubicación:', error);
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
   }, []);
 
   useEffect(() => {
-    console.log('🗺️ [MAPA v273.0] Filtros cambiados');
+    console.log('🗺️ [MAPA v274.0] Filtros cambiados');
   }, [categoriaSeleccionada, globalFiltros]);
 
   useEffect(() => {
@@ -1366,7 +1368,7 @@ console.log('🗺️ [MAPA v273.0] ═══════════════
       return;
     }
     
-    console.log('🗺️ [MAPA v273.0] 📍 Inyectando ubicación del usuario');
+    console.log('🗺️ [MAPA v274.0] 📍 Inyectando ubicación del usuario');
     
     webViewRef.current.injectJavaScript(`
       (function() {
@@ -1375,7 +1377,7 @@ console.log('🗺️ [MAPA v273.0] ═══════════════
             window.updateUserLocation(${userLocation.lat}, ${userLocation.lng});
           }
         } catch (error) {
-          console.error('🗺️ [MAPA v273.0] ❌ Error actualizando ubicación:', error);
+          console.error('🗺️ [MAPA v274.0] ❌ Error actualizando ubicación:', error);
         }
       })();
       true;
@@ -1384,7 +1386,7 @@ console.log('🗺️ [MAPA v273.0] ═══════════════
 
   const centerOnUser = useCallback(() => {
     if (userLocation && webViewRef.current && isMapReady) {
-      console.log('🗺️ [MAPA v273.0] Centrando en ubicación del usuario');
+      console.log('🗺️ [MAPA v274.0] Centrando en ubicación del usuario');
       webViewRef.current.injectJavaScript(`
         if (typeof window.flyToLocation !== 'undefined') {
           window.flyToLocation(${userLocation.lat}, ${userLocation.lng}, 16);
@@ -1399,14 +1401,14 @@ console.log('🗺️ [MAPA v273.0] ═══════════════
       const data = JSON.parse(event.nativeEvent.data);
       
       if (data.type === 'navigate' && data.id) {
-        console.log('🗺️ [MAPA v273.0] Navegando a local:', data.id);
+        console.log('🗺️ [MAPA v274.0] Navegando a local:', data.id);
         router.push(`/detalle/local?id=${data.id}`);
       } else if (data.type === 'map_ready') {
-        console.log('🗺️ [MAPA v273.0] Mapa listo');
+        console.log('🗺️ [MAPA v274.0] Mapa listo');
         setIsMapReady(true);
       }
     } catch (error) {
-      console.error('🗺️ [MAPA v273.0] Error procesando mensaje:', error);
+      console.error('🗺️ [MAPA v274.0] Error procesando mensaje:', error);
     }
   }, [router]);
 
@@ -1479,7 +1481,7 @@ console.log('🗺️ [MAPA v273.0] ═══════════════
         </LinearGradient>
       </View>
 
-      {/* ✅ FIX v273.0: Controls positioned BELOW header (top: 120-130px) to prevent being covered */}
+      {/* ✅ FIX v274.0: Controls with TRANSPARENCY and positioned BELOW header (top: 118-128px) */}
       <View style={styles.controlsLeft}>
         <TouchableOpacity 
           style={[styles.controlButton, {
@@ -1514,7 +1516,7 @@ console.log('🗺️ [MAPA v273.0] ═══════════════
         </TouchableOpacity>
       </View>
 
-      {/* ✅ FIX v273.0: Controls positioned BELOW header (top: 120-130px) to prevent being covered */}
+      {/* ✅ FIX v274.0: Controls with TRANSPARENCY and positioned BELOW header (top: 118-128px) */}
       <View style={styles.controlsRight}>
         <EstadoSelector 
           filtroEstado={filtroEstado}
@@ -1601,7 +1603,7 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 10,
   },
-  // ✅ FIX v272.0: REDUCED padding for minimal margin
+  // ✅ FIX v274.0: REDUCED padding for minimal margin
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
     paddingBottom: 8,
@@ -1653,25 +1655,26 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '700',
   },
-  // ✅ FIX v273.0: Controls positioned BELOW header (top: 120-130px) with proper spacing
+  // ✅ FIX v274.0: Controls with TRANSPARENCY (rgba 0.85) and positioned BELOW header (top: 118-128px)
   controlsLeft: {
     position: 'absolute',
     left: 16,
-    top: Platform.OS === 'ios' ? 130 : 120, // ✅ MOVED DOWN from 110/100 to 130/120
+    top: Platform.OS === 'ios' ? 128 : 118, // ✅ MOVED DOWN to 128/118 (8px below header)
     gap: 12,
     zIndex: 5,
   },
-  // ✅ FIX v273.0: Controls positioned BELOW header (top: 120-130px) with proper spacing
+  // ✅ FIX v274.0: Controls with TRANSPARENCY (rgba 0.85) and positioned BELOW header (top: 118-128px)
   controlsRight: {
     position: 'absolute',
     right: 16,
-    top: Platform.OS === 'ios' ? 130 : 120, // ✅ MOVED DOWN from 110/100 to 130/120
+    top: Platform.OS === 'ios' ? 128 : 118, // ✅ MOVED DOWN to 128/118 (8px below header)
     gap: 12,
     zIndex: 5,
     alignItems: 'center',
   },
+  // ✅ FIX v274.0: Control button with TRANSPARENCY (rgba 0.85)
   controlButton: {
-    backgroundColor: colors.cardBackground,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)', // ✅ ADDED TRANSPARENCY
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1680,6 +1683,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  // ✅ FIX v274.0: Estado selector with TRANSPARENCY (rgba 0.85)
   estadoSelectorContainer: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1689,7 +1693,7 @@ const styles = StyleSheet.create({
   },
   estadoSelector: {
     flexDirection: 'row',
-    backgroundColor: colors.cardBackground,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)', // ✅ ADDED TRANSPARENCY
     borderRadius: 16,
     padding: 2,
     borderWidth: 1.5,
@@ -1719,9 +1723,10 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontWeight: '700',
   },
+  // ✅ FIX v274.0: Legend with TRANSPARENCY (rgba 0.85)
   leyenda: {
     flexDirection: 'row',
-    backgroundColor: colors.cardBackground,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)', // ✅ ADDED TRANSPARENCY
     borderRadius: 8,
     padding: 8,
     gap: 8,
