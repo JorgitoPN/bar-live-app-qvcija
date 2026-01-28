@@ -71,14 +71,15 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v270.0 - REMOVED INCORRECT MARGIN
+ * ✅ FAVORITOS SCREEN v271.0 - FIXED MAXIMUM UPDATE DEPTH ERROR
  * 
- * NEW FIXES v270.0:
- * - ✅ FIXED: REMOVED incorrect paddingTop (was HEADER_MAX_HEIGHT + 16)
- * - ✅ FIXED: Now uses standard padding without extra margin
+ * NEW FIXES v271.0:
+ * - ✅ FIXED: Removed loadSavedLocales from useEffect dependency array to prevent infinite loop
+ * - ✅ FIXED: Removed userLocation and allSavedLocales from loadSavedLocales dependencies
+ * - ✅ FIXED: Proper dependency management to prevent circular updates
  * - ✅ FIXED: Filter button height standardized to 40px (same as Explorar)
  * 
- * Previous features maintained (v268.0):
+ * Previous features maintained (v270.0):
  * - ✅ ANIMATED HEADER: Same collapsing behavior as Explorar page
  * - ✅ CONSISTENT DESIGN: Matches Explorar header structure
  * - ✅ SMOOTH ANIMATIONS: Header hides on scroll down, shows on scroll up
@@ -131,10 +132,10 @@ export default function FavoritosScreen() {
 
   // ✅ CRITICAL FIX v241.0: Debounce with cleanup (300ms)
   useEffect(() => {
-    console.log('[Favoritos v270.0] 📝 Search query changed:', searchQuery);
+    console.log('[Favoritos v271.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Favoritos v270.0] 🔍 Applying debounced search');
+      console.log('[Favoritos v271.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -154,10 +155,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v270.0] User location obtained:', location.coords);
+          console.log('[Favoritos v271.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v270.0] Error getting location:', error);
+        console.error('[Favoritos v271.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -183,10 +184,11 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v270.0] Error checking social profiles:', error);
+      console.error('[Favoritos v271.0] Error checking social profiles:', error);
     }
   }, []);
 
+  // ✅ FIX v271.0: Removed userLocation and allSavedLocales from dependencies to prevent infinite loop
   const loadSavedLocales = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -194,7 +196,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v270.0] Cargando locales guardados...');
+      console.log('[Favoritos v271.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -254,24 +256,24 @@ export default function FavoritosScreen() {
         
         setAllSavedLocales(formattedLocales);
         
-        console.log('[Favoritos v270.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v271.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v270.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v271.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
-  }, [user, userLocation, checkSocialProfilesForLocales]);
+  }, [user, checkSocialProfilesForLocales]);
 
-  // ✅ FIX v270.0: Added loadSavedLocales to dependency array
+  // ✅ FIX v271.0: Removed loadSavedLocales from dependency array to prevent infinite loop
   useEffect(() => {
-    loadSavedLocales();
-
     if (user) {
+      loadSavedLocales();
+
       const savedLocalesChannel = supabase
-        .channel('user-saved-locales-changes-v270')
+        .channel('user-saved-locales-changes-v271')
         .on(
           'postgres_changes',
           {
@@ -281,7 +283,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v270.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v271.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -291,11 +293,12 @@ export default function FavoritosScreen() {
         supabase.removeChannel(savedLocalesChannel);
       };
     }
-  }, [user, loadSavedLocales]);
+  }, [user]);
 
+  // ✅ FIX v271.0: Separate effect for recalculating distances when location changes
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v270.0] Recalculating distances with new user location');
+      console.log('[Favoritos v271.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -310,12 +313,12 @@ export default function FavoritosScreen() {
       });
       setAllSavedLocales(updatedLocales);
     }
-  }, [userLocation, allSavedLocales]);
+  }, [userLocation]);
 
   // ✅ CRITICAL v241.0: Client-side filtering (triggered by debouncedQuery)
   const filteredLocales = useMemo(() => {
     const query = debouncedQuery.toLowerCase().trim();
-    console.log('[Favoritos v270.0] 🔍 Filtering locales client-side, search:', query);
+    console.log('[Favoritos v271.0] 🔍 Filtering locales client-side, search:', query);
     let filtered = [...allSavedLocales];
 
     if (query) {
@@ -348,7 +351,7 @@ export default function FavoritosScreen() {
       filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
     }
 
-    console.log('[Favoritos v270.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
+    console.log('[Favoritos v271.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
     return filtered;
   }, [debouncedQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
@@ -358,7 +361,7 @@ export default function FavoritosScreen() {
     setDisplayedLocales(firstPage);
     setHasMore(filteredLocales.length > firstPage.length);
     
-    console.log('[Favoritos v270.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
+    console.log('[Favoritos v271.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
   }, [filteredLocales, currentPage]);
 
   const loadMoreLocales = useCallback(() => {
@@ -371,12 +374,12 @@ export default function FavoritosScreen() {
       setCurrentPage(nextPage);
       setLoadingMore(false);
       
-      console.log('[Favoritos v270.0] Cargando más locales, página:', nextPage);
+      console.log('[Favoritos v271.0] Cargando más locales, página:', nextPage);
     }, 300);
   }, [currentPage, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v270.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v271.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setDebouncedQuery('');
@@ -389,7 +392,7 @@ export default function FavoritosScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v270.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v271.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setSelectedCategory('todas');
@@ -412,23 +415,23 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v270.0] User not authenticated');
+      console.log('[Favoritos v271.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v270.0] No local ID');
+      console.log('[Favoritos v271.0] No local ID');
       return;
     }
 
-    console.log('[Favoritos v270.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
+    console.log('[Favoritos v271.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
     
     // ✅ OPTIMISTIC UI: toggleFavorite updates UI instantly
     const success = await toggleFavorite(localId);
     
     if (success) {
-      console.log('[Favoritos v270.0] ✅ Favorite toggle completed - reloading list');
+      console.log('[Favoritos v271.0] ✅ Favorite toggle completed - reloading list');
       // Reload the list to remove the item if it was unfavorited
       await loadSavedLocales();
     }
@@ -612,7 +615,7 @@ export default function FavoritosScreen() {
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={(e) => {
-              console.log('[Favoritos v270.0] 👆 User tapped favorite button for local:', item.id);
+              console.log('[Favoritos v271.0] 👆 User tapped favorite button for local:', item.id);
               handleToggleFavorito(item.id, e);
             }}
           >
@@ -817,7 +820,7 @@ export default function FavoritosScreen() {
             )}
           </View>
           
-          {/* ✅ FIX v269.0: Filter button height standardized to 40px (same as Explorar) */}
+          {/* ✅ FIX v271.0: Filter button height standardized to 40px (same as Explorar) */}
           <View style={styles.compactSearchRow}>
             <View style={styles.searchContainer}>
               <IconSymbol 
@@ -841,7 +844,7 @@ export default function FavoritosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Favoritos v270.0] 🧹 Clearing search');
+                    console.log('[Favoritos v271.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -1128,14 +1131,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  // ✅ FIX v269.0: Search row with proper alignment
+  // ✅ FIX v271.0: Search row with proper alignment (same as Explorar)
   compactSearchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     marginBottom: Platform.OS === 'android' ? 6 : 8,
   },
-  // ✅ FIX v269.0: Search container with FIXED HEIGHT (40px) - same as Explorar
+  // ✅ FIX v271.0: Search container with FIXED HEIGHT (40px) - same as Explorar
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -1155,7 +1158,7 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
-  // ✅ FIX v269.0: Filter button with SAME HEIGHT as search (40px) - same as Explorar
+  // ✅ FIX v271.0: Filter button with SAME HEIGHT as search (40px) - same as Explorar
   filterIconButtonCompact: {
     width: 40,
     height: 40, // ✅ SAME HEIGHT as search container - same as Explorar
