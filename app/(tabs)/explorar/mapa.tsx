@@ -20,6 +20,7 @@ import {
   Platform,
   Dimensions,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { calcularDistancia } from '@/utils/locationUtils';
 import { addPubCategoryIfNeeded, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
@@ -27,90 +28,27 @@ import { supabase } from '@/utils/supabase';
 
 const { width, height } = Dimensions.get('window');
 
+// ✅ FIX v268.0: Same header height as Explorar for consistency
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 120 : 140;
+const HEADER_MIN_HEIGHT = 0;
+const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+
 /**
- * 🗺️ MAPA OPTIMIZADO CON MAPLIBRE GL JS + DETECCIÓN MANUAL POR PROXIMIDAD
+ * 🗺️ MAPA SCREEN v268.0 - ANIMATED HEADER LIKE EXPLORAR
  * 
- * ═══════════════════════════════════════════════════════════════
- * CARACTERÍSTICAS IMPLEMENTADAS:
- * ═══════════════════════════════════════════════════════════════
+ * NEW FIXES v268.0:
+ * - ✅ ANIMATED HEADER: Same collapsing behavior as Explorar page
+ * - ✅ CONSISTENT DESIGN: Matches Explorar header structure
+ * - ✅ SMOOTH ANIMATIONS: Header hides on scroll down, shows on scroll up
+ * - ✅ COMPACT LAYOUT: Reduced header height for more map visibility
  * 
- * ✅ MAPLIBRE GL JS CON GEOJSON
- *    - Renderizado GPU-accelerated
- *    - Clustering nativo de marcadores
- *    - Popups interactivos con información
- *    - Filtros por categoría y estado
- * 
- * ✅ CONTROLES DE MAPA RESTRINGIDOS
- *    - ❌ Rotación desactivada (dragRotate: false)
- *    - ❌ Inclinación desactivada (pitchWithRotate: false)
- *    - ❌ Rotación táctil desactivada (touchZoomRotate: false)
- *    - ❌ Inclinación táctil desactivada (touchPitch: false)
- *    - ✅ Solo desplazamiento y zoom permitidos
- * 
- * ✅ DETECCIÓN MANUAL POR PROXIMIDAD EN PÍXELES CON FILTROS SINCRONIZADOS (v262.0)
- *    - ✅ NO usa queryRenderedFeatures (evita problemas de capas)
- *    - ✅ PROYECCIÓN A PÍXELES: map.project() convierte lat/lng a coordenadas de pantalla
- *    - ✅ TOLERANCIA FIJA EN PÍXELES: 30px (tamaño físico del dedo)
- *    - ✅ Área de clic CONSISTENTE sin importar el zoom
- *    - ✅ Distancia en píxeles (Pitágoras): sqrt(dx² + dy²)
- *    - ✅ SINCRONIZACIÓN CON FILTROS: valida categoría y estado antes de calcular distancia
- *    - ✅ Ignora locales ocultos por filtros (no abre popup si está filtrado)
- *    - ✅ Búsqueda del local MÁS CERCANO (evita conflictos en zoom lejano)
- *    - ✅ Búsqueda manual en window.allLocales
- *    - ✅ Evento touchstart para captura inmediata
- *    - ✅ Zoom y centrado automático con flyTo
- *    - ✅ Crea feature falsa para reutilizar showPopupForFeature
- *    - ✅ touch-action: none !important en canvas
- *    - ✅ pointer-events: auto en canvas y popup
- *    - ✅ -webkit-user-select: none para evitar selección de texto
- *    - ✅ z-index alto en popups para visibilidad garantizada
- * 
- * ✅ FILTROS DINÁMICOS
- *    - Por categoría (cafés, restaurantes, bares, etc.)
- *    - Por estado (todos/solo abiertos)
- *    - Actualización en tiempo real del mapa
- * 
- * ✅ UBICACIÓN DEL USUARIO
- *    - ✅ Marcador azul con pulso animado
- *    - ✅ Círculo exterior con animación de pulso
- *    - ✅ Botón para centrar en ubicación
- *    - ✅ Permisos de ubicación manejados
- * 
- * 🎨 COLORES DE ESTADO:
- * ═══════════════════════════════════════════════════════════════
- * - 🟢 Verde (#22C55E): Local abierto
- * - 🔴 Rojo (#EF4444): Local cerrado
- * - ⚪ Gris (#9CA3AF): Sin información
- * 
- * 🔧 FIXES APLICADOS v267.0 (POPUP CENTRADO DINÁMICAMENTE):
- * ═══════════════════════════════════════════════════════════════
- * 1. ✅ CENTRADO DINÁMICO: El popup se centra DESPUÉS del zoom automático
- * 2. ✅ CALLBACK ENCADENADO: flyTo → onMoveEnd → centrar popup
- * 3. ✅ ALTURA DINÁMICA: Calcula la altura real del popup desde el DOM
- * 4. ✅ OFFSET PRECISO: Usa map.project/unproject para calcular el desplazamiento exacto
- * 5. ✅ SIEMPRE VISIBLE: El popup permanece completamente visible en pantalla
- * 6. ✅ ANIMACIÓN SUAVE: Segundo flyTo con duración de 400ms
- * 
- * Previous fixes maintained (v266.0):
- * - ✅ BLOQUEO DE CLUSTERS: Verifica clusters PRIMERO con queryRenderedFeatures
- * - ✅ Return inmediato si es cluster (evita popup erróneo)
- * - ✅ SINCRONIZACIÓN DE FILTROS: Valida categoría y estado antes de calcular distancia
- * - ✅ Ignora locales ocultos por filtros (no abre popup)
- * - ✅ TOLERANCIA REDUCIDA: 20px (más preciso que 30px)
- * - ✅ POPUP CORREGIDO: Sin cantidad total de reseñas
- * - ✅ RATING CORREGIDO: Usa rating o google_rating (prioridad rating)
- * - ✅ Formateo correcto con punto decimal (1.5 en lugar de 1,5)
- * - ✅ PROYECCIÓN A PÍXELES: map.project([lng, lat]) convierte a coordenadas de pantalla
- * - ✅ Área de clic CONSISTENTE sin importar el zoom
- * - ✅ Distancia en píxeles: Math.sqrt(dx² + dy²)
- * - ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)
- * - ✅ Evita conflictos entre locales pegados en zoom lejano
- * - ✅ window.allLocales almacena todos los locales en memoria
- * - ✅ touch-action: none !important en html, body, #map, canvas
- * - ✅ pointer-events: auto !important en canvas
- * - ✅ Feature falsa reutiliza showPopupForFeature existente
- * - ✅ Logs detallados para debugging de proximidad y filtros
- * - ✅ NO HACER NADA si no se encuentra local que cumpla filtros
+ * Previous features maintained (v267.0):
+ * - ✅ MAPLIBRE GL JS CON GEOJSON
+ * - ✅ CONTROLES DE MAPA RESTRINGIDOS
+ * - ✅ DETECCIÓN MANUAL POR PROXIMIDAD EN PÍXELES CON FILTROS SINCRONIZADOS
+ * - ✅ FILTROS DINÁMICOS
+ * - ✅ UBICACIÓN DEL USUARIO
+ * - ✅ CENTRADO DINÁMICO DEL POPUP DESPUÉS DEL ZOOM
  */
 
 const CATEGORIAS = [
@@ -235,14 +173,20 @@ export default function MapaScreen() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
   
+  // ✅ NEW v268.0: Animated header like Explorar
+  const scrollY = useRef(0);
+  const lastScrollY = useRef(0);
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
+  const [headerVisible, setHeaderVisible] = useState(true);
+  
   // 🚀 CALLBACKS MEMOIZADOS - Evitar recreación en cada render
   const handleCategoriaChange = useCallback((categoriaId: string) => {
-    console.log('🗺️ [MAPA] Cambiando categoría a:', categoriaId);
+    console.log('🗺️ [MAPA v268.0] Cambiando categoría a:', categoriaId);
     setCategoriaSeleccionada(categoriaId);
   }, []);
   
   const handleEstadoChange = useCallback((estado: 'todos' | 'no_cerrados') => {
-    console.log('🗺️ [MAPA] Cambiando estado a:', estado);
+    console.log('🗺️ [MAPA v268.0] Cambiando estado a:', estado);
     setFiltroEstado(estado);
   }, []);
   
@@ -253,6 +197,18 @@ export default function MapaScreen() {
   const handleCloseFiltros = useCallback(() => {
     setMostrarFiltros(false);
   }, []);
+
+  // ✅ NEW v268.0: Toggle header visibility
+  const toggleHeaderVisibility = useCallback(() => {
+    const newVisible = !headerVisible;
+    setHeaderVisible(newVisible);
+    
+    Animated.timing(headerTranslateY, {
+      toValue: newVisible ? 0 : -HEADER_SCROLL_DISTANCE,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }, [headerVisible, headerTranslateY]);
 
   // HTML con MAPLIBRE GL JS + DETECCIÓN MANUAL POR PROXIMIDAD
   const mapHTML = useMemo(() => {
@@ -1324,7 +1280,14 @@ console.log('🗺️ [MAPA] ═════════════════�
         )}
       </View>
 
-      <View style={styles.headerContainer}>
+      <Animated.View 
+        style={[
+          styles.headerContainer,
+          {
+            transform: [{ translateY: headerTranslateY }],
+          },
+        ]}
+      >
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -1349,7 +1312,7 @@ console.log('🗺️ [MAPA] ═════════════════�
             ))}
           </ScrollView>
         </LinearGradient>
-      </View>
+      </Animated.View>
 
       <View style={styles.controlsLeft}>
         <TouchableOpacity 
@@ -1379,6 +1342,23 @@ console.log('🗺️ [MAPA] ═════════════════�
           <IconSymbol 
             ios_icon_name="line.3.horizontal.decrease.circle.fill" 
             android_material_icon_name="filter_list" 
+            size={controlIconSize} 
+            color={colors.primary} 
+          />
+        </TouchableOpacity>
+
+        {/* ✅ NEW v268.0: Toggle header visibility button */}
+        <TouchableOpacity 
+          style={[styles.controlButton, {
+            width: controlButtonSize,
+            height: controlButtonSize,
+            borderRadius: controlButtonSize / 2,
+          }]}
+          onPress={toggleHeaderVisibility}
+        >
+          <IconSymbol 
+            ios_icon_name={headerVisible ? "eye.slash.fill" : "eye.fill"}
+            android_material_icon_name={headerVisible ? "visibility_off" : "visibility"}
             size={controlIconSize} 
             color={colors.primary} 
           />
