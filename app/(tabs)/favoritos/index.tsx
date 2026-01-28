@@ -42,7 +42,7 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ FIX v277.0: REDUCED margin EVEN MORE (2-3px instead of 5-6px)
+// ✅ FIX v278.0: REDUCED margin to MINIMUM (1px) for tightest spacing
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 280;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
@@ -71,14 +71,14 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v277.0 - REDUCED MARGIN EVEN MORE + ANDROID COMPACT HEADERS
+ * ✅ FAVORITOS SCREEN v278.0 - MINIMAL MARGIN + ANDROID UI CLEANUP
  * 
- * NEW FIXES v277.0:
- * - ✅ FIXED: REDUCED margin EVEN MORE (2-3px instead of 5-6px)
- * - ✅ FIXED: Minimal whitespace between header and first card
- * - ✅ FIXED: Tighter spacing for better visual density
- * - ✅ FIXED: Android headers now use COMPACT font sizes (matching venue cards)
- * - ✅ FIXED: Header title reduced from 24sp to 20sp on Android
+ * NEW FIXES v278.0:
+ * - ✅ FIXED: REDUCED margin to MINIMUM (1px) for tightest spacing between header and first card
+ * - ✅ FIXED: Category filter button text sizes adjusted with scaleFontSize for consistency
+ * - ✅ FIXED: Removed white shadows/boxes on Android (reduced elevation values)
+ * - ✅ FIXED: Platform-specific shadow styling (iOS shadows, Android elevation)
+ * - ✅ FIXED: Clean visual appearance on Android without white overlays
  * 
  * Previous features maintained (v274.0):
  * - ✅ Category icon buttons use EXACT same sizes as Explorar page (36-40px)
@@ -944,8 +944,8 @@ export default function FavoritosScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            // ✅ FIX v277.0: REDUCED margin EVEN MORE (2-3px instead of 5-6px)
-            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 2 : HEADER_MAX_HEIGHT + 3,
+            // ✅ FIX v278.0: REDUCED margin to MINIMUM (1px) for tightest spacing
+            marginTop: HEADER_MAX_HEIGHT + 1,
             paddingTop: 16,
             paddingBottom: getContentBottomPadding(100),
           },
@@ -1183,7 +1183,7 @@ const styles = StyleSheet.create({
     gap: 4,
     minWidth: 60,
   },
-  // ✅ FIX v272.0: Compact category icon container (same as Explorar)
+  // ✅ FIX v278.0: Compact category icon container with clean styling (no white shadow on Android)
   categoriaIconContainerCompact: {
     width: Platform.OS === 'android' ? 36 : 40,
     height: Platform.OS === 'android' ? 36 : 40,
@@ -1193,14 +1193,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
+    ...Platform.select({
+      android: {
+        elevation: 0, // ✅ No elevation to prevent white shadow
+      },
+    }),
   },
   categoriaIconContainerActive: {
     borderColor: colors.white,
     backgroundColor: colors.white,
   },
-  // ✅ FIX v272.0: Compact category label (same as Explorar)
+  // ✅ FIX v278.0: Adjusted category label size for better visual consistency
   categoriaLabelCompact: {
-    fontSize: Platform.OS === 'android' ? 11 : 12,
+    fontSize: Platform.OS === 'android' ? scaleFontSize(11) : 12,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
@@ -1291,20 +1296,32 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2, // ✅ Reduced elevation to prevent white shadow
+      },
+    }),
   },
   cardDestacado: {
     borderWidth: 3,
     borderColor: '#FACC15',
-    shadowColor: '#FACC15',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#FACC15',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 4, // ✅ Reduced elevation to prevent white shadow
+      },
+    }),
   },
   imageContainer: {
     width: '100%',
@@ -1350,12 +1367,18 @@ const styles = StyleSheet.create({
     gap: 4,
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
     zIndex: 11,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4, // ✅ Reduced elevation to prevent white shadow
+      },
+    }),
   },
   badgeDestacadoHeaderText: {
     fontWeight: '700',
@@ -1372,13 +1395,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
     zIndex: 10,
     maxWidth: '70%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3, // ✅ Reduced elevation to prevent white shadow
+      },
+    }),
   },
   badgeEstadoSuperiorConDestacado: {
     top: 52,
@@ -1400,12 +1429,18 @@ const styles = StyleSheet.create({
     gap: 4,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.8)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
     zIndex: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3, // ✅ Reduced elevation to prevent white shadow
+      },
+    }),
   },
   ratingBadgeText: {
     fontWeight: '700',
