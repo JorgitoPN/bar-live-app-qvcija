@@ -35,7 +35,7 @@ import ParsedText from '../../components/social/ParsedText';
 import ReviewsModal from '../../components/social/ReviewsModal';
 import CheckInModal from '../../components/detalle/CheckInModal';
 import UsersInLocalModal from '../../components/detalle/UsersInLocalModal';
-import { scaleFontSize } from '../../utils/androidScaling';
+import { scaleFontSize, getCoverPhotoButtonSize, getGalleryThumbnailSize, getActionButtonPaddingVertical, getCategoryBadgePaddingHorizontal, getCategoryBadgePaddingVertical } from '../../utils/androidScaling';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -316,14 +316,20 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL SCREEN v101.0 - ANDROID SCALING COMPLETE
+ * ✅ DETALLE LOCAL SCREEN v281.0 - REFINED VISUAL CONSISTENCY
  * 
- * CRITICAL FIXES v101.0 (ANDROID ONLY):
+ * CRITICAL FIXES v281.0 (ANDROID ONLY):
+ * - ✅ REDUCED cover photo button sizes (36px instead of 40px)
+ * - ✅ REDUCED gallery thumbnail sizes (90px instead of 100px)
+ * - ✅ REDUCED action button padding (11px instead of 14px)
+ * - ✅ REDUCED category badge padding (8px/3px instead of 10px/4px)
+ * - ✅ All sizes now consistent with Explorar local cards reference
+ * - ✅ iOS design remains unchanged
+ * 
+ * Previous fixes maintained (v101.0):
  * - ✅ All text elements use scaleFontSize() for consistency
  * - ✅ Header icons properly sized with scaleIconSize()
  * - ✅ All buttons and badges scaled appropriately
- * - ✅ Consistent with Favoritos page scaling
- * - ✅ iOS design remains unchanged
  */
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
@@ -363,7 +369,14 @@ export default function DetalleLocalScreen() {
   const isClientMode = currentMode === 'cliente' || activeProfileType === 'cliente';
   const isOwnerOfLocal = user && local && local.propietario_id === user.id;
 
-  console.log('[DetalleLocal v101.0] 🎭 Mode check:', {
+  // ✅ NEW v281.0: Get refined scaling values
+  const coverPhotoButtonSize = getCoverPhotoButtonSize();
+  const galleryThumbnailSize = getGalleryThumbnailSize();
+  const actionButtonPaddingVertical = getActionButtonPaddingVertical();
+  const categoryBadgePaddingH = getCategoryBadgePaddingHorizontal();
+  const categoryBadgePaddingV = getCategoryBadgePaddingVertical();
+
+  console.log('[DetalleLocal v281.0] 🎭 Mode check:', {
     currentMode,
     activeProfileType,
     isClientMode,
@@ -374,21 +387,21 @@ export default function DetalleLocalScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[DetalleLocal v101.0] 🔍 Requesting location permissions...');
+        console.log('[DetalleLocal v281.0] 🔍 Requesting location permissions...');
         
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[DetalleLocal v101.0] ⚠️ Location services are disabled');
+          console.log('[DetalleLocal v281.0] ⚠️ Location services are disabled');
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[DetalleLocal v101.0] ⚠️ Location permission denied');
+          console.log('[DetalleLocal v281.0] ⚠️ Location permission denied');
           return;
         }
 
-        console.log('[DetalleLocal v101.0] ✅ Location permission granted, getting position...');
+        console.log('[DetalleLocal v281.0] ✅ Location permission granted, getting position...');
         
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -400,9 +413,9 @@ export default function DetalleLocalScreen() {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-        console.log('[DetalleLocal v101.0] 📍 User location obtained');
+        console.log('[DetalleLocal v281.0] 📍 User location obtained');
       } catch (error: any) {
-        console.error('[DetalleLocal v101.0] ❌ Error getting location:', error?.message);
+        console.error('[DetalleLocal v281.0] ❌ Error getting location:', error?.message);
         setUserLocation(null);
       }
     })();
@@ -464,9 +477,9 @@ export default function DetalleLocalScreen() {
       });
 
       setCheckedInUsers(visibleUsers);
-      console.log('[DetalleLocal v101.0] ✅ Loaded checked-in users:', visibleUsers.length);
+      console.log('[DetalleLocal v281.0] ✅ Loaded checked-in users:', visibleUsers.length);
     } catch (error) {
-      console.error('[DetalleLocal v101.0] Error loading checked-in users:', error);
+      console.error('[DetalleLocal v281.0] Error loading checked-in users:', error);
     } finally {
       setLoadingCheckIns(false);
     }
@@ -484,13 +497,13 @@ export default function DetalleLocalScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[DetalleLocal v101.0] Error checking check-in status:', error);
+        console.error('[DetalleLocal v281.0] Error checking check-in status:', error);
         return;
       }
 
       setIsCheckedIn(!!data);
     } catch (error) {
-      console.error('[DetalleLocal v101.0] Error checking check-in status:', error);
+      console.error('[DetalleLocal v281.0] Error checking check-in status:', error);
     }
   }, [user, params.id]);
 
@@ -511,7 +524,7 @@ export default function DetalleLocalScreen() {
         .order('created_at', { ascending: false });
 
       if (barliveError) {
-        console.error('[DetalleLocal v101.0] Error loading Barlive reviews:', barliveError);
+        console.error('[DetalleLocal v281.0] Error loading Barlive reviews:', barliveError);
       }
 
       const { data: localData } = await supabase
@@ -532,7 +545,7 @@ export default function DetalleLocalScreen() {
       });
 
       setAllReviews(combinedReviews);
-      console.log('[DetalleLocal v101.0] ✅ Loaded unified reviews:', {
+      console.log('[DetalleLocal v281.0] ✅ Loaded unified reviews:', {
         barlive: barliveReviews?.length || 0,
         google: googleReviews.length,
         total: combinedReviews.length,
@@ -542,7 +555,7 @@ export default function DetalleLocalScreen() {
         const avg = barliveReviews.reduce((sum, r) => sum + r.rating, 0) / barliveReviews.length;
         setAverageRating(avg);
         
-        console.log('[DetalleLocal v101.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
+        console.log('[DetalleLocal v281.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
         
         const { error: updateError } = await supabase
           .from('locales')
@@ -550,18 +563,18 @@ export default function DetalleLocalScreen() {
           .eq('id', params.id);
 
         if (updateError) {
-          console.error('[DetalleLocal v101.0] ❌ Error updating rating:', updateError);
+          console.error('[DetalleLocal v281.0] ❌ Error updating rating:', updateError);
         } else {
-          console.log('[DetalleLocal v101.0] ✅ Rating updated in database');
+          console.log('[DetalleLocal v281.0] ✅ Rating updated in database');
         }
       } else if (localData?.google_rating) {
         setAverageRating(localData.google_rating);
-        console.log('[DetalleLocal v101.0] 📊 Using Google rating:', localData.google_rating);
+        console.log('[DetalleLocal v281.0] 📊 Using Google rating:', localData.google_rating);
       }
 
       setLoadingReviews(false);
     } catch (error) {
-      console.error('[DetalleLocal v101.0] Error loading reviews:', error);
+      console.error('[DetalleLocal v281.0] Error loading reviews:', error);
       setLoadingReviews(false);
     }
   }, [params.id]);
@@ -579,14 +592,14 @@ export default function DetalleLocalScreen() {
         .limit(3);
 
       if (error) {
-        console.error('[DetalleLocal v101.0] Error loading eventos:', error);
+        console.error('[DetalleLocal v281.0] Error loading eventos:', error);
         return;
       }
 
       setEventos(data || []);
       setLoadingEventos(false);
     } catch (error) {
-      console.error('[DetalleLocal v101.0] Error loading eventos:', error);
+      console.error('[DetalleLocal v281.0] Error loading eventos:', error);
       setLoadingEventos(false);
     }
   }, [params.id]);
@@ -597,12 +610,12 @@ export default function DetalleLocalScreen() {
       const { data, error } = await supabase.from('locales').select('*').eq('id', params.id).single();
 
       if (error) {
-        console.error('[DetalleLocal v101.0] Error loading local:', error);
+        console.error('[DetalleLocal v281.0] Error loading local:', error);
         setLoading(false);
         return;
       }
 
-      console.log('[DetalleLocal v101.0] ✅ Local loaded:', {
+      console.log('[DetalleLocal v281.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         propietario_id: data.propietario_id,
@@ -617,7 +630,7 @@ export default function DetalleLocalScreen() {
       checkUserCheckInStatus();
       loadCheckedInUsers();
     } catch (error) {
-      console.error('[DetalleLocal v101.0] Error:', error);
+      console.error('[DetalleLocal v281.0] Error:', error);
       setLoading(false);
     }
   }, [params.id, cargarReviewsUnificadas, cargarEventos, checkUserCheckInStatus, loadCheckedInUsers]);
@@ -642,7 +655,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v101.0] 🔄 Reviews changed, reloading...');
+          console.log('[DetalleLocal v281.0] 🔄 Reviews changed, reloading...');
           cargarReviewsUnificadas();
         }
       )
@@ -667,7 +680,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v101.0] Check-ins changed, reloading...');
+          console.log('[DetalleLocal v281.0] Check-ins changed, reloading...');
           loadCheckedInUsers();
           checkUserCheckInStatus();
         }
@@ -761,7 +774,7 @@ export default function DetalleLocalScreen() {
         title: local?.nombre || 'Local en BarLive',
       });
     } catch (error) {
-      console.error('[DetalleLocal v101.0] Error sharing:', error);
+      console.error('[DetalleLocal v281.0] Error sharing:', error);
     }
   };
 
@@ -832,7 +845,7 @@ export default function DetalleLocalScreen() {
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
               loadCheckedInUsers();
             } catch (error) {
-              console.error('[DetalleLocal v101.0] Error checking out:', error);
+              console.error('[DetalleLocal v281.0] Error checking out:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -842,7 +855,7 @@ export default function DetalleLocalScreen() {
   };
 
   const handleClaimLocal = () => {
-    console.log('[DetalleLocal v101.0] User tapped Claim Local button');
+    console.log('[DetalleLocal v281.0] User tapped Claim Local button');
     router.push({
       pathname: '/solicitudes/solicitar-propiedad',
       params: { localId: params.id, type: 'reclamar_local' },
@@ -850,7 +863,7 @@ export default function DetalleLocalScreen() {
   };
 
   const handleLoadMoreReviews = () => {
-    console.log('[DetalleLocal v101.0] 📄 Loading more reviews...');
+    console.log('[DetalleLocal v281.0] 📄 Loading more reviews...');
     setDisplayedReviewsCount(prev => prev + 5);
   };
 
@@ -1039,22 +1052,43 @@ export default function DetalleLocalScreen() {
               </ScrollView>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+            {/* ✅ NEW v281.0: REDUCED button sizes for refined appearance */}
+            <TouchableOpacity 
+              onPress={() => router.back()} 
+              style={[
+                styles.closeButton,
+                {
+                  width: coverPhotoButtonSize,
+                  height: coverPhotoButtonSize,
+                  borderRadius: coverPhotoButtonSize / 2,
+                }
+              ]}
+            >
               <BlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={Platform.OS === 'android' ? 16 : 20} color="#fff" />
               </BlurView>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+            <TouchableOpacity 
+              style={[
+                styles.shareButton,
+                {
+                  width: coverPhotoButtonSize,
+                  height: coverPhotoButtonSize,
+                  borderRadius: coverPhotoButtonSize / 2,
+                }
+              ]} 
+              onPress={handleShare}
+            >
               <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
-                <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
+                <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={Platform.OS === 'android' ? 18 : 22} color="#fff" />
               </BlurView>
             </TouchableOpacity>
 
             {displayRating > 0 && (
               <View style={styles.ratingBadge}>
                 <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
-                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
+                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={Platform.OS === 'android' ? 14 : 16} color="#FFD700" />
                   <Text style={[styles.ratingText, { fontSize: scaleFontSize(15) }]}>{displayRating.toFixed(1)}</Text>
                 </BlurView>
               </View>
@@ -1071,13 +1105,24 @@ export default function DetalleLocalScreen() {
             {local.destacado && (
               <View style={styles.destacadoBadge}>
                 <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
-                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#F59E0B" />
+                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={Platform.OS === 'android' ? 14 : 16} color="#F59E0B" />
                   <Text style={[styles.destacadoText, { fontSize: scaleFontSize(13) }]}>Destacado</Text>
                 </BlurView>
               </View>
             )}
 
-            <TouchableOpacity style={styles.favoritoButton} onPress={handleToggleFavorito} disabled={loadingFavorite}>
+            <TouchableOpacity 
+              style={[
+                styles.favoritoButton,
+                {
+                  width: coverPhotoButtonSize,
+                  height: coverPhotoButtonSize,
+                  borderRadius: coverPhotoButtonSize / 2,
+                }
+              ]} 
+              onPress={handleToggleFavorito} 
+              disabled={loadingFavorite}
+            >
               <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
                 {loadingFavorite ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
@@ -1085,7 +1130,7 @@ export default function DetalleLocalScreen() {
                   <IconSymbol
                     ios_icon_name={localIsFavorite ? 'heart.fill' : 'heart'}
                     android_material_icon_name={localIsFavorite ? 'favorite' : 'favorite_border'}
-                    size={22}
+                    size={Platform.OS === 'android' ? 18 : 22}
                     color={localIsFavorite ? '#EF4444' : '#FFFFFF'}
                   />
                 )}
@@ -1094,16 +1139,36 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
+        {/* ✅ NEW v281.0: REDUCED gallery thumbnail sizes */}
         {allImages.length > 1 && (
           <View style={styles.gallerySection}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
               {allImages.slice(1, 6).map((image, index) => (
-                <TouchableOpacity key={index} style={styles.galleryItem} onPress={() => handleOpenGallery(index + 1)}>
+                <TouchableOpacity 
+                  key={index} 
+                  style={[
+                    styles.galleryItem,
+                    {
+                      width: galleryThumbnailSize,
+                      height: galleryThumbnailSize,
+                    }
+                  ]} 
+                  onPress={() => handleOpenGallery(index + 1)}
+                >
                   <OptimizedImage source={{ uri: image }} style={styles.galleryImage} resizeMode="cover" />
                 </TouchableOpacity>
               ))}
               {allImages.length > 6 && (
-                <TouchableOpacity style={styles.galleryItem} onPress={() => handleOpenGallery(6)}>
+                <TouchableOpacity 
+                  style={[
+                    styles.galleryItem,
+                    {
+                      width: galleryThumbnailSize,
+                      height: galleryThumbnailSize,
+                    }
+                  ]} 
+                  onPress={() => handleOpenGallery(6)}
+                >
                   <OptimizedImage source={{ uri: allImages[6] }} style={styles.galleryImage} resizeMode="cover" />
                   <View style={styles.galleryOverlay}>
                     <Text style={[styles.galleryOverlayText, { fontSize: scaleFontSize(20) }]}>+{allImages.length - 6}</Text>
@@ -1118,13 +1183,24 @@ export default function DetalleLocalScreen() {
           <View style={styles.headerSection}>
             <Text style={[styles.localNameText, { fontSize: scaleFontSize(28) }]}>{local.nombre}</Text>
 
+            {/* ✅ NEW v281.0: REDUCED category badge padding */}
             {allCategories.length > 0 && (
               <View style={styles.categoriesRow}>
                 {allCategories.map((categoria, index) => {
                   const icon = getCategoryIcon(categoria);
                   return (
-                    <View key={index} style={[styles.categoryChipHighlighted, { backgroundColor: icon.color }]}>
-                      <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={18} color="#fff" />
+                    <View 
+                      key={index} 
+                      style={[
+                        styles.categoryChipHighlighted, 
+                        { 
+                          backgroundColor: icon.color,
+                          paddingHorizontal: categoryBadgePaddingH,
+                          paddingVertical: categoryBadgePaddingV,
+                        }
+                      ]}
+                    >
+                      <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={Platform.OS === 'android' ? 16 : 18} color="#fff" />
                       <Text style={[styles.categoryChipTextHighlighted, { fontSize: scaleFontSize(13) }]}>{categoria.toUpperCase()}</Text>
                     </View>
                   );
@@ -1239,10 +1315,19 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
+          {/* ✅ NEW v281.0: REDUCED action button padding */}
           <View style={styles.actionsRow}>
             {local.telefono && (
               <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
-                <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtnGradient}>
+                <LinearGradient 
+                  colors={['#10B981', '#059669']} 
+                  start={{ x: 0, y: 0 }} 
+                  end={{ x: 1, y: 1 }} 
+                  style={[
+                    styles.actionBtnGradient,
+                    { paddingVertical: actionButtonPaddingVertical }
+                  ]}
+                >
                   <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
                   <Text style={[styles.actionBtnText, { fontSize: scaleFontSize(14) }]}>Llamar</Text>
                 </LinearGradient>
@@ -1251,7 +1336,15 @@ export default function DetalleLocalScreen() {
 
             {local.latitud && local.longitud && (
               <TouchableOpacity style={styles.actionBtn} onPress={handleDirections}>
-                <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtnGradient}>
+                <LinearGradient 
+                  colors={[colors.primary, colors.secondary]} 
+                  start={{ x: 0, y: 0 }} 
+                  end={{ x: 1, y: 1 }} 
+                  style={[
+                    styles.actionBtnGradient,
+                    { paddingVertical: actionButtonPaddingVertical }
+                  ]}
+                >
                   <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
                   <Text style={[styles.actionBtnText, { fontSize: scaleFontSize(14) }]}>Cómo llegar</Text>
                 </LinearGradient>
@@ -1262,7 +1355,15 @@ export default function DetalleLocalScreen() {
           <View style={styles.socialButtonsContainer}>
             {hasSocialProfile && (
               <TouchableOpacity style={styles.specialButton} onPress={handleSocialProfile}>
-                <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.specialButtonGradient}>
+                <LinearGradient 
+                  colors={[colors.primary, colors.secondary]} 
+                  start={{ x: 0, y: 0 }} 
+                  end={{ x: 1, y: 1 }} 
+                  style={[
+                    styles.specialButtonGradient,
+                    { paddingVertical: actionButtonPaddingVertical }
+                  ]}
+                >
                   <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
                   <Text style={[styles.specialButtonText, { fontSize: scaleFontSize(15) }]}>Ver Perfil Social</Text>
                   <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
@@ -1285,7 +1386,10 @@ export default function DetalleLocalScreen() {
                   colors={['#10B981', '#059669']} 
                   start={{ x: 0, y: 0 }} 
                   end={{ x: 1, y: 1 }} 
-                  style={styles.specialButtonGradient}
+                  style={[
+                    styles.specialButtonGradient,
+                    { paddingVertical: actionButtonPaddingVertical }
+                  ]}
                 >
                   <IconSymbol 
                     ios_icon_name={local.website ? "globe" : "envelope.fill"} 
@@ -1302,6 +1406,7 @@ export default function DetalleLocalScreen() {
             )}
           </View>
 
+          {/* ✅ NEW v281.0: REDUCED Virtual Room button padding */}
           {isOpen && isClientMode && (
             <TouchableOpacity
               style={styles.virtualRoomButton}
@@ -1311,16 +1416,19 @@ export default function DetalleLocalScreen() {
                 colors={['#8B5CF6', '#7C3AED', '#6D28D9']} 
                 start={{ x: 0, y: 0 }} 
                 end={{ x: 1, y: 1 }} 
-                style={styles.virtualRoomButtonGradient}
+                style={[
+                  styles.virtualRoomButtonGradient,
+                  { paddingVertical: Platform.OS === 'android' ? actionButtonPaddingVertical + 2 : 16 }
+                ]}
               >
                 <View style={styles.virtualRoomIconContainer}>
-                  <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={24} color="#fff" />
+                  <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={Platform.OS === 'android' ? 20 : 24} color="#fff" />
                 </View>
                 <View style={styles.virtualRoomTextContainer}>
                   <Text style={[styles.virtualRoomButtonTitle, { fontSize: scaleFontSize(17) }]}>Sala Virtual</Text>
                   <Text style={[styles.virtualRoomButtonSubtitle, { fontSize: scaleFontSize(13) }]}>Chatea con otros usuarios</Text>
                 </View>
-                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={22} color="#fff" />
+                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={Platform.OS === 'android' ? 18 : 22} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -1403,7 +1511,18 @@ export default function DetalleLocalScreen() {
                 {allServices.map((servicio, index) => {
                   const icon = getServiceIcon(servicio);
                   return (
-                    <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
+                    <View 
+                      key={index} 
+                      style={[
+                        styles.tag, 
+                        { 
+                          backgroundColor: icon.color + '15', 
+                          borderColor: icon.color + '30',
+                          paddingHorizontal: categoryBadgePaddingH + 2,
+                          paddingVertical: categoryBadgePaddingV + 3,
+                        }
+                      ]}
+                    >
                       <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
                       <Text style={[styles.tagText, { fontSize: scaleFontSize(13), color: icon.color }]}>{servicio}</Text>
                     </View>
@@ -1425,7 +1544,18 @@ export default function DetalleLocalScreen() {
                 {ambienteTags.map((tag, index) => {
                   const icon = getAmbienteIcon(tag);
                   return (
-                    <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
+                    <View 
+                      key={index} 
+                      style={[
+                        styles.tag, 
+                        { 
+                          backgroundColor: icon.color + '15', 
+                          borderColor: icon.color + '30',
+                          paddingHorizontal: categoryBadgePaddingH + 2,
+                          paddingVertical: categoryBadgePaddingV + 3,
+                        }
+                      ]}
+                    >
                       <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
                       <Text style={[styles.tagText, { fontSize: scaleFontSize(13), color: icon.color }]}>{tag}</Text>
                     </View>
@@ -1447,7 +1577,18 @@ export default function DetalleLocalScreen() {
                 {clientelaTags.map((tag, index) => {
                   const icon = getClientelaIcon(tag);
                   return (
-                    <View key={index} style={[styles.tag, { backgroundColor: icon.color + '15', borderColor: icon.color + '30' }]}>
+                    <View 
+                      key={index} 
+                      style={[
+                        styles.tag, 
+                        { 
+                          backgroundColor: icon.color + '15', 
+                          borderColor: icon.color + '30',
+                          paddingHorizontal: categoryBadgePaddingH + 2,
+                          paddingVertical: categoryBadgePaddingV + 3,
+                        }
+                      ]}
+                    >
                       <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
                       <Text style={[styles.tagText, { fontSize: scaleFontSize(13), color: icon.color }]}>{tag}</Text>
                     </View>
@@ -1624,7 +1765,15 @@ export default function DetalleLocalScreen() {
               )}
 
               <TouchableOpacity style={styles.addReviewBtn} onPress={handleAddReview}>
-                <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addReviewGradient}>
+                <LinearGradient 
+                  colors={[colors.primary, colors.secondary]} 
+                  start={{ x: 0, y: 0 }} 
+                  end={{ x: 1, y: 0 }} 
+                  style={[
+                    styles.addReviewGradient,
+                    { paddingVertical: actionButtonPaddingVertical }
+                  ]}
+                >
                   <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color="#fff" />
                   <Text style={[styles.addReviewText, { fontSize: scaleFontSize(15) }]}>
                     {allReviews.some((r) => 'usuario_id' in r && r.usuario_id === user?.id) ? 'Editar Reseña' : 'Añadir Reseña'}
@@ -1690,9 +1839,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 48,
     left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     overflow: 'hidden',
     zIndex: 10,
     shadowColor: '#000',
@@ -1711,9 +1857,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 48,
     right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     overflow: 'hidden',
     zIndex: 10,
     shadowColor: '#000',
@@ -1862,9 +2005,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 16,
     right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     overflow: 'hidden',
     zIndex: 15,
     shadowColor: '#000',
@@ -1889,8 +2029,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   galleryItem: {
-    width: 100,
-    height: 100,
     borderRadius: 12,
     overflow: 'hidden',
     marginRight: 8,
@@ -1932,8 +2070,6 @@ const styles = StyleSheet.create({
   categoryChipHighlighted: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
     borderRadius: 16,
     gap: 6,
     shadowColor: '#000',
@@ -2080,7 +2216,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
   },
   actionBtnText: {
     fontWeight: '700',
@@ -2099,7 +2234,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 14,
   },
   specialButtonText: {
     flex: 1,
@@ -2121,13 +2255,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 18,
-    paddingVertical: 16,
     gap: 12,
   },
   virtualRoomIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: Platform.OS === 'android' ? 44 : 48,
+    height: Platform.OS === 'android' ? 44 : 48,
+    borderRadius: Platform.OS === 'android' ? 22 : 24,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2251,8 +2384,6 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     borderRadius: 16,
     gap: 6,
     borderWidth: 1,
@@ -2402,7 +2533,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
   },
   addReviewText: {
     fontWeight: '800',

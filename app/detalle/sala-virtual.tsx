@@ -25,7 +25,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import LoginPrompt from '@/components/common/LoginPrompt';
-import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+import { scaleFontSize, scaleIconSize, getActionButtonPaddingVertical } from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -84,15 +84,18 @@ const CLOSING_WARNING_THRESHOLD = 30;
 const CLOSING_CRITICAL_THRESHOLD = 10;
 
 /**
- * ✅ SALA VIRTUAL v102.0 - ANDROID SCALING & ICON FIX
+ * ✅ SALA VIRTUAL v281.0 - REFINED VISUAL CONSISTENCY
  * 
- * CRITICAL FIXES v102.0 (ANDROID ONLY):
+ * CRITICAL FIXES v281.0 (ANDROID ONLY):
+ * - ✅ REDUCED button padding for more compact appearance
+ * - ✅ All sizes now consistent with Explorar local cards reference
+ * - ✅ iOS design remains unchanged
+ * 
+ * Previous fixes maintained (v102.0):
  * - ✅ All icons properly scaled with scaleIconSize()
  * - ✅ All text properly scaled with scaleFontSize()
  * - ✅ Fixed invalid Material icon names
  * - ✅ Avatar sizes properly scaled
- * - ✅ Button sizes properly scaled
- * - ✅ iOS design remains unchanged
  */
 
 export default function SalaVirtualScreen() {
@@ -126,6 +129,9 @@ export default function SalaVirtualScreen() {
   const hasInitialized = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
+
+  // ✅ NEW v281.0: Get refined button padding
+  const buttonPaddingVertical = getActionButtonPaddingVertical();
 
   useEffect(() => {
     Animated.loop(
@@ -172,13 +178,13 @@ export default function SalaVirtualScreen() {
 
         if (localData && localData.propietario_id === user.id) {
           setIsOwner(true);
-          console.log('[SalaVirtual v102.0] ✅ User IS OWNER of this local');
+          console.log('[SalaVirtual v281.0] ✅ User IS OWNER of this local');
         } else {
           setIsOwner(false);
-          console.log('[SalaVirtual v102.0] ✅ User is NOT owner of this local');
+          console.log('[SalaVirtual v281.0] ✅ User is NOT owner of this local');
         }
       } catch (error) {
-        console.error('[SalaVirtual v102.0] Error checking ownership:', error);
+        console.error('[SalaVirtual v281.0] Error checking ownership:', error);
         setIsOwner(false);
       }
     };
@@ -235,7 +241,7 @@ export default function SalaVirtualScreen() {
         }
       }
     } else if (!estadoLocal.estaAbierto) {
-      console.log('[SalaVirtual v102.0] ❌ Local cerrado, expulsando usuarios');
+      console.log('[SalaVirtual v281.0] ❌ Local cerrado, expulsando usuarios');
       setLocalClosed(true);
       
       if (chatChannelRef.current) {
@@ -270,7 +276,7 @@ export default function SalaVirtualScreen() {
 
   const loadLocalData = useCallback(async () => {
     if (!localId) {
-      console.error('[SalaVirtual v102.0] No localId provided');
+      console.error('[SalaVirtual v281.0] No localId provided');
       setLoading(false);
       Alert.alert('Error', 'No se especificó el local', [
         { text: 'OK', onPress: () => router.back() }
@@ -279,7 +285,7 @@ export default function SalaVirtualScreen() {
     }
 
     try {
-      console.log('[SalaVirtual v102.0] Loading local:', localId);
+      console.log('[SalaVirtual v281.0] Loading local:', localId);
       
       const { data, error } = await supabase
         .from('locales')
@@ -288,7 +294,7 @@ export default function SalaVirtualScreen() {
         .single();
 
       if (error) {
-        console.error('[SalaVirtual v102.0] Error loading local:', error);
+        console.error('[SalaVirtual v281.0] Error loading local:', error);
         setLoading(false);
         Alert.alert('Error', 'No se pudo cargar la información del local', [
           { text: 'OK', onPress: () => router.back() }
@@ -317,7 +323,7 @@ export default function SalaVirtualScreen() {
         setLocalClosed(false);
       }
     } catch (error) {
-      console.error('[SalaVirtual v102.0] Error:', error);
+      console.error('[SalaVirtual v281.0] Error:', error);
       setLoading(false);
     }
   }, [localId, router]);
@@ -337,7 +343,7 @@ export default function SalaVirtualScreen() {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[SalaVirtual v102.0] Error checking checkin:', error);
+        console.error('[SalaVirtual v281.0] Error checking checkin:', error);
         return false;
       }
 
@@ -346,7 +352,7 @@ export default function SalaVirtualScreen() {
       
       return checkedIn;
     } catch (error) {
-      console.error('[SalaVirtual v102.0] Error:', error);
+      console.error('[SalaVirtual v281.0] Error:', error);
       return false;
     }
   }, [user, localId]);
@@ -385,7 +391,7 @@ export default function SalaVirtualScreen() {
         .eq('activo', true);
 
       if (closeError) {
-        console.error('[SalaVirtual v102.0] Error closing previous check-ins:', closeError);
+        console.error('[SalaVirtual v281.0] Error closing previous check-ins:', closeError);
         setIsCheckedIn(false);
         throw new Error('No se pudo cerrar la sesión anterior');
       }
@@ -404,9 +410,9 @@ export default function SalaVirtualScreen() {
         .single();
 
       if (error) {
-        console.error('[SalaVirtual v102.0] Error inserting checkin:', error);
+        console.error('[SalaVirtual v281.0] Error inserting checkin:', error);
         setIsCheckedIn(false);
-        throw new Error('No se pudo entrar en la sala');
+        throw new Error('Nose pudo entrar en la sala');
       }
 
       if (presenceChannelRef.current) {
@@ -420,14 +426,14 @@ export default function SalaVirtualScreen() {
             },
           });
         } catch (broadcastError) {
-          console.error('[SalaVirtual v102.0] Error broadcasting user joined:', broadcastError);
+          console.error('[SalaVirtual v281.0] Error broadcasting user joined:', broadcastError);
         }
       }
       
       setCheckingIn(false);
       return true;
     } catch (error: any) {
-      console.error('[SalaVirtual v102.0] Error during checkin:', error);
+      console.error('[SalaVirtual v281.0] Error during checkin:', error);
       Alert.alert('Error', error.message || 'Ocurrió un error inesperado al entrar en la sala');
       setCheckingIn(false);
       return false;
@@ -449,7 +455,7 @@ export default function SalaVirtualScreen() {
         .eq('activo', true);
 
       if (error) {
-        console.error('[SalaVirtual v102.0] Error auto checking out:', error);
+        console.error('[SalaVirtual v281.0] Error auto checking out:', error);
         return;
       }
 
@@ -463,11 +469,11 @@ export default function SalaVirtualScreen() {
             },
           });
         } catch (broadcastError) {
-          console.error('[SalaVirtual v102.0] Error broadcasting user left:', broadcastError);
+          console.error('[SalaVirtual v281.0] Error broadcasting user left:', broadcastError);
         }
       }
     } catch (error) {
-      console.error('[SalaVirtual v102.0] Error in auto checkout:', error);
+      console.error('[SalaVirtual v281.0] Error in auto checkout:', error);
     }
   }, [user, localId, isCheckedIn]);
 
@@ -500,11 +506,11 @@ export default function SalaVirtualScreen() {
     if (!localId) return;
 
     try {
-      console.log('[SalaVirtual v102.0] ✅ Volatile chat: Starting with empty message array');
+      console.log('[SalaVirtual v281.0] ✅ Volatile chat: Starting with empty message array');
       setMessages([]);
       setLoading(false);
     } catch (error) {
-      console.error('[SalaVirtual v102.0] Error:', error);
+      console.error('[SalaVirtual v281.0] Error:', error);
       setLoading(false);
     }
   }, [localId]);
@@ -530,7 +536,7 @@ export default function SalaVirtualScreen() {
         .order('checked_in_at', { ascending: false });
 
       if (error) {
-        console.error('[SalaVirtual v102.0] Error loading active users:', error);
+        console.error('[SalaVirtual v281.0] Error loading active users:', error);
         return;
       }
 
@@ -546,14 +552,14 @@ export default function SalaVirtualScreen() {
 
       setActiveUsers(users);
     } catch (error) {
-      console.error('[SalaVirtual v102.0] Error:', error);
+      console.error('[SalaVirtual v281.0] Error:', error);
     }
   }, [localId]);
 
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
-    console.log('[SalaVirtual v102.0] 📡 Subscribing to real-time updates');
+    console.log('[SalaVirtual v281.0] 📡 Subscribing to real-time updates');
 
     const chatChannel = supabase
       .channel(`room:${localId}:chat`, {
@@ -786,7 +792,7 @@ export default function SalaVirtualScreen() {
         });
       }
     } catch (error) {
-      console.error('[SalaVirtual v102.0] Error:', error);
+      console.error('[SalaVirtual v281.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
     } finally {
       setSending(false);
@@ -807,7 +813,7 @@ export default function SalaVirtualScreen() {
         });
       }
     } catch (error) {
-      console.error('[SalaVirtual v102.0] Error:', error);
+      console.error('[SalaVirtual v281.0] Error:', error);
     }
   }, [user]);
 
@@ -828,14 +834,14 @@ export default function SalaVirtualScreen() {
         .single();
 
       if (error) {
-        console.error('[SalaVirtual v102.0] Error sending emoticon:', error);
+        console.error('[SalaVirtual v281.0] Error sending emoticon:', error);
         Alert.alert('Error', 'No se pudo enviar el emoticono');
         return;
       }
 
       Alert.alert('Enviado', `Emoticono ${emoticon} enviado`);
     } catch (error) {
-      console.error('[SalaVirtual v102.0] Error:', error);
+      console.error('[SalaVirtual v281.0] Error:', error);
     }
   }, [user, localId]);
 
@@ -876,7 +882,7 @@ export default function SalaVirtualScreen() {
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
     
-    // ✅ CRITICAL FIX v102.0: Properly scaled avatar sizes
+    // ✅ CRITICAL FIX v281.0: Properly scaled avatar sizes
     const avatarSize = Platform.OS === 'android' ? scaleIconSize(36) : 36;
 
     return (
@@ -981,7 +987,7 @@ export default function SalaVirtualScreen() {
 
     const displayName = item.username || item.nombre;
     
-    // ✅ CRITICAL FIX v102.0: Properly scaled avatar sizes
+    // ✅ CRITICAL FIX v281.0: Properly scaled avatar sizes
     const avatarSize = Platform.OS === 'android' ? scaleIconSize(52) : 52;
 
     return (
@@ -1135,7 +1141,7 @@ export default function SalaVirtualScreen() {
               onPress={handleModalClose}
               activeOpacity={0.8}
             >
-              <View style={styles.closedButtonContent}>
+              <View style={[styles.closedButtonContent, { paddingVertical: buttonPaddingVertical + 4 }]}>
                 <IconSymbol
                   ios_icon_name="arrow.left"
                   android_material_icon_name="arrow_back"
@@ -1213,7 +1219,7 @@ export default function SalaVirtualScreen() {
                   colors={[ROOM_COLORS.primary, ROOM_COLORS.secondary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={styles.tabGradient}
+                  style={[styles.tabGradient, { paddingVertical: buttonPaddingVertical - 1 }]}
                 >
                   <View style={styles.tabIconContainer}>
                     <IconSymbol
@@ -1226,7 +1232,7 @@ export default function SalaVirtualScreen() {
                   <Text style={[styles.tabTextActive, { fontSize: scaleFontSize(15) }]}>Chat Público</Text>
                 </LinearGradient>
               ) : (
-                <View style={styles.tabContent}>
+                <View style={[styles.tabContent, { paddingVertical: buttonPaddingVertical - 1 }]}>
                   <View style={styles.tabIconContainer}>
                     <IconSymbol
                       ios_icon_name="bubble.left.and.bubble.right.fill"
@@ -1249,7 +1255,7 @@ export default function SalaVirtualScreen() {
                   colors={[ROOM_COLORS.primary, ROOM_COLORS.secondary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={styles.tabGradient}
+                  style={[styles.tabGradient, { paddingVertical: buttonPaddingVertical - 1 }]}
                 >
                   <View style={styles.tabIconContainer}>
                     <IconSymbol
@@ -1267,7 +1273,7 @@ export default function SalaVirtualScreen() {
                   </View>
                 </LinearGradient>
               ) : (
-                <View style={styles.tabContent}>
+                <View style={[styles.tabContent, { paddingVertical: buttonPaddingVertical - 1 }]}>
                   <View style={styles.tabIconContainer}>
                     <IconSymbol
                       ios_icon_name="person.3.fill"
@@ -1413,7 +1419,7 @@ export default function SalaVirtualScreen() {
                 onPress={handleCheckOut}
                 activeOpacity={0.8}
               >
-                <View style={styles.checkOutButtonContent}>
+                <View style={[styles.checkOutButtonContent, { paddingVertical: buttonPaddingVertical + 2 }]}>
                   <IconSymbol
                     ios_icon_name="rectangle.portrait.and.arrow.right"
                     android_material_icon_name="logout"
@@ -1504,7 +1510,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    paddingVertical: 18,
     paddingHorizontal: 24,
   },
   closedButtonText: {
@@ -1582,7 +1587,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 12,
   },
@@ -1591,7 +1595,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 12,
     paddingHorizontal: 12,
   },
   tabIconContainer: {
@@ -1880,7 +1883,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    paddingVertical: 16,
     paddingHorizontal: 24,
   },
   checkOutButtonText: {
