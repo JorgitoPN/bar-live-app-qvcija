@@ -42,7 +42,7 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ FIX v278.0: REDUCED margin to MINIMUM (1px) for tightest spacing
+// ✅ FIX v279.0: REDUCED margin to ABSOLUTE MINIMUM (0px) for tightest spacing
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 280;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
@@ -71,13 +71,13 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v278.0 - MINIMAL MARGIN + ANDROID UI CLEANUP
+ * ✅ FAVORITOS SCREEN v279.0 - ABSOLUTE MINIMAL MARGIN + ANDROID UI CLEANUP
  * 
- * NEW FIXES v278.0:
- * - ✅ FIXED: REDUCED margin to MINIMUM (1px) for tightest spacing between header and first card
+ * NEW FIXES v279.0:
+ * - ✅ FIXED: REDUCED margin to ABSOLUTE MINIMUM (0px) for tightest spacing between header and first card
  * - ✅ FIXED: Category filter button text sizes adjusted with scaleFontSize for consistency
- * - ✅ FIXED: Removed white shadows/boxes on Android (reduced elevation values)
- * - ✅ FIXED: Platform-specific shadow styling (iOS shadows, Android elevation)
+ * - ✅ FIXED: Removed ALL white shadows/boxes on Android (elevation: 0 for category buttons)
+ * - ✅ FIXED: Platform-specific shadow styling (iOS shadows, Android minimal/no elevation)
  * - ✅ FIXED: Clean visual appearance on Android without white overlays
  * 
  * Previous features maintained (v274.0):
@@ -135,10 +135,10 @@ export default function FavoritosScreen() {
 
   // ✅ CRITICAL FIX v241.0: Debounce with cleanup (300ms)
   useEffect(() => {
-    console.log('[Favoritos v275.0] 📝 Search query changed:', searchQuery);
+    console.log('[Favoritos v279.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Favoritos v275.0] 🔍 Applying debounced search');
+      console.log('[Favoritos v279.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -158,10 +158,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v275.0] User location obtained:', location.coords);
+          console.log('[Favoritos v279.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v275.0] Error getting location:', error);
+        console.error('[Favoritos v279.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -187,7 +187,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v275.0] Error checking social profiles:', error);
+      console.error('[Favoritos v279.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -199,7 +199,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v275.0] Cargando locales guardados...');
+      console.log('[Favoritos v279.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -259,12 +259,12 @@ export default function FavoritosScreen() {
         
         setAllSavedLocales(formattedLocales);
         
-        console.log('[Favoritos v275.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v279.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v275.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v279.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -276,7 +276,7 @@ export default function FavoritosScreen() {
       loadSavedLocales();
 
       const savedLocalesChannel = supabase
-        .channel('user-saved-locales-changes-v275')
+        .channel('user-saved-locales-changes-v279')
         .on(
           'postgres_changes',
           {
@@ -286,7 +286,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v275.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v279.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -301,7 +301,7 @@ export default function FavoritosScreen() {
   // ✅ FIX v271.0: Separate effect for recalculating distances when location changes
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v275.0] Recalculating distances with new user location');
+      console.log('[Favoritos v279.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -321,7 +321,7 @@ export default function FavoritosScreen() {
   // ✅ CRITICAL v241.0: Client-side filtering (triggered by debouncedQuery)
   const filteredLocales = useMemo(() => {
     const query = debouncedQuery.toLowerCase().trim();
-    console.log('[Favoritos v275.0] 🔍 Filtering locales client-side, search:', query);
+    console.log('[Favoritos v279.0] 🔍 Filtering locales client-side, search:', query);
     let filtered = [...allSavedLocales];
 
     if (query) {
@@ -354,7 +354,7 @@ export default function FavoritosScreen() {
       filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
     }
 
-    console.log('[Favoritos v275.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
+    console.log('[Favoritos v279.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
     return filtered;
   }, [debouncedQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
@@ -364,7 +364,7 @@ export default function FavoritosScreen() {
     setDisplayedLocales(firstPage);
     setHasMore(filteredLocales.length > firstPage.length);
     
-    console.log('[Favoritos v275.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
+    console.log('[Favoritos v279.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
   }, [filteredLocales, currentPage]);
 
   const loadMoreLocales = useCallback(() => {
@@ -377,12 +377,12 @@ export default function FavoritosScreen() {
       setCurrentPage(nextPage);
       setLoadingMore(false);
       
-      console.log('[Favoritos v275.0] Cargando más locales, página:', nextPage);
+      console.log('[Favoritos v279.0] Cargando más locales, página:', nextPage);
     }, 300);
   }, [currentPage, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v275.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v279.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setDebouncedQuery('');
@@ -395,7 +395,7 @@ export default function FavoritosScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v275.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v279.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setSelectedCategory('todas');
@@ -418,23 +418,23 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v275.0] User not authenticated');
+      console.log('[Favoritos v279.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v275.0] No local ID');
+      console.log('[Favoritos v279.0] No local ID');
       return;
     }
 
-    console.log('[Favoritos v275.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
+    console.log('[Favoritos v279.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
     
     // ✅ OPTIMISTIC UI: toggleFavorite updates UI instantly
     const success = await toggleFavorite(localId);
     
     if (success) {
-      console.log('[Favoritos v275.0] ✅ Favorite toggle completed - reloading list');
+      console.log('[Favoritos v279.0] ✅ Favorite toggle completed - reloading list');
       // Reload the list to remove the item if it was unfavorited
       await loadSavedLocales();
     }
@@ -618,7 +618,7 @@ export default function FavoritosScreen() {
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={(e) => {
-              console.log('[Favoritos v275.0] 👆 User tapped favorite button for local:', item.id);
+              console.log('[Favoritos v279.0] 👆 User tapped favorite button for local:', item.id);
               handleToggleFavorito(item.id, e);
             }}
           >
@@ -847,7 +847,7 @@ export default function FavoritosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Favoritos v275.0] 🧹 Clearing search');
+                    console.log('[Favoritos v279.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -878,7 +878,7 @@ export default function FavoritosScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* ✅ FIX v272.0: Category buttons now use EXACT same compact style as Explorar */}
+          {/* ✅ FIX v279.0: Category buttons with adjusted text sizes and NO ELEVATION on Android */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -944,8 +944,8 @@ export default function FavoritosScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            // ✅ FIX v278.0: REDUCED margin to MINIMUM (1px) for tightest spacing
-            marginTop: HEADER_MAX_HEIGHT + 1,
+            // ✅ FIX v279.0: REDUCED margin to ABSOLUTE MINIMUM (0px) for tightest spacing
+            marginTop: HEADER_MAX_HEIGHT,
             paddingTop: 16,
             paddingBottom: getContentBottomPadding(100),
           },
@@ -1183,7 +1183,7 @@ const styles = StyleSheet.create({
     gap: 4,
     minWidth: 60,
   },
-  // ✅ FIX v278.0: Compact category icon container with clean styling (no white shadow on Android)
+  // ✅ FIX v279.0: Compact category icon container with NO ELEVATION on Android (clean styling)
   categoriaIconContainerCompact: {
     width: Platform.OS === 'android' ? 36 : 40,
     height: Platform.OS === 'android' ? 36 : 40,
@@ -1195,7 +1195,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
     ...Platform.select({
       android: {
-        elevation: 0, // ✅ No elevation to prevent white shadow
+        elevation: 0, // ✅ NO elevation to prevent white shadow
       },
     }),
   },
@@ -1203,7 +1203,7 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
     backgroundColor: colors.white,
   },
-  // ✅ FIX v278.0: Adjusted category label size for better visual consistency
+  // ✅ FIX v279.0: Adjusted category label size with scaleFontSize for consistency
   categoriaLabelCompact: {
     fontSize: Platform.OS === 'android' ? scaleFontSize(11) : 12,
     fontWeight: '600',
@@ -1304,7 +1304,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: {
-        elevation: 2, // ✅ Reduced elevation to prevent white shadow
+        elevation: 2, // ✅ Minimal elevation for card depth
       },
     }),
   },
@@ -1319,7 +1319,7 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
       },
       android: {
-        elevation: 4, // ✅ Reduced elevation to prevent white shadow
+        elevation: 4, // ✅ Minimal elevation for highlighted cards
       },
     }),
   },
@@ -1376,7 +1376,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: {
-        elevation: 4, // ✅ Reduced elevation to prevent white shadow
+        elevation: 4, // ✅ Minimal elevation for badges
       },
     }),
   },
@@ -1405,7 +1405,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: {
-        elevation: 3, // ✅ Reduced elevation to prevent white shadow
+        elevation: 3, // ✅ Minimal elevation for badges
       },
     }),
   },
@@ -1438,7 +1438,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: {
-        elevation: 3, // ✅ Reduced elevation to prevent white shadow
+        elevation: 3, // ✅ Minimal elevation for badges
       },
     }),
   },

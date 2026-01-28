@@ -75,9 +75,15 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v275.0 - REDUCED MARGIN BY HALF & FIXED HEADER ANIMATION
+ * ✅ EXPLORAR SCREEN v279.0 - ANDROID UI CLEANUP + CATEGORY BUTTON TEXT FIX
  * 
- * NEW FIXES v275.0:
+ * NEW FIXES v279.0:
+ * - ✅ FIXED: Category button text sizes adjusted with scaleFontSize (11sp on Android)
+ * - ✅ FIXED: Removed ALL white shadows/boxes on Android (elevation: 0)
+ * - ✅ FIXED: Clean visual appearance without white overlays
+ * - ✅ FIXED: Platform-specific shadow styling (iOS shadows, Android no elevation)
+ * 
+ * Previous features maintained (v275.0):
  * - ✅ FIXED: REDUCED margin by HALF (10px instead of 20px) between header and first card
  * - ✅ FIXED: INCREASED header height (240-280px) to ensure complete disappearance
  * - ✅ FIXED: Banner "¿Tienes un local?" now disappears COMPLETELY during scroll animation
@@ -140,10 +146,10 @@ export default function ExplorarScreen() {
 
   // ✅ FIX v240.0: Debounce with cleanup (300ms)
   useEffect(() => {
-    console.log('[Explorar v275.0] 📝 Search query changed:', searchQuery);
+    console.log('[Explorar v279.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Explorar v275.0] 🔍 Applying debounced search');
+      console.log('[Explorar v279.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -162,7 +168,7 @@ export default function ExplorarScreen() {
     const isValid = lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
     
     if (!isValid) {
-      console.warn('[Explorar v275.0] ⚠️ Invalid coordinates detected:', { lat, lng });
+      console.warn('[Explorar v279.0] ⚠️ Invalid coordinates detected:', { lat, lng });
     }
     
     return isValid;
@@ -173,19 +179,19 @@ export default function ExplorarScreen() {
     
     (async () => {
       try {
-        console.log('[Explorar v275.0] 📍 Step 1: Requesting location permission...');
+        console.log('[Explorar v279.0] 📍 Step 1: Requesting location permission...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         
         if (!isMounted) return;
         
         if (status !== 'granted') {
-          console.log('[Explorar v275.0] ⚠️ Location permission denied - proceeding without location');
+          console.log('[Explorar v279.0] ⚠️ Location permission denied - proceeding without location');
           setLocationError('Permiso de ubicación denegado. Las distancias no estarán disponibles.');
           setLocationReady(true);
           return;
         }
 
-        console.log('[Explorar v275.0] 📍 Step 2: Getting current position...');
+        console.log('[Explorar v279.0] 📍 Step 2: Getting current position...');
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
@@ -195,10 +201,10 @@ export default function ExplorarScreen() {
         const lat = location.coords.latitude;
         const lng = location.coords.longitude;
         
-        console.log('[Explorar v275.0] 📍 Step 3: Location obtained:', { lat, lng });
+        console.log('[Explorar v279.0] 📍 Step 3: Location obtained:', { lat, lng });
         
         if (!isValidSpainCoordinate(lat, lng)) {
-          console.error('[Explorar v275.0] ❌ Location outside Spain bounds!');
+          console.error('[Explorar v279.0] ❌ Location outside Spain bounds!');
           setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
           setUserLocation(null);
           setLocationReady(true);
@@ -207,13 +213,13 @@ export default function ExplorarScreen() {
         
         setUserLocation({ lat, lng });
         setLocationError(null);
-        console.log('[Explorar v275.0] ✅ Step 4: Valid location set:', { lat, lng });
-        console.log('[Explorar v275.0] 🎯 Step 5: Marking location as READY - data will now load');
+        console.log('[Explorar v279.0] ✅ Step 4: Valid location set:', { lat, lng });
+        console.log('[Explorar v279.0] 🎯 Step 5: Marking location as READY - data will now load');
         setLocationReady(true);
         
       } catch (error: any) {
         if (!isMounted) return;
-        console.error('[Explorar v275.0] ❌ Error getting location:', error);
+        console.error('[Explorar v279.0] ❌ Error getting location:', error);
         setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
         setUserLocation(null);
         setLocationReady(true);
@@ -226,15 +232,15 @@ export default function ExplorarScreen() {
   }, [isValidSpainCoordinate]);
 
   const loadLocales = useCallback(async (page: number = 1, append: boolean = false) => {
-    console.log('[Explorar v275.0] 🚀 loadLocales called - page:', page, 'append:', append, 'locationReady:', locationReady);
+    console.log('[Explorar v279.0] 🚀 loadLocales called - page:', page, 'append:', append, 'locationReady:', locationReady);
     
     if (!locationReady && !hasLoadedInitialDataRef.current) {
-      console.log('[Explorar v275.0] ⏸️ Location not ready yet, waiting...');
+      console.log('[Explorar v279.0] ⏸️ Location not ready yet, waiting...');
       return;
     }
     
     if (isLoadingMore && append) {
-      console.log('[Explorar v275.0] ⏸️ Already loading more, skipping...');
+      console.log('[Explorar v279.0] ⏸️ Already loading more, skipping...');
       return;
     }
 
@@ -242,7 +248,7 @@ export default function ExplorarScreen() {
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
     if (filtersChanged) {
-      console.log('[Explorar v275.0] 🔄 Filters changed, resetting...');
+      console.log('[Explorar v279.0] 🔄 Filters changed, resetting...');
       lastFiltersRef.current = filtersKey;
       setCurrentPage(1);
       setAllLoadedLocales([]);
@@ -255,18 +261,18 @@ export default function ExplorarScreen() {
     }
 
     if (append) {
-      console.log('[Explorar v275.0] 📥 Setting isLoadingMore = true');
+      console.log('[Explorar v279.0] 📥 Setting isLoadingMore = true');
       setIsLoadingMore(true);
     } else {
       if (!hasLoadedInitialDataRef.current) {
-        console.log('[Explorar v275.0] ⚡ First load - showing skeleton UI');
+        console.log('[Explorar v279.0] ⚡ First load - showing skeleton UI');
         setInitialLoading(true);
         setDataReady(false);
       }
     }
 
     try {
-      console.log('[Explorar v275.0] 📡 Loading page', page, 'from server...');
+      console.log('[Explorar v279.0] 📡 Loading page', page, 'from server...');
       
       const hasValidLocation = userLocation && isValidSpainCoordinate(userLocation.lat, userLocation.lng);
       
@@ -274,8 +280,8 @@ export default function ExplorarScreen() {
         ? { user_lat: userLocation.lat, user_lng: userLocation.lng }
         : { user_lat: null, user_lng: null };
       
-      console.log('[Explorar v275.0] 📍 Using location params:', locationParams);
-      console.log('[Explorar v275.0] 🎯 hasValidLocation:', hasValidLocation);
+      console.log('[Explorar v279.0] 📍 Using location params:', locationParams);
+      console.log('[Explorar v279.0] 🎯 hasValidLocation:', hasValidLocation);
       
       const offset = (page - 1) * ITEMS_PER_PAGE;
       const { data, error } = await supabase.rpc('get_locales_paginados', {
@@ -285,11 +291,11 @@ export default function ExplorarScreen() {
       });
 
       if (error) {
-        console.error('[Explorar v275.0] Error loading locales:', error);
+        console.error('[Explorar v279.0] Error loading locales:', error);
         throw error;
       }
 
-      console.log('[Explorar v275.0] ✅ Loaded', data?.length || 0, 'locales from server');
+      console.log('[Explorar v279.0] ✅ Loaded', data?.length || 0, 'locales from server');
 
       if (data && data.length > 0) {
         const transformedLocales = data.map((local: any) => {
@@ -330,11 +336,11 @@ export default function ExplorarScreen() {
         if (append) {
           setAllLoadedLocales(prev => {
             const newLocales = [...prev, ...transformedLocales];
-            console.log('[Explorar v275.0] ➕ Appending', transformedLocales.length, 'locales. Total now:', newLocales.length);
+            console.log('[Explorar v279.0] ➕ Appending', transformedLocales.length, 'locales. Total now:', newLocales.length);
             return newLocales;
           });
         } else {
-          console.log('[Explorar v275.0] 🔄 Replacing with', transformedLocales.length, 'locales');
+          console.log('[Explorar v279.0] 🔄 Replacing with', transformedLocales.length, 'locales');
           setAllLoadedLocales(transformedLocales);
           setDataReady(true);
         }
@@ -363,13 +369,13 @@ export default function ExplorarScreen() {
               setSocialProfiles(prev => new Map([...prev, ...newSocialProfiles]));
             }
           } catch (error) {
-            console.error('[Explorar v275.0] Error checking social profiles:', error);
+            console.error('[Explorar v279.0] Error checking social profiles:', error);
           }
         }
         
         hasLoadedInitialDataRef.current = true;
       } else {
-        console.log('[Explorar v275.0] ⚠️ No more data available');
+        console.log('[Explorar v279.0] ⚠️ No more data available');
         setHasMore(false);
         if (!append) {
           setAllLoadedLocales([]);
@@ -377,13 +383,13 @@ export default function ExplorarScreen() {
         }
       }
     } catch (error) {
-      console.error('[Explorar v275.0] Error loading locales:', error);
+      console.error('[Explorar v279.0] Error loading locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
       setDataReady(true);
     } finally {
       setLoading(false);
       setInitialLoading(false);
-      console.log('[Explorar v275.0] 📥 Setting isLoadingMore = false');
+      console.log('[Explorar v279.0] 📥 Setting isLoadingMore = false');
       setIsLoadingMore(false);
     }
   }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, isLoadingMore, locationReady]);
@@ -454,35 +460,35 @@ export default function ExplorarScreen() {
   // ✅ FIX v270.0: Added loadLocales to dependency array
   useEffect(() => {
     if (locationReady) {
-      console.log('[Explorar v275.0] 🚀 Location is ready - loading initial data');
+      console.log('[Explorar v279.0] 🚀 Location is ready - loading initial data');
       loadLocales(1, false);
     }
   }, [locationReady, selectedCategory, provinciaSeleccionada, loadLocales]);
 
   const loadMoreLocales = useCallback(() => {
-    console.log('[Explorar v275.0] 🔄 loadMoreLocales called - hasMore:', hasMore, 'isLoadingMore:', isLoadingMore, 'loading:', loading);
+    console.log('[Explorar v279.0] 🔄 loadMoreLocales called - hasMore:', hasMore, 'isLoadingMore:', isLoadingMore, 'loading:', loading);
     
     if (!hasMore) {
-      console.log('[Explorar v275.0] ⏸️ No more data available');
+      console.log('[Explorar v279.0] ⏸️ No more data available');
       return;
     }
     
     if (isLoadingMore) {
-      console.log('[Explorar v275.0] ⏸️ Already loading more');
+      console.log('[Explorar v279.0] ⏸️ Already loading more');
       return;
     }
     
     if (loading) {
-      console.log('[Explorar v275.0] ⏸️ Initial loading in progress');
+      console.log('[Explorar v279.0] ⏸️ Initial loading in progress');
       return;
     }
 
-    console.log('[Explorar v275.0] 📥 Loading page', currentPage + 1);
+    console.log('[Explorar v279.0] 📥 Loading page', currentPage + 1);
     loadLocales(currentPage + 1, true);
   }, [hasMore, isLoadingMore, loading, currentPage, loadLocales]);
 
   const onRefresh = async () => {
-    console.log('[Explorar v275.0] 🔄 Manual refresh triggered');
+    console.log('[Explorar v279.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setDataReady(false);
     setSearchQuery('');
@@ -500,7 +506,7 @@ export default function ExplorarScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v275.0] 🧹 Clearing all filters');
+    console.log('[Explorar v279.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setSelectedCategory('todas');
@@ -530,12 +536,12 @@ export default function ExplorarScreen() {
       return;
     }
 
-    console.log('[Explorar v275.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
+    console.log('[Explorar v279.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
     
     // ✅ OPTIMISTIC UI: toggleFavorite updates UI instantly
     await toggleFavorite(localId);
     
-    console.log('[Explorar v275.0] ✅ Favorite toggle completed (optimistic UI + background sync)');
+    console.log('[Explorar v279.0] ✅ Favorite toggle completed (optimistic UI + background sync)');
   }, [user, router, toggleFavorite]);
 
   const handleComoLlegar = useCallback((local: any, e: any) => {
@@ -580,7 +586,7 @@ export default function ExplorarScreen() {
       await setCurrentMode(newMode);
       setShowModeSelectorModal(false);
     } catch (error) {
-      console.error('[Explorar v275.0] Error changing mode:', error);
+      console.error('[Explorar v279.0] Error changing mode:', error);
       Alert.alert('Error', 'No se pudo cambiar el modo');
     }
   };
@@ -758,7 +764,7 @@ export default function ExplorarScreen() {
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={(e) => {
-              console.log('[Explorar v275.0] 👆 User tapped favorite button for local:', item.id);
+              console.log('[Explorar v279.0] 👆 User tapped favorite button for local:', item.id);
               handleToggleFavorito(item.id, e);
             }}
           >
@@ -1067,7 +1073,7 @@ export default function ExplorarScreen() {
               key={categoria.id}
               style={styles.categoriaButtonCompact}
               onPress={() => {
-                console.log('[Explorar v275.0] 👆 Usuario seleccionó categoría:', categoria.id);
+                console.log('[Explorar v279.0] 👆 Usuario seleccionó categoría:', categoria.id);
                 setSelectedCategory(categoria.id);
               }}
               activeOpacity={0.7}
@@ -1314,7 +1320,7 @@ export default function ExplorarScreen() {
                         selectedCategory === categoria.id && styles.categoryFilterItemActive,
                       ]}
                       onPress={() => {
-                        console.log('[Explorar Modal v275.0] 👆 Usuario seleccionó categoría:', categoria.id);
+                        console.log('[Explorar Modal v279.0] 👆 Usuario seleccionó categoría:', categoria.id);
                         setSelectedCategory(categoria.id);
                       }}
                       activeOpacity={0.7}
@@ -1553,7 +1559,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  // ✅ COMPACT HEADER v265.0: Compact category icon
+  // ✅ FIX v279.0: Compact category icon with NO ELEVATION on Android (clean styling)
   categoriaIconContainerCompact: {
     width: Platform.OS === 'android' ? 36 : 40,
     height: Platform.OS === 'android' ? 36 : 40,
@@ -1563,6 +1569,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
+    ...Platform.select({
+      android: {
+        elevation: 0, // ✅ NO elevation to prevent white shadow
+      },
+    }),
   },
   categoriaIconContainerActive: {
     borderColor: colors.white,
@@ -1573,9 +1584,9 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
   },
-  // ✅ COMPACT HEADER v265.0: Compact category label
+  // ✅ FIX v279.0: Adjusted category label size with scaleFontSize for consistency
   categoriaLabelCompact: {
-    fontSize: Platform.OS === 'android' ? 11 : 12,
+    fontSize: Platform.OS === 'android' ? scaleFontSize(11) : 12,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
@@ -1727,20 +1738,32 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2, // ✅ Minimal elevation for card depth
+      },
+    }),
   },
   cardDestacado: {
     borderWidth: 3,
     borderColor: '#FACC15',
-    shadowColor: '#FACC15',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#FACC15',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 4, // ✅ Minimal elevation for highlighted cards
+      },
+    }),
   },
   imageContainer: {
     width: '100%',
@@ -1786,12 +1809,18 @@ const styles = StyleSheet.create({
     gap: 4,
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
     zIndex: 11,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4, // ✅ Minimal elevation for badges
+      },
+    }),
   },
   badgeDestacadoHeaderText: {
     fontWeight: '700',
@@ -1808,13 +1837,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
     zIndex: 10,
     maxWidth: '70%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3, // ✅ Minimal elevation for badges
+      },
+    }),
   },
   badgeEstadoSuperiorConDestacado: {
     top: 52,
@@ -1836,12 +1871,18 @@ const styles = StyleSheet.create({
     gap: 4,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.8)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
     zIndex: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3, // ✅ Minimal elevation for badges
+      },
+    }),
   },
   ratingBadgeText: {
     fontWeight: '700',
