@@ -1281,7 +1281,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cookieAcceptGradient: {
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
