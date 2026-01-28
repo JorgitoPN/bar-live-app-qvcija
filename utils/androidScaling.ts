@@ -1,317 +1,237 @@
 
-/**
- * ANDROID SCALING UTILITY - v144.0 - ANDROID COMPACT HEADERS
- * 
- * Centralized scaling system for Android UI parity with iOS.
- * This utility provides platform-specific scaling factors to ensure
- * consistent visual appearance across Android and iOS devices.
- * 
- * CRITICAL FIXES v144.0 - ANDROID COMPACT HEADERS:
- * - ✅ REDUCED header title size to 20sp on Android (matching venue card text)
- * - ✅ REDUCED header icon size to 20dp on Android (more compact)
- * - ✅ Headers now take less vertical space on Android
- * - ✅ Consistent with venue card text sizes
- * 
- * Previous fixes maintained (v143.0):
- * - ✅ Consistent header title size across ALL pages (24sp on Android)
- * - ✅ Consistent header icon size across ALL pages (24dp on Android)
- * - ✅ Added bottom safe area padding for Android navigation buttons
- * - ✅ Keyboard-aware scroll enabled for auth screens
- * - ✅ All modals and screens adapted for Android navigation buttons
- * 
- * Previous fixes maintained (v101.0):
- * - ✅ Added scaleIconSize() for proper icon scaling
- * - ✅ Significantly reduced font sizes on Android (20-25% reduction)
- * - ✅ Reduced header heights and padding to save screen space
- * - ✅ Adjusted all dimensions for better Android responsiveness
- * - ✅ Content no longer appears oversized on Android
- * - ✅ Bottom navigation white stripe eliminated
- * 
- * IMPORTANT: iOS design is the reference - DO NOT modify iOS values
- */
-
-import { Platform, Dimensions, PixelRatio } from 'react-native';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-const BASE_WIDTH = 375;
-const BASE_HEIGHT = 812;
-
-export const getPixelDensityScale = (): number => {
-  if (Platform.OS !== 'android') return 1;
-  
-  const pixelRatio = PixelRatio.get();
-  
-  if (pixelRatio >= 3.5) return 0.85;
-  if (pixelRatio >= 3.0) return 0.90;
-  if (pixelRatio >= 2.0) return 0.95;
-  if (pixelRatio >= 1.5) return 0.98;
-  
-  return 1;
-};
-
-export const scaleWidth = (size: number): number => {
-  if (Platform.OS !== 'android') return size;
-  
-  const scale = SCREEN_WIDTH / BASE_WIDTH;
-  const densityScale = getPixelDensityScale();
-  
-  return Math.round(size * scale * densityScale);
-};
-
-export const scaleHeight = (size: number): number => {
-  if (Platform.OS !== 'android') return size;
-  
-  const scale = SCREEN_HEIGHT / BASE_HEIGHT;
-  const densityScale = getPixelDensityScale();
-  
-  return Math.round(size * scale * densityScale);
-};
+import { Platform, PixelRatio } from 'react-native';
 
 /**
- * Scale font size with proper density adjustment
- * ✅ CRITICAL FIX v93.0: Significantly reduced font scaling on Android
+ * Factor de escala global para Android
+ * Ajusta este valor para cambiar la densidad de toda la UI en Android
+ * 0.82 = Reduce elementos al 82% de su tamaño original
+ * 1.0 = Sin cambios (tamaño original)
  */
-export const scaleFontSize = (size: number): number => {
-  if (Platform.OS !== 'android') return size;
-  
-  const scale = SCREEN_WIDTH / BASE_WIDTH;
-  const densityScale = getPixelDensityScale();
-  
-  return Math.round(size * scale * densityScale * 0.80);
-};
+const ANDROID_SCALE_FACTOR = 0.82;
 
 /**
- * Scale icon size with proper density adjustment
- * ✅ NEW v101.0: Dedicated icon scaling function
+ * Aplica el factor de escala solo en Android
+ * En iOS devuelve el valor original sin modificar
  */
-export const scaleIconSize = (size: number): number => {
-  if (Platform.OS !== 'android') return size;
-  
-  const densityScale = getPixelDensityScale();
-  
-  return Math.round(size * densityScale * 0.92);
-};
+export function scale(size: number): number {
+  if (Platform.OS === 'android') {
+    return size * ANDROID_SCALE_FACTOR;
+  }
+  return size;
+}
 
 /**
- * ✅ NEW v144.0: COMPACT header title size for ALL pages
- * Returns 20sp on Android (matching venue card text), original size on iOS
+ * Escala específica para fuentes
+ * Incluye ajuste de letterSpacing para evitar texto amontonado
  */
-export const getHeaderTitleSize = (): number => {
-  if (Platform.OS === 'ios') return 32;
-  return 20; // ✅ REDUCED from 24 to 20 for more compact headers
-};
+export function scaleFontSize(size: number): number {
+  return scale(size);
+}
 
 /**
- * ✅ NEW v144.0: COMPACT header icon size for ALL pages
- * Returns 20dp on Android (more compact), original size on iOS
+ * Escala específica para iconos
  */
-export const getHeaderIconSize = (): number => {
-  if (Platform.OS === 'ios') return 28;
-  return 20; // ✅ REDUCED from 24 to 20 for more compact headers
-};
+export function scaleIconSize(size: number): number {
+  return scale(size);
+}
 
 /**
- * ✅ NEW v143.0: Bottom safe area padding for Android navigation buttons
- * Adds extra padding to prevent content from being hidden by Android nav buttons
+ * Letter spacing para Android (evita texto amontonado)
+ * iOS no necesita ajuste
  */
-export const getAndroidNavButtonPadding = (): number => {
-  if (Platform.OS !== 'android') return 0;
-  return 24; // Extra padding for Android navigation buttons
-};
-
-/**
- * ✅ NEW v143.0: Content bottom padding including Android nav buttons
- * Use this for ScrollView contentContainerStyle paddingBottom
- */
-export const getContentBottomPadding = (additionalPadding: number = 0): number => {
-  if (Platform.OS !== 'android') return additionalPadding;
-  return getAndroidNavButtonPadding() + additionalPadding;
-};
-
-export const getHeaderHeight = (): number => {
-  if (Platform.OS === 'ios') return 110;
-  return 100;
-};
-
-export const getSearchBoxHeight = (): number => {
-  if (Platform.OS === 'ios') return 48;
-  return 48;
-};
-
-export const getCategoryIconSize = (): number => {
-  if (Platform.OS === 'ios') return 56;
-  return 56;
-};
-
-export const getCategoryIconInnerSize = (): number => {
-  if (Platform.OS === 'ios') return 28;
-  return 28;
-};
-
-export const getCategorySpacing = (): number => {
-  if (Platform.OS === 'ios') return 16;
-  return 16;
-};
-
-export const getCategoryTopPadding = (): number => {
-  if (Platform.OS === 'ios') return 16;
-  return 4;
-};
-
-export const getBottomNavHeight = (): number => {
-  if (Platform.OS === 'ios') return 70;
-  return 62;
-};
-
-export const getBottomNavIconSize = (): number => {
-  if (Platform.OS === 'ios') return 28;
-  return 24;
-};
-
-export const getCenterButtonSize = (): number => {
-  if (Platform.OS === 'ios') return 60;
-  return 54;
-};
-
-export const getCenterButtonIconSize = (): number => {
-  if (Platform.OS === 'ios') return 30;
-  return 26;
-};
-
-export const getContentPadding = (): number => {
-  if (Platform.OS === 'ios') return 20;
-  return 20;
-};
-
-export const getCardBorderRadius = (): number => {
-  if (Platform.OS === 'ios') return 16;
-  return 16;
-};
-
-export const getCardAspectRatio = (): number => {
-  return 1.5;
-};
-
-export const getCardImageHeight = (): number => {
-  if (Platform.OS === 'ios') return 200;
-  return 200;
-};
-
-export const getButtonBorderRadius = (): number => {
-  if (Platform.OS === 'ios') return 12;
-  return 12;
-};
-
-export const getSpacing = (size: 'small' | 'medium' | 'large'): number => {
-  const spacingMap = {
-    small: 8,
-    medium: 16,
-    large: 24,
-  };
-  
-  return spacingMap[size];
-};
-
-export const getStatusBarHeight = (): number => {
-  if (Platform.OS === 'ios') return 50;
-  return 44;
-};
-
-export const getSafeAreaTopPadding = (): number => {
+export function getLetterSpacing(baseFontSize: number): number {
+  if (Platform.OS === 'android') {
+    // Aumenta ligeramente el espaciado entre letras en Android
+    return baseFontSize * 0.02; // 2% del tamaño de fuente
+  }
   return 0;
-};
+}
 
-export const getBottomNavPaddingBottom = (safeAreaBottom: number): number => {
-  if (Platform.OS === 'ios') return 20;
-  return safeAreaBottom;
-};
+/**
+ * Escala para paddings y margins
+ */
+export function scalePadding(size: number): number {
+  return scale(size);
+}
 
-export const getHeaderPaddingTop = (): number => {
-  if (Platform.OS === 'ios') return 50;
-  return 44;
-};
+export function scaleMargin(size: number): number {
+  return scale(size);
+}
 
-export const getHeaderPaddingBottom = (): number => {
-  if (Platform.OS === 'ios') return 16;
-  return 12;
-};
+/**
+ * Escala para border radius (modales y tarjetas)
+ */
+export function scaleBorderRadius(size: number): number {
+  if (Platform.OS === 'android') {
+    // En Android aumentamos el borderRadius para efecto "tarjeta flotante"
+    return size * ANDROID_SCALE_FACTOR * 1.2;
+  }
+  return size;
+}
 
-export const getHeaderPaddingHorizontal = (): number => {
-  if (Platform.OS === 'ios') return 20;
-  return 20;
-};
+/**
+ * Elevación (sombras) suavizada para Android
+ * iOS usa shadowOpacity/shadowRadius
+ */
+export function getElevation(baseElevation: number): number {
+  if (Platform.OS === 'android') {
+    // Reduce la elevación para sombras sutiles estilo iOS
+    return baseElevation * 0.5;
+  }
+  return 0; // iOS no usa elevation
+}
 
-export const getCardPadding = (): number => {
-  if (Platform.OS === 'ios') return 16;
-  return 16;
-};
+/**
+ * Altura de inputs y campos de texto
+ */
+export function getInputHeight(baseHeight: number): number {
+  return scale(baseHeight);
+}
 
-export const getCardMarginBottom = (): number => {
-  if (Platform.OS === 'ios') return 16;
-  return 16;
-};
+/**
+ * Separación entre elementos de listas
+ */
+export function getListItemSpacing(baseSpacing: number): number {
+  return scale(baseSpacing);
+}
 
-export const logScalingInfo = () => {
-  if (Platform.OS !== 'android') return;
+/**
+ * Altura de botones
+ */
+export function getButtonHeight(baseHeight: number): number {
+  return scale(baseHeight);
+}
+
+/**
+ * Tamaño de categorías/chips
+ */
+export function getCategoryButtonHeight(baseHeight: number): number {
+  return scale(baseHeight);
+}
+
+/**
+ * Margen horizontal para modales en Android (efecto flotante)
+ */
+export function getModalHorizontalMargin(): number {
+  if (Platform.OS === 'android') {
+    return 20; // Modales no tocan los bordes
+  }
+  return 0;
+}
+
+/**
+ * Altura de headers
+ */
+export function getHeaderHeight(baseHeight: number): number {
+  return scale(baseHeight);
+}
+
+/**
+ * Tamaño de avatares
+ */
+export function getAvatarSize(baseSize: number): number {
+  return scale(baseSize);
+}
+
+/**
+ * Altura de la barra de búsqueda
+ */
+export function getSearchBoxHeight(baseHeight: number): number {
+  return scale(baseHeight);
+}
+
+/**
+ * Tamaño de iconos en categorías
+ */
+export function getCategoryIconSize(baseSize: number): number {
+  return scale(baseSize);
+}
+
+/**
+ * Tamaño interno de iconos en categorías (círculo interior)
+ */
+export function getCategoryIconInnerSize(baseSize: number): number {
+  return scale(baseSize);
+}
+
+/**
+ * Tamaño de título en headers
+ */
+export function getHeaderTitleSize(baseSize: number): number {
+  return scaleFontSize(baseSize);
+}
+
+/**
+ * Tamaño de iconos en headers
+ */
+export function getHeaderIconSize(baseSize: number): number {
+  return scaleIconSize(baseSize);
+}
+
+/**
+ * Padding inferior para contenido (evita que quede tapado por tab bar)
+ */
+export function getContentBottomPadding(basePadding: number): number {
+  return scale(basePadding);
+}
+
+/**
+ * Utilidad para aplicar escala a objetos de estilo completos
+ */
+export function scaleStyle<T extends Record<string, any>>(style: T): T {
+  const scaled: any = {};
   
-  console.log('[AndroidScaling v144.0] 📊 ANDROID COMPACT HEADERS COMPLETE:');
-  console.log('  Screen Width:', SCREEN_WIDTH);
-  console.log('  Screen Height:', SCREEN_HEIGHT);
-  console.log('  Pixel Ratio:', PixelRatio.get());
-  console.log('  Density Scale:', getPixelDensityScale());
-  console.log('  ✅ Header Title Size:', getHeaderTitleSize(), '(COMPACT 20sp - matching venue cards)');
-  console.log('  ✅ Header Icon Size:', getHeaderIconSize(), '(COMPACT 20dp - more compact)');
-  console.log('  ✅ Android Nav Button Padding:', getAndroidNavButtonPadding(), 'dp');
-  console.log('  ✅ Font Scaling:', '0.80 (20% reduction for better responsiveness)');
-  console.log('  ✅ Icon Scaling:', '0.92 (8% reduction for better proportions)');
-  console.log('  ✅ Header Height:', getHeaderHeight(), '(reduced from 120 to 100)');
-  console.log('  ✅ Status Bar Height:', getStatusBarHeight(), '(reduced from 50 to 44)');
-  console.log('  ✅ Header Padding Top:', getHeaderPaddingTop(), '(reduced from 50 to 44)');
-  console.log('  ✅ Header Padding Bottom:', getHeaderPaddingBottom(), '(reduced from 16 to 12)');
-  console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(62 - compact design)');
-  console.log('  ✅ Bottom Nav Icon Size:', getBottomNavIconSize(), '(24)');
-  console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(54)');
-  console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(26)');
-  console.log('  ✅ Bottom Nav Padding:', 'Uses safe area bottom directly (no gap with system buttons)');
-  console.log('  ✅ White Box:', 'ELIMINATED - removed contentContainer padding');
-  console.log('  ✅ Keyboard Scroll:', 'ENABLED for auth screens');
-  console.log('  ✅ Android Nav Buttons:', 'ACCOUNTED FOR with extra bottom padding');
-};
+  for (const key in style) {
+    const value = style[key];
+    
+    // Propiedades que deben escalarse
+    if (
+      typeof value === 'number' &&
+      (key.includes('padding') ||
+        key.includes('margin') ||
+        key.includes('width') ||
+        key.includes('height') ||
+        key.includes('size') ||
+        key.includes('radius') ||
+        key.includes('gap') ||
+        key.includes('spacing'))
+    ) {
+      scaled[key] = scale(value);
+    } else if (key === 'fontSize') {
+      scaled[key] = scaleFontSize(value);
+    } else if (key === 'letterSpacing') {
+      scaled[key] = getLetterSpacing(style.fontSize || 14);
+    } else if (key === 'elevation') {
+      scaled[key] = getElevation(value);
+    } else {
+      scaled[key] = value;
+    }
+  }
+  
+  return scaled as T;
+}
 
-export default {
-  scaleWidth,
-  scaleHeight,
-  scaleFontSize,
-  scaleIconSize,
-  getHeaderTitleSize,
-  getHeaderIconSize,
-  getAndroidNavButtonPadding,
-  getContentBottomPadding,
-  getHeaderHeight,
-  getSearchBoxHeight,
-  getCategoryIconSize,
-  getCategoryIconInnerSize,
-  getCategorySpacing,
-  getCategoryTopPadding,
-  getBottomNavHeight,
-  getBottomNavIconSize,
-  getCenterButtonSize,
-  getCenterButtonIconSize,
-  getContentPadding,
-  getCardBorderRadius,
-  getCardAspectRatio,
-  getCardImageHeight,
-  getButtonBorderRadius,
-  getSpacing,
-  getStatusBarHeight,
-  getSafeAreaTopPadding,
-  getBottomNavPaddingBottom,
-  getHeaderPaddingTop,
-  getHeaderPaddingBottom,
-  getHeaderPaddingHorizontal,
-  getCardPadding,
-  getCardMarginBottom,
-  getPixelDensityScale,
-  logScalingInfo,
-};
+/**
+ * Configuración de sombras para iOS (suavizadas)
+ */
+export function getIOSShadow(opacity: number = 0.1) {
+  if (Platform.OS === 'ios') {
+    return {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: opacity,
+      shadowRadius: 4,
+    };
+  }
+  return {};
+}
+
+/**
+ * Configuración de sombras unificada (iOS + Android)
+ */
+export function getUnifiedShadow(baseElevation: number = 4, iosShadowOpacity: number = 0.1) {
+  return {
+    ...getIOSShadow(iosShadowOpacity),
+    elevation: getElevation(baseElevation),
+  };
+}
