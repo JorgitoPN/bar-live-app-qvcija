@@ -12,6 +12,8 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +22,7 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { generateUsername } from '@/utils/usernameGenerator';
 import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize, scaleFontSize } from '@/utils/androidScaling';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function RegistroV6Screen() {
   const router = useRouter();
@@ -31,6 +34,7 @@ export default function RegistroV6Screen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showCookieConsent, setShowCookieConsent] = useState(false);
   
   const [nombreError, setNombreError] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -54,7 +58,46 @@ export default function RegistroV6Screen() {
       duration: 600,
       useNativeDriver: true,
     }).start();
+
+    // Check if user has already seen cookie consent
+    checkCookieConsent();
   }, [fadeAnim]);
+
+  const checkCookieConsent = async () => {
+    try {
+      const consent = await AsyncStorage.getItem('cookieConsent');
+      if (!consent) {
+        // Show cookie consent modal after a short delay
+        setTimeout(() => {
+          setShowCookieConsent(true);
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Error checking cookie consent:', error);
+    }
+  };
+
+  const handleAcceptCookies = async () => {
+    try {
+      await AsyncStorage.setItem('cookieConsent', 'accepted');
+      setShowCookieConsent(false);
+    } catch (error) {
+      console.error('Error saving cookie consent:', error);
+    }
+  };
+
+  const handleRejectCookies = async () => {
+    try {
+      await AsyncStorage.setItem('cookieConsent', 'rejected');
+      setShowCookieConsent(false);
+      Alert.alert(
+        'Cookies rechazadas',
+        'Has rechazado las cookies. Esto puede afectar la funcionalidad de la aplicación, especialmente el inicio de sesión automático.'
+      );
+    } catch (error) {
+      console.error('Error saving cookie consent:', error);
+    }
+  };
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -421,11 +464,12 @@ export default function RegistroV6Screen() {
   const loginTextSize = scaleFontSize(14); // Scaled for Android
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
-    >
+    <React.Fragment>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
+      >
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={[
@@ -709,28 +753,38 @@ export default function RegistroV6Screen() {
             ) : null}
           </View>
 
-          <TouchableOpacity
-            style={styles.termsContainer}
-            onPress={() => setAcceptedTerms(!acceptedTerms)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
-              {acceptedTerms && (
-                <IconSymbol
-                  ios_icon_name="checkmark"
-                  android_material_icon_name="check"
-                  size={16}
-                  color="#fff"
-                />
-              )}
+          <View style={styles.termsContainer}>
+            <TouchableOpacity
+              style={styles.checkboxTouchable}
+              onPress={() => setAcceptedTerms(!acceptedTerms)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+                {acceptedTerms && (
+                  <IconSymbol
+                    ios_icon_name="checkmark"
+                    android_material_icon_name="check"
+                    size={16}
+                    color="#fff"
+                  />
+                )}
+              </View>
+            </TouchableOpacity>
+            <View style={styles.termsTextContainer}>
+              <Text style={[styles.termsText, { fontSize: termsTextSize }]}>
+                Acepto los{' '}
+              </Text>
+              <TouchableOpacity onPress={() => router.push('/legal/terminos')}>
+                <Text style={[styles.termsLink, { fontSize: termsTextSize }]}>Términos de Servicio</Text>
+              </TouchableOpacity>
+              <Text style={[styles.termsText, { fontSize: termsTextSize }]}>
+                {' '}y{' '}
+              </Text>
+              <TouchableOpacity onPress={() => router.push('/legal/privacidad')}>
+                <Text style={[styles.termsLink, { fontSize: termsTextSize }]}>Política de Privacidad</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={[styles.termsText, { fontSize: termsTextSize }]}>
-              Acepto los{' '}
-              <Text style={styles.termsLink}>Términos de Servicio</Text>
-              {' '}y{' '}
-              <Text style={styles.termsLink}>Política de Privacidad</Text>
-            </Text>
-          </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
@@ -780,6 +834,115 @@ export default function RegistroV6Screen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+
+    {/* Cookie Consent Modal */}
+    <Modal
+      visible={showCookieConsent}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => {}}
+    >
+      <View style={styles.cookieModalOverlay}>
+        <View style={styles.cookieModalContent}>
+          <View style={styles.cookieIconContainer}>
+            <IconSymbol
+              ios_icon_name="info.circle.fill"
+              android_material_icon_name="info"
+              size={48}
+              color={colors.primary}
+            />
+          </View>
+          
+          <Text style={[styles.cookieModalTitle, { fontSize: scaleFontSize(20) }]}>
+            Gestión de Cookies
+          </Text>
+          
+          <Text style={[styles.cookieModalText, { fontSize: scaleFontSize(14) }]}>
+            Utilizamos cookies para mejorar tu experiencia en BarLive:
+          </Text>
+          
+          <View style={styles.cookieList}>
+            <View style={styles.cookieListItem}>
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.cookieListText, { fontSize: scaleFontSize(13) }]}>
+                Recordar tu inicio de sesión
+              </Text>
+            </View>
+            <View style={styles.cookieListItem}>
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.cookieListText, { fontSize: scaleFontSize(13) }]}>
+                Guardar tus preferencias
+              </Text>
+            </View>
+            <View style={styles.cookieListItem}>
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.cookieListText, { fontSize: scaleFontSize(13) }]}>
+                Mejorar tu experiencia de usuario
+              </Text>
+            </View>
+          </View>
+          
+          <Text style={[styles.cookieModalWarning, { fontSize: scaleFontSize(12) }]}>
+            ⚠️ El rechazo de cookies puede impedir el acceso o provocar problemas de autenticación.
+          </Text>
+          
+          <View style={styles.cookieModalButtons}>
+            <TouchableOpacity
+              style={styles.cookieRejectButton}
+              onPress={handleRejectCookies}
+            >
+              <Text style={[styles.cookieRejectButtonText, { fontSize: scaleFontSize(14) }]}>
+                Rechazar
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.cookieAcceptButton}
+              onPress={handleAcceptCookies}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.cookieAcceptGradient}
+              >
+                <Text style={[styles.cookieAcceptButtonText, { fontSize: scaleFontSize(14) }]}>
+                  Aceptar
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity
+            style={styles.cookieLearnMore}
+            onPress={() => {
+              setShowCookieConsent(false);
+              router.push('/legal/privacidad');
+            }}
+          >
+            <Text style={[styles.cookieLearnMoreText, { fontSize: scaleFontSize(12) }]}>
+              Más información sobre cookies
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+    </React.Fragment>
   );
 }
 
@@ -942,9 +1105,12 @@ const styles = StyleSheet.create({
   },
   termsContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 24,
     paddingHorizontal: 4,
+  },
+  checkboxTouchable: {
+    marginRight: 12,
   },
   checkbox: {
     width: 24,
@@ -952,7 +1118,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 2,
     borderColor: colors.cardBorder,
-    marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -960,15 +1125,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  termsText: {
+  termsTextContainer: {
     flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  termsText: {
     fontSize: 13,
     color: colors.textSecondary,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   termsLink: {
     fontWeight: '600',
     color: colors.primary,
+    textDecorationLine: 'underline',
+    lineHeight: 20,
   },
   button: {
     borderRadius: 16,
@@ -1021,5 +1193,109 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
+  },
+  // Cookie Modal Styles
+  cookieModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  cookieModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  cookieIconContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cookieModalTitle: {
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  cookieModalText: {
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  cookieList: {
+    marginBottom: 16,
+  },
+  cookieListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cookieListText: {
+    color: colors.text,
+    marginLeft: 12,
+    flex: 1,
+  },
+  cookieModalWarning: {
+    color: '#f59e0b',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
+  cookieModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  cookieRejectButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cookieRejectButtonText: {
+    color: colors.text,
+    fontWeight: '600',
+  },
+  cookieAcceptButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  cookieAcceptGradient: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cookieAcceptButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  cookieLearnMore: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  cookieLearnMoreText: {
+    color: colors.primary,
+    textDecorationLine: 'underline',
   },
 });
