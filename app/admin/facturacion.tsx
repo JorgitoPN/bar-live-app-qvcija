@@ -12,6 +12,7 @@ import {
   Modal,
   Pressable,
   Switch,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -1066,12 +1067,13 @@ export default function FacturacionScreen() {
       {/* Manual Invoice Creation Modal */}
       <Modal
         visible={showManualInvoiceModal}
-        transparent
+        transparent={Platform.OS === 'android' ? false : true}
         animationType="slide"
+        presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
         onRequestClose={() => setShowManualInvoiceModal(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowManualInvoiceModal(false)}>
-          <Pressable style={styles.largeModalContent} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={[styles.modalOverlay, Platform.OS === 'android' && styles.modalOverlayAndroid]} onPress={() => setShowManualInvoiceModal(false)}>
+          <Pressable style={[styles.largeModalContent, Platform.OS === 'android' && styles.largeModalContentAndroid]} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Nueva Factura Manual</Text>
               <TouchableOpacity onPress={() => setShowManualInvoiceModal(false)}>
@@ -1253,12 +1255,13 @@ export default function FacturacionScreen() {
       {/* Invoice Preview Modal */}
       <Modal
         visible={showPreviewModal}
-        transparent
+        transparent={Platform.OS === 'android' ? false : true}
         animationType="slide"
+        presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
         onRequestClose={() => setShowPreviewModal(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowPreviewModal(false)}>
-          <Pressable style={styles.previewModalContent} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={[styles.modalOverlay, Platform.OS === 'android' && styles.modalOverlayAndroid]} onPress={() => setShowPreviewModal(false)}>
+          <Pressable style={[styles.previewModalContent, Platform.OS === 'android' && styles.previewModalContentAndroid]} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Vista Previa de Factura</Text>
               <TouchableOpacity onPress={() => setShowPreviewModal(false)}>
@@ -1375,12 +1378,13 @@ export default function FacturacionScreen() {
       {/* Fiscal Data Modal */}
       <Modal
         visible={showFiscalDataModal}
-        transparent
+        transparent={Platform.OS === 'android' ? false : true}
         animationType="slide"
+        presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
         onRequestClose={() => setShowFiscalDataModal(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowFiscalDataModal(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={[styles.modalOverlay, Platform.OS === 'android' && styles.modalOverlayAndroid]} onPress={() => setShowFiscalDataModal(false)}>
+          <Pressable style={[styles.modalContent, Platform.OS === 'android' && styles.modalContentAndroid]} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Datos Fiscales</Text>
               <TouchableOpacity onPress={() => setShowFiscalDataModal(false)}>
@@ -1895,6 +1899,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  modalOverlayAndroid: {
+    backgroundColor: colors.background,
+    padding: 0,
+  },
   modalContent: {
     backgroundColor: colors.background,
     borderRadius: 20,
@@ -1903,6 +1911,12 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     maxHeight: '90%',
   },
+  modalContentAndroid: {
+    flex: 1,
+    borderRadius: 0,
+    maxWidth: '100%',
+    maxHeight: '100%',
+  },
   largeModalContent: {
     backgroundColor: colors.background,
     borderRadius: 20,
@@ -1910,6 +1924,26 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 600,
     maxHeight: '90%',
+  },
+  largeModalContentAndroid: {
+    flex: 1,
+    borderRadius: 0,
+    maxWidth: '100%',
+    maxHeight: '100%',
+  },
+  previewModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 700,
+    maxHeight: '90%',
+  },
+  previewModalContentAndroid: {
+    flex: 1,
+    borderRadius: 0,
+    maxWidth: '100%',
+    maxHeight: '100%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -2162,14 +2196,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.white,
-  },
-  previewModalContent: {
-    backgroundColor: colors.background,
-    borderRadius: 20,
-    padding: 24,
-    width: '100%',
-    maxWidth: 700,
-    maxHeight: '90%',
   },
   previewScrollView: {
     maxHeight: 600,

@@ -11,6 +11,7 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -312,12 +313,13 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
   return (
     <Modal
       visible={visible}
-      transparent
+      transparent={Platform.OS === 'android' ? false : true}
       animationType="slide"
+      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
       onRequestClose={onClose}
     >
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+      <Pressable style={[styles.overlay, Platform.OS === 'android' && styles.overlayAndroid]} onPress={onClose}>
+        <Pressable style={[styles.modalContent, Platform.OS === 'android' && styles.modalContentAndroid]} onPress={(e) => e.stopPropagation()}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Estoy en este local</Text>
             <TouchableOpacity onPress={onClose}>
@@ -529,11 +531,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'flex-end',
   },
+  overlayAndroid: {
+    backgroundColor: colors.background,
+    justifyContent: 'flex-start',
+  },
   modalContent: {
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '90%',
+  },
+  modalContentAndroid: {
+    flex: 1,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    maxHeight: '100%',
   },
   modalHeader: {
     flexDirection: 'row',

@@ -375,6 +375,7 @@ export default function SharePostModal({
       visible={visible}
       transparent={false}
       animationType="slide"
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
       <View style={styles.container}>

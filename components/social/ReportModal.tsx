@@ -117,17 +117,18 @@ export default function ReportModal({
   return (
     <Modal
       visible={visible}
-      transparent={true}
+      transparent={Platform.OS === 'android' ? false : true}
       animationType="slide"
+      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
       onRequestClose={handleClose}
     >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, Platform.OS === 'android' && styles.overlayAndroid]}>
         <TouchableOpacity 
           style={styles.backdrop}
           activeOpacity={1}
           onPress={handleClose}
         />
-        <View style={styles.container}>
+        <View style={[styles.container, Platform.OS === 'android' && styles.containerAndroid]}>
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             style={styles.header}
@@ -241,6 +242,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
+  overlayAndroid: {
+    backgroundColor: colors.background,
+    justifyContent: 'flex-start',
+  },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -250,6 +255,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '90%',
+  },
+  containerAndroid: {
+    flex: 1,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    maxHeight: '100%',
   },
   header: {
     flexDirection: 'row',

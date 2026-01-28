@@ -92,7 +92,7 @@ export default function UsersInLocalModal({
       visible={visible}
       transparent={false}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
       onRequestClose={onClose}
     >
       <View style={styles.container}>
