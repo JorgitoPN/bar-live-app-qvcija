@@ -89,14 +89,14 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v270.0 - REMOVED INCORRECT MARGIN
+ * ✅ EVENTOS SCREEN v271.0 - FIXED CATEGORY BUTTON SIZES
  * 
- * NEW FIXES v270.0:
- * - ✅ FIXED: REMOVED incorrect marginTop (was HEADER_MAX_HEIGHT + 20)
- * - ✅ FIXED: Now uses standard padding without extra margin
- * - ✅ FIXED: Removed duplicate 'style' prop on ScrollView
+ * NEW FIXES v271.0:
+ * - ✅ FIXED: Category icon buttons now use EXACT same sizes as Explorar page
+ * - ✅ FIXED: Using compact category button style (36-40px icons, smaller labels)
+ * - ✅ FIXED: Consistent sizing across all pages (Explorar, Eventos, Favoritos, Mapa)
  * 
- * Previous features maintained (v268.0):
+ * Previous features maintained (v270.0):
  * - ✅ ANIMATED HEADER: Same collapsing behavior as Explorar page
  * - ✅ CONSISTENT DESIGN: Matches Explorar header structure
  * - ✅ SMOOTH ANIMATIONS: Header hides on scroll down, shows on scroll up
@@ -141,10 +141,10 @@ export default function EventosScreen() {
 
   // ✅ CRITICAL FIX v242.0: Debounce with cleanup (300ms) - same as Explorar
   useEffect(() => {
-    console.log('[Eventos v270.0] 📝 Search query changed:', searchQuery);
+    console.log('[Eventos v271.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Eventos v270.0] 🔍 Applying debounced search');
+      console.log('[Eventos v271.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -172,7 +172,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v270.0] Cargando eventos...');
+      console.log('[Eventos v271.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -204,11 +204,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v270.0] Error cargando eventos:', error);
+        console.error('[Eventos v271.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v270.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v271.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -243,7 +243,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v270.0] Error:', error);
+      console.error('[Eventos v271.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -255,7 +255,7 @@ export default function EventosScreen() {
   }, [cargarEventos]);
 
   const onRefresh = () => {
-    console.log('[Eventos v270.0] 🔄 Manual refresh triggered');
+    console.log('[Eventos v271.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     cargarEventos();
   };
@@ -302,7 +302,7 @@ export default function EventosScreen() {
   });
 
   const limpiarFiltros = () => {
-    console.log('[Eventos v270.0] 🧹 Clearing all filters');
+    console.log('[Eventos v271.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setProvinciaSeleccionada('Todas');
@@ -392,7 +392,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v270.0] Deleting event:', eventoId);
+              console.log('[Eventos v271.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -400,14 +400,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v270.0] Error deleting event:', error);
+                console.error('[Eventos v271.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v270.0] Error deleting event:', error);
+              console.error('[Eventos v271.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -498,7 +498,7 @@ export default function EventosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Eventos v270.0] 🧹 Clearing search');
+                    console.log('[Eventos v271.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -560,6 +560,7 @@ export default function EventosScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* ✅ FIX v271.0: Category buttons now use EXACT same compact style as Explorar */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -570,34 +571,29 @@ export default function EventosScreen() {
             {CATEGORIAS.map((categoria) => (
               <TouchableOpacity
                 key={categoria.id}
-                style={styles.categoriaButton}
+                style={styles.categoriaButtonCompact}
                 onPress={() => setCategoriaSeleccionada(categoria.id)}
                 activeOpacity={0.7}
               >
                 <View
                   style={[
-                    styles.categoriaIconContainer,
-                    {
-                      width: categoryIconSize,
-                      height: categoryIconSize,
-                      borderRadius: categoryIconSize / 4,
-                    },
+                    styles.categoriaIconContainerCompact,
                     categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive,
                   ]}
                 >
                   <IconSymbol
                     ios_icon_name={categoria.iosIcon}
                     android_material_icon_name={categoria.androidIcon}
-                    size={categoryIconInnerSize}
+                    size={Platform.OS === 'android' ? 16 : 18}
                     color={categoriaSeleccionada === categoria.id ? colors.primary : colors.white}
                   />
                 </View>
                 <Text
                   style={[
-                    styles.categoriaLabel,
-                    { fontSize: scaleFontSize(12) },
+                    styles.categoriaLabelCompact,
                     categoriaSeleccionada === categoria.id && styles.categoriaLabelActive,
                   ]}
+                  numberOfLines={1}
                 >
                   {categoria.nombre}
                 </Text>
@@ -1210,12 +1206,17 @@ const styles = StyleSheet.create({
     paddingRight: 16,
     gap: 16,
   },
-  categoriaButton: {
+  // ✅ FIX v271.0: Compact category button (same as Explorar)
+  categoriaButtonCompact: {
     alignItems: 'center',
-    gap: 6,
-    minWidth: 70,
+    gap: 4,
+    minWidth: 60,
   },
-  categoriaIconContainer: {
+  // ✅ FIX v271.0: Compact category icon container (same as Explorar)
+  categoriaIconContainerCompact: {
+    width: Platform.OS === 'android' ? 36 : 40,
+    height: Platform.OS === 'android' ? 36 : 40,
+    borderRadius: Platform.OS === 'android' ? 9 : 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary,
@@ -1226,7 +1227,9 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
     backgroundColor: colors.white,
   },
-  categoriaLabel: {
+  // ✅ FIX v271.0: Compact category label (same as Explorar)
+  categoriaLabelCompact: {
+    fontSize: Platform.OS === 'android' ? 11 : 12,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
