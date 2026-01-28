@@ -34,9 +34,15 @@ import {
   scaleIconSize,
   getStatusBarHeight,
   getHeaderHeight,
+  getContentBottomPadding,
 } from '@/utils/androidScaling';
 
 const { width } = Dimensions.get('window');
+
+// ✅ FIX v268.0: Same header height as Explorar for consistency
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 300;
+const HEADER_MIN_HEIGHT = 0;
+const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 const PROVINCIAS = [
   'Todas',
@@ -83,9 +89,15 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v243.0 - KEYBOARD FOCUS LOSS COMPLETELY FIXED
+ * ✅ EVENTOS SCREEN v268.0 - ANIMATED HEADER LIKE EXPLORAR
  * 
- * CRITICAL FIXES v243.0:
+ * NEW FIXES v268.0:
+ * - ✅ ANIMATED HEADER: Same collapsing behavior as Explorar page
+ * - ✅ CONSISTENT DESIGN: Matches Explorar header structure
+ * - ✅ SMOOTH ANIMATIONS: Header hides on scroll down, shows on scroll up
+ * - ✅ SEARCH & FILTER: Same height for search input and filter button (40px)
+ * 
+ * Previous fixes maintained (v243.0):
  * - ✅ FIXED: NO component functions (HeaderContent removed)
  * - ✅ FIXED: TextInput is DIRECTLY in return JSX (no wrapper functions)
  * - ✅ FIXED: Controlled component with value={searchQuery}
@@ -94,9 +106,6 @@ interface Evento {
  * - ✅ FIXED: ScrollView has keyboardShouldPersistTaps="handled"
  * - ✅ FIXED: TextInput has blurOnSubmit={false}
  * - ✅ FIXED: Same architecture as working Explorar screen
- * 
- * THE PROBLEM WAS: const HeaderContent = () => ... inside the component
- * React recreated HeaderContent on every render, destroying the TextInput
  */
 
 export default function EventosScreen() {
@@ -122,24 +131,17 @@ export default function EventosScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // ✅ NEW v268.0: Animated header like Explorar
+  const scrollY = useRef(0);
   const lastScrollY = useRef(0);
-  const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 300;
-  const HEADER_MIN_HEIGHT = 0;
-  const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
-
-  const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [0, -HEADER_SCROLL_DISTANCE],
-    extrapolate: 'clamp',
-  });
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
 
   // ✅ CRITICAL FIX v242.0: Debounce with cleanup (300ms) - same as Explorar
   useEffect(() => {
-    console.log('[Eventos v242.0] 📝 Search query changed:', searchQuery);
+    console.log('[Eventos v268.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Eventos v242.0] 🔍 Applying debounced search');
+      console.log('[Eventos v268.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -167,7 +169,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v242.0] Cargando eventos...');
+      console.log('[Eventos v268.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -199,11 +201,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v242.0] Error cargando eventos:', error);
+        console.error('[Eventos v268.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v242.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v268.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -238,7 +240,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v242.0] Error:', error);
+      console.error('[Eventos v268.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -250,7 +252,7 @@ export default function EventosScreen() {
   }, [cargarEventos]);
 
   const onRefresh = () => {
-    console.log('[Eventos v242.0] 🔄 Manual refresh triggered');
+    console.log('[Eventos v268.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     cargarEventos();
   };
@@ -297,7 +299,7 @@ export default function EventosScreen() {
   });
 
   const limpiarFiltros = () => {
-    console.log('[Eventos v242.0] 🧹 Clearing all filters');
+    console.log('[Eventos v268.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setProvinciaSeleccionada('Todas');
@@ -387,7 +389,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v242.0] Deleting event:', eventoId);
+              console.log('[Eventos v268.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -395,14 +397,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v242.0] Error deleting event:', error);
+                console.error('[Eventos v268.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v242.0] Error deleting event:', error);
+              console.error('[Eventos v268.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -411,66 +413,74 @@ export default function EventosScreen() {
     );
   }, [user, canDeleteEvent, cargarEventos]);
 
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    {
-      useNativeDriver: true,
-      listener: (event: any) => {
-        if (Platform.OS !== 'android') return;
-        
-        const currentScrollY = event.nativeEvent.contentOffset.y;
-        lastScrollY.current = currentScrollY;
-      },
+  // ✅ NEW v268.0: Animated header scroll handler like Explorar
+  const handleScroll = useCallback((event: any) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const diff = currentScrollY - lastScrollY.current;
+    
+    if (Math.abs(diff) > 5) {
+      if (diff > 0 && currentScrollY > 50) {
+        Animated.timing(headerTranslateY, {
+          toValue: -HEADER_SCROLL_DISTANCE,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+      } else if (diff < 0) {
+        Animated.timing(headerTranslateY, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+      }
     }
-  );
+    
+    lastScrollY.current = currentScrollY;
+    scrollY.current = currentScrollY;
+  }, [headerTranslateY]);
 
   const searchBoxHeight = getSearchBoxHeight();
   const categoryIconSize = getCategoryIconSize();
   const categoryIconInnerSize = getCategoryIconInnerSize();
 
-  // ✅ CRITICAL v243.0: NO COMPONENT FUNCTIONS - All JSX directly in return
+  // ✅ CRITICAL v268.0: NO COMPONENT FUNCTIONS - All JSX directly in return
   return (
     <View style={commonStyles.container}>
-      {Platform.OS === 'android' ? (
-        <Animated.View
-          style={[
-            styles.headerContainer,
-            {
-              transform: [{ translateY: headerTranslateY }],
-            },
-          ]}
+      <Animated.View
+        style={[
+          styles.headerContainer,
+          {
+            transform: [{ translateY: headerTranslateY }],
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.headerGradient}
         >
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.headerGradient}
-          >
-            <Text style={[
-              commonStyles.headerTitle, 
-              { 
-                color: colors.white,
-                fontSize: scaleFontSize(32),
-              }
-            ]}>
-              Eventos
-            </Text>
+          <Text style={[
+            commonStyles.headerTitle, 
+            { 
+              color: colors.white,
+              fontSize: scaleFontSize(32),
+            }
+          ]}>
+            Eventos
+          </Text>
 
-            {/* ✅ CRITICAL v243.0: TextInput DIRECTLY in return - NO function wrapper */}
-            <View style={[styles.searchContainer, { 
-              height: searchBoxHeight,
-            }]}>
+          {/* ✅ FIX v268.0: Search input and filter button with SAME HEIGHT (40px) */}
+          <View style={styles.compactSearchRow}>
+            <View style={styles.searchContainer}>
               <IconSymbol 
                 ios_icon_name="magnifyingglass" 
                 android_material_icon_name="search" 
-                size={scaleIconSize(20)} 
+                size={scaleIconSize(18)} 
                 color={colors.textSecondary} 
               />
               <TextInput
                 style={[styles.searchInput, { 
-                  fontSize: scaleFontSize(16),
-                  textAlignVertical: Platform.OS === 'android' ? 'center' : 'auto',
-                  paddingVertical: Platform.OS === 'android' ? 0 : 12,
+                  fontSize: scaleFontSize(15),
                 }]}
                 placeholder="Buscar eventos..."
                 placeholderTextColor={colors.textSecondary}
@@ -485,7 +495,7 @@ export default function EventosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Eventos v243.0] 🧹 Clearing search');
+                    console.log('[Eventos v268.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -495,165 +505,23 @@ export default function EventosScreen() {
                   <IconSymbol 
                     ios_icon_name="xmark.circle.fill" 
                     android_material_icon_name="cancel"
-                    size={scaleIconSize(20)} 
+                    size={scaleIconSize(18)} 
                     color={colors.textSecondary}
                   />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
-                <IconSymbol 
-                  ios_icon_name="slider.horizontal.3" 
-                  android_material_icon_name="tune" 
-                  size={scaleIconSize(20)} 
-                  color={colors.primary} 
-                />
-              </TouchableOpacity>
             </View>
-
-            <View style={styles.tabs}>
-              <TouchableOpacity
-                style={[styles.tab, tabActual === 'hoy' && styles.tabActive]}
-                onPress={() => setTabActual('hoy')}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    { fontSize: scaleFontSize(15) },
-                    tabActual === 'hoy' && styles.tabTextActive,
-                  ]}
-                >
-                  Hoy
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tab, tabActual === 'proximos' && styles.tabActive]}
-                onPress={() => setTabActual('proximos')}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    { fontSize: scaleFontSize(15) },
-                    tabActual === 'proximos' && styles.tabTextActive,
-                  ]}
-                >
-                  Próximos
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.categoriesScroll}
-              contentContainerStyle={styles.categoriesContent}
-              keyboardShouldPersistTaps="handled"
+            
+            <TouchableOpacity 
+              onPress={() => setMostrarFiltros(true)}
+              style={styles.filterIconButtonCompact}
+              activeOpacity={0.7}
             >
-              {CATEGORIAS.map((categoria) => (
-                <TouchableOpacity
-                  key={categoria.id}
-                  style={styles.categoriaButton}
-                  onPress={() => setCategoriaSeleccionada(categoria.id)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.categoriaIconContainer,
-                      {
-                        width: categoryIconSize,
-                        height: categoryIconSize,
-                        borderRadius: categoryIconSize / 4,
-                      },
-                      categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive,
-                    ]}
-                  >
-                    <IconSymbol
-                      ios_icon_name={categoria.iosIcon}
-                      android_material_icon_name={categoria.androidIcon}
-                      size={categoryIconInnerSize}
-                      color={categoriaSeleccionada === categoria.id ? colors.primary : colors.white}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.categoriaLabel,
-                      { fontSize: scaleFontSize(12) },
-                      categoriaSeleccionada === categoria.id && styles.categoriaLabelActive,
-                    ]}
-                  >
-                    {categoria.nombre}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </LinearGradient>
-        </Animated.View>
-      ) : (
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={commonStyles.headerGradient}
-        >
-          <Text style={[
-            commonStyles.headerTitle, 
-            { 
-              color: colors.white,
-              fontSize: scaleFontSize(32),
-            }
-          ]}>
-            Eventos
-          </Text>
-
-          {/* ✅ CRITICAL v243.0: TextInput DIRECTLY in return - NO function wrapper */}
-          <View style={[styles.searchContainer, { 
-            height: searchBoxHeight,
-          }]}>
-            <IconSymbol 
-              ios_icon_name="magnifyingglass" 
-              android_material_icon_name="search" 
-              size={scaleIconSize(20)} 
-              color={colors.textSecondary} 
-            />
-            <TextInput
-              style={[styles.searchInput, { 
-                fontSize: scaleFontSize(16),
-                textAlignVertical: Platform.OS === 'android' ? 'center' : 'auto',
-                paddingVertical: Platform.OS === 'android' ? 0 : 12,
-              }]}
-              placeholder="Buscar eventos..."
-              placeholderTextColor={colors.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="search"
-              blurOnSubmit={false}
-              enablesReturnKeyAutomatically={false}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity 
-                onPress={() => {
-                  console.log('[Eventos v243.0] 🧹 Clearing search');
-                  setSearchQuery('');
-                  setDebouncedQuery('');
-                }}
-                style={styles.clearButton}
-                activeOpacity={0.7}
-              >
-                <IconSymbol 
-                  ios_icon_name="xmark.circle.fill" 
-                  android_material_icon_name="cancel"
-                  size={scaleIconSize(20)} 
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
               <IconSymbol 
                 ios_icon_name="slider.horizontal.3" 
                 android_material_icon_name="tune" 
                 size={scaleIconSize(20)} 
-                color={colors.primary} 
+                color={colors.headerText} 
               />
             </TouchableOpacity>
           </View>
@@ -734,7 +602,7 @@ export default function EventosScreen() {
             ))}
           </ScrollView>
         </LinearGradient>
-      )}
+      </Animated.View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -746,13 +614,16 @@ export default function EventosScreen() {
           style={styles.content}
           contentContainerStyle={[
             styles.eventosContainer,
-            Platform.OS === 'android' && { marginTop: HEADER_MAX_HEIGHT },
+            { 
+              marginTop: HEADER_MAX_HEIGHT + 20,
+              paddingBottom: getContentBottomPadding(100),
+            },
           ]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
-          onScroll={Platform.OS === 'android' ? handleScroll : undefined}
+          onScroll={handleScroll}
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -1040,29 +911,50 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingTop: Platform.OS === 'android' ? 44 : 50,
+    paddingBottom: Platform.OS === 'android' ? 8 : 12,
     paddingHorizontal: 16,
   },
+  // ✅ FIX v268.0: Search row with proper alignment
+  compactSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
+  },
+  // ✅ FIX v268.0: Search container with FIXED HEIGHT (40px)
   searchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    marginTop: 16,
-    gap: 12,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    gap: 6,
+    height: 40, // ✅ FIXED HEIGHT
   },
   searchInput: {
     flex: 1,
     color: colors.text,
+    padding: 0,
+    marginLeft: 8,
   },
   clearButton: {
     padding: 4,
   },
+  // ✅ FIX v268.0: Filter button with SAME HEIGHT as search (40px)
+  filterIconButtonCompact: {
+    width: 40,
+    height: 40, // ✅ SAME HEIGHT as search container
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tabs: {
     flexDirection: 'row',
-    marginTop: 16,
+    marginTop: 8,
     gap: 8,
   },
   tab: {
@@ -1087,7 +979,6 @@ const styles = StyleSheet.create({
   },
   eventosContainer: {
     padding: 16,
-    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,

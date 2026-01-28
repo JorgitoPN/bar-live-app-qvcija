@@ -36,13 +36,15 @@ import {
   getCategoryIconInnerSize,
   scaleFontSize,
   scaleIconSize,
+  getContentBottomPadding,
 } from '@/utils/androidScaling';
 import { useFavorites } from '@/contexts/FavoritesContext';
 
 const ITEMS_PER_PAGE = 20;
 
+// ✅ FIX v268.0: Same header height as Explorar for consistency
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 300;
-const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
+const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
@@ -69,16 +71,21 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v264.0 - OPTIMISTIC UI FOR FAVORITES
+ * ✅ FAVORITOS SCREEN v268.0 - ANIMATED HEADER LIKE EXPLORAR
  * 
- * NEW FEATURES v264.0:
+ * NEW FIXES v268.0:
+ * - ✅ ANIMATED HEADER: Same collapsing behavior as Explorar page
+ * - ✅ CONSISTENT DESIGN: Matches Explorar header structure
+ * - ✅ SMOOTH ANIMATIONS: Header hides on scroll down, shows on scroll up
+ * - ✅ SEARCH & FILTER: Same height for search input and filter button (40px)
+ * - ✅ INCREASED MARGIN: Prevents first card being covered by header
+ * 
+ * Previous features maintained (v264.0):
  * - ✅ OPTIMISTIC UI: Uses FavoritesContext for instant heart icon updates
  * - ✅ NO LOADING INDICATORS: Heart icon changes immediately
  * - ✅ BACKGROUND SYNC: Server request happens asynchronously
  * - ✅ ERROR HANDLING: Reverts UI state if server request fails
  * - ✅ REAL-TIME UPDATES: Listens to favorites changes and reloads list
- * 
- * Previous fixes maintained (v243.0):
  * - ✅ FIXED: NO component functions (HeaderContent removed)
  * - ✅ FIXED: TextInput is DIRECTLY in return JSX (no wrapper functions)
  * - ✅ FIXED: Controlled component with value={searchQuery}
@@ -115,21 +122,17 @@ export default function FavoritosScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
 
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // ✅ NEW v268.0: Animated header like Explorar
+  const scrollY = useRef(0);
   const lastScrollY = useRef(0);
-
-  const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [0, -HEADER_SCROLL_DISTANCE],
-    extrapolate: 'clamp',
-  });
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
 
   // ✅ CRITICAL FIX v241.0: Debounce with cleanup (300ms)
   useEffect(() => {
-    console.log('[Favoritos v264.0] 📝 Search query changed:', searchQuery);
+    console.log('[Favoritos v268.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Favoritos v264.0] 🔍 Applying debounced search');
+      console.log('[Favoritos v268.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -149,10 +152,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v264.0] User location obtained:', location.coords);
+          console.log('[Favoritos v268.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v264.0] Error getting location:', error);
+        console.error('[Favoritos v268.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -178,7 +181,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v264.0] Error checking social profiles:', error);
+      console.error('[Favoritos v268.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -189,7 +192,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v264.0] Cargando locales guardados...');
+      console.log('[Favoritos v268.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -249,12 +252,12 @@ export default function FavoritosScreen() {
         
         setAllSavedLocales(formattedLocales);
         
-        console.log('[Favoritos v264.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v268.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v264.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v268.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -265,7 +268,7 @@ export default function FavoritosScreen() {
 
     if (user) {
       const savedLocalesChannel = supabase
-        .channel('user-saved-locales-changes-v264')
+        .channel('user-saved-locales-changes-v268')
         .on(
           'postgres_changes',
           {
@@ -275,7 +278,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v264.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v268.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -289,7 +292,7 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v264.0] Recalculating distances with new user location');
+      console.log('[Favoritos v268.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -309,7 +312,7 @@ export default function FavoritosScreen() {
   // ✅ CRITICAL v241.0: Client-side filtering (triggered by debouncedQuery)
   const filteredLocales = useMemo(() => {
     const query = debouncedQuery.toLowerCase().trim();
-    console.log('[Favoritos v264.0] 🔍 Filtering locales client-side, search:', query);
+    console.log('[Favoritos v268.0] 🔍 Filtering locales client-side, search:', query);
     let filtered = [...allSavedLocales];
 
     if (query) {
@@ -342,7 +345,7 @@ export default function FavoritosScreen() {
       filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
     }
 
-    console.log('[Favoritos v264.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
+    console.log('[Favoritos v268.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
     return filtered;
   }, [debouncedQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
@@ -352,7 +355,7 @@ export default function FavoritosScreen() {
     setDisplayedLocales(firstPage);
     setHasMore(filteredLocales.length > firstPage.length);
     
-    console.log('[Favoritos v264.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
+    console.log('[Favoritos v268.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
   }, [filteredLocales, currentPage]);
 
   const loadMoreLocales = useCallback(() => {
@@ -365,12 +368,12 @@ export default function FavoritosScreen() {
       setCurrentPage(nextPage);
       setLoadingMore(false);
       
-      console.log('[Favoritos v264.0] Cargando más locales, página:', nextPage);
+      console.log('[Favoritos v268.0] Cargando más locales, página:', nextPage);
     }, 300);
   }, [currentPage, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v264.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v268.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setDebouncedQuery('');
@@ -383,7 +386,7 @@ export default function FavoritosScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v264.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v268.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setSelectedCategory('todas');
@@ -406,23 +409,23 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v264.0] User not authenticated');
+      console.log('[Favoritos v268.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v264.0] No local ID');
+      console.log('[Favoritos v268.0] No local ID');
       return;
     }
 
-    console.log('[Favoritos v264.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
+    console.log('[Favoritos v268.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
     
     // ✅ OPTIMISTIC UI: toggleFavorite updates UI instantly
     const success = await toggleFavorite(localId);
     
     if (success) {
-      console.log('[Favoritos v264.0] ✅ Favorite toggle completed - reloading list');
+      console.log('[Favoritos v268.0] ✅ Favorite toggle completed - reloading list');
       // Reload the list to remove the item if it was unfavorited
       await loadSavedLocales();
     }
@@ -439,6 +442,31 @@ export default function FavoritosScreen() {
     e.stopPropagation();
     router.push(`/perfil/local?localId=${localId}`);
   }, [router]);
+
+  // ✅ NEW v268.0: Animated header scroll handler like Explorar
+  const handleScroll = useCallback((event: any) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const diff = currentScrollY - lastScrollY.current;
+    
+    if (Math.abs(diff) > 5) {
+      if (diff > 0 && currentScrollY > 50) {
+        Animated.timing(headerTranslateY, {
+          toValue: -HEADER_SCROLL_DISTANCE,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+      } else if (diff < 0) {
+        Animated.timing(headerTranslateY, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+      }
+    }
+    
+    lastScrollY.current = currentScrollY;
+    scrollY.current = currentScrollY;
+  }, [headerTranslateY]);
 
   const renderLocalCard = useCallback(({ item }: { item: any }) => {
     const estado = getEstadoLocal(item);
@@ -581,7 +609,7 @@ export default function FavoritosScreen() {
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={(e) => {
-              console.log('[Favoritos v264.0] 👆 User tapped favorite button for local:', item.id);
+              console.log('[Favoritos v268.0] 👆 User tapped favorite button for local:', item.id);
               handleToggleFavorito(item.id, e);
             }}
           >
@@ -713,27 +741,6 @@ export default function FavoritosScreen() {
     );
   };
 
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    {
-      useNativeDriver: true,
-      listener: (event: any) => {
-        if (Platform.OS !== 'android') return;
-        
-        const currentScrollY = event.nativeEvent.contentOffset.y;
-        const diff = currentScrollY - lastScrollY.current;
-        
-        if (diff > 5) {
-          // Scrolling down
-        } else if (diff < -5) {
-          // Scrolling up
-        }
-        
-        lastScrollY.current = currentScrollY;
-      },
-    }
-  );
-
   if (!user) {
     return (
       <View style={styles.container}>
@@ -776,156 +783,19 @@ export default function FavoritosScreen() {
   const categoryIconSize = getCategoryIconSize();
   const categoryIconInnerSize = getCategoryIconInnerSize();
 
-  // ✅ CRITICAL v243.0: NO COMPONENT FUNCTIONS - All JSX directly in return
-  const ListComponent = Platform.OS === 'android' ? AnimatedFlatList : FlatList;
+  // ✅ CRITICAL v268.0: NO COMPONENT FUNCTIONS - All JSX directly in return
+  const ListComponent = AnimatedFlatList;
 
   return (
     <View style={styles.container}>
-      {Platform.OS === 'android' ? (
-        <Animated.View
-          style={[
-            styles.headerContainer,
-            {
-              transform: [{ translateY: headerTranslateY }],
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            style={styles.headerGradient}
-          >
-            <View style={styles.headerTop}>
-              <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Locales Favoritos</Text>
-              {activeFiltersCount > 0 && (
-                <TouchableOpacity 
-                  style={styles.clearFiltersHeaderButton}
-                  onPress={clearFilters}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(20)} color={colors.headerText} />
-                  <Text style={[styles.clearFiltersHeaderText, { fontSize: scaleFontSize(13) }]}>Limpiar</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            
-            {/* ✅ CRITICAL v243.0: TextInput DIRECTLY in return - NO function wrapper */}
-            <View style={[styles.searchContainer, { 
-              height: searchBoxHeight,
-              paddingVertical: Platform.OS === 'android' ? 10 : 10,
-            }]}>
-              <IconSymbol 
-                ios_icon_name="magnifyingglass" 
-                android_material_icon_name="search"
-                size={scaleIconSize(20)} 
-                color={colors.textSecondary}
-              />
-              <TextInput
-                style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
-                placeholder="Buscar en favoritos..."
-                placeholderTextColor={colors.textSecondary}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="search"
-                blurOnSubmit={false}
-                enablesReturnKeyAutomatically={false}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity 
-                  onPress={() => {
-                    console.log('[Favoritos v264.0] 🧹 Clearing search');
-                    setSearchQuery('');
-                    setDebouncedQuery('');
-                  }}
-                  style={styles.clearButton}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol 
-                    ios_icon_name="xmark.circle.fill" 
-                    android_material_icon_name="cancel"
-                    size={scaleIconSize(20)} 
-                    color={colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity 
-                onPress={() => setMostrarFiltros(true)}
-                style={styles.filterIconButton}
-                activeOpacity={0.7}
-              >
-                <IconSymbol 
-                  ios_icon_name="slider.horizontal.3" 
-                  android_material_icon_name="tune" 
-                  size={scaleIconSize(20)} 
-                  color={colors.primary} 
-                />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.categoriesScroll}
-              contentContainerStyle={styles.categoriesContent}
-              keyboardShouldPersistTaps="handled"
-            >
-              {CATEGORIAS.map((categoria) => (
-                <TouchableOpacity
-                  key={categoria.id}
-                  style={styles.categoriaButton}
-                  onPress={() => setSelectedCategory(categoria.id)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.categoriaIconContainer,
-                      {
-                        width: categoryIconSize,
-                        height: categoryIconSize,
-                        borderRadius: categoryIconSize / 4,
-                      },
-                      selectedCategory === categoria.id && styles.categoriaIconContainerActive,
-                    ]}
-                  >
-                    <IconSymbol
-                      ios_icon_name={categoria.iosIcon}
-                      android_material_icon_name={categoria.androidIcon}
-                      size={categoryIconInnerSize}
-                      color={selectedCategory === categoria.id ? colors.primary : colors.white}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.categoriaLabel,
-                      { fontSize: scaleFontSize(12) },
-                      selectedCategory === categoria.id && styles.categoriaLabelActive,
-                    ]}
-                  >
-                    {categoria.nombre}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            
-            {allSavedLocales.length > 0 && (
-              <View style={styles.resultsCountContainer}>
-                <Text style={[styles.resultsCount, { fontSize: scaleFontSize(14) }]}>
-                  {activeFiltersCount > 0
-                    ? `${filteredLocales.length} de ${allSavedLocales.length} locales`
-                    : `${filteredLocales.length} locales guardados`
-                  }
-                </Text>
-                {activeFiltersCount > 0 && (
-                  <View style={styles.filterCountBadge}>
-                    <Text style={[styles.filterCountText, { fontSize: scaleFontSize(11) }]}>{activeFiltersCount}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-          </LinearGradient>
-        </Animated.View>
-      ) : (
+      <Animated.View
+        style={[
+          styles.headerContainer,
+          {
+            transform: [{ translateY: headerTranslateY }],
+          },
+        ]}
+      >
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.headerGradient}
@@ -944,57 +814,57 @@ export default function FavoritosScreen() {
             )}
           </View>
           
-          {/* ✅ CRITICAL v243.0: TextInput DIRECTLY in return - NO function wrapper */}
-          <View style={[styles.searchContainer, { 
-            height: searchBoxHeight,
-            paddingVertical: Platform.OS === 'android' ? 10 : 10,
-          }]}>
-            <IconSymbol 
-              ios_icon_name="magnifyingglass" 
-              android_material_icon_name="search"
-              size={scaleIconSize(20)} 
-              color={colors.textSecondary}
-            />
-            <TextInput
-              style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
-              placeholder="Buscar en favoritos..."
-              placeholderTextColor={colors.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="search"
-              blurOnSubmit={false}
-              enablesReturnKeyAutomatically={false}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity 
-                onPress={() => {
-                  console.log('[Favoritos v264.0] 🧹 Clearing search');
-                  setSearchQuery('');
-                  setDebouncedQuery('');
-                }}
-                style={styles.clearButton}
-                activeOpacity={0.7}
-              >
-                <IconSymbol 
-                  ios_icon_name="xmark.circle.fill" 
-                  android_material_icon_name="cancel"
-                  size={scaleIconSize(20)} 
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-            )}
+          {/* ✅ FIX v268.0: Search input and filter button with SAME HEIGHT (40px) */}
+          <View style={styles.compactSearchRow}>
+            <View style={styles.searchContainer}>
+              <IconSymbol 
+                ios_icon_name="magnifyingglass" 
+                android_material_icon_name="search"
+                size={scaleIconSize(18)} 
+                color={colors.textSecondary}
+              />
+              <TextInput
+                style={[styles.searchInput, { fontSize: scaleFontSize(15) }]}
+                placeholder="Buscar en favoritos..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                blurOnSubmit={false}
+                enablesReturnKeyAutomatically={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity 
+                  onPress={() => {
+                    console.log('[Favoritos v268.0] 🧹 Clearing search');
+                    setSearchQuery('');
+                    setDebouncedQuery('');
+                  }}
+                  style={styles.clearButton}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol 
+                    ios_icon_name="xmark.circle.fill" 
+                    android_material_icon_name="cancel"
+                    size={scaleIconSize(18)} 
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+            
             <TouchableOpacity 
               onPress={() => setMostrarFiltros(true)}
-              style={styles.filterIconButton}
+              style={styles.filterIconButtonCompact}
               activeOpacity={0.7}
             >
               <IconSymbol 
                 ios_icon_name="slider.horizontal.3" 
                 android_material_icon_name="tune" 
                 size={scaleIconSize(20)} 
-                color={colors.primary} 
+                color={colors.headerText} 
               />
             </TouchableOpacity>
           </View>
@@ -1060,7 +930,7 @@ export default function FavoritosScreen() {
             </View>
           )}
         </LinearGradient>
-      )}
+      </Animated.View>
 
       <ListComponent
         data={displayedLocales}
@@ -1068,7 +938,10 @@ export default function FavoritosScreen() {
         keyExtractor={(item: any) => item.id}
         contentContainerStyle={[
           styles.listContent,
-          Platform.OS === 'android' && { marginTop: HEADER_MAX_HEIGHT },
+          { 
+            marginTop: HEADER_MAX_HEIGHT + 20,
+            paddingBottom: getContentBottomPadding(100),
+          },
         ]}
         refreshControl={
           <RefreshControl 
@@ -1084,7 +957,7 @@ export default function FavoritosScreen() {
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
-        onScroll={Platform.OS === 'android' ? handleScroll : undefined}
+        onScroll={handleScroll}
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
@@ -1223,15 +1096,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingTop: Platform.OS === 'android' ? 44 : 50,
+    paddingBottom: Platform.OS === 'android' ? 8 : 12,
     paddingHorizontal: 16,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
   },
   headerTitle: {
     fontWeight: 'bold',
@@ -1250,14 +1123,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
+  // ✅ FIX v268.0: Search row with proper alignment
+  compactSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
+  },
+  // ✅ FIX v268.0: Search container with FIXED HEIGHT (40px)
   searchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-    gap: 8,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    gap: 6,
+    height: 40, // ✅ FIXED HEIGHT
   },
   searchInput: {
     flex: 1,
@@ -1268,13 +1150,17 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
-  filterIconButton: {
-    padding: 4,
+  // ✅ FIX v268.0: Filter button with SAME HEIGHT as search (40px)
+  filterIconButtonCompact: {
+    width: 40,
+    height: 40, // ✅ SAME HEIGHT as search container
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoriesScroll: {
-    marginBottom: 12,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
     marginRight: -16,
   },
   categoriesContent: {
@@ -1331,7 +1217,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
