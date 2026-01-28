@@ -89,9 +89,15 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v277.0 - ANDROID COMPACT HEADERS
+ * ✅ EVENTOS SCREEN v279.0 - ANDROID UI CLEANUP + CATEGORY BUTTON TEXT FIX
  * 
- * NEW FIXES v277.0:
+ * NEW FIXES v279.0:
+ * - ✅ FIXED: Category button text sizes adjusted with scaleFontSize (11sp on Android)
+ * - ✅ FIXED: Removed ALL white shadows/boxes on Android (elevation: 0)
+ * - ✅ FIXED: Clean visual appearance without white overlays
+ * - ✅ FIXED: Platform-specific shadow styling (iOS shadows, Android no elevation)
+ * 
+ * Previous fixes maintained (v277.0):
  * - ✅ FIXED: Android headers now use COMPACT font sizes (matching venue cards)
  * - ✅ FIXED: Header title reduced from 24sp to 20sp on Android
  * - ✅ FIXED: Headers take less vertical space on Android
@@ -152,10 +158,10 @@ export default function EventosScreen() {
 
   // ✅ CRITICAL FIX v242.0: Debounce with cleanup (300ms) - same as Explorar
   useEffect(() => {
-    console.log('[Eventos v275.0] 📝 Search query changed:', searchQuery);
+    console.log('[Eventos v279.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Eventos v275.0] 🔍 Applying debounced search');
+      console.log('[Eventos v279.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -183,7 +189,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v274.0] Cargando eventos...');
+      console.log('[Eventos v279.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -215,11 +221,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v274.0] Error cargando eventos:', error);
+        console.error('[Eventos v279.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v274.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v279.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -254,7 +260,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v274.0] Error:', error);
+      console.error('[Eventos v279.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -266,7 +272,7 @@ export default function EventosScreen() {
   }, [cargarEventos]);
 
   const onRefresh = () => {
-    console.log('[Eventos v274.0] 🔄 Manual refresh triggered');
+    console.log('[Eventos v279.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     cargarEventos();
   };
@@ -313,7 +319,7 @@ export default function EventosScreen() {
   });
 
   const limpiarFiltros = () => {
-    console.log('[Eventos v274.0] 🧹 Clearing all filters');
+    console.log('[Eventos v279.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setProvinciaSeleccionada('Todas');
@@ -403,7 +409,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v274.0] Deleting event:', eventoId);
+              console.log('[Eventos v279.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -411,14 +417,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v274.0] Error deleting event:', error);
+                console.error('[Eventos v279.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v274.0] Error deleting event:', error);
+              console.error('[Eventos v279.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -511,7 +517,7 @@ export default function EventosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Eventos v274.0] 🧹 Clearing search');
+                    console.log('[Eventos v279.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -573,7 +579,7 @@ export default function EventosScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* ✅ FIX v271.0: Category buttons now use EXACT same compact style as Explorar */}
+          {/* ✅ FIX v279.0: Category buttons with adjusted text sizes using scaleFontSize */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -1016,11 +1022,17 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6, // ✅ Minimal elevation for FAB
+      },
+    }),
   },
   fabGradient: {
     width: '100%',
@@ -1173,11 +1185,17 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '85%',
     maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8, // ✅ Minimal elevation for modal
+      },
+    }),
   },
   datePickerHeader: {
     flexDirection: 'row',
@@ -1222,7 +1240,7 @@ const styles = StyleSheet.create({
     gap: 4,
     minWidth: 60,
   },
-  // ✅ FIX v271.0: Compact category icon container (same as Explorar)
+  // ✅ FIX v279.0: Compact category icon container with NO ELEVATION on Android (clean styling)
   categoriaIconContainerCompact: {
     width: Platform.OS === 'android' ? 36 : 40,
     height: Platform.OS === 'android' ? 36 : 40,
@@ -1232,14 +1250,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
+    ...Platform.select({
+      android: {
+        elevation: 0, // ✅ NO elevation to prevent white shadow
+      },
+    }),
   },
   categoriaIconContainerActive: {
     borderColor: colors.white,
     backgroundColor: colors.white,
   },
-  // ✅ FIX v271.0: Compact category label (same as Explorar)
+  // ✅ FIX v279.0: Adjusted category label size with scaleFontSize for consistency
   categoriaLabelCompact: {
-    fontSize: Platform.OS === 'android' ? 11 : 12,
+    fontSize: Platform.OS === 'android' ? scaleFontSize(11) : 12,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
