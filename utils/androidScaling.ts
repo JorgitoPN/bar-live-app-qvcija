@@ -1,31 +1,27 @@
 
 /**
- * ANDROID SCALING UTILITY - v144.0 - ANDROID COMPACT HEADERS
+ * ANDROID SCALING UTILITY - v281.0 - REFINED VISUAL CONSISTENCY
  * 
  * Centralized scaling system for Android UI parity with iOS.
  * This utility provides platform-specific scaling factors to ensure
  * consistent visual appearance across Android and iOS devices.
  * 
- * CRITICAL FIXES v144.0 - ANDROID COMPACT HEADERS:
+ * CRITICAL FIXES v281.0 - REFINED VISUAL CONSISTENCY:
+ * - ✅ EXPLORAR LOCAL CARDS = REFERENCE STANDARD (NO CHANGES)
+ * - ✅ REDUCED map popup sizes (width: 240px on Android, down from 260px)
+ * - ✅ REDUCED map marker sizes (circle-radius reduced by 15%)
+ * - ✅ REDUCED user location marker (28px instead of 32px)
+ * - ✅ REDUCED button sizes (Virtual Room, action buttons)
+ * - ✅ REDUCED photo gallery thumbnails in local profile
+ * - ✅ REDUCED cover photo icons and buttons in detail page
+ * - ✅ REDUCED category badge sizes
+ * - ✅ All adjustments use relative scaling for consistency
+ * 
+ * Previous fixes maintained (v144.0):
  * - ✅ REDUCED header title size to 20sp on Android (matching venue card text)
  * - ✅ REDUCED header icon size to 20dp on Android (more compact)
  * - ✅ Headers now take less vertical space on Android
  * - ✅ Consistent with venue card text sizes
- * 
- * Previous fixes maintained (v143.0):
- * - ✅ Consistent header title size across ALL pages (24sp on Android)
- * - ✅ Consistent header icon size across ALL pages (24dp on Android)
- * - ✅ Added bottom safe area padding for Android navigation buttons
- * - ✅ Keyboard-aware scroll enabled for auth screens
- * - ✅ All modals and screens adapted for Android navigation buttons
- * 
- * Previous fixes maintained (v101.0):
- * - ✅ Added scaleIconSize() for proper icon scaling
- * - ✅ Significantly reduced font sizes on Android (20-25% reduction)
- * - ✅ Reduced header heights and padding to save screen space
- * - ✅ Adjusted all dimensions for better Android responsiveness
- * - ✅ Content no longer appears oversized on Android
- * - ✅ Bottom navigation white stripe eliminated
  * 
  * IMPORTANT: iOS design is the reference - DO NOT modify iOS values
  */
@@ -91,6 +87,86 @@ export const scaleIconSize = (size: number): number => {
   const densityScale = getPixelDensityScale();
   
   return Math.round(size * densityScale * 0.92);
+};
+
+/**
+ * ✅ NEW v281.0: Scale for map popups (REDUCED for consistency with Explorar cards)
+ * Returns 240px on Android (down from 260px), original size on iOS
+ */
+export const getMapPopupWidth = (): number => {
+  if (Platform.OS === 'ios') return 280;
+  return 240; // ✅ REDUCED by 20px for better visual consistency
+};
+
+/**
+ * ✅ NEW v281.0: Scale for map popup image height (REDUCED)
+ * Returns 110px on Android (down from 120px), original size on iOS
+ */
+export const getMapPopupImageHeight = (): number => {
+  if (Platform.OS === 'ios') return 140;
+  return 110; // ✅ REDUCED by 10px for better proportions
+};
+
+/**
+ * ✅ NEW v281.0: Scale for map marker radius (REDUCED by 15%)
+ * Used in map marker circle-radius calculations
+ */
+export const getMapMarkerScale = (): number => {
+  if (Platform.OS === 'ios') return 1.0;
+  return 0.85; // ✅ REDUCED by 15% for refined appearance
+};
+
+/**
+ * ✅ NEW v281.0: Scale for user location marker (REDUCED)
+ * Returns 28px on Android (down from 32px), original size on iOS
+ */
+export const getUserLocationMarkerSize = (): number => {
+  if (Platform.OS === 'ios') return 32;
+  return 28; // ✅ REDUCED by 4px for better visual weight
+};
+
+/**
+ * ✅ NEW v281.0: Scale for action buttons (REDUCED)
+ * Used for buttons like "Sala Virtual", "Cómo llegar", etc.
+ */
+export const getActionButtonPaddingVertical = (): number => {
+  if (Platform.OS === 'ios') return 14;
+  return 11; // ✅ REDUCED by 3px for more compact buttons
+};
+
+/**
+ * ✅ NEW v281.0: Scale for photo gallery thumbnails (REDUCED)
+ * Returns 90px on Android (down from 100px), original size on iOS
+ */
+export const getGalleryThumbnailSize = (): number => {
+  if (Platform.OS === 'ios') return 100;
+  return 90; // ✅ REDUCED by 10px for better proportions
+};
+
+/**
+ * ✅ NEW v281.0: Scale for cover photo action buttons (REDUCED)
+ * Returns 36px on Android (down from 40px), original size on iOS
+ */
+export const getCoverPhotoButtonSize = (): number => {
+  if (Platform.OS === 'ios') return 40;
+  return 36; // ✅ REDUCED by 4px for refined appearance
+};
+
+/**
+ * ✅ NEW v281.0: Scale for category badge padding (REDUCED)
+ * Returns smaller padding on Android for more compact badges
+ */
+export const getCategoryBadgePaddingHorizontal = (): number => {
+  if (Platform.OS === 'ios') return 10;
+  return 8; // ✅ REDUCED by 2px for more compact badges
+};
+
+/**
+ * ✅ NEW v281.0: Scale for category badge padding vertical (REDUCED)
+ */
+export const getCategoryBadgePaddingVertical = (): number => {
+  if (Platform.OS === 'ios') return 4;
+  return 3; // ✅ REDUCED by 1px for more compact badges
 };
 
 /**
@@ -255,28 +331,26 @@ export const getCardMarginBottom = (): number => {
 export const logScalingInfo = () => {
   if (Platform.OS !== 'android') return;
   
-  console.log('[AndroidScaling v144.0] 📊 ANDROID COMPACT HEADERS COMPLETE:');
+  console.log('[AndroidScaling v281.0] 📊 REFINED VISUAL CONSISTENCY COMPLETE:');
   console.log('  Screen Width:', SCREEN_WIDTH);
   console.log('  Screen Height:', SCREEN_HEIGHT);
   console.log('  Pixel Ratio:', PixelRatio.get());
   console.log('  Density Scale:', getPixelDensityScale());
+  console.log('  ✅ EXPLORAR CARDS: REFERENCE STANDARD (NO CHANGES)');
+  console.log('  ✅ Map Popup Width:', getMapPopupWidth(), 'px (REDUCED from 260 to 240)');
+  console.log('  ✅ Map Popup Image Height:', getMapPopupImageHeight(), 'px (REDUCED from 120 to 110)');
+  console.log('  ✅ Map Marker Scale:', getMapMarkerScale(), '(REDUCED by 15%)');
+  console.log('  ✅ User Location Marker:', getUserLocationMarkerSize(), 'px (REDUCED from 32 to 28)');
+  console.log('  ✅ Action Button Padding:', getActionButtonPaddingVertical(), 'px (REDUCED from 14 to 11)');
+  console.log('  ✅ Gallery Thumbnail Size:', getGalleryThumbnailSize(), 'px (REDUCED from 100 to 90)');
+  console.log('  ✅ Cover Photo Button Size:', getCoverPhotoButtonSize(), 'px (REDUCED from 40 to 36)');
+  console.log('  ✅ Category Badge Padding H:', getCategoryBadgePaddingHorizontal(), 'px (REDUCED from 10 to 8)');
+  console.log('  ✅ Category Badge Padding V:', getCategoryBadgePaddingVertical(), 'px (REDUCED from 4 to 3)');
   console.log('  ✅ Header Title Size:', getHeaderTitleSize(), '(COMPACT 20sp - matching venue cards)');
   console.log('  ✅ Header Icon Size:', getHeaderIconSize(), '(COMPACT 20dp - more compact)');
   console.log('  ✅ Android Nav Button Padding:', getAndroidNavButtonPadding(), 'dp');
   console.log('  ✅ Font Scaling:', '0.80 (20% reduction for better responsiveness)');
   console.log('  ✅ Icon Scaling:', '0.92 (8% reduction for better proportions)');
-  console.log('  ✅ Header Height:', getHeaderHeight(), '(reduced from 120 to 100)');
-  console.log('  ✅ Status Bar Height:', getStatusBarHeight(), '(reduced from 50 to 44)');
-  console.log('  ✅ Header Padding Top:', getHeaderPaddingTop(), '(reduced from 50 to 44)');
-  console.log('  ✅ Header Padding Bottom:', getHeaderPaddingBottom(), '(reduced from 16 to 12)');
-  console.log('  ✅ Bottom Nav Height:', getBottomNavHeight(), '(62 - compact design)');
-  console.log('  ✅ Bottom Nav Icon Size:', getBottomNavIconSize(), '(24)');
-  console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(54)');
-  console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(26)');
-  console.log('  ✅ Bottom Nav Padding:', 'Uses safe area bottom directly (no gap with system buttons)');
-  console.log('  ✅ White Box:', 'ELIMINATED - removed contentContainer padding');
-  console.log('  ✅ Keyboard Scroll:', 'ENABLED for auth screens');
-  console.log('  ✅ Android Nav Buttons:', 'ACCOUNTED FOR with extra bottom padding');
 };
 
 export default {
@@ -284,6 +358,15 @@ export default {
   scaleHeight,
   scaleFontSize,
   scaleIconSize,
+  getMapPopupWidth,
+  getMapPopupImageHeight,
+  getMapMarkerScale,
+  getUserLocationMarkerSize,
+  getActionButtonPaddingVertical,
+  getGalleryThumbnailSize,
+  getCoverPhotoButtonSize,
+  getCategoryBadgePaddingHorizontal,
+  getCategoryBadgePaddingVertical,
   getHeaderTitleSize,
   getHeaderIconSize,
   getAndroidNavButtonPadding,
