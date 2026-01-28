@@ -11,16 +11,21 @@ import { colors } from '@/styles/commonStyles';
 const { width: screenWidth } = Dimensions.get('window');
 
 /**
- * ANDROID-SPECIFIC TAB LAYOUT - VERSION v80.1
+ * ANDROID-SPECIFIC TAB LAYOUT - VERSION v81.0
  * 
- * ✅ ANDROID BOTTOM NAV FIX - EXACT iOS DESIGN MATCH
+ * ✅ ANDROID BOTTOM NAV FIX - REMOVED WHITE BOX
  * 
- * CRITICAL FIXES v80.1:
+ * CRITICAL FIXES v81.0:
+ * - ✅ REMOVED white box above bottom menu (was caused by contentContainer padding)
+ * - ✅ Content now extends to bottom without white gap
+ * - ✅ Tab bar overlays content properly
+ * - ✅ No visual artifacts above bottom menu
+ * 
+ * Previous fixes maintained (v80.1):
  * - ✅ Fixed animation error by removing invalid 'none' animation option
  * - ✅ Unified BarLive background (no white background)
  * - ✅ Compact height matching iOS exactly
  * - ✅ Icons positioned at bottom of screen
- * - ✅ No white space above menu
  * - ✅ Explore button protrudes upward like iOS
  * - ✅ Respects Android system navigation buttons
  * - ✅ Exact visual parity with iOS
@@ -304,8 +309,8 @@ export default function TabLayout() {
         animated={true}
       />
       
-      {/* ✅ Content area with bottom padding to prevent overlap */}
-      <View style={[styles.contentContainer, { paddingBottom: totalTabBarHeight }]}>
+      {/* ✅ FIX v81.0: REMOVED paddingBottom to eliminate white box */}
+      <View style={styles.contentContainer}>
         <Tabs
           screenOptions={{
             headerShown: false,

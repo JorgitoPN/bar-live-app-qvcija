@@ -1,12 +1,18 @@
 
 /**
- * ANDROID SCALING UTILITY - v143.0 - ANDROID COMPREHENSIVE FIX
+ * ANDROID SCALING UTILITY - v144.0 - ANDROID COMPACT HEADERS
  * 
  * Centralized scaling system for Android UI parity with iOS.
  * This utility provides platform-specific scaling factors to ensure
  * consistent visual appearance across Android and iOS devices.
  * 
- * CRITICAL FIXES v143.0 - ANDROID COMPREHENSIVE ADAPTATION:
+ * CRITICAL FIXES v144.0 - ANDROID COMPACT HEADERS:
+ * - ✅ REDUCED header title size to 20sp on Android (matching venue card text)
+ * - ✅ REDUCED header icon size to 20dp on Android (more compact)
+ * - ✅ Headers now take less vertical space on Android
+ * - ✅ Consistent with venue card text sizes
+ * 
+ * Previous fixes maintained (v143.0):
  * - ✅ Consistent header title size across ALL pages (24sp on Android)
  * - ✅ Consistent header icon size across ALL pages (24dp on Android)
  * - ✅ Added bottom safe area padding for Android navigation buttons
@@ -88,21 +94,21 @@ export const scaleIconSize = (size: number): number => {
 };
 
 /**
- * ✅ NEW v143.0: Consistent header title size for ALL pages
- * Returns 24sp on Android, original size on iOS
+ * ✅ NEW v144.0: COMPACT header title size for ALL pages
+ * Returns 20sp on Android (matching venue card text), original size on iOS
  */
 export const getHeaderTitleSize = (): number => {
   if (Platform.OS === 'ios') return 32;
-  return 24; // Consistent across all Android pages
+  return 20; // ✅ REDUCED from 24 to 20 for more compact headers
 };
 
 /**
- * ✅ NEW v143.0: Consistent header icon size for ALL pages
- * Returns 24dp on Android, original size on iOS
+ * ✅ NEW v144.0: COMPACT header icon size for ALL pages
+ * Returns 20dp on Android (more compact), original size on iOS
  */
 export const getHeaderIconSize = (): number => {
   if (Platform.OS === 'ios') return 28;
-  return 24; // Consistent across all Android pages
+  return 20; // ✅ REDUCED from 24 to 20 for more compact headers
 };
 
 /**
@@ -249,13 +255,13 @@ export const getCardMarginBottom = (): number => {
 export const logScalingInfo = () => {
   if (Platform.OS !== 'android') return;
   
-  console.log('[AndroidScaling v143.0] 📊 ANDROID COMPREHENSIVE ADAPTATION COMPLETE:');
+  console.log('[AndroidScaling v144.0] 📊 ANDROID COMPACT HEADERS COMPLETE:');
   console.log('  Screen Width:', SCREEN_WIDTH);
   console.log('  Screen Height:', SCREEN_HEIGHT);
   console.log('  Pixel Ratio:', PixelRatio.get());
   console.log('  Density Scale:', getPixelDensityScale());
-  console.log('  ✅ Header Title Size:', getHeaderTitleSize(), '(consistent across ALL pages)');
-  console.log('  ✅ Header Icon Size:', getHeaderIconSize(), '(consistent across ALL pages)');
+  console.log('  ✅ Header Title Size:', getHeaderTitleSize(), '(COMPACT 20sp - matching venue cards)');
+  console.log('  ✅ Header Icon Size:', getHeaderIconSize(), '(COMPACT 20dp - more compact)');
   console.log('  ✅ Android Nav Button Padding:', getAndroidNavButtonPadding(), 'dp');
   console.log('  ✅ Font Scaling:', '0.80 (20% reduction for better responsiveness)');
   console.log('  ✅ Icon Scaling:', '0.92 (8% reduction for better proportions)');
@@ -268,7 +274,7 @@ export const logScalingInfo = () => {
   console.log('  ✅ Center Button Size:', getCenterButtonSize(), '(54)');
   console.log('  ✅ Center Button Icon Size:', getCenterButtonIconSize(), '(26)');
   console.log('  ✅ Bottom Nav Padding:', 'Uses safe area bottom directly (no gap with system buttons)');
-  console.log('  ✅ White Stripe:', 'ELIMINATED - background extends 30px higher');
+  console.log('  ✅ White Box:', 'ELIMINATED - removed contentContainer padding');
   console.log('  ✅ Keyboard Scroll:', 'ENABLED for auth screens');
   console.log('  ✅ Android Nav Buttons:', 'ACCOUNTED FOR with extra bottom padding');
 };

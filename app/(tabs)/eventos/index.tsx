@@ -39,8 +39,8 @@ import {
 
 const { width } = Dimensions.get('window');
 
-// ✅ FIX v275.0: SAME header height as Explorar for consistency
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 240 : 280;
+// ✅ FIX v277.0: REDUCED header height for compact Android headers
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 280;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -89,9 +89,14 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v275.0 - SAME MARGIN AS EXPLORAR
+ * ✅ EVENTOS SCREEN v277.0 - ANDROID COMPACT HEADERS
  * 
- * NEW FIXES v275.0:
+ * NEW FIXES v277.0:
+ * - ✅ FIXED: Android headers now use COMPACT font sizes (matching venue cards)
+ * - ✅ FIXED: Header title reduced from 24sp to 20sp on Android
+ * - ✅ FIXED: Headers take less vertical space on Android
+ * 
+ * Previous fixes maintained (v275.0):
  * - ✅ FIXED: SAME margin as Explorar page (10-11px between header and first event)
  * - ✅ FIXED: Consistent spacing across all pages
  * - ✅ FIXED: No more excessive whitespace at the top
@@ -917,8 +922,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerGradient: {
-    paddingTop: Platform.OS === 'android' ? 44 : 50,
-    paddingBottom: Platform.OS === 'android' ? 8 : 12,
+    paddingTop: Platform.OS === 'android' ? 36 : 50,
+    paddingBottom: Platform.OS === 'android' ? 6 : 12,
     paddingHorizontal: 16,
   },
   // ✅ FIX v268.0: Search row with proper alignment

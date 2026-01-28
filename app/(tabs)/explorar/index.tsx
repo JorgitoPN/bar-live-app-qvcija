@@ -48,7 +48,8 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 const ITEMS_PER_PAGE = 20;
 
 // ✅ FIX v275.0: INCREASED header height to ensure complete disappearance during scroll
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 240 : 280;
+// ✅ FIX v277.0: REDUCED header height for compact Android headers
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 280;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -1410,10 +1411,10 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     backgroundColor: colors.background,
   },
-  // ✅ COMPACT HEADER v265.0: Reduced padding significantly
+  // ✅ COMPACT HEADER v277.0: Reduced padding even more for compact Android headers
   headerGradient: {
-    paddingTop: Platform.OS === 'android' ? 44 : 50,
-    paddingBottom: Platform.OS === 'android' ? 8 : 12,
+    paddingTop: Platform.OS === 'android' ? 36 : 50,
+    paddingBottom: Platform.OS === 'android' ? 6 : 12,
     paddingHorizontal: 16,
   },
   // ✅ COMPACT HEADER v265.0: Reduced margins
@@ -1427,6 +1428,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.headerText,
     flex: 1,
+    // ✅ FIX v277.0: Compact header title on Android (20sp instead of 24sp)
+    fontSize: Platform.OS === 'android' ? 20 : 32,
   },
   headerActions: {
     flexDirection: 'row',
