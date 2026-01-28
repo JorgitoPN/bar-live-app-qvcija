@@ -16610,3 +16610,130 @@ Performance optimizations: OFF.
 
 %s
  {"componentStack":"\n    at ContextNavigator (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87123:5)\n    at ExpoRoot (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87066:14)\n    at _HelmetProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:449637:7)\n    at App (<anonymous>)\n    at LogBoxStateSubscription (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:4890:9)\n    at ErrorOverlay (<anonymous>)\n    at withDevTools(ErrorOverlay) (<anonymous>)\n    at AppContainer (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:68394:5)"} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:54:58.850Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-01-28T12:54:58.863Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:54:59.075Z] [Web] [WARN] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[2026-01-28T12:54:59.320Z] [Web] [ERROR] Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously later calls tries to update the component. Move this work to useEffect instead.
+[2026-01-28T12:54:59.327Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {"componentStack":"\n    at ContextNavigator (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87123:5)\n    at ExpoRoot (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87066:14)\n    at _HelmetProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:449637:7)\n    at App (<anonymous>)\n    at LogBoxStateSubscription (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:4890:9)\n    at ErrorOverlay (<anonymous>)\n    at withDevTools(ErrorOverlay) (<anonymous>)\n    at AppContainer (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:68394:5)"} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:58:15.640Z] [Web] [ERROR] Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously later calls tries to update the component. Move this work to useEffect instead.
+[2026-01-28T12:58:15.171Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:58:15.160Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-01-28T12:58:15.644Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {"componentStack":"\n    at ContextNavigator (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87123:5)\n    at ExpoRoot (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87066:14)\n    at _HelmetProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:449637:7)\n    at App (<anonymous>)\n    at LogBoxStateSubscription (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:4890:9)\n    at ErrorOverlay (<anonymous>)\n    at withDevTools(ErrorOverlay) (<anonymous>)\n    at AppContainer (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:68394:5)"} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:58:25.624Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-01-28T12:58:26.123Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {"componentStack":"\n    at ContextNavigator (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87123:5)\n    at ExpoRoot (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87066:14)\n    at _HelmetProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:449637:7)\n    at App (<anonymous>)\n    at LogBoxStateSubscription (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:4890:9)\n    at ErrorOverlay (<anonymous>)\n    at withDevTools(ErrorOverlay) (<anonymous>)\n    at AppContainer (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:68394:5)"} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:58:26.119Z] [Web] [ERROR] Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously later calls tries to update the component. Move this work to useEffect instead.
+[2026-01-28T12:58:25.627Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:58:29.090Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-01-28T12:58:29.589Z] [Web] [ERROR] Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously later calls tries to update the component. Move this work to useEffect instead.
+[2026-01-28T12:58:29.592Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {"componentStack":"\n    at ContextNavigator (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87123:5)\n    at ExpoRoot (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87066:14)\n    at _HelmetProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:449637:7)\n    at App (<anonymous>)\n    at LogBoxStateSubscription (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:4890:9)\n    at ErrorOverlay (<anonymous>)\n    at withDevTools(ErrorOverlay) (<anonymous>)\n    at AppContainer (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:68394:5)"} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:58:29.093Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:58:32.235Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-01-28T12:58:32.238Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:58:32.434Z] [Web] [WARN] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[2026-01-28T12:58:32.741Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {"componentStack":"\n    at ContextNavigator (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87123:5)\n    at ExpoRoot (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87066:14)\n    at _HelmetProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:449637:7)\n    at App (<anonymous>)\n    at LogBoxStateSubscription (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:4890:9)\n    at ErrorOverlay (<anonymous>)\n    at withDevTools(ErrorOverlay) (<anonymous>)\n    at AppContainer (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:68394:5)"} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:58:32.737Z] [Web] [ERROR] Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously later calls tries to update the component. Move this work to useEffect instead.
+[2026-01-28T12:58:34.131Z] [Web] [WARN] Cannot record touch end without a touch start.
+ Touch End: {"identifier":0,"pageX":315,"pageY":315,"timestamp":2969.300000000745}
+ Touch Bank: []
+[2026-01-28T12:58:43.572Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-01-28T12:58:43.576Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:58:44.059Z] [Web] [ERROR] Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously later calls tries to update the component. Move this work to useEffect instead.
+[2026-01-28T12:58:44.063Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {"componentStack":"\n    at ContextNavigator (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87123:5)\n    at ExpoRoot (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87066:14)\n    at _HelmetProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:449637:7)\n    at App (<anonymous>)\n    at LogBoxStateSubscription (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:4890:9)\n    at ErrorOverlay (<anonymous>)\n    at withDevTools(ErrorOverlay) (<anonymous>)\n    at AppContainer (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:68394:5)"} The above error occurred in the <ContextNavigator> component. React will try to recreate this component tree from scratch using the error boundary you provided, LogBoxStateSubscription.
+[2026-01-28T12:59:57.361Z] [Web] [LOG] [Supabase] Initializing client...
+[2026-01-28T12:59:57.365Z] [Web] [WARN] GoTrueClient@sb-embntaqwlwmgazvrglaf-auth-token:1 (2.90.1) 2026-01-28T12:59:57.361Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[2026-01-28T12:59:57.678Z] [Web] [WARN] Route "./integrations/supabase/types.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-01-28T12:59:57.676Z] [Web] [WARN] Route "./integrations/supabase/client.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-01-28T12:59:57.697Z] [Web] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-01-28T12:59:57.725Z] [Web] [ERROR] %o
+
+%s
+
+%s
+ {} The above error occurred in the <ModeProvider> component. React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+[2026-01-28T12:59:57.375Z] [Web] [WARN] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-01-28T12:59:57.412Z] [Web] [WARN] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-01-28T12:59:57.729Z] [Web] [ERROR] [ErrorBoundary] App crashed: {}
+[2026-01-28T12:59:57.408Z] [Web] [WARN] "textShadow*" style props are deprecated. Use "textShadow".
+[2026-01-28T12:59:57.733Z] [Web] [ERROR] [ErrorBoundary] Error info: {"componentStack":"\n    at ModeProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:133329:5)\n    at ImpersonationProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:126936:5)\n    at AvatarProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:133158:5)\n    at AuthProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:114487:5)\n    at div (<anonymous>)\n    at View (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:26522:27)\n    at GestureHandlerRootView (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:193617:5)\n    at ErrorBoundary (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:281133:7)\n    at RootLayout (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:281252:26)\n    at Suspense (<anonymous>)\n    at Route (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:57804:5)\n    at BaseRoute (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:58667:7)\n    at StaticContainer (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:54447:18)\n    at EnsureSingleNavigator (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:49387:5)\n    at SceneView (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:54233:5)\n    at PreventRemoveProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:52509:5)\n    at NavigationStateListenerProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:54974:5)\n    at NavigationContent (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:53920:5)\n    at https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:53936:7\n    at Content (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87250:43)\n    at div (<anonymous>)\n    at View (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:26522:27)\n    at NativeSafeAreaProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:62764:5)\n    at SafeAreaProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:62597:5)\n    at LinkPreviewContextProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:77917:5)\n    at https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87075:7\n    at ThemeProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:49837:5)\n    at EnsureSingleNavigator (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:49387:5)\n    at BaseNavigationContainer (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:47494:5)\n    at NavigationContainerInner (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87428:5)\n    at ContextNavigator (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87123:5)\n    at ExpoRoot (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:87066:14)\n    at _HelmetProvider (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:449637:7)\n    at App (<anonymous>)\n    at LogBoxStateSubscription (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:4890:9)\n    at ErrorOverlay (<anonymous>)\n    at withDevTools(ErrorOverlay) (<anonymous>)\n    at AppContainer (https://idvhs6u-anonymous-8081.exp.direct/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:68394:5)"}
+[2026-01-28T12:59:57.738Z] [Web] [LOG] [RootLayout v141.0] 🚀 App starting...
+[2026-01-28T12:59:57.742Z] [Web] [LOG] [RootLayout v141.0] 📱 Platform: web
+[2026-01-28T12:59:59.243Z] [Web] [LOG] [RootLayout v141.0] ✅ Splash screen hidden
+[2026-01-28T12:59:59.243Z] [Web] [LOG] [RootLayout v141.0] 🎨 Hiding splash screen...
