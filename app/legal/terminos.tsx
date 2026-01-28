@@ -11,125 +11,155 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
-import { colors, commonStyles } from '@/styles/commonStyles';
+import { colors } from '@/styles/commonStyles';
+import { scaleFontSize, getHeaderTitleSize, getHeaderIconSize } from '@/utils/androidScaling';
 
 export default function TerminosScreen() {
   const router = useRouter();
 
+  const headerIconSize = getHeaderIconSize();
+  const headerTitleSize = getHeaderTitleSize();
+  const bodyTextSize = scaleFontSize(15);
+  const titleTextSize = scaleFontSize(18);
+  const subtitleTextSize = scaleFontSize(16);
+
   return (
-    <View style={commonStyles.container}>
+    <View style={styles.container}>
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
         style={styles.header}
       >
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Términos y Condiciones</Text>
-          <View style={styles.placeholder} />
-        </View>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <IconSymbol
+            ios_icon_name="chevron.left"
+            android_material_icon_name="arrow_back"
+            size={headerIconSize}
+            color="#fff"
+          />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { fontSize: headerTitleSize }]}>
+          Términos de Servicio
+        </Text>
       </LinearGradient>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.lastUpdated}>Última actualización: 1 de enero de 2025</Text>
-
-        <Text style={styles.sectionTitle}>1. Aceptación de los Términos</Text>
-        <Text style={styles.paragraph}>
-          Al acceder y utilizar BarLive, aceptas estar sujeto a estos Términos y Condiciones. 
-          Si no estás de acuerdo con alguna parte de estos términos, no debes utilizar nuestra aplicación.
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={[styles.lastUpdated, { fontSize: bodyTextSize }]}>
+          Última actualización: {new Date().toLocaleDateString('es-ES')}
         </Text>
 
-        <Text style={styles.sectionTitle}>2. Descripción del Servicio</Text>
-        <Text style={styles.paragraph}>
-          BarLive es una plataforma social que permite a los usuarios descubrir, explorar y conectar 
-          con locales de ocio en España. Ofrecemos información sobre bares, restaurantes, cafés, 
-          discotecas y otros establecimientos de entretenimiento.
+        <Text style={[styles.sectionTitle, { fontSize: titleTextSize }]}>
+          1. Aceptación de los Términos
+        </Text>
+        <Text style={[styles.paragraph, { fontSize: bodyTextSize }]}>
+          Al acceder y utilizar BarLive, aceptas estar sujeto a estos Términos de Servicio y a todas las leyes y regulaciones aplicables. Si no estás de acuerdo con alguno de estos términos, no debes utilizar esta aplicación.
         </Text>
 
-        <Text style={styles.sectionTitle}>3. Registro y Cuenta de Usuario</Text>
-        <Text style={styles.paragraph}>
-          - Debes proporcionar información precisa y actualizada al registrarte{'\n'}
-          - Eres responsable de mantener la confidencialidad de tu cuenta{'\n'}
-          - Debes notificarnos inmediatamente cualquier uso no autorizado de tu cuenta{'\n'}
-          - Debes tener al menos 18 años para crear una cuenta
+        <Text style={[styles.sectionTitle, { fontSize: titleTextSize }]}>
+          2. Uso de la Aplicación
+        </Text>
+        <Text style={[styles.paragraph, { fontSize: bodyTextSize }]}>
+          BarLive es una plataforma para descubrir y compartir información sobre locales de ocio nocturno. Te comprometes a:
+        </Text>
+        <Text style={[styles.bulletPoint, { fontSize: bodyTextSize }]}>
+          • Proporcionar información veraz y actualizada
+        </Text>
+        <Text style={[styles.bulletPoint, { fontSize: bodyTextSize }]}>
+          • No publicar contenido ofensivo, ilegal o inapropiado
+        </Text>
+        <Text style={[styles.bulletPoint, { fontSize: bodyTextSize }]}>
+          • Respetar los derechos de propiedad intelectual
+        </Text>
+        <Text style={[styles.bulletPoint, { fontSize: bodyTextSize }]}>
+          • No utilizar la aplicación para fines comerciales no autorizados
         </Text>
 
-        <Text style={styles.sectionTitle}>4. Uso Aceptable</Text>
-        <Text style={styles.paragraph}>
-          Te comprometes a NO:{'\n\n'}
-          - Publicar contenido ofensivo, difamatorio o ilegal{'\n'}
-          - Acosar, intimidar o amenazar a otros usuarios{'\n'}
-          - Suplantar la identidad de otra persona o entidad{'\n'}
-          - Utilizar la plataforma para actividades comerciales no autorizadas{'\n'}
-          - Intentar acceder a cuentas de otros usuarios{'\n'}
-          - Interferir con el funcionamiento de la aplicación
+        <Text style={[styles.sectionTitle, { fontSize: titleTextSize }]}>
+          3. Cuenta de Usuario
+        </Text>
+        <Text style={[styles.paragraph, { fontSize: bodyTextSize }]}>
+          Para acceder a ciertas funciones, debes crear una cuenta. Eres responsable de mantener la confidencialidad de tu contraseña y de todas las actividades que ocurran bajo tu cuenta.
         </Text>
 
-        <Text style={styles.sectionTitle}>5. Contenido del Usuario</Text>
-        <Text style={styles.paragraph}>
-          - Eres responsable del contenido que publicas en BarLive{'\n'}
-          - Nos otorgas una licencia para usar, modificar y distribuir tu contenido{'\n'}
-          - Nos reservamos el derecho de eliminar contenido que viole estos términos{'\n'}
-          - No reclamamos propiedad sobre tu contenido
+        <Text style={[styles.sectionTitle, { fontSize: titleTextSize }]}>
+          4. Contenido del Usuario
+        </Text>
+        <Text style={[styles.paragraph, { fontSize: bodyTextSize }]}>
+          Al publicar contenido en BarLive, otorgas a la aplicación una licencia no exclusiva, mundial y libre de regalías para usar, reproducir y distribuir dicho contenido. Mantienes todos los derechos sobre tu contenido.
         </Text>
 
-        <Text style={styles.sectionTitle}>6. Propiedad Intelectual</Text>
-        <Text style={styles.paragraph}>
-          Todo el contenido de BarLive, incluyendo diseño, logotipos, texto, gráficos y software, 
-          está protegido por derechos de autor y otras leyes de propiedad intelectual. No puedes 
-          copiar, modificar o distribuir nuestro contenido sin autorización expresa.
+        <Text style={[styles.sectionTitle, { fontSize: titleTextSize }]}>
+          5. Cookies y Datos
+        </Text>
+        <Text style={[styles.paragraph, { fontSize: bodyTextSize }]}>
+          Utilizamos cookies y tecnologías similares para:
+        </Text>
+        <Text style={[styles.bulletPoint, { fontSize: bodyTextSize }]}>
+          • Recordar tu inicio de sesión
+        </Text>
+        <Text style={[styles.bulletPoint, { fontSize: bodyTextSize }]}>
+          • Guardar tus preferencias
+        </Text>
+        <Text style={[styles.bulletPoint, { fontSize: bodyTextSize }]}>
+          • Mejorar tu experiencia de usuario
+        </Text>
+        <Text style={[styles.paragraph, { fontSize: bodyTextSize }]}>
+          Puedes gestionar las cookies desde la configuración de la aplicación. El rechazo de cookies puede afectar la funcionalidad de la aplicación.
         </Text>
 
-        <Text style={styles.sectionTitle}>7. Información de Locales</Text>
-        <Text style={styles.paragraph}>
-          - La información sobre locales se proporciona &quot;tal cual&quot;{'\n'}
-          - No garantizamos la exactitud o actualidad de toda la información{'\n'}
-          - Los horarios, precios y servicios pueden cambiar sin previo aviso{'\n'}
-          - Recomendamos verificar la información directamente con el local
+        <Text style={[styles.sectionTitle, { fontSize: titleTextSize }]}>
+          6. Propiedad Intelectual
+        </Text>
+        <Text style={[styles.paragraph, { fontSize: bodyTextSize }]}>
+          Todos los derechos de propiedad intelectual sobre la aplicación, incluyendo el diseño, código, logotipos y contenido, pertenecen a BarLive o sus licenciantes.
         </Text>
 
-        <Text style={styles.sectionTitle}>8. Limitación de Responsabilidad</Text>
-        <Text style={styles.paragraph}>
-          BarLive no será responsable de:{'\n\n'}
-          - Daños directos, indirectos o consecuentes derivados del uso de la aplicación{'\n'}
-          - Pérdida de datos o interrupciones del servicio{'\n'}
-          - Contenido publicado por otros usuarios{'\n'}
-          - Experiencias en los locales listados en la plataforma
+        <Text style={[styles.sectionTitle, { fontSize: titleTextSize }]}>
+          7. Limitación de Responsabilidad
+        </Text>
+        <Text style={[styles.paragraph, { fontSize: bodyTextSize }]}>
+          BarLive se proporciona "tal cual" sin garantías de ningún tipo. No nos hacemos responsables de:
+        </Text>
+        <Text style={[styles.bulletPoint, { fontSize: bodyTextSize }]}>
+          • La exactitud de la información de los locales
+        </Text>
+        <Text style={[styles.bulletPoint, { fontSize: bodyTextSize }]}>
+          • Daños derivados del uso de la aplicación
+        </Text>
+        <Text style={[styles.bulletPoint, { fontSize: bodyTextSize }]}>
+          • Interrupciones del servicio
         </Text>
 
-        <Text style={styles.sectionTitle}>9. Modificaciones del Servicio</Text>
-        <Text style={styles.paragraph}>
-          Nos reservamos el derecho de modificar, suspender o discontinuar cualquier aspecto de 
-          BarLive en cualquier momento, con o sin previo aviso.
+        <Text style={[styles.sectionTitle, { fontSize: titleTextSize }]}>
+          8. Modificaciones
+        </Text>
+        <Text style={[styles.paragraph, { fontSize: bodyTextSize }]}>
+          Nos reservamos el derecho de modificar estos términos en cualquier momento. Los cambios entrarán en vigor inmediatamente después de su publicación en la aplicación.
         </Text>
 
-        <Text style={styles.sectionTitle}>10. Terminación</Text>
-        <Text style={styles.paragraph}>
-          Podemos suspender o terminar tu cuenta si:{'\n\n'}
-          - Violas estos Términos y Condiciones{'\n'}
-          - Realizas actividades fraudulentas o ilegales{'\n'}
-          - Tu comportamiento perjudica a otros usuarios o a la plataforma
+        <Text style={[styles.sectionTitle, { fontSize: titleTextSize }]}>
+          9. Terminación
+        </Text>
+        <Text style={[styles.paragraph, { fontSize: bodyTextSize }]}>
+          Podemos suspender o terminar tu acceso a la aplicación en cualquier momento, sin previo aviso, por violación de estos términos o por cualquier otra razón.
         </Text>
 
-        <Text style={styles.sectionTitle}>11. Ley Aplicable</Text>
-        <Text style={styles.paragraph}>
-          Estos términos se rigen por las leyes de España. Cualquier disputa se resolverá en los 
-          tribunales competentes de España.
+        <Text style={[styles.sectionTitle, { fontSize: titleTextSize }]}>
+          10. Contacto
         </Text>
-
-        <Text style={styles.sectionTitle}>12. Contacto</Text>
-        <Text style={styles.paragraph}>
-          Si tienes preguntas sobre estos Términos y Condiciones, puedes contactarnos en:{'\n\n'}
-          Email: legal@barlive.es{'\n'}
-          Dirección: BarLive, Madrid, España
+        <Text style={[styles.paragraph, { fontSize: bodyTextSize }]}>
+          Si tienes preguntas sobre estos Términos de Servicio, puedes contactarnos a través de la sección de soporte en la aplicación.
         </Text>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Al continuar usando BarLive, aceptas estos Términos y Condiciones.
+          <Text style={[styles.footerText, { fontSize: bodyTextSize }]}>
+            © {new Date().getFullYear()} BarLive. Todos los derechos reservados.
           </Text>
         </View>
       </ScrollView>
@@ -138,68 +168,65 @@ export default function TerminosScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  header: {
+    paddingTop: Platform.OS === 'android' ? 48 : 60,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
   },
   backButton: {
+    marginBottom: 12,
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
-  },
-  placeholder: {
-    width: 40,
   },
   content: {
     flex: 1,
   },
-  contentContainer: {
+  scrollContent: {
     padding: 20,
     paddingBottom: 40,
   },
   lastUpdated: {
-    fontSize: 14,
     color: colors.textSecondary,
-    fontStyle: 'italic',
     marginBottom: 24,
+    fontStyle: 'italic',
   },
   sectionTitle: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
-    marginTop: 20,
+    marginTop: 24,
     marginBottom: 12,
   },
   paragraph: {
-    fontSize: 15,
     color: colors.text,
     lineHeight: 24,
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  bulletPoint: {
+    color: colors.text,
+    lineHeight: 24,
+    marginBottom: 8,
+    paddingLeft: 8,
   },
   footer: {
-    marginTop: 32,
-    padding: 16,
-    backgroundColor: colors.primary + '15',
-    borderRadius: 12,
+    marginTop: 40,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    alignItems: 'center',
   },
   footerText: {
-    fontSize: 14,
-    color: colors.primary,
-    textAlign: 'center',
-    fontWeight: '600',
+    color: colors.textSecondary,
   },
 });
