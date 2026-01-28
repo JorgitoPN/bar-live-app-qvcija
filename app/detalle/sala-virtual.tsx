@@ -25,7 +25,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import LoginPrompt from '@/components/common/LoginPrompt';
-import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+import { 
+  scaleFontSize, 
+  scaleIconSize,
+  getButtonHeight,
+  getButtonPaddingVertical,
+  getButtonPaddingHorizontal,
+  getButtonIconSize,
+  getButtonFontSize,
+} from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -84,14 +92,15 @@ const CLOSING_WARNING_THRESHOLD = 30;
 const CLOSING_CRITICAL_THRESHOLD = 10;
 
 /**
- * ✅ SALA VIRTUAL v102.0 - ANDROID SCALING & ICON FIX
+ * ✅ SALA VIRTUAL v280.0 - UNIFIED SCALING SYSTEM
  * 
- * CRITICAL FIXES v102.0 (ANDROID ONLY):
- * - ✅ All icons properly scaled with scaleIconSize()
- * - ✅ All text properly scaled with scaleFontSize()
- * - ✅ Fixed invalid Material icon names
- * - ✅ Avatar sizes properly scaled
- * - ✅ Button sizes properly scaled
+ * ✅ NEW FIXES v280.0:
+ * - ✅ ALL elements now use UNIFIED scaling (0.88 factor - matches venue cards)
+ * - ✅ Buttons scaled consistently with venue cards
+ * - ✅ Icons scaled consistently
+ * - ✅ Avatars scaled consistently
+ * - ✅ Text scaled consistently
+ * - ✅ Refined, professional appearance on Android
  * - ✅ iOS design remains unchanged
  */
 

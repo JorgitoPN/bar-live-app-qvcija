@@ -35,7 +35,24 @@ import ParsedText from '../../components/social/ParsedText';
 import ReviewsModal from '../../components/social/ReviewsModal';
 import CheckInModal from '../../components/detalle/CheckInModal';
 import UsersInLocalModal from '../../components/detalle/UsersInLocalModal';
-import { scaleFontSize } from '../../utils/androidScaling';
+import { 
+  scaleFontSize, 
+  scaleIconSize,
+  getCoverPhotoButtonSize,
+  getCoverPhotoIconSize,
+  getGalleryImageSize,
+  getGallerySpacing,
+  getBadgePaddingHorizontal,
+  getBadgePaddingVertical,
+  getBadgeBorderRadius,
+  getBadgeFontSize,
+  getBadgeIconSize,
+  getButtonHeight,
+  getButtonPaddingVertical,
+  getButtonPaddingHorizontal,
+  getButtonIconSize,
+  getButtonFontSize,
+} from '../../utils/androidScaling';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -316,13 +333,16 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL SCREEN v101.0 - ANDROID SCALING COMPLETE
+ * ✅ DETALLE LOCAL SCREEN v280.0 - UNIFIED SCALING SYSTEM
  * 
- * CRITICAL FIXES v101.0 (ANDROID ONLY):
- * - ✅ All text elements use scaleFontSize() for consistency
- * - ✅ Header icons properly sized with scaleIconSize()
- * - ✅ All buttons and badges scaled appropriately
- * - ✅ Consistent with Favoritos page scaling
+ * ✅ NEW FIXES v280.0:
+ * - ✅ ALL elements now use UNIFIED scaling (0.88 factor - matches venue cards)
+ * - ✅ Cover photo buttons scaled consistently
+ * - ✅ Gallery images scaled consistently
+ * - ✅ Badges scaled consistently
+ * - ✅ Virtual room button scaled consistently
+ * - ✅ All icons and text scaled consistently
+ * - ✅ Refined, professional appearance on Android
  * - ✅ iOS design remains unchanged
  */
 export default function DetalleLocalScreen() {
@@ -1124,7 +1144,12 @@ export default function DetalleLocalScreen() {
                   const icon = getCategoryIcon(categoria);
                   return (
                     <View key={index} style={[styles.categoryChipHighlighted, { backgroundColor: icon.color }]}>
-                      <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={18} color="#fff" />
+                      <IconSymbol 
+                        ios_icon_name={icon.ios} 
+                        android_material_icon_name={icon.android} 
+                        size={Platform.OS === 'android' ? getBadgeIconSize() : 18} 
+                        color="#fff" 
+                      />
                       <Text style={[styles.categoryChipTextHighlighted, { fontSize: scaleFontSize(13) }]}>{categoria.toUpperCase()}</Text>
                     </View>
                   );
@@ -1314,13 +1339,23 @@ export default function DetalleLocalScreen() {
                 style={styles.virtualRoomButtonGradient}
               >
                 <View style={styles.virtualRoomIconContainer}>
-                  <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={24} color="#fff" />
+                  <IconSymbol 
+                    ios_icon_name="cube.fill" 
+                    android_material_icon_name="view_in_ar" 
+                    size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
+                    color="#fff" 
+                  />
                 </View>
                 <View style={styles.virtualRoomTextContainer}>
                   <Text style={[styles.virtualRoomButtonTitle, { fontSize: scaleFontSize(17) }]}>Sala Virtual</Text>
                   <Text style={[styles.virtualRoomButtonSubtitle, { fontSize: scaleFontSize(13) }]}>Chatea con otros usuarios</Text>
                 </View>
-                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={22} color="#fff" />
+                <IconSymbol 
+                  ios_icon_name="chevron.right" 
+                  android_material_icon_name="chevron_right" 
+                  size={Platform.OS === 'android' ? scaleIconSize(22) : 22} 
+                  color="#fff" 
+                />
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -1690,9 +1725,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 48,
     left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: Platform.OS === 'android' ? getCoverPhotoButtonSize() : 40,
+    height: Platform.OS === 'android' ? getCoverPhotoButtonSize() : 40,
+    borderRadius: Platform.OS === 'android' ? getCoverPhotoButtonSize() / 2 : 20,
     overflow: 'hidden',
     zIndex: 10,
     shadowColor: '#000',
@@ -1711,9 +1746,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 48,
     right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: Platform.OS === 'android' ? getCoverPhotoButtonSize() : 44,
+    height: Platform.OS === 'android' ? getCoverPhotoButtonSize() : 44,
+    borderRadius: Platform.OS === 'android' ? getCoverPhotoButtonSize() / 2 : 22,
     overflow: 'hidden',
     zIndex: 10,
     shadowColor: '#000',
@@ -1862,9 +1897,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 16,
     right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: Platform.OS === 'android' ? getCoverPhotoButtonSize() : 44,
+    height: Platform.OS === 'android' ? getCoverPhotoButtonSize() : 44,
+    borderRadius: Platform.OS === 'android' ? getCoverPhotoButtonSize() / 2 : 22,
     overflow: 'hidden',
     zIndex: 15,
     shadowColor: '#000',
@@ -1889,11 +1924,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   galleryItem: {
-    width: 100,
-    height: 100,
+    width: Platform.OS === 'android' ? getGalleryImageSize() : 100,
+    height: Platform.OS === 'android' ? getGalleryImageSize() : 100,
     borderRadius: 12,
     overflow: 'hidden',
-    marginRight: 8,
+    marginRight: Platform.OS === 'android' ? getGallerySpacing() : 8,
     position: 'relative',
   },
   galleryImage: {
@@ -1932,9 +1967,9 @@ const styles = StyleSheet.create({
   categoryChipHighlighted: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: Platform.OS === 'android' ? getBadgePaddingHorizontal() : 14,
+    paddingVertical: Platform.OS === 'android' ? getBadgePaddingVertical() + 2 : 8,
+    borderRadius: Platform.OS === 'android' ? getBadgeBorderRadius() : 16,
     gap: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -2120,14 +2155,14 @@ const styles = StyleSheet.create({
   virtualRoomButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    paddingHorizontal: Platform.OS === 'android' ? getButtonPaddingHorizontal() * 0.75 : 18,
+    paddingVertical: Platform.OS === 'android' ? getButtonPaddingVertical() + 2 : 16,
     gap: 12,
   },
   virtualRoomIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: Platform.OS === 'android' ? Math.round(48 * 0.88) : 48,
+    height: Platform.OS === 'android' ? Math.round(48 * 0.88) : 48,
+    borderRadius: Platform.OS === 'android' ? Math.round(24 * 0.88) : 24,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
