@@ -3,11 +3,12 @@ import { StyleSheet, Platform } from 'react-native';
 import { getHeaderTitleSize, getHeaderIconSize } from '@/utils/androidScaling';
 
 /**
- * ✅ COMMON STYLES v143.0 - ANDROID COMPREHENSIVE ADAPTATION
+ * ✅ COMMON STYLES v144.0 - ANDROID COMPACT HEADERS
  * 
- * CRITICAL FIXES v143.0 (ANDROID ONLY):
- * - ✅ Consistent header title size across ALL pages (24sp on Android)
- * - ✅ Consistent header icon size across ALL pages (24dp on Android)
+ * CRITICAL FIXES v144.0 (ANDROID ONLY):
+ * - ✅ COMPACT header title size across ALL pages (20sp on Android - matching venue cards)
+ * - ✅ COMPACT header icon size across ALL pages (20dp on Android)
+ * - ✅ Headers take less vertical space on Android
  * - ✅ All text sizes properly scaled for Android
  * - ✅ iOS design remains unchanged (reference design)
  * 
@@ -94,9 +95,9 @@ export const commonStyles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   
-  // ✅ ANDROID FIX v143.0: CONSISTENT header title size across ALL pages
+  // ✅ ANDROID FIX v144.0: COMPACT header title size across ALL pages
   headerTitle: {
-    fontSize: getHeaderTitleSize(), // 32 on iOS, 24 on Android (CONSISTENT)
+    fontSize: getHeaderTitleSize(), // 32 on iOS, 20 on Android (COMPACT - matching venue cards)
     fontWeight: 'bold',
     color: colors.headerText,
   },

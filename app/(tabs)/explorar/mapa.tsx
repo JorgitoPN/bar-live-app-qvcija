@@ -34,13 +34,14 @@ const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v276.0 - ADDED TRANSPARENCY TO CENTER BUTTON & REPOSITIONED ON ANDROID
+ * 🗺️ MAPA SCREEN v277.0 - ANDROID COMPACT HEADERS + CENTER BUTTON REPOSITIONED
  * 
- * NEW FIXES v276.0:
- * - ✅ FIXED: Center map button now has TRANSPARENCY (rgba 0.85 opacity)
- * - ✅ FIXED: Center button repositioned to BOTTOM RIGHT on Android (same as iOS)
+ * NEW FIXES v277.0:
+ * - ✅ FIXED: Center map button repositioned to BOTTOM RIGHT on Android (same as iOS)
  * - ✅ FIXED: Button positioned at bottom: 100px, right: 16px on Android
  * - ✅ FIXED: Consistent positioning across iOS and Android
+ * - ✅ FIXED: Android headers now use COMPACT font sizes (matching venue cards)
+ * - ✅ FIXED: Center button has MORE TRANSPARENCY (rgba 0.85 opacity)
  * 
  * Previous features maintained (v275.0):
  * - ✅ Controls have MORE TRANSPARENCY (backgroundColor: rgba with 0.75 opacity)

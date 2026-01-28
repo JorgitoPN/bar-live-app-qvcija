@@ -42,8 +42,8 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ FIX v276.0: REDUCED margin MORE THAN HALF (5-6px instead of 10-11px)
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 240 : 280;
+// ✅ FIX v277.0: REDUCED margin EVEN MORE (2-3px instead of 5-6px)
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 280;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -71,12 +71,14 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v276.0 - REDUCED MARGIN MORE THAN HALF
+ * ✅ FAVORITOS SCREEN v277.0 - REDUCED MARGIN EVEN MORE + ANDROID COMPACT HEADERS
  * 
- * NEW FIXES v276.0:
- * - ✅ FIXED: REDUCED margin MORE THAN HALF (5-6px instead of 10-11px)
+ * NEW FIXES v277.0:
+ * - ✅ FIXED: REDUCED margin EVEN MORE (2-3px instead of 5-6px)
  * - ✅ FIXED: Minimal whitespace between header and first card
  * - ✅ FIXED: Tighter spacing for better visual density
+ * - ✅ FIXED: Android headers now use COMPACT font sizes (matching venue cards)
+ * - ✅ FIXED: Header title reduced from 24sp to 20sp on Android
  * 
  * Previous features maintained (v274.0):
  * - ✅ Category icon buttons use EXACT same sizes as Explorar page (36-40px)
@@ -942,8 +944,8 @@ export default function FavoritosScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            // ✅ FIX v276.0: REDUCED margin MORE THAN HALF (5-6px instead of 10-11px)
-            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 5 : HEADER_MAX_HEIGHT + 6,
+            // ✅ FIX v277.0: REDUCED margin EVEN MORE (2-3px instead of 5-6px)
+            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 2 : HEADER_MAX_HEIGHT + 3,
             paddingTop: 16,
             paddingBottom: getContentBottomPadding(100),
           },
@@ -1101,8 +1103,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerGradient: {
-    paddingTop: Platform.OS === 'android' ? 44 : 50,
-    paddingBottom: Platform.OS === 'android' ? 8 : 12,
+    paddingTop: Platform.OS === 'android' ? 36 : 50,
+    paddingBottom: Platform.OS === 'android' ? 6 : 12,
     paddingHorizontal: 16,
   },
   headerTop: {
@@ -1114,6 +1116,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontWeight: 'bold',
     color: colors.headerText,
+    // ✅ FIX v277.0: Compact header title on Android (20sp instead of 24sp)
+    fontSize: Platform.OS === 'android' ? 20 : 32,
   },
   clearFiltersHeaderButton: {
     flexDirection: 'row',

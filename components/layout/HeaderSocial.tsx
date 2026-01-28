@@ -14,14 +14,18 @@ interface HeaderSocialProps {
 }
 
 /**
- * ✅ HEADER SOCIAL v108.0 - SEARCH AS FULL PAGE
+ * ✅ HEADER SOCIAL v109.0 - ANDROID COMPACT HEADERS
  * 
- * NEW FEATURES v108.0:
+ * NEW FIXES v109.0:
+ * - ✅ COMPACT: Android header now uses compact padding (36px top, 12px bottom)
+ * - ✅ COMPACT: Android header title reduced to 20sp (matching venue cards)
+ * - ✅ COMPACT: Android header icons reduced to 24dp (more compact)
+ * - ✅ SPACE SAVING: Headers take less vertical space on Android
+ * 
+ * Previous features maintained (v108.0):
  * - ✅ NAVIGATION: Search button now navigates to /social/search (full page)
  * - ✅ NO MODAL: Removed SearchModal component usage
  * - ✅ BETTER UX: Full-page search provides better navigation consistency
- * 
- * Previous fixes maintained (v107.0):
  * - ✅ Fixed + icon on Android: Changed from "add_box" to "add_circle" (valid Material icon)
  * - ✅ All icons use valid Material Icons names
  */
@@ -43,7 +47,8 @@ export default function HeaderSocial({
       <View style={styles.headerContent}>
         <Text style={[
           styles.headerTitle,
-          { fontSize: Platform.OS === 'android' ? scaleFontSize(30) : 32 }
+          // ✅ FIX v109.0: Compact header title on Android (20sp instead of 30sp)
+          { fontSize: Platform.OS === 'android' ? 20 : 32 }
         ]}>
           Social
         </Text>
@@ -60,7 +65,8 @@ export default function HeaderSocial({
             <IconSymbol 
               ios_icon_name="magnifyingglass" 
               android_material_icon_name="search" 
-              size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+              // ✅ FIX v109.0: Compact icon size on Android (24dp instead of 28dp)
+              size={Platform.OS === 'android' ? 24 : 28} 
               color={colors.headerText} 
             />
           </TouchableOpacity>
@@ -73,7 +79,8 @@ export default function HeaderSocial({
             <IconSymbol 
               ios_icon_name="plus.app" 
               android_material_icon_name="add_circle" 
-              size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+              // ✅ FIX v109.0: Compact icon size on Android (24dp instead of 28dp)
+              size={Platform.OS === 'android' ? 24 : 28} 
               color={colors.headerText} 
             />
           </TouchableOpacity>
@@ -87,7 +94,8 @@ export default function HeaderSocial({
               <IconSymbol 
                 ios_icon_name="bell.fill" 
                 android_material_icon_name="notifications" 
-                size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+                // ✅ FIX v109.0: Compact icon size on Android (24dp instead of 28dp)
+                size={Platform.OS === 'android' ? 24 : 28} 
                 color={colors.headerText} 
               />
               {unreadNotifications > 0 && (
@@ -109,7 +117,8 @@ export default function HeaderSocial({
               <IconSymbol 
                 ios_icon_name="message.fill" 
                 android_material_icon_name="message" 
-                size={Platform.OS === 'android' ? scaleIconSize(28) : 28} 
+                // ✅ FIX v109.0: Compact icon size on Android (24dp instead of 28dp)
+                size={Platform.OS === 'android' ? 24 : 28} 
                 color={colors.headerText} 
               />
               {unreadMessages > 0 && (
@@ -129,8 +138,9 @@ export default function HeaderSocial({
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: 50,
-    paddingBottom: 16,
+    // ✅ FIX v109.0: Compact padding on Android (36px top, 12px bottom)
+    paddingTop: Platform.OS === 'android' ? 36 : 50,
+    paddingBottom: Platform.OS === 'android' ? 12 : 16,
     paddingHorizontal: 20,
   },
   headerContent: {
@@ -141,6 +151,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontWeight: 'bold',
     color: colors.headerText,
+    // ✅ FIX v109.0: Compact title size on Android (20sp instead of 32sp)
+    fontSize: Platform.OS === 'android' ? 20 : 32,
   },
   headerActions: {
     flexDirection: 'row',
