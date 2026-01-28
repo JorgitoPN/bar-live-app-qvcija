@@ -15762,3 +15762,675 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-01-28T11:38:00.510Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] ✅ Loaded 20 locales from server
 [2026-01-28T11:38:00.517Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 🔄 Replacing with 20 locales
 [2026-01-28T11:38:01.121Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📥 Setting isLoadingMore = false
+[2026-01-28T11:58:28.084Z] [Android] [LOG] 🗺️ [MAPA v279.0] 📍 Inyectando ubicación del usuario con marcador mejorado
+[2026-01-28T11:58:27.459Z] [Android] [LOG] [InternalBytecode.js:1] 🗺️ [MAPA v279.0] Ubicación obtenida: 43.0410796 -8.4228721
+[2026-01-28T11:58:27.858Z] [Android] [WARN] Modal with 'fullScreen' presentation style and 'transparent' value is not supported.
+[2026-01-28T11:58:28.864Z] [Android] [LOG] 🗺️ [MAPA v279.0] Mapa listo
+[2026-01-28T11:58:30.317Z] [Web] [ERROR] [index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:623:5] RUNTIME ERROR: Uncaught TypeError: (0 , _utilsAndroidScaling.scale) is not a function at index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:623:5
+[2026-01-28T11:58:36.188Z] [Android] [ERROR] {}
+[2026-01-28T11:58:38.023Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-01-28T11:58:36.456Z] [Android] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-01-28T11:58:36.603Z] [Android] [WARN] [Layout children]: No route named "editar" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:36.540Z] [Android] [WARN] [Layout children]: No route named "crear" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:36.656Z] [Android] [WARN] [Layout children]: No route named "perfil" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.048Z] [Web] [WARN] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-01-28T11:58:38.036Z] [Web] [WARN] GoTrueClient@sb-embntaqwlwmgazvrglaf-auth-token:1 (2.90.1) 2026-01-28T11:58:38.036Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[2026-01-28T11:58:38.040Z] [Web] [WARN] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-01-28T11:58:38.159Z] [Web] [WARN] Route "./integrations/supabase/types.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-01-28T11:58:38.184Z] [Web] [WARN] [Layout children]: No route named "editar" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.047Z] [Web] [WARN] "textShadow*" style props are deprecated. Use "textShadow".
+[2026-01-28T11:58:38.181Z] [Web] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-01-28T11:58:36.706Z] [Android] [WARN] [Layout children]: No route named "social" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.159Z] [Web] [WARN] Route "./integrations/supabase/client.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-01-28T11:58:38.035Z] [Web] [LOG] [Supabase] Initializing client...
+[2026-01-28T11:58:38.183Z] [Web] [WARN] [Layout children]: No route named "crear" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.192Z] [Web] [LOG] [Index] ⏳ Cargando...
+[2026-01-28T11:58:38.186Z] [Web] [WARN] [Layout children]: No route named "legal" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.186Z] [Web] [WARN] [Layout children]: No route named "gestion" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.187Z] [Web] [WARN] [Layout children]: No route named "soporte" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.184Z] [Web] [WARN] [Layout children]: No route named "perfil" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.185Z] [Web] [WARN] [Layout children]: No route named "chat" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.201Z] [Web] [LOG] [GlobalData v200.0] 📦 Loading from cache...
+[2026-01-28T11:58:38.186Z] [Web] [WARN] [Layout children]: No route named "empleo" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.198Z] [Web] [LOG] [FilterContext] 🔍 LOADING DYNAMIC FILTER OPTIONS
+[2026-01-28T11:58:38.196Z] [Web] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":true}
+[2026-01-28T11:58:38.197Z] [Web] [LOG] [FilterContext] 🚀 Initializing dynamic filter options...
+[2026-01-28T11:58:38.200Z] [Web] [LOG] [FilterContext] 📡 Setting up real-time subscription for filter options...
+[2026-01-28T11:58:38.185Z] [Web] [WARN] [Layout children]: No route named "admin" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.199Z] [Web] [LOG] [FilterContext] 🔍 Querying DISTINCT values from active locals...
+[2026-01-28T11:58:38.185Z] [Web] [WARN] [Layout children]: No route named "social" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.199Z] [Web] [LOG] [FilterContext] 🔍 ✅ FIXED: Removed estado_solicitud filter
+[2026-01-28T11:58:38.196Z] [Web] [LOG] [Index] 🔍 Checking URL hash: 
+[2026-01-28T11:58:38.206Z] [Web] [LOG] [GlobalData v200.0] ⚡ INSTANT eventos from cache: 0
+[2026-01-28T11:58:38.279Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T11:58:38.187Z] [Web] [WARN] [Layout children]: No route named "solicitudes" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.201Z] [Web] [LOG] [GlobalData v200.0] 🚀 Initializing...
+[2026-01-28T11:58:38.416Z] [Web] [LOG] [Explorar v279.0] ⚡ First load - showing skeleton UI
+[2026-01-28T11:58:38.224Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-01-28T11:58:38.198Z] [Web] [LOG] [FilterContext] 🔍 ========================================
+[2026-01-28T11:58:38.397Z] [Web] [LOG] [FilterContext] 📊 Processing 520 active locals...
+[2026-01-28T11:58:38.399Z] [Web] [LOG] [FilterContext] ✅ Clientela: 6 - ["estudiantes","familias","grupos","ninos_bienvenidos","parejas","turistas"]
+[2026-01-28T11:58:38.264Z] [Web] [WARN] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[2026-01-28T11:58:38.399Z] [Web] [LOG] [FilterContext] ✅ Servicios: 21 - ["accesible_silla_ruedas","almuerzo","aparcamiento","cafe","cena","cerveza","cocteles","comida_vegetariana","deportes_tv","desayuno","dj","entrega_domicilio","musica_vivo","opciones_veganas","pago_efectivo","pago_tarjetas","para_llevar","sin_gluten","terraza_exterior","vino","wifi_gratis"]
+[2026-01-28T11:58:38.506Z] [Web] [LOG] [Empleo v94.0] Perfiles cargados: 0
+[2026-01-28T11:58:38.355Z] [Web] [LOG] [RootLayout v141.0] 🎨 Hiding splash screen...
+[2026-01-28T11:58:38.400Z] [Web] [LOG] [Home v101.0] ✅ Ubicación obtenida: {"lat":43.0767,"lng":-8.4077}
+[2026-01-28T11:58:38.400Z] [Web] [LOG] [Favoritos v279.0] User location obtained: {"latitude":43.0767,"longitude":-8.4077,"altitude":null,"accuracy":10362,"altitudeAccuracy":null,"heading":null,"speed":null}
+[2026-01-28T11:58:38.304Z] [Web] [LOG] [Empleo v94.0] Cargando perfiles profesionales...
+[2026-01-28T11:58:38.289Z] [Web] [LOG] [Explorar v279.0] 📍 Step 1: Requesting location permission...
+[2026-01-28T11:58:38.302Z] [Web] [LOG] [Empleo v94.0] Cargando ofertas...
+[2026-01-28T11:58:38.291Z] [Web] [LOG] [Eventos v279.0] 📝 Search query changed: 
+[2026-01-28T11:58:38.399Z] [Web] [LOG] [Explorar v279.0] ✅ Step 4: Valid location set: {"lat":43.0767,"lng":-8.4077}
+[2026-01-28T11:58:38.399Z] [Web] [LOG] [Explorar v279.0] 🎯 Step 5: Marking location as READY - data will now load
+[2026-01-28T11:58:38.206Z] [Web] [LOG] [GlobalData v200.0] ⚡ INSTANT locales from cache: 100
+[2026-01-28T11:58:38.300Z] [Web] [LOG] [AdminLayout] ❌ No user found, redirecting silently
+[2026-01-28T11:58:38.250Z] [Web] [LOG] [Favoritos v279.0] 🔍 Filtering locales client-side, search: 
+[2026-01-28T11:58:38.213Z] [Web] [LOG] [Index] 🚀 Redirigiendo a explorar
+[2026-01-28T11:58:38.251Z] [Web] [LOG] [Favoritos v279.0] ✅ Filtered 0 locales from 0
+[2026-01-28T11:58:38.506Z] [Web] [LOG] [Empleo v94.0] Ofertas cargadas: 0
+[2026-01-28T11:58:38.348Z] [Web] [LOG] [Explorar v279.0] 📍 Step 2: Getting current position...
+[2026-01-28T11:58:38.203Z] [Web] [LOG] [RootLayout v141.0] 🚀 App starting...
+[2026-01-28T11:58:38.502Z] [Web] [LOG] [Eventos v279.0] Eventos cargados: 0
+[2026-01-28T11:58:38.399Z] [Web] [LOG] [FilterContext] ✅ ========================================
+[2026-01-28T11:58:38.202Z] [Web] [LOG] [AvatarContext v145.0] ❌ No user logged in, clearing avatar
+[2026-01-28T11:58:38.206Z] [Web] [LOG] [GlobalData v200.0] ⚡⚡⚡ INSTANT START with cached data
+[2026-01-28T11:58:38.399Z] [Web] [LOG] [Explorar v279.0] 📍 Step 3: Location obtained: {"lat":43.0767,"lng":-8.4077}
+[2026-01-28T11:58:38.224Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T11:58:38.421Z] [Web] [LOG] [Explorar v279.0] 🎯 hasValidLocation: true
+[2026-01-28T11:58:38.293Z] [Web] [LOG] [Eventos v279.0] Cargando eventos...
+[2026-01-28T11:58:38.399Z] [Web] [LOG] [FilterContext] ✅ Provincias: 1 - ["A Coruña"]
+[2026-01-28T11:58:38.297Z] [Web] [LOG] [Favoritos v279.0] Displaying 0 of 0 locales
+[2026-01-28T11:58:38.203Z] [Web] [LOG] [RootLayout v141.0] 📱 Platform: web
+[2026-01-28T11:58:38.355Z] [Web] [LOG] [RootLayout v141.0] ✅ Splash screen hidden
+[2026-01-28T11:58:36.758Z] [Android] [WARN] [Layout children]: No route named "chat" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.399Z] [Web] [LOG] [FilterContext] ✅ Tipos: 8 - ["bar","cafe","cocteleria","discoteca","lounge","pub","restaurante","sala_conciertos"]
+[2026-01-28T11:58:38.272Z] [Web] [WARN] props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-01-28T11:58:38.411Z] [Web] [LOG] [Explorar v279.0] 🚀 Location is ready - loading initial data
+[2026-01-28T11:58:38.299Z] [Web] [LOG] [AdminLayout] 🔍 Checking admin access...
+[2026-01-28T11:58:38.418Z] [Web] [LOG] [Explorar v279.0] 📡 Loading page 1 from server...
+[2026-01-28T11:58:38.295Z] [Web] [LOG] [Favoritos v279.0] 📝 Search query changed: 
+[2026-01-28T11:58:38.414Z] [Web] [LOG] [Explorar v279.0] 🔄 Filters changed, resetting...
+[2026-01-28T11:58:36.809Z] [Android] [WARN] [Layout children]: No route named "admin" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:38.399Z] [Web] [LOG] [FilterContext] ✅ DYNAMIC OPTIONS LOADED:
+[2026-01-28T11:58:38.413Z] [Web] [LOG] [Explorar v279.0] 🚀 loadLocales called - page: 1 append: false locationReady: true
+[2026-01-28T11:58:38.399Z] [Web] [LOG] [FilterContext] ✅ Comunidades: 1 - ["España"]
+[2026-01-28T11:58:38.419Z] [Web] [LOG] [Explorar v279.0] 📍 Using location params: {"user_lat":43.0767,"user_lng":-8.4077}
+[2026-01-28T11:58:38.399Z] [Web] [LOG] [FilterContext] ✅ Ambientes: 8 - ["acogedor","animado","de_moda","elegante","familiar","juvenil","moderno","tranquilo"]
+[2026-01-28T11:58:38.287Z] [Web] [LOG] [Explorar v279.0] 📝 Search query changed: 
+[2026-01-28T11:58:38.215Z] [Web] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":false}
+[2026-01-28T11:58:36.911Z] [Android] [WARN] [Layout children]: No route named "empleo" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:36.858Z] [Android] [WARN] [Layout children]: No route named "gestion" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:36.966Z] [Android] [WARN] [Layout children]: No route named "legal" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:37.020Z] [Android] [WARN] [Layout children]: No route named "soporte" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:37.069Z] [Android] [WARN] [Layout children]: No route named "solicitudes" exists in nested children: ["formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-01-28T11:58:37.132Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /explorar/mapa Bottom inset: 48
+[2026-01-28T11:58:37.174Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T11:58:37.453Z] [Android] [WARN] Modal with 'fullScreen' presentation style and 'transparent' value is not supported.
+[2026-01-28T11:58:38.562Z] [Web] [LOG] [Explorar v279.0] ✅ Loaded 20 locales from server
+[2026-01-28T11:58:38.592Z] [Web] [LOG] [Explorar v279.0] 🔍 Applying debounced search
+[2026-01-28T11:58:37.613Z] [Android] [LOG] [Favoritos v279.0] 🔍 Filtering locales client-side, search: 
+[2026-01-28T11:58:37.667Z] [Android] [LOG] [Favoritos v279.0] ✅ Filtered 0 locales from 0
+[2026-01-28T11:58:38.067Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T11:58:38.595Z] [Web] [LOG] [Eventos v279.0] 🔍 Applying debounced search
+[2026-01-28T11:58:38.596Z] [Web] [LOG] [Favoritos v279.0] 🔍 Applying debounced search
+[2026-01-28T11:58:38.562Z] [Web] [LOG] [Explorar v279.0] 🔄 Replacing with 20 locales
+[2026-01-28T11:58:38.712Z] [Web] [LOG] [Explorar v279.0] 📥 Setting isLoadingMore = false
+[2026-01-28T11:58:38.536Z] [Android] [LOG] [FilterContext] 🔌 Unsubscribing from filter options updates
+[2026-01-28T11:58:38.779Z] [Android] [LOG] [AndroidNative v26.0] 🧹 Android behavior cleaned up
+[2026-01-28T11:58:39.022Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📍 Step 1: Requesting location permission...
+[2026-01-28T11:58:39.009Z] [Android] [LOG] [Explorar v279.0] 📝 Search query changed: 
+[2026-01-28T11:58:39.257Z] [Android] [LOG] 🗺️ [MAPA v279.0] Filtros cambiados
+[2026-01-28T11:58:39.486Z] [Android] [LOG] [Eventos v279.0] 📝 Search query changed: 
+[2026-01-28T11:58:39.500Z] [Android] [LOG] [InternalBytecode.js:1] [Eventos v279.0] Cargando eventos...
+[2026-01-28T11:58:39.737Z] [Android] [LOG] [Favoritos v279.0] 📝 Search query changed: 
+[2026-01-28T11:58:39.966Z] [Android] [LOG] [Favoritos v279.0] Displaying 0 of 0 locales
+[2026-01-28T11:58:39.983Z] [Android] [LOG] [InternalBytecode.js:1] [AdminLayout] 🔍 Checking admin access...
+[2026-01-28T11:58:39.994Z] [Android] [LOG] [InternalBytecode.js:1] [AdminLayout] ⏳ Waiting for auth to load...
+[2026-01-28T11:58:40.010Z] [Android] [LOG] [InternalBytecode.js:1] [Empleo v94.0] Cargando ofertas...
+[2026-01-28T11:58:40.030Z] [Android] [LOG] [InternalBytecode.js:1] [Empleo v94.0] Cargando perfiles profesionales...
+[2026-01-28T11:58:40.264Z] [Android] [LOG] [FilterContext] 🚀 Initializing dynamic filter options...
+[2026-01-28T11:58:40.275Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] 🔍 ========================================
+[2026-01-28T11:58:40.297Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] 🔍 Querying DISTINCT values from active locals...
+[2026-01-28T11:58:40.286Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] 🔍 LOADING DYNAMIC FILTER OPTIONS
+[2026-01-28T11:58:40.535Z] [Android] [LOG] [FilterContext] 📡 Setting up real-time subscription for filter options...
+[2026-01-28T11:58:40.308Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] 🔍 ✅ FIXED: Removed estado_solicitud filter
+[2026-01-28T11:58:40.548Z] [Android] [LOG] [InternalBytecode.js:1] [GlobalData v200.0] 🚀 Initializing...
+[2026-01-28T11:58:40.570Z] [Android] [LOG] [InternalBytecode.js:1] [AvatarContext v145.0] ❌ No user logged in, clearing avatar
+[2026-01-28T11:58:40.559Z] [Android] [LOG] [InternalBytecode.js:1] [GlobalData v200.0] 📦 Loading from cache...
+[2026-01-28T11:58:40.768Z] [Android] [LOG] [RootLayout v141.0] 🚀 App starting...
+[2026-01-28T11:58:40.968Z] [Android] [LOG] [RootLayout v141.0] 📱 Platform: android
+[2026-01-28T11:58:41.194Z] [Android] [LOG] [RootLayout v141.0] 🤖 Initializing Android native behavior...
+[2026-01-28T11:58:41.407Z] [Android] [LOG] [AndroidNative v26.0] 🤖 Initializing Android-specific behavior...
+[2026-01-28T11:58:41.631Z] [Android] [LOG] [AndroidNative v26.0] ⚙️ Android settings configured
+[2026-01-28T11:58:41.854Z] [Android] [LOG] [AndroidNative v26.0] ✅ Hardware acceleration: enabled
+[2026-01-28T11:58:42.297Z] [Android] [LOG] [AndroidNative v26.0] ✅ Software keyboard mode: pan
+[2026-01-28T11:58:42.077Z] [Android] [LOG] [AndroidNative v26.0] ✅ Edge-to-edge mode: enabled
+[2026-01-28T11:58:42.492Z] [Android] [LOG] [AndroidNative v26.0] ✅ Native animations: enabled
+[2026-01-28T11:58:42.692Z] [Android] [LOG] [AndroidNative v26.0] ✅ Material Design: compliant
+[2026-01-28T11:58:42.915Z] [Android] [LOG] [AndroidNative v26.0] ✅ Android behavior initialized
+[2026-01-28T11:58:43.109Z] [Android] [LOG] [AndroidNative v26.0] ✅ Native touch feedback: enabled
+[2026-01-28T11:58:43.333Z] [Android] [LOG] [AndroidNative v26.0] ✅ Material Design ripples: enabled
+[2026-01-28T11:58:43.531Z] [Android] [LOG] [AndroidNative v26.0] ✅ Hardware back button: configured
+[2026-01-28T11:58:44.317Z] [Android] [LOG] [InternalBytecode.js:1] 🗺️ [MAPA v279.0] Obteniendo ubicación del usuario...
+[2026-01-28T11:58:44.310Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📍 Step 2: Getting current position...
+[2026-01-28T11:58:44.346Z] [Android] [LOG] [InternalBytecode.js:1] [GlobalData v200.0] ⚡ INSTANT locales from cache: 100
+[2026-01-28T11:58:44.319Z] [Android] [LOG] [Explorar v279.0] 🔍 Applying debounced search
+[2026-01-28T11:58:44.323Z] [Android] [LOG] [Eventos v279.0] 🔍 Applying debounced search
+[2026-01-28T11:58:44.334Z] [Android] [LOG] [Favoritos v279.0] 🔍 Applying debounced search
+[2026-01-28T11:58:44.352Z] [Android] [LOG] [InternalBytecode.js:1] [GlobalData v200.0] ⚡ INSTANT eventos from cache: 0
+[2026-01-28T11:58:44.360Z] [Android] [LOG] [InternalBytecode.js:1] [GlobalData v200.0] ⚡⚡⚡ INSTANT START with cached data
+[2026-01-28T11:58:44.365Z] [Android] [LOG] [RootLayout v141.0] 🎨 Hiding splash screen...
+[2026-01-28T11:58:44.367Z] [Android] [LOG] [InternalBytecode.js:1] [RootLayout v141.0] ✅ Splash screen hidden
+[2026-01-28T11:58:44.402Z] [Android] [LOG] 🗺️ [MAPA v279.0] Mapa listo
+[2026-01-28T11:58:44.442Z] [Android] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-01-28T11:58:44.475Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /explorar/mapa Bottom inset: 48
+[2026-01-28T11:58:44.501Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T11:58:44.966Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T11:58:45.234Z] [Android] [WARN] Modal with 'fullScreen' presentation style and 'transparent' value is not supported.
+[2026-01-28T11:58:45.283Z] [Android] [LOG] [InternalBytecode.js:1] [AdminLayout] 🔍 Checking admin access...
+[2026-01-28T11:58:45.297Z] [Android] [LOG] [InternalBytecode.js:1] [AdminLayout] ❌ No user found, redirecting silently
+[2026-01-28T11:58:45.404Z] [Android] [LOG] [InternalBytecode.js:1] [Empleo v94.0] Ofertas cargadas: 0
+[2026-01-28T11:58:45.440Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] 📊 Processing 520 active locals...
+[2026-01-28T11:58:45.484Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ ========================================
+[2026-01-28T11:58:45.490Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ DYNAMIC OPTIONS LOADED:
+[2026-01-28T11:58:45.505Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ Servicios: 21 - ["accesible_silla_ruedas","almuerzo","aparcamiento","cafe","cena","cerveza","cocteles","comida_vegetariana","deportes_tv","desayuno","dj","entrega_domicilio","musica_vivo","opciones_veganas","pago_efectivo","pago_tarjetas","para_llevar","sin_gluten","terraza_exterior","vino","wifi_gratis"]
+[2026-01-28T11:58:45.497Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ Tipos: 8 - ["bar","cafe","cocteleria","discoteca","lounge","pub","restaurante","sala_conciertos"]
+[2026-01-28T11:58:45.513Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ Ambientes: 8 - ["acogedor","animado","de_moda","elegante","familiar","juvenil","moderno","tranquilo"]
+[2026-01-28T11:58:45.520Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ Clientela: 6 - ["estudiantes","familias","grupos","ninos_bienvenidos","parejas","turistas"]
+[2026-01-28T11:58:45.527Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ Comunidades: 1 - ["España"]
+[2026-01-28T11:58:45.534Z] [Android] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ Provincias: 1 - ["A Coruña"]
+[2026-01-28T11:58:45.892Z] [Android] [WARN] Modal with 'fullScreen' presentation style and 'transparent' value is not supported.
+[2026-01-28T11:58:45.550Z] [Android] [LOG] [InternalBytecode.js:1] [Empleo v94.0] Perfiles cargados: 0
+[2026-01-28T11:58:45.934Z] [Android] [LOG] [InternalBytecode.js:1] [Eventos v279.0] Eventos cargados: 0
+[2026-01-28T11:58:57.417Z] [Android] [LOG] [InternalBytecode.js:1] [Home v101.0] ✅ Ubicación obtenida: {"lat":43.0410796,"lng":-8.4228721}
+[2026-01-28T11:58:57.441Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📍 Step 3: Location obtained: {"lat":43.0410796,"lng":-8.4228721}
+[2026-01-28T11:58:57.453Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] ✅ Step 4: Valid location set: {"lat":43.0410796,"lng":-8.4228721}
+[2026-01-28T11:58:57.434Z] [Android] [LOG] [InternalBytecode.js:1] [Favoritos v279.0] User location obtained: {"accuracy":100,"longitude":-8.4228721,"altitude":331.9000244140625,"heading":0,"latitude":43.0410796,"altitudeAccuracy":100,"speed":0}
+[2026-01-28T11:58:57.425Z] [Android] [LOG] [InternalBytecode.js:1] 🗺️ [MAPA v279.0] Ubicación obtenida: 43.0410796 -8.4228721
+[2026-01-28T11:58:57.467Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 🎯 Step 5: Marking location as READY - data will now load
+[2026-01-28T11:58:57.878Z] [Android] [WARN] Modal with 'fullScreen' presentation style and 'transparent' value is not supported.
+[2026-01-28T11:58:58.153Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 🚀 loadLocales called - page: 1 append: false locationReady: true
+[2026-01-28T11:58:58.139Z] [Android] [LOG] [Explorar v279.0] 🚀 Location is ready - loading initial data
+[2026-01-28T11:58:58.167Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 🔄 Filters changed, resetting...
+[2026-01-28T11:58:58.182Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] ⚡ First load - showing skeleton UI
+[2026-01-28T11:58:58.196Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📡 Loading page 1 from server...
+[2026-01-28T11:58:58.210Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📍 Using location params: {"user_lat":43.0410796,"user_lng":-8.4228721}
+[2026-01-28T11:58:58.224Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 🎯 hasValidLocation: true
+[2026-01-28T11:58:58.444Z] [Android] [LOG] 🗺️ [MAPA v279.0] 📍 Inyectando ubicación del usuario con marcador mejorado
+[2026-01-28T11:58:58.633Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] ✅ Loaded 20 locales from server
+[2026-01-28T11:58:58.469Z] [Android] [LOG] 🗺️ [MAPA v279.0] Mapa listo
+[2026-01-28T11:58:58.642Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 🔄 Replacing with 20 locales
+[2026-01-28T11:58:59.407Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📥 Setting isLoadingMore = false
+[2026-01-28T12:01:34.364Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "explorar" -> /(tabs)/explorar
+[2026-01-28T12:01:35.021Z] [Android] [LOG] [Explorar v279.0] 📝 Search query changed: 
+[2026-01-28T12:01:35.113Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:01:35.080Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /explorar Bottom inset: 48
+[2026-01-28T12:01:35.035Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📍 Step 1: Requesting location permission...
+[2026-01-28T12:01:35.239Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:01:35.289Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📍 Step 2: Getting current position...
+[2026-01-28T12:01:35.415Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📍 Step 3: Location obtained: {"lat":43.0410796,"lng":-8.4228721}
+[2026-01-28T12:01:35.427Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] ✅ Step 4: Valid location set: {"lat":43.0410796,"lng":-8.4228721}
+[2026-01-28T12:01:35.437Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 🎯 Step 5: Marking location as READY - data will now load
+[2026-01-28T12:01:35.347Z] [Android] [LOG] [Explorar v279.0] 🔍 Applying debounced search
+[2026-01-28T12:01:35.783Z] [Android] [LOG] [Explorar v279.0] 🚀 Location is ready - loading initial data
+[2026-01-28T12:01:35.797Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 🚀 loadLocales called - page: 1 append: false locationReady: true
+[2026-01-28T12:01:35.811Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 🔄 Filters changed, resetting...
+[2026-01-28T12:01:35.837Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📡 Loading page 1 from server...
+[2026-01-28T12:01:35.823Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] ⚡ First load - showing skeleton UI
+[2026-01-28T12:01:35.850Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📍 Using location params: {"user_lat":43.0410796,"user_lng":-8.4228721}
+[2026-01-28T12:01:35.863Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 🎯 hasValidLocation: true
+[2026-01-28T12:01:36.101Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 🔄 Replacing with 20 locales
+[2026-01-28T12:01:36.089Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] ✅ Loaded 20 locales from server
+[2026-01-28T12:01:36.738Z] [Android] [LOG] [InternalBytecode.js:1] [Explorar v279.0] 📥 Setting isLoadingMore = false
+[2026-01-28T12:01:40.101Z] [Android] [LOG] [DetalleLocal v101.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-01-28T12:01:40.155Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] 🔍 Requesting location permissions...
+[2026-01-28T12:01:40.217Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /detalle/local Bottom inset: 48
+[2026-01-28T12:01:40.248Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:01:40.418Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:01:40.566Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] ✅ Location permission granted, getting position...
+[2026-01-28T12:01:40.793Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] ✅ Local loaded: {"id":"1a105336-67b8-47cb-b6aa-594596130b09","nombre":"O Antoxo De Adriana (A Coruña)","propietario_id":null,"rating":0,"google_rating":3.6}
+[2026-01-28T12:01:40.890Z] [Android] [LOG] [DetalleLocal v101.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-01-28T12:01:41.019Z] [Android] [LOG] ⏰ [TIME] Día lógico determinado: miercoles
+[2026-01-28T12:01:40.988Z] [Android] [LOG] ⏰ [TIME] Día del calendario: miercoles, Hora actual: 13:01 (781 minutos)
+[2026-01-28T12:01:40.950Z] [Android] [LOG] ⏰ [TIME] Calculando estado para: O Antoxo De Adriana (A Coruña)
+[2026-01-28T12:01:41.048Z] [Android] [LOG] ⏰ [TIME] Verificando horario del día lógico (miercoles)
+[2026-01-28T12:01:41.104Z] [Android] [LOG] ⏰ [TIME] Verificando rango 1: 09:00–22:00
+[2026-01-28T12:01:41.077Z] [Android] [LOG] ⏰ [TIME] Verificando 1 rangos horarios del día miercoles
+[2026-01-28T12:01:41.134Z] [Android] [LOG] ⏰ [TIME] Apertura: 09:00 (540 min), Cierre: 22:00 (1320 min)
+[2026-01-28T12:01:41.187Z] [Android] [LOG] ⏰ [TIME] Horario diurno detectado
+[2026-01-28T12:01:41.159Z] [Android] [LOG] ⏰ [TIME] ¿Es horario nocturno? No
+[2026-01-28T12:01:41.245Z] [Android] [LOG] ⏰ [TIME] Minutos hasta cierre: 539
+[2026-01-28T12:01:41.216Z] [Android] [LOG] ⏰ [TIME] ✅ ABIERTO (horario diurno del miercoles)
+[2026-01-28T12:01:41.811Z] [Android] [LOG] [DetalleLocal v101.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-01-28T12:01:41.781Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] ✅ Loaded checked-in users: 0
+[2026-01-28T12:01:41.869Z] [Android] [LOG] ⏰ [TIME] Día del calendario: miercoles, Hora actual: 13:01 (781 minutos)
+[2026-01-28T12:01:41.840Z] [Android] [LOG] ⏰ [TIME] Calculando estado para: O Antoxo De Adriana (A Coruña)
+[2026-01-28T12:01:41.899Z] [Android] [LOG] ⏰ [TIME] Día lógico determinado: miercoles
+[2026-01-28T12:01:41.924Z] [Android] [LOG] ⏰ [TIME] Verificando horario del día lógico (miercoles)
+[2026-01-28T12:01:41.953Z] [Android] [LOG] ⏰ [TIME] Verificando 1 rangos horarios del día miercoles
+[2026-01-28T12:01:41.981Z] [Android] [LOG] ⏰ [TIME] Verificando rango 1: 09:00–22:00
+[2026-01-28T12:01:42.010Z] [Android] [LOG] ⏰ [TIME] Apertura: 09:00 (540 min), Cierre: 22:00 (1320 min)
+[2026-01-28T12:01:42.039Z] [Android] [LOG] ⏰ [TIME] ¿Es horario nocturno? No
+[2026-01-28T12:01:42.067Z] [Android] [LOG] ⏰ [TIME] Horario diurno detectado
+[2026-01-28T12:01:42.096Z] [Android] [LOG] ⏰ [TIME] ✅ ABIERTO (horario diurno del miercoles)
+[2026-01-28T12:01:42.125Z] [Android] [LOG] ⏰ [TIME] Minutos hasta cierre: 539
+[2026-01-28T12:01:42.482Z] [Android] [LOG] ⏰ [TIME] Calculando estado para: O Antoxo De Adriana (A Coruña)
+[2026-01-28T12:01:42.513Z] [Android] [LOG] ⏰ [TIME] Día del calendario: miercoles, Hora actual: 13:01 (781 minutos)
+[2026-01-28T12:01:42.452Z] [Android] [LOG] [DetalleLocal v101.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-01-28T12:01:42.424Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] 📊 Using Google rating: 3.6
+[2026-01-28T12:01:42.417Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] ✅ Loaded unified reviews: {"barlive":0,"google":5,"total":5}
+[2026-01-28T12:01:42.542Z] [Android] [LOG] ⏰ [TIME] Día lógico determinado: miercoles
+[2026-01-28T12:01:42.572Z] [Android] [LOG] ⏰ [TIME] Verificando horario del día lógico (miercoles)
+[2026-01-28T12:01:42.602Z] [Android] [LOG] ⏰ [TIME] Verificando 1 rangos horarios del día miercoles
+[2026-01-28T12:01:42.663Z] [Android] [LOG] ⏰ [TIME] Apertura: 09:00 (540 min), Cierre: 22:00 (1320 min)
+[2026-01-28T12:01:42.634Z] [Android] [LOG] ⏰ [TIME] Verificando rango 1: 09:00–22:00
+[2026-01-28T12:01:42.692Z] [Android] [LOG] ⏰ [TIME] ¿Es horario nocturno? No
+[2026-01-28T12:01:42.749Z] [Android] [LOG] ⏰ [TIME] ✅ ABIERTO (horario diurno del miercoles)
+[2026-01-28T12:01:42.719Z] [Android] [LOG] ⏰ [TIME] Horario diurno detectado
+[2026-01-28T12:01:42.778Z] [Android] [LOG] ⏰ [TIME] Minutos hasta cierre: 539
+[2026-01-28T12:02:05.392Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] 📍 User location obtained
+[2026-01-28T12:02:05.622Z] [Android] [LOG] ⏰ [TIME] Día lógico determinado: miercoles
+[2026-01-28T12:02:05.576Z] [Android] [LOG] ⏰ [TIME] Día del calendario: miercoles, Hora actual: 13:02 (782 minutos)
+[2026-01-28T12:02:05.526Z] [Android] [LOG] ⏰ [TIME] Calculando estado para: O Antoxo De Adriana (A Coruña)
+[2026-01-28T12:02:05.473Z] [Android] [LOG] [DetalleLocal v101.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-01-28T12:02:05.663Z] [Android] [LOG] ⏰ [TIME] Verificando horario del día lógico (miercoles)
+[2026-01-28T12:02:05.724Z] [Android] [LOG] ⏰ [TIME] Verificando rango 1: 09:00–22:00
+[2026-01-28T12:02:05.695Z] [Android] [LOG] ⏰ [TIME] Verificando 1 rangos horarios del día miercoles
+[2026-01-28T12:02:05.750Z] [Android] [LOG] ⏰ [TIME] Apertura: 09:00 (540 min), Cierre: 22:00 (1320 min)
+[2026-01-28T12:02:05.778Z] [Android] [LOG] ⏰ [TIME] ¿Es horario nocturno? No
+[2026-01-28T12:02:05.807Z] [Android] [LOG] ⏰ [TIME] Horario diurno detectado
+[2026-01-28T12:02:05.832Z] [Android] [LOG] ⏰ [TIME] ✅ ABIERTO (horario diurno del miercoles)
+[2026-01-28T12:02:05.861Z] [Android] [LOG] ⏰ [TIME] Minutos hasta cierre: 538
+[2026-01-28T12:02:06.029Z] [Android] [LOG] [DetalleLocal v101.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-01-28T12:02:06.058Z] [Android] [LOG] ⏰ [TIME] Calculando estado para: O Antoxo De Adriana (A Coruña)
+[2026-01-28T12:02:06.086Z] [Android] [LOG] ⏰ [TIME] Día del calendario: miercoles, Hora actual: 13:02 (782 minutos)
+[2026-01-28T12:02:06.115Z] [Android] [LOG] ⏰ [TIME] Día lógico determinado: miercoles
+[2026-01-28T12:02:06.143Z] [Android] [LOG] ⏰ [TIME] Verificando horario del día lógico (miercoles)
+[2026-01-28T12:02:06.172Z] [Android] [LOG] ⏰ [TIME] Verificando 1 rangos horarios del día miercoles
+[2026-01-28T12:02:06.200Z] [Android] [LOG] ⏰ [TIME] Verificando rango 1: 09:00–22:00
+[2026-01-28T12:02:06.229Z] [Android] [LOG] ⏰ [TIME] Apertura: 09:00 (540 min), Cierre: 22:00 (1320 min)
+[2026-01-28T12:02:06.258Z] [Android] [LOG] ⏰ [TIME] ¿Es horario nocturno? No
+[2026-01-28T12:02:06.286Z] [Android] [LOG] ⏰ [TIME] Horario diurno detectado
+[2026-01-28T12:02:06.316Z] [Android] [LOG] ⏰ [TIME] ✅ ABIERTO (horario diurno del miercoles)
+[2026-01-28T12:02:06.345Z] [Android] [LOG] ⏰ [TIME] Minutos hasta cierre: 538
+[2026-01-28T12:03:27.467Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /explorar Bottom inset: 48
+[2026-01-28T12:03:27.499Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:03:27.639Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:03:36.190Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /auth/account-required Bottom inset: 48
+[2026-01-28T12:03:36.136Z] [Android] [LOG] [AccountRequired] 📄 Pantalla de cuenta requerida mostrada
+[2026-01-28T12:03:36.390Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:03:36.221Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:03:38.520Z] [Web] [WARN] Disconnected from Metro (1006: "").
+
+To reconnect:
+- Ensure that Metro is running and available on the same network
+- Reload this app (will trigger further help if Metro cannot be connected to)
+      
+[2026-01-28T12:04:15.708Z] [Android] [LOG] [AccountRequired] ⬅️ Usuario vuelve atrás
+[2026-01-28T12:04:15.925Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /explorar Bottom inset: 48
+[2026-01-28T12:04:15.953Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:04:16.096Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:04:18.505Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /perfil Bottom inset: 48
+[2026-01-28T12:04:18.539Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:04:18.134Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "perfil" -> /(tabs)/perfil
+[2026-01-28T12:04:18.707Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:04:21.233Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /auth/registro-v6 Bottom inset: 48
+[2026-01-28T12:04:21.264Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:04:21.432Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:06:18.625Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /perfil Bottom inset: 48
+[2026-01-28T12:06:18.797Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:06:18.655Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:06:20.345Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "explorar" -> /(tabs)/explorar
+[2026-01-28T12:06:21.381Z] [Android] [WARN] Modal with 'fullScreen' presentation style and 'transparent' value is not supported.
+[2026-01-28T12:06:21.534Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:06:21.499Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /explorar Bottom inset: 48
+[2026-01-28T12:06:22.130Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:07:28.454Z] [iOS] [LOG] ⏰ [TIME] Verificando 1 rangos horarios del día miercoles
+[2026-01-28T12:07:28.564Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cube.fill", FILLED, mode: monochrome, color: #fff, size: 24
+[2026-01-28T12:07:28.582Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 20
+[2026-01-28T12:07:28.592Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:28.423Z] [iOS] [LOG] [DetalleLocal v101.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-01-28T12:07:28.505Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.arrow.up", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-01-28T12:07:28.637Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chart.bar.fill", FILLED, mode: monochrome, color: #F59E0B, size: 20
+[2026-01-28T12:07:28.442Z] [iOS] [LOG] ⏰ [TIME] Día lógico determinado: miercoles
+[2026-01-28T12:07:28.558Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-01-28T12:07:28.249Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] 📍 User location obtained
+[2026-01-28T12:07:28.089Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:07:28.476Z] [iOS] [LOG] ⏰ [TIME] Horario nocturno detectado
+[2026-01-28T12:07:28.258Z] [iOS] [LOG] [DetalleLocal v101.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-01-28T12:07:28.459Z] [iOS] [LOG] ⏰ [TIME] Verificando rango 1: 08:00–00:00
+[2026-01-28T12:07:28.448Z] [iOS] [LOG] ⏰ [TIME] Verificando horario del día lógico (miercoles)
+[2026-01-28T12:07:28.510Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FFD700, size: 16
+[2026-01-28T12:07:28.436Z] [iOS] [LOG] ⏰ [TIME] Día del calendario: miercoles, Hora actual: 13:07 (787 minutos)
+[2026-01-28T12:07:28.082Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /detalle/local
+[2026-01-28T12:07:28.155Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-01-28T12:07:28.547Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #fff, size: 22
+[2026-01-28T12:07:28.597Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "banknote", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:28.168Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-01-28T12:07:28.587Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:28.059Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] 🔍 Requesting location permissions...
+[2026-01-28T12:07:28.569Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-01-28T12:07:28.430Z] [iOS] [LOG] ⏰ [TIME] Calculando estado para: Vinoteca Raquel
+[2026-01-28T12:07:28.487Z] [iOS] [LOG] ⏰ [TIME] Minutos hasta cierre (mañana): 653
+[2026-01-28T12:07:28.524Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #fff, size: 18
+[2026-01-28T12:07:28.196Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] ✅ Location permission granted, getting position...
+[2026-01-28T12:07:28.162Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-01-28T12:07:28.516Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-01-28T12:07:28.574Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.fill", FILLED, mode: monochrome, color: #3B82F6, size: 20
+[2026-01-28T12:07:28.148Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-01-28T12:07:28.499Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "xmark", OUTLINED, mode: monochrome, color: #fff, size: 20
+[2026-01-28T12:07:28.141Z] [iOS] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:07:28.552Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "phone.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-01-28T12:07:28.405Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] ✅ Local loaded: {"id":"8afc9791-f447-4db8-b64c-cacd29575374","nombre":"Vinoteca Raquel","propietario_id":null,"rating":0,"google_rating":4.5}
+[2026-01-28T12:07:28.482Z] [iOS] [LOG] ⏰ [TIME] ✅ ABIERTO (después de la apertura del horario nocturno del miercoles)
+[2026-01-28T12:07:28.607Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:28.029Z] [iOS] [LOG] [DetalleLocal v101.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-01-28T12:07:28.465Z] [iOS] [LOG] ⏰ [TIME] Apertura: 08:00 (480 min), Cierre: 00:00 (0 min)
+[2026-01-28T12:07:28.471Z] [iOS] [LOG] ⏰ [TIME] ¿Es horario nocturno? Sí
+[2026-01-28T12:07:28.777Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #14B8A6, size: 16
+[2026-01-28T12:07:28.537Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2", OUTLINED, mode: monochrome, color: #14B8A6, size: 16
+[2026-01-28T12:07:28.602Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "creditcard.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:28.530Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #14B8A6, size: 18
+[2026-01-28T12:07:28.542Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-01-28T12:07:28.917Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] ✅ Loaded checked-in users: 0
+[2026-01-28T12:07:28.925Z] [iOS] [LOG] [DetalleLocal v101.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-01-28T12:07:28.935Z] [iOS] [LOG] ⏰ [TIME] Calculando estado para: Vinoteca Raquel
+[2026-01-28T12:07:29.015Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FFD700, size: 16
+[2026-01-28T12:07:28.985Z] [iOS] [LOG] ⏰ [TIME] Horario nocturno detectado
+[2026-01-28T12:07:28.951Z] [iOS] [LOG] ⏰ [TIME] Día lógico determinado: miercoles
+[2026-01-28T12:07:28.974Z] [iOS] [LOG] ⏰ [TIME] Apertura: 08:00 (480 min), Cierre: 00:00 (0 min)
+[2026-01-28T12:07:28.968Z] [iOS] [LOG] ⏰ [TIME] Verificando rango 1: 08:00–00:00
+[2026-01-28T12:07:28.962Z] [iOS] [LOG] ⏰ [TIME] Verificando 1 rangos horarios del día miercoles
+[2026-01-28T12:07:28.957Z] [iOS] [LOG] ⏰ [TIME] Verificando horario del día lógico (miercoles)
+[2026-01-28T12:07:28.990Z] [iOS] [LOG] ⏰ [TIME] ✅ ABIERTO (después de la apertura del horario nocturno del miercoles)
+[2026-01-28T12:07:28.979Z] [iOS] [LOG] ⏰ [TIME] ¿Es horario nocturno? Sí
+[2026-01-28T12:07:28.943Z] [iOS] [LOG] ⏰ [TIME] Día del calendario: miercoles, Hora actual: 13:07 (787 minutos)
+[2026-01-28T12:07:28.996Z] [iOS] [LOG] ⏰ [TIME] Minutos hasta cierre (mañana): 653
+[2026-01-28T12:07:29.020Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-01-28T12:07:29.010Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.arrow.up", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-01-28T12:07:29.032Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #14B8A6, size: 18
+[2026-01-28T12:07:29.003Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "xmark", OUTLINED, mode: monochrome, color: #fff, size: 20
+[2026-01-28T12:07:29.027Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #fff, size: 18
+[2026-01-28T12:07:29.042Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2", OUTLINED, mode: monochrome, color: #14B8A6, size: 16
+[2026-01-28T12:07:29.047Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-01-28T12:07:29.037Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #14B8A6, size: 16
+[2026-01-28T12:07:29.058Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "phone.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-01-28T12:07:29.052Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #fff, size: 22
+[2026-01-28T12:07:29.094Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:29.073Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-01-28T12:07:29.099Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "banknote", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:29.138Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chart.bar.fill", FILLED, mode: monochrome, color: #F59E0B, size: 20
+[2026-01-28T12:07:29.109Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:29.068Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cube.fill", FILLED, mode: monochrome, color: #fff, size: 24
+[2026-01-28T12:07:29.078Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.fill", FILLED, mode: monochrome, color: #3B82F6, size: 20
+[2026-01-28T12:07:29.388Z] [iOS] [LOG] ⏰ [TIME] Día del calendario: miercoles, Hora actual: 13:07 (787 minutos)
+[2026-01-28T12:07:29.084Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 20
+[2026-01-28T12:07:29.063Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-01-28T12:07:29.361Z] [iOS] [LOG] ⏰ [TIME] Calculando estado para: Vinoteca Raquel
+[2026-01-28T12:07:29.723Z] [iOS] [LOG] ⏰ [TIME] ¿Es horario nocturno? Sí
+[2026-01-28T12:07:29.313Z] [iOS] [LOG] [DetalleLocal v101.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-01-28T12:07:29.089Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:29.104Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "creditcard.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:29.500Z] [iOS] [LOG] ⏰ [TIME] Verificando horario del día lógico (miercoles)
+[2026-01-28T12:07:29.273Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] ✅ Loaded unified reviews: {"barlive":0,"google":5,"total":5}
+[2026-01-28T12:07:29.279Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v101.0] 📊 Using Google rating: 4.5
+[2026-01-28T12:07:29.441Z] [iOS] [LOG] ⏰ [TIME] Día lógico determinado: miercoles
+[2026-01-28T12:07:29.559Z] [iOS] [LOG] ⏰ [TIME] Verificando 1 rangos horarios del día miercoles
+[2026-01-28T12:07:29.781Z] [iOS] [LOG] ⏰ [TIME] Horario nocturno detectado
+[2026-01-28T12:07:30.198Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #14B8A6, size: 18
+[2026-01-28T12:07:29.887Z] [iOS] [LOG] ⏰ [TIME] Minutos hasta cierre (mañana): 653
+[2026-01-28T12:07:29.835Z] [iOS] [LOG] ⏰ [TIME] ✅ ABIERTO (después de la apertura del horario nocturno del miercoles)
+[2026-01-28T12:07:30.241Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #14B8A6, size: 16
+[2026-01-28T12:07:29.669Z] [iOS] [LOG] ⏰ [TIME] Apertura: 08:00 (480 min), Cierre: 00:00 (0 min)
+[2026-01-28T12:07:29.968Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "xmark", OUTLINED, mode: monochrome, color: #fff, size: 20
+[2026-01-28T12:07:29.615Z] [iOS] [LOG] ⏰ [TIME] Verificando rango 1: 08:00–00:00
+[2026-01-28T12:07:30.755Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:30.350Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #fff, size: 22
+[2026-01-28T12:07:30.274Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2", OUTLINED, mode: monochrome, color: #14B8A6, size: 16
+[2026-01-28T12:07:30.006Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.arrow.up", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-01-28T12:07:30.301Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-01-28T12:07:30.504Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cube.fill", FILLED, mode: monochrome, color: #fff, size: 24
+[2026-01-28T12:07:30.112Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-01-28T12:07:30.849Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "creditcard.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:30.175Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #fff, size: 18
+[2026-01-28T12:07:30.058Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FFD700, size: 16
+[2026-01-28T12:07:30.552Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-01-28T12:07:30.399Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "phone.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-01-28T12:07:30.598Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.fill", FILLED, mode: monochrome, color: #3B82F6, size: 20
+[2026-01-28T12:07:30.451Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-01-28T12:07:31.282Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:07:30.802Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "banknote", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:30.895Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:31.172Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chart.bar.fill", FILLED, mode: monochrome, color: #F59E0B, size: 20
+[2026-01-28T12:07:30.657Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 20
+[2026-01-28T12:07:30.706Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-01-28T12:07:31.227Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FFD700, size: 20
+[2026-01-28T12:07:31.597Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.circle.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-01-28T12:11:22.305Z] [Android] [WARN] Cannot connect to Metro.
+
+Try the following to fix the issue:
+- Ensure that Metro is running and available on the same network
+- Ensure that your device/emulator is connected to your machine and has USB debugging enabled - run 'adb devices' to see a list of connected devices
+- If you're on a physical device connected to the same machine, run 'adb reverse tcp:8081 tcp:8081' to forward requests from your device
+- If your device is on the same Wi-Fi network, set 'Debug server host & port for device' in 'Dev settings' to your machine's IP address and the port of the local dev server - e.g. 10.0.1.1:8081
+
+URL: idvhs6u-anonymous-8081.exp.direct:80
+
+Error: undefined
+[2026-01-28T12:12:52.697Z] [iOS] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-01-28T12:12:52.705Z] [iOS] [LOG] [PublicacionCard v102.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-01-28T12:12:53.888Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:12:53.925Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-01-28T12:12:53.882Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /explorar
+[2026-01-28T12:12:53.919Z] [iOS] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:12:53.947Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-01-28T12:12:53.941Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-01-28T12:12:53.931Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-01-28T12:12:55.807Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v102.0] 📡 Subscription status: SUBSCRIBED
+[2026-01-28T12:12:55.802Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] 📡 Subscription status: SUBSCRIBED
+[2026-01-28T12:12:55.926Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-01-28T12:12:55.938Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:55.919Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-01-28T12:12:56.389Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-01-28T12:12:55.883Z] [iOS] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "favoritos" -> /(tabs)/favoritos
+[2026-01-28T12:12:56.012Z] [iOS] [LOG] ⏰ [TIME] Verificando 1 rangos horarios del día miercoles
+[2026-01-28T12:12:55.964Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:56.087Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.triangle.turn.up.right.diamond.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-01-28T12:12:56.045Z] [iOS] [LOG] ⏰ [TIME] Horario diurno detectado
+[2026-01-28T12:12:55.945Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:56.004Z] [iOS] [LOG] ⏰ [TIME] Verificando horario del día lógico (miercoles)
+[2026-01-28T12:12:55.970Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:55.987Z] [iOS] [LOG] ⏰ [TIME] Día del calendario: miercoles, Hora actual: 13:12 (792 minutos)
+[2026-01-28T12:12:56.074Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 20
+[2026-01-28T12:12:55.957Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:56.028Z] [iOS] [LOG] ⏰ [TIME] Apertura: 10:00 (600 min), Cierre: 23:00 (1380 min)
+[2026-01-28T12:12:56.053Z] [iOS] [LOG] ⏰ [TIME] ✅ ABIERTO (horario diurno del miercoles)
+[2026-01-28T12:12:56.135Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /favoritos
+[2026-01-28T12:12:55.979Z] [iOS] [LOG] ⏰ [TIME] Calculando estado para: Bar A Coviña
+[2026-01-28T12:12:56.142Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:12:56.376Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-01-28T12:12:56.370Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-01-28T12:12:55.951Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:56.020Z] [iOS] [LOG] ⏰ [TIME] Verificando rango 1: 10:00–23:00
+[2026-01-28T12:12:55.932Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-01-28T12:12:56.363Z] [iOS] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:12:56.068Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-01-28T12:12:56.080Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-01-28T12:12:55.995Z] [iOS] [LOG] ⏰ [TIME] Día lógico determinado: miercoles
+[2026-01-28T12:12:56.036Z] [iOS] [LOG] ⏰ [TIME] ¿Es horario nocturno? No
+[2026-01-28T12:12:56.061Z] [iOS] [LOG] ⏰ [TIME] Minutos hasta cierre: 588
+[2026-01-28T12:12:56.093Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 14
+[2026-01-28T12:12:56.383Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-01-28T12:12:57.335Z] [iOS] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "explorar" -> /(tabs)/explorar
+[2026-01-28T12:12:57.389Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:57.425Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-01-28T12:12:57.419Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-01-28T12:12:57.470Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-01-28T12:12:57.510Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.triangle.turn.up.right.diamond.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-01-28T12:12:57.412Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-01-28T12:12:57.504Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-01-28T12:12:57.431Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:57.444Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:58.325Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-01-28T12:12:57.483Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #92400E, size: 12
+[2026-01-28T12:12:57.457Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:57.397Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.down", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-01-28T12:12:57.496Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-01-28T12:12:57.476Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:57.463Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:57.490Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-01-28T12:12:57.451Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:57.438Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-01-28T12:12:57.517Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 14
+[2026-01-28T12:12:57.851Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /explorar
+[2026-01-28T12:12:58.306Z] [iOS] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:12:58.319Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-01-28T12:12:57.691Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 20
+[2026-01-28T12:12:57.857Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:12:57.405Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-01-28T12:12:58.331Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-01-28T12:12:58.312Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-01-28T12:24:18.808Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-01-28T12:24:18.311Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /social
+[2026-01-28T12:24:18.838Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:24:18.312Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:24:18.291Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "social" -> /(tabs)/social
+[2026-01-28T12:24:18.323Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:24:18.772Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "explorar" -> /(tabs)/explorar
+[2026-01-28T12:24:18.808Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:24:19.675Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /social
+[2026-01-28T12:24:19.660Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "social" -> /(tabs)/social
+[2026-01-28T12:24:19.686Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:24:19.676Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:24:20.298Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-01-28T12:24:20.264Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "explorar" -> /(tabs)/explorar
+[2026-01-28T12:24:20.326Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:24:20.772Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:24:20.298Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:24:20.772Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /favoritos
+[2026-01-28T12:24:20.782Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:24:20.756Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "favoritos" -> /(tabs)/favoritos
+[2026-01-28T12:24:21.172Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "eventos" -> /(tabs)/eventos
+[2026-01-28T12:24:21.189Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /eventos
+[2026-01-28T12:24:21.190Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:24:21.202Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:24:21.788Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:24:21.727Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "explorar" -> /(tabs)/explorar
+[2026-01-28T12:24:21.759Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-01-28T12:24:21.760Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:04.018Z] [Web] [LOG] [Explorar v279.0] 🚀 loadLocales called - page: 1 append: false locationReady: true
+[2026-01-28T12:27:03.998Z] [Web] [LOG] [Explorar v279.0] 📝 Search query changed: 
+[2026-01-28T12:27:04.017Z] [Web] [LOG] [Explorar v279.0] 🚀 Location is ready - loading initial data
+[2026-01-28T12:27:04.300Z] [Web] [LOG] [Explorar v279.0] 🔍 Applying debounced search
+[2026-01-28T12:27:04.022Z] [Web] [LOG] [Explorar v279.0] ⚡ First load - showing skeleton UI
+[2026-01-28T12:27:04.460Z] [Web] [LOG] [Explorar v279.0] 🔄 Replacing with 20 locales
+[2026-01-28T12:27:04.020Z] [Web] [LOG] [Explorar v279.0] 🔄 Filters changed, resetting...
+[2026-01-28T12:27:04.025Z] [Web] [LOG] [Explorar v279.0] 📍 Using location params: {"user_lat":43.0767,"user_lng":-8.4077}
+[2026-01-28T12:27:04.027Z] [Web] [LOG] [Explorar v279.0] 🎯 hasValidLocation: true
+[2026-01-28T12:27:04.000Z] [Web] [LOG] [Explorar v279.0] 📍 Step 1: Requesting location permission...
+[2026-01-28T12:27:04.005Z] [Web] [LOG] [Explorar v279.0] 📍 Step 3: Location obtained: {"lat":43.0767,"lng":-8.4077}
+[2026-01-28T12:27:04.459Z] [Web] [LOG] [Explorar v279.0] ✅ Loaded 20 locales from server
+[2026-01-28T12:27:04.005Z] [Web] [LOG] [Explorar v279.0] 🎯 Step 5: Marking location as READY - data will now load
+[2026-01-28T12:27:04.023Z] [Web] [LOG] [Explorar v279.0] 📡 Loading page 1 from server...
+[2026-01-28T12:27:03.972Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "explorar" -> /(tabs)/explorar
+[2026-01-28T12:27:04.004Z] [Web] [LOG] [Explorar v279.0] 📍 Step 2: Getting current position...
+[2026-01-28T12:27:04.005Z] [Web] [LOG] [Explorar v279.0] ✅ Step 4: Valid location set: {"lat":43.0767,"lng":-8.4077}
+[2026-01-28T12:27:04.612Z] [Web] [LOG] [Explorar v279.0] 📥 Setting isLoadingMore = false
+[2026-01-28T12:27:05.660Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /favoritos
+[2026-01-28T12:27:05.642Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "favoritos" -> /(tabs)/favoritos
+[2026-01-28T12:27:05.660Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:05.670Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:06.236Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:06.204Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "eventos" -> /(tabs)/eventos
+[2026-01-28T12:27:06.223Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /eventos
+[2026-01-28T12:27:06.224Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:07.165Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "social" -> /(tabs)/social
+[2026-01-28T12:27:07.181Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /social
+[2026-01-28T12:27:07.646Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "perfil" -> /(tabs)/perfil
+[2026-01-28T12:27:07.661Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /perfil
+[2026-01-28T12:27:07.192Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:07.662Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:07.671Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:07.182Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:08.147Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "social" -> /(tabs)/social
+[2026-01-28T12:27:08.162Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /social
+[2026-01-28T12:27:08.162Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:08.173Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:09.502Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:09.502Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /auth/registro-v6
+[2026-01-28T12:27:09.511Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:13.957Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:13.957Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /social
+[2026-01-28T12:27:13.965Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:14.927Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "perfil" -> /(tabs)/perfil
+[2026-01-28T12:27:14.942Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /perfil
+[2026-01-28T12:27:14.942Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:14.952Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:16.040Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:16.040Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /auth/registro-v6
+[2026-01-28T12:27:16.048Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:17.254Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:17.253Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /perfil
+[2026-01-28T12:27:17.261Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:17.739Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /auth/login-v6
+[2026-01-28T12:27:17.748Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:17.739Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:19.912Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:19.912Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /perfil
+[2026-01-28T12:27:19.919Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:20.859Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /social
+[2026-01-28T12:27:20.844Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "social" -> /(tabs)/social
+[2026-01-28T12:27:20.860Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:20.870Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:22.794Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /perfil
+[2026-01-28T12:27:22.792Z] [Web] [LOG] [Notificaciones] Push notifications no disponibles
+[2026-01-28T12:27:22.810Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:22.795Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:22.813Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /perfil/notificaciones
+[2026-01-28T12:27:23.981Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:23.981Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /perfil
+[2026-01-28T12:27:23.989Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:25.111Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /social
+[2026-01-28T12:27:25.097Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "social" -> /(tabs)/social
+[2026-01-28T12:27:25.122Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:25.112Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:25.927Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:25.926Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /perfil
+[2026-01-28T12:27:25.940Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /perfil/chats
+[2026-01-28T12:27:25.937Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:26.851Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:26.850Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /perfil
+[2026-01-28T12:27:26.858Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:27.918Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /social
+[2026-01-28T12:27:27.903Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "social" -> /(tabs)/social
+[2026-01-28T12:27:27.928Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:27.918Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:28.648Z] [Web] [LOG] [SocialSearch v10.0] 📝 Search query changed: 
+[2026-01-28T12:27:28.637Z] [Web] [LOG] [HeaderSocial v108.0] 🔍 Navigating to full-page search
+[2026-01-28T12:27:28.649Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /social/search
+[2026-01-28T12:27:28.649Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:28.656Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:29.514Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:29.514Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /social
+[2026-01-28T12:27:29.521Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:30.270Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /favoritos
+[2026-01-28T12:27:30.256Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "favoritos" -> /(tabs)/favoritos
+[2026-01-28T12:27:30.271Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:30.280Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:31.622Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-01-28T12:27:31.572Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "explorar" -> /(tabs)/explorar
+[2026-01-28T12:27:31.623Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:31.665Z] [Web] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:51.787Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:51.193Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT TAP: "social" -> /(tabs)/social
+[2026-01-28T12:27:51.611Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:51.580Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /social Bottom inset: 48
+[2026-01-28T12:27:54.407Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /auth/registro-v6 Bottom inset: 48
+[2026-01-28T12:27:54.438Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:54.609Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
+[2026-01-28T12:27:56.354Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: cliente Current mode: cliente Pathname: /social Bottom inset: 48
+[2026-01-28T12:27:56.387Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-01-28T12:27:56.527Z] [Android] [LOG] [FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - activeOpacity=0.6, no delays, optimized rendering
