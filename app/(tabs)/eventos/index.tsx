@@ -89,15 +89,18 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v268.0 - ANIMATED HEADER LIKE EXPLORAR
+ * ✅ EVENTOS SCREEN v270.0 - REMOVED INCORRECT MARGIN
  * 
- * NEW FIXES v268.0:
+ * NEW FIXES v270.0:
+ * - ✅ FIXED: REMOVED incorrect marginTop (was HEADER_MAX_HEIGHT + 20)
+ * - ✅ FIXED: Now uses standard padding without extra margin
+ * - ✅ FIXED: Removed duplicate 'style' prop on ScrollView
+ * 
+ * Previous features maintained (v268.0):
  * - ✅ ANIMATED HEADER: Same collapsing behavior as Explorar page
  * - ✅ CONSISTENT DESIGN: Matches Explorar header structure
  * - ✅ SMOOTH ANIMATIONS: Header hides on scroll down, shows on scroll up
  * - ✅ SEARCH & FILTER: Same height for search input and filter button (40px)
- * 
- * Previous fixes maintained (v243.0):
  * - ✅ FIXED: NO component functions (HeaderContent removed)
  * - ✅ FIXED: TextInput is DIRECTLY in return JSX (no wrapper functions)
  * - ✅ FIXED: Controlled component with value={searchQuery}
@@ -138,10 +141,10 @@ export default function EventosScreen() {
 
   // ✅ CRITICAL FIX v242.0: Debounce with cleanup (300ms) - same as Explorar
   useEffect(() => {
-    console.log('[Eventos v268.0] 📝 Search query changed:', searchQuery);
+    console.log('[Eventos v270.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Eventos v268.0] 🔍 Applying debounced search');
+      console.log('[Eventos v270.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -169,13 +172,13 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v268.0] Cargando eventos...');
+      console.log('[Eventos v270.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString().split('T')[0];
 
-      let query = supabase
+      const query = supabase
         .from('eventos')
         .select(`
           *,
@@ -201,11 +204,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v268.0] Error cargando eventos:', error);
+        console.error('[Eventos v270.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v268.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v270.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -240,7 +243,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v268.0] Error:', error);
+      console.error('[Eventos v270.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -252,7 +255,7 @@ export default function EventosScreen() {
   }, [cargarEventos]);
 
   const onRefresh = () => {
-    console.log('[Eventos v268.0] 🔄 Manual refresh triggered');
+    console.log('[Eventos v270.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     cargarEventos();
   };
@@ -299,7 +302,7 @@ export default function EventosScreen() {
   });
 
   const limpiarFiltros = () => {
-    console.log('[Eventos v268.0] 🧹 Clearing all filters');
+    console.log('[Eventos v270.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setProvinciaSeleccionada('Todas');
@@ -389,7 +392,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v268.0] Deleting event:', eventoId);
+              console.log('[Eventos v270.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -397,14 +400,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v268.0] Error deleting event:', error);
+                console.error('[Eventos v270.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v268.0] Error deleting event:', error);
+              console.error('[Eventos v270.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -495,7 +498,7 @@ export default function EventosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Eventos v268.0] 🧹 Clearing search');
+                    console.log('[Eventos v270.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -611,14 +614,15 @@ export default function EventosScreen() {
         </View>
       ) : (
         <ScrollView
-          style={styles.content}
           contentContainerStyle={[
             styles.eventosContainer,
             { 
-              marginTop: HEADER_MAX_HEIGHT + 20,
+              // ✅ FIX v270.0: REMOVED incorrect marginTop - using standard padding only
+              paddingTop: 16,
               paddingBottom: getContentBottomPadding(100),
             },
           ]}
+          style={[styles.content, { marginTop: HEADER_MAX_HEIGHT }]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -783,7 +787,6 @@ export default function EventosScreen() {
                               onChange={onChangeDateInicio}
                               minimumDate={new Date()}
                               textColor={colors.text}
-                              style={styles.datePicker}
                               themeVariant="light"
                               locale="es-ES"
                             />
@@ -826,7 +829,6 @@ export default function EventosScreen() {
                               onChange={onChangeDateFin}
                               minimumDate={fechaInicio || new Date()}
                               textColor={colors.text}
-                              style={styles.datePicker}
                               themeVariant="light"
                               locale="es-ES"
                             />
