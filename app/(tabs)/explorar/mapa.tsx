@@ -28,21 +28,23 @@ import { supabase } from '@/utils/supabase';
 
 const { width, height } = Dimensions.get('window');
 
-// ✅ FIX v268.0: Same header height as Explorar for consistency
+// ✅ FIX v269.0: Same header height as Explorar for consistency
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 120 : 140;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v268.0 - ANIMATED HEADER LIKE EXPLORAR
+ * 🗺️ MAPA SCREEN v269.0 - STANDARDIZED FILTER BUTTON HEIGHT
  * 
- * NEW FIXES v268.0:
+ * NEW FIXES v269.0:
+ * - ✅ FIXED: Filter button height standardized to 40px (same as Explorar)
+ * - ✅ FIXED: Consistent button sizing across all pages
+ * 
+ * Previous features maintained (v268.0):
  * - ✅ ANIMATED HEADER: Same collapsing behavior as Explorar page
  * - ✅ CONSISTENT DESIGN: Matches Explorar header structure
  * - ✅ SMOOTH ANIMATIONS: Header hides on scroll down, shows on scroll up
  * - ✅ COMPACT LAYOUT: Reduced header height for more map visibility
- * 
- * Previous features maintained (v267.0):
  * - ✅ MAPLIBRE GL JS CON GEOJSON
  * - ✅ CONTROLES DE MAPA RESTRINGIDOS
  * - ✅ DETECCIÓN MANUAL POR PROXIMIDAD EN PÍXELES CON FILTROS SINCRONIZADOS
@@ -181,12 +183,12 @@ export default function MapaScreen() {
   
   // 🚀 CALLBACKS MEMOIZADOS - Evitar recreación en cada render
   const handleCategoriaChange = useCallback((categoriaId: string) => {
-    console.log('🗺️ [MAPA v268.0] Cambiando categoría a:', categoriaId);
+    console.log('🗺️ [MAPA v269.0] Cambiando categoría a:', categoriaId);
     setCategoriaSeleccionada(categoriaId);
   }, []);
   
   const handleEstadoChange = useCallback((estado: 'todos' | 'no_cerrados') => {
-    console.log('🗺️ [MAPA v268.0] Cambiando estado a:', estado);
+    console.log('🗺️ [MAPA v269.0] Cambiando estado a:', estado);
     setFiltroEstado(estado);
   }, []);
   
@@ -1240,8 +1242,9 @@ console.log('🗺️ [MAPA] ═════════════════�
 
   const categoryIconSize = useMemo(() => 56, []);
   const categoryIconInnerSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(28) : 28, []);
-  const controlButtonSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(48) : 48, []);
-  const controlIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(24) : 24, []);
+  // ✅ FIX v269.0: Standardized control button size to 40px (same as Explorar filter button)
+  const controlButtonSize = useMemo(() => 40, []);
+  const controlIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(20) : 20, []);
   const centerButtonSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(56) : 56, []);
   const centerIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(24) : 24, []);
 
