@@ -89,14 +89,17 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v271.0 - FIXED CATEGORY BUTTON SIZES
+ * ✅ EVENTOS SCREEN v272.0 - ENABLED ANIMATED HEADER BEHAVIOR
  * 
- * NEW FIXES v271.0:
- * - ✅ FIXED: Category icon buttons now use EXACT same sizes as Explorar page
- * - ✅ FIXED: Using compact category button style (36-40px icons, smaller labels)
- * - ✅ FIXED: Consistent sizing across all pages (Explorar, Eventos, Favoritos, Mapa)
+ * NEW FIXES v272.0:
+ * - ✅ ENABLED: Animated header now hides on scroll down, shows on scroll up (same as Favoritos)
+ * - ✅ FIXED: Proper scroll event handling with Animated.event
+ * - ✅ FIXED: Header animation synchronized with scroll position
  * 
- * Previous features maintained (v270.0):
+ * Previous features maintained (v271.0):
+ * - ✅ Category icon buttons use EXACT same sizes as Explorar page (36-40px)
+ * - ✅ Using compact category button style with smaller labels (11-12px)
+ * - ✅ Consistent sizing across all pages (Explorar, Eventos, Favoritos, Mapa)
  * - ✅ ANIMATED HEADER: Same collapsing behavior as Explorar page
  * - ✅ CONSISTENT DESIGN: Matches Explorar header structure
  * - ✅ SMOOTH ANIMATIONS: Header hides on scroll down, shows on scroll up
@@ -134,17 +137,17 @@ export default function EventosScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ✅ NEW v268.0: Animated header like Explorar
+  // ✅ NEW v272.0: Animated header like Favoritos (ENABLED)
   const scrollY = useRef(0);
   const lastScrollY = useRef(0);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
 
   // ✅ CRITICAL FIX v242.0: Debounce with cleanup (300ms) - same as Explorar
   useEffect(() => {
-    console.log('[Eventos v271.0] 📝 Search query changed:', searchQuery);
+    console.log('[Eventos v272.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Eventos v271.0] 🔍 Applying debounced search');
+      console.log('[Eventos v272.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -172,7 +175,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v271.0] Cargando eventos...');
+      console.log('[Eventos v272.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -204,11 +207,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v271.0] Error cargando eventos:', error);
+        console.error('[Eventos v272.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v271.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v272.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -243,7 +246,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v271.0] Error:', error);
+      console.error('[Eventos v272.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -255,7 +258,7 @@ export default function EventosScreen() {
   }, [cargarEventos]);
 
   const onRefresh = () => {
-    console.log('[Eventos v271.0] 🔄 Manual refresh triggered');
+    console.log('[Eventos v272.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     cargarEventos();
   };
@@ -302,7 +305,7 @@ export default function EventosScreen() {
   });
 
   const limpiarFiltros = () => {
-    console.log('[Eventos v271.0] 🧹 Clearing all filters');
+    console.log('[Eventos v272.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setProvinciaSeleccionada('Todas');
@@ -392,7 +395,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v271.0] Deleting event:', eventoId);
+              console.log('[Eventos v272.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -400,14 +403,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v271.0] Error deleting event:', error);
+                console.error('[Eventos v272.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v271.0] Error deleting event:', error);
+              console.error('[Eventos v272.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -416,19 +419,21 @@ export default function EventosScreen() {
     );
   }, [user, canDeleteEvent, cargarEventos]);
 
-  // ✅ NEW v268.0: Animated header scroll handler like Explorar
+  // ✅ NEW v272.0: Animated header scroll handler like Favoritos (ENABLED)
   const handleScroll = useCallback((event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const diff = currentScrollY - lastScrollY.current;
     
     if (Math.abs(diff) > 5) {
       if (diff > 0 && currentScrollY > 50) {
+        // Scrolling down - hide header
         Animated.timing(headerTranslateY, {
           toValue: -HEADER_SCROLL_DISTANCE,
           duration: 250,
           useNativeDriver: true,
         }).start();
       } else if (diff < 0) {
+        // Scrolling up - show header
         Animated.timing(headerTranslateY, {
           toValue: 0,
           duration: 250,
@@ -498,7 +503,7 @@ export default function EventosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Eventos v271.0] 🧹 Clearing search');
+                    console.log('[Eventos v272.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -613,7 +618,6 @@ export default function EventosScreen() {
           contentContainerStyle={[
             styles.eventosContainer,
             { 
-              // ✅ FIX v270.0: REMOVED incorrect marginTop - using standard padding only
               paddingTop: 16,
               paddingBottom: getContentBottomPadding(100),
             },
