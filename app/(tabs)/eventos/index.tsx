@@ -39,8 +39,8 @@ import {
 
 const { width } = Dimensions.get('window');
 
-// ✅ FIX v268.0: Same header height as Explorar for consistency
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 280 : 300;
+// ✅ FIX v274.0: SAME header height as Explorar for consistency
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 230 : 270;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -89,14 +89,17 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v272.0 - ENABLED ANIMATED HEADER BEHAVIOR
+ * ✅ EVENTOS SCREEN v274.0 - SAME MARGIN AS EXPLORAR
  * 
- * NEW FIXES v272.0:
+ * NEW FIXES v274.0:
+ * - ✅ FIXED: SAME margin as Explorar page (20-22px between header and first event)
+ * - ✅ FIXED: Consistent spacing across all pages
+ * - ✅ FIXED: No more excessive whitespace at the top
+ * 
+ * Previous features maintained (v272.0):
  * - ✅ ENABLED: Animated header now hides on scroll down, shows on scroll up (same as Favoritos)
  * - ✅ FIXED: Proper scroll event handling with Animated.event
  * - ✅ FIXED: Header animation synchronized with scroll position
- * 
- * Previous features maintained (v271.0):
  * - ✅ Category icon buttons use EXACT same sizes as Explorar page (36-40px)
  * - ✅ Using compact category button style with smaller labels (11-12px)
  * - ✅ Consistent sizing across all pages (Explorar, Eventos, Favoritos, Mapa)
@@ -144,10 +147,10 @@ export default function EventosScreen() {
 
   // ✅ CRITICAL FIX v242.0: Debounce with cleanup (300ms) - same as Explorar
   useEffect(() => {
-    console.log('[Eventos v272.0] 📝 Search query changed:', searchQuery);
+    console.log('[Eventos v274.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Eventos v272.0] 🔍 Applying debounced search');
+      console.log('[Eventos v274.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -175,7 +178,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v272.0] Cargando eventos...');
+      console.log('[Eventos v274.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -207,11 +210,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v272.0] Error cargando eventos:', error);
+        console.error('[Eventos v274.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v272.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v274.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -246,7 +249,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v272.0] Error:', error);
+      console.error('[Eventos v274.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -258,7 +261,7 @@ export default function EventosScreen() {
   }, [cargarEventos]);
 
   const onRefresh = () => {
-    console.log('[Eventos v272.0] 🔄 Manual refresh triggered');
+    console.log('[Eventos v274.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     cargarEventos();
   };
@@ -305,7 +308,7 @@ export default function EventosScreen() {
   });
 
   const limpiarFiltros = () => {
-    console.log('[Eventos v272.0] 🧹 Clearing all filters');
+    console.log('[Eventos v274.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setProvinciaSeleccionada('Todas');
@@ -395,7 +398,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v272.0] Deleting event:', eventoId);
+              console.log('[Eventos v274.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -403,14 +406,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v272.0] Error deleting event:', error);
+                console.error('[Eventos v274.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v272.0] Error deleting event:', error);
+              console.error('[Eventos v274.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -503,7 +506,7 @@ export default function EventosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Eventos v272.0] 🧹 Clearing search');
+                    console.log('[Eventos v274.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -618,11 +621,12 @@ export default function EventosScreen() {
           contentContainerStyle={[
             styles.eventosContainer,
             { 
+              // ✅ FIX v274.0: SAME margin as Explorar (20-22px)
+              marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 20 : HEADER_MAX_HEIGHT + 22,
               paddingTop: 16,
               paddingBottom: getContentBottomPadding(100),
             },
           ]}
-          style={[styles.content, { marginTop: HEADER_MAX_HEIGHT }]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -975,9 +979,6 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: colors.primary,
-  },
-  content: {
-    flex: 1,
   },
   eventosContainer: {
     padding: 16,
