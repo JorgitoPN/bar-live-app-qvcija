@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,7 +19,8 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/app/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize } from '@/utils/androidScaling';
+import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize, scaleFontSize } from '@/utils/androidScaling';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -27,6 +29,48 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showCookieConsent, setShowCookieConsent] = useState(false);
+
+  useEffect(() => {
+    // Check if user has already seen cookie consent
+    checkCookieConsent();
+  }, []);
+
+  const checkCookieConsent = async () => {
+    try {
+      const consent = await AsyncStorage.getItem('cookieConsent');
+      if (!consent) {
+        // Show cookie consent modal after a short delay
+        setTimeout(() => {
+          setShowCookieConsent(true);
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Error checking cookie consent:', error);
+    }
+  };
+
+  const handleAcceptCookies = async () => {
+    try {
+      await AsyncStorage.setItem('cookieConsent', 'accepted');
+      setShowCookieConsent(false);
+    } catch (error) {
+      console.error('Error saving cookie consent:', error);
+    }
+  };
+
+  const handleRejectCookies = async () => {
+    try {
+      await AsyncStorage.setItem('cookieConsent', 'rejected');
+      setShowCookieConsent(false);
+      Alert.alert(
+        'Cookies rechazadas',
+        'Has rechazado las cookies. Esto puede afectar la funcionalidad de la aplicación, especialmente el inicio de sesión automático.'
+      );
+    } catch (error) {
+      console.error('Error saving cookie consent:', error);
+    }
+  };
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -365,42 +409,43 @@ export default function LoginScreen() {
   const headerIconSize = getHeaderIconSize(); // 28 on iOS, 24 on Android
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
-    >
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
+    <React.Fragment>
+      <View style={styles.container}>
+        <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
       >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleGoBack}
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: getContentBottomPadding(40) }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={true}
         >
-          <IconSymbol
-            ios_icon_name="chevron.left"
-            android_material_icon_name="arrow_back"
-            size={headerIconSize}
-            color="#fff"
-          />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { fontSize: getHeaderTitleSize() }]}>Iniciar sesión</Text>
-        <Text style={styles.headerSubtitle}>Bienvenido de vuelta a BarLive</Text>
-      </LinearGradient>
-
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: getContentBottomPadding(120) }
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        <View style={styles.formContainer}>
-          <Text style={styles.label}>Correo electrónico</Text>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.header}
+          >
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleGoBack}
+            >
+              <IconSymbol
+                ios_icon_name="chevron.left"
+                android_material_icon_name="arrow_back"
+                size={headerIconSize}
+                color="#fff"
+              />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { fontSize: getHeaderTitleSize() }]}>Iniciar sesión</Text>
+            <Text style={styles.headerSubtitle}>Bienvenido de vuelta a BarLive</Text>
+          </LinearGradient>
+          <View style={styles.formContainer}>
+            <Text style={styles.label}>Correo electrónico</Text>
           <TextInput
             style={styles.input}
             placeholder="correo@ejemplo.com"
@@ -464,17 +509,127 @@ export default function LoginScreen() {
             <View style={styles.dividerLine} />
           </View>
 
+            <TouchableOpacity
+              style={styles.registerButton}
+              onPress={() => router.replace('/auth/registro-email')}
+            >
+              <Text style={styles.registerButtonText}>
+                ¿No tienes cuenta? <Text style={styles.registerButtonTextBold}>Regístrate</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
+
+    {/* Cookie Consent Modal */}
+    <Modal
+      visible={showCookieConsent}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => {}}
+    >
+      <View style={styles.cookieModalOverlay}>
+        <View style={styles.cookieModalContent}>
+          <View style={styles.cookieIconContainer}>
+            <IconSymbol
+              ios_icon_name="info.circle.fill"
+              android_material_icon_name="info"
+              size={48}
+              color={colors.primary}
+            />
+          </View>
+          
+          <Text style={[styles.cookieModalTitle, { fontSize: scaleFontSize(20) }]}>
+            Gestión de Cookies
+          </Text>
+          
+          <Text style={[styles.cookieModalText, { fontSize: scaleFontSize(14) }]}>
+            Utilizamos cookies para mejorar tu experiencia en BarLive:
+          </Text>
+          
+          <View style={styles.cookieList}>
+            <View style={styles.cookieListItem}>
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.cookieListText, { fontSize: scaleFontSize(13) }]}>
+                Recordar tu inicio de sesión
+              </Text>
+            </View>
+            <View style={styles.cookieListItem}>
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.cookieListText, { fontSize: scaleFontSize(13) }]}>
+                Guardar tus preferencias
+              </Text>
+            </View>
+            <View style={styles.cookieListItem}>
+              <IconSymbol
+                ios_icon_name="checkmark.circle.fill"
+                android_material_icon_name="check_circle"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.cookieListText, { fontSize: scaleFontSize(13) }]}>
+                Mejorar tu experiencia de usuario
+              </Text>
+            </View>
+          </View>
+          
+          <Text style={[styles.cookieModalWarning, { fontSize: scaleFontSize(12) }]}>
+            ⚠️ El rechazo de cookies puede impedir el acceso o provocar problemas de autenticación.
+          </Text>
+          
+          <View style={styles.cookieModalButtons}>
+            <TouchableOpacity
+              style={styles.cookieRejectButton}
+              onPress={handleRejectCookies}
+            >
+              <Text style={[styles.cookieRejectButtonText, { fontSize: scaleFontSize(14) }]}>
+                Rechazar
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.cookieAcceptButton}
+              onPress={handleAcceptCookies}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.cookieAcceptGradient}
+              >
+                <Text style={[styles.cookieAcceptButtonText, { fontSize: scaleFontSize(14) }]}>
+                  Aceptar
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+          
           <TouchableOpacity
-            style={styles.registerButton}
-            onPress={() => router.replace('/auth/registro-email')}
+            style={styles.cookieLearnMore}
+            onPress={() => {
+              setShowCookieConsent(false);
+              router.push('/legal/privacidad');
+            }}
           >
-            <Text style={styles.registerButtonText}>
-              ¿No tienes cuenta? <Text style={styles.registerButtonTextBold}>Regístrate</Text>
+            <Text style={[styles.cookieLearnMoreText, { fontSize: scaleFontSize(12) }]}>
+              Más información sobre cookies
             </Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </Modal>
+    </React.Fragment>
   );
 }
 
@@ -483,33 +638,42 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    // paddingBottom set dynamically via getContentBottomPadding()
+  },
   header: {
-    paddingTop: Platform.OS === 'android' ? 60 : 80,
-    paddingBottom: 24,
+    paddingTop: Platform.OS === 'android' ? 48 : 60,
+    paddingBottom: 16,
     paddingHorizontal: 24,
   },
   backButton: {
-    marginBottom: 16,
+    marginBottom: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     // fontSize set dynamically via getHeaderTitleSize()
     fontWeight: 'bold',
     color: colors.headerText,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
   },
-  content: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 24,
-    // paddingBottom set dynamically via getContentBottomPadding()
-  },
   formContainer: {
-    flex: 1,
+    padding: 24,
   },
   label: {
     fontSize: 14,
@@ -594,5 +758,109 @@ const styles = StyleSheet.create({
   registerButtonTextBold: {
     fontWeight: '600',
     color: colors.primary,
+  },
+  // Cookie Modal Styles
+  cookieModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  cookieModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  cookieIconContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cookieModalTitle: {
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  cookieModalText: {
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  cookieList: {
+    marginBottom: 16,
+  },
+  cookieListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cookieListText: {
+    color: colors.text,
+    marginLeft: 12,
+    flex: 1,
+  },
+  cookieModalWarning: {
+    color: '#f59e0b',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
+  cookieModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  cookieRejectButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cookieRejectButtonText: {
+    color: colors.text,
+    fontWeight: '600',
+  },
+  cookieAcceptButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  cookieAcceptGradient: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cookieAcceptButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  cookieLearnMore: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  cookieLearnMoreText: {
+    color: colors.primary,
+    textDecorationLine: 'underline',
   },
 });
