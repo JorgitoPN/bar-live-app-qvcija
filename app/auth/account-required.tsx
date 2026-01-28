@@ -1,41 +1,64 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Platform,
+  Animated,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import { 
-  scaleFontSize, 
-  scaleIconSize, 
-  getHeaderTitleSize,
-  getHeaderIconSize,
-  getContentBottomPadding,
-  getLetterSpacing,
-  scaleBorderRadius,
-  getButtonHeight,
-  getButtonPaddingVertical,
-} from '@/utils/androidScaling';
+import { scaleFontSize, scaleIconSize, getHeaderTitleSize, getContentBottomPadding } from '@/utils/androidScaling';
 
 /**
- * ✅ ACCOUNT REQUIRED SCREEN v280.0 - COMPREHENSIVE ANDROID SCALING
+ * ✅ ACCOUNT REQUIRED SCREEN
  * 
- * NEW FIXES v280.0:
- * - ✅ ALL text sizes use scaleFontSize() with letter spacing
- * - ✅ ALL buttons use scaled heights and paddings
- * - ✅ ALL dimensions properly scaled
- * - ✅ Border radius scaled
- * - ✅ Consistent with iOS design proportions
+ * Página intermedia que explica al usuario que necesita una cuenta
+ * en Barlive para reclamar o crear un local.
+ * 
+ * FLUJO:
+ * 1. Usuario hace clic en "¿Tienes un local?" en Explorar
+ * 2. Si NO está autenticado → viene aquí primero
+ * 3. Usuario lee la explicación
+ * 4. Usuario hace clic en "Continuar" → va a login
  */
+
 export default function AccountRequiredScreen() {
   const router = useRouter();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    console.log('[AccountRequired] 📄 Pantalla de cuenta requerida mostrada');
+    
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim]);
+
+  const handleContinueToLogin = () => {
+    console.log('[AccountRequired] ✅ Usuario continúa al login');
+    router.push('/auth/login-v6');
+  };
+
+  const handleGoBack = () => {
+    console.log('[AccountRequired] ⬅️ Usuario vuelve atrás');
+    router.back();
+  };
 
   return (
     <View style={styles.container}>
@@ -45,125 +68,179 @@ export default function AccountRequiredScreen() {
       >
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleGoBack}
         >
           <IconSymbol
             ios_icon_name="chevron.left"
             android_material_icon_name="arrow_back"
-            size={getHeaderIconSize()}
+            size={scaleIconSize(24)}
             color="#fff"
           />
         </TouchableOpacity>
-        
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <IconSymbol
-              ios_icon_name="person.badge.key.fill"
-              android_material_icon_name="vpn_key"
-              size={scaleIconSize(56)}
-              color="#fff"
-            />
-          </View>
-        </View>
-        
-        <Text style={styles.headerTitle}>Cuenta requerida</Text>
-        <Text style={styles.headerSubtitle}>
-          Necesitas una cuenta para acceder a esta función
-        </Text>
       </LinearGradient>
 
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={{
-          padding: Platform.OS === 'android' ? 20 : 24,
-          paddingBottom: getContentBottomPadding(40),
-        }}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: getContentBottomPadding(120) }
+        ]}
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <View style={styles.featuresContainer}>
-          <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: colors.primary + '20' }]}>
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <View style={styles.iconContainer}>
+            <View style={styles.iconCircle}>
               <IconSymbol
-                ios_icon_name="heart.fill"
-                android_material_icon_name="favorite"
-                size={scaleIconSize(24)}
+                ios_icon_name="building.2.fill"
+                android_material_icon_name="store"
+                size={scaleIconSize(64)}
                 color={colors.primary}
               />
             </View>
-            <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Guarda tus favoritos</Text>
-              <Text style={styles.featureDescription}>
-                Marca tus locales favoritos y accede a ellos desde cualquier dispositivo
-              </Text>
+          </View>
+
+          <Text style={[styles.title, { fontSize: getHeaderTitleSize() }]}>
+            Cuenta Requerida
+          </Text>
+
+          <Text style={[styles.subtitle, { fontSize: scaleFontSize(16) }]}>
+            Para reclamar o crear un local en Barlive, necesitas tener una cuenta
+          </Text>
+
+          <View style={styles.benefitsContainer}>
+            <View style={styles.benefitItem}>
+              <View style={styles.benefitIconContainer}>
+                <IconSymbol
+                  ios_icon_name="checkmark.shield.fill"
+                  android_material_icon_name="verified_user"
+                  size={scaleIconSize(28)}
+                  color={colors.primary}
+                />
+              </View>
+              <View style={styles.benefitTextContainer}>
+                <Text style={[styles.benefitTitle, { fontSize: scaleFontSize(16) }]}>
+                  Gestiona tu local
+                </Text>
+                <Text style={[styles.benefitDescription, { fontSize: scaleFontSize(14) }]}>
+                  Accede a herramientas para administrar tu negocio
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.benefitItem}>
+              <View style={styles.benefitIconContainer}>
+                <IconSymbol
+                  ios_icon_name="chart.bar.fill"
+                  android_material_icon_name="bar_chart"
+                  size={scaleIconSize(28)}
+                  color={colors.primary}
+                />
+              </View>
+              <View style={styles.benefitTextContainer}>
+                <Text style={[styles.benefitTitle, { fontSize: scaleFontSize(16) }]}>
+                  Análisis y estadísticas
+                </Text>
+                <Text style={[styles.benefitDescription, { fontSize: scaleFontSize(14) }]}>
+                  Conoce mejor a tus clientes y mejora tu negocio
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.benefitItem}>
+              <View style={styles.benefitIconContainer}>
+                <IconSymbol
+                  ios_icon_name="megaphone.fill"
+                  android_material_icon_name="campaign"
+                  size={scaleIconSize(28)}
+                  color={colors.primary}
+                />
+              </View>
+              <View style={styles.benefitTextContainer}>
+                <Text style={[styles.benefitTitle, { fontSize: scaleFontSize(16) }]}>
+                  Promociona eventos
+                </Text>
+                <Text style={[styles.benefitDescription, { fontSize: scaleFontSize(14) }]}>
+                  Crea y comparte eventos para atraer más clientes
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.benefitItem}>
+              <View style={styles.benefitIconContainer}>
+                <IconSymbol
+                  ios_icon_name="person.2.fill"
+                  android_material_icon_name="people"
+                  size={scaleIconSize(28)}
+                  color={colors.primary}
+                />
+              </View>
+              <View style={styles.benefitTextContainer}>
+                <Text style={[styles.benefitTitle, { fontSize: scaleFontSize(16) }]}>
+                  Perfil social
+                </Text>
+                <Text style={[styles.benefitDescription, { fontSize: scaleFontSize(14) }]}>
+                  Conecta con tu comunidad y construye tu marca
+                </Text>
+              </View>
             </View>
           </View>
 
-          <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: colors.secondary + '20' }]}>
-              <IconSymbol
-                ios_icon_name="person.2.fill"
-                android_material_icon_name="people"
-                size={scaleIconSize(24)}
-                color={colors.secondary}
-              />
-            </View>
-            <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Conecta con amigos</Text>
-              <Text style={styles.featureDescription}>
-                Descubre dónde están tus amigos y comparte tus experiencias
-              </Text>
-            </View>
+          <View style={styles.infoBox}>
+            <IconSymbol
+              ios_icon_name="info.circle.fill"
+              android_material_icon_name="info"
+              size={scaleIconSize(20)}
+              color={colors.primary}
+            />
+            <Text style={[styles.infoText, { fontSize: scaleFontSize(13) }]}>
+              Crear una cuenta es rápido, gratis y te permite acceder a todas las funcionalidades de Barlive
+            </Text>
           </View>
+        </Animated.View>
+      </ScrollView>
 
-          <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: '#10B981' + '20' }]}>
-              <IconSymbol
-                ios_icon_name="star.fill"
-                android_material_icon_name="star"
-                size={scaleIconSize(24)}
-                color="#10B981"
-              />
-            </View>
-            <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Deja reseñas</Text>
-              <Text style={styles.featureDescription}>
-                Comparte tu opinión y ayuda a otros a descubrir los mejores lugares
-              </Text>
-            </View>
-          </View>
-        </View>
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={handleGoBack}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.secondaryButtonText, { fontSize: scaleFontSize(16) }]}>
+            Volver
+          </Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, {
-            borderRadius: scaleBorderRadius(12),
-            minHeight: getButtonHeight(),
-          }]}
-          onPress={() => router.push('/auth/registro-v6')}
+          style={styles.primaryButton}
+          onPress={handleContinueToLogin}
+          activeOpacity={0.8}
         >
           <LinearGradient
             colors={[colors.primary, colors.secondary]}
-            style={[styles.buttonGradient, {
-              borderRadius: scaleBorderRadius(12),
-              paddingVertical: getButtonPaddingVertical(),
-            }]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.primaryGradient}
           >
+            <Text style={[styles.primaryButtonText, { fontSize: scaleFontSize(16) }]}>
+              Continuar
+            </Text>
             <IconSymbol
-              ios_icon_name="person.badge.plus.fill"
-              android_material_icon_name="person_add"
+              ios_icon_name="arrow.right"
+              android_material_icon_name="arrow_forward"
               size={scaleIconSize(20)}
               color="#fff"
             />
-            <Text style={styles.buttonText}>Crear cuenta gratis</Text>
           </LinearGradient>
         </TouchableOpacity>
-
-        <View style={styles.loginContainer}>
-          <Text style={styles.loginText}>¿Ya tienes cuenta? </Text>
-          <TouchableOpacity onPress={() => router.push('/auth/login-v6')}>
-            <Text style={styles.loginLink}>Inicia sesión</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -174,15 +251,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: Platform.OS === 'android' ? 60 : 80,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-    alignItems: 'center',
+    paddingTop: Platform.OS === 'android' ? 50 : 60,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
   },
   backButton: {
-    position: 'absolute',
-    top: Platform.OS === 'android' ? 60 : 80,
-    left: 24,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -190,97 +263,128 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoContainer: {
-    marginBottom: 24,
-  },
-  logoCircle: {
-    width: Platform.OS === 'android' ? 90 : 100,
-    height: Platform.OS === 'android' ? 90 : 100,
-    borderRadius: Platform.OS === 'android' ? 45 : 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: getHeaderTitleSize(),
-    fontWeight: 'bold',
-    color: colors.headerText,
-    marginBottom: 8,
-    textAlign: 'center',
-    letterSpacing: getLetterSpacing(getHeaderTitleSize()),
-  },
-  headerSubtitle: {
-    fontSize: scaleFontSize(15),
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    letterSpacing: getLetterSpacing(scaleFontSize(15)),
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
+    padding: 24,
+    paddingTop: 40,
   },
-  featuresContainer: {
-    gap: Platform.OS === 'android' ? 18 : 20,
+  iconContainer: {
+    alignItems: 'center',
     marginBottom: 32,
   },
-  featureItem: {
-    flexDirection: 'row',
-    gap: 16,
-    alignItems: 'flex-start',
-  },
-  featureIcon: {
-    width: Platform.OS === 'android' ? 52 : 56,
-    height: Platform.OS === 'android' ? 52 : 56,
-    borderRadius: Platform.OS === 'android' ? 26 : 28,
+  iconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: colors.primary + '30',
   },
-  featureText: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: scaleFontSize(16),
-    fontWeight: '600',
+  title: {
+    fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 4,
-    letterSpacing: getLetterSpacing(scaleFontSize(16)),
+    textAlign: 'center',
+    marginBottom: 12,
   },
-  featureDescription: {
-    fontSize: scaleFontSize(14),
+  subtitle: {
     color: colors.textSecondary,
-    lineHeight: scaleFontSize(14) * 1.5,
-    letterSpacing: getLetterSpacing(scaleFontSize(14)),
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 40,
+    paddingHorizontal: 16,
   },
-  button: {
+  benefitsContainer: {
+    gap: 20,
+    marginBottom: 32,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+    backgroundColor: colors.cardBackground,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  benefitIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  benefitTextContainer: {
+    flex: 1,
+    gap: 4,
+  },
+  benefitTitle: {
+    fontWeight: '700',
+    color: colors.text,
+  },
+  benefitDescription: {
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: colors.primary + '10',
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+    borderRadius: 12,
+    padding: 16,
+  },
+  infoText: {
+    flex: 1,
+    color: colors.text,
+    lineHeight: 19,
+  },
+  footer: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    backgroundColor: colors.cardBackground,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    color: colors.text,
+    fontWeight: '600',
+  },
+  primaryButton: {
+    flex: 1,
+    height: 56,
+    borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 20,
   },
-  buttonGradient: {
+  primaryGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    height: '100%',
     gap: 8,
-    paddingHorizontal: 24,
   },
-  buttonText: {
-    fontSize: scaleFontSize(16),
-    fontWeight: '600',
+  primaryButtonText: {
     color: '#fff',
-    letterSpacing: getLetterSpacing(scaleFontSize(16)),
-  },
-  loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loginText: {
-    fontSize: scaleFontSize(14),
-    color: colors.textSecondary,
-    letterSpacing: getLetterSpacing(scaleFontSize(14)),
-  },
-  loginLink: {
-    fontSize: scaleFontSize(14),
     fontWeight: '600',
-    color: colors.primary,
-    letterSpacing: getLetterSpacing(scaleFontSize(14)),
   },
 });

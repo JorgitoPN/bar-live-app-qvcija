@@ -1,37 +1,26 @@
 
 import { StyleSheet, Platform } from 'react-native';
-import { 
-  getHeaderTitleSize, 
-  getHeaderIconSize, 
-  scaleFontSize,
-  getLetterSpacing,
-  getElevation,
-  getButtonHeight,
-  getButtonPaddingVertical,
-  getBadgePaddingHorizontal,
-  getBadgePaddingVertical,
-  getCardBorderRadius,
-  getCardPadding,
-  getCardMarginBottom,
-  getHeaderPaddingTop,
-  getHeaderPaddingBottom,
-  getHeaderPaddingHorizontal,
-  getSpacing,
-  getButtonBorderRadius,
-} from '@/utils/androidScaling';
+import { getHeaderTitleSize, getHeaderIconSize } from '@/utils/androidScaling';
 
 /**
- * ✅ COMMON STYLES v280.0 - COMPREHENSIVE ANDROID SCALING
+ * ✅ COMMON STYLES v144.0 - ANDROID COMPACT HEADERS
  * 
- * CRITICAL FIXES v280.0 (ANDROID ONLY):
- * - ✅ ALL text sizes use scaleFontSize() for consistency
- * - ✅ ALL text elements have proper letter spacing
- * - ✅ ALL shadows use getElevation() for subtle appearance
- * - ✅ ALL buttons use scaled heights and paddings
- * - ✅ ALL badges use scaled paddings
- * - ✅ ALL cards use scaled border radius and padding
- * - ✅ ALL headers use compact sizes
+ * CRITICAL FIXES v144.0 (ANDROID ONLY):
+ * - ✅ COMPACT header title size across ALL pages (20sp on Android - matching venue cards)
+ * - ✅ COMPACT header icon size across ALL pages (20dp on Android)
+ * - ✅ Headers take less vertical space on Android
+ * - ✅ All text sizes properly scaled for Android
  * - ✅ iOS design remains unchanged (reference design)
+ * 
+ * Previous fixes maintained (v93.0):
+ * - ✅ Significantly reduced font sizes on Android for better responsiveness
+ * - ✅ Reduced header padding to save screen space
+ * - ✅ Adjusted all text sizes to prevent oversized appearance
+ * - ✅ Content now scales properly on Android devices
+ * - ✅ Consistent colors across all platforms
+ * - ✅ Proper safe area handling
+ * - ✅ Platform-specific adjustments for optimal UX
+ * - ✅ Unified design system
  */
 
 // Header gradient colors - abc
@@ -92,43 +81,41 @@ export const colors = {
 };
 
 export const commonStyles = StyleSheet.create({
-  // ✅ ANDROID FIX v280.0: Container with proper padding
+  // ✅ ANDROID FIX v143.0: Container with proper padding matching iOS
   container: {
     flex: 1,
     backgroundColor: colors.background,
     paddingTop: 0,
   },
   
-  // ✅ ANDROID FIX v280.0: Header gradient with scaled padding
+  // ✅ ANDROID FIX v143.0: Header gradient with significantly reduced padding on Android
   headerGradient: {
-    paddingTop: getHeaderPaddingTop(),
-    paddingBottom: getHeaderPaddingBottom(),
-    paddingHorizontal: getHeaderPaddingHorizontal(),
+    paddingTop: Platform.OS === 'ios' ? 50 : 36, // Reduced from 40 to 36 on Android
+    paddingBottom: Platform.OS === 'ios' ? 16 : 10, // Reduced from 12 to 10 on Android
+    paddingHorizontal: 20,
   },
   
-  // ✅ ANDROID FIX v280.0: COMPACT header title with letter spacing
+  // ✅ ANDROID FIX v144.0: COMPACT header title size across ALL pages
   headerTitle: {
-    fontSize: getHeaderTitleSize(), // 32 on iOS, 18 on Android (COMPACT)
+    fontSize: getHeaderTitleSize(), // 32 on iOS, 20 on Android (COMPACT - matching venue cards)
     fontWeight: 'bold',
     color: colors.headerText,
-    letterSpacing: getLetterSpacing(getHeaderTitleSize()),
   },
   
-  // ✅ ANDROID FIX v280.0: Scaled header subtitle with letter spacing
+  // ✅ ANDROID FIX v143.0: Reduced header subtitle size on Android
   headerSubtitle: {
-    fontSize: scaleFontSize(15),
+    fontSize: Platform.OS === 'ios' ? 15 : 13, // Reduced from 14 to 13 on Android
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 4,
-    letterSpacing: getLetterSpacing(scaleFontSize(15)),
   },
   
-  // ✅ ANDROID FIX v280.0: Card with scaled dimensions and subtle elevation
+  // Card styles
   card: {
     backgroundColor: colors.cardBackground,
-    borderRadius: getCardBorderRadius(),
-    padding: getCardPadding(),
-    marginBottom: getCardMarginBottom(),
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     ...Platform.select({
@@ -139,12 +126,12 @@ export const commonStyles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: {
-        elevation: getElevation(4), // ✅ Subtle elevation (reduced by 50%)
+        elevation: 3,
       },
     }),
   },
   
-  // ✅ ANDROID FIX v280.0: Shadow with subtle elevation
+  // Shadow styles
   shadow: Platform.select({
     ios: {
       shadowColor: '#000',
@@ -153,7 +140,7 @@ export const commonStyles = StyleSheet.create({
       shadowRadius: 8,
     },
     android: {
-      elevation: getElevation(4), // ✅ Subtle elevation
+      elevation: 4,
     },
     default: {},
   }),
@@ -166,19 +153,18 @@ export const commonStyles = StyleSheet.create({
       shadowRadius: 12,
     },
     android: {
-      elevation: getElevation(8), // ✅ Subtle elevation
+      elevation: 8,
     },
     default: {},
   }),
   
-  // ✅ ANDROID FIX v280.0: Button with scaled dimensions
+  // Button styles
   button: {
-    borderRadius: getButtonBorderRadius(),
-    paddingVertical: getButtonPaddingVertical(),
+    borderRadius: 12,
+    paddingVertical: 14,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: getButtonHeight(),
   },
   
   buttonPrimary: {
@@ -189,53 +175,46 @@ export const commonStyles = StyleSheet.create({
     backgroundColor: colors.secondary,
   },
   
-  // ✅ ANDROID FIX v280.0: Button text with letter spacing
   buttonText: {
-    fontSize: scaleFontSize(16),
+    fontSize: 16,
     fontWeight: '600',
     color: colors.white,
-    letterSpacing: getLetterSpacing(scaleFontSize(16)),
   },
   
-  // ✅ ANDROID FIX v280.0: Input with scaled dimensions
+  // Input styles
   input: {
     backgroundColor: colors.cardBackground,
-    borderRadius: getButtonBorderRadius(),
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: scaleFontSize(16),
+    fontSize: 16,
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    letterSpacing: getLetterSpacing(scaleFontSize(16)),
   },
   
-  // ✅ ANDROID FIX v280.0: All text sizes scaled with letter spacing
+  // ✅ ANDROID FIX v143.0: Significantly reduced text sizes for better Android responsiveness
   title: {
-    fontSize: scaleFontSize(24),
+    fontSize: Platform.OS === 'ios' ? 24 : 20, // Reduced from 22 to 20 on Android
     fontWeight: 'bold',
     color: colors.text,
-    letterSpacing: getLetterSpacing(scaleFontSize(24)),
   },
   
   subtitle: {
-    fontSize: scaleFontSize(18),
+    fontSize: Platform.OS === 'ios' ? 18 : 16, // Reduced from 17 to 16 on Android
     fontWeight: '600',
     color: colors.text,
-    letterSpacing: getLetterSpacing(scaleFontSize(18)),
   },
   
   body: {
-    fontSize: scaleFontSize(16),
+    fontSize: Platform.OS === 'ios' ? 16 : 15, // Reduced from 16 to 15 on Android
     color: colors.text,
-    lineHeight: scaleFontSize(16) * 1.5,
-    letterSpacing: getLetterSpacing(scaleFontSize(16)),
+    lineHeight: 24,
   },
   
   caption: {
-    fontSize: scaleFontSize(14),
+    fontSize: Platform.OS === 'ios' ? 14 : 13, // Reduced from 14 to 13 on Android
     color: colors.textSecondary,
-    letterSpacing: getLetterSpacing(scaleFontSize(14)),
   },
   
   // Layout styles
@@ -257,29 +236,29 @@ export const commonStyles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   
-  // ✅ ANDROID FIX v280.0: Spacing with scaled values
+  // Spacing
   marginSmall: {
-    margin: getSpacing('small'),
+    margin: 8,
   },
   
   marginMedium: {
-    margin: getSpacing('medium'),
+    margin: 16,
   },
   
   marginLarge: {
-    margin: getSpacing('large'),
+    margin: 24,
   },
   
   paddingSmall: {
-    padding: getSpacing('small'),
+    padding: 8,
   },
   
   paddingMedium: {
-    padding: getSpacing('medium'),
+    padding: 16,
   },
   
   paddingLarge: {
-    padding: getSpacing('large'),
+    padding: 24,
   },
 });
 
