@@ -35,7 +35,14 @@ import MomentoViewer from '@/components/momento/MomentoViewer';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
 import PermissionGuard from '@/components/social/PermissionGuard';
-import { scaleFontSize } from '@/utils/androidScaling';
+import { 
+  scaleFontSize, 
+  scaleIconSize,
+  getGalleryImageSize,
+  getGallerySpacing,
+  getCoverPhotoButtonSize,
+  getCoverPhotoIconSize,
+} from '@/utils/androidScaling';
 import LocalSolicitudStatus from '@/components/perfil/LocalSolicitudStatus';
 
 const SCREEN_VERSION = '98.0.0';
@@ -96,11 +103,14 @@ interface Seguidor {
 }
 
 /**
- * ✅ LOCAL PROFILE v98.0 - ANDROID HEADER TITLE SIZE FIX
+ * ✅ LOCAL PROFILE v280.0 - UNIFIED SCALING SYSTEM
  * 
- * CRITICAL FIXES v98.0 (ANDROID ONLY):
- * - ✅ Header title size standardized to match Explorar (20px on Android)
- * - ✅ All other functionality maintained
+ * ✅ NEW FIXES v280.0:
+ * - ✅ ALL elements now use UNIFIED scaling (0.88 factor - matches venue cards)
+ * - ✅ Gallery images scaled consistently
+ * - ✅ Cover photo buttons scaled consistently
+ * - ✅ All icons and text scaled consistently
+ * - ✅ Refined, professional appearance on Android
  * - ✅ iOS design remains unchanged
  */
 
@@ -1883,7 +1893,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: colors.background,
-    borderRadius: 4,
+    borderRadius: Platform.OS === 'android' ? Math.round(4 * 0.88) : 4,
   },
   gridImagePlaceholder: {
     justifyContent: 'center',

@@ -1,6 +1,19 @@
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { scaleIconSize, scaleFontSize } from '@/utils/androidScaling';
+import { 
+  scaleIconSize, 
+  scaleFontSize,
+  getMapMarkerSize,
+  getMapMarkerIconSize,
+  getUserLocationMarkerSize,
+  getModalWidth,
+  getModalPadding,
+  getBadgePaddingHorizontal,
+  getBadgePaddingVertical,
+  getBadgeBorderRadius,
+  getBadgeFontSize,
+  getBadgeIconSize,
+} from '@/utils/androidScaling';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -34,42 +47,26 @@ const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v279.0 - ANDROID USER MARKER FIX + COMPLETE UI CLEANUP
+ * 🗺️ MAPA SCREEN v280.0 - UNIFIED SCALING SYSTEM
  * 
- * NEW FIXES v279.0:
- * - ✅ FIXED: User location marker NOW VISIBLE on Android with enhanced styling
- * - ✅ FIXED: Larger marker size (32px) with stronger colors for better visibility
- * - ✅ FIXED: Enhanced pulse animation with better contrast
- * - ✅ FIXED: Stronger border (6px white) for better visibility against map
- * - ✅ FIXED: Category button text sizes adjusted with scaleFontSize (11sp on Android)
- * - ✅ FIXED: Removed ALL white shadows/boxes on Android (elevation: 0)
- * - ✅ FIXED: Clean visual appearance without white overlays
- * - ✅ FIXED: Platform-specific shadow styling (iOS shadows, Android no elevation)
+ * ✅ NEW FIXES v280.0:
+ * - ✅ ALL elements now use UNIFIED scaling (0.88 factor - matches venue cards)
+ * - ✅ Map markers scaled consistently with venue cards
+ * - ✅ User location marker scaled consistently
+ * - ✅ Popup dimensions scaled consistently
+ * - ✅ Badges scaled consistently
+ * - ✅ Buttons scaled consistently
+ * - ✅ Refined, professional appearance on Android
  * 
- * Previous features maintained (v278.0):
- * - ✅ Center map button raised on Android (bottom: 110px) to prevent tab bar covering
+ * Previous features maintained (v279.0):
+ * - ✅ User location marker visible on Android with enhanced styling
+ * - ✅ Category button text sizes adjusted with scaleFontSize
+ * - ✅ Removed ALL white shadows/boxes on Android (elevation: 0)
+ * - ✅ Clean visual appearance without white overlays
+ * - ✅ Platform-specific shadow styling (iOS shadows, Android no elevation)
+ * - ✅ Center map button raised on Android (bottom: 110px)
  * - ✅ Controls have MORE TRANSPARENCY (backgroundColor: rgba with 0.75 opacity)
- * - ✅ Back button, filters, selector, and legend all more transparent
- * - ✅ MORE margin between header and controls (18px gap)
- * - ✅ Controls positioned at top: 138-148px (more space below header)
- * - ✅ Better visibility and spacing
- * 
- * Previous features maintained (v273.0):
- * - ✅ Controls positioned BELOW header to prevent being covered
- * - ✅ REMOVED eye button for hiding header
- * - ✅ REMOVED zoom +/- buttons (MapLibre built-in controls)
- * - ✅ Category icon buttons use EXACT same sizes as Explorar page (36-40px)
- * - ✅ Using compact category button style with smaller labels (11-12px)
- * - ✅ Consistent sizing across all pages (Explorar, Eventos, Favoritos, Mapa)
- * - ✅ FIXED: Map markers now use REAL-TIME opening status calculation
- * - ✅ FIXED: Synchronized with actual venue schedules (horarios_completos)
- * - ✅ FIXED: Proper handling of overnight schedules (e.g., 23:00-06:00)
- * - ✅ FIXED: Proper handling of venues that open after midnight (e.g., 00:30-06:00)
- * - ✅ FIXED: Uses same logic as utils/timeUtils.ts for consistency
- * - ✅ Filter button height standardized to 40px (same as Explorar)
- * - ✅ Consistent button sizing across all pages
  * - ✅ MAPLIBRE GL JS CON GEOJSON
- * - ✅ CONTROLES DE MAPA RESTRINGIDOS
  * - ✅ DETECCIÓN MANUAL POR PROXIMIDAD EN PÍXELES CON FILTROS SINCRONIZADOS
  * - ✅ FILTROS DINÁMICOS
  * - ✅ UBICACIÓN DEL USUARIO
@@ -213,6 +210,19 @@ export default function MapaScreen() {
     const initialLng = userLocation?.lng || -3.7038;
     const initialZoom = userLocation ? 13 : 6;
     
+    // ✅ v280.0: Calculate scaled dimensions for Android
+    const popupWidth = Platform.OS === 'android' ? Math.round(280 * 0.88) : 280; // ~246px on Android
+    const popupImageHeight = Platform.OS === 'android' ? Math.round(140 * 0.88) : 140; // ~123px on Android
+    const popupPadding = Platform.OS === 'android' ? Math.round(12 * 0.88) : 12; // ~11px on Android
+    const popupTitleSize = Platform.OS === 'android' ? Math.round(16 * 0.88) : 16; // ~14px on Android
+    const popupTextSize = Platform.OS === 'android' ? Math.round(13 * 0.88) : 13; // ~11px on Android
+    const popupButtonPadding = Platform.OS === 'android' ? Math.round(10 * 0.88) : 10; // ~9px on Android
+    const popupButtonFontSize = Platform.OS === 'android' ? Math.round(13 * 0.88) : 13; // ~11px on Android
+    const markerSize = Platform.OS === 'android' ? Math.round(22 * 0.88) : 22; // ~19px on Android
+    const userMarkerSize = Platform.OS === 'android' ? Math.round(32 * 0.88) : 32; // ~28px on Android
+    const userMarkerBorder = Platform.OS === 'android' ? Math.round(6 * 0.88) : 6; // ~5px on Android
+    const userMarkerPulse = Platform.OS === 'android' ? Math.round(64 * 0.88) : 64; // ~56px on Android
+    
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -232,16 +242,16 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 /* ✅ CRITICAL: Contenedor invisible del popup no debe bloquear clics */
 .maplibregl-popup-anchor-top,.maplibregl-popup-anchor-bottom{pointer-events:none!important}
 /* ✅ CRITICAL: Contenido del popup sí debe recibir clics */
-.maplibregl-popup-content{pointer-events:auto!important;border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);width:${Platform.OS === 'android' ? '260px' : '280px'}!important;min-width:${Platform.OS === 'android' ? '260px' : '280px'}!important;z-index:9999!important}
+.maplibregl-popup-content{pointer-events:auto!important;border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);width:${popupWidth}px!important;min-width:${popupWidth}px!important;z-index:9999!important}
 /* ✅ CRITICAL: Ensure popup appears above all other elements */
 .custom-popup{z-index:9999!important}
 .maplibregl-popup{z-index:9999!important}
 .maplibregl-popup-close-button{display:none!important}
-.popup-img{width:100%;height:${Platform.OS === 'android' ? '120px' : '140px'};object-fit:cover;display:block;min-height:${Platform.OS === 'android' ? '120px' : '140px'};max-height:${Platform.OS === 'android' ? '120px' : '140px'}}
-.popup-info{padding:${Platform.OS === 'android' ? '10px' : '12px'}}
-.popup-title{font-size:${Platform.OS === 'android' ? '15px' : '16px'};font-weight:700;margin-bottom:8px;color:#202124}
-.popup-rating{display:flex;align-items:center;gap:4px;margin-bottom:10px;font-size:${Platform.OS === 'android' ? '12px' : '13px'};color:#70757A}
-.popup-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#14B8A6;color:#FFF!important;padding:${Platform.OS === 'android' ? '9px' : '10px'};border-radius:8px;text-decoration:none;font-weight:700;font-size:${Platform.OS === 'android' ? '12px' : '13px'};transition:background .2s;cursor:pointer}
+.popup-img{width:100%;height:${popupImageHeight}px;object-fit:cover;display:block;min-height:${popupImageHeight}px;max-height:${popupImageHeight}px}
+.popup-info{padding:${popupPadding}px}
+.popup-title{font-size:${popupTitleSize}px;font-weight:700;margin-bottom:8px;color:#202124}
+.popup-rating{display:flex;align-items:center;gap:4px;margin-bottom:10px;font-size:${popupTextSize}px;color:#70757A}
+.popup-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#14B8A6;color:#FFF!important;padding:${popupButtonPadding}px;border-radius:8px;text-decoration:none;font-weight:700;font-size:${popupButtonFontSize}px;transition:background .2s;cursor:pointer}
 .popup-btn:hover{background:#0D9488}
 .maplibregl-ctrl-attrib{display:none!important}
 /* ✅ FIX v272.0: HIDE zoom controls (MapLibre built-in controls) */
@@ -636,6 +646,7 @@ map.on('load', function() {
   });
   
   // 🚀 AÑADIR LAYER DE MARCADORES INDIVIDUALES
+  // ✅ v280.0: Marker sizes scaled with unified factor (0.88)
   map.addLayer({
     id: 'locales-layer',
     type: 'circle',
@@ -646,10 +657,10 @@ map.on('load', function() {
         'interpolate',
         ['linear'],
         ['zoom'],
-        10, 18,
-        13, 22,
-        16, 24,
-        20, 26
+        10, ${Math.round(18 * 0.88)},
+        13, ${Math.round(22 * 0.88)},
+        16, ${Math.round(24 * 0.88)},
+        20, ${Math.round(26 * 0.88)}
       ],
       'circle-color': [
         'case',
@@ -876,30 +887,27 @@ window.filtrarCategoria = function(idCategoria) {
 
 window.setCategoryFilter = window.filtrarCategoria;
 
-// 🚀 MARCADOR DE UBICACIÓN DEL USUARIO - ✅ FIX v279.0: ENHANCED FOR ANDROID VISIBILITY
+// 🚀 MARCADOR DE UBICACIÓN DEL USUARIO - ✅ v280.0: UNIFIED SCALING
 window.updateUserLocation = function(lat, lng) {
-  console.log('🗺️ [MAPA v279.0] 📍 Actualizando ubicación del usuario:', lat, lng);
+  console.log('🗺️ [MAPA v280.0] 📍 Actualizando ubicación del usuario:', lat, lng);
   
   if (!window.userMarker) {
     var el = document.createElement('div');
     el.className = 'user-marker';
-    // ✅ FIX v279.0: LARGER marker size (32px instead of 24px) for better visibility on Android
-    el.style.cssText = 'position:relative;width:32px;height:32px;z-index:9999;';
+    // ✅ v280.0: Scaled marker size with unified factor
+    el.style.cssText = 'position:relative;width:${userMarkerSize}px;height:${userMarkerSize}px;z-index:9999;';
     
     var innerCircle = document.createElement('div');
-    // ✅ FIX v279.0: ENHANCED styling for better visibility
-    // - Larger size (32px)
-    // - Stronger blue color (#1E88E5 instead of #4285F4)
-    // - Thicker white border (6px instead of 4px)
-    // - Stronger shadow for better contrast
-    innerCircle.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1E88E5;width:32px;height:32px;border-radius:50%;border:6px solid #FFF;box-shadow:0 4px 16px rgba(30,136,229,0.8),0 0 0 2px rgba(30,136,229,0.3);z-index:2;';
+    // ✅ v280.0: Scaled styling with unified factor
+    // - Size: ${userMarkerSize}px (scaled from 32px)
+    // - Border: ${userMarkerBorder}px (scaled from 6px)
+    innerCircle.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1E88E5;width:${userMarkerSize}px;height:${userMarkerSize}px;border-radius:50%;border:${userMarkerBorder}px solid #FFF;box-shadow:0 4px 16px rgba(30,136,229,0.8),0 0 0 2px rgba(30,136,229,0.3);z-index:2;';
     el.appendChild(innerCircle);
     
     var outerCircle = document.createElement('div');
-    // ✅ FIX v279.0: ENHANCED pulse animation with better visibility
-    // - Larger pulse (64px instead of 48px)
-    // - Stronger color (rgba(30,136,229,0.4) instead of rgba(66,133,244,0.3))
-    outerCircle.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(30,136,229,0.4);width:64px;height:64px;border-radius:50%;animation:pulse 2s infinite;z-index:1;';
+    // ✅ v280.0: Scaled pulse animation with unified factor
+    // - Pulse size: ${userMarkerPulse}px (scaled from 64px)
+    outerCircle.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(30,136,229,0.4);width:${userMarkerPulse}px;height:${userMarkerPulse}px;border-radius:50%;animation:pulse 2s infinite;z-index:1;';
     el.appendChild(outerCircle);
     
     var style = document.createElement('style');
@@ -913,10 +921,10 @@ window.updateUserLocation = function(lat, lng) {
       .setLngLat([lng, lat])
       .addTo(map);
     
-    console.log('🗺️ [MAPA v279.0] ✅ Marcador de usuario creado con estilo mejorado para Android');
+    console.log('🗺️ [MAPA v280.0] ✅ Marcador de usuario creado con escalado unificado');
   } else {
     window.userMarker.setLngLat([lng, lat]);
-    console.log('🗺️ [MAPA v279.0] ✅ Marcador de usuario actualizado');
+    console.log('🗺️ [MAPA v280.0] ✅ Marcador de usuario actualizado');
   }
 };
 
@@ -1001,11 +1009,11 @@ function showPopupForFeature(feature, coordinates) {
     window.currentPopup = null;
   }
   
-  // ✅ Crear nuevo popup
+  // ✅ v280.0: Crear nuevo popup con dimensiones escaladas
   window.currentPopup = new maplibregl.Popup({
     closeButton: false,
     closeOnClick: true,
-    maxWidth: '${Platform.OS === 'android' ? '260px' : '280px'}',
+    maxWidth: '${popupWidth}px',
     className: 'custom-popup'
   })
     .setLngLat(coordinates)
@@ -1187,7 +1195,7 @@ map.on('click', function(e) {
       setTimeout(function() {
         // Obtener la altura REAL del popup desde el DOM
         var popupElement = document.querySelector('.maplibregl-popup-content');
-        var popupHeight = popupElement ? popupElement.offsetHeight : ${Platform.OS === 'android' ? '240' : '280'};
+        var popupHeight = popupElement ? popupElement.offsetHeight : ${Math.round((Platform.OS === 'android' ? 240 : 280) * (Platform.OS === 'android' ? 0.88 : 1))};
         
         console.log('🗺️ [MAPA v279.0] 📐 Altura real del popup:', popupHeight, 'px');
         
@@ -1295,25 +1303,29 @@ window.addEventListener('resize', function() {
   console.log('🗺️ [MAPA v279.0] ✅ map.resize() ejecutado en window resize');
 });
 
-console.log('🗺️ [MAPA v279.0] ═══════════════════════════════════════════════════════');
-console.log('🗺️ [MAPA v279.0] ✅ Sistema de mapa configurado completamente');
-console.log('🗺️ [MAPA v279.0] ✅ MARCADOR DE USUARIO MEJORADO para Android (32px, color fuerte, borde 6px)');
-console.log('🗺️ [MAPA v279.0] ✅ CÁLCULO DE ESTADO EN TIEMPO REAL activado');
-console.log('🗺️ [MAPA v279.0] ✅ Sincronizado con horarios_completos de cada local');
-console.log('🗺️ [MAPA v279.0] ✅ Manejo correcto de horarios nocturnos (23:00-06:00)');
-console.log('🗺️ [MAPA v279.0] ✅ Manejo correcto de locales que abren después de medianoche');
-console.log('🗺️ [MAPA v279.0] ✅ DETECCIÓN MANUAL CON PROYECCIÓN A PÍXELES activada');
-console.log('🗺️ [MAPA v279.0] ✅ Tolerancia fija: 20 píxeles (tamaño del dedo)');
-console.log('🗺️ [MAPA v279.0] ✅ Área de clic CONSISTENTE sin importar el zoom');
-console.log('🗺️ [MAPA v279.0] ✅ Proyección: map.project([lng, lat]) → coordenadas de pantalla');
-console.log('🗺️ [MAPA v279.0] ✅ Distancia en píxeles: sqrt(dx² + dy²)');
-console.log('🗺️ [MAPA v279.0] ✅ SINCRONIZACIÓN CON FILTROS: valida categoría y estado');
-console.log('🗺️ [MAPA v279.0] ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)');
-console.log('🗺️ [MAPA v279.0] ✅ window.allLocales: Array global con todos los locales');
-console.log('🗺️ [MAPA v279.0] ✅ touch-action: none para evitar scroll del navegador');
-console.log('🗺️ [MAPA v279.0] ✅ POPUP CENTRADO DINÁMICAMENTE (v267.0)');
-console.log('🗺️ [MAPA v279.0] ✅ Altura del popup calculada desde el DOM');
-console.log('🗺️ [MAPA v279.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v280.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v280.0] ✅ Sistema de mapa configurado completamente');
+console.log('🗺️ [MAPA v280.0] ✅ ESCALADO UNIFICADO: Factor 0.88 (matches venue cards)');
+console.log('🗺️ [MAPA v280.0] ✅ Marcadores: ${markerSize}px (scaled from 22px)');
+console.log('🗺️ [MAPA v280.0] ✅ Marcador usuario: ${userMarkerSize}px (scaled from 32px)');
+console.log('🗺️ [MAPA v280.0] ✅ Popup width: ${popupWidth}px (scaled from 280px)');
+console.log('🗺️ [MAPA v280.0] ✅ Popup image: ${popupImageHeight}px (scaled from 140px)');
+console.log('🗺️ [MAPA v280.0] ✅ CÁLCULO DE ESTADO EN TIEMPO REAL activado');
+console.log('🗺️ [MAPA v280.0] ✅ Sincronizado con horarios_completos de cada local');
+console.log('🗺️ [MAPA v280.0] ✅ Manejo correcto de horarios nocturnos (23:00-06:00)');
+console.log('🗺️ [MAPA v280.0] ✅ Manejo correcto de locales que abren después de medianoche');
+console.log('🗺️ [MAPA v280.0] ✅ DETECCIÓN MANUAL CON PROYECCIÓN A PÍXELES activada');
+console.log('🗺️ [MAPA v280.0] ✅ Tolerancia fija: 20 píxeles (tamaño del dedo)');
+console.log('🗺️ [MAPA v280.0] ✅ Área de clic CONSISTENTE sin importar el zoom');
+console.log('🗺️ [MAPA v280.0] ✅ Proyección: map.project([lng, lat]) → coordenadas de pantalla');
+console.log('🗺️ [MAPA v280.0] ✅ Distancia en píxeles: sqrt(dx² + dy²)');
+console.log('🗺️ [MAPA v280.0] ✅ SINCRONIZACIÓN CON FILTROS: valida categoría y estado');
+console.log('🗺️ [MAPA v280.0] ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)');
+console.log('🗺️ [MAPA v280.0] ✅ window.allLocales: Array global con todos los locales');
+console.log('🗺️ [MAPA v280.0] ✅ touch-action: none para evitar scroll del navegador');
+console.log('🗺️ [MAPA v280.0] ✅ POPUP CENTRADO DINÁMICAMENTE (v267.0)');
+console.log('🗺️ [MAPA v280.0] ✅ Altura del popup calculada desde el DOM');
+console.log('🗺️ [MAPA v280.0] ═══════════════════════════════════════════════════════');
 </script>
 </body>
 </html>`;
