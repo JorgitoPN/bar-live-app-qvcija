@@ -34,14 +34,14 @@ const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v277.0 - ANDROID COMPACT HEADERS + CENTER BUTTON REPOSITIONED
+ * 🗺️ MAPA SCREEN v278.0 - ANDROID UI CLEANUP + BUTTON POSITIONING
  * 
- * NEW FIXES v277.0:
- * - ✅ FIXED: Center map button repositioned to BOTTOM RIGHT on Android (same as iOS)
- * - ✅ FIXED: Button positioned at bottom: 100px, right: 16px on Android
- * - ✅ FIXED: Consistent positioning across iOS and Android
- * - ✅ FIXED: Android headers now use COMPACT font sizes (matching venue cards)
- * - ✅ FIXED: Center button has MORE TRANSPARENCY (rgba 0.85 opacity)
+ * NEW FIXES v278.0:
+ * - ✅ FIXED: Center map button raised on Android (bottom: 110px) to prevent tab bar covering
+ * - ✅ FIXED: Category filter button text sizes adjusted with scaleFontSize for consistency
+ * - ✅ FIXED: Removed white shadows/boxes on Android (reduced elevation values)
+ * - ✅ FIXED: Platform-specific shadow styling (iOS shadows, Android elevation)
+ * - ✅ FIXED: Clean visual appearance on Android without white overlays
  * 
  * Previous features maintained (v275.0):
  * - ✅ Controls have MORE TRANSPARENCY (backgroundColor: rgba with 0.75 opacity)
@@ -1282,8 +1282,8 @@ window.addEventListener('resize', function() {
   console.log('🗺️ [MAPA v274.0] ✅ map.resize() ejecutado en window resize');
 });
 
-console.log('🗺️ [MAPA v275.0] ═══════════════════════════════════════════════════════');
-console.log('🗺️ [MAPA v275.0] ✅ Sistema de mapa configurado completamente');
+console.log('🗺️ [MAPA v278.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v278.0] ✅ Sistema de mapa configurado completamente');
 console.log('🗺️ [MAPA v275.0] ✅ CÁLCULO DE ESTADO EN TIEMPO REAL activado');
 console.log('🗺️ [MAPA v275.0] ✅ Sincronizado con horarios_completos de cada local');
 console.log('🗺️ [MAPA v275.0] ✅ Manejo correcto de horarios nocturnos (23:00-06:00)');
@@ -1546,14 +1546,14 @@ console.log('🗺️ [MAPA v275.0] ═══════════════
         </View>
       </View>
 
-      {/* ✅ FIX v276.0: Center button with TRANSPARENCY and repositioned on Android */}
+      {/* ✅ FIX v278.0: Center button raised on Android to prevent bottom curvature being hidden */}
       <TouchableOpacity 
         style={[styles.centerButton, {
           width: centerButtonSize,
           height: centerButtonSize,
           borderRadius: centerButtonSize / 2,
-          // ✅ FIX v276.0: Same position on both platforms (bottom right corner)
-          bottom: 100,
+          // ✅ FIX v278.0: Raised on Android (110 instead of 100) to prevent tab bar covering bottom
+          bottom: Platform.OS === 'android' ? 110 : 100,
           right: 16,
         }]}
         onPress={centerOnUser}
@@ -1632,7 +1632,7 @@ const styles = StyleSheet.create({
     gap: 4,
     minWidth: 60,
   },
-  // ✅ FIX v271.0: Compact category icon container (same as Explorar)
+  // ✅ FIX v278.0: Compact category icon container with clean styling (no white shadow on Android)
   categoriaIconContainerCompact: {
     width: Platform.OS === 'android' ? 36 : 40,
     height: Platform.OS === 'android' ? 36 : 40,
@@ -1642,20 +1642,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2, // ✅ Reduced elevation to prevent white shadow
+      },
+    }),
   },
   categoriaIconContainerActive: {
     borderColor: colors.white,
     backgroundColor: colors.white,
     shadowOpacity: 0.25,
   },
-  // ✅ FIX v271.0: Compact category label (same as Explorar)
+  // ✅ FIX v278.0: Adjusted category label size for better visual consistency
   categoriaLabelCompact: {
-    fontSize: Platform.OS === 'android' ? 11 : 12,
+    fontSize: Platform.OS === 'android' ? scaleFontSize(11) : 12,
     fontWeight: '600',
     color: colors.white,
     textAlign: 'center',
@@ -1681,24 +1687,36 @@ const styles = StyleSheet.create({
     zIndex: 5,
     alignItems: 'center',
   },
-  // ✅ FIX v275.0: Control button with MORE TRANSPARENCY (rgba 0.75)
+  // ✅ FIX v278.0: Control button with clean styling (no white shadow on Android)
   controlButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.75)', // ✅ MORE TRANSPARENCY
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3, // ✅ Reduced elevation to prevent white shadow
+      },
+    }),
   },
-  // ✅ FIX v275.0: Estado selector with MORE TRANSPARENCY (rgba 0.75)
+  // ✅ FIX v278.0: Estado selector with clean styling (no white shadow on Android)
   estadoSelectorContainer: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2, // ✅ Reduced elevation to prevent white shadow
+      },
+    }),
   },
   estadoSelector: {
     flexDirection: 'row',
@@ -1732,20 +1750,26 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontWeight: '700',
   },
-  // ✅ FIX v275.0: Legend with MORE TRANSPARENCY (rgba 0.75)
+  // ✅ FIX v278.0: Legend with clean styling (no white shadow on Android)
   leyenda: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.75)', // ✅ MORE TRANSPARENCY
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
     borderRadius: 8,
     padding: 8,
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
     justifyContent: 'center',
     alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2, // ✅ Reduced elevation to prevent white shadow
+      },
+    }),
   },
   leyendaItem: {
     flexDirection: 'column',
@@ -1761,17 +1785,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
   },
-  // ✅ FIX v276.0: Center button with TRANSPARENCY (rgba 0.85)
+  // ✅ FIX v278.0: Center button with clean styling (no white shadow on Android)
   centerButton: {
     position: 'absolute',
-    backgroundColor: 'rgba(255, 255, 255, 0.85)', // ✅ ADDED TRANSPARENCY
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
     zIndex: 5,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4, // ✅ Reduced elevation to prevent white shadow
+      },
+    }),
   },
 });
