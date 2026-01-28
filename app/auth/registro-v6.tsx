@@ -398,69 +398,83 @@ export default function RegistroV6Screen() {
   const passwordStrength = getPasswordStrength();
 
   /**
-   * ✅ REGISTRO SCREEN v143.0 - ANDROID SCROLL & NAV BUTTONS FIX
+   * ✅ REGISTRO SCREEN v284.0 - ANDROID FULL PAGE SCROLL + SCALING
    * 
-   * CRITICAL FIXES v143.0 (ANDROID ONLY):
-   * - ✅ Enabled proper keyboard-aware scrolling
-   * - ✅ Added bottom padding for Android navigation buttons
-   * - ✅ Consistent header title and icon sizes
-   * - ✅ Content no longer hidden by keyboard or nav buttons
+   * CRITICAL FIXES v284.0 (ANDROID ONLY):
+   * - ✅ FULL PAGE SCROLLING: Header now scrolls with content (not fixed)
+   * - ✅ ANDROID SCALING: All text sizes scaled using scaleFontSize()
+   * - ✅ Proper keyboard handling with KeyboardAvoidingView
+   * - ✅ Bottom padding for Android navigation buttons
    * - ✅ iOS design remains unchanged
    */
 
-  const headerIconSize = getHeaderIconSize(); // 28 on iOS, 24 on Android
+  const headerIconSize = getHeaderIconSize(); // 28 on iOS, 20 on Android
+  const headerTitleSize = getHeaderTitleSize(); // 32 on iOS, 20 on Android
+  const headerSubtitleSize = scaleFontSize(16); // Scaled for Android
+  const labelSize = scaleFontSize(14); // Scaled for Android
+  const inputSize = scaleFontSize(16); // Scaled for Android
+  const helperTextSize = scaleFontSize(12); // Scaled for Android
+  const errorTextSize = scaleFontSize(12); // Scaled for Android
+  const buttonTextSize = scaleFontSize(16); // Scaled for Android
+  const termsTextSize = scaleFontSize(13); // Scaled for Android
+  const dividerTextSize = scaleFontSize(14); // Scaled for Android
+  const loginTextSize = scaleFontSize(14); // Scaled for Android
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={0}
     >
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <IconSymbol
-            ios_icon_name="chevron.left"
-            android_material_icon_name="arrow_back"
-            size={headerIconSize}
-            color="#fff"
-          />
-        </TouchableOpacity>
-        
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoCircle}>
-              <IconSymbol
-                ios_icon_name="person.badge.plus.fill"
-                android_material_icon_name="person_add"
-                size={48}
-                color="#fff"
-              />
-            </View>
-          </View>
-          <Text style={[styles.headerTitle, { fontSize: getHeaderTitleSize() }]}>Crear cuenta</Text>
-          <Text style={styles.headerSubtitle}>Únete a la comunidad BarLive</Text>
-        </Animated.View>
-      </LinearGradient>
-
       <ScrollView
-        style={styles.content}
+        style={styles.scrollContainer}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: getContentBottomPadding(120) }
+          { paddingBottom: getContentBottomPadding(40) }
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        bounces={false}
+        bounces={true}
+        scrollEventThrottle={16}
       >
-        <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nombre completo</Text>
+        {/* ✅ HEADER NOW SCROLLS WITH CONTENT */}
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.header}
+        >
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <IconSymbol
+              ios_icon_name="chevron.left"
+              android_material_icon_name="arrow_back"
+              size={headerIconSize}
+              color="#fff"
+            />
+          </TouchableOpacity>
+          
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoCircle}>
+                <IconSymbol
+                  ios_icon_name="person.badge.plus.fill"
+                  android_material_icon_name="person_add"
+                  size={48}
+                  color="#fff"
+                />
+              </View>
+            </View>
+            <Text style={[styles.headerTitle, { fontSize: headerTitleSize }]}>Crear cuenta</Text>
+            <Text style={[styles.headerSubtitle, { fontSize: headerSubtitleSize }]}>Únete a la comunidad BarLive</Text>
+          </Animated.View>
+        </LinearGradient>
+
+        {/* ✅ FORM CONTENT WITH ANDROID SCALING */}
+        <View style={styles.formWrapper}>
+          <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { fontSize: labelSize }]}>Nombre completo</Text>
             <Animated.View
               style={[
                 styles.inputContainer,
@@ -476,7 +490,7 @@ export default function RegistroV6Screen() {
                 color={nombreError ? '#ef4444' : nombreFocused ? colors.primary : colors.textSecondary}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { fontSize: inputSize }]}
                 placeholder="Tu nombre"
                 placeholderTextColor={colors.textSecondary}
                 value={nombre}
@@ -503,16 +517,16 @@ export default function RegistroV6Screen() {
                   size={14}
                   color="#ef4444"
                 />
-                <Text style={styles.errorText}>{nombreError}</Text>
+                <Text style={[styles.errorText, { fontSize: errorTextSize }]}>{nombreError}</Text>
               </View>
             ) : null}
-            <Text style={styles.helperText}>
+            <Text style={[styles.helperText, { fontSize: helperTextSize }]}>
               Se te asignará un nombre de usuario automáticamente que podrás editar después
             </Text>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Correo electrónico</Text>
+            <Text style={[styles.label, { fontSize: labelSize }]}>Correo electrónico</Text>
             <Animated.View
               style={[
                 styles.inputContainer,
@@ -528,7 +542,7 @@ export default function RegistroV6Screen() {
                 color={emailError ? '#ef4444' : emailFocused ? colors.primary : colors.textSecondary}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { fontSize: inputSize }]}
                 placeholder="correo@ejemplo.com"
                 placeholderTextColor={colors.textSecondary}
                 value={email}
@@ -557,13 +571,13 @@ export default function RegistroV6Screen() {
                   size={14}
                   color="#ef4444"
                 />
-                <Text style={styles.errorText}>{emailError}</Text>
+                <Text style={[styles.errorText, { fontSize: errorTextSize }]}>{emailError}</Text>
               </View>
             ) : null}
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Contraseña</Text>
+            <Text style={[styles.label, { fontSize: labelSize }]}>Contraseña</Text>
             <Animated.View
               style={[
                 styles.inputContainer,
@@ -579,7 +593,7 @@ export default function RegistroV6Screen() {
                 color={passwordError ? '#ef4444' : passwordFocused ? colors.primary : colors.textSecondary}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { fontSize: inputSize }]}
                 placeholder="Mínimo 8 caracteres"
                 placeholderTextColor={colors.textSecondary}
                 value={password}
@@ -610,7 +624,7 @@ export default function RegistroV6Screen() {
                   size={14}
                   color="#ef4444"
                 />
-                <Text style={styles.errorText}>{passwordError}</Text>
+                <Text style={[styles.errorText, { fontSize: errorTextSize }]}>{passwordError}</Text>
               </View>
             ) : password ? (
               <View style={styles.passwordStrengthContainer}>
@@ -625,7 +639,7 @@ export default function RegistroV6Screen() {
                     ]}
                   />
                 </View>
-                <Text style={[styles.passwordStrengthText, { color: passwordStrength.color }]}>
+                <Text style={[styles.passwordStrengthText, { color: passwordStrength.color, fontSize: helperTextSize }]}>
                   {passwordStrength.text}
                 </Text>
               </View>
@@ -633,7 +647,7 @@ export default function RegistroV6Screen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Confirmar contraseña</Text>
+            <Text style={[styles.label, { fontSize: labelSize }]}>Confirmar contraseña</Text>
             <Animated.View
               style={[
                 styles.inputContainer,
@@ -649,7 +663,7 @@ export default function RegistroV6Screen() {
                 color={confirmPasswordError ? '#ef4444' : confirmPasswordFocused ? colors.primary : colors.textSecondary}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { fontSize: inputSize }]}
                 placeholder="Repite tu contraseña"
                 placeholderTextColor={colors.textSecondary}
                 value={confirmPassword}
@@ -680,7 +694,7 @@ export default function RegistroV6Screen() {
                   size={14}
                   color="#ef4444"
                 />
-                <Text style={styles.errorText}>{confirmPasswordError}</Text>
+                <Text style={[styles.errorText, { fontSize: errorTextSize }]}>{confirmPasswordError}</Text>
               </View>
             ) : confirmPassword && password === confirmPassword ? (
               <View style={styles.successContainer}>
@@ -690,7 +704,7 @@ export default function RegistroV6Screen() {
                   size={14}
                   color="#10b981"
                 />
-                <Text style={styles.successText}>Las contraseñas coinciden</Text>
+                <Text style={[styles.successText, { fontSize: helperTextSize }]}>Las contraseñas coinciden</Text>
               </View>
             ) : null}
           </View>
@@ -710,7 +724,7 @@ export default function RegistroV6Screen() {
                 />
               )}
             </View>
-            <Text style={styles.termsText}>
+            <Text style={[styles.termsText, { fontSize: termsTextSize }]}>
               Acepto los{' '}
               <Text style={styles.termsLink}>Términos de Servicio</Text>
               {' '}y{' '}
@@ -741,7 +755,7 @@ export default function RegistroV6Screen() {
                     color="#fff"
                     style={styles.buttonIcon}
                   />
-                  <Text style={styles.buttonText}>Crear cuenta</Text>
+                  <Text style={[styles.buttonText, { fontSize: buttonTextSize }]}>Crear cuenta</Text>
                 </React.Fragment>
               )}
             </LinearGradient>
@@ -749,20 +763,21 @@ export default function RegistroV6Screen() {
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>o</Text>
+            <Text style={[styles.dividerText, { fontSize: dividerTextSize }]}>o</Text>
             <View style={styles.dividerLine} />
           </View>
 
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>¿Ya tienes cuenta? </Text>
+            <Text style={[styles.loginText, { fontSize: loginTextSize }]}>¿Ya tienes cuenta? </Text>
             <TouchableOpacity
               onPress={() => router.replace('/auth/login-v6')}
               disabled={loading}
             >
-              <Text style={styles.loginLink}>Inicia sesión</Text>
+              <Text style={[styles.loginLink, { fontSize: loginTextSize }]}>Inicia sesión</Text>
             </TouchableOpacity>
           </View>
-        </Animated.View>
+          </Animated.View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -773,8 +788,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    // paddingBottom set dynamically via getContentBottomPadding()
+  },
   header: {
-    paddingTop: Platform.OS === 'android' ? 60 : 80,
+    paddingTop: Platform.OS === 'android' ? 48 : 80,
     paddingBottom: 40,
     paddingHorizontal: 24,
   },
@@ -807,16 +829,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headerSubtitle: {
-    fontSize: 16,
+    // fontSize set dynamically via scaleFontSize(16)
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
   },
-  content: {
+  formWrapper: {
     flex: 1,
-  },
-  scrollContent: {
     padding: 24,
-    // paddingBottom set dynamically via getContentBottomPadding()
   },
   formContainer: {
     flex: 1,
