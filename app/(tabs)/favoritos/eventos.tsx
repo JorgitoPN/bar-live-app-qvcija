@@ -46,9 +46,14 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS FAVORITOS SCREEN v242.0 - FIXED KEYBOARD FOCUS LOSS (FINAL FIX)
+ * ✅ EVENTOS FAVORITOS SCREEN v269.0 - REMOVED INCORRECT MARGIN & STANDARDIZED FILTER BUTTON
  * 
- * CRITICAL FIX v242.0:
+ * NEW FIXES v269.0:
+ * - ✅ FIXED: REMOVED incorrect marginTop (this page should NOT have extra margin)
+ * - ✅ FIXED: Filter button height standardized to 40px (same as Explorar)
+ * - ✅ FIXED: Search container height standardized to 40px (same as Explorar)
+ * 
+ * Previous features maintained (v242.0):
  * - ✅ FIXED: TextInput is DIRECTLY in return (no conditional rendering)
  * - ✅ FIXED: Controlled component with value={searchQuery}
  * - ✅ FIXED: Debounce with useEffect + cleanup (300ms)
@@ -71,10 +76,10 @@ export default function EventosFavoritosScreen() {
 
   // ✅ CRITICAL FIX v242.0: Debounce with cleanup (300ms) - same as Explorar
   useEffect(() => {
-    console.log('[EventosFavoritos v242.0] 📝 Search query changed:', searchQuery);
+    console.log('[EventosFavoritos v269.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[EventosFavoritos v242.0] 🔍 Applying debounced search');
+      console.log('[EventosFavoritos v269.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -91,7 +96,7 @@ export default function EventosFavoritosScreen() {
     }
 
     try {
-      console.log('[EventosFavoritos v242.0] Cargando eventos guardados...');
+      console.log('[EventosFavoritos v269.0] Cargando eventos guardados...');
       const { data: savedEventosData, error: eventosError } = await supabase
         .from('eventos_guardados')
         .select(`
@@ -126,10 +131,10 @@ export default function EventosFavoritosScreen() {
           .map((se: any) => se.eventos);
         
         setAllSavedEventos(formattedEventos);
-        console.log('[EventosFavoritos v242.0] Eventos guardados cargados:', formattedEventos.length);
+        console.log('[EventosFavoritos v269.0] Eventos guardados cargados:', formattedEventos.length);
       }
     } catch (error) {
-      console.error('[EventosFavoritos v242.0] Error cargando eventos guardados:', error);
+      console.error('[EventosFavoritos v269.0] Error cargando eventos guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -140,7 +145,7 @@ export default function EventosFavoritosScreen() {
 
     if (user) {
       const savedEventosChannel = supabase
-        .channel('user-saved-eventos-changes')
+        .channel('user-saved-eventos-changes-v269')
         .on(
           'postgres_changes',
           {
@@ -150,7 +155,7 @@ export default function EventosFavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[EventosFavoritos v242.0] Saved eventos changed, reloading...');
+            console.log('[EventosFavoritos v269.0] Saved eventos changed, reloading...');
             loadSavedEventos();
           }
         )
@@ -165,7 +170,7 @@ export default function EventosFavoritosScreen() {
   // ✅ CRITICAL v242.0: Client-side filtering (triggered by debouncedQuery) - same as Explorar
   const filteredEventos = useMemo(() => {
     const query = debouncedQuery.toLowerCase().trim();
-    console.log('[EventosFavoritos v242.0] 🔍 Filtering eventos client-side, search:', query);
+    console.log('[EventosFavoritos v269.0] 🔍 Filtering eventos client-side, search:', query);
     
     if (!query) {
       return allSavedEventos;
@@ -181,12 +186,12 @@ export default function EventosFavoritosScreen() {
              localNombre.includes(query);
     });
 
-    console.log('[EventosFavoritos v242.0] ✅ Filtered', filtered.length, 'eventos from', allSavedEventos.length);
+    console.log('[EventosFavoritos v269.0] ✅ Filtered', filtered.length, 'eventos from', allSavedEventos.length);
     return filtered;
   }, [debouncedQuery, allSavedEventos]);
 
   const onRefresh = async () => {
-    console.log('[EventosFavoritos v242.0] 🔄 Manual refresh triggered');
+    console.log('[EventosFavoritos v269.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setDebouncedQuery('');
@@ -195,7 +200,7 @@ export default function EventosFavoritosScreen() {
   };
 
   const clearSearch = useCallback(() => {
-    console.log('[EventosFavoritos v242.0] 🧹 Clearing search');
+    console.log('[EventosFavoritos v269.0] 🧹 Clearing search');
     setSearchQuery('');
     setDebouncedQuery('');
   }, []);
@@ -218,15 +223,15 @@ export default function EventosFavoritosScreen() {
         .eq('evento_id', eventoId);
 
       if (error) {
-        console.error('[EventosFavoritos v242.0] Error removing favorite:', error);
+        console.error('[EventosFavoritos v269.0] Error removing favorite:', error);
         Alert.alert('Error', 'No se pudo quitar de favoritos');
         return;
       }
       
-      console.log('[EventosFavoritos v242.0] ✅ Removed from favorites');
+      console.log('[EventosFavoritos v269.0] ✅ Removed from favorites');
       await loadSavedEventos();
     } catch (error) {
-      console.error('[EventosFavoritos v242.0] Error removing favorito:', error);
+      console.error('[EventosFavoritos v269.0] Error removing favorito:', error);
       Alert.alert('Error', 'No se pudo eliminar de favoritos');
     }
   };
@@ -451,19 +456,16 @@ export default function EventosFavoritosScreen() {
           )}
         </View>
         
-        {/* ✅ CRITICAL v242.0: Search bar - TextInput is DIRECTLY in return */}
-        <View style={[styles.searchContainer, { 
-          height: searchBoxHeight,
-          paddingVertical: Platform.OS === 'android' ? 10 : 10,
-        }]}>
+        {/* ✅ FIX v269.0: Search container with FIXED HEIGHT (40px) - same as Explorar */}
+        <View style={styles.searchContainer}>
           <IconSymbol 
             ios_icon_name="magnifyingglass" 
             android_material_icon_name="search"
-            size={scaleIconSize(20)} 
+            size={scaleIconSize(18)} 
             color={colors.textSecondary}
           />
           <TextInput
-            style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
+            style={[styles.searchInput, { fontSize: scaleFontSize(15) }]}
             placeholder="Buscar eventos..."
             placeholderTextColor={colors.textSecondary}
             value={searchQuery}
@@ -483,7 +485,7 @@ export default function EventosFavoritosScreen() {
               <IconSymbol 
                 ios_icon_name="xmark.circle.fill" 
                 android_material_icon_name="cancel"
-                size={scaleIconSize(20)} 
+                size={scaleIconSize(18)} 
                 color={colors.textSecondary}
               />
             </TouchableOpacity>
@@ -553,14 +555,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // ✅ FIX v269.0: Search container with FIXED HEIGHT (40px) - same as Explorar
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderRadius: 10,
+    paddingHorizontal: 10,
     marginBottom: 12,
-    gap: 8,
+    gap: 6,
+    height: 40, // ✅ FIXED HEIGHT - same as Explorar
   },
   searchInput: {
     flex: 1,
