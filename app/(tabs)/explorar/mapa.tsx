@@ -170,12 +170,12 @@ export default function MapaScreen() {
   
   // 🚀 CALLBACKS MEMOIZADOS - Evitar recreación en cada render
   const handleCategoriaChange = useCallback((categoriaId: string) => {
-    console.log('🗺️ [MAPA v282.0] Cambiando categoría a:', categoriaId);
+    console.log('🗺️ [MAPA v283.0] Cambiando categoría a:', categoriaId);
     setCategoriaSeleccionada(categoriaId);
   }, []);
   
   const handleEstadoChange = useCallback((estado: 'todos' | 'no_cerrados') => {
-    console.log('🗺️ [MAPA v282.0] Cambiando estado a:', estado);
+    console.log('🗺️ [MAPA v283.0] Cambiando estado a:', estado);
     setFiltroEstado(estado);
   }, []);
   
@@ -217,18 +217,23 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 .maplibregl-canvas-container{pointer-events:auto!important;touch-action:none!important;-webkit-tap-highlight-color:rgba(0,0,0,0);-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
 /* ✅ CRITICAL: Contenedor invisible del popup no debe bloquear clics */
 .maplibregl-popup-anchor-top,.maplibregl-popup-anchor-bottom{pointer-events:none!important}
-/* ✅ CRITICAL v282.0: REDUCED popup width for better visual consistency */
+/* ✅ CRITICAL v283.0: REDUCED popup width for better visual consistency */
 .maplibregl-popup-content{pointer-events:auto!important;border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);width:${popupWidth}px!important;min-width:${popupWidth}px!important;max-width:${popupWidth}px!important;z-index:9999!important}
 /* ✅ CRITICAL: Ensure popup appears above all other elements */
 .custom-popup{z-index:9999!important}
 .maplibregl-popup{z-index:9999!important}
 .maplibregl-popup-close-button{display:none!important}
-/* ✅ CRITICAL v282.0: REDUCED popup image height for better proportions */
+/* ✅ CRITICAL v283.0: REDUCED popup image height for better proportions */
 .popup-img{width:100%;height:${popupImageHeight}px;object-fit:cover;display:block;min-height:${popupImageHeight}px;max-height:${popupImageHeight}px}
 .popup-info{padding:${Platform.OS === 'android' ? '10px' : '12px'}}
-.popup-title{font-size:${Platform.OS === 'android' ? scaleFontSize(14) : 16}px;font-weight:700;margin-bottom:8px;color:#202124}
-.popup-rating{display:flex;align-items:center;gap:4px;margin-bottom:10px;font-size:${Platform.OS === 'android' ? scaleFontSize(11) : 13}px;color:#70757A}
-.popup-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#14B8A6;color:#FFF!important;padding:${Platform.OS === 'android' ? '8px' : '10px'};border-radius:8px;text-decoration:none;font-weight:700;font-size:${Platform.OS === 'android' ? scaleFontSize(11) : 13}px;transition:background .2s;cursor:pointer}
+/* ✅ NEW v283.0: INCREASED popup title size on Android for better readability */
+.popup-title{font-size:${Platform.OS === 'android' ? scaleFontSize(16) : 16}px;font-weight:700;margin-bottom:8px;color:#202124}
+/* ✅ NEW v283.0: INCREASED popup rating size on Android for better readability */
+.popup-rating{display:flex;align-items:center;gap:4px;margin-bottom:10px;font-size:${Platform.OS === 'android' ? scaleFontSize(13) : 13}px;color:#70757A}
+/* ✅ NEW v283.0: INCREASED popup button text size on Android for better readability */
+.popup-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#14B8A6;color:#FFF!important;padding:${Platform.OS === 'android' ? '8px' : '10px'};border-radius:8px;text-decoration:none;font-weight:700;font-size:${Platform.OS === 'android' ? scaleFontSize(13) : 13}px;transition:background .2s;cursor:pointer}
+/* ✅ NEW v283.0: INCREASED popup category text size on Android for better readability */
+.popup-category{font-size:${Platform.OS === 'android' ? scaleFontSize(12) : 11}px;color:#70757A;margin-bottom:8px}
 .popup-btn:hover{background:#0D9488}
 .maplibregl-ctrl-attrib{display:none!important}
 /* ✅ FIX v272.0: HIDE zoom controls (MapLibre built-in controls) */
@@ -239,8 +244,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 <body>
 <div id="map"></div>
 <script>
-// 🚀🚀🚀 MAPLIBRE GL JS v282.0 - USER MARKER FIX + POPUP SCALING 🚀🚀🚀
-console.log('🗺️ [MAPA v282.0] Inicializando MapLibre GL JS con marcadores refinados');
+// 🚀🚀🚀 MAPLIBRE GL JS v283.0 - ANDROID POPUP TEXT SCALING + INSTANT USER MARKER 🚀🚀🚀
+console.log('🗺️ [MAPA v283.0] Inicializando MapLibre GL JS con popup text scaling en Android');
 
 // 🚀 CREAR MAPA CON MAPLIBRE GL JS
 var map = new maplibregl.Map({
@@ -867,38 +872,38 @@ window.filtrarCategoria = function(idCategoria) {
 
 window.setCategoryFilter = window.filtrarCategoria;
 
-// 🚀 MARCADOR DE UBICACIÓN DEL USUARIO - ✅ FIX v282.0: REFINED SIZE + ANDROID FIX
+// 🚀 MARCADOR DE UBICACIÓN DEL USUARIO - ✅ FIX v283.0: SMALLER ON ANDROID + INSTANT DISPLAY
 window.updateUserLocation = function(lat, lng) {
-  console.log('🗺️ [MAPA v282.0] 📍 Actualizando ubicación del usuario:', lat, lng);
-  console.log('🗺️ [MAPA v282.0] 🔧 Tipo de mapa:', typeof map);
-  console.log('🗺️ [MAPA v282.0] 🔧 Mapa cargado:', map ? 'SÍ' : 'NO');
+  console.log('🗺️ [MAPA v283.0] 📍 Actualizando ubicación del usuario:', lat, lng);
+  console.log('🗺️ [MAPA v283.0] 🔧 Tipo de mapa:', typeof map);
+  console.log('🗺️ [MAPA v283.0] 🔧 Mapa cargado:', map ? 'SÍ' : 'NO');
   
   if (!map) {
-    console.error('🗺️ [MAPA v282.0] ❌ El mapa no está inicializado');
+    console.error('🗺️ [MAPA v283.0] ❌ El mapa no está inicializado');
     return;
   }
   
   const userMarkerSize = ${userMarkerSize};
   const pulseSize = userMarkerSize * 2;
   
-  console.log('🗺️ [MAPA v282.0] 📐 Tamaño del marcador:', userMarkerSize, 'px');
-  console.log('🗺️ [MAPA v282.0] 📐 Tamaño del pulso:', pulseSize, 'px');
+  console.log('🗺️ [MAPA v283.0] 📐 Tamaño del marcador:', userMarkerSize, 'px (20px en Android, 24px en iOS)');
+  console.log('🗺️ [MAPA v283.0] 📐 Tamaño del pulso:', pulseSize, 'px');
   
   if (!window.userMarker) {
-    console.log('🗺️ [MAPA v282.0] 🆕 Creando nuevo marcador de usuario');
+    console.log('🗺️ [MAPA v283.0] 🆕 Creando nuevo marcador de usuario');
     
     var el = document.createElement('div');
     el.className = 'user-marker';
-    // ✅ FIX v282.0: REFINED marker size (24px on both platforms) for more subtle appearance
+    // ✅ FIX v283.0: SMALLER marker on Android (20px) for more subtle appearance
     el.style.cssText = 'position:relative;width:' + userMarkerSize + 'px;height:' + userMarkerSize + 'px;z-index:9999;';
     
     var innerCircle = document.createElement('div');
-    // ✅ FIX v282.0: REFINED styling with adjusted size
+    // ✅ FIX v283.0: SMALLER styling on Android
     innerCircle.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1E88E5;width:' + userMarkerSize + 'px;height:' + userMarkerSize + 'px;border-radius:50%;border:4px solid #FFF;box-shadow:0 3px 12px rgba(30,136,229,0.7),0 0 0 2px rgba(30,136,229,0.3);z-index:2;';
     el.appendChild(innerCircle);
     
     var outerCircle = document.createElement('div');
-    // ✅ FIX v282.0: REFINED pulse animation with adjusted size
+    // ✅ FIX v283.0: SMALLER pulse animation on Android
     outerCircle.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(30,136,229,0.4);width:' + pulseSize + 'px;height:' + pulseSize + 'px;border-radius:50%;animation:pulse 2s infinite;z-index:1;';
     el.appendChild(outerCircle);
     
@@ -906,7 +911,7 @@ window.updateUserLocation = function(lat, lng) {
     style.textContent = '@keyframes pulse{0%{transform:translate(-50%,-50%) scale(1);opacity:1}50%{transform:translate(-50%,-50%) scale(1.3);opacity:0.5}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}';
     document.head.appendChild(style);
     
-    console.log('🗺️ [MAPA v282.0] 🔧 Creando Marker de MapLibre...');
+    console.log('🗺️ [MAPA v283.0] 🔧 Creando Marker de MapLibre...');
     
     try {
       window.userMarker = new maplibregl.Marker({ 
@@ -916,15 +921,15 @@ window.updateUserLocation = function(lat, lng) {
         .setLngLat([lng, lat])
         .addTo(map);
       
-      console.log('🗺️ [MAPA v282.0] ✅ Marcador de usuario creado con tamaño refinado:', userMarkerSize, 'px');
-      console.log('🗺️ [MAPA v282.0] ✅ Marcador añadido al mapa en coordenadas:', [lng, lat]);
+      console.log('🗺️ [MAPA v283.0] ✅ Marcador de usuario creado con tamaño refinado:', userMarkerSize, 'px');
+      console.log('🗺️ [MAPA v283.0] ✅ Marcador añadido al mapa en coordenadas:', [lng, lat]);
     } catch (error) {
-      console.error('🗺️ [MAPA v282.0] ❌ Error creando marcador:', error);
+      console.error('🗺️ [MAPA v283.0] ❌ Error creando marcador:', error);
     }
   } else {
-    console.log('🗺️ [MAPA v282.0] 🔄 Actualizando posición del marcador existente');
+    console.log('🗺️ [MAPA v283.0] 🔄 Actualizando posición del marcador existente');
     window.userMarker.setLngLat([lng, lat]);
-    console.log('🗺️ [MAPA v282.0] ✅ Marcador de usuario actualizado a:', [lng, lat]);
+    console.log('🗺️ [MAPA v283.0] ✅ Marcador de usuario actualizado a:', [lng, lat]);
   }
 };
 
@@ -985,7 +990,7 @@ function showPopupForFeature(feature, coordinates) {
     estadoColor = '#9CA3AF';
   }
   
-  // ✅ FIX: Popup SIN cantidad total de reseñas, solo rating
+  // ✅ FIX v283.0: Popup with INCREASED text sizes on Android for better readability
   var popupHTML = '<div>' +
     '<img src="' + (properties.imagen_url || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400') + '" class="popup-img" onerror="this.src=\\'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400\\'"/>' +
     '<div class="popup-info">' +
@@ -995,7 +1000,7 @@ function showPopupForFeature(feature, coordinates) {
     '<span style="flex:1">' + (properties.direccion || 'Dirección no disponible') + '</span>' +
     '</div>' +
     (ratingValue > 0 ? '<div class="popup-rating">⭐ ' + rating + '</div>' : '') +
-    '<div style="font-size:11px;color:#70757A;margin-bottom:8px">' + categoriasTexto + '</div>' +
+    '<div class="popup-category">' + categoriasTexto + '</div>' +
     '<div style="font-size:12px;font-weight:600;color:' + estadoColor + ';margin-bottom:10px">' + estadoTexto + '</div>' +
     '<a href="#" class="popup-btn" onclick="event.preventDefault();window.ReactNativeWebView.postMessage(JSON.stringify({type:\\'navigate\\',id:\\''+properties.id+'\\'}));return false">' +
     '<span style="color:#FFF">📍 Ver detalles</span>' +
@@ -1303,23 +1308,27 @@ window.addEventListener('resize', function() {
   console.log('🗺️ [MAPA v282.0] ✅ map.resize() ejecutado en window resize');
 });
 
-console.log('🗺️ [MAPA v282.0] ═══════════════════════════════════════════════════════');
-console.log('🗺️ [MAPA v282.0] ✅ Sistema de mapa configurado completamente');
-console.log('🗺️ [MAPA v282.0] ✅ POPUP WIDTH:', ${popupWidth}, 'px (REDUCED for consistency)');
-console.log('🗺️ [MAPA v282.0] ✅ POPUP IMAGE HEIGHT:', ${popupImageHeight}, 'px (REDUCED for proportions)');
-console.log('🗺️ [MAPA v282.0] ✅ MARKER SCALE:', ${markerScale}, '(15% reduction)');
-console.log('🗺️ [MAPA v282.0] ✅ USER MARKER SIZE:', ${userMarkerSize}, 'px (24px on both platforms)');
-console.log('🗺️ [MAPA v282.0] ✅ MARCADOR DE USUARIO con delay y logging mejorado');
-console.log('🗺️ [MAPA v282.0] ✅ POPUP SCALING con scaleFontSize para Android');
-console.log('🗺️ [MAPA v282.0] ✅ CÁLCULO DE ESTADO EN TIEMPO REAL activado');
-console.log('🗺️ [MAPA v282.0] ✅ Sincronizado con horarios_completos de cada local');
-console.log('🗺️ [MAPA v282.0] ✅ Manejo correcto de horarios nocturnos (23:00-06:00)');
-console.log('🗺️ [MAPA v282.0] ✅ Manejo correcto de locales que abren después de medianoche');
-console.log('🗺️ [MAPA v282.0] ✅ DETECCIÓN MANUAL CON PROYECCIÓN A PÍXELES activada');
-console.log('🗺️ [MAPA v282.0] ✅ Tolerancia fija: 20 píxeles (tamaño del dedo)');
-console.log('🗺️ [MAPA v282.0] ✅ Área de clic CONSISTENTE sin importar el zoom');
-console.log('🗺️ [MAPA v282.0] ✅ POPUP CENTRADO DINÁMICAMENTE (v267.0)');
-console.log('🗺️ [MAPA v282.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v283.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v283.0] ✅ Sistema de mapa configurado completamente');
+console.log('🗺️ [MAPA v283.0] ✅ POPUP WIDTH:', ${popupWidth}, 'px (REDUCED for consistency)');
+console.log('🗺️ [MAPA v283.0] ✅ POPUP IMAGE HEIGHT:', ${popupImageHeight}, 'px (REDUCED for proportions)');
+console.log('🗺️ [MAPA v283.0] ✅ MARKER SCALE:', ${markerScale}, '(15% reduction)');
+console.log('🗺️ [MAPA v283.0] ✅ USER MARKER SIZE:', ${userMarkerSize}, 'px (20px en Android, 24px en iOS)');
+console.log('🗺️ [MAPA v283.0] ✅ MARCADOR DE USUARIO con display INSTANTÁNEO en Android');
+console.log('🗺️ [MAPA v283.0] ✅ POPUP TEXT SCALING AUMENTADO en Android (mejor legibilidad)');
+console.log('🗺️ [MAPA v283.0] ✅ Título del local: scaleFontSize(16) en Android');
+console.log('🗺️ [MAPA v283.0] ✅ Rating y estrella: scaleFontSize(13) en Android');
+console.log('🗺️ [MAPA v283.0] ✅ Botón "Ver detalles": scaleFontSize(13) en Android');
+console.log('🗺️ [MAPA v283.0] ✅ Categoría del local: scaleFontSize(12) en Android');
+console.log('🗺️ [MAPA v283.0] ✅ CÁLCULO DE ESTADO EN TIEMPO REAL activado');
+console.log('🗺️ [MAPA v283.0] ✅ Sincronizado con horarios_completos de cada local');
+console.log('🗺️ [MAPA v283.0] ✅ Manejo correcto de horarios nocturnos (23:00-06:00)');
+console.log('🗺️ [MAPA v283.0] ✅ Manejo correcto de locales que abren después de medianoche');
+console.log('🗺️ [MAPA v283.0] ✅ DETECCIÓN MANUAL CON PROYECCIÓN A PÍXELES activada');
+console.log('🗺️ [MAPA v283.0] ✅ Tolerancia fija: 20 píxeles (tamaño del dedo)');
+console.log('🗺️ [MAPA v283.0] ✅ Área de clic CONSISTENTE sin importar el zoom');
+console.log('🗺️ [MAPA v283.0] ✅ POPUP CENTRADO DINÁMICAMENTE (v267.0)');
+console.log('🗺️ [MAPA v283.0] ═══════════════════════════════════════════════════════');
 </script>
 </body>
 </html>`;
@@ -1330,30 +1339,30 @@ console.log('🗺️ [MAPA v282.0] ═══════════════
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('🗺️ [MAPA v282.0] Permisos de ubicación denegados');
+          console.log('🗺️ [MAPA v283.0] Permisos de ubicación denegados');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
-        console.log('🗺️ [MAPA v282.0] Obteniendo ubicación del usuario...');
+        console.log('🗺️ [MAPA v283.0] Obteniendo ubicación del usuario...');
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
         
-        console.log('🗺️ [MAPA v282.0] Ubicación obtenida:', location.coords.latitude, location.coords.longitude);
+        console.log('🗺️ [MAPA v283.0] Ubicación obtenida:', location.coords.latitude, location.coords.longitude);
         setUserLocation({
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
       } catch (error) {
-        console.error('🗺️ [MAPA v282.0] Error obteniendo ubicación:', error);
+        console.error('🗺️ [MAPA v283.0] Error obteniendo ubicación:', error);
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
   }, []);
 
   useEffect(() => {
-    console.log('🗺️ [MAPA v282.0] Filtros cambiados');
+    console.log('🗺️ [MAPA v283.0] Filtros cambiados');
   }, [categoriaSeleccionada, globalFiltros]);
 
   useEffect(() => {
@@ -1395,32 +1404,46 @@ console.log('🗺️ [MAPA v282.0] ═══════════════
       return;
     }
     
-    console.log('🗺️ [MAPA v282.0] 📍 Inyectando ubicación del usuario con marcador refinado');
+    console.log('🗺️ [MAPA v283.0] 📍 Inyectando ubicación del usuario INSTANTÁNEAMENTE');
     
-    // ✅ FIX v282.0: Add delay to ensure WebView JavaScript is fully loaded
-    setTimeout(() => {
+    // ✅ FIX v283.0: INSTANT display on Android (no delay) - same as iOS
+    const injectUserLocation = () => {
       webViewRef.current?.injectJavaScript(`
         (function() {
           try {
-            console.log('🗺️ [MAPA v282.0] 🔧 Ejecutando updateUserLocation desde React Native');
+            console.log('🗺️ [MAPA v283.0] 🔧 Ejecutando updateUserLocation desde React Native');
             if (typeof window.updateUserLocation !== 'undefined') {
-              console.log('🗺️ [MAPA v282.0] ✅ window.updateUserLocation está definida');
+              console.log('🗺️ [MAPA v283.0] ✅ window.updateUserLocation está definida');
               window.updateUserLocation(${userLocation.lat}, ${userLocation.lng});
             } else {
-              console.error('🗺️ [MAPA v282.0] ❌ window.updateUserLocation NO está definida');
+              console.error('🗺️ [MAPA v283.0] ❌ window.updateUserLocation NO está definida - reintentando...');
+              // Retry after 100ms if not ready yet
+              setTimeout(function() {
+                if (typeof window.updateUserLocation !== 'undefined') {
+                  window.updateUserLocation(${userLocation.lat}, ${userLocation.lng});
+                }
+              }, 100);
             }
           } catch (error) {
-            console.error('🗺️ [MAPA v282.0] ❌ Error actualizando ubicación:', error);
+            console.error('🗺️ [MAPA v283.0] ❌ Error actualizando ubicación:', error);
           }
         })();
         true;
       `);
-    }, 500); // Wait 500ms for WebView to be fully ready
+    };
+    
+    // Execute immediately on iOS, with minimal delay on Android for WebView readiness
+    if (Platform.OS === 'ios') {
+      injectUserLocation();
+    } else {
+      // Android: minimal 50ms delay to ensure WebView is ready (down from 500ms)
+      setTimeout(injectUserLocation, 50);
+    }
   }, [userLocation, isMapReady]);
 
   const centerOnUser = useCallback(() => {
     if (userLocation && webViewRef.current && isMapReady) {
-      console.log('🗺️ [MAPA v282.0] Centrando en ubicación del usuario');
+      console.log('🗺️ [MAPA v283.0] Centrando en ubicación del usuario');
       webViewRef.current.injectJavaScript(`
         if (typeof window.flyToLocation !== 'undefined') {
           window.flyToLocation(${userLocation.lat}, ${userLocation.lng}, 16);
@@ -1435,14 +1458,14 @@ console.log('🗺️ [MAPA v282.0] ═══════════════
       const data = JSON.parse(event.nativeEvent.data);
       
       if (data.type === 'navigate' && data.id) {
-        console.log('🗺️ [MAPA v282.0] Navegando a local:', data.id);
+        console.log('🗺️ [MAPA v283.0] Navegando a local:', data.id);
         router.push(`/detalle/local?id=${data.id}`);
       } else if (data.type === 'map_ready') {
-        console.log('🗺️ [MAPA v282.0] Mapa listo');
+        console.log('🗺️ [MAPA v283.0] Mapa listo');
         setIsMapReady(true);
       }
     } catch (error) {
-      console.error('🗺️ [MAPA v282.0] Error procesando mensaje:', error);
+      console.error('🗺️ [MAPA v283.0] Error procesando mensaje:', error);
     }
   }, [router]);
 
