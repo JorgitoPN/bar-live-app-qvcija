@@ -28,20 +28,20 @@ import { supabase } from '@/utils/supabase';
 
 const { width, height } = Dimensions.get('window');
 
-// ✅ FIX v274.0: REDUCED header height for minimal margin
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 100 : 110;
+// ✅ FIX v275.0: INCREASED header height for more margin between header and controls
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 110 : 120;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v274.0 - ADDED TRANSPARENCY TO CONTROLS & MINIMAL MARGIN
+ * 🗺️ MAPA SCREEN v275.0 - ADDED TRANSPARENCY TO CONTROLS & MORE MARGIN
  * 
- * NEW FIXES v274.0:
- * - ✅ FIXED: Controls now have TRANSPARENCY (backgroundColor: rgba with 0.85 opacity)
- * - ✅ FIXED: Back button, filters, selector, and legend all semi-transparent
- * - ✅ FIXED: MINIMAL margin between header and controls (8px gap)
- * - ✅ FIXED: Controls positioned at top: 118-128px (just below header)
- * - ✅ FIXED: Proper spacing and visibility
+ * NEW FIXES v275.0:
+ * - ✅ FIXED: Controls now have MORE TRANSPARENCY (backgroundColor: rgba with 0.75 opacity)
+ * - ✅ FIXED: Back button, filters, selector, and legend all more transparent
+ * - ✅ FIXED: MORE margin between header and controls (18px gap)
+ * - ✅ FIXED: Controls positioned at top: 138-148px (more space below header)
+ * - ✅ FIXED: Better visibility and spacing
  * 
  * Previous features maintained (v273.0):
  * - ✅ Controls positioned BELOW header to prevent being covered
@@ -179,12 +179,12 @@ export default function MapaScreen() {
   
   // 🚀 CALLBACKS MEMOIZADOS - Evitar recreación en cada render
   const handleCategoriaChange = useCallback((categoriaId: string) => {
-    console.log('🗺️ [MAPA v274.0] Cambiando categoría a:', categoriaId);
+    console.log('🗺️ [MAPA v275.0] Cambiando categoría a:', categoriaId);
     setCategoriaSeleccionada(categoriaId);
   }, []);
   
   const handleEstadoChange = useCallback((estado: 'todos' | 'no_cerrados') => {
-    console.log('🗺️ [MAPA v274.0] Cambiando estado a:', estado);
+    console.log('🗺️ [MAPA v275.0] Cambiando estado a:', estado);
     setFiltroEstado(estado);
   }, []);
   
@@ -242,7 +242,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 <div id="map"></div>
 <script>
 // 🚀🚀🚀 MAPLIBRE GL JS CON DETECCIÓN MANUAL POR PROXIMIDAD MATEMÁTICA 🚀🚀🚀
-console.log('🗺️ [MAPA v274.0] Inicializando MapLibre GL JS con cálculo de estado en tiempo real');
+console.log('🗺️ [MAPA v275.0] Inicializando MapLibre GL JS con cálculo de estado en tiempo real');
 
 // 🚀 CREAR MAPA CON MAPLIBRE GL JS
 var map = new maplibregl.Map({
@@ -331,7 +331,7 @@ function loadCategoryIcons() {
 // ✅ FIX v270.0: FUNCIÓN COMPLETA PARA DETERMINAR ESTADO DEL LOCAL EN TIEMPO REAL
 // Esta función replica la lógica de utils/timeUtils.ts para sincronización perfecta
 window.getEstadoLocalRealTime = function(local) {
-  console.log('⏰ [MAPA v274.0] Calculando estado en tiempo real para:', local.nombre);
+  console.log('⏰ [MAPA v275.0] Calculando estado en tiempo real para:', local.nombre);
   
   // PASO 1: Verificar estado del negocio
   if (local.google_business_status === 'CLOSED_PERMANENTLY') {
@@ -1275,24 +1275,24 @@ window.addEventListener('resize', function() {
   console.log('🗺️ [MAPA v274.0] ✅ map.resize() ejecutado en window resize');
 });
 
-console.log('🗺️ [MAPA v274.0] ═══════════════════════════════════════════════════════');
-console.log('🗺️ [MAPA v274.0] ✅ Sistema de mapa configurado completamente');
-console.log('🗺️ [MAPA v274.0] ✅ CÁLCULO DE ESTADO EN TIEMPO REAL activado');
-console.log('🗺️ [MAPA v274.0] ✅ Sincronizado con horarios_completos de cada local');
-console.log('🗺️ [MAPA v274.0] ✅ Manejo correcto de horarios nocturnos (23:00-06:00)');
-console.log('🗺️ [MAPA v274.0] ✅ Manejo correcto de locales que abren después de medianoche');
-console.log('🗺️ [MAPA v274.0] ✅ DETECCIÓN MANUAL CON PROYECCIÓN A PÍXELES activada');
-console.log('🗺️ [MAPA v274.0] ✅ Tolerancia fija: 20 píxeles (tamaño del dedo)');
-console.log('🗺️ [MAPA v274.0] ✅ Área de clic CONSISTENTE sin importar el zoom');
-console.log('🗺️ [MAPA v274.0] ✅ Proyección: map.project([lng, lat]) → coordenadas de pantalla');
-console.log('🗺️ [MAPA v274.0] ✅ Distancia en píxeles: sqrt(dx² + dy²)');
-console.log('🗺️ [MAPA v274.0] ✅ SINCRONIZACIÓN CON FILTROS: valida categoría y estado');
-console.log('🗺️ [MAPA v274.0] ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)');
-console.log('🗺️ [MAPA v274.0] ✅ window.allLocales: Array global con todos los locales');
-console.log('🗺️ [MAPA v274.0] ✅ touch-action: none para evitar scroll del navegador');
-console.log('🗺️ [MAPA v274.0] ✅ POPUP CENTRADO DINÁMICAMENTE (v267.0)');
-console.log('🗺️ [MAPA v274.0] ✅ Altura del popup calculada desde el DOM');
-console.log('🗺️ [MAPA v274.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v275.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v275.0] ✅ Sistema de mapa configurado completamente');
+console.log('🗺️ [MAPA v275.0] ✅ CÁLCULO DE ESTADO EN TIEMPO REAL activado');
+console.log('🗺️ [MAPA v275.0] ✅ Sincronizado con horarios_completos de cada local');
+console.log('🗺️ [MAPA v275.0] ✅ Manejo correcto de horarios nocturnos (23:00-06:00)');
+console.log('🗺️ [MAPA v275.0] ✅ Manejo correcto de locales que abren después de medianoche');
+console.log('🗺️ [MAPA v275.0] ✅ DETECCIÓN MANUAL CON PROYECCIÓN A PÍXELES activada');
+console.log('🗺️ [MAPA v275.0] ✅ Tolerancia fija: 20 píxeles (tamaño del dedo)');
+console.log('🗺️ [MAPA v275.0] ✅ Área de clic CONSISTENTE sin importar el zoom');
+console.log('🗺️ [MAPA v275.0] ✅ Proyección: map.project([lng, lat]) → coordenadas de pantalla');
+console.log('🗺️ [MAPA v275.0] ✅ Distancia en píxeles: sqrt(dx² + dy²)');
+console.log('🗺️ [MAPA v275.0] ✅ SINCRONIZACIÓN CON FILTROS: valida categoría y estado');
+console.log('🗺️ [MAPA v275.0] ✅ Búsqueda del local MÁS CERCANO (minimaDistanciaPixeles)');
+console.log('🗺️ [MAPA v275.0] ✅ window.allLocales: Array global con todos los locales');
+console.log('🗺️ [MAPA v275.0] ✅ touch-action: none para evitar scroll del navegador');
+console.log('🗺️ [MAPA v275.0] ✅ POPUP CENTRADO DINÁMICAMENTE (v267.0)');
+console.log('🗺️ [MAPA v275.0] ✅ Altura del popup calculada desde el DOM');
+console.log('🗺️ [MAPA v275.0] ═══════════════════════════════════════════════════════');
 </script>
 </body>
 </html>`;
@@ -1326,7 +1326,7 @@ console.log('🗺️ [MAPA v274.0] ═══════════════
   }, []);
 
   useEffect(() => {
-    console.log('🗺️ [MAPA v274.0] Filtros cambiados');
+    console.log('🗺️ [MAPA v275.0] Filtros cambiados');
   }, [categoriaSeleccionada, globalFiltros]);
 
   useEffect(() => {
@@ -1368,7 +1368,7 @@ console.log('🗺️ [MAPA v274.0] ═══════════════
       return;
     }
     
-    console.log('🗺️ [MAPA v274.0] 📍 Inyectando ubicación del usuario');
+    console.log('🗺️ [MAPA v275.0] 📍 Inyectando ubicación del usuario');
     
     webViewRef.current.injectJavaScript(`
       (function() {
@@ -1377,7 +1377,7 @@ console.log('🗺️ [MAPA v274.0] ═══════════════
             window.updateUserLocation(${userLocation.lat}, ${userLocation.lng});
           }
         } catch (error) {
-          console.error('🗺️ [MAPA v274.0] ❌ Error actualizando ubicación:', error);
+          console.error('🗺️ [MAPA v275.0] ❌ Error actualizando ubicación:', error);
         }
       })();
       true;
@@ -1386,7 +1386,7 @@ console.log('🗺️ [MAPA v274.0] ═══════════════
 
   const centerOnUser = useCallback(() => {
     if (userLocation && webViewRef.current && isMapReady) {
-      console.log('🗺️ [MAPA v274.0] Centrando en ubicación del usuario');
+      console.log('🗺️ [MAPA v275.0] Centrando en ubicación del usuario');
       webViewRef.current.injectJavaScript(`
         if (typeof window.flyToLocation !== 'undefined') {
           window.flyToLocation(${userLocation.lat}, ${userLocation.lng}, 16);
@@ -1401,14 +1401,14 @@ console.log('🗺️ [MAPA v274.0] ═══════════════
       const data = JSON.parse(event.nativeEvent.data);
       
       if (data.type === 'navigate' && data.id) {
-        console.log('🗺️ [MAPA v274.0] Navegando a local:', data.id);
+        console.log('🗺️ [MAPA v275.0] Navegando a local:', data.id);
         router.push(`/detalle/local?id=${data.id}`);
       } else if (data.type === 'map_ready') {
-        console.log('🗺️ [MAPA v274.0] Mapa listo');
+        console.log('🗺️ [MAPA v275.0] Mapa listo');
         setIsMapReady(true);
       }
     } catch (error) {
-      console.error('🗺️ [MAPA v274.0] Error procesando mensaje:', error);
+      console.error('🗺️ [MAPA v275.0] Error procesando mensaje:', error);
     }
   }, [router]);
 
@@ -1481,7 +1481,7 @@ console.log('🗺️ [MAPA v274.0] ═══════════════
         </LinearGradient>
       </View>
 
-      {/* ✅ FIX v274.0: Controls with TRANSPARENCY and positioned BELOW header (top: 118-128px) */}
+      {/* ✅ FIX v275.0: Controls with MORE TRANSPARENCY and positioned BELOW header (top: 138-148px) */}
       <View style={styles.controlsLeft}>
         <TouchableOpacity 
           style={[styles.controlButton, {
@@ -1516,7 +1516,7 @@ console.log('🗺️ [MAPA v274.0] ═══════════════
         </TouchableOpacity>
       </View>
 
-      {/* ✅ FIX v274.0: Controls with TRANSPARENCY and positioned BELOW header (top: 118-128px) */}
+      {/* ✅ FIX v275.0: Controls with MORE TRANSPARENCY and positioned BELOW header (top: 138-148px) */}
       <View style={styles.controlsRight}>
         <EstadoSelector 
           filtroEstado={filtroEstado}
@@ -1655,26 +1655,26 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '700',
   },
-  // ✅ FIX v274.0: Controls with TRANSPARENCY (rgba 0.85) and positioned BELOW header (top: 118-128px)
+  // ✅ FIX v275.0: Controls with MORE TRANSPARENCY (rgba 0.75) and positioned BELOW header (top: 138-148px)
   controlsLeft: {
     position: 'absolute',
     left: 16,
-    top: Platform.OS === 'ios' ? 128 : 118, // ✅ MOVED DOWN to 128/118 (8px below header)
+    top: Platform.OS === 'ios' ? 148 : 138, // ✅ MOVED DOWN to 148/138 (18px below header)
     gap: 12,
     zIndex: 5,
   },
-  // ✅ FIX v274.0: Controls with TRANSPARENCY (rgba 0.85) and positioned BELOW header (top: 118-128px)
+  // ✅ FIX v275.0: Controls with MORE TRANSPARENCY (rgba 0.75) and positioned BELOW header (top: 138-148px)
   controlsRight: {
     position: 'absolute',
     right: 16,
-    top: Platform.OS === 'ios' ? 128 : 118, // ✅ MOVED DOWN to 128/118 (8px below header)
+    top: Platform.OS === 'ios' ? 148 : 138, // ✅ MOVED DOWN to 148/138 (18px below header)
     gap: 12,
     zIndex: 5,
     alignItems: 'center',
   },
-  // ✅ FIX v274.0: Control button with TRANSPARENCY (rgba 0.85)
+  // ✅ FIX v275.0: Control button with MORE TRANSPARENCY (rgba 0.75)
   controlButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)', // ✅ ADDED TRANSPARENCY
+    backgroundColor: 'rgba(255, 255, 255, 0.75)', // ✅ MORE TRANSPARENCY
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1683,7 +1683,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  // ✅ FIX v274.0: Estado selector with TRANSPARENCY (rgba 0.85)
+  // ✅ FIX v275.0: Estado selector with MORE TRANSPARENCY (rgba 0.75)
   estadoSelectorContainer: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1693,7 +1693,7 @@ const styles = StyleSheet.create({
   },
   estadoSelector: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.85)', // ✅ ADDED TRANSPARENCY
+    backgroundColor: 'rgba(255, 255, 255, 0.75)', // ✅ MORE TRANSPARENCY
     borderRadius: 16,
     padding: 2,
     borderWidth: 1.5,
@@ -1723,10 +1723,10 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontWeight: '700',
   },
-  // ✅ FIX v274.0: Legend with TRANSPARENCY (rgba 0.85)
+  // ✅ FIX v275.0: Legend with MORE TRANSPARENCY (rgba 0.75)
   leyenda: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.85)', // ✅ ADDED TRANSPARENCY
+    backgroundColor: 'rgba(255, 255, 255, 0.75)', // ✅ MORE TRANSPARENCY
     borderRadius: 8,
     padding: 8,
     gap: 8,

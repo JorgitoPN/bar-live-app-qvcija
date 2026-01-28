@@ -39,8 +39,8 @@ import {
 
 const { width } = Dimensions.get('window');
 
-// ✅ FIX v274.0: SAME header height as Explorar for consistency
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 230 : 270;
+// ✅ FIX v275.0: SAME header height as Explorar for consistency
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 240 : 280;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -89,10 +89,10 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v274.0 - SAME MARGIN AS EXPLORAR
+ * ✅ EVENTOS SCREEN v275.0 - SAME MARGIN AS EXPLORAR
  * 
- * NEW FIXES v274.0:
- * - ✅ FIXED: SAME margin as Explorar page (20-22px between header and first event)
+ * NEW FIXES v275.0:
+ * - ✅ FIXED: SAME margin as Explorar page (10-11px between header and first event)
  * - ✅ FIXED: Consistent spacing across all pages
  * - ✅ FIXED: No more excessive whitespace at the top
  * 
@@ -147,10 +147,10 @@ export default function EventosScreen() {
 
   // ✅ CRITICAL FIX v242.0: Debounce with cleanup (300ms) - same as Explorar
   useEffect(() => {
-    console.log('[Eventos v274.0] 📝 Search query changed:', searchQuery);
+    console.log('[Eventos v275.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Eventos v274.0] 🔍 Applying debounced search');
+      console.log('[Eventos v275.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -621,8 +621,8 @@ export default function EventosScreen() {
           contentContainerStyle={[
             styles.eventosContainer,
             { 
-              // ✅ FIX v274.0: SAME margin as Explorar (20-22px)
-              marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 20 : HEADER_MAX_HEIGHT + 22,
+              // ✅ FIX v275.0: SAME margin as Explorar (10-11px)
+              marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 10 : HEADER_MAX_HEIGHT + 11,
               paddingTop: 16,
               paddingBottom: getContentBottomPadding(100),
             },
