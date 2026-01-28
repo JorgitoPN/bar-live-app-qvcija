@@ -19,7 +19,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { generateUsername } from '@/utils/usernameGenerator';
-import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize } from '@/utils/androidScaling';
+import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize, scaleFontSize } from '@/utils/androidScaling';
 
 export default function RegistroV6Screen() {
   const router = useRouter();
