@@ -828,7 +828,7 @@ const styles = StyleSheet.create({
   },
   cookieRejectButton: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 20,
     borderRadius: 12,
     borderWidth: 2,
@@ -846,7 +846,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cookieAcceptGradient: {
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
