@@ -1,19 +1,20 @@
 
 /**
- * FLOATING TAB BAR - VERSION v160.0
+ * FLOATING TAB BAR - VERSION v282.0
  * 
- * ✅ PERFORMANCE FIX v160.0 - INSTANT TOUCH RESPONSE
+ * ✅ ANDROID BORDER FIX v282.0 - THINNER BORDER ON EXPLORAR BUTTON
  * 
- * CRITICAL FIXES v160.0:
+ * CRITICAL FIXES v282.0:
+ * - ✅ REDUCED border width on center "Explorar" button (Android only)
+ * - ✅ Changed from 4px to 2.5px for more refined appearance
+ * - ✅ iOS remains unchanged (4px border)
+ * 
+ * Previous fixes maintained (v160.0):
  * - ✅ INSTANT FEEDBACK: Reduced activeOpacity to 0.6 for immediate visual response
  * - ✅ REMOVED DELAYS: Eliminated any animation delays on press
  * - ✅ OPTIMIZED RENDERING: Memoized components to prevent unnecessary re-renders
  * - ✅ FASTER NAVIGATION: Direct router.push without delays
  * - ✅ HAPTIC FEEDBACK: Added instant haptic feedback on press (optional)
- * 
- * Previous fixes maintained (v159.0):
- * - ✅ ProfileTab component properly uses hooks at top level
- * - ✅ Avatar displays correctly on ALL pages
  */
 
 import React, { memo, useCallback } from 'react';
@@ -166,7 +167,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
 
   // ✅ CRITICAL FIX v160.0: Instant navigation without delays
   const handleTabPress = useCallback((tab: TabBarItem) => {
-    console.log(`[FloatingTabBar v160.0] ⚡ INSTANT TAP: "${tab.name}" -> ${tab.route}`);
+    console.log(`[FloatingTabBar v282.0] ⚡ INSTANT TAP: "${tab.name}" -> ${tab.route}`);
     router.push(tab.route as any);
   }, [router]);
 
@@ -203,6 +204,8 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
       // ✅ COMPACT TAB BAR v265.0: Reduced center button size
       const centerButtonSize = Platform.OS === 'android' ? 52 : 56;
       const centerIconSize = Platform.OS === 'android' ? 26 : 28;
+      // ✅ NEW v282.0: THINNER border on Android (2.5px instead of 4px)
+      const borderWidth = Platform.OS === 'android' ? 2.5 : 4;
 
       return (
         <TouchableOpacity
@@ -222,6 +225,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
             end={{ x: 1, y: 1 }}
             style={[styles.centerGradient, {
               borderRadius: centerButtonSize / 2,
+              borderWidth: borderWidth,
             }]}
           >
             <IconSymbol
@@ -263,8 +267,8 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v160.0] ⚡ INSTANT RESPONSE MODE ACTIVE - ` +
-    `activeOpacity=0.6, no delays, optimized rendering`
+    `[FloatingTabBar v282.0] ⚡ INSTANT RESPONSE + THINNER BORDER - ` +
+    `activeOpacity=0.6, Android border=2.5px (reduced from 4px)`
   );
 
   return (
@@ -354,7 +358,6 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
     borderColor: '#FFFFFF',
   },
   avatarContainer: {

@@ -19,6 +19,7 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
+import { scaleFontSize } from '@/utils/androidScaling';
 
 interface SearchResult {
   id: string;
@@ -32,22 +33,21 @@ interface SearchResult {
 }
 
 /**
- * ✅ SOCIAL FEED SEARCH v10.0 - FULL PAGE WITH NAVIGATION
+ * ✅ SOCIAL FEED SEARCH v282.0 - ANDROID SCALING APPLIED
  * 
- * NEW FEATURES v10.0:
+ * NEW FIXES v282.0:
+ * - ✅ ALL TEXT SIZES use scaleFontSize() for Android consistency
+ * - ✅ Header title, search placeholder, result names, badges, etc.
+ * - ✅ Consistent with other scaled pages (Explorar, Crear Publicación)
+ * 
+ * Previous features maintained (v10.0):
  * - ✅ FULL PAGE: No longer a modal, now a full-page screen
  * - ✅ NAVIGATION: Clicking on results navigates to profiles
  * - ✅ USER PROFILES: Navigates to /perfil/usuario?userId={userId}
  * - ✅ LOCAL PROFILES: Navigates to /perfil/local?localId={localId}
- * 
- * Previous features maintained (v9.0):
  * - ✅ CRITICAL: TextInput is ALWAYS rendered (no conditional rendering)
  * - ✅ CRITICAL: TextInput is a CONTROLLED component with stable state
  * - ✅ CRITICAL: Debounce with useEffect + cleanup (300ms)
- * - ✅ CRITICAL: Separate states: searchQuery (immediate) vs search execution
- * - ✅ CRITICAL: FlatList has keyboardShouldPersistTaps="handled"
- * - ✅ CRITICAL: TextInput has blurOnSubmit={false}
- * - ✅ CRITICAL: No component functions declared inside render
  */
 
 export default function SocialSearchScreen() {
@@ -73,7 +73,7 @@ export default function SocialSearchScreen() {
       const ids = new Set(data?.map(f => f.seguido_id) || []);
       setFollowedUserIds(ids);
     } catch (error) {
-      console.error('[SocialSearch v10.0] Error loading followed users:', error);
+      console.error('[SocialSearch v282.0] Error loading followed users:', error);
     }
   }, [user]);
 
@@ -93,7 +93,7 @@ export default function SocialSearchScreen() {
 
     setLoading(true);
     try {
-      console.log('[SocialSearch v10.0] 🔍 Searching for:', cleanQuery);
+      console.log('[SocialSearch v282.0] 🔍 Searching for:', cleanQuery);
       
       const allResults: SearchResult[] = [];
 
@@ -114,14 +114,14 @@ export default function SocialSearchScreen() {
             tipo: 'usuario' as const,
             isFollowing: followedUserIds.has(u.id),
           })));
-          console.log('[SocialSearch v10.0] ✅ Found', usersData.length, 'users');
+          console.log('[SocialSearch v282.0] ✅ Found', usersData.length, 'users');
         }
       } catch (error) {
-        console.error('[SocialSearch v10.0] Error searching users:', error);
+        console.error('[SocialSearch v282.0] Error searching users:', error);
       }
 
       try {
-        console.log('[SocialSearch v10.0] 🔍 Searching locals with query:', cleanQuery);
+        console.log('[SocialSearch v282.0] 🔍 Searching locals with query:', cleanQuery);
         
         const { data: localsData, error: localsError } = await supabase
           .from('locales')
@@ -131,9 +131,9 @@ export default function SocialSearchScreen() {
           .limit(50);
 
         if (localsError) {
-          console.error('[SocialSearch v10.0] ❌ Error searching locals:', localsError);
+          console.error('[SocialSearch v282.0] ❌ Error searching locals:', localsError);
         } else if (localsData && localsData.length > 0) {
-          console.log('[SocialSearch v10.0] 📍 Found', localsData.length, 'locals matching query');
+          console.log('[SocialSearch v282.0] 📍 Found', localsData.length, 'locals matching query');
           
           const localIds = localsData.map(l => l.id);
           
@@ -144,9 +144,9 @@ export default function SocialSearchScreen() {
             .eq('estado', 'activa');
 
           if (subsError) {
-            console.error('[SocialSearch v10.0] ❌ Error fetching subscriptions:', subsError);
+            console.error('[SocialSearch v282.0] ❌ Error fetching subscriptions:', subsError);
           } else if (subscriptionsData && subscriptionsData.length > 0) {
-            console.log('[SocialSearch v10.0] 📊 Found', subscriptionsData.length, 'active subscriptions');
+            console.log('[SocialSearch v282.0] 📊 Found', subscriptionsData.length, 'active subscriptions');
             
             const planIds = [...new Set(subscriptionsData.map(sub => sub.plan_id))];
             
@@ -156,9 +156,9 @@ export default function SocialSearchScreen() {
               .in('id', planIds);
 
             if (plansError) {
-              console.error('[SocialSearch v10.0] ❌ Error fetching plans:', plansError);
+              console.error('[SocialSearch v282.0] ❌ Error fetching plans:', plansError);
             } else if (plansData) {
-              console.log('[SocialSearch v10.0] 📋 Found', plansData.length, 'plans');
+              console.log('[SocialSearch v282.0] 📋 Found', plansData.length, 'plans');
               
               const planMap = new Map(plansData.map(plan => [plan.id, plan.nombre?.toLowerCase()]));
               
@@ -170,13 +170,13 @@ export default function SocialSearchScreen() {
                 })
                 .map(sub => sub.local_id);
 
-              console.log('[SocialSearch v10.0] ✅ Valid local IDs with paid plans:', validLocalIds);
+              console.log('[SocialSearch v282.0] ✅ Valid local IDs with paid plans:', validLocalIds);
 
               const filteredLocalsData = localsData.filter(local => 
                 validLocalIds.includes(local.id)
               );
 
-              console.log('[SocialSearch v10.0] ✅ Filtered locals with active plans:', filteredLocalsData.length);
+              console.log('[SocialSearch v282.0] ✅ Filtered locals with active plans:', filteredLocalsData.length);
 
               allResults.push(...filteredLocalsData.map(l => ({
                 id: l.id,
@@ -191,7 +191,7 @@ export default function SocialSearchScreen() {
           }
         }
       } catch (error) {
-        console.error('[SocialSearch v10.0] ❌ Error searching locals:', error);
+        console.error('[SocialSearch v282.0] ❌ Error searching locals:', error);
       }
 
       const sortedResults = allResults.sort((a, b) => {
@@ -214,13 +214,13 @@ export default function SocialSearchScreen() {
         return 0;
       });
 
-      console.log('[SocialSearch v10.0] ✅ Total results:', sortedResults.length, {
+      console.log('[SocialSearch v282.0] ✅ Total results:', sortedResults.length, {
         users: sortedResults.filter(r => r.tipo === 'usuario').length,
         locals: sortedResults.filter(r => r.tipo === 'local').length,
       });
       setResults(sortedResults);
     } catch (error) {
-      console.error('[SocialSearch v10.0] ❌ Error in searchUsersAndLocals:', error);
+      console.error('[SocialSearch v282.0] ❌ Error in searchUsersAndLocals:', error);
       setResults([]);
     } finally {
       setLoading(false);
@@ -229,11 +229,11 @@ export default function SocialSearchScreen() {
 
   // ✅ FIX v9.0: Debounce search with 300ms delay + cleanup
   useEffect(() => {
-    console.log('[SocialSearch v10.0] 📝 Search query changed:', searchQuery);
+    console.log('[SocialSearch v282.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
       if (searchQuery.length > 0) {
-        console.log('[SocialSearch v10.0] 🔍 Executing search after 300ms pause');
+        console.log('[SocialSearch v282.0] 🔍 Executing search after 300ms pause');
         searchUsersAndLocals(searchQuery);
       } else {
         setResults([]);
@@ -248,20 +248,20 @@ export default function SocialSearchScreen() {
 
   // ✅ NEW v10.0: Navigate to profile on result click
   const handleSelectResult = (result: SearchResult) => {
-    console.log('[SocialSearch v10.0] 🚀 Navigating to profile:', result.tipo, result.id);
+    console.log('[SocialSearch v282.0] 🚀 Navigating to profile:', result.tipo, result.id);
     
     Keyboard.dismiss();
     
     if (result.tipo === 'usuario') {
       if (user && result.id === user.id) {
-        console.log('[SocialSearch v10.0] 👤 Navigating to own profile');
+        console.log('[SocialSearch v282.0] 👤 Navigating to own profile');
         router.push('/(tabs)/perfil');
       } else {
-        console.log('[SocialSearch v10.0] 👤 Navigating to user profile:', result.id);
+        console.log('[SocialSearch v282.0] 👤 Navigating to user profile:', result.id);
         router.push(`/perfil/usuario?userId=${result.id}`);
       }
     } else {
-      console.log('[SocialSearch v10.0] 🏪 Navigating to local profile:', result.id);
+      console.log('[SocialSearch v282.0] 🏪 Navigating to local profile:', result.id);
       router.push(`/perfil/local?localId=${result.id}`);
     }
   };
@@ -283,10 +283,10 @@ export default function SocialSearchScreen() {
         />
         <View style={styles.resultInfo}>
           <View style={styles.resultHeader}>
-            <Text style={styles.resultName}>{item.nombre}</Text>
+            <Text style={[styles.resultName, { fontSize: scaleFontSize(16) }]}>{item.nombre}</Text>
             {item.isFollowing && (
               <View style={styles.followingBadge}>
-                <Text style={styles.followingBadgeText}>Siguiendo</Text>
+                <Text style={[styles.followingBadgeText, { fontSize: scaleFontSize(11) }]}>Siguiendo</Text>
               </View>
             )}
           </View>
@@ -303,16 +303,17 @@ export default function SocialSearchScreen() {
               />
               <Text style={[
                 styles.typeBadgeText,
+                { fontSize: scaleFontSize(12) },
                 item.tipo === 'local' ? styles.typeBadgeTextLocal : styles.typeBadgeTextUser
               ]}>
                 {item.tipo === 'local' ? 'Local' : 'Usuario'}
               </Text>
             </View>
             {item.tipo === 'usuario' && item.username && (
-              <Text style={styles.resultUsername}>@{item.username}</Text>
+              <Text style={[styles.resultUsername, { fontSize: scaleFontSize(13) }]}>@{item.username}</Text>
             )}
             {item.tipo === 'local' && item.barlive_type && (
-              <Text style={styles.resultCategory}>{item.barlive_type}</Text>
+              <Text style={[styles.resultCategory, { fontSize: scaleFontSize(13) }]}>{item.barlive_type}</Text>
             )}
           </View>
         </View>
@@ -348,7 +349,7 @@ export default function SocialSearchScreen() {
             color="#FFFFFF"
           />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
             placeholder="Buscar usuarios y locales..."
             placeholderTextColor="rgba(255, 255, 255, 0.7)"
             value={searchQuery}
@@ -382,7 +383,7 @@ export default function SocialSearchScreen() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Buscando...</Text>
+          <Text style={[styles.loadingText, { fontSize: scaleFontSize(14) }]}>Buscando...</Text>
         </View>
       ) : results.length > 0 ? (
         <FlatList
@@ -401,8 +402,8 @@ export default function SocialSearchScreen() {
             size={64}
             color={colors.textSecondary}
           />
-          <Text style={styles.emptyText}>No se encontraron resultados</Text>
-          <Text style={styles.emptySubtext}>
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No se encontraron resultados</Text>
+          <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
             Intenta con otro nombre o palabra clave
           </Text>
         </View>
@@ -414,8 +415,8 @@ export default function SocialSearchScreen() {
             size={64}
             color={colors.textSecondary}
           />
-          <Text style={styles.emptyText}>Busca usuarios y locales</Text>
-          <Text style={styles.emptySubtext}>
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>Busca usuarios y locales</Text>
+          <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
             Escribe para ver resultados
           </Text>
         </View>
@@ -452,7 +453,6 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
     color: '#FFFFFF',
   },
   loadingContainer: {
@@ -462,7 +462,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 14,
     color: colors.textSecondary,
   },
   listContent: {
@@ -488,7 +487,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   resultName: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
@@ -499,7 +497,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   followingBadgeText: {
-    fontSize: 11,
     fontWeight: '700',
     color: colors.primary,
   },
@@ -523,7 +520,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#3B82F6' + '15',
   },
   typeBadgeText: {
-    fontSize: 12,
     fontWeight: '600',
   },
   typeBadgeTextLocal: {
@@ -533,11 +529,9 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
   },
   resultUsername: {
-    fontSize: 13,
     color: colors.textSecondary,
   },
   resultCategory: {
-    fontSize: 13,
     color: colors.textSecondary,
   },
   emptyState: {
@@ -547,14 +541,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyText: {
-    fontSize: 18,
     fontWeight: '600',
     color: colors.text,
     marginTop: 16,
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',

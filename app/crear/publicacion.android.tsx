@@ -31,6 +31,7 @@ import MentionAutocomplete, { MentionSuggestion } from '@/components/social/Ment
 import HashtagAutocomplete from '@/components/social/HashtagAutocomplete';
 import TaggingModalV5, { TaggableUser } from '@/components/social/TaggingModalV5';
 import { canLocalPerformAction } from '@/utils/subscriptionPermissions';
+import { scaleFontSize } from '@/utils/androidScaling';
 
 const convertImageToJPG = (uri: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -81,9 +82,14 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 };
 
 /**
- * ✅ CREATE PUBLICATION v157.0 - ANDROID SPECIFIC - NO IMAGE EDITOR
+ * ✅ CREATE PUBLICATION v282.0 - ANDROID SPECIFIC - SCALING APPLIED
  * 
- * CRITICAL CHANGES v157.0 (ANDROID ONLY):
+ * NEW FIXES v282.0:
+ * - ✅ ALL TEXT SIZES use scaleFontSize() for Android consistency
+ * - ✅ Header title, button text, labels, helper text, etc.
+ * - ✅ Consistent with other scaled pages (Explorar, Social Search)
+ * 
+ * Previous features maintained (v157.0):
  * - ✅ REMOVED: Image editor completely removed for Android
  * - ✅ Images are uploaded directly without editing
  * - ✅ After selecting/capturing image, user can publish immediately
@@ -128,7 +134,7 @@ export default function CrearPublicacionScreen() {
       const effectiveLocalId = localId || (activeProfileType === 'local' ? activeProfileId : null);
       
       if (effectiveLocalId) {
-        console.log('[CrearPublicacion Android v157.0] 🔒 Checking permissions for local:', effectiveLocalId);
+        console.log('[CrearPublicacion Android v282.0] 🔒 Checking permissions for local:', effectiveLocalId);
         
         const result = await canLocalPerformAction(effectiveLocalId, 'publish_post');
         
@@ -136,7 +142,7 @@ export default function CrearPublicacionScreen() {
         setPermissionMessage(result.reason || '');
         
         if (!result.allowed) {
-          console.log('[CrearPublicacion Android v157.0] ⚠️ Cannot publish:', result.reason);
+          console.log('[CrearPublicacion Android v282.0] ⚠️ Cannot publish:', result.reason);
           Alert.alert(
             'Publicación No Permitida',
             result.reason || 'No tienes permiso para publicar',
@@ -229,7 +235,7 @@ export default function CrearPublicacionScreen() {
       return;
     }
 
-    console.log('[CrearPublicacion Android v157.0] 📸 Selecting images directly (no editor)');
+    console.log('[CrearPublicacion Android v282.0] 📸 Selecting images directly (no editor)');
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -242,7 +248,7 @@ export default function CrearPublicacionScreen() {
 
     if (!result.canceled && result.assets.length > 0) {
       const newImages = result.assets.map(asset => asset.uri);
-      console.log('[CrearPublicacion Android v157.0] ✅ Images selected directly:', newImages.length);
+      console.log('[CrearPublicacion Android v282.0] ✅ Images selected directly:', newImages.length);
       setImagenes([...imagenes, ...newImages]);
     }
   };
@@ -264,7 +270,7 @@ export default function CrearPublicacionScreen() {
       return;
     }
 
-    console.log('[CrearPublicacion Android v157.0] 📷 Taking photo directly (no editor)');
+    console.log('[CrearPublicacion Android v282.0] 📷 Taking photo directly (no editor)');
 
     const result = await ImagePicker.launchCameraAsync({
       // ✅ ANDROID: No editing, direct capture
@@ -273,7 +279,7 @@ export default function CrearPublicacionScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      console.log('[CrearPublicacion Android v157.0] ✅ Photo captured directly');
+      console.log('[CrearPublicacion Android v282.0] ✅ Photo captured directly');
       setImagenes([...imagenes, result.assets[0].uri]);
     }
   };
@@ -325,7 +331,7 @@ export default function CrearPublicacionScreen() {
         });
       }
     } catch (error) {
-      console.error('[CrearPublicacion Android v157.0] Error obteniendo ubicación:', error);
+      console.error('[CrearPublicacion Android v282.0] Error obteniendo ubicación:', error);
       Alert.alert('Error', 'No se pudo obtener tu ubicación');
     } finally {
       setLoadingLocation(false);
@@ -333,7 +339,7 @@ export default function CrearPublicacionScreen() {
   };
 
   const handleSelectTag = (selectedUser: TaggableUser) => {
-    console.log('[CrearPublicacion Android v157.0] ✅ Selected tag:', selectedUser);
+    console.log('[CrearPublicacion Android v282.0] ✅ Selected tag:', selectedUser);
     setUsuariosEtiquetados([...usuariosEtiquetados, selectedUser]);
   };
 
@@ -368,14 +374,14 @@ export default function CrearPublicacionScreen() {
         });
 
       if (error) {
-        console.error('[CrearPublicacion Android v157.0] Error uploading image:', error);
+        console.error('[CrearPublicacion Android v282.0] Error uploading image:', error);
         return null;
       }
 
       const { data: urlData } = supabase.storage.from('posts').getPublicUrl(fileName);
       return urlData.publicUrl;
     } catch (error) {
-      console.error('[CrearPublicacion Android v157.0] Error in uploadImage:', error);
+      console.error('[CrearPublicacion Android v282.0] Error in uploadImage:', error);
       return null;
     }
   };
@@ -421,11 +427,11 @@ export default function CrearPublicacionScreen() {
     setUploadProgress(0);
 
     try {
-      console.log('[CrearPublicacion Android v157.0] 🚀 Starting publication (no editor)...');
+      console.log('[CrearPublicacion Android v282.0] 🚀 Starting publication (no editor)...');
       
       let imagenesUrls: string[] = [];
       if (imagenes.length > 0) {
-        console.log('[CrearPublicacion Android v157.0] 📤 Uploading', imagenes.length, 'images directly...');
+        console.log('[CrearPublicacion Android v282.0] 📤 Uploading', imagenes.length, 'images directly...');
         
         for (let i = 0; i < imagenes.length; i++) {
           const progressStart = 10 + (i * 60 / imagenes.length);
@@ -482,7 +488,7 @@ export default function CrearPublicacionScreen() {
         .single();
 
       if (postError) {
-        console.error('[CrearPublicacion Android v157.0] Error publicando:', postError);
+        console.error('[CrearPublicacion Android v282.0] Error publicando:', postError);
         throw postError;
       }
 
@@ -535,7 +541,7 @@ export default function CrearPublicacionScreen() {
         
         if (notifications.length > 0) {
           await supabase.from('notificaciones').insert(notifications);
-          console.log('[CrearPublicacion Android v157.0] ✅ Sent', notifications.length, 'tag notifications');
+          console.log('[CrearPublicacion Android v282.0] ✅ Sent', notifications.length, 'tag notifications');
         }
       }
 
@@ -552,7 +558,7 @@ export default function CrearPublicacionScreen() {
         ]);
       }, 500);
     } catch (error) {
-      console.error('[CrearPublicacion Android v157.0] Error publicando:', error);
+      console.error('[CrearPublicacion Android v282.0] Error publicando:', error);
       setShowUploadProgress(false);
       Alert.alert('Error', 'No se pudo crear la publicación');
     } finally {
@@ -576,7 +582,7 @@ export default function CrearPublicacionScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
             <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Nueva Publicación</Text>
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(18) }]}>Nueva Publicación</Text>
           <TouchableOpacity 
             onPress={publicar} 
             style={[styles.publishButton, (imagenes.length === 0 || !canPublish) && styles.publishButtonDisabled]}
@@ -586,7 +592,7 @@ export default function CrearPublicacionScreen() {
             {publishing ? (
               <ActivityIndicator size="small" color={colors.headerText} />
             ) : (
-              <Text style={[styles.publishButtonText, (imagenes.length === 0 || !canPublish) && styles.publishButtonTextDisabled]}>
+              <Text style={[styles.publishButtonText, { fontSize: scaleFontSize(15) }, (imagenes.length === 0 || !canPublish) && styles.publishButtonTextDisabled]}>
                 Publicar
               </Text>
             )}
@@ -597,7 +603,7 @@ export default function CrearPublicacionScreen() {
       {!canPublish && permissionMessage && (
         <View style={styles.warningBanner}>
           <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={20} color="#F59E0B" />
-          <Text style={styles.warningText}>{permissionMessage}</Text>
+          <Text style={[styles.warningText, { fontSize: scaleFontSize(14) }]}>{permissionMessage}</Text>
         </View>
       )}
 
@@ -610,7 +616,7 @@ export default function CrearPublicacionScreen() {
         >
           <View style={styles.textInputSection}>
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, { fontSize: scaleFontSize(16) }]}
               placeholder="¿Qué estás pensando?"
               placeholderTextColor={colors.textSecondary}
               value={contenido}
@@ -622,10 +628,10 @@ export default function CrearPublicacionScreen() {
               maxLength={2200}
               editable={!publishing && canPublish}
             />
-            <Text style={styles.charCount}>{contenido.length}/2200</Text>
+            <Text style={[styles.charCount, { fontSize: scaleFontSize(12) }]}>{contenido.length}/2200</Text>
             <View style={styles.helperContainer}>
               <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={14} color={colors.primary} />
-              <Text style={styles.helperText}>
+              <Text style={[styles.helperText, { fontSize: scaleFontSize(12) }]}>
                 Escribe @ para mencionar usuarios o locales
               </Text>
             </View>
@@ -634,12 +640,12 @@ export default function CrearPublicacionScreen() {
           {imagenes.length > 0 && (
             <View style={styles.imagesPreviewSection}>
               <View style={styles.imagesSectionHeader}>
-                <Text style={styles.imagesSectionTitle}>
+                <Text style={[styles.imagesSectionTitle, { fontSize: scaleFontSize(15) }]}>
                   {imagenes.length} {imagenes.length === 1 ? 'imagen' : 'imágenes'}
                 </Text>
                 {imagenes.length < MAX_IMAGES && (
                   <TouchableOpacity onPress={seleccionarImagenes} activeOpacity={0.7}>
-                    <Text style={styles.addMoreText}>+ Añadir más</Text>
+                    <Text style={[styles.addMoreText, { fontSize: scaleFontSize(14) }]}>+ Añadir más</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -661,7 +667,7 @@ export default function CrearPublicacionScreen() {
                       <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color="#FFFFFF" />
                     </TouchableOpacity>
                     <View style={styles.imageIndexBadge}>
-                      <Text style={styles.imageIndexText}>{index + 1}</Text>
+                      <Text style={[styles.imageIndexText, { fontSize: scaleFontSize(12) }]}>{index + 1}</Text>
                     </View>
                   </View>
                 ))}
@@ -671,7 +677,7 @@ export default function CrearPublicacionScreen() {
 
           {usuariosEtiquetados.length > 0 && (
             <View style={styles.taggedSection}>
-              <Text style={styles.sectionLabel}>Perfiles etiquetados</Text>
+              <Text style={[styles.sectionLabel, { fontSize: scaleFontSize(13) }]}>Perfiles etiquetados</Text>
               <View style={styles.taggedList}>
                 {usuariosEtiquetados.map((item) => (
                   <View key={`${item.id}-${item.tipo}`} style={[
@@ -690,7 +696,7 @@ export default function CrearPublicacionScreen() {
                         />
                       </View>
                     )}
-                    <Text style={styles.taggedName} numberOfLines={1}>
+                    <Text style={[styles.taggedName, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
                       {item.username || item.nombre}
                     </Text>
                     {item.tipo === 'local' && (
@@ -715,7 +721,7 @@ export default function CrearPublicacionScreen() {
               </View>
               <View style={styles.tagInfoBox}>
                 <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={14} color={colors.primary} />
-                <Text style={styles.tagInfoText}>
+                <Text style={[styles.tagInfoText, { fontSize: scaleFontSize(12) }]}>
                   Los perfiles etiquetados recibirán una notificación y podrán aceptar o rechazar la etiqueta
                 </Text>
               </View>
@@ -726,7 +732,7 @@ export default function CrearPublicacionScreen() {
             <View style={styles.locationSection}>
               <View style={styles.locationContent}>
                 <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={20} color={colors.primary} />
-                <Text style={styles.locationText} numberOfLines={1}>{ubicacion.nombre}</Text>
+                <Text style={[styles.locationText, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>{ubicacion.nombre}</Text>
               </View>
               <TouchableOpacity onPress={() => setUbicacion(null)} activeOpacity={0.7}>
                 <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
@@ -735,7 +741,7 @@ export default function CrearPublicacionScreen() {
           )}
 
           <View style={styles.actionsSection}>
-            <Text style={styles.actionsSectionTitle}>Añadir a tu publicación</Text>
+            <Text style={[styles.actionsSectionTitle, { fontSize: scaleFontSize(15) }]}>Añadir a tu publicación</Text>
             <View style={styles.actionsGrid}>
               <TouchableOpacity 
                 style={[styles.actionButton, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonDisabled]} 
@@ -746,7 +752,7 @@ export default function CrearPublicacionScreen() {
                 <View style={[styles.actionIconContainer, { backgroundColor: colors.primary + '15' }]}>
                   <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={24} color={(imagenes.length >= MAX_IMAGES || !canPublish) ? colors.textSecondary : colors.primary} />
                 </View>
-                <Text style={[styles.actionButtonText, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonTextDisabled]}>
+                <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(13) }, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonTextDisabled]}>
                   Fotos
                 </Text>
               </TouchableOpacity>
@@ -760,7 +766,7 @@ export default function CrearPublicacionScreen() {
                 <View style={[styles.actionIconContainer, { backgroundColor: colors.secondary + '15' }]}>
                   <IconSymbol ios_icon_name="camera" android_material_icon_name="camera_alt" size={24} color={(imagenes.length >= MAX_IMAGES || !canPublish) ? colors.textSecondary : colors.secondary} />
                 </View>
-                <Text style={[styles.actionButtonText, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonTextDisabled]}>
+                <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(13) }, (imagenes.length >= MAX_IMAGES || !canPublish) && styles.actionButtonTextDisabled]}>
                   Cámara
                 </Text>
               </TouchableOpacity>
@@ -774,7 +780,7 @@ export default function CrearPublicacionScreen() {
                 <View style={[styles.actionIconContainer, { backgroundColor: '#8B5CF6' + '15' }]}>
                   <IconSymbol ios_icon_name="person.crop.circle.badge.plus" android_material_icon_name="person_add" size={24} color={!canPublish ? colors.textSecondary : '#8B5CF6'} />
                 </View>
-                <Text style={[styles.actionButtonText, !canPublish && styles.actionButtonTextDisabled]}>
+                <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(13) }, !canPublish && styles.actionButtonTextDisabled]}>
                   Etiquetar
                 </Text>
               </TouchableOpacity>
@@ -792,7 +798,7 @@ export default function CrearPublicacionScreen() {
                     <IconSymbol ios_icon_name="mappin.and.ellipse" android_material_icon_name="location_on" size={24} color={!canPublish ? colors.textSecondary : '#EF4444'} />
                   )}
                 </View>
-                <Text style={[styles.actionButtonText, !canPublish && styles.actionButtonTextDisabled]}>
+                <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(13) }, !canPublish && styles.actionButtonTextDisabled]}>
                   Ubicación
                 </Text>
               </TouchableOpacity>
@@ -849,7 +855,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
     fontWeight: '700',
     color: colors.headerText,
     flex: 1,
@@ -867,7 +872,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   publishButtonText: {
-    fontSize: 15,
     fontWeight: '700',
     color: colors.headerText,
   },
@@ -886,7 +890,6 @@ const styles = StyleSheet.create({
   },
   warningText: {
     flex: 1,
-    fontSize: 14,
     color: '#92400E',
     fontWeight: '600',
   },
@@ -903,14 +906,12 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   textInput: {
-    fontSize: 16,
     color: colors.text,
     minHeight: 100,
     textAlignVertical: 'top',
     marginBottom: 8,
   },
   charCount: {
-    fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'right',
     marginBottom: 8,
@@ -925,7 +926,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   helperText: {
-    fontSize: 12,
     color: colors.primary,
     fontWeight: '600',
     flex: 1,
@@ -944,12 +944,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   imagesSectionTitle: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
   },
   addMoreText: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -986,7 +984,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   imageIndexText: {
-    fontSize: 12,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -998,7 +995,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   sectionLabel: {
-    fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
     marginBottom: 12,
@@ -1038,7 +1034,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   taggedName: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     flex: 1,
@@ -1065,7 +1060,6 @@ const styles = StyleSheet.create({
   },
   tagInfoText: {
     flex: 1,
-    fontSize: 12,
     color: colors.primary,
     lineHeight: 16,
   },
@@ -1087,7 +1081,6 @@ const styles = StyleSheet.create({
   },
   locationText: {
     flex: 1,
-    fontSize: 14,
     fontWeight: '500',
     color: colors.text,
   },
@@ -1098,7 +1091,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   actionsSectionTitle: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 16,
@@ -1130,7 +1122,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   actionButtonText: {
-    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
