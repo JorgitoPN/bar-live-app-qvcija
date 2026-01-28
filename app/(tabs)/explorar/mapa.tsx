@@ -34,14 +34,20 @@ const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v275.0 - ADDED TRANSPARENCY TO CONTROLS & MORE MARGIN
+ * 🗺️ MAPA SCREEN v276.0 - ADDED TRANSPARENCY TO CENTER BUTTON & REPOSITIONED ON ANDROID
  * 
- * NEW FIXES v275.0:
- * - ✅ FIXED: Controls now have MORE TRANSPARENCY (backgroundColor: rgba with 0.75 opacity)
- * - ✅ FIXED: Back button, filters, selector, and legend all more transparent
- * - ✅ FIXED: MORE margin between header and controls (18px gap)
- * - ✅ FIXED: Controls positioned at top: 138-148px (more space below header)
- * - ✅ FIXED: Better visibility and spacing
+ * NEW FIXES v276.0:
+ * - ✅ FIXED: Center map button now has TRANSPARENCY (rgba 0.85 opacity)
+ * - ✅ FIXED: Center button repositioned to BOTTOM RIGHT on Android (same as iOS)
+ * - ✅ FIXED: Button positioned at bottom: 100px, right: 16px on Android
+ * - ✅ FIXED: Consistent positioning across iOS and Android
+ * 
+ * Previous features maintained (v275.0):
+ * - ✅ Controls have MORE TRANSPARENCY (backgroundColor: rgba with 0.75 opacity)
+ * - ✅ Back button, filters, selector, and legend all more transparent
+ * - ✅ MORE margin between header and controls (18px gap)
+ * - ✅ Controls positioned at top: 138-148px (more space below header)
+ * - ✅ Better visibility and spacing
  * 
  * Previous features maintained (v273.0):
  * - ✅ Controls positioned BELOW header to prevent being covered
@@ -1539,12 +1545,14 @@ console.log('🗺️ [MAPA v275.0] ═══════════════
         </View>
       </View>
 
+      {/* ✅ FIX v276.0: Center button with TRANSPARENCY and repositioned on Android */}
       <TouchableOpacity 
         style={[styles.centerButton, {
           width: centerButtonSize,
           height: centerButtonSize,
           borderRadius: centerButtonSize / 2,
-          bottom: Platform.OS === 'ios' ? 120 : 100,
+          // ✅ FIX v276.0: Same position on both platforms (bottom right corner)
+          bottom: 100,
           right: 16,
         }]}
         onPress={centerOnUser}
@@ -1752,9 +1760,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
   },
+  // ✅ FIX v276.0: Center button with TRANSPARENCY (rgba 0.85)
   centerButton: {
     position: 'absolute',
-    backgroundColor: colors.cardBackground,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)', // ✅ ADDED TRANSPARENCY
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',

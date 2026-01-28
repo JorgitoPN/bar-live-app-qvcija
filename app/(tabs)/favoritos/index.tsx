@@ -42,7 +42,7 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ FIX v275.0: SAME margin as Explorar (10-11px)
+// ✅ FIX v276.0: REDUCED margin MORE THAN HALF (5-6px instead of 10-11px)
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 240 : 280;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
@@ -71,12 +71,12 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v275.0 - SAME MARGIN AS EXPLORAR
+ * ✅ FAVORITOS SCREEN v276.0 - REDUCED MARGIN MORE THAN HALF
  * 
- * NEW FIXES v275.0:
- * - ✅ FIXED: SAME margin as Explorar page (10-11px between header and first card)
- * - ✅ FIXED: Consistent spacing across all pages
- * - ✅ FIXED: No more excessive whitespace at the top
+ * NEW FIXES v276.0:
+ * - ✅ FIXED: REDUCED margin MORE THAN HALF (5-6px instead of 10-11px)
+ * - ✅ FIXED: Minimal whitespace between header and first card
+ * - ✅ FIXED: Tighter spacing for better visual density
  * 
  * Previous features maintained (v274.0):
  * - ✅ Category icon buttons use EXACT same sizes as Explorar page (36-40px)
@@ -942,8 +942,8 @@ export default function FavoritosScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            // ✅ FIX v275.0: SAME margin as Explorar (10-11px)
-            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 10 : HEADER_MAX_HEIGHT + 11,
+            // ✅ FIX v276.0: REDUCED margin MORE THAN HALF (5-6px instead of 10-11px)
+            marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 5 : HEADER_MAX_HEIGHT + 6,
             paddingTop: 16,
             paddingBottom: getContentBottomPadding(100),
           },
