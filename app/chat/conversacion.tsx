@@ -21,6 +21,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import MessageBubble from '@/components/chat/MessageBubble';
 import MomentoMessageBubble from '@/components/chat/MomentoMessageBubble';
+import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
 interface Message {
   id: string;
@@ -36,6 +37,16 @@ interface Message {
   created_at: string;
 }
 
+/**
+ * ✅ ANDROID KEYBOARD FIX v284.0
+ * 
+ * CRITICAL FIXES:
+ * - ✅ Input container positioned higher on Android (bottom: 60 instead of 0)
+ * - ✅ Prevents Android navigation buttons from covering input
+ * - ✅ KeyboardAvoidingView with behavior="height" on Android
+ * - ✅ Proper scaling applied to all text and icons
+ * - ✅ iOS behavior unchanged
+ */
 export default function ConversacionScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -295,7 +306,6 @@ export default function ConversacionScreen() {
     loadOrCreateChat();
   }, [loadOrCreateChat]);
 
-  // ✅ FIXED: Real-time subscription for new messages
   useEffect(() => {
     if (!chatId || !user) return;
 
@@ -523,7 +533,6 @@ export default function ConversacionScreen() {
     );
   };
 
-  // ✅ FIXED: Render momento messages with MomentoMessageBubble
   const renderMessage = ({ item }: { item: Message }) => {
     if (item.tipo_mensaje === 'momento' && item.momento_id) {
       return (
@@ -555,9 +564,9 @@ export default function ConversacionScreen() {
           style={styles.header}
         >
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={scaleIconSize(24)} color={colors.headerText} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Cargando...</Text>
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(16) }]}>Cargando...</Text>
           <View style={{ width: 40 }} />
         </LinearGradient>
         <View style={styles.loadingContainer}>
@@ -580,7 +589,7 @@ export default function ConversacionScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={scaleIconSize(24)} color={colors.headerText} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerCenter}
@@ -596,42 +605,46 @@ export default function ConversacionScreen() {
             <Image source={{ uri: displayAvatar }} style={styles.headerAvatar} />
           ) : (
             <View style={[styles.headerAvatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarText}>
+              <Text style={[styles.avatarText, { fontSize: scaleFontSize(16) }]}>
                 {displayName?.charAt(0).toUpperCase() || 'U'}
               </Text>
             </View>
           )}
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>{displayName}</Text>
+            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(16) }]}>{displayName}</Text>
             {isLocalChat && (
               <View style={styles.localBadgeHeader}>
-                <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={12} color={colors.headerText} />
-                <Text style={styles.localBadgeText}>Local</Text>
+                <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={scaleIconSize(12)} color={colors.headerText} />
+                <Text style={[styles.localBadgeText, { fontSize: scaleFontSize(12) }]}>Local</Text>
               </View>
             )}
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteConversation}>
-          <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={22} color={colors.headerText} />
+          <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={scaleIconSize(22)} color={colors.headerText} />
         </TouchableOpacity>
       </LinearGradient>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <FlatList
           ref={flatListRef}
           data={mensajes}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messagesList}
+          contentContainerStyle={[
+            styles.messagesList,
+            // ✅ ANDROID FIX: Extra bottom padding to account for input container position
+            { paddingBottom: Platform.OS === 'android' ? 80 : 8 }
+          ]}
           renderItem={renderMessage}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <IconSymbol ios_icon_name="bubble.left.and.bubble.right" android_material_icon_name="chat" size={64} color={colors.textSecondary} />
-              <Text style={styles.emptyText}>No hay mensajes aún</Text>
-              <Text style={styles.emptySubtext}>
+              <IconSymbol ios_icon_name="bubble.left.and.bubble.right" android_material_icon_name="chat" size={scaleIconSize(64)} color={colors.textSecondary} />
+              <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No hay mensajes aún</Text>
+              <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
                 {isLocalChat 
                   ? `Envía un mensaje a ${displayName}` 
                   : 'Envía un mensaje para iniciar la conversación'}
@@ -640,9 +653,13 @@ export default function ConversacionScreen() {
           }
         />
 
-        <View style={styles.inputContainer}>
+        {/* ✅ ANDROID FIX v284.0: Input container positioned higher to avoid nav buttons */}
+        <View style={[
+          styles.inputContainer,
+          Platform.OS === 'android' && styles.inputContainerAndroid
+        ]}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { fontSize: scaleFontSize(16) }]}
             placeholder="Escribe un mensaje..."
             placeholderTextColor={colors.textSecondary}
             value={mensaje}
@@ -659,7 +676,7 @@ export default function ConversacionScreen() {
             {enviando ? (
               <ActivityIndicator size="small" color={colors.headerText} />
             ) : (
-              <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={20} color={colors.headerText} />
+              <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={scaleIconSize(20)} color={colors.headerText} />
             )}
           </TouchableOpacity>
         </View>
@@ -701,7 +718,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -709,7 +725,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -720,7 +735,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   localBadgeText: {
-    fontSize: 12,
     color: colors.headerText,
     opacity: 0.8,
   },
@@ -734,7 +748,6 @@ const styles = StyleSheet.create({
   },
   messagesList: {
     padding: 16,
-    paddingBottom: 8,
   },
   messageContainer: {
     marginBottom: 12,
@@ -750,12 +763,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    fontSize: 18,
     fontWeight: '600',
     color: colors.text,
   },
   emptySubtext: {
-    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
     paddingHorizontal: 40,
@@ -769,13 +780,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     gap: 12,
   },
+  // ✅ ANDROID FIX v284.0: Position input container higher to avoid nav buttons
+  inputContainerAndroid: {
+    position: 'absolute',
+    bottom: 60, // ✅ Positioned 60px from bottom to avoid Android nav buttons
+    left: 0,
+    right: 0,
+  },
   input: {
     flex: 1,
     backgroundColor: colors.background,
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    fontSize: 16,
     color: colors.text,
     maxHeight: 100,
   },
