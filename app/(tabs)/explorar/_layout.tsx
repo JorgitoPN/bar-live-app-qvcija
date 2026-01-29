@@ -6,20 +6,29 @@ export default function ExplorarLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        animation: 'none',
-        animationDuration: 0,
+        animation: 'slide_from_right',
       }}
     >
       <Stack.Screen
         name="index"
         options={{
           headerShown: false,
+          animation: 'none',
         }}
       />
       <Stack.Screen
         name="mapa"
         options={{
           headerShown: false,
+          animation: 'none',
+        }}
+      />
+      <Stack.Screen
+        name="filtros-simples"
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+          presentation: 'card',
         }}
       />
     </Stack>
