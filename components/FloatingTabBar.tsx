@@ -1,10 +1,16 @@
 
 /**
- * FLOATING TAB BAR - VERSION v282.0
+ * FLOATING TAB BAR - VERSION v283.0
  * 
- * ✅ ANDROID BORDER FIX v282.0 - THINNER BORDER ON EXPLORAR BUTTON
+ * ✅ ANDROID PROFILE ICON FIX v283.0 - FIXED MISSING ICON WHEN NOT LOGGED IN
  * 
- * CRITICAL FIXES v282.0:
+ * CRITICAL FIXES v283.0:
+ * - ✅ FIXED: Profile icon now shows correctly when user is not logged in on Android
+ * - ✅ FIXED: Simplified ProfileTab logic to always show icon when no avatar
+ * - ✅ FIXED: Removed unnecessary image loading states for null avatarUrl
+ * - ✅ FIXED: Icon displays immediately without waiting for image load
+ * 
+ * Previous fixes maintained (v282.0):
  * - ✅ REDUCED border width on center "Explorar" button (Android only)
  * - ✅ Changed from 4px to 2.5px for more refined appearance
  * - ✅ iOS remains unchanged (4px border)
@@ -50,7 +56,7 @@ interface FloatingTabBarProps {
 
 const BARLIVE_COLOR = '#14B8A6';
 
-// ✅ CRITICAL FIX v160.0: Memoized ProfileTab for better performance
+// ✅ CRITICAL FIX v283.0: Simplified ProfileTab - always shows icon when no avatar
 interface ProfileTabProps {
   isActive: boolean;
   onPress: () => void;
@@ -61,12 +67,14 @@ const ProfileTab = memo(({ isActive, onPress, avatarUrl }: ProfileTabProps) => {
   // ✅ COMPACT TAB BAR v265.0: Reduced avatar size
   const avatarSize = Platform.OS === 'android' ? 26 : 28;
   const [imageError, setImageError] = React.useState(false);
-  const [imageLoaded, setImageLoaded] = React.useState(false);
   
+  // ✅ CRITICAL FIX v283.0: Reset error state when avatarUrl changes
   React.useEffect(() => {
     setImageError(false);
-    setImageLoaded(false);
   }, [avatarUrl]);
+  
+  // ✅ CRITICAL FIX v283.0: If no avatarUrl, show icon immediately (no image loading)
+  const shouldShowIcon = !avatarUrl || imageError;
   
   return (
     <TouchableOpacity
@@ -79,34 +87,8 @@ const ProfileTab = memo(({ isActive, onPress, avatarUrl }: ProfileTabProps) => {
         { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 },
         isActive && styles.avatarContainerActive
       ]}>
-        {avatarUrl && !imageError ? (
-          <>
-            <Image
-              key={`avatar-${avatarUrl}`}
-              source={{ uri: avatarUrl }}
-              style={styles.avatar}
-              resizeMode="cover"
-              onError={() => {
-                setImageError(true);
-                setImageLoaded(false);
-              }}
-              onLoad={() => {
-                setImageError(false);
-                setImageLoaded(true);
-              }}
-            />
-            {!imageLoaded && (
-              <View style={[styles.avatar, styles.avatarPlaceholder, StyleSheet.absoluteFillObject]}>
-                <IconSymbol
-                  ios_icon_name="person.fill"
-                  android_material_icon_name="person"
-                  size={Platform.OS === 'android' ? 18 : 22}
-                  color={isActive ? colors.primary : 'rgba(255, 255, 255, 0.7)'}
-                />
-              </View>
-            )}
-          </>
-        ) : (
+        {shouldShowIcon ? (
+          // ✅ CRITICAL FIX v283.0: Show icon directly when no avatar or error
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
             <IconSymbol
               ios_icon_name="person.fill"
@@ -115,6 +97,18 @@ const ProfileTab = memo(({ isActive, onPress, avatarUrl }: ProfileTabProps) => {
               color={isActive ? colors.primary : 'rgba(255, 255, 255, 0.7)'}
             />
           </View>
+        ) : (
+          // ✅ Only render image if we have a valid avatarUrl
+          <Image
+            key={`avatar-${avatarUrl}`}
+            source={{ uri: avatarUrl }}
+            style={styles.avatar}
+            resizeMode="cover"
+            onError={() => {
+              console.log('[ProfileTab v283.0] ❌ Image load error, showing icon');
+              setImageError(true);
+            }}
+          />
         )}
       </View>
     </TouchableOpacity>
@@ -167,7 +161,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
 
   // ✅ CRITICAL FIX v160.0: Instant navigation without delays
   const handleTabPress = useCallback((tab: TabBarItem) => {
-    console.log(`[FloatingTabBar v282.0] ⚡ INSTANT TAP: "${tab.name}" -> ${tab.route}`);
+    console.log(`[FloatingTabBar v283.0] ⚡ INSTANT TAP: "${tab.name}" -> ${tab.route}`);
     router.push(tab.route as any);
   }, [router]);
 
@@ -267,8 +261,8 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v282.0] ⚡ INSTANT RESPONSE + THINNER BORDER - ` +
-    `activeOpacity=0.6, Android border=2.5px (reduced from 4px)`
+    `[FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - ` +
+    `Shows icon immediately when not logged in (avatarUrl: ${avatarUrl ? 'present' : 'null'})`
   );
 
   return (
