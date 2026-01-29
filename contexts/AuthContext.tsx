@@ -1,122 +1,313 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { supabase } from '@/utils/supabase';
-import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
-
-// Extended user type with app-specific fields
-export interface User extends SupabaseUser {
-  rol_app?: string;
-  nombre?: string;
-  username?: string;
-  avatar?: string;
-}
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { supabase } from '@/app/integrations/supabase/client';
+import { AuthUser, getCurrentUser } from '@/utils/auth';
+import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
+import { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+  ensureValidSession: () => Promise<Session | null>;
+  setSessionManually: (session: Session | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * ✅ AUTH CONTEXT v289.0 - ANDROID PERFORMANCE OPTIMIZATION
+ * 
+ * CRITICAL FIXES v289.0:
+ * - ✅ LAZY PUSH NOTIFICATIONS: Moved push token registration to background (non-blocking)
+ * - ✅ DELAYED REGISTRATION: Push notifications register 3 seconds after login
+ * - ✅ NO UI BLOCKING: User can interact immediately while notifications register
+ * - ✅ REDUCED LOGGING: Minimized console logs to prevent performance overhead
+ * - ✅ OPTIMIZED REFRESH: Increased refresh interval from 15 to 30 minutes
+ * - ✅ ANDROID OPTIMIZATION: Eliminated startup blocking operations
+ * 
+ * Previous fixes maintained (v35.0):
+ * - ✅ Immediate session updates
+ * - ✅ Proper session refresh handling
+ * - ✅ Error recovery mechanisms
+ */
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);
+  const [sessionReady, setSessionReady] = useState(false);
 
-  const loadUserProfile = useCallback(async (authUser: SupabaseUser) => {
-    try {
-      console.log('[AuthContext] 📋 Loading user profile for:', authUser.id);
-      
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('rol_app, nombre, username, avatar')
-        .eq('id', authUser.id)
-        .single();
-
-      if (error) {
-        console.error('[AuthContext] ❌ Error loading user profile:', error);
-        return authUser as User;
-      }
-
-      console.log('[AuthContext] ✅ User profile loaded:', data);
-      
-      return {
-        ...authUser,
-        rol_app: data?.rol_app || 'cliente',
-        nombre: data?.nombre,
-        username: data?.username,
-        avatar: data?.avatar,
-      } as User;
-    } catch (error) {
-      console.error('[AuthContext] ❌ Error loading user profile:', error);
-      return authUser as User;
-    }
-  }, []);
-
-  useEffect(() => {
-    console.log('[AuthContext] 🔐 Initializing auth...');
+  const setSessionManually = (newSession: Session | null) => {
+    setSession(newSession);
+    setSessionReady(!!newSession);
     
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('[AuthContext] 📋 Initial session:', session ? 'Found' : 'None');
-      setSession(session);
-      
-      if (session?.user) {
-        const userWithProfile = await loadUserProfile(session.user);
-        setUser(userWithProfile);
-      } else {
-        setUser(null);
-      }
-      
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log('[AuthContext] 🔄 Auth state changed:', _event);
-      setSession(session);
-      
-      if (session?.user) {
-        const userWithProfile = await loadUserProfile(session.user);
-        setUser(userWithProfile);
-      } else {
-        setUser(null);
-      }
-      
-      setLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [loadUserProfile]);
-
-  const signOut = async () => {
-    console.log('[AuthContext] 👋 Signing out...');
-    try {
-      await supabase.auth.signOut();
+    if (newSession) {
+      getCurrentUser().then(({ user: userData, error: userError }) => {
+        if (userError) {
+          console.error('[AuthContext v289.0] ❌ Error cargando perfil:', userError);
+        } else if (userData) {
+          setUser(userData);
+        }
+      });
+    } else {
       setUser(null);
-      setSession(null);
-      console.log('[AuthContext] ✅ Sign out successful');
-    } catch (error) {
-      console.error('[AuthContext] ❌ Error signing out:', error);
-      throw error;
     }
   };
 
-  return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const ensureValidSession = async (): Promise<Session | null> => {
+    try {
+      const { data: { session: currentSession }, error: getError } = await supabase.auth.getSession();
+      
+      if (getError || !currentSession) {
+        return null;
+      }
+
+      const expiresAt = currentSession.expires_at! * 1000;
+      const now = Date.now();
+      const timeUntilExpiry = expiresAt - now;
+
+      if (timeUntilExpiry < 5 * 60 * 1000) {
+        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          if (timeUntilExpiry <= 0) {
+            return null;
+          }
+          setSession(currentSession);
+          setSessionReady(true);
+          return currentSession;
+        }
+
+        if (!refreshedSession) {
+          return null;
+        }
+        
+        setSession(refreshedSession);
+        setSessionReady(true);
+        
+        return refreshedSession;
+      }
+
+      setSession(currentSession);
+      setSessionReady(true);
+      return currentSession;
+    } catch (error) {
+      console.error('[AuthContext v289.0] ❌ Error en ensureValidSession:', error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('[AuthContext v289.0] ❌ Error obteniendo sesión:', sessionError);
+          setInitializing(false);
+          setLoading(false);
+          return;
+        }
+        
+        if (currentSession) {
+          setSession(currentSession);
+          setSessionReady(true);
+          
+          const { user: userData, error: userError } = await getCurrentUser();
+          
+          if (userError) {
+            console.error('[AuthContext v289.0] ❌ Error cargando perfil:', userError);
+          } else if (userData) {
+            setUser(userData);
+            
+            // ✅ CRITICAL FIX v289.0: LAZY PUSH NOTIFICATIONS
+            // Register push notifications in background after 3 seconds
+            // This prevents blocking the UI thread on Android startup
+            setTimeout(() => {
+              console.log('[AuthContext v289.0] 📱 Starting background push notification registration...');
+              registerForPushNotifications()
+                .then(pushToken => {
+                  if (pushToken) {
+                    savePushToken(userData.id, pushToken)
+                      .then(() => {
+                        console.log('[AuthContext v289.0] ✅ Push token saved in background');
+                      })
+                      .catch((error) => {
+                        console.error('[AuthContext v289.0] ⚠️ Error saving push token (non-critical):', error);
+                      });
+                  }
+                })
+                .catch((error) => {
+                  console.error('[AuthContext v289.0] ⚠️ Error registering push notifications (non-critical):', error);
+                });
+            }, 3000); // ✅ Delay 3 seconds to allow UI to load first
+          }
+        }
+      } catch (error) {
+        console.error('[AuthContext v289.0] ❌ Error inicializando:', error);
+      } finally {
+        setInitializing(false);
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    let subscription: { unsubscribe: () => void } | null = null;
+    let refreshInterval: NodeJS.Timeout | null = null;
+    
+    const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      if (currentSession) {
+        setSession(currentSession);
+        setSessionReady(true);
+      } else {
+        setSession(null);
+        setSessionReady(false);
+        setUser(null);
+      }
+      
+      if (initializing) {
+        return;
+      }
+      
+      if (event === 'SIGNED_IN' && currentSession) {
+        setLoading(true);
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+        
+        if (!verifiedSession) {
+          console.error('[AuthContext v289.0] ❌ Session lost after wait');
+          setLoading(false);
+          return;
+        }
+        
+        const { user: userData, error: userError } = await getCurrentUser();
+        
+        if (userError) {
+          console.error('[AuthContext v289.0] ❌ Error cargando perfil después de login:', userError);
+        } else if (userData) {
+          setUser(userData);
+          
+          // ✅ CRITICAL FIX v289.0: LAZY PUSH NOTIFICATIONS on login
+          setTimeout(() => {
+            console.log('[AuthContext v289.0] 📱 Starting background push notification registration after login...');
+            registerForPushNotifications()
+              .then(pushToken => {
+                if (pushToken) {
+                  savePushToken(userData.id, pushToken).catch(() => {});
+                }
+              })
+              .catch(() => {});
+          }, 3000);
+        }
+        
+        setLoading(false);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSession(null);
+        setSessionReady(false);
+      } else if (event === 'USER_UPDATED') {
+        setLoading(true);
+        const { user: userData } = await getCurrentUser();
+        if (userData) {
+          setUser(userData);
+        }
+        setLoading(false);
+      }
+    });
+    
+    subscription = data.subscription;
+
+    // ✅ FIX v289.0: Increased refresh interval to 30 minutes (from 15)
+    refreshInterval = setInterval(async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        if (currentSession) {
+          const expiresAt = currentSession.expires_at! * 1000;
+          const now = Date.now();
+          const timeUntilExpiry = expiresAt - now;
+          
+          if (timeUntilExpiry < 10 * 60 * 1000) {
+            const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
+            
+            if (!error && refreshedSession) {
+              setSession(refreshedSession);
+              setSessionReady(true);
+            }
+          }
+        }
+      } catch (error) {
+        // Silent fail - non-critical background operation
+      }
+    }, 30 * 60 * 1000); // ✅ Check every 30 minutes (from 15)
+
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+    };
+  }, [initializing]);
+
+  const handleSignOut = async () => {
+    try {
+      setUser(null);
+      setSession(null);
+      setSessionReady(false);
+      
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('[AuthContext v289.0] ❌ Error cerrando sesión:', error);
+      }
+    } catch (error) {
+      console.error('[AuthContext v289.0] ❌ Error en signOut:', error);
+    }
+  };
+
+  const refreshUser = async () => {
+    try {
+      setLoading(true);
+      
+      const { user: userData } = await getCurrentUser();
+      
+      if (userData) {
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('[AuthContext v289.0] ❌ Error refrescando usuario:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const value = {
+    user,
+    session,
+    loading,
+    signOut: handleSignOut,
+    refreshUser,
+    ensureValidSession,
+    setSessionManually,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
+  
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
   }
+  
   return context;
 }
