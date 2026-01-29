@@ -196,7 +196,7 @@ export default function FavoritosScreen() {
     } catch (error) {
       console.error('[Favoritos v279.0] Error checking social profiles:', error);
     }
-  }, []);
+  }, [userLocation]);
 
   // ✅ FIX v271.0: Removed userLocation and allSavedLocales from dependencies to prevent infinite loop
   const loadSavedLocales = useCallback(async () => {
@@ -303,7 +303,7 @@ export default function FavoritosScreen() {
         supabase.removeChannel(savedLocalesChannel);
       };
     }
-  }, [user]);
+  }, [user, loadSavedLocales]);
 
   // ✅ FIX v271.0: Separate effect for recalculating distances when location changes
   useEffect(() => {
@@ -323,7 +323,7 @@ export default function FavoritosScreen() {
       });
       setAllSavedLocales(updatedLocales);
     }
-  }, [userLocation]);
+  }, [userLocation, allSavedLocales]);
 
   // ✅ CRITICAL v241.0: Client-side filtering (triggered by debouncedQuery)
   const filteredLocales = useMemo(() => {

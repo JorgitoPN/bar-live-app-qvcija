@@ -532,7 +532,7 @@ export default function GestionarLocalesScreen() {
     setDebouncedQuery('');
   }, []);
 
-  const hayFiltrosActivos = useCallback(() => {
+  const hayFiltrosActivos = useMemo(() => {
     return filtroPropietario !== 'todos' ||
            filtroTipo !== 'todos' ||
            filtroEstado !== 'todos' ||
@@ -825,16 +825,16 @@ export default function GestionarLocalesScreen() {
 
       <View style={styles.filterButtonsRow}>
         <TouchableOpacity
-          style={[styles.filterButton, hayFiltrosActivos() && styles.filterButtonActive]}
+          style={[styles.filterButton, hayFiltrosActivos && styles.filterButtonActive]}
           onPress={() => setShowFiltersModal(true)}
         >
-          <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle" android_material_icon_name="filter_list" size={20} color={hayFiltrosActivos() ? colors.headerText : colors.text} />
-          <Text style={[styles.filterButtonText, hayFiltrosActivos() && styles.filterButtonTextActive]}>
-            Filtros {hayFiltrosActivos() && '•'}
+          <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle" android_material_icon_name="filter_list" size={20} color={hayFiltrosActivos ? colors.headerText : colors.text} />
+          <Text style={[styles.filterButtonText, hayFiltrosActivos && styles.filterButtonTextActive]}>
+            Filtros {hayFiltrosActivos && '•'}
           </Text>
         </TouchableOpacity>
 
-        {hayFiltrosActivos() && (
+        {hayFiltrosActivos && (
           <TouchableOpacity
             style={styles.clearFiltersButton}
             onPress={limpiarFiltros}
@@ -893,7 +893,7 @@ export default function GestionarLocalesScreen() {
         </Text>
       </View>
     </React.Fragment>
-  ), [contadores, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados, limpiarFiltros, searchQuery, debouncedQuery]);
+  ), [contadores, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados, limpiarFiltros, searchQuery]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;

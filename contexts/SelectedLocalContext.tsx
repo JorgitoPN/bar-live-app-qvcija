@@ -172,7 +172,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
       setLoadingLocales(false);
       lastUserIdRef.current = null;
     }
-  }, [user?.id, user?.rol_app, loadUserLocales]); // ✅ FIXED v100.0: Added loadUserLocales to dependencies
+  }, [user, loadUserLocales]);
 
   const setSelectedLocalId = async (localId: string | null) => {
     try {

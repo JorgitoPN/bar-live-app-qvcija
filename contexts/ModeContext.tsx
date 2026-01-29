@@ -129,7 +129,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     } finally {
       isLoadingLocalsRef.current = false;
     }
-  }, [user, isImpersonating]);
+  }, [user]);
 
   useEffect(() => {
     const initializeMode = async () => {
@@ -275,7 +275,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       console.log('[ModeContext v289.0] 🔄 User switched to propietario mode - loading owned locals...');
       loadOwnedLocals();
     }
-  }, [user?.id, currentMode]); // ✅ Only trigger when mode changes to propietario
+  }, [user, currentMode, ownedLocals.length, loadOwnedLocals]);
 
   const setCurrentMode = useCallback(async (mode: UserMode) => {
     try {
@@ -343,7 +343,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       console.error('[ModeContext v289.0] ❌ Error saving mode:', error);
       setCurrentModeState(mode);
     }
-  }, [user, ownedLocals.length, loadOwnedLocals]);
+  }, [user, ownedLocals.length, loadOwnedLocals, switchToClientProfile, switchToLocalProfile]);
 
   const switchToClientProfile = useCallback(async () => {
     if (!user) {
