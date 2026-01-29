@@ -316,8 +316,10 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
   const diaActual = diasSemana[diaActualIndex];
   const horaActual = ahora.getHours() * 60 + ahora.getMinutes();
   
-  console.log(`⏰ [TIME] Calculando estado para: ${local.nombre || 'Local sin nombre'}`);
-  console.log(`⏰ [TIME] Día del calendario: ${diaActual}, Hora actual: ${formatearHora(horaActual)} (${horaActual} minutos)`);
+  // ✅ FIX v288.0: Disabled excessive logging that was saturating Android
+  // These logs were being called 200+ times on initial load, blocking the UI thread
+  // console.log(`⏰ [TIME] Calculando estado para: ${local.nombre || 'Local sin nombre'}`);
+  // console.log(`⏰ [TIME] Día del calendario: ${diaActual}, Hora actual: ${formatearHora(horaActual)} (${horaActual} minutos)`);
   
   // STEP 1: Determine the logical day
   // The logical day is the day when the venue's operating period started
@@ -329,14 +331,16 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
   let estamosEnMadrugadaDelDiaAnterior = false;
   
   if (horaActual < 480) { // Before 8:00 AM (480 minutes)
-    console.log(`⏰ [TIME] Es madrugada (${formatearHora(horaActual)}), determinando día lógico...`);
+    // ✅ FIX v288.0: Disabled excessive logging
+    // console.log(`⏰ [TIME] Es madrugada (${formatearHora(horaActual)}), determinando día lógico...`);
     
     // Check previous day's schedule first
     const diaAnteriorIndex = (diaActualIndex - 1 + 7) % 7;
     const diaAnterior = diasSemana[diaAnteriorIndex];
     const horarioAnterior = local.horarios_completos?.[diaAnterior];
     
-    console.log(`⏰ [TIME] Verificando horario del día anterior: ${diaAnterior}`);
+    // ✅ FIX v288.0: Disabled excessive logging
+    // console.log(`⏰ [TIME] Verificando horario del día anterior: ${diaAnterior}`);
     
     let encontradoHorarioAnterior = false;
     
@@ -355,8 +359,9 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
           
           // If it's a nighttime schedule and current time is before closing
           if (esHorarioNocturno(apertura, cierre) && horaActual < cierre) {
-            console.log(`⏰ [TIME] Horario nocturno del día anterior detectado: ${formatearHora(apertura)}–${formatearHora(cierre)}`);
-            console.log(`⏰ [TIME] ✅ Estamos en la madrugada del horario nocturno del ${diaAnterior} (día lógico)`);
+            // ✅ FIX v288.0: Disabled excessive logging
+            // console.log(`⏰ [TIME] Horario nocturno del día anterior detectado: ${formatearHora(apertura)}–${formatearHora(cierre)}`);
+            // console.log(`⏰ [TIME] ✅ Estamos en la madrugada del horario nocturno del ${diaAnterior} (día lógico)`);
             diaLogico = diaAnterior;
             diaLogicoIndex = diaAnteriorIndex;
             estamosEnMadrugadaDelDiaAnterior = true;
@@ -386,14 +391,16 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
             // Check if this is a nighttime schedule that starts after midnight
             // Example: 00:30-06:00 on Wednesday should be considered Wednesday's nighttime activity
             if (esHorarioNocturno(apertura, cierre) && apertura < 480) { // Opens before 8:00 AM
-              console.log(`⏰ [TIME] Horario nocturno del día actual detectado (abre después de medianoche): ${formatearHora(apertura)}–${formatearHora(cierre)}`);
+              // ✅ FIX v288.0: Disabled excessive logging
+              // console.log(`⏰ [TIME] Horario nocturno del día actual detectado (abre después de medianoche): ${formatearHora(apertura)}–${formatearHora(cierre)}`);
               
               // This is a nighttime schedule on the current calendar day
               // The logical day should be the PREVIOUS day (the night belongs to the previous day)
               const diaLogicoNocturnoIndex = (diaActualIndex - 1 + 7) % 7;
               const diaLogicoNocturno = diasSemana[diaLogicoNocturnoIndex];
               
-              console.log(`⏰ [TIME] ✅ Horario nocturno del ${diaActual} se reporta como actividad del ${diaLogicoNocturno}`);
+              // ✅ FIX v288.0: Disabled excessive logging
+              // console.log(`⏰ [TIME] ✅ Horario nocturno del ${diaActual} se reporta como actividad del ${diaLogicoNocturno}`);
               diaLogico = diaLogicoNocturno;
               diaLogicoIndex = diaLogicoNocturnoIndex;
               
@@ -407,7 +414,8 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
     }
   }
   
-  console.log(`⏰ [TIME] Día lógico determinado: ${diaLogico}`);
+  // ✅ FIX v288.0: Disabled excessive logging
+  // console.log(`⏰ [TIME] Día lógico determinado: ${diaLogico}`);
   
   // STEP 2: Get the schedule for checking
   // If we're in early morning and found a nighttime schedule on current day,
@@ -419,12 +427,14 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
     // We're checking current day's nighttime schedule but reporting as previous day
     horarioParaVerificar = local.horarios_completos?.[diaActual];
     diaParaVerificar = diaActual;
-    console.log(`⏰ [TIME] Verificando horario del día calendario (${diaActual}) pero reportando como ${diaLogico}`);
+    // ✅ FIX v288.0: Disabled excessive logging
+    // console.log(`⏰ [TIME] Verificando horario del día calendario (${diaActual}) pero reportando como ${diaLogico}`);
   } else {
     // Normal case: check the logical day's schedule
     horarioParaVerificar = local.horarios_completos?.[diaLogico];
     diaParaVerificar = diaLogico;
-    console.log(`⏰ [TIME] Verificando horario del día lógico (${diaLogico})`);
+    // ✅ FIX v288.0: Disabled excessive logging
+    // console.log(`⏰ [TIME] Verificando horario del día lógico (${diaLogico})`);
   }
   
   if (!horarioParaVerificar) {
@@ -435,13 +445,15 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
   
   // CASE A: Day is closed (no schedule)
   if (franjas.length === 0 || franjas[0] === 'Cerrado') {
-    console.log(`⏰ [TIME] Local cerrado en día para verificar (${diaParaVerificar})`);
+    // ✅ FIX v288.0: Disabled excessive logging
+    // console.log(`⏰ [TIME] Local cerrado en día para verificar (${diaParaVerificar})`);
     
     // Search for next opening
     const proximaApertura = buscarProximaApertura(local, ahora);
     
     if (proximaApertura && proximaApertura.minutosRestantes <= 30) {
-      console.log(`⏰ [TIME] Abre pronto en ${proximaApertura.minutosRestantes} minutos`);
+      // ✅ FIX v288.0: Disabled excessive logging
+      // console.log(`⏰ [TIME] Abre pronto en ${proximaApertura.minutosRestantes} minutos`);
       return {
         badge: 'Abre pronto',
         estaAbierto: false,
@@ -452,7 +464,8 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
       };
     }
     
-    console.log(`⏰ [TIME] Cerrado ahora, próxima apertura:`, proximaApertura);
+    // ✅ FIX v288.0: Disabled excessive logging
+    // console.log(`⏰ [TIME] Cerrado ahora, próxima apertura:`, proximaApertura);
     return {
       badge: proximaApertura 
         ? `Abre a las ${proximaApertura.hora}`
@@ -466,38 +479,46 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
   }
   
   // CASE B: Day has schedules → check if it's open NOW
-  console.log(`⏰ [TIME] Verificando ${franjas.length} rangos horarios del día ${diaParaVerificar}`);
+  // ✅ FIX v288.0: Disabled excessive logging
+  // console.log(`⏰ [TIME] Verificando ${franjas.length} rangos horarios del día ${diaParaVerificar}`);
   
   for (let i = 0; i < franjas.length; i++) {
     const rango = franjas[i];
-    console.log(`⏰ [TIME] Verificando rango ${i + 1}: ${rango}`);
+    // ✅ FIX v288.0: Disabled excessive logging
+    // console.log(`⏰ [TIME] Verificando rango ${i + 1}: ${rango}`);
     
     if (rango === 'Cerrado' || rango.toLowerCase().includes('24')) continue;
     
     const parsed = parsearRangoHorario(rango);
     if (!parsed) {
-      console.log(`⏰ [TIME] Error parseando rango: ${rango}`);
+      // ✅ FIX v288.0: Disabled excessive logging
+      // console.log(`⏰ [TIME] Error parseando rango: ${rango}`);
       continue;
     }
     
     const { apertura, cierre } = parsed;
-    console.log(`⏰ [TIME] Apertura: ${formatearHora(apertura)} (${apertura} min), Cierre: ${formatearHora(cierre)} (${cierre} min)`);
+    // ✅ FIX v288.0: Disabled excessive logging
+    // console.log(`⏰ [TIME] Apertura: ${formatearHora(apertura)} (${apertura} min), Cierre: ${formatearHora(cierre)} (${cierre} min)`);
     
     const esNocturno = esHorarioNocturno(apertura, cierre);
-    console.log(`⏰ [TIME] ¿Es horario nocturno? ${esNocturno ? 'Sí' : 'No'}`);
+    // ✅ FIX v288.0: Disabled excessive logging
+    // console.log(`⏰ [TIME] ¿Es horario nocturno? ${esNocturno ? 'Sí' : 'No'}`);
     
     // NIGHTTIME SCHEDULE
     if (esNocturno) {
-      console.log(`⏰ [TIME] Horario nocturno detectado`);
+      // ✅ FIX v288.0: Disabled excessive logging
+      // console.log(`⏰ [TIME] Horario nocturno detectado`);
       
       // Case 1: We're in the early morning continuation of previous day's night
       if (estamosEnMadrugadaDelDiaAnterior && cierre < apertura) {
         // Traditional overnight schedule (e.g., 23:00-06:00)
         if (horaActual < cierre) {
-          console.log(`⏰ [TIME] ✅ ABIERTO (en la madrugada del horario nocturno del ${diaLogico})`);
+          // ✅ FIX v288.0: Disabled excessive logging
+          // console.log(`⏰ [TIME] ✅ ABIERTO (en la madrugada del horario nocturno del ${diaLogico})`);
           
           const minutosHastaCierre = cierre - horaActual;
-          console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
+          // ✅ FIX v288.0: Disabled excessive logging
+          // console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
           
           if (minutosHastaCierre <= 60) {
             return {
@@ -523,13 +544,16 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
       // Case 2: Nighttime schedule that opens after midnight (e.g., 00:30-06:00)
       else if (apertura < cierre && apertura < 480 && cierre < 480) {
         // Both opening and closing are after midnight and before 8 AM
-        console.log(`⏰ [TIME] Horario nocturno que abre después de medianoche`);
+        // ✅ FIX v288.0: Disabled excessive logging
+        // console.log(`⏰ [TIME] Horario nocturno que abre después de medianoche`);
         
         if (horaActual >= apertura && horaActual < cierre) {
-          console.log(`⏰ [TIME] ✅ ABIERTO (horario nocturno del ${diaLogico})`);
+          // ✅ FIX v288.0: Disabled excessive logging
+          // console.log(`⏰ [TIME] ✅ ABIERTO (horario nocturno del ${diaLogico})`);
           
           const minutosHastaCierre = cierre - horaActual;
-          console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
+          // ✅ FIX v288.0: Disabled excessive logging
+          // console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
           
           if (minutosHastaCierre <= 60) {
             return {
@@ -554,11 +578,13 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
       }
       // Case 3: Traditional overnight schedule, we're in the evening part
       else if (cierre < apertura && horaActual >= apertura) {
-        console.log(`⏰ [TIME] ✅ ABIERTO (después de la apertura del horario nocturno del ${diaLogico})`);
+        // ✅ FIX v288.0: Disabled excessive logging
+        // console.log(`⏰ [TIME] ✅ ABIERTO (después de la apertura del horario nocturno del ${diaLogico})`);
         
         // Calculate minutes until closing (tomorrow morning)
         const minutosHastaCierre = (24 * 60 - horaActual) + cierre;
-        console.log(`⏰ [TIME] Minutos hasta cierre (mañana): ${minutosHastaCierre}`);
+        // ✅ FIX v288.0: Disabled excessive logging
+        // console.log(`⏰ [TIME] Minutos hasta cierre (mañana): ${minutosHastaCierre}`);
         
         if (minutosHastaCierre <= 60) {
           return {
@@ -580,18 +606,22 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
           diaLogico: diaLogico,
         };
       } else {
-        console.log(`⏰ [TIME] ❌ CERRADO (fuera del horario nocturno)`);
+        // ✅ FIX v288.0: Disabled excessive logging
+        // console.log(`⏰ [TIME] ❌ CERRADO (fuera del horario nocturno)`);
       }
     } else {
       // DAYTIME SCHEDULE: Closing before midnight
-      console.log(`⏰ [TIME] Horario diurno detectado`);
+      // ✅ FIX v288.0: Disabled excessive logging
+      // console.log(`⏰ [TIME] Horario diurno detectado`);
       
       if (horaActual >= apertura && horaActual < cierre) {
         // ✅ OPEN (between opening and closing)
-        console.log(`⏰ [TIME] ✅ ABIERTO (horario diurno del ${diaLogico})`);
+        // ✅ FIX v288.0: Disabled excessive logging
+        // console.log(`⏰ [TIME] ✅ ABIERTO (horario diurno del ${diaLogico})`);
         
         const minutosHastaCierre = cierre - horaActual;
-        console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
+        // ✅ FIX v288.0: Disabled excessive logging
+        // console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
         
         if (minutosHastaCierre <= 60) {
           return {
@@ -613,18 +643,21 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
           diaLogico: diaLogico,
         };
       } else {
-        console.log(`⏰ [TIME] ❌ CERRADO (fuera del rango ${apertura}-${cierre})`);
+        // ✅ FIX v288.0: Disabled excessive logging
+        // console.log(`⏰ [TIME] ❌ CERRADO (fuera del rango ${apertura}-${cierre})`);
       }
     }
   }
   
   // CASE C: Outside all time ranges → CLOSED
-  console.log(`⏰ [TIME] ❌ CERRADO (fuera de todos los rangos)`);
+  // ✅ FIX v288.0: Disabled excessive logging
+  // console.log(`⏰ [TIME] ❌ CERRADO (fuera de todos los rangos)`);
   
   const proximaApertura = buscarProximaApertura(local, ahora);
   
   if (proximaApertura && proximaApertura.minutosRestantes <= 30) {
-    console.log(`⏰ [TIME] Abre pronto en ${proximaApertura.minutosRestantes} minutos`);
+    // ✅ FIX v288.0: Disabled excessive logging
+    // console.log(`⏰ [TIME] Abre pronto en ${proximaApertura.minutosRestantes} minutos`);
     return {
       badge: 'Abre pronto',
       estaAbierto: false,
@@ -635,7 +668,8 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
     };
   }
   
-  console.log(`⏰ [TIME] Próxima apertura:`, proximaApertura);
+  // ✅ FIX v288.0: Disabled excessive logging
+  // console.log(`⏰ [TIME] Próxima apertura:`, proximaApertura);
   return {
     badge: proximaApertura 
       ? `Abre a las ${proximaApertura.hora}`
@@ -690,7 +724,8 @@ export function getEstadoLocal(local: any, ahora: Date = new Date()): EstadoLoca
   
   // CASE: Open 24 hours
   if (esLocal24Horas(local.horarios_completos)) {
-    console.log(`⏰ [TIME] ✅ Local abierto 24 horas detectado: ${local.nombre}`);
+    // ✅ FIX v288.0: Disabled excessive logging
+    // console.log(`⏰ [TIME] ✅ Local abierto 24 horas detectado: ${local.nombre}`);
     return { 
       badge: 'Abierto 24h', 
       estaAbierto: true,

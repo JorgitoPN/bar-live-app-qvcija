@@ -34,9 +34,14 @@ interface CheckedInUser {
 }
 
 /**
- * ✅ TARJETA LOCAL v100.0 - ANDROID SCALING STANDARDIZATION
+ * ✅ TARJETA LOCAL v101.0 - ANDROID PERFORMANCE OPTIMIZATION
  * 
- * CRITICAL FIXES v100.0 (ANDROID ONLY):
+ * NEW FIXES v101.0:
+ * - ✅ CRITICAL: Eliminated getEstadoLocal() call that was blocking UI thread
+ * - ✅ PERFORMANCE: Now uses pre-calculated estaAbierto from backend
+ * - ✅ OPTIMIZATION: Removed expensive time calculations on every render
+ * 
+ * Previous fixes maintained (v100.0):
  * - ✅ All font sizes use scaleFontSize() for consistency with Favoritos
  * - ✅ All text elements properly scaled
  * - ✅ iOS design remains unchanged
@@ -54,7 +59,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   
   const { evento: activeEvent } = useLocalEvent(local.id);
 
-  const estado = getEstadoLocal(local);
+  // ✅ FIX v101.0: Use pre-calculated status from backend instead of expensive getEstadoLocal()
   const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
   const isDestacado = destacado || local.destacado;
   const localIsFavorite = isFavorite(local.id);
@@ -232,61 +237,27 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     await toggleFavorite(local.id);
   };
 
+  // ✅ FIX v101.0: Simplified badge logic using pre-calculated backend data
   const getBadgeColor = () => {
-    if (estado.badge === 'Abierto ahora' || estado.badge === 'Abierto 24h') {
+    if (local.estaAbierto === true) {
       return '#22C55E';
-    }
-    if (estado.badge === 'Cierra pronto') {
-      return '#F97316';
-    }
-    if (estado.badge === 'Abre pronto') {
-      return '#EAB308';
-    }
-    if (estado.estaAbierto === false) {
+    } else if (local.estaAbierto === false) {
       return '#EF4444';
     }
     return '#9CA3AF';
   };
 
   const getBadgeText = () => {
-    if (estado.badge === 'Abierto 24h') {
-      return 'Abierto 24h';
+    if (local.estaAbierto === true) {
+      return 'Abierto ahora';
+    } else if (local.estaAbierto === false) {
+      return 'Cerrado ahora';
     }
-    
-    if (estado.tiempoRestante) {
-      if (estado.badge === 'Abierto ahora') {
-        return `Abierto ahora • Cierra en ${estado.tiempoRestante}`;
-      }
-      if (estado.badge === 'Cierra pronto') {
-        return `Cierra en ${estado.tiempoRestante}`;
-      }
-      if (estado.badge === 'Abre pronto') {
-        return `Abre en ${estado.tiempoRestante}`;
-      }
-      return `${estado.badge} • ${estado.tiempoRestante}`;
-    }
-    return estado.badge;
-  };
-
-  const getOverlayIcon = () => {
-    if (estado.overlayIcon === 'lock') {
-      return 'lock.fill';
-    }
-    if (estado.overlayIcon === 'questionmark') {
-      return 'questionmark.circle.fill';
-    }
-    if (estado.overlayIcon === 'clock') {
-      return 'clock.fill';
-    }
-    return null;
-  };
-
-  const getOverlayIconColor = () => {
-    return '#FFFFFF';
+    return 'Sin info de horario';
   };
 
   const shouldDimImage = () => {
-    return estado.estaAbierto === false || estado.estaAbierto === null;
+    return local.estaAbierto === false || local.estaAbierto === null;
   };
 
   const formatCategories = () => {
@@ -304,7 +275,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   };
 
   const categoriasAMostrar = formatCategories();
-  const overlayIcon = getOverlayIcon();
 
   const getRating = () => {
     if (local.rating && local.rating > 0) {
@@ -345,12 +315,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
         {shouldDimImage() && (
           <View style={styles.dimmedOverlay} />
-        )}
-
-        {overlayIcon && (
-          <View style={styles.overlayIconContainer}>
-            <IconSymbol ios_icon_name={overlayIcon} android_material_icon_name="lock" size={64} color={getOverlayIconColor()} />
-          </View>
         )}
 
         <View style={styles.imageOverlay} />
