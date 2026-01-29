@@ -796,7 +796,7 @@ export default function ExplorarScreen() {
       // Load initial data for current category
       loadLocales(1, false);
     }
-  }, [locationReady, preloadAllCategories, loadLocales]);
+  }, [locationReady, preloadAllCategories, loadLocales, isLoadingMore]);
 
   // ✅ FIX v287.0: Handle category/province changes with instant cache lookup
   useEffect(() => {

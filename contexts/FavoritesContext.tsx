@@ -233,7 +233,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return false;
     }
-  }, [user?.id, favorites, ensureValidSession]);
+  }, [user?.id, favorites, ensureValidSession, loadFavorites]);
 
   const refreshFavorites = useCallback(async () => {
     hasLoadedRef.current = false; // Reset to force reload
