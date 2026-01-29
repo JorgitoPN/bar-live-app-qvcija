@@ -17,7 +17,7 @@ import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Filtros } from '@/types';
 import { useFilters } from '@/contexts/FilterContext';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
 const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
@@ -43,14 +43,7 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ANDROID FULL-SCREEN ADVANCED FILTERS PAGE v290.0
- * 
- * NEW FIXES v290.0:
- * - ✅ ANDROID: Full-screen page instead of modal
- * - ✅ NAVIGATION: Proper Stack header with back button
- * - ✅ STATE SYNC: Integrates with FilterContext for global filter state
- * - ✅ UX: Clean full-screen experience without modal overlay
- * - ✅ PERFORMANCE: Optimized rendering with proper scroll configuration
+ * ✅ ANDROID FULL-SCREEN FILTERS PAGE
  * 
  * This is a full-screen page for Android that replaces the modal approach.
  * Provides proper scaling and full-height display on Android.
@@ -80,7 +73,7 @@ export default function FiltrosAvanzadosScreen() {
   });
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados Android v290.0] 🔄 Page opened, loading filters');
+    console.log('[FiltrosAvanzados Android] 🔄 Page opened, loading filters');
     setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
   }, [contextFiltros, refreshDynamicOptions]);
@@ -122,20 +115,20 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados Android v290.0] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados Android] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados Android v290.0] 🧹 Clearing all filters');
+    console.log('[FiltrosAvanzados Android] 🧹 Clearing all filters');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     contextLimpiarFiltros();
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados Android v290.0] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados Android] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -159,7 +152,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados Android v290.0] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados Android] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -317,32 +310,27 @@ export default function FiltrosAvanzadosScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen 
-        options={{
-          headerShown: true,
-          title: 'Filtros Avanzados',
-          headerStyle: {
-            backgroundColor: colors.headerGradientStart,
-          },
-          headerTintColor: colors.headerText,
-          headerTitleStyle: {
-            fontWeight: '700',
-            fontSize: scaleFontSize(18),
-          },
-          headerRight: () => (
-            <View style={styles.headerRightContainer}>
-              {activeFiltersCount > 0 && (
-                <View style={styles.headerFilterCountBadge}>
-                  <Text style={[styles.headerFilterCountText, { fontSize: scaleFontSize(11) }]}>{activeFiltersCount}</Text>
-                </View>
-              )}
-              <TouchableOpacity onPress={handleLimpiar} style={styles.headerClearButton}>
-                <Text style={[styles.headerClearText, { fontSize: scaleFontSize(13) }]}>Limpiar</Text>
-              </TouchableOpacity>
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
+        <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={scaleIconSize(24)} color={colors.headerText} />
+        </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(20) }]}>Filtros Avanzados</Text>
+          {activeFiltersCount > 0 && (
+            <View style={styles.filterCountBadge}>
+              <Text style={[styles.filterCountText, { fontSize: scaleFontSize(11) }]}>{activeFiltersCount}</Text>
             </View>
-          ),
-        }}
-      />
+          )}
+        </View>
+        <TouchableOpacity onPress={handleLimpiar} style={styles.clearButton}>
+          <Text style={[styles.limpiarText, { fontSize: scaleFontSize(13) }]}>Limpiar</Text>
+        </TouchableOpacity>
+      </LinearGradient>
 
       <ScrollView 
         style={styles.content} 
@@ -388,7 +376,7 @@ export default function FiltrosAvanzadosScreen() {
                 <TouchableOpacity
                   style={styles.locationButton}
                   onPress={() => {
-                    console.log('[FiltrosAvanzados Android v290.0] 🔍 Opening comunidad modal');
+                    console.log('[FiltrosAvanzados Android] 🔍 Opening comunidad modal');
                     setShowComunidadModal(true);
                   }}
                 >
@@ -406,7 +394,7 @@ export default function FiltrosAvanzadosScreen() {
                   ]}
                   onPress={() => {
                     if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                      console.log('[FiltrosAvanzados Android v290.0] 🔍 Opening provincia modal');
+                      console.log('[FiltrosAvanzados Android] 🔍 Opening provincia modal');
                       setShowProvinciaModal(true);
                     }
                   }}
@@ -833,13 +821,36 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  headerRightContainer: {
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 48,
+    paddingBottom: 14,
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  headerTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginRight: 8,
   },
-  headerFilterCountBadge: {
+  headerTitle: {
+    fontWeight: '700',
+    color: colors.headerText,
+  },
+  filterCountBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 10,
     minWidth: 20,
@@ -848,17 +859,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 6,
   },
-  headerFilterCountText: {
+  filterCountText: {
     fontWeight: '800',
     color: colors.headerText,
   },
-  headerClearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  headerClearText: {
+  limpiarText: {
     fontWeight: '600',
     color: colors.headerText,
   },

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
 const CATEGORIAS = [
@@ -35,13 +35,7 @@ const PROVINCIAS = [
 ];
 
 /**
- * ✅ ANDROID FULL-SCREEN SIMPLE FILTERS PAGE v290.0
- * 
- * NEW FIXES v290.0:
- * - ✅ ANDROID: Full-screen page instead of modal
- * - ✅ NAVIGATION: Proper Stack header with back button
- * - ✅ STATE SYNC: Receives and returns filter selections via navigation params
- * - ✅ UX: Clean full-screen experience without modal overlay
+ * ✅ ANDROID FULL-SCREEN SIMPLE FILTERS PAGE v280.0
  * 
  * This is a full-screen page for Android that replaces the modal in Explorar.
  * Provides proper scaling and full-height display on Android.
@@ -55,43 +49,34 @@ export default function FiltrosSimplesScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>(params.categoria as string || 'todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState<string>(params.provincia as string || 'Todas');
 
-  useEffect(() => {
-    console.log('[FiltrosSimples Android v290.0] 📱 Page opened with params:', params);
-  }, [params]);
-
   const handleAplicar = () => {
-    console.log('[FiltrosSimples Android v290.0] ✅ Applying filters:', { selectedCategory, provinciaSeleccionada });
-    // Navigate back - parent screen will detect the change via state
+    console.log('[FiltrosSimples Android] ✅ Applying filters:', { selectedCategory, provinciaSeleccionada });
+    // Navigate back with params
     router.back();
   };
 
   const handleLimpiar = () => {
-    console.log('[FiltrosSimples Android v290.0] 🧹 Clearing filters');
+    console.log('[FiltrosSimples Android] 🧹 Clearing filters');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
   };
 
   return (
     <View style={styles.container}>
-      <Stack.Screen 
-        options={{
-          headerShown: true,
-          title: 'Filtros',
-          headerStyle: {
-            backgroundColor: colors.headerGradientStart,
-          },
-          headerTintColor: colors.headerText,
-          headerTitleStyle: {
-            fontWeight: '700',
-            fontSize: scaleFontSize(18),
-          },
-          headerRight: () => (
-            <TouchableOpacity onPress={handleLimpiar} style={styles.headerClearButton}>
-              <Text style={[styles.headerClearText, { fontSize: scaleFontSize(13) }]}>Limpiar</Text>
-            </TouchableOpacity>
-          ),
-        }}
-      />
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
+        <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={scaleIconSize(24)} color={colors.headerText} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { fontSize: scaleFontSize(20) }]}>Filtros</Text>
+        <TouchableOpacity onPress={handleLimpiar} style={styles.clearButton}>
+          <Text style={[styles.limpiarText, { fontSize: scaleFontSize(13) }]}>Limpiar</Text>
+        </TouchableOpacity>
+      </LinearGradient>
 
       <ScrollView 
         style={styles.content}
@@ -109,7 +94,7 @@ export default function FiltrosSimplesScreen() {
                   selectedCategory === categoria.id && styles.categoryFilterItemActive,
                 ]}
                 onPress={() => {
-                  console.log('[FiltrosSimples Android v290.0] 👆 Usuario seleccionó categoría:', categoria.id);
+                  console.log('[FiltrosSimples Android] 👆 Usuario seleccionó categoría:', categoria.id);
                   setSelectedCategory(categoria.id);
                 }}
                 activeOpacity={0.7}
@@ -144,11 +129,7 @@ export default function FiltrosSimplesScreen() {
                   styles.provinciaItem,
                   provinciaSeleccionada === provincia && styles.provinciaItemActive,
                 ]}
-                onPress={() => {
-                  console.log('[FiltrosSimples Android v290.0] 👆 Usuario seleccionó provincia:', provincia);
-                  setProvinciaSeleccionada(provincia);
-                }}
-                activeOpacity={0.7}
+                onPress={() => setProvinciaSeleccionada(provincia)}
               >
                 <Text
                   style={[
@@ -187,14 +168,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  headerClearButton: {
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 48,
+    paddingBottom: 14,
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginRight: 8,
   },
-  headerClearText: {
+  headerTitle: {
+    fontWeight: '700',
+    color: colors.headerText,
+  },
+  limpiarText: {
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -226,7 +224,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     minWidth: '47%',
@@ -249,13 +247,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    backgroundColor: colors.background,
   },
   provinciaItemActive: {
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   provinciaText: {
     color: colors.text,
