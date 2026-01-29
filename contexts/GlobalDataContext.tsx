@@ -3,28 +3,23 @@ import React, { createContext, useContext, useEffect, useState, ReactNode, useCa
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/utils/supabase';
 import { Local } from '@/types';
-import { Image } from 'react-native';
 
 interface GlobalDataContextType {
-  // Data - ONLY VISIBLE DATA, NOT ALL LOCALES
   locales: Local[];
   posts: any[];
   eventos: any[];
   ofertas: any[];
   
-  // Loading states
   isInitialLoading: boolean;
   isRefreshing: boolean;
   hasLoadedOnce: boolean;
   
-  // Actions
   refreshData: (silent?: boolean) => Promise<void>;
   updateLocal: (localId: string, updates: Partial<Local>) => void;
   updatePost: (postId: string, updates: Partial<any>) => void;
   prefetchNextPage: (currentPage: number, pageSize: number) => void;
   loadLocalesInBounds: (bounds: { north: number; south: number; east: number; west: number }) => Promise<Local[]>;
   
-  // Timestamps
   lastUpdate: number;
 }
 
@@ -38,20 +33,33 @@ const CACHE_KEYS = {
   TIMESTAMP: 'global_cache_timestamp',
 };
 
-// ✅ CRITICAL PERFORMANCE FIX v200.0: Disabled auto-refresh to prevent flickering
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
-const BACKGROUND_REFRESH_INTERVAL = 60 * 60 * 1000; // 60 minutes (disabled effectively)
+const CACHE_DURATION = 30 * 60 * 1000;
 
-// ✅ CRITICAL: Only cache what's visible, not everything
 const MAX_CACHE_ITEMS = {
-  LOCALES: 100,  // Only cache visible locales
+  LOCALES: 100,
   POSTS: 30,
   EVENTOS: 20,
   OFERTAS: 20,
 };
 
+/**
+ * ✅ GLOBAL DATA CONTEXT v289.0 - ANDROID PERFORMANCE OPTIMIZATION
+ * 
+ * CRITICAL FIXES v289.0:
+ * - ✅ DISABLED AUTO-LOAD: Don't load data automatically on app startup
+ * - ✅ LAZY LOADING: Data loads only when user navigates to specific tabs
+ * - ✅ CACHE ONLY: On startup, only load from cache (no network requests)
+ * - ✅ MANUAL REFRESH: User can pull-to-refresh to load fresh data
+ * - ✅ REDUCED QUERIES: Eliminated 4 simultaneous DB queries on startup
+ * - ✅ ANDROID OPTIMIZATION: Prevents UI thread blocking on startup
+ * 
+ * Previous fixes maintained (v200.0):
+ * - ✅ Disabled real-time subscriptions
+ * - ✅ Disabled automatic background refresh
+ * - ✅ Cache-first strategy
+ */
+
 export function GlobalDataProvider({ children }: { children: ReactNode }) {
-  // ✅ CRITICAL: Only store visible locales, not all 200k+
   const [locales, setLocales] = useState<Local[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [eventos, setEventos] = useState<any[]>([]);
@@ -63,17 +71,8 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
   const [lastUpdate, setLastUpdate] = useState(0);
   
   const isLoadingRef = useRef(false);
-  const backgroundRefreshTimer = useRef<NodeJS.Timeout | null>(null);
-  const preloadedImagesRef = useRef<Set<string>>(new Set());
-  const prefetchedPagesRef = useRef<Set<number>>(new Set());
   const isMountedRef = useRef(true);
   const boundsCache = useRef<Map<string, { data: Local[]; timestamp: number }>>(new Map());
-
-  // ✅ FIX v200.0: Disabled image preloading to prevent flickering
-  const preloadImages = useCallback(async (posts: any[]) => {
-    // Disabled to prevent performance issues and flickering
-    // Images will load on-demand
-  }, []);
 
   const sanitizeForCache = useCallback((data: any[], type: 'locales' | 'posts' | 'eventos' | 'ofertas'): any[] => {
     const maxItems = MAX_CACHE_ITEMS[type.toUpperCase() as keyof typeof MAX_CACHE_ITEMS];
@@ -100,7 +99,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
   const loadFromCache = useCallback(async (): Promise<boolean> => {
     try {
-      console.log('[GlobalData v200.0] 📦 Loading from cache...');
+      console.log('[GlobalData v289.0] 📦 Loading from cache...');
       
       const [
         cachedLocales,
@@ -123,10 +122,9 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         try {
           const parsedLocales = JSON.parse(cachedLocales);
           setLocales(parsedLocales);
-          console.log('[GlobalData v200.0] ⚡ INSTANT locales from cache:', parsedLocales.length);
+          console.log('[GlobalData v289.0] ⚡ INSTANT locales from cache:', parsedLocales.length);
           hasData = true;
         } catch (parseError) {
-          console.error('[GlobalData v200.0] Error parsing cached locales:', parseError);
           await AsyncStorage.removeItem(CACHE_KEYS.LOCALES);
         }
       }
@@ -135,10 +133,9 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         try {
           const parsedPosts = JSON.parse(cachedPosts);
           setPosts(parsedPosts);
-          console.log('[GlobalData v200.0] ⚡ INSTANT posts from cache:', parsedPosts.length);
+          console.log('[GlobalData v289.0] ⚡ INSTANT posts from cache:', parsedPosts.length);
           hasData = true;
         } catch (parseError) {
-          console.error('[GlobalData v200.0] Error parsing cached posts:', parseError);
           await AsyncStorage.removeItem(CACHE_KEYS.POSTS);
         }
       }
@@ -147,10 +144,9 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         try {
           const parsedEventos = JSON.parse(cachedEventos);
           setEventos(parsedEventos);
-          console.log('[GlobalData v200.0] ⚡ INSTANT eventos from cache:', parsedEventos.length);
+          console.log('[GlobalData v289.0] ⚡ INSTANT eventos from cache:', parsedEventos.length);
           hasData = true;
         } catch (parseError) {
-          console.error('[GlobalData v200.0] Error parsing cached eventos:', parseError);
           await AsyncStorage.removeItem(CACHE_KEYS.EVENTOS);
         }
       }
@@ -159,10 +155,9 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         try {
           const parsedOfertas = JSON.parse(cachedOfertas);
           setOfertas(parsedOfertas);
-          console.log('[GlobalData v200.0] ⚡ INSTANT ofertas from cache:', parsedOfertas.length);
+          console.log('[GlobalData v289.0] ⚡ INSTANT ofertas from cache:', parsedOfertas.length);
           hasData = true;
         } catch (parseError) {
-          console.error('[GlobalData v200.0] Error parsing cached ofertas:', parseError);
           await AsyncStorage.removeItem(CACHE_KEYS.OFERTAS);
         }
       }
@@ -174,7 +169,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
       return hasData;
     } catch (error) {
-      console.error('[GlobalData v200.0] Error loading from cache:', error);
+      console.error('[GlobalData v289.0] Error loading from cache:', error);
       try {
         await AsyncStorage.multiRemove([
           CACHE_KEYS.LOCALES,
@@ -183,9 +178,8 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           CACHE_KEYS.OFERTAS,
           CACHE_KEYS.TIMESTAMP,
         ]);
-        console.log('[GlobalData v200.0] 🧹 Cleared corrupted cache');
       } catch (clearError) {
-        console.error('[GlobalData v200.0] Error clearing cache:', clearError);
+        // Silent fail
       }
       return false;
     }
@@ -206,30 +200,23 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       if (data.locales) {
         const sanitized = sanitizeForCache(data.locales, 'locales');
         promises.push(AsyncStorage.setItem(CACHE_KEYS.LOCALES, JSON.stringify(sanitized)));
-        console.log('[GlobalData v200.0] 💾 Caching', sanitized.length, 'locales');
       }
       if (data.posts) {
         const sanitized = sanitizeForCache(data.posts, 'posts');
         promises.push(AsyncStorage.setItem(CACHE_KEYS.POSTS, JSON.stringify(sanitized)));
-        console.log('[GlobalData v200.0] 💾 Caching', sanitized.length, 'posts');
       }
       if (data.eventos) {
         const sanitized = sanitizeForCache(data.eventos, 'eventos');
         promises.push(AsyncStorage.setItem(CACHE_KEYS.EVENTOS, JSON.stringify(sanitized)));
-        console.log('[GlobalData v200.0] 💾 Caching', sanitized.length, 'eventos');
       }
       if (data.ofertas) {
         const sanitized = sanitizeForCache(data.ofertas, 'ofertas');
         promises.push(AsyncStorage.setItem(CACHE_KEYS.OFERTAS, JSON.stringify(sanitized)));
-        console.log('[GlobalData v200.0] 💾 Caching', sanitized.length, 'ofertas');
       }
 
       await Promise.all(promises);
-      console.log('[GlobalData v200.0] ✅ Data saved to cache');
     } catch (error: any) {
-      console.error('[GlobalData v200.0] Error saving to cache:', error.message);
       if (error.message?.includes('QuotaExceededError') || error.message?.includes('too big')) {
-        console.log('[GlobalData v200.0] 🧹 Cache quota exceeded, clearing...');
         try {
           await AsyncStorage.multiRemove([
             CACHE_KEYS.LOCALES,
@@ -237,9 +224,8 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
             CACHE_KEYS.EVENTOS,
             CACHE_KEYS.OFERTAS,
           ]);
-          console.log('[GlobalData v200.0] ✅ Cache cleared');
         } catch (clearError) {
-          console.error('[GlobalData v200.0] Error clearing cache:', clearError);
+          // Silent fail
         }
       }
     }
@@ -266,20 +252,15 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // ✅ CRITICAL v200.0: Load locales by geographic bounds (for map)
   const loadLocalesInBounds = useCallback(async (bounds: { north: number; south: number; east: number; west: number }): Promise<Local[]> => {
     const boundsKey = `${bounds.north.toFixed(2)},${bounds.south.toFixed(2)},${bounds.east.toFixed(2)},${bounds.west.toFixed(2)}`;
     
-    // Check cache first
     const cached = boundsCache.current.get(boundsKey);
     if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
-      console.log('[GlobalData v200.0] 📦 Using cached bounds data:', cached.data.length, 'locales');
       return cached.data;
     }
 
     try {
-      console.log('[GlobalData v200.0] 🌍 Loading locales in bounds:', bounds);
-      
       const { data, error } = await supabase
         .from('locales')
         .select('id, nombre, tipo, direccion, provincia, latitud, longitud, imagen_url, destacado, horarios_completos, barlive_types, barlive_type, rating, google_rating, activo, comunidad')
@@ -290,38 +271,32 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         .lte('longitud', bounds.east)
         .order('destacado', { ascending: false })
         .order('rating', { ascending: false })
-        .limit(300); // Limit to 300 markers per viewport
+        .limit(300);
 
       if (error) throw error;
 
       const transformedLocales = (data || []).map(transformarLocal);
       
-      // Cache the result
       boundsCache.current.set(boundsKey, {
         data: transformedLocales,
         timestamp: Date.now(),
       });
 
-      // Limit cache size
       if (boundsCache.current.size > 20) {
         const firstKey = boundsCache.current.keys().next().value;
         boundsCache.current.delete(firstKey);
       }
 
-      console.log('[GlobalData v200.0] ✅ Loaded', transformedLocales.length, 'locales in bounds');
       return transformedLocales;
     } catch (error) {
-      console.error('[GlobalData v200.0] Error loading locales in bounds:', error);
       return [];
     }
   }, [transformarLocal]);
 
-  // ✅ CRITICAL v199.0: Load only initial visible locales (not all 200k+)
   const loadFromSupabase = useCallback(async () => {
     try {
-      console.log('[GlobalData v200.0] 🌐 Loading initial data from Supabase...');
+      console.log('[GlobalData v289.0] 🌐 Loading initial data from Supabase...');
 
-      // ✅ CRITICAL: Only load first 100 locales for initial display
       const [
         localesResult,
         postsResult,
@@ -334,7 +309,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           .eq('activo', true)
           .order('destacado', { ascending: false })
           .order('rating', { ascending: false })
-          .limit(100), // Only load first 100 for initial display
+          .limit(100),
         
         supabase
           .from('posts')
@@ -367,7 +342,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       if (!localesResult.error && localesResult.data) {
         const transformedLocales = localesResult.data.map(transformarLocal);
         setLocales(transformedLocales);
-        console.log('[GlobalData v200.0] ✅ Initial locales loaded:', transformedLocales.length);
+        console.log('[GlobalData v289.0] ✅ Initial locales loaded:', transformedLocales.length);
       }
 
       if (!postsResult.error && postsResult.data) {
@@ -382,18 +357,17 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
             : post.autor,
         }));
         setPosts(mappedPosts);
-        console.log('[GlobalData v200.0] ✅ Posts loaded:', mappedPosts.length);
-        preloadImages(mappedPosts);
+        console.log('[GlobalData v289.0] ✅ Posts loaded:', mappedPosts.length);
       }
 
       if (!eventosResult.error && eventosResult.data) {
         setEventos(eventosResult.data);
-        console.log('[GlobalData v200.0] ✅ Eventos loaded:', eventosResult.data.length);
+        console.log('[GlobalData v289.0] ✅ Eventos loaded:', eventosResult.data.length);
       }
 
       if (!ofertasResult.error && ofertasResult.data) {
         setOfertas(ofertasResult.data);
-        console.log('[GlobalData v200.0] ✅ Ofertas loaded:', ofertasResult.data.length);
+        console.log('[GlobalData v289.0] ✅ Ofertas loaded:', ofertasResult.data.length);
       }
 
       await saveToCache({
@@ -414,15 +388,14 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
       setLastUpdate(Date.now());
       setHasLoadedOnce(true);
-      console.log('[GlobalData v200.0] ✅ Initial data loaded and cached');
+      console.log('[GlobalData v289.0] ✅ Initial data loaded and cached');
     } catch (error) {
-      console.error('[GlobalData v200.0] Error loading from Supabase:', error);
+      console.error('[GlobalData v289.0] Error loading from Supabase:', error);
     }
-  }, [transformarLocal, saveToCache, preloadImages]);
+  }, [transformarLocal, saveToCache]);
 
   const refreshData = useCallback(async (silent: boolean = false) => {
     if (isLoadingRef.current) {
-      console.log('[GlobalData v200.0] Already loading, skipping...');
       return;
     }
 
@@ -442,10 +415,8 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     }
   }, [loadFromSupabase]);
 
-  // ✅ v200.0: Disabled prefetching to prevent flickering
   const prefetchNextPage = useCallback((currentPage: number, pageSize: number) => {
-    // Disabled to prevent performance issues and flickering
-    // Images will load on-demand
+    // Disabled to prevent performance issues
   }, []);
 
   const updateLocal = useCallback((localId: string, updates: Partial<Local>) => {
@@ -462,86 +433,30 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initialize = async () => {
-      console.log('[GlobalData v200.0] 🚀 Initializing...');
+      console.log('[GlobalData v289.0] 🚀 Initializing...');
       
+      // ✅ CRITICAL FIX v289.0: ONLY load from cache on startup
+      // Do NOT load from Supabase automatically
+      // This eliminates 4 simultaneous DB queries that block Android UI
       const hasCache = await loadFromCache();
       
       if (hasCache) {
-        console.log('[GlobalData v200.0] ⚡⚡⚡ INSTANT START with cached data');
+        console.log('[GlobalData v289.0] ⚡⚡⚡ INSTANT START with cached data');
         setHasLoadedOnce(true);
-        
-        // ✅ FIX v200.0: Disabled automatic background refresh to prevent flickering
-        // Users can manually refresh by pulling down
-        // setTimeout(() => {
-        //   console.log('[GlobalData v200.0] 🔄 Background refresh...');
-        //   refreshData(true);
-        // }, 100);
+        // ✅ NO automatic background refresh - user can pull-to-refresh
       } else {
-        console.log('[GlobalData v200.0] 📡 No cache, loading from Supabase...');
-        await loadFromSupabase();
+        console.log('[GlobalData v289.0] 📦 No cache available - data will load on-demand');
+        // ✅ Don't load from Supabase automatically
+        // Data will load when user navigates to specific tabs
       }
     };
 
     initialize();
 
-    // ✅ FIX v200.0: Disabled background refresh to prevent flickering
-    // Users can manually refresh by pulling down
-    // backgroundRefreshTimer.current = setInterval(() => {
-    //   console.log('[GlobalData v200.0] ⏰ Background refresh triggered');
-    //   refreshData(true);
-    // }, BACKGROUND_REFRESH_INTERVAL);
-
     return () => {
       isMountedRef.current = false;
-      if (backgroundRefreshTimer.current) {
-        clearInterval(backgroundRefreshTimer.current);
-      }
     };
-  }, [loadFromCache, loadFromSupabase, refreshData]);
-
-  // ✅ FIX v200.0: Disabled real-time subscriptions to prevent flickering
-  // Real-time updates were causing constant re-renders
-  // Users can manually refresh by pulling down
-  // useEffect(() => {
-  //   console.log('[GlobalData v200.0] 📡 Setting up real-time subscriptions...');
-
-  //   const postsChannel = supabase
-  //     .channel('global-posts-changes')
-  //     .on(
-  //       'postgres_changes',
-  //       {
-  //         event: '*',
-  //         schema: 'public',
-  //         table: 'posts',
-  //       },
-  //       () => {
-  //         console.log('[GlobalData v200.0] 🔄 Posts changed, refreshing...');
-  //         refreshData(true);
-  //       }
-  //     )
-  //     .subscribe();
-
-  //   const likesChannel = supabase
-  //     .channel('global-likes-changes')
-  //     .on(
-  //       'postgres_changes',
-  //       {
-  //         event: '*',
-  //         schema: 'public',
-  //         table: 'likes',
-  //       },
-  //       () => {
-  //         console.log('[GlobalData v200.0] 🔄 Likes changed, refreshing posts...');
-  //         refreshData(true);
-  //       }
-  //     )
-  //     .subscribe();
-
-  //   return () => {
-  //     supabase.removeChannel(postsChannel);
-  //     supabase.removeChannel(likesChannel);
-  //   };
-  // }, [refreshData]);
+  }, [loadFromCache]);
 
   const value: GlobalDataContextType = React.useMemo(() => ({
     locales,
