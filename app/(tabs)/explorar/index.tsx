@@ -498,7 +498,10 @@ export default function ExplorarScreen() {
   }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, isLoadingMore, locationReady]);
 
   // ✅ FIX v240.0: Filter using debounced query
+  // ✅ FIX v285.0: Filter duplicates by unique ID (keep only first occurrence)
   const filteredLocales = useMemo(() => {
+    console.log('[Explorar v285.0] 🔍 Filtering locales - total loaded:', allLoadedLocales.length);
+    
     const query = debouncedQuery.toLowerCase().trim();
     
     let filtered = allLoadedLocales;
@@ -551,7 +554,15 @@ export default function ExplorarScreen() {
       });
     }
 
-    return filtered;
+    // ✅ FIX v285.0: Remove duplicates by ID - keep only first occurrence
+    const uniqueLocales = filtered.filter((item, index, self) =>
+      // Only return true if this is the first time we see this ID
+      index === self.findIndex((t) => t.id === item.id)
+    );
+
+    console.log('[Explorar v285.0] ✅ Filtered:', filtered.length, '→ Unique:', uniqueLocales.length, '(removed', filtered.length - uniqueLocales.length, 'duplicates)');
+
+    return uniqueLocales;
   }, [allLoadedLocales, debouncedQuery, selectedCategory]);
 
   useEffect(() => {
