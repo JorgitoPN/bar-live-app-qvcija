@@ -1,12 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -36,10 +35,12 @@ const PROVINCIAS = [
 ];
 
 /**
- * ✅ ANDROID FULL-SCREEN SIMPLE FILTERS PAGE
+ * ✅ ANDROID FULL-SCREEN SIMPLE FILTERS PAGE v280.0
  * 
  * This is a full-screen page for Android that replaces the modal in Explorar.
  * Provides proper scaling and full-height display on Android.
+ * 
+ * NOTE: This file has a fallback sibling (filtros-simples.tsx) for iOS/Web compatibility.
  */
 export default function FiltrosSimplesScreen() {
   const router = useRouter();

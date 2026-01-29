@@ -42,8 +42,8 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ FIX v279.0: REDUCED margin to ABSOLUTE MINIMUM (0px) for tightest spacing
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 280;
+// ✅ FIX v280.0: REDUCED margin by HALF for tighter spacing between header and first card
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 210 : 270;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -71,16 +71,17 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v279.0 - ABSOLUTE MINIMAL MARGIN + ANDROID UI CLEANUP
+ * ✅ FAVORITOS SCREEN v280.0 - REDUCED MARGIN BY HALF + ANDROID UI CLEANUP
  * 
- * NEW FIXES v279.0:
- * - ✅ FIXED: REDUCED margin to ABSOLUTE MINIMUM (0px) for tightest spacing between header and first card
+ * NEW FIXES v280.0:
+ * - ✅ FIXED: REDUCED margin by HALF (from 16px to 8px paddingTop) for tighter spacing between header and first card
+ * - ✅ FIXED: HEADER_MAX_HEIGHT reduced by 10px on both platforms for closer header-to-content spacing
+ * 
+ * Previous fixes maintained (v279.0):
  * - ✅ FIXED: Category filter button text sizes adjusted with scaleFontSize for consistency
  * - ✅ FIXED: Removed ALL white shadows/boxes on Android (elevation: 0 for category buttons)
  * - ✅ FIXED: Platform-specific shadow styling (iOS shadows, Android minimal/no elevation)
  * - ✅ FIXED: Clean visual appearance on Android without white overlays
- * 
- * Previous features maintained (v274.0):
  * - ✅ Category icon buttons use EXACT same sizes as Explorar page (36-40px)
  * - ✅ Using compact category button style with smaller labels (11-12px)
  * - ✅ ANIMATED HEADER: Same collapsing behavior as Explorar page
@@ -944,9 +945,9 @@ export default function FavoritosScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            // ✅ FIX v279.0: REDUCED margin to ABSOLUTE MINIMUM (0px) for tightest spacing
+            // ✅ FIX v280.0: REDUCED margin by HALF for tighter spacing between header and first card
             marginTop: HEADER_MAX_HEIGHT,
-            paddingTop: 16,
+            paddingTop: 8,
             paddingBottom: getContentBottomPadding(100),
           },
         ]}
