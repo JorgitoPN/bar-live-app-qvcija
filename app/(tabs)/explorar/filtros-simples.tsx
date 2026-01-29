@@ -1,16 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
 const CATEGORIAS = [
@@ -35,16 +37,11 @@ const PROVINCIAS = [
 ];
 
 /**
- * ✅ IOS FULL-SCREEN SIMPLE FILTERS PAGE v293.0
+ * ✅ IOS/WEB FALLBACK FOR SIMPLE FILTERS PAGE v280.0
  * 
- * NEW FIXES v293.0:
- * - ✅ IOS: Changed from modal to full-screen page (same as Android)
- * - ✅ NAVIGATION: Proper Stack header with back button
- * - ✅ STATE SYNC: Receives and returns filter selections via navigation params
- * - ✅ UX: Consistent full-screen experience across iOS and Android
- * 
- * This is now a full-screen page for iOS that matches the Android experience.
- * Provides proper scaling and full-height display on iOS.
+ * This is the fallback file for iOS/Web platforms.
+ * On Android, the .android.tsx version will be used instead.
+ * This provides a modal-based interface for iOS/Web.
  */
 export default function FiltrosSimplesScreen() {
   const router = useRouter();
@@ -53,154 +50,179 @@ export default function FiltrosSimplesScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>(params.categoria as string || 'todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState<string>(params.provincia as string || 'Todas');
 
-  useEffect(() => {
-    console.log('[FiltrosSimples iOS v293.0] 📱 Page opened with params:', params);
-  }, [params]);
-
   const handleAplicar = () => {
-    console.log('[FiltrosSimples iOS v293.0] ✅ Applying filters:', { selectedCategory, provinciaSeleccionada });
+    console.log('[FiltrosSimples iOS/Web] ✅ Applying filters:', { selectedCategory, provinciaSeleccionada });
     router.back();
   };
 
   const handleLimpiar = () => {
-    console.log('[FiltrosSimples iOS v293.0] 🧹 Clearing filters');
+    console.log('[FiltrosSimples iOS/Web] 🧹 Clearing filters');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen 
-        options={{
-          headerShown: true,
-          title: 'Filtros',
-          headerStyle: {
-            backgroundColor: colors.headerGradientStart,
-          },
-          headerTintColor: colors.headerText,
-          headerTitleStyle: {
-            fontWeight: '700',
-            fontSize: scaleFontSize(18),
-          },
-          headerRight: () => (
-            <TouchableOpacity onPress={handleLimpiar} style={styles.headerClearButton}>
-              <Text style={[styles.headerClearText, { fontSize: scaleFontSize(13) }]}>Limpiar</Text>
-            </TouchableOpacity>
-          ),
-        }}
-      />
-
-      <ScrollView 
-        style={styles.content}
-        contentContainerStyle={[styles.contentContainer, { paddingBottom: getContentBottomPadding(100) }]}
-        showsVerticalScrollIndicator={false}
+    <Modal
+      visible={true}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => router.back()}
+    >
+      <Pressable 
+        style={styles.modalOverlay}
+        onPress={() => router.back()}
       >
-        <View style={styles.filterSection}>
-          <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Categoría de Local</Text>
-          <View style={styles.categoriesGrid}>
-            {CATEGORIAS.map((categoria) => (
-              <TouchableOpacity
-                key={categoria.id}
-                style={[
-                  styles.categoryFilterItem,
-                  selectedCategory === categoria.id && styles.categoryFilterItemActive,
-                ]}
-                onPress={() => {
-                  console.log('[FiltrosSimples iOS v293.0] 👆 Usuario seleccionó categoría:', categoria.id);
-                  setSelectedCategory(categoria.id);
-                }}
-                activeOpacity={0.7}
-              >
-                <IconSymbol
-                  ios_icon_name={categoria.iosIcon}
-                  android_material_icon_name={categoria.androidIcon}
-                  size={scaleIconSize(20)}
-                  color={selectedCategory === categoria.id ? colors.white : colors.primary}
-                />
-                <Text
-                  style={[
-                    styles.categoryFilterText,
-                    { fontSize: scaleFontSize(14) },
-                    selectedCategory === categoria.id && styles.categoryFilterTextActive,
-                  ]}
-                >
-                  {categoria.nombre}
-                </Text>
+        <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Filtros</Text>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity onPress={handleLimpiar} style={styles.clearButton}>
+                <Text style={[styles.limpiarText, { fontSize: scaleFontSize(13) }]}>Limpiar</Text>
               </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.filterSection}>
-          <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Provincia</Text>
-          <View style={styles.provinciasListContainer}>
-            {PROVINCIAS.map((provincia) => (
-              <TouchableOpacity
-                key={provincia}
-                style={[
-                  styles.provinciaItem,
-                  provinciaSeleccionada === provincia && styles.provinciaItemActive,
-                ]}
-                onPress={() => {
-                  console.log('[FiltrosSimples iOS v293.0] 👆 Usuario seleccionó provincia:', provincia);
-                  setProvinciaSeleccionada(provincia);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.provinciaText,
-                    { fontSize: scaleFontSize(15) },
-                    provinciaSeleccionada === provincia && styles.provinciaTextActive,
-                  ]}
-                >
-                  {provincia}
-                </Text>
+              <TouchableOpacity onPress={() => router.back()}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(24)} color={colors.text} />
               </TouchableOpacity>
-            ))}
+            </View>
           </View>
-        </View>
-      </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.aplicarButton} onPress={handleAplicar}>
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.aplicarGradient}
+          <ScrollView 
+            style={styles.modalScrollView}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={scaleIconSize(20)} color={colors.headerText} />
-            <Text style={[styles.aplicarText, { fontSize: scaleFontSize(15) }]}>Aplicar filtros</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    </View>
+            <View style={styles.filterSection}>
+              <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Categoría de Local</Text>
+              <View style={styles.categoriesGrid}>
+                {CATEGORIAS.map((categoria) => (
+                  <TouchableOpacity
+                    key={categoria.id}
+                    style={[
+                      styles.categoryFilterItem,
+                      selectedCategory === categoria.id && styles.categoryFilterItemActive,
+                    ]}
+                    onPress={() => {
+                      console.log('[FiltrosSimples iOS/Web] 👆 Usuario seleccionó categoría:', categoria.id);
+                      setSelectedCategory(categoria.id);
+                    }}
+                  >
+                    <IconSymbol
+                      ios_icon_name={categoria.iosIcon}
+                      android_material_icon_name={categoria.androidIcon}
+                      size={scaleIconSize(20)}
+                      color={selectedCategory === categoria.id ? colors.white : colors.primary}
+                    />
+                    <Text
+                      style={[
+                        styles.categoryFilterText,
+                        { fontSize: scaleFontSize(14) },
+                        selectedCategory === categoria.id && styles.categoryFilterTextActive,
+                      ]}
+                    >
+                      {categoria.nombre}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.filterSection}>
+              <Text style={[styles.filterTitle, { fontSize: scaleFontSize(16) }]}>Provincia</Text>
+              <View style={styles.provinciasListContainer}>
+                {PROVINCIAS.map((provincia) => (
+                  <TouchableOpacity
+                    key={provincia}
+                    style={[
+                      styles.provinciaItem,
+                      provinciaSeleccionada === provincia && styles.provinciaItemActive,
+                    ]}
+                    onPress={() => setProvinciaSeleccionada(provincia)}
+                  >
+                    <Text
+                      style={[
+                        styles.provinciaText,
+                        { fontSize: scaleFontSize(15) },
+                        provinciaSeleccionada === provincia && styles.provinciaTextActive,
+                      ]}
+                    >
+                      {provincia}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.limpiarButton}
+              onPress={handleLimpiar}
+            >
+              <Text style={[styles.limpiarButtonText, { fontSize: scaleFontSize(16) }]}>Limpiar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.aplicarButtonModal}
+              onPress={handleAplicar}
+            >
+              <LinearGradient
+                colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                style={styles.aplicarButtonGradient}
+              >
+                <Text style={[styles.aplicarButtonText, { fontSize: scaleFontSize(16) }]}>Aplicar</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  modalOverlay: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
-  headerClearButton: {
+  modalContent: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  modalTitle: {
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  clearButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginRight: 8,
+    backgroundColor: colors.background,
   },
-  headerClearText: {
+  limpiarText: {
     fontWeight: '600',
-    color: colors.headerText,
+    color: colors.text,
   },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+  modalScrollView: {
+    maxHeight: '100%',
+    paddingHorizontal: 20,
   },
   filterSection: {
     marginTop: 20,
@@ -223,7 +245,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     minWidth: '47%',
@@ -246,13 +268,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    backgroundColor: colors.background,
   },
   provinciaItemActive: {
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   provinciaText: {
     color: colors.text,
@@ -261,30 +280,39 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '600',
   },
-  footer: {
-    padding: 16,
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
     backgroundColor: colors.cardBackground,
   },
-  aplicarButton: {
+  limpiarButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  limpiarButtonText: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  aplicarButtonModal: {
+    flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  aplicarGradient: {
+  aplicarButtonGradient: {
     paddingVertical: 14,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
   },
-  aplicarText: {
-    fontWeight: '700',
-    color: colors.headerText,
+  aplicarButtonText: {
+    fontWeight: '600',
+    color: colors.white,
   },
 });
