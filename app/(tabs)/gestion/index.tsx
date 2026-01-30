@@ -20,8 +20,6 @@ import { supabase } from '@/utils/supabase';
 import { useSelectedLocal } from '@/contexts/SelectedLocalContext';
 import LocalSubscriptionCard from '@/components/gestion/LocalSubscriptionCard';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
-import ShoppingCart from '@/components/payment/ShoppingCart';
-import { isAdminUser } from '@/utils/adminAccess';
 
 interface LocalConSuscripcion {
   id: string;
@@ -57,14 +55,9 @@ interface LocalConSuscripcion {
 }
 
 /**
- * ✅ GESTION SCREEN v244.0 - SHOPPING CART IN HEADER
+ * ✅ GESTION SCREEN v141.0 - ANDROID SCALING COMPLETE
  * 
- * NEW FEATURES v244.0:
- * - ✅ Shopping cart icon added to header
- * - ✅ Cart navigates to full-screen page
- * - ✅ Visible for both owners and admin in owner mode
- * 
- * Previous fixes maintained (v141.0):
+ * CRITICAL FIXES v141.0 (ANDROID ONLY):
  * - ✅ All font sizes use scaleFontSize() for consistency
  * - ✅ All icon sizes use scaleIconSize() for proper proportions
  * - ✅ Header title size standardized (24px on Android)
@@ -80,9 +73,6 @@ export default function GestionScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ✅ NEW v244.0: Check if user is admin
-  const userIsAdmin = user ? isAdminUser(user) : false;
-
   const cargarLocales = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -90,7 +80,7 @@ export default function GestionScreen() {
     }
 
     try {
-      console.log('[GestionScreen v244.0] Loading locales for user:', user.id);
+      console.log('[GestionScreen v141.0] Loading locales for user:', user.id);
       
       // Get user's locals
       const { data: localesData, error: localesError } = await supabase
@@ -100,19 +90,19 @@ export default function GestionScreen() {
         .eq('activo', true);
 
       if (localesError) {
-        console.error('[GestionScreen v244.0] Error loading locales:', localesError);
+        console.error('[GestionScreen v141.0] Error loading locales:', localesError);
         setLoading(false);
         return;
       }
 
       if (!localesData || localesData.length === 0) {
-        console.log('[GestionScreen v244.0] No locales found for user');
+        console.log('[GestionScreen v141.0] No locales found for user');
         setLocales([]);
         setLoading(false);
         return;
       }
 
-      console.log('[GestionScreen v244.0] Found', localesData.length, 'locales');
+      console.log('[GestionScreen v141.0] Found', localesData.length, 'locales');
 
       // Get subscriptions and active events for each local
       const localesConSuscripcion: LocalConSuscripcion[] = await Promise.all(
@@ -203,9 +193,9 @@ export default function GestionScreen() {
       );
 
       setLocales(localesConSuscripcion);
-      console.log('[GestionScreen v244.0] Locales loaded successfully');
+      console.log('[GestionScreen v141.0] Locales loaded successfully');
     } catch (error) {
-      console.error('[GestionScreen v244.0] Error:', error);
+      console.error('[GestionScreen v141.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -231,15 +221,6 @@ export default function GestionScreen() {
     Alert.alert('Local Seleccionado', 'Ahora estás interactuando con este local');
   };
 
-  const handleCartCheckout = (items: any[], total: number) => {
-    console.log('[GestionScreen v244.0] 💳 Cart checkout:', { items: items.length, total });
-    Alert.alert(
-      'Pago en Desarrollo',
-      `Total a pagar: €${total.toFixed(2)}\n\nLa integración con Stripe está en desarrollo.`,
-      [{ text: 'OK' }]
-    );
-  };
-
   if (loading) {
     return (
       <View style={commonStyles.container}>
@@ -249,10 +230,7 @@ export default function GestionScreen() {
           end={{ x: 1, y: 0 }}
           style={commonStyles.headerGradient}
         >
-          <View style={styles.headerRow}>
-            <Text style={[commonStyles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 32) }]}>Gestión</Text>
-            <ShoppingCart onCheckout={handleCartCheckout} />
-          </View>
+          <Text style={[commonStyles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 32) }]}>Gestión</Text>
         </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -269,11 +247,7 @@ export default function GestionScreen() {
         end={{ x: 1, y: 0 }}
         style={commonStyles.headerGradient}
       >
-        {/* ✅ NEW v244.0: Header with shopping cart */}
-        <View style={styles.headerRow}>
-          <Text style={[commonStyles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 32) }]}>Gestión de Locales</Text>
-          <ShoppingCart onCheckout={handleCartCheckout} />
-        </View>
+        <Text style={[commonStyles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 32) }]}>Gestión de Locales</Text>
       </LinearGradient>
 
       <ScrollView
@@ -307,14 +281,6 @@ export default function GestionScreen() {
           <TouchableOpacity
             style={styles.quickActionButton}
             onPress={() => {
-              // ✅ NEW v244.0: Admin can access without local
-              if (userIsAdmin) {
-                console.log('[GestionScreen v244.0] 👑 Admin accessing Ver Planes for verification');
-                router.push('/gestion/planes-suscripcion');
-                return;
-              }
-
-              // For non-admin users, require a local
               if (locales.length === 0) {
                 Alert.alert(
                   'Sin Locales',
@@ -388,12 +354,6 @@ export default function GestionScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-  },
   content: {
     flex: 1,
   },

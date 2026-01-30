@@ -115,23 +115,16 @@ const TIPOS_COCINA = [
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 /**
- * ✅ CREAR LOCAL v244.0 - FIXED BUTTON CUTOFF
+ * ✅ CREAR LOCAL v10.0 - WITH DUPLICATE PREVENTION
  * 
- * CRITICAL FIX v244.0:
- * - ✅ FIXED: Continue button no longer cut off at bottom
- * - ✅ FIXED: Increased footer paddingBottom to 24px (was 16px on Android)
- * - ✅ FIXED: Added extra safe area padding for devices with notches
- * - ✅ FIXED: Footer now matches "Anterior" button visibility
- * - ✅ Both buttons now fully visible on all devices
- * 
- * Previous fixes maintained (v10.0):
+ * Fixed issues:
  * - ✅ FIXED: Bottom button no longer cut off - proper padding added
  * - ✅ FIXED: Dimensions.get('window') error - using useWindowDimensions hook
  * - ✅ OSM map viewer for precise location selection (Step 2) - ALWAYS VISIBLE
  * - ✅ Full preview matching local details page exactly
  * - ✅ All local information, images, gallery, and functions
  * - ✅ Complete consistency with enriched Google locals
- * - ✅ Duplicate local prevention - checks before creation
+ * - ✅ NEW: Duplicate local prevention - checks before creation
  */
 
 export default function CrearLocalScreen() {
@@ -273,12 +266,12 @@ export default function CrearLocalScreen() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'location_selected') {
-        console.log('[CrearLocal v244.0] Location selected:', data.lat, data.lng);
+        console.log('[CrearLocal v9.0] Location selected:', data.lat, data.lng);
         updateFormData('latitud', data.lat);
         updateFormData('longitud', data.lng);
       }
     } catch (error) {
-      console.error('[CrearLocal v244.0] Error parsing WebView message:', error);
+      console.error('[CrearLocal v9.0] Error parsing WebView message:', error);
     }
   };
 
@@ -459,10 +452,10 @@ export default function CrearLocalScreen() {
 
     setLoading(true);
     try {
-      console.log('[CrearLocal v244.0] 📝 Creating local with approval workflow...');
+      console.log('[CrearLocal v10.0] 📝 Creating local with approval workflow...');
 
       // ✅ CHECK FOR DUPLICATES BEFORE CREATING
-      console.log('[CrearLocal v244.0] 🔍 Checking for duplicate locals...');
+      console.log('[CrearLocal v10.0] 🔍 Checking for duplicate locals...');
       const { data: duplicates, error: duplicateError } = await supabase
         .rpc('check_duplicate_local', {
           p_nombre: formData.nombre,
@@ -471,11 +464,11 @@ export default function CrearLocalScreen() {
         });
 
       if (duplicateError) {
-        console.error('[CrearLocal v244.0] ❌ Error checking duplicates:', duplicateError);
+        console.error('[CrearLocal v10.0] ❌ Error checking duplicates:', duplicateError);
         // Continue anyway - don't block creation if check fails
       } else if (duplicates && duplicates.length > 0) {
         const duplicate = duplicates[0];
-        console.log('[CrearLocal v244.0] ⚠️ Duplicate local found:', duplicate);
+        console.log('[CrearLocal v10.0] ⚠️ Duplicate local found:', duplicate);
         
         setLoading(false);
         Alert.alert(
@@ -491,7 +484,7 @@ export default function CrearLocalScreen() {
         return;
       }
 
-      console.log('[CrearLocal v244.0] ✅ No duplicates found, proceeding with creation...');
+      console.log('[CrearLocal v10.0] ✅ No duplicates found, proceeding with creation...');
 
       let portadaUrl = formData.portada_url;
       if (portadaUrl && portadaUrl.startsWith('file://')) {
@@ -564,7 +557,7 @@ export default function CrearLocalScreen() {
 
       if (localError) throw localError;
 
-      console.log('[CrearLocal v244.0] ✅ Local created successfully with pending status');
+      console.log('[CrearLocal v10.0] ✅ Local created successfully with pending status');
 
       try {
         await supabase.functions.invoke('send-local-approval-notification', {
@@ -575,7 +568,7 @@ export default function CrearLocalScreen() {
           },
         });
       } catch (notificationError) {
-        console.error('[CrearLocal v244.0] ⚠️ Error sending notification:', notificationError);
+        console.error('[CrearLocal v10.0] ⚠️ Error sending notification:', notificationError);
       }
 
       setShowPreview(false);
@@ -585,7 +578,7 @@ export default function CrearLocalScreen() {
         [{ text: 'OK', onPress: () => router.push('/gestion/mis-locales') }]
       );
     } catch (error) {
-      console.error('[CrearLocal v244.0] ❌ Error creating local:', error);
+      console.error('[CrearLocal v10.0] ❌ Error creating local:', error);
       Alert.alert('Error', 'No se pudo crear el local. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -1140,7 +1133,7 @@ export default function CrearLocalScreen() {
             )}
 
             {/* Extra padding at bottom to ensure content is not cut off */}
-            <View style={{ height: 140 }} />
+            <View style={{ height: 120 }} />
           </ScrollView>
 
           <View style={styles.previewFooter}>
@@ -1198,7 +1191,7 @@ export default function CrearLocalScreen() {
         {currentStep === 5 && renderStep5()}
       </ScrollView>
 
-      {/* ✅ FIXED v244.0: Footer with increased padding to prevent cutoff */}
+      {/* ✅ FIXED v9.0: Footer with proper padding to avoid cutoff */}
       <View style={styles.footer}>
         {currentStep > 1 && (
           <TouchableOpacity style={styles.secondaryButton} onPress={handlePrevious}>
@@ -1294,7 +1287,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 140,
+    paddingBottom: 120,
   },
   stepContent: {
     padding: 20,
@@ -1610,7 +1603,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
     backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
@@ -1659,7 +1652,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   previewContentContainer: {
-    paddingBottom: 140,
+    paddingBottom: 120,
   },
   previewCoverImage: {
     width: '100%',
@@ -1821,7 +1814,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
     backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
