@@ -13,7 +13,9 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "workbox-config.js"
+    "workbox-config.js",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ],
   "exclude": [
     "node_modules"
