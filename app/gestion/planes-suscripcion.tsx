@@ -20,6 +20,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+import { isAdminUser } from '@/utils/adminAccess';
 
 interface Plan {
   id: string;
@@ -43,9 +44,15 @@ interface Plan {
 }
 
 /**
- * ✅ PLANES DE SUSCRIPCIÓN - PLAN SELECTION WITH TRIAL
+ * ✅ PLANES DE SUSCRIPCIÓN v244.0 - ADMIN ACCESS WITHOUT LOCAL
  * 
- * Features:
+ * NEW FEATURES v244.0:
+ * - ✅ Admin can access this page without a local (for verification)
+ * - ✅ Shows admin banner when viewing without local
+ * - ✅ Prevents subscription creation if no local selected
+ * - ✅ Allows admin to see and verify all plans
+ * 
+ * Previous features maintained:
  * - Display all available plans
  * - Show trial information (30 days free)
  * - Require payment method before trial
@@ -68,6 +75,10 @@ export default function PlanesSuscripcionScreen() {
   const [acceptedAutoCharge, setAcceptedAutoCharge] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
 
+  // ✅ NEW v244.0: Check if user is admin
+  const userIsAdmin = user ? isAdminUser(user) : false;
+  const isAdminViewing = userIsAdmin && !localId;
+
   const loadPlans = useCallback(async () => {
     try {
       setLoading(true);
@@ -80,10 +91,10 @@ export default function PlanesSuscripcionScreen() {
 
       if (error) throw error;
 
-      console.log('[PlanesSuscripcion] Loaded plans:', data?.length || 0);
+      console.log('[PlanesSuscripcion v244.0] Loaded plans:', data?.length || 0);
       setPlans(data || []);
     } catch (error) {
-      console.error('[PlanesSuscripcion] Error loading plans:', error);
+      console.error('[PlanesSuscripcion v244.0] Error loading plans:', error);
       Alert.alert('Error', 'No se pudieron cargar los planes');
     } finally {
       setLoading(false);
@@ -95,6 +106,25 @@ export default function PlanesSuscripcionScreen() {
   }, [loadPlans]);
 
   const handleSelectPlan = (plan: Plan) => {
+    // ✅ NEW v244.0: Prevent subscription if admin viewing without local
+    if (isAdminViewing) {
+      Alert.alert(
+        'Modo Verificación',
+        'Estás viendo los planes en modo verificación de administrador.\n\nPara suscribirte a un plan, debes seleccionar un local primero desde "Gestión de Locales".',
+        [{ text: 'Entendido' }]
+      );
+      return;
+    }
+
+    if (!localId) {
+      Alert.alert(
+        'Local Requerido',
+        'Debes seleccionar un local para suscribirte a un plan.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     setSelectedPlan(plan);
     setAcceptedAutoCharge(false);
     setShowConfirmModal(true);
@@ -140,7 +170,7 @@ export default function PlanesSuscripcionScreen() {
       setShowConfirmModal(false);
       router.back();
     } catch (error) {
-      console.error('[PlanesSuscripcion] Error creating subscription:', error);
+      console.error('[PlanesSuscripcion v244.0] Error creating subscription:', error);
       Alert.alert('Error', 'No se pudo crear la suscripción');
     } finally {
       setSubscribing(false);
@@ -210,6 +240,26 @@ export default function PlanesSuscripcionScreen() {
       </LinearGradient>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {/* ✅ NEW v244.0: Admin verification banner */}
+        {isAdminViewing && (
+          <View style={styles.adminBanner}>
+            <IconSymbol
+              ios_icon_name="eye.fill"
+              android_material_icon_name="visibility"
+              size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+              color="#F59E0B"
+            />
+            <View style={styles.adminBannerContent}>
+              <Text style={[styles.adminBannerTitle, { fontSize: scaleFontSize(16) }]}>
+                Modo Verificación de Administrador
+              </Text>
+              <Text style={[styles.adminBannerText, { fontSize: scaleFontSize(13) }]}>
+                Estás viendo los planes disponibles. Para suscribirte, selecciona un local desde "Gestión de Locales".
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Trial Banner */}
         <View style={styles.trialBanner}>
           <IconSymbol
@@ -368,7 +418,11 @@ export default function PlanesSuscripcionScreen() {
                     onPress={() => handleSelectPlan(plan)}
                   >
                     <Text style={[styles.selectPlanButtonText, { fontSize: scaleFontSize(16) }]}>
-                      {plan.trial_habilitado ? 'Iniciar Prueba Gratis' : 'Seleccionar Plan'}
+                      {isAdminViewing 
+                        ? 'Ver Detalles' 
+                        : plan.trial_habilitado 
+                          ? 'Iniciar Prueba Gratis' 
+                          : 'Seleccionar Plan'}
                     </Text>
                     <IconSymbol
                       ios_icon_name="arrow.right.circle.fill"
@@ -431,7 +485,9 @@ export default function PlanesSuscripcionScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowConfirmModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Confirmar Suscripción</Text>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>
+                {isAdminViewing ? 'Detalles del Plan' : 'Confirmar Suscripción'}
+              </Text>
               <TouchableOpacity onPress={() => setShowConfirmModal(false)}>
                 <IconSymbol
                   ios_icon_name="xmark.circle.fill"
@@ -481,25 +537,27 @@ export default function PlanesSuscripcionScreen() {
                 )}
 
                 {/* Payment Method Requirement */}
-                <View style={styles.requirementBox}>
-                  <IconSymbol
-                    ios_icon_name="creditcard.fill"
-                    android_material_icon_name="payment"
-                    size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
-                    color={colors.primary}
-                  />
-                  <View style={styles.requirementBoxContent}>
-                    <Text style={[styles.requirementBoxTitle, { fontSize: scaleFontSize(15) }]}>
-                      Método de Pago Requerido
-                    </Text>
-                    <Text style={[styles.requirementBoxText, { fontSize: scaleFontSize(13) }]}>
-                      Necesitarás agregar una tarjeta válida para activar la prueba gratuita. No se realizará ningún cargo hasta que finalice el período de prueba.
-                    </Text>
+                {!isAdminViewing && (
+                  <View style={styles.requirementBox}>
+                    <IconSymbol
+                      ios_icon_name="creditcard.fill"
+                      android_material_icon_name="payment"
+                      size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+                      color={colors.primary}
+                    />
+                    <View style={styles.requirementBoxContent}>
+                      <Text style={[styles.requirementBoxTitle, { fontSize: scaleFontSize(15) }]}>
+                        Método de Pago Requerido
+                      </Text>
+                      <Text style={[styles.requirementBoxText, { fontSize: scaleFontSize(13) }]}>
+                        Necesitarás agregar una tarjeta válida para activar la prueba gratuita. No se realizará ningún cargo hasta que finalice el período de prueba.
+                      </Text>
+                    </View>
                   </View>
-                </View>
+                )}
 
                 {/* Auto-Charge Acceptance (Mandatory Checkbox) */}
-                {selectedPlan.trial_habilitado && (
+                {selectedPlan.trial_habilitado && !isAdminViewing && (
                   <View style={styles.acceptanceBox}>
                     <TouchableOpacity
                       style={styles.checkboxRow}
@@ -576,34 +634,44 @@ export default function PlanesSuscripcionScreen() {
               </ScrollView>
             )}
 
-            <TouchableOpacity
-              style={[
-                styles.modalPrimaryButton,
-                (subscribing || (selectedPlan?.trial_habilitado && !acceptedAutoCharge)) && styles.modalPrimaryButtonDisabled
-              ]}
-              onPress={handleConfirmSubscription}
-              disabled={subscribing || (selectedPlan?.trial_habilitado && !acceptedAutoCharge)}
-            >
-              {subscribing ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <>
-                  <IconSymbol
-                    ios_icon_name="checkmark.circle.fill"
-                    android_material_icon_name="check_circle"
-                    size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
-                    color={colors.white}
-                  />
-                  <Text style={[styles.modalPrimaryButtonText, { fontSize: scaleFontSize(16) }]}>
-                    {selectedPlan?.trial_habilitado ? 'Iniciar Prueba Gratis' : 'Confirmar Suscripción'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {!isAdminViewing && (
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.modalPrimaryButton,
+                    (subscribing || (selectedPlan?.trial_habilitado && !acceptedAutoCharge)) && styles.modalPrimaryButtonDisabled
+                  ]}
+                  onPress={handleConfirmSubscription}
+                  disabled={subscribing || (selectedPlan?.trial_habilitado && !acceptedAutoCharge)}
+                >
+                  {subscribing ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <>
+                      <IconSymbol
+                        ios_icon_name="checkmark.circle.fill"
+                        android_material_icon_name="check_circle"
+                        size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                        color={colors.white}
+                      />
+                      <Text style={[styles.modalPrimaryButtonText, { fontSize: scaleFontSize(16) }]}>
+                        {selectedPlan?.trial_habilitado ? 'Iniciar Prueba Gratis' : 'Confirmar Suscripción'}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
 
-            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowConfirmModal(false)}>
-              <Text style={[styles.modalCancelText, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowConfirmModal(false)}>
+                  <Text style={[styles.modalCancelText, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {isAdminViewing && (
+              <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowConfirmModal(false)}>
+                <Text style={[styles.modalCancelText, { fontSize: scaleFontSize(16) }]}>Cerrar</Text>
+              </TouchableOpacity>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -617,7 +685,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
@@ -655,6 +723,29 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     color: colors.textSecondary,
+  },
+  adminBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  adminBannerContent: {
+    flex: 1,
+  },
+  adminBannerTitle: {
+    fontWeight: 'bold',
+    color: '#92400E',
+    marginBottom: 6,
+  },
+  adminBannerText: {
+    color: '#92400E',
+    lineHeight: 18,
   },
   trialBanner: {
     flexDirection: 'row',
