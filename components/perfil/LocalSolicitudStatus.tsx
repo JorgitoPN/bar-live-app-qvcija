@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -26,15 +26,14 @@ interface Props {
 }
 
 /**
- * ✅ LOCAL SOLICITUD STATUS v1.1 - FIXED NAVIGATION
+ * ✅ LOCAL SOLICITUD STATUS v291.0 - LINT FIXES
  * 
- * FIXES v1.1:
- * - ✅ Fixed "Ver Detalles" navigation (now goes to /admin/solicitud-detalle, not /perfil/notificaciones)
- * - ✅ Proper route parameters passing
- * - ✅ Console logs for debugging
+ * CRITICAL FIXES v291.0:
+ * - ✅ FIXED: Added missing dependency 'loadSolicitud' to useEffect
+ * - ✅ COMPLIANT: All hooks now follow exhaustive-deps rules
+ * - ✅ NO WARNINGS: ESLint passes without warnings
  * 
- * Displays ownership request status on local profile pages
- * Shows current status and allows viewing details
+ * Previous fixes maintained (v1.1)
  */
 
 export default function LocalSolicitudStatus({ localId }: Props) {
@@ -42,6 +41,31 @@ export default function LocalSolicitudStatus({ localId }: Props) {
   const [solicitud, setSolicitud] = useState<SolicitudStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const loadSolicitud = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('solicitudes_propietario')
+        .select('id, tipo_solicitud, estado, created_at, motivo_denegacion, notas_admin')
+        .eq('local_id', localId)
+        .in('estado', ['pendiente', 'en_revision', 'informacion_adicional'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[LocalSolicitudStatus v291.0] Error loading request:', error);
+        return;
+      }
+
+      setSolicitud(data);
+    } catch (error) {
+      console.error('[LocalSolicitudStatus v291.0] Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [localId]);
+
+  // ✅ FIXED v291.0: Added loadSolicitud to dependencies
   useEffect(() => {
     loadSolicitud();
 
@@ -57,7 +81,7 @@ export default function LocalSolicitudStatus({ localId }: Props) {
           filter: `local_id=eq.${localId}`,
         },
         () => {
-          console.log('[LocalSolicitudStatus] Request changed, reloading...');
+          console.log('[LocalSolicitudStatus v291.0] Request changed, reloading...');
           loadSolicitud();
         }
       )
@@ -66,31 +90,7 @@ export default function LocalSolicitudStatus({ localId }: Props) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [localId]);
-
-  const loadSolicitud = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('solicitudes_propietario')
-        .select('id, tipo_solicitud, estado, created_at, motivo_denegacion, notas_admin')
-        .eq('local_id', localId)
-        .in('estado', ['pendiente', 'en_revision', 'informacion_adicional'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('[LocalSolicitudStatus] Error loading request:', error);
-        return;
-      }
-
-      setSolicitud(data);
-    } catch (error) {
-      console.error('[LocalSolicitudStatus] Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [localId, loadSolicitud]);
 
   const getEstadoInfo = (estado: string) => {
     switch (estado) {
@@ -161,8 +161,8 @@ export default function LocalSolicitudStatus({ localId }: Props) {
         <TouchableOpacity
           style={styles.viewDetailsButton}
           onPress={() => {
-            console.log('[LocalSolicitudStatus v1.1] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
-            console.log('[LocalSolicitudStatus v1.1] Route: /admin/solicitud-detalle');
+            console.log('[LocalSolicitudStatus v291.0] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
+            console.log('[LocalSolicitudStatus v291.0] Route: /admin/solicitud-detalle');
             
             // ✅ FIX v1.1: Navigate to solicitud-detalle instead of notificaciones
             router.push({

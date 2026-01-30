@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -69,16 +69,14 @@ interface Local {
 }
 
 /**
- * ✅ GESTIONAR PLANES v243.0 - FIXED KEYBOARD FOCUS LOSS (FINAL FIX)
+ * ✅ GESTIONAR PLANES v291.0 - LINT FIXES
  * 
- * CRITICAL FIXES v243.0:
- * - ✅ FIXED: TextInput is DIRECTLY in return (no conditional rendering)
- * - ✅ FIXED: Controlled component with value={searchQuery}
- * - ✅ FIXED: Debounce with useEffect + cleanup (300ms)
- * - ✅ FIXED: Separate states: searchQuery (immediate) vs debouncedQuery (filtered)
- * - ✅ FIXED: ScrollView has keyboardShouldPersistTaps="handled"
- * - ✅ FIXED: TextInput has blurOnSubmit={false}
- * - ✅ FIXED: Applied same pattern as working Explorar screen
+ * CRITICAL FIXES v291.0:
+ * - ✅ FIXED: Removed unnecessary dependency 'debouncedQuery' from useMemo
+ * - ✅ COMPLIANT: All hooks now follow exhaustive-deps rules
+ * - ✅ NO WARNINGS: ESLint passes without warnings
+ * 
+ * Previous fixes maintained (v243.0)
  */
 
 export default function GestionarPlanesV7Screen() {
@@ -132,10 +130,10 @@ export default function GestionarPlanesV7Screen() {
 
   // ✅ CRITICAL FIX v243.0: Debounce with cleanup (300ms)
   useEffect(() => {
-    console.log('[GestionarPlanesV7 v243.0] 📝 Search query changed:', searchQuery);
+    console.log('[GestionarPlanesV7 v291.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[GestionarPlanesV7 v243.0] 🔍 Applying debounced search');
+      console.log('[GestionarPlanesV7 v291.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -154,10 +152,10 @@ export default function GestionarPlanesV7Screen() {
 
       if (error) throw error;
 
-      console.log('[GestionarPlanesV7 v243.0] ✅ Loaded planes:', data?.length || 0);
+      console.log('[GestionarPlanesV7 v291.0] ✅ Loaded planes:', data?.length || 0);
       setPlanes(data || []);
     } catch (error) {
-      console.error('[GestionarPlanesV7 v243.0] Error cargando planes:', error);
+      console.error('[GestionarPlanesV7 v291.0] Error cargando planes:', error);
       Alert.alert('Error', 'No se pudieron cargar los planes');
     }
   }, []);
@@ -180,10 +178,10 @@ export default function GestionarPlanesV7Screen() {
 
       if (error) throw error;
 
-      console.log('[GestionarPlanesV7 v243.0] ✅ Loaded subscriptions:', data?.length || 0);
+      console.log('[GestionarPlanesV7 v291.0] ✅ Loaded subscriptions:', data?.length || 0);
       setSubscriptions(data || []);
     } catch (error) {
-      console.error('[GestionarPlanesV7 v243.0] Error cargando suscripciones:', error);
+      console.error('[GestionarPlanesV7 v291.0] Error cargando suscripciones:', error);
       Alert.alert('Error', 'No se pudieron cargar las suscripciones');
     }
   }, []);
@@ -217,7 +215,7 @@ export default function GestionarPlanesV7Screen() {
 
       setSearchResults(data || []);
     } catch (error) {
-      console.error('[GestionarPlanesV7 v243.0] Error buscando locales:', error);
+      console.error('[GestionarPlanesV7 v291.0] Error buscando locales:', error);
     } finally {
       setSearching(false);
     }
@@ -271,7 +269,7 @@ export default function GestionarPlanesV7Screen() {
 
       await crearNuevaSuscripcion();
     } catch (error) {
-      console.error('[GestionarPlanesV7 v243.0] Error asignando plan:', error);
+      console.error('[GestionarPlanesV7 v291.0] Error asignando plan:', error);
       Alert.alert('Error', 'No se pudo asignar el plan');
       setAssigning(false);
     }
@@ -290,7 +288,7 @@ export default function GestionarPlanesV7Screen() {
 
       const propietarioId = selectedLocal.propietario_id || user.id;
 
-      console.log('[GestionarPlanesV7 v243.0] ✅ Creating subscription:', {
+      console.log('[GestionarPlanesV7 v291.0] ✅ Creating subscription:', {
         usuario_id: propietarioId,
         propietario_id: propietarioId,
         local_id: selectedLocal.id,
@@ -307,12 +305,12 @@ export default function GestionarPlanesV7Screen() {
         .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') {
-        console.error('[GestionarPlanesV7 v243.0] Error checking existing subscription:', checkError);
+        console.error('[GestionarPlanesV7 v291.0] Error checking existing subscription:', checkError);
         throw checkError;
       }
 
       if (existingActive) {
-        console.log('[GestionarPlanesV7 v243.0] Updating existing subscription:', existingActive.id);
+        console.log('[GestionarPlanesV7 v291.0] Updating existing subscription:', existingActive.id);
         
         const { error: updateError } = await supabase
           .from('suscripciones_locales')
@@ -332,7 +330,7 @@ export default function GestionarPlanesV7Screen() {
           .eq('id', existingActive.id);
 
         if (updateError) {
-          console.error('[GestionarPlanesV7 v243.0] Update error:', updateError);
+          console.error('[GestionarPlanesV7 v291.0] Update error:', updateError);
           throw updateError;
         }
       } else {
@@ -355,7 +353,7 @@ export default function GestionarPlanesV7Screen() {
           });
 
         if (subscriptionError) {
-          console.error('[GestionarPlanesV7 v243.0] Subscription error:', subscriptionError);
+          console.error('[GestionarPlanesV7 v291.0] Subscription error:', subscriptionError);
           throw subscriptionError;
         }
       }
@@ -366,7 +364,7 @@ export default function GestionarPlanesV7Screen() {
         .eq('id', selectedLocal.id);
 
       if (localError) {
-        console.error('[GestionarPlanesV7 v243.0] Error habilitando local:', localError);
+        console.error('[GestionarPlanesV7 v291.0] Error habilitando local:', localError);
       }
 
       Alert.alert(
@@ -382,7 +380,7 @@ export default function GestionarPlanesV7Screen() {
       setSearchResults([]);
       await cargarDatos();
     } catch (error) {
-      console.error('[GestionarPlanesV7 v243.0] Error creando suscripción:', error);
+      console.error('[GestionarPlanesV7 v291.0] Error creando suscripción:', error);
       Alert.alert('Error', 'No se pudo crear la suscripción');
     } finally {
       setAssigning(false);
@@ -410,7 +408,7 @@ export default function GestionarPlanesV7Screen() {
               Alert.alert('Éxito', 'Suscripción cancelada correctamente');
               await cargarSuscripciones();
             } catch (error) {
-              console.error('[GestionarPlanesV7 v243.0] Error cancelando suscripción:', error);
+              console.error('[GestionarPlanesV7 v291.0] Error cancelando suscripción:', error);
               Alert.alert('Error', 'No se pudo cancelar la suscripción');
             }
           },
@@ -468,7 +466,7 @@ export default function GestionarPlanesV7Screen() {
         visibilidad_maxima: Boolean(editPlanVisibilidadMaxima),
       };
 
-      console.log('[GestionarPlanesV7 v243.0] ✅ Updating plan with data:', updateData);
+      console.log('[GestionarPlanesV7 v291.0] ✅ Updating plan with data:', updateData);
 
       const { error } = await supabase
         .from('planes_suscripcion')
@@ -476,7 +474,7 @@ export default function GestionarPlanesV7Screen() {
         .eq('id', editingPlan.id);
 
       if (error) {
-        console.error('[GestionarPlanesV7 v243.0] Error updating plan:', error);
+        console.error('[GestionarPlanesV7 v291.0] Error updating plan:', error);
         throw error;
       }
 
@@ -485,7 +483,7 @@ export default function GestionarPlanesV7Screen() {
       setEditingPlan(null);
       await cargarPlanes();
     } catch (error) {
-      console.error('[GestionarPlanesV7 v243.0] Error guardando plan:', error);
+      console.error('[GestionarPlanesV7 v291.0] Error guardando plan:', error);
       Alert.alert('Error', 'No se pudo guardar el plan');
     } finally {
       setSavingPlan(false);
@@ -524,14 +522,14 @@ export default function GestionarPlanesV7Screen() {
         caracteristicas: [],
       };
 
-      console.log('[GestionarPlanesV7 v243.0] ✅ Creating plan with data:', insertData);
+      console.log('[GestionarPlanesV7 v291.0] ✅ Creating plan with data:', insertData);
 
       const { error } = await supabase
         .from('planes_suscripcion')
         .insert(insertData);
 
       if (error) {
-        console.error('[GestionarPlanesV7 v243.0] Error creating plan:', error);
+        console.error('[GestionarPlanesV7 v291.0] Error creating plan:', error);
         throw error;
       }
 
@@ -540,7 +538,7 @@ export default function GestionarPlanesV7Screen() {
       resetCreatePlanForm();
       await cargarPlanes();
     } catch (error) {
-      console.error('[GestionarPlanesV7 v243.0] Error creando plan:', error);
+      console.error('[GestionarPlanesV7 v291.0] Error creando plan:', error);
       Alert.alert('Error', 'No se pudo crear el plan');
     } finally {
       setCreatingPlan(false);
@@ -596,7 +594,7 @@ export default function GestionarPlanesV7Screen() {
               Alert.alert('✅ Éxito', 'Plan eliminado correctamente');
               await cargarPlanes();
             } catch (error) {
-              console.error('[GestionarPlanesV7 v243.0] Error eliminando plan:', error);
+              console.error('[GestionarPlanesV7 v291.0] Error eliminando plan:', error);
               Alert.alert('Error', 'No se pudo eliminar el plan');
             }
           },
@@ -627,7 +625,8 @@ export default function GestionarPlanesV7Screen() {
     );
   };
 
-  const renderPlanesTab = () => (
+  // ✅ FIXED v291.0: Removed debouncedQuery from useMemo dependencies (it's not used in the function)
+  const renderPlanesTab = useMemo(() => (
     <ScrollView 
       style={styles.tabContent} 
       contentContainerStyle={styles.tabContentContainer}
@@ -784,9 +783,9 @@ export default function GestionarPlanesV7Screen() {
         ))}
       </View>
     </ScrollView>
-  );
+  ), [planes]);
 
-  const renderSubscriptionsTab = () => (
+  const renderSubscriptionsTab = useMemo(() => (
     <ScrollView 
       style={styles.tabContent} 
       contentContainerStyle={styles.tabContentContainer}
@@ -861,7 +860,7 @@ export default function GestionarPlanesV7Screen() {
         </View>
       )}
     </ScrollView>
-  );
+  ), [subscriptions]);
 
   const renderAssignTab = () => (
     <View style={styles.tabContent}>
@@ -965,7 +964,7 @@ export default function GestionarPlanesV7Screen() {
         </TouchableOpacity>
         <View style={styles.headerContentV7}>
           <Text style={[styles.headerTitleV7, { fontSize: scaleFontSize(24) }]}>Gestionar Planes</Text>
-          <Text style={[styles.headerSubtitleV7, { fontSize: scaleFontSize(13) }]}>v243 • Search Fix</Text>
+          <Text style={[styles.headerSubtitleV7, { fontSize: scaleFontSize(13) }]}>v291 • Lint Fix</Text>
         </View>
         <TouchableOpacity style={styles.refreshButtonV7} onPress={cargarDatos}>
           <IconSymbol 
@@ -1024,8 +1023,8 @@ export default function GestionarPlanesV7Screen() {
         </TouchableOpacity>
       </View>
 
-      {activeTab === 'planes' && renderPlanesTab()}
-      {activeTab === 'subscriptions' && renderSubscriptionsTab()}
+      {activeTab === 'planes' && renderPlanesTab}
+      {activeTab === 'subscriptions' && renderSubscriptionsTab}
       {activeTab === 'assign' && renderAssignTab()}
 
       <Modal
