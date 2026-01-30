@@ -20,6 +20,8 @@ import { supabase } from '@/utils/supabase';
 import { useSelectedLocal } from '@/contexts/SelectedLocalContext';
 import LocalSubscriptionCard from '@/components/gestion/LocalSubscriptionCard';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+import ShoppingCart from '@/components/payment/ShoppingCart';
+import { isAdminUser } from '@/utils/adminAccess';
 
 interface LocalConSuscripcion {
   id: string;
@@ -55,14 +57,13 @@ interface LocalConSuscripcion {
 }
 
 /**
- * ✅ GESTION SCREEN v141.0 - ANDROID SCALING COMPLETE
+ * ✅ GESTION SCREEN v244.0 - SHOPPING CART IN HEADER + ADMIN ACCESS TO PLANS
  * 
- * CRITICAL FIXES v141.0 (ANDROID ONLY):
- * - ✅ All font sizes use scaleFontSize() for consistency
- * - ✅ All icon sizes use scaleIconSize() for proper proportions
- * - ✅ Header title size standardized (24px on Android)
- * - ✅ All text elements properly scaled
- * - ✅ iOS design remains unchanged
+ * NEW FEATURES v244.0:
+ * - ✅ Shopping cart icon in header (owner mode)
+ * - ✅ Cart navigates to full-screen page (not modal)
+ * - ✅ Admin can access "Ver Planes" without owning a local
+ * - ✅ Verification mode banner for admins on plans page
  */
 
 export default function GestionScreen() {
@@ -73,6 +74,8 @@ export default function GestionScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const isAdmin = isAdminUser(user);
+
   const cargarLocales = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -80,7 +83,7 @@ export default function GestionScreen() {
     }
 
     try {
-      console.log('[GestionScreen v141.0] Loading locales for user:', user.id);
+      console.log('[GestionScreen v244.0] Loading locales for user:', user.id);
       
       // Get user's locals
       const { data: localesData, error: localesError } = await supabase
@@ -90,19 +93,19 @@ export default function GestionScreen() {
         .eq('activo', true);
 
       if (localesError) {
-        console.error('[GestionScreen v141.0] Error loading locales:', localesError);
+        console.error('[GestionScreen v244.0] Error loading locales:', localesError);
         setLoading(false);
         return;
       }
 
       if (!localesData || localesData.length === 0) {
-        console.log('[GestionScreen v141.0] No locales found for user');
+        console.log('[GestionScreen v244.0] No locales found for user');
         setLocales([]);
         setLoading(false);
         return;
       }
 
-      console.log('[GestionScreen v141.0] Found', localesData.length, 'locales');
+      console.log('[GestionScreen v244.0] Found', localesData.length, 'locales');
 
       // Get subscriptions and active events for each local
       const localesConSuscripcion: LocalConSuscripcion[] = await Promise.all(
@@ -193,9 +196,9 @@ export default function GestionScreen() {
       );
 
       setLocales(localesConSuscripcion);
-      console.log('[GestionScreen v141.0] Locales loaded successfully');
+      console.log('[GestionScreen v244.0] Locales loaded successfully');
     } catch (error) {
-      console.error('[GestionScreen v141.0] Error:', error);
+      console.error('[GestionScreen v244.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -221,6 +224,29 @@ export default function GestionScreen() {
     Alert.alert('Local Seleccionado', 'Ahora estás interactuando con este local');
   };
 
+  const handleVerPlanes = () => {
+    console.log('[GestionScreen v244.0] Ver Planes clicked - Admin:', isAdmin, 'Locales:', locales.length);
+    
+    // ✅ NEW v244.0: Admins can access plans even without locals
+    if (isAdmin) {
+      console.log('[GestionScreen v244.0] Admin accessing plans in verification mode');
+      router.push('/gestion/planes-suscripcion?adminMode=true');
+      return;
+    }
+
+    // Regular owners need at least one local
+    if (locales.length === 0) {
+      Alert.alert(
+        'Sin Locales',
+        'Primero debes añadir un local para ver los planes disponibles.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    router.push(`/gestion/planes-suscripcion?localId=${locales[0].id}`);
+  };
+
   if (loading) {
     return (
       <View style={commonStyles.container}>
@@ -231,6 +257,10 @@ export default function GestionScreen() {
           style={commonStyles.headerGradient}
         >
           <Text style={[commonStyles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 32) }]}>Gestión</Text>
+          {/* ✅ NEW v244.0: Shopping cart in header */}
+          <View style={styles.headerActions}>
+            <ShoppingCart />
+          </View>
         </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -248,6 +278,10 @@ export default function GestionScreen() {
         style={commonStyles.headerGradient}
       >
         <Text style={[commonStyles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 32) }]}>Gestión de Locales</Text>
+        {/* ✅ NEW v244.0: Shopping cart in header */}
+        <View style={styles.headerActions}>
+          <ShoppingCart />
+        </View>
       </LinearGradient>
 
       <ScrollView
@@ -280,17 +314,7 @@ export default function GestionScreen() {
 
           <TouchableOpacity
             style={styles.quickActionButton}
-            onPress={() => {
-              if (locales.length === 0) {
-                Alert.alert(
-                  'Sin Locales',
-                  'Primero debes añadir un local para ver los planes disponibles.',
-                  [{ text: 'OK' }]
-                );
-                return;
-              }
-              router.push(`/gestion/planes-suscripcion?localId=${locales[0].id}`);
-            }}
+            onPress={handleVerPlanes}
           >
             <LinearGradient
               colors={['#8B5CF6', '#7C3AED']}
@@ -364,6 +388,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerActions: {
+    position: 'absolute',
+    right: 20,
+    top: Platform.OS === 'ios' ? 60 : 50,
   },
   headerSection: {
     padding: 20,

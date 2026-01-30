@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+import ShoppingCart from '@/components/payment/ShoppingCart';
 
 interface Local {
   id: string;
@@ -53,17 +54,11 @@ interface Usuario {
 const LOCALES_POR_PAGINA = 50;
 
 /**
- * ✅ GESTIONAR LOCALES v243.0 - FIXED KEYBOARD FOCUS LOSS (FINAL FIX)
+ * ✅ GESTIONAR LOCALES v244.0 - SHOPPING CART IN HEADER
  * 
- * CRITICAL FIXES v243.0:
- * - ✅ FIXED: TextInput is DIRECTLY in return (no conditional rendering)
- * - ✅ FIXED: Controlled component with value={searchQuery}
- * - ✅ FIXED: Debounce with useEffect + cleanup (500ms)
- * - ✅ FIXED: Separate states: searchQuery (immediate) vs debouncedQuery (filtered)
- * - ✅ FIXED: FlatList has keyboardShouldPersistTaps="handled"
- * - ✅ FIXED: TextInput has blurOnSubmit={false}
- * - ✅ FIXED: Applied same pattern as working Explorar screen
- * - ✅ FIXED: User search also uses controlled component pattern
+ * NEW FEATURES v244.0:
+ * - ✅ Shopping cart icon in header (admin mode)
+ * - ✅ Cart navigates to full-screen page (not modal)
  */
 
 export default function GestionarLocalesScreen() {
@@ -72,7 +67,6 @@ export default function GestionarLocalesScreen() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   
-  // ✅ CRITICAL v243.0: Controlled input state for main search (STABLE)
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   
@@ -94,11 +88,8 @@ export default function GestionarLocalesScreen() {
   const [localesSeleccionados, setLocalesSeleccionados] = useState<Set<string>>(new Set());
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  
-  // ✅ CRITICAL v243.0: Controlled input state for user search (STABLE)
   const [searchUsuarioQuery, setSearchUsuarioQuery] = useState('');
   const [debouncedUsuarioQuery, setDebouncedUsuarioQuery] = useState('');
-  
   const [loadingUsuarios, setLoadingUsuarios] = useState(false);
   const [assigningUser, setAssigningUser] = useState(false);
 
@@ -115,31 +106,27 @@ export default function GestionarLocalesScreen() {
     manual: 0,
   });
 
-  // ✅ CRITICAL FIX v243.0: Debounce main search with cleanup (500ms)
   useEffect(() => {
-    console.log('[GestionarLocales v243.0] 📝 Main search query changed:', searchQuery);
+    console.log('[GestionarLocales v244.0] 📝 Main search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[GestionarLocales v243.0] 🔍 Applying debounced search');
+      console.log('[GestionarLocales v244.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 500);
     
-    // Cleanup function - CRITICAL for preventing focus loss
     return () => {
       clearTimeout(timer);
     };
   }, [searchQuery]);
 
-  // ✅ CRITICAL FIX v243.0: Debounce user search with cleanup (300ms)
   useEffect(() => {
-    console.log('[GestionarLocales v243.0] 📝 User search query changed:', searchUsuarioQuery);
+    console.log('[GestionarLocales v244.0] 📝 User search query changed:', searchUsuarioQuery);
     
     const timer = setTimeout(() => {
-      console.log('[GestionarLocales v243.0] 🔍 Applying debounced user search');
+      console.log('[GestionarLocales v244.0] 🔍 Applying debounced user search');
       setDebouncedUsuarioQuery(searchUsuarioQuery);
     }, 300);
     
-    // Cleanup function - CRITICAL for preventing focus loss
     return () => {
       clearTimeout(timer);
     };
@@ -147,7 +134,7 @@ export default function GestionarLocalesScreen() {
 
   const cargarContadores = useCallback(async () => {
     try {
-      console.log('[GestionarLocales v243.0] Loading counters...');
+      console.log('[GestionarLocales v244.0] Loading counters...');
       
       const { count: totalCount, error: countError } = await supabase
         .from('locales')
@@ -155,11 +142,11 @@ export default function GestionarLocalesScreen() {
         .or('source_type.eq.osm,enriquecido.eq.true');
 
       if (countError) {
-        console.error('[GestionarLocales v243.0] Error loading total count:', countError);
+        console.error('[GestionarLocales v244.0] Error loading total count:', countError);
         throw countError;
       }
 
-      console.log('[GestionarLocales v243.0] Total valid locales:', totalCount);
+      console.log('[GestionarLocales v244.0] Total valid locales:', totalCount);
 
       const { data, error } = await supabase
         .from('locales')
@@ -167,7 +154,7 @@ export default function GestionarLocalesScreen() {
         .or('source_type.eq.osm,enriquecido.eq.true');
 
       if (error) {
-        console.error('[GestionarLocales v243.0] Error loading stats:', error);
+        console.error('[GestionarLocales v244.0] Error loading stats:', error);
         throw error;
       }
 
@@ -184,16 +171,16 @@ export default function GestionarLocalesScreen() {
         manual: data?.filter(l => l.source_type === 'manual').length || 0,
       };
 
-      console.log('[GestionarLocales v243.0] Stats:', stats);
+      console.log('[GestionarLocales v244.0] Stats:', stats);
       setContadores(stats);
     } catch (error) {
-      console.error('[GestionarLocales v243.0] Error cargando contadores:', error);
+      console.error('[GestionarLocales v244.0] Error cargando contadores:', error);
     }
   }, []);
 
   const cargarLocales = useCallback(async (reset: boolean = false, currentPage: number = 1) => {
     try {
-      console.log('[GestionarLocales v243.0] Loading locales, reset:', reset, 'page:', currentPage);
+      console.log('[GestionarLocales v244.0] Loading locales, reset:', reset, 'page:', currentPage);
       
       if (reset) {
         setInitialLoading(true);
@@ -204,7 +191,7 @@ export default function GestionarLocalesScreen() {
       const from = reset ? 0 : (currentPage - 1) * LOCALES_POR_PAGINA;
       const to = from + LOCALES_POR_PAGINA - 1;
 
-      console.log('[GestionarLocales v243.0] Fetching range:', from, '-', to);
+      console.log('[GestionarLocales v244.0] Fetching range:', from, '-', to);
 
       let query = supabase
         .from('locales')
@@ -219,7 +206,6 @@ export default function GestionarLocalesScreen() {
         .order('fecha_creacion', { ascending: false })
         .range(from, to);
 
-      // ✅ CRITICAL v243.0: Use debouncedQuery for filtering
       if (debouncedQuery) {
         query = query.or(`nombre.ilike.%${debouncedQuery}%,direccion.ilike.%${debouncedQuery}%`);
       }
@@ -263,11 +249,11 @@ export default function GestionarLocalesScreen() {
       const { data, error, count } = await query;
 
       if (error) {
-        console.error('[GestionarLocales v243.0] Error cargando locales:', error);
+        console.error('[GestionarLocales v244.0] Error cargando locales:', error);
         throw error;
       }
 
-      console.log('[GestionarLocales v243.0] Locales loaded:', data?.length || 0, 'Total count:', count);
+      console.log('[GestionarLocales v244.0] Locales loaded:', data?.length || 0, 'Total count:', count);
       
       if (reset) {
         setLocales(data || []);
@@ -280,9 +266,9 @@ export default function GestionarLocalesScreen() {
       setTotalLocales(count || 0);
       setHasMore((data?.length || 0) === LOCALES_POR_PAGINA);
       
-      console.log('[GestionarLocales v243.0] Has more:', (data?.length || 0) === LOCALES_POR_PAGINA);
+      console.log('[GestionarLocales v244.0] Has more:', (data?.length || 0) === LOCALES_POR_PAGINA);
     } catch (error) {
-      console.error('[GestionarLocales v243.0] Error cargando locales:', error);
+      console.error('[GestionarLocales v244.0] Error cargando locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
     } finally {
       setInitialLoading(false);
@@ -291,15 +277,14 @@ export default function GestionarLocalesScreen() {
   }, [debouncedQuery, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente]);
 
   useEffect(() => {
-    console.log('[GestionarLocales v243.0] Initial load');
+    console.log('[GestionarLocales v244.0] Initial load');
     cargarContadores();
     cargarLocales(true, 1);
   }, [cargarContadores, cargarLocales]);
 
-  // ✅ CRITICAL v243.0: Reload when debounced query or filters change
   useEffect(() => {
     if (!initialLoading) {
-      console.log('[GestionarLocales v243.0] Filters changed, reloading...');
+      console.log('[GestionarLocales v244.0] Filters changed, reloading...');
       cargarLocales(true, 1);
     }
   }, [debouncedQuery, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, filtroFuente, initialLoading, cargarLocales]);
@@ -322,13 +307,12 @@ export default function GestionarLocalesScreen() {
 
       setUsuarios(data || []);
     } catch (error) {
-      console.error('[GestionarLocales v243.0] Error searching users:', error);
+      console.error('[GestionarLocales v244.0] Error searching users:', error);
     } finally {
       setLoadingUsuarios(false);
     }
   }, []);
 
-  // ✅ CRITICAL v243.0: Search users when debounced query changes
   useEffect(() => {
     if (debouncedUsuarioQuery.trim().length >= 2) {
       searchUsuarios(debouncedUsuarioQuery);
@@ -362,7 +346,7 @@ export default function GestionarLocalesScreen() {
         });
 
       if (junctionError && junctionError.code !== '23505') {
-        console.error('[GestionarLocales v243.0] Error creating junction entry:', junctionError);
+        console.error('[GestionarLocales v244.0] Error creating junction entry:', junctionError);
       }
 
       Alert.alert(
@@ -380,7 +364,7 @@ export default function GestionarLocalesScreen() {
       cargarLocales(true, 1);
       cargarContadores();
     } catch (error) {
-      console.error('[GestionarLocales v243.0] Error assigning local:', error);
+      console.error('[GestionarLocales v244.0] Error assigning local:', error);
       Alert.alert('Error', 'No se pudo asignar el local al usuario');
     } finally {
       setAssigningUser(false);
@@ -408,7 +392,7 @@ export default function GestionarLocalesScreen() {
       );
       cargarContadores();
     } catch (error) {
-      console.error('[GestionarLocales v243.0] Error actualizando local:', error);
+      console.error('[GestionarLocales v244.0] Error actualizando local:', error);
       Alert.alert('Error', 'No se pudo actualizar el local');
     }
   }, [cargarContadores]);
@@ -428,7 +412,7 @@ export default function GestionarLocalesScreen() {
         )
       );
     } catch (error) {
-      console.error('[GestionarLocales v243.0] Error actualizando destacado:', error);
+      console.error('[GestionarLocales v244.0] Error actualizando destacado:', error);
       Alert.alert('Error', 'No se pudo actualizar el estado destacado');
     }
   }, []);
@@ -448,7 +432,7 @@ export default function GestionarLocalesScreen() {
       Alert.alert('Éxito', 'Local eliminado correctamente');
       cargarContadores();
     } catch (error) {
-      console.error('[GestionarLocales v243.0] Error eliminando local:', error);
+      console.error('[GestionarLocales v244.0] Error eliminando local:', error);
       Alert.alert('Error', 'No se pudo eliminar el local');
     }
   }, [cargarContadores]);
@@ -512,7 +496,7 @@ export default function GestionarLocalesScreen() {
               setModoSeleccion(false);
               cargarContadores();
             } catch (error) {
-              console.error('[GestionarLocales v243.0] Error eliminando locales:', error);
+              console.error('[GestionarLocales v244.0] Error eliminando locales:', error);
               Alert.alert('Error', 'No se pudieron eliminar todos los locales');
             }
           },
@@ -544,7 +528,7 @@ export default function GestionarLocalesScreen() {
 
   const handleLoadMore = useCallback(() => {
     if (hasMore && !loadingMore && !initialLoading) {
-      console.log('[GestionarLocales v243.0] Loading more, page:', paginaActual);
+      console.log('[GestionarLocales v244.0] Loading more, page:', paginaActual);
       cargarLocales(false, paginaActual);
     }
   }, [hasMore, loadingMore, initialLoading, paginaActual, cargarLocales]);
@@ -797,7 +781,6 @@ export default function GestionarLocalesScreen() {
         </View>
       </View>
 
-      {/* ✅ CRITICAL v243.0: Search bar - TextInput is DIRECTLY in return */}
       <View style={styles.searchContainer}>
         <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
         <TextInput
@@ -814,7 +797,7 @@ export default function GestionarLocalesScreen() {
         />
         {searchQuery !== '' && (
           <TouchableOpacity onPress={() => {
-            console.log('[GestionarLocales v243.0] 🧹 Clearing search');
+            console.log('[GestionarLocales v244.0] 🧹 Clearing search');
             setSearchQuery('');
             setDebouncedQuery('');
           }}>
@@ -934,12 +917,16 @@ export default function GestionarLocalesScreen() {
           <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gestión de Locales</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => router.push('/crear/local')}
-        >
-          <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={24} color={colors.headerText} />
-        </TouchableOpacity>
+        {/* ✅ NEW v244.0: Shopping cart in header */}
+        <View style={styles.headerActions}>
+          <ShoppingCart />
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push('/crear/local')}
+          >
+            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       <FlatList
@@ -1171,7 +1158,6 @@ export default function GestionarLocalesScreen() {
                 </View>
               )}
 
-              {/* ✅ CRITICAL v243.0: User search - TextInput is DIRECTLY in return */}
               <View style={styles.searchContainer}>
                 <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
                 <TextInput
@@ -1276,6 +1262,11 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   addButton: {
     padding: 8,

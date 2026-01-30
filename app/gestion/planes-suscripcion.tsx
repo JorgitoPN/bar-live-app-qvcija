@@ -20,6 +20,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+import { isAdminUser } from '@/utils/adminAccess';
 
 interface Plan {
   id: string;
@@ -43,15 +44,13 @@ interface Plan {
 }
 
 /**
- * ✅ PLANES DE SUSCRIPCIÓN - PLAN SELECTION WITH TRIAL
+ * ✅ PLANES DE SUSCRIPCIÓN v244.0 - ADMIN VERIFICATION MODE
  * 
- * Features:
- * - Display all available plans
- * - Show trial information (30 days free)
- * - Require payment method before trial
- * - Mandatory checkbox for auto-charge acceptance
- * - Plan comparison
- * - Immediate activation after payment method saved
+ * NEW FEATURES v244.0:
+ * - ✅ Admins can access without owning a local (adminMode=true)
+ * - ✅ Shows verification mode banner for admins
+ * - ✅ Prevents actual subscription creation in admin mode
+ * - ✅ Allows full viewing of plan details for verification
  */
 
 export default function PlanesSuscripcionScreen() {
@@ -59,6 +58,7 @@ export default function PlanesSuscripcionScreen() {
   const { user } = useAuth();
   const params = useLocalSearchParams();
   const localId = params.localId as string;
+  const adminMode = params.adminMode === 'true';
 
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -67,6 +67,9 @@ export default function PlanesSuscripcionScreen() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [acceptedAutoCharge, setAcceptedAutoCharge] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
+
+  const isAdmin = isAdminUser(user);
+  const isVerificationMode = adminMode && isAdmin && !localId;
 
   const loadPlans = useCallback(async () => {
     try {
@@ -80,10 +83,10 @@ export default function PlanesSuscripcionScreen() {
 
       if (error) throw error;
 
-      console.log('[PlanesSuscripcion] Loaded plans:', data?.length || 0);
+      console.log('[PlanesSuscripcion v244.0] Loaded plans:', data?.length || 0);
       setPlans(data || []);
     } catch (error) {
-      console.error('[PlanesSuscripcion] Error loading plans:', error);
+      console.error('[PlanesSuscripcion v244.0] Error loading plans:', error);
       Alert.alert('Error', 'No se pudieron cargar los planes');
     } finally {
       setLoading(false);
@@ -95,6 +98,25 @@ export default function PlanesSuscripcionScreen() {
   }, [loadPlans]);
 
   const handleSelectPlan = (plan: Plan) => {
+    // ✅ NEW v244.0: Prevent subscription in verification mode
+    if (isVerificationMode) {
+      Alert.alert(
+        'Modo Verificación',
+        'Estás en modo de verificación de administrador. No puedes crear suscripciones sin un local asociado.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    if (!localId) {
+      Alert.alert(
+        'Local Requerido',
+        'Debes seleccionar un local para suscribirte a un plan.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     setSelectedPlan(plan);
     setAcceptedAutoCharge(false);
     setShowConfirmModal(true);
@@ -140,7 +162,7 @@ export default function PlanesSuscripcionScreen() {
       setShowConfirmModal(false);
       router.back();
     } catch (error) {
-      console.error('[PlanesSuscripcion] Error creating subscription:', error);
+      console.error('[PlanesSuscripcion v244.0] Error creating subscription:', error);
       Alert.alert('Error', 'No se pudo crear la suscripción');
     } finally {
       setSubscribing(false);
@@ -210,6 +232,26 @@ export default function PlanesSuscripcionScreen() {
       </LinearGradient>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {/* ✅ NEW v244.0: Admin Verification Mode Banner */}
+        {isVerificationMode && (
+          <View style={styles.adminBanner}>
+            <IconSymbol
+              ios_icon_name="shield.checkmark.fill"
+              android_material_icon_name="admin_panel_settings"
+              size={Platform.OS === 'android' ? scaleIconSize(28) : 28}
+              color="#F59E0B"
+            />
+            <View style={styles.adminBannerContent}>
+              <Text style={[styles.adminBannerTitle, { fontSize: scaleFontSize(16) }]}>
+                🔍 Modo Verificación de Administrador
+              </Text>
+              <Text style={[styles.adminBannerText, { fontSize: scaleFontSize(13) }]}>
+                Estás visualizando los planes en modo de verificación. No puedes crear suscripciones sin un local asociado.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Trial Banner */}
         <View style={styles.trialBanner}>
           <IconSymbol
@@ -368,7 +410,7 @@ export default function PlanesSuscripcionScreen() {
                     onPress={() => handleSelectPlan(plan)}
                   >
                     <Text style={[styles.selectPlanButtonText, { fontSize: scaleFontSize(16) }]}>
-                      {plan.trial_habilitado ? 'Iniciar Prueba Gratis' : 'Seleccionar Plan'}
+                      {isVerificationMode ? 'Ver Detalles' : plan.trial_habilitado ? 'Iniciar Prueba Gratis' : 'Seleccionar Plan'}
                     </Text>
                     <IconSymbol
                       ios_icon_name="arrow.right.circle.fill"
@@ -431,7 +473,9 @@ export default function PlanesSuscripcionScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowConfirmModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Confirmar Suscripción</Text>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>
+                {isVerificationMode ? 'Detalles del Plan' : 'Confirmar Suscripción'}
+              </Text>
               <TouchableOpacity onPress={() => setShowConfirmModal(false)}>
                 <IconSymbol
                   ios_icon_name="xmark.circle.fill"
@@ -444,6 +488,26 @@ export default function PlanesSuscripcionScreen() {
 
             {selectedPlan && (
               <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                {/* ✅ NEW v244.0: Verification mode warning */}
+                {isVerificationMode && (
+                  <View style={styles.verificationWarning}>
+                    <IconSymbol
+                      ios_icon_name="exclamationmark.triangle.fill"
+                      android_material_icon_name="warning"
+                      size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+                      color="#F59E0B"
+                    />
+                    <View style={styles.verificationWarningContent}>
+                      <Text style={[styles.verificationWarningTitle, { fontSize: scaleFontSize(15) }]}>
+                        Modo Verificación Activo
+                      </Text>
+                      <Text style={[styles.verificationWarningText, { fontSize: scaleFontSize(13) }]}>
+                        Estás visualizando este plan como administrador. No se puede crear una suscripción sin un local asociado.
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
                 {/* Selected Plan Summary */}
                 <View style={[styles.planSummary, { borderColor: getPlanColor(selectedPlan.nombre) }]}>
                   <Text style={[styles.planSummaryName, { fontSize: scaleFontSize(22) }]}>
@@ -455,7 +519,7 @@ export default function PlanesSuscripcionScreen() {
                 </View>
 
                 {/* Trial Information */}
-                {selectedPlan.trial_habilitado && (
+                {selectedPlan.trial_habilitado && !isVerificationMode && (
                   <View style={styles.trialInfo}>
                     <View style={styles.trialInfoHeader}>
                       <IconSymbol
@@ -481,25 +545,27 @@ export default function PlanesSuscripcionScreen() {
                 )}
 
                 {/* Payment Method Requirement */}
-                <View style={styles.requirementBox}>
-                  <IconSymbol
-                    ios_icon_name="creditcard.fill"
-                    android_material_icon_name="payment"
-                    size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
-                    color={colors.primary}
-                  />
-                  <View style={styles.requirementBoxContent}>
-                    <Text style={[styles.requirementBoxTitle, { fontSize: scaleFontSize(15) }]}>
-                      Método de Pago Requerido
-                    </Text>
-                    <Text style={[styles.requirementBoxText, { fontSize: scaleFontSize(13) }]}>
-                      Necesitarás agregar una tarjeta válida para activar la prueba gratuita. No se realizará ningún cargo hasta que finalice el período de prueba.
-                    </Text>
+                {!isVerificationMode && (
+                  <View style={styles.requirementBox}>
+                    <IconSymbol
+                      ios_icon_name="creditcard.fill"
+                      android_material_icon_name="payment"
+                      size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+                      color={colors.primary}
+                    />
+                    <View style={styles.requirementBoxContent}>
+                      <Text style={[styles.requirementBoxTitle, { fontSize: scaleFontSize(15) }]}>
+                        Método de Pago Requerido
+                      </Text>
+                      <Text style={[styles.requirementBoxText, { fontSize: scaleFontSize(13) }]}>
+                        Necesitarás agregar una tarjeta válida para activar la prueba gratuita. No se realizará ningún cargo hasta que finalice el período de prueba.
+                      </Text>
+                    </View>
                   </View>
-                </View>
+                )}
 
                 {/* Auto-Charge Acceptance (Mandatory Checkbox) */}
-                {selectedPlan.trial_habilitado && (
+                {selectedPlan.trial_habilitado && !isVerificationMode && (
                   <View style={styles.acceptanceBox}>
                     <TouchableOpacity
                       style={styles.checkboxRow}
@@ -538,72 +604,84 @@ export default function PlanesSuscripcionScreen() {
                 )}
 
                 {/* What Happens Next */}
-                <View style={styles.nextStepsBox}>
-                  <Text style={[styles.nextStepsTitle, { fontSize: scaleFontSize(16) }]}>
-                    ¿Qué sucede después?
-                  </Text>
-                  <View style={styles.nextStepsList}>
-                    <View style={styles.nextStepItem}>
-                      <View style={styles.nextStepNumber}>
-                        <Text style={[styles.nextStepNumberText, { fontSize: scaleFontSize(12) }]}>1</Text>
+                {!isVerificationMode && (
+                  <View style={styles.nextStepsBox}>
+                    <Text style={[styles.nextStepsTitle, { fontSize: scaleFontSize(16) }]}>
+                      ¿Qué sucede después?
+                    </Text>
+                    <View style={styles.nextStepsList}>
+                      <View style={styles.nextStepItem}>
+                        <View style={styles.nextStepNumber}>
+                          <Text style={[styles.nextStepNumberText, { fontSize: scaleFontSize(12) }]}>1</Text>
+                        </View>
+                        <Text style={[styles.nextStepText, { fontSize: scaleFontSize(13) }]}>
+                          Agregarás un método de pago válido
+                        </Text>
                       </View>
-                      <Text style={[styles.nextStepText, { fontSize: scaleFontSize(13) }]}>
-                        Agregarás un método de pago válido
-                      </Text>
-                    </View>
-                    <View style={styles.nextStepItem}>
-                      <View style={styles.nextStepNumber}>
-                        <Text style={[styles.nextStepNumberText, { fontSize: scaleFontSize(12) }]}>2</Text>
+                      <View style={styles.nextStepItem}>
+                        <View style={styles.nextStepNumber}>
+                          <Text style={[styles.nextStepNumberText, { fontSize: scaleFontSize(12) }]}>2</Text>
+                        </View>
+                        <Text style={[styles.nextStepText, { fontSize: scaleFontSize(13) }]}>
+                          {selectedPlan?.trial_habilitado
+                            ? `Tu prueba de ${selectedPlan.trial_dias} días comenzará inmediatamente`
+                            : 'Tu suscripción se activará inmediatamente'}
+                        </Text>
                       </View>
-                      <Text style={[styles.nextStepText, { fontSize: scaleFontSize(13) }]}>
-                        {selectedPlan?.trial_habilitado
-                          ? `Tu prueba de ${selectedPlan.trial_dias} días comenzará inmediatamente`
-                          : 'Tu suscripción se activará inmediatamente'}
-                      </Text>
-                    </View>
-                    <View style={styles.nextStepItem}>
-                      <View style={styles.nextStepNumber}>
-                        <Text style={[styles.nextStepNumberText, { fontSize: scaleFontSize(12) }]}>3</Text>
+                      <View style={styles.nextStepItem}>
+                        <View style={styles.nextStepNumber}>
+                          <Text style={[styles.nextStepNumberText, { fontSize: scaleFontSize(12) }]}>3</Text>
+                        </View>
+                        <Text style={[styles.nextStepText, { fontSize: scaleFontSize(13) }]}>
+                          {selectedPlan?.trial_habilitado
+                            ? 'Al finalizar la prueba, se cobrará automáticamente'
+                            : 'Se cobrará mensualmente de forma automática'}
+                        </Text>
                       </View>
-                      <Text style={[styles.nextStepText, { fontSize: scaleFontSize(13) }]}>
-                        {selectedPlan?.trial_habilitado
-                          ? 'Al finalizar la prueba, se cobrará automáticamente'
-                          : 'Se cobrará mensualmente de forma automática'}
-                      </Text>
                     </View>
                   </View>
-                </View>
+                )}
               </ScrollView>
             )}
 
-            <TouchableOpacity
-              style={[
-                styles.modalPrimaryButton,
-                (subscribing || (selectedPlan?.trial_habilitado && !acceptedAutoCharge)) && styles.modalPrimaryButtonDisabled
-              ]}
-              onPress={handleConfirmSubscription}
-              disabled={subscribing || (selectedPlan?.trial_habilitado && !acceptedAutoCharge)}
-            >
-              {subscribing ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <>
-                  <IconSymbol
-                    ios_icon_name="checkmark.circle.fill"
-                    android_material_icon_name="check_circle"
-                    size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
-                    color={colors.white}
-                  />
-                  <Text style={[styles.modalPrimaryButtonText, { fontSize: scaleFontSize(16) }]}>
-                    {selectedPlan?.trial_habilitado ? 'Iniciar Prueba Gratis' : 'Confirmar Suscripción'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {!isVerificationMode && (
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.modalPrimaryButton,
+                    (subscribing || (selectedPlan?.trial_habilitado && !acceptedAutoCharge)) && styles.modalPrimaryButtonDisabled
+                  ]}
+                  onPress={handleConfirmSubscription}
+                  disabled={subscribing || (selectedPlan?.trial_habilitado && !acceptedAutoCharge)}
+                >
+                  {subscribing ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <>
+                      <IconSymbol
+                        ios_icon_name="checkmark.circle.fill"
+                        android_material_icon_name="check_circle"
+                        size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                        color={colors.white}
+                      />
+                      <Text style={[styles.modalPrimaryButtonText, { fontSize: scaleFontSize(16) }]}>
+                        {selectedPlan?.trial_habilitado ? 'Iniciar Prueba Gratis' : 'Confirmar Suscripción'}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
 
-            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowConfirmModal(false)}>
-              <Text style={[styles.modalCancelText, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowConfirmModal(false)}>
+                  <Text style={[styles.modalCancelText, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {isVerificationMode && (
+              <TouchableOpacity style={styles.modalCloseButton} onPress={() => setShowConfirmModal(false)}>
+                <Text style={[styles.modalCloseText, { fontSize: scaleFontSize(16) }]}>Cerrar</Text>
+              </TouchableOpacity>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -655,6 +733,29 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     color: colors.textSecondary,
+  },
+  adminBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+  },
+  adminBannerContent: {
+    flex: 1,
+  },
+  adminBannerTitle: {
+    fontWeight: 'bold',
+    color: '#92400E',
+    marginBottom: 6,
+  },
+  adminBannerText: {
+    color: '#92400E',
+    lineHeight: 20,
   },
   trialBanner: {
     flexDirection: 'row',
@@ -807,6 +908,29 @@ const styles = StyleSheet.create({
   modalBody: {
     maxHeight: 400,
     marginBottom: 20,
+  },
+  verificationWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+  },
+  verificationWarningContent: {
+    flex: 1,
+  },
+  verificationWarningTitle: {
+    fontWeight: '700',
+    color: '#92400E',
+    marginBottom: 6,
+  },
+  verificationWarningText: {
+    color: '#92400E',
+    lineHeight: 18,
   },
   planSummary: {
     backgroundColor: colors.cardBackground,
@@ -974,5 +1098,15 @@ const styles = StyleSheet.create({
   modalCancelText: {
     fontWeight: '600',
     color: colors.textSecondary,
+  },
+  modalCloseButton: {
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    fontWeight: '700',
+    color: colors.white,
   },
 });
