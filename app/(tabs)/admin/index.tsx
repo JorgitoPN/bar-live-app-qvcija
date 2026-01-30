@@ -211,12 +211,20 @@ export default function AdminIndexScreen() {
       description: 'Gestiona solicitudes de usuarios para ser propietarios',
     },
     {
-      title: 'Gestión de Planes',
+      title: 'Gestión de Planes (Stripe)',
       icon: 'star.fill' as const,
       androidIcon: 'star' as const,
       color: '#F59E0B',
+      route: '/admin/gestionar-planes-stripe',
+      description: 'Administra planes con integración Stripe completa',
+    },
+    {
+      title: 'Gestión de Planes (Legacy)',
+      icon: 'list.bullet.rectangle' as const,
+      androidIcon: 'list' as const,
+      color: '#6B7280',
       route: '/admin/gestionar-planes-v7',
-      description: 'Administra planes y suscripciones',
+      description: 'Sistema anterior de gestión de planes',
     },
     {
       title: 'Configurar Stripe',

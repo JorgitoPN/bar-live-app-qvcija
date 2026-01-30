@@ -5,87 +5,102 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Modal,
+  Pressable,
+  ScrollView,
   ActivityIndicator,
   Alert,
-  ScrollView,
   Platform,
+  Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
-import { colors, commonStyles } from '@/styles/commonStyles';
+import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+import { useRouter } from 'expo-router';
 
 interface CartItem {
   id: string;
-  plan_id: string;
   local_id: string;
+  plan_id: string;
   quantity: number;
+  locales: {
+    nombre: string;
+    imagen_url: string | null;
+  };
   planes_suscripcion: {
     nombre: string;
     precio_mensual: number;
     descripcion: string;
   };
-  locales: {
-    nombre: string;
-  };
 }
 
-interface ShoppingCartProps {
-  onCheckout: (items: CartItem[], total: number) => void;
-  onClose: () => void;
+interface Props {
+  onCheckout?: (items: CartItem[], total: number) => void;
+  onClose?: () => void;
 }
 
 /**
- * ✅ SHOPPING CART v2.0 - BARLIVE DESIGN
+ * ✅ SHOPPING CART - SUBSCRIPTION CART FOR OWNERS
  * 
- * Changes:
- * - ✅ Updated with Barlive colors (teal/cyan gradients)
- * - ✅ Modern card design
- * - ✅ Gradient header
- * - ✅ Improved visual hierarchy
- * - ✅ Better spacing and typography
+ * Features:
+ * - Shows cart icon with item count badge
+ * - Opens modal with cart items
+ * - Remove items from cart
+ * - Calculate total
+ * - Checkout flow
+ * - Only visible in owner mode
  */
 
-export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps) {
+export default function ShoppingCart({ onCheckout, onClose }: Props) {
   const router = useRouter();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showCartModal, setShowCartModal] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
 
-  const loadCart = useCallback(async () => {
-    if (!user) return;
+  const loadCartItems = useCallback(async () => {
+    if (!user?.id) return;
 
     try {
+      setLoading(true);
+
       const { data, error } = await supabase
         .from('shopping_cart')
         .select(`
-          *,
-          planes_suscripcion (nombre, precio_mensual, descripcion),
-          locales (nombre)
+          id,
+          local_id,
+          plan_id,
+          quantity,
+          locales (nombre, imagen_url),
+          planes_suscripcion (nombre, precio_mensual, descripcion)
         `)
         .eq('user_id', user.id);
 
       if (error) throw error;
+
+      console.log('[ShoppingCart] Loaded cart items:', data?.length || 0);
       setCartItems(data || []);
     } catch (error) {
       console.error('[ShoppingCart] Error loading cart:', error);
-      Alert.alert('Error', 'No se pudo cargar el carrito');
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
-    loadCart();
-  }, [loadCart]);
+    if (user?.id) {
+      loadCartItems();
+    }
+  }, [user?.id, loadCartItems]);
 
-  const removeItem = async (itemId: string) => {
-    setRemoving(itemId);
+  const handleRemoveItem = async (itemId: string) => {
     try {
+      setRemoving(itemId);
+
       const { error } = await supabase
         .from('shopping_cart')
         .delete()
@@ -93,8 +108,8 @@ export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps)
 
       if (error) throw error;
 
-      setCartItems(cartItems.filter(item => item.id !== itemId));
-      Alert.alert('Éxito', 'Artículo eliminado del carrito');
+      console.log('[ShoppingCart] Item removed:', itemId);
+      await loadCartItems();
     } catch (error) {
       console.error('[ShoppingCart] Error removing item:', error);
       Alert.alert('Error', 'No se pudo eliminar el artículo');
@@ -111,367 +126,451 @@ export default function ShoppingCart({ onCheckout, onClose }: ShoppingCartProps)
 
   const handleCheckout = () => {
     if (cartItems.length === 0) {
-      Alert.alert('Carrito Vacío', 'Añade artículos al carrito antes de proceder al pago');
+      Alert.alert('Carrito Vacío', 'Agrega planes a tu carrito para continuar');
       return;
     }
 
     const total = calculateTotal();
-    onCheckout(cartItems, total);
+
+    if (onCheckout) {
+      onCheckout(cartItems, total);
+    } else {
+      // Navigate to checkout screen
+      router.push('/gestion/checkout');
+    }
+
+    setShowCartModal(false);
   };
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
-          <Text style={styles.headerTitle}>Carrito de Compras</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-        </LinearGradient>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando carrito...</Text>
-        </View>
-      </View>
+  const handleClearCart = async () => {
+    Alert.alert(
+      'Vaciar Carrito',
+      '¿Estás seguro de que deseas eliminar todos los artículos del carrito?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sí, Vaciar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('shopping_cart')
+                .delete()
+                .eq('user_id', user?.id);
+
+              if (error) throw error;
+
+              await loadCartItems();
+            } catch (error) {
+              console.error('[ShoppingCart] Error clearing cart:', error);
+              Alert.alert('Error', 'No se pudo vaciar el carrito');
+            }
+          },
+        },
+      ]
     );
-  }
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(price);
+  };
+
+  const itemCount = cartItems.length;
+  const total = calculateTotal();
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
+    <>
+      {/* Cart Icon Button */}
+      <TouchableOpacity
+        style={styles.cartButton}
+        onPress={() => setShowCartModal(true)}
       >
-        <Text style={styles.headerTitle}>Carrito de Compras</Text>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
-        </TouchableOpacity>
-      </LinearGradient>
-
-      {cartItems.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconContainer}>
-            <IconSymbol ios_icon_name="cart" android_material_icon_name="shopping_cart" size={64} color={colors.primary} />
+        <IconSymbol
+          ios_icon_name="cart.fill"
+          android_material_icon_name="shopping_cart"
+          size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+          color={colors.headerText}
+        />
+        {itemCount > 0 && (
+          <View style={styles.cartBadge}>
+            <Text style={[styles.cartBadgeText, { fontSize: scaleFontSize(11) }]}>
+              {itemCount > 9 ? '9+' : itemCount}
+            </Text>
           </View>
-          <Text style={styles.emptyText}>Tu carrito está vacío</Text>
-          <Text style={styles.emptySubtext}>Añade planes de suscripción para tus locales</Text>
-          {/* ✅ FIXED: Redirect to plans page instead of just closing */}
-          <TouchableOpacity 
-            style={styles.emptyButton} 
-            onPress={() => {
-              onClose();
-              // Navigate to plans page
-              router.push('/gestion/planes-suscripcion');
-            }}
-          >
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.emptyButtonGradient}
-            >
-              <Text style={styles.emptyButtonText}>Explorar Planes</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <React.Fragment>
-          <ScrollView style={styles.itemsContainer} contentContainerStyle={styles.itemsContent}>
-            {cartItems.map((item) => (
-              <View key={item.id} style={styles.cartItem}>
-                <View style={styles.itemHeader}>
-                  <View style={styles.planBadge}>
-                    <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color={colors.badgeDestacado} />
-                    <Text style={styles.planBadgeText}>{item.planes_suscripcion.nombre}</Text>
+        )}
+      </TouchableOpacity>
+
+      {/* Cart Modal */}
+      <Modal
+        visible={showCartModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCartModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowCartModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderLeft}>
+                <IconSymbol
+                  ios_icon_name="cart.fill"
+                  android_material_icon_name="shopping_cart"
+                  size={Platform.OS === 'android' ? scaleIconSize(28) : 28}
+                  color={colors.primary}
+                />
+                <Text style={[styles.modalTitle, { fontSize: scaleFontSize(22) }]}>Mi Carrito</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowCartModal(false)}>
+                <IconSymbol
+                  ios_icon_name="xmark.circle.fill"
+                  android_material_icon_name="cancel"
+                  size={Platform.OS === 'android' ? scaleIconSize(28) : 28}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={[styles.loadingText, { fontSize: scaleFontSize(14) }]}>Cargando carrito...</Text>
+              </View>
+            ) : cartItems.length === 0 ? (
+              <View style={styles.emptyCart}>
+                <IconSymbol
+                  ios_icon_name="cart"
+                  android_material_icon_name="shopping_cart"
+                  size={Platform.OS === 'android' ? scaleIconSize(64) : 64}
+                  color={colors.textSecondary}
+                />
+                <Text style={[styles.emptyCartText, { fontSize: scaleFontSize(18) }]}>Carrito Vacío</Text>
+                <Text style={[styles.emptyCartSubtext, { fontSize: scaleFontSize(14) }]}>
+                  Agrega planes de suscripción para tus locales
+                </Text>
+              </View>
+            ) : (
+              <>
+                <ScrollView style={styles.cartItemsList} showsVerticalScrollIndicator={false}>
+                  {cartItems.map((item) => {
+                    const itemTotal = item.planes_suscripcion.precio_mensual * item.quantity;
+
+                    return (
+                      <View key={item.id} style={styles.cartItem}>
+                        <View style={styles.cartItemLeft}>
+                          {item.locales.imagen_url ? (
+                            <Image source={{ uri: item.locales.imagen_url }} style={styles.cartItemImage} />
+                          ) : (
+                            <View style={[styles.cartItemImage, styles.cartItemImagePlaceholder]}>
+                              <IconSymbol
+                                ios_icon_name="building.2.fill"
+                                android_material_icon_name="store"
+                                size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+                                color={colors.textSecondary}
+                              />
+                            </View>
+                          )}
+                          <View style={styles.cartItemInfo}>
+                            <Text style={[styles.cartItemLocal, { fontSize: scaleFontSize(15) }]}>
+                              {item.locales.nombre}
+                            </Text>
+                            <Text style={[styles.cartItemPlan, { fontSize: scaleFontSize(13) }]}>
+                              Plan {item.planes_suscripcion.nombre}
+                            </Text>
+                            <Text style={[styles.cartItemPrice, { fontSize: scaleFontSize(14) }]}>
+                              {formatPrice(item.planes_suscripcion.precio_mensual)}/mes
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.cartItemRight}>
+                          <Text style={[styles.cartItemTotal, { fontSize: scaleFontSize(16) }]}>
+                            {formatPrice(itemTotal)}
+                          </Text>
+                          <TouchableOpacity
+                            style={styles.removeButton}
+                            onPress={() => handleRemoveItem(item.id)}
+                            disabled={removing === item.id}
+                          >
+                            {removing === item.id ? (
+                              <ActivityIndicator size="small" color="#EF4444" />
+                            ) : (
+                              <IconSymbol
+                                ios_icon_name="trash.fill"
+                                android_material_icon_name="delete"
+                                size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                                color="#EF4444"
+                              />
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+
+                {/* Cart Summary */}
+                <View style={styles.cartSummary}>
+                  <View style={styles.cartSummaryRow}>
+                    <Text style={[styles.cartSummaryLabel, { fontSize: scaleFontSize(15) }]}>
+                      Subtotal ({itemCount} {itemCount === 1 ? 'artículo' : 'artículos'})
+                    </Text>
+                    <Text style={[styles.cartSummaryValue, { fontSize: scaleFontSize(15) }]}>
+                      {formatPrice(total)}
+                    </Text>
                   </View>
-                  <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => removeItem(item.id)}
-                    disabled={removing === item.id}
-                  >
-                    {removing === item.id ? (
-                      <ActivityIndicator size="small" color={colors.badgeNuevo} />
-                    ) : (
-                      <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color={colors.badgeNuevo} />
-                    )}
+                  <View style={styles.cartSummaryDivider} />
+                  <View style={styles.cartSummaryRow}>
+                    <Text style={[styles.cartSummaryTotal, { fontSize: scaleFontSize(18) }]}>Total</Text>
+                    <Text style={[styles.cartSummaryTotalValue, { fontSize: scaleFontSize(22) }]}>
+                      {formatPrice(total)}
+                    </Text>
+                  </View>
+                  <Text style={[styles.cartSummaryNote, { fontSize: scaleFontSize(12) }]}>
+                    * Todos los planes incluyen 30 días de prueba gratuita
+                  </Text>
+                </View>
+
+                {/* Action Buttons */}
+                <View style={styles.cartActions}>
+                  <TouchableOpacity style={styles.clearCartButton} onPress={handleClearCart}>
+                    <IconSymbol
+                      ios_icon_name="trash"
+                      android_material_icon_name="delete"
+                      size={Platform.OS === 'android' ? scaleIconSize(18) : 18}
+                      color="#EF4444"
+                    />
+                    <Text style={[styles.clearCartButtonText, { fontSize: scaleFontSize(14) }]}>
+                      Vaciar Carrito
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
+                    <LinearGradient
+                      colors={[colors.primary, colors.primary + 'DD']}
+                      style={styles.checkoutButtonGradient}
+                    >
+                      <Text style={[styles.checkoutButtonText, { fontSize: scaleFontSize(16) }]}>
+                        Proceder al Pago
+                      </Text>
+                      <IconSymbol
+                        ios_icon_name="arrow.right.circle.fill"
+                        android_material_icon_name="arrow_forward"
+                        size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                        color={colors.white}
+                      />
+                    </LinearGradient>
                   </TouchableOpacity>
                 </View>
-                
-                <View style={styles.itemInfo}>
-                  <View style={styles.localInfo}>
-                    <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="business" size={18} color={colors.primary} />
-                    <Text style={styles.itemLocalName}>{item.locales.nombre}</Text>
-                  </View>
-                  
-                  <Text style={styles.itemDescription} numberOfLines={2}>
-                    {item.planes_suscripcion.descripcion}
-                  </Text>
-                  
-                  <View style={styles.priceContainer}>
-                    <Text style={styles.itemPrice}>
-                      €{item.planes_suscripcion.precio_mensual.toFixed(2)}
-                    </Text>
-                    <Text style={styles.priceLabel}>/mes</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-
-          <View style={styles.footer}>
-            <View style={styles.totalSection}>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Subtotal:</Text>
-                <Text style={styles.totalAmount}>€{calculateTotal().toFixed(2)}</Text>
-              </View>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabelSmall}>IVA (21%):</Text>
-                <Text style={styles.totalAmountSmall}>€{(calculateTotal() * 0.21).toFixed(2)}</Text>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabelFinal}>Total:</Text>
-                <Text style={styles.totalAmountFinal}>€{(calculateTotal() * 1.21).toFixed(2)}</Text>
-              </View>
-            </View>
-            
-            <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.checkoutButtonGradient}
-              >
-                <IconSymbol ios_icon_name="creditcard.fill" android_material_icon_name="payment" size={20} color={colors.headerText} />
-                <Text style={styles.checkoutButtonText}>Proceder al Pago</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </React.Fragment>
-      )}
-    </View>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
+  cartButton: {
+    position: 'relative',
+    padding: 4,
   },
-  header: {
+  cartBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    fontWeight: '700',
+    color: colors.white,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    maxHeight: '90%',
+  },
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
+    marginBottom: 20,
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.headerText,
-    flex: 1,
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  closeButton: {
-    padding: 8,
+  modalTitle: {
+    fontWeight: 'bold',
+    color: colors.text,
   },
   loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    paddingVertical: 60,
     alignItems: 'center',
+    gap: 12,
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
     color: colors.textSecondary,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  emptyCart: {
+    paddingVertical: 60,
     alignItems: 'center',
-    padding: 40,
+    gap: 16,
   },
-  emptyIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: colors.primary + '15',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  emptyText: {
-    fontSize: 22,
-    fontWeight: '700',
+  emptyCartText: {
+    fontWeight: '600',
     color: colors.text,
-    marginBottom: 8,
   },
-  emptySubtext: {
-    fontSize: 15,
+  emptyCartSubtext: {
     color: colors.textSecondary,
-    marginBottom: 32,
     textAlign: 'center',
   },
-  emptyButton: {
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  emptyButtonGradient: {
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-  },
-  emptyButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.headerText,
-  },
-  itemsContainer: {
-    flex: 1,
-  },
-  itemsContent: {
-    padding: 16,
+  cartItemsList: {
+    maxHeight: 400,
+    marginBottom: 20,
   },
   cartItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    ...commonStyles.cardShadow,
   },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  planBadge: {
+  cartItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.badgeDestacado + '20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  planBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.badgeDestacadoText,
-    textTransform: 'uppercase',
-  },
-  removeButton: {
-    padding: 8,
-  },
-  itemInfo: {
-    gap: 10,
-  },
-  localInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  itemLocalName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
+    gap: 12,
     flex: 1,
   },
-  itemDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
+  cartItemImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
   },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
+  cartItemImagePlaceholder: {
+    backgroundColor: colors.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  itemPrice: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: colors.primary,
+  cartItemInfo: {
+    flex: 1,
   },
-  priceLabel: {
-    fontSize: 14,
+  cartItemLocal: {
     fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  cartItemPlan: {
     color: colors.textSecondary,
+    marginBottom: 4,
   },
-  footer: {
+  cartItemPrice: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  cartItemRight: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  cartItemTotal: {
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  removeButton: {
+    padding: 4,
+  },
+  cartSummary: {
     backgroundColor: colors.cardBackground,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    ...commonStyles.cardShadow,
-  },
-  totalSection: {
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
-  totalRow: {
+  cartSummaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
-  totalLabel: {
-    fontSize: 16,
+  cartSummaryLabel: {
+    color: colors.text,
+  },
+  cartSummaryValue: {
     fontWeight: '600',
     color: colors.text,
   },
-  totalAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  totalLabelSmall: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textSecondary,
-  },
-  totalAmountSmall: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  divider: {
+  cartSummaryDivider: {
     height: 1,
     backgroundColor: colors.cardBorder,
     marginVertical: 12,
   },
-  totalLabelFinal: {
-    fontSize: 20,
-    fontWeight: '800',
+  cartSummaryTotal: {
+    fontWeight: 'bold',
     color: colors.text,
   },
-  totalAmountFinal: {
-    fontSize: 28,
-    fontWeight: '800',
+  cartSummaryTotalValue: {
+    fontWeight: 'bold',
     color: colors.primary,
   },
+  cartSummaryNote: {
+    color: colors.textSecondary,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  cartActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  clearCartButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FEE2E2',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    flex: 1,
+  },
+  clearCartButtonText: {
+    fontWeight: '600',
+    color: '#EF4444',
+  },
   checkoutButton: {
-    borderRadius: 16,
+    flex: 2,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   checkoutButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    paddingVertical: 16,
+    gap: 8,
+    paddingVertical: 14,
   },
   checkoutButtonText: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.headerText,
+    fontWeight: '700',
+    color: colors.white,
   },
 });
