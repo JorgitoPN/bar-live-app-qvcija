@@ -62,14 +62,16 @@ interface PaymentMethod {
 }
 
 /**
- * ✅ MI SUSCRIPCIÓN v291.0 - LINT FIXES
+ * ✅ MI SUSCRIPCIÓN - COMPLETE SUBSCRIPTION MANAGEMENT
  * 
- * CRITICAL FIXES v291.0:
- * - ✅ FIXED: Added missing dependency 'router' to useCallback
- * - ✅ COMPLIANT: All hooks now follow exhaustive-deps rules
- * - ✅ NO WARNINGS: ESLint passes without warnings
- * 
- * Previous features maintained
+ * Features:
+ * - View current subscription status
+ * - Trial period information with countdown
+ * - Payment method management
+ * - Plan change functionality
+ * - Subscription cancellation
+ * - Invoice history
+ * - Auto-charge acceptance for trial
  */
 
 export default function MiSuscripcionScreen() {
@@ -94,7 +96,6 @@ export default function MiSuscripcionScreen() {
   const [canceling, setCanceling] = useState(false);
   const [changingPlan, setChangingPlan] = useState(false);
 
-  // ✅ FIXED v291.0: Added router to dependencies
   const loadSubscriptionData = useCallback(async () => {
     if (!localId) {
       Alert.alert('Error', 'No se especificó el local');
@@ -177,12 +178,12 @@ export default function MiSuscripcionScreen() {
       setAvailablePlans(plansData || []);
 
     } catch (error) {
-      console.error('[MiSuscripcion v291.0] Error loading data:', error);
+      console.error('[MiSuscripcion] Error loading data:', error);
       Alert.alert('Error', 'No se pudieron cargar los datos de suscripción');
     } finally {
       setLoading(false);
     }
-  }, [localId, user?.id, router]);
+  }, [localId, user?.id]);
 
   useEffect(() => {
     loadSubscriptionData();
@@ -204,7 +205,7 @@ export default function MiSuscripcionScreen() {
       setShowAddPaymentModal(false);
       await loadSubscriptionData();
     } catch (error) {
-      console.error('[MiSuscripcion v291.0] Error saving payment method:', error);
+      console.error('[MiSuscripcion] Error saving payment method:', error);
       Alert.alert('Error', 'No se pudo guardar el método de pago');
     } finally {
       setProcessingPayment(false);
@@ -242,7 +243,7 @@ export default function MiSuscripcionScreen() {
 
       await loadSubscriptionData();
     } catch (error) {
-      console.error('[MiSuscripcion v291.0] Error starting trial:', error);
+      console.error('[MiSuscripcion] Error starting trial:', error);
       Alert.alert('Error', 'No se pudo activar la prueba gratuita');
     } finally {
       setProcessingPayment(false);
@@ -266,7 +267,7 @@ export default function MiSuscripcionScreen() {
       setShowCancelModal(false);
       await loadSubscriptionData();
     } catch (error) {
-      console.error('[MiSuscripcion v291.0] Error canceling subscription:', error);
+      console.error('[MiSuscripcion] Error canceling subscription:', error);
       Alert.alert('Error', 'No se pudo cancelar la suscripción');
     } finally {
       setCanceling(false);
@@ -293,7 +294,7 @@ export default function MiSuscripcionScreen() {
       setShowChangePlanModal(false);
       await loadSubscriptionData();
     } catch (error) {
-      console.error('[MiSuscripcion v291.0] Error changing plan:', error);
+      console.error('[MiSuscripcion] Error changing plan:', error);
       Alert.alert('Error', 'No se pudo cambiar el plan');
     } finally {
       setChangingPlan(false);
@@ -1471,6 +1472,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
+  },
+  recommendedBadge: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  recommendedBadgeText: {
+    fontWeight: '700',
+    color: colors.white,
   },
   modalPrimaryButton: {
     flexDirection: 'row',
