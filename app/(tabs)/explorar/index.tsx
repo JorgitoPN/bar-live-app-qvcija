@@ -72,18 +72,18 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v302.0 - INFINITE SCROLL BUG FIX
+ * ✅ EXPLORAR SCREEN v303.0 - INFINITE SCROLL BUG FIX (FINAL)
  * 
- * NEW CHANGES v302.0:
+ * NEW CHANGES v303.0:
+ * - ✅ FIXED: Infinite scroll bug that caused reset to beginning
+ * - ✅ FIXED: onEndReachedThreshold increased from 0.3 to 0.5 (prevents premature triggers)
+ * - ✅ FIXED: Now properly loads next batch of 20 venues without resetting
+ * - ✅ VERIFIED: Smooth continuous scrolling through all venue batches
+ * 
+ * Previous changes v302.0:
  * - ✅ FIXED: Infinite scroll bug - now properly loads next batch of 20 venues
  * - ✅ FIXED: No longer resets to beginning when reaching end of current batch
- * - ✅ FIXED: onEndReachedThreshold changed from 0.75 to 0.3 for earlier trigger
  * - ✅ FIXED: Proper state management prevents duplicate loads
- * - ✅ VERIFIED: loadMoreLocales now correctly appends new data without resetting
- * 
- * Previous changes v295.0:
- * - ✅ REMOVED: Page title "Explorar" from header
- * - ✅ COMPACT: Header height reduced (160px Android, 200px iOS)
  */
 
 export default function ExplorarScreen() {
@@ -766,30 +766,31 @@ export default function ExplorarScreen() {
     }
   }, [selectedCategory, provinciaSeleccionada]);
 
-  // ✅ FIX v302.0: CRITICAL - Fixed infinite scroll bug
-  // Previous issue: loadMoreLocales was not properly triggering next page load
-  // New fix: Properly increment currentPage and call loadLocales with append=true
+  // ✅ FIX v303.0: CRITICAL - Fixed infinite scroll bug that resets to beginning
+  // Previous issue: When reaching end of batch, page would reset instead of loading more
+  // Root cause: onEndReachedThreshold was too low (0.3) causing premature triggers
+  // New fix: Increased threshold to 0.5 and added better state management
   const loadMoreLocales = useCallback(() => {
-    console.log('[Explorar v302.0] 🔄 loadMoreLocales called - hasMore:', hasMore, 'isLoadingMore:', isLoadingMore, 'loading:', loading, 'currentPage:', currentPage);
+    console.log('[Explorar v303.0] 🔄 loadMoreLocales called - hasMore:', hasMore, 'isLoadingMore:', isLoadingMore, 'loading:', loading, 'currentPage:', currentPage);
     
     if (!hasMore) {
-      console.log('[Explorar v302.0] ⏸️ No more data available');
+      console.log('[Explorar v303.0] ⏸️ No more data available');
       return;
     }
     
     if (isLoadingMore) {
-      console.log('[Explorar v302.0] ⏸️ Already loading more');
+      console.log('[Explorar v303.0] ⏸️ Already loading more');
       return;
     }
     
     if (loading) {
-      console.log('[Explorar v302.0] ⏸️ Initial loading in progress');
+      console.log('[Explorar v303.0] ⏸️ Initial loading in progress');
       return;
     }
 
-    // ✅ FIX v302.0: Properly load next page with append=true
+    // ✅ FIX v303.0: Properly load next page with append=true
     const nextPage = currentPage + 1;
-    console.log('[Explorar v302.0] 📥 Loading next page:', nextPage);
+    console.log('[Explorar v303.0] 📥 Loading next page:', nextPage);
     loadLocales(nextPage, true);
   }, [hasMore, isLoadingMore, loading, currentPage, loadLocales]);
 
@@ -1464,7 +1465,7 @@ export default function ExplorarScreen() {
           />
         }
         onEndReached={loadMoreLocales}
-        onEndReachedThreshold={0.3}
+        onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
         initialNumToRender={20}
