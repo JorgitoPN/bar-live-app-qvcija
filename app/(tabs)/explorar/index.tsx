@@ -32,7 +32,7 @@ import {
   getHeaderIconSize,
   getContentBottomPadding,
 } from '@/utils/androidScaling';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import { IconSymbol } from '@/components/IconSymbol';
 import LoginPrompt from '@/components/common/LoginPrompt';
@@ -72,11 +72,15 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v310.0 - SCROLL RESET ON CATEGORY & TAB PRESS
+ * ✅ EXPLORAR SCREEN v311.0 - ROUTER.SUBSCRIBE FIX
  * 
- * NEW CHANGES v310.0:
+ * NEW CHANGES v311.0:
+ * - ✅ FIXED: Replaced router.subscribe with useFocusEffect (router.subscribe doesn't exist in expo-router)
+ * - ✅ FIXED: Scroll resets to top when Explorar tab is pressed using proper expo-router API
+ * - ✅ IMPROVED: More reliable focus detection using useFocusEffect hook
+ * 
+ * Previous changes v310.0:
  * - ✅ FIXED: Scroll resets to top when category is selected
- * - ✅ FIXED: Scroll resets to top when Explorar tab is pressed from another page
  * - ✅ IMPROVED: User always sees results from the first item
  * - ✅ IMPROVED: Better UX with smooth scroll animation
  * 
@@ -85,12 +89,6 @@ const CATEGORIAS = [
  * - ✅ OPTIMIZED: Reduced initial render complexity
  * - ✅ OPTIMIZED: Deferred non-critical data loading
  * - ✅ IMPROVED: Instant tab response when navigating from other pages
- * 
- * Previous changes v308.0:
- * - ✅ FIXED: Background preloading of ALL categories for instant display
- * - ✅ FIXED: Removed "cloudy" effect by eliminating fade animation during category changes
- * - ✅ IMPROVED: Instant category switching with zero loading time
- * - ✅ IMPROVED: Smooth transitions without visual artifacts
  */
 
 export default function ExplorarScreen() {
@@ -123,11 +121,7 @@ export default function ExplorarScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
 
-  // ✅ FIX v310.0: Track if screen is focused to reset scroll
-  const [isFocused, setIsFocused] = useState(true);
-  const previousFocusState = useRef(true);
-
-  // ✅ FIX v309.0: Optimized cache for instant navigation
+  // ✅ FIX v311.0: Optimized cache for instant navigation
   const categoryCache = useRef<Map<string, {
     locales: any[];
     hasMore: boolean;
@@ -144,29 +138,15 @@ export default function ExplorarScreen() {
   
   const flatListRef = useRef<FlatList>(null);
 
-  // ✅ FIX v310.0: Detect when screen becomes focused (tab pressed)
-  useEffect(() => {
-    const unsubscribe = router.subscribe((state) => {
-      const currentRoute = state?.pathname || '';
-      const isExplorarFocused = currentRoute.includes('/explorar');
-      
-      if (isExplorarFocused && !previousFocusState.current) {
-        console.log('[Explorar v310.0] 🎯 Tab pressed - resetting scroll to top');
-        setTimeout(() => {
-          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-        }, 100);
-      }
-      
-      previousFocusState.current = isExplorarFocused;
-      setIsFocused(isExplorarFocused);
-    });
-
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [router]);
+  // ✅ FIX v311.0: Detect when screen becomes focused (tab pressed) using useFocusEffect
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[Explorar v311.0] 🎯 Screen focused - resetting scroll to top');
+      setTimeout(() => {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }, 100);
+    }, [])
+  );
 
   // ✅ FIX v309.0: Deferred search debouncing (non-blocking)
   useEffect(() => {
@@ -202,19 +182,19 @@ export default function ExplorarScreen() {
     const timer = setTimeout(() => {
       (async () => {
         try {
-          console.log('[Explorar v310.0] 📍 Step 1: Requesting location permission...');
+          console.log('[Explorar v311.0] 📍 Step 1: Requesting location permission...');
           const { status } = await Location.requestForegroundPermissionsAsync();
           
           if (!isMounted) return;
           
           if (status !== 'granted') {
-            console.log('[Explorar v310.0] ⚠️ Location permission denied - proceeding without location');
+            console.log('[Explorar v311.0] ⚠️ Location permission denied - proceeding without location');
             setLocationError('Permiso de ubicación denegado. Las distancias no estarán disponibles.');
             setLocationReady(true);
             return;
           }
 
-          console.log('[Explorar v310.0] 📍 Step 2: Getting current position...');
+          console.log('[Explorar v311.0] 📍 Step 2: Getting current position...');
           const location = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,
           });
