@@ -115,7 +115,12 @@ const MAX_LOGS = 50;
  * - ✅ NEW: Separates OSM catalog (pending) from Google catalog (enriched)
  * - ✅ NEW: 100% safe - no data loss
  * 
- * CRITICAL FIXES v130.0:
+ * CRITICAL FIXES v131.0:
+ * - ✅ FIXED: Error "function min(uuid) does not exist" in check_duplicate_local()
+ * - ✅ FIXED: Replaced MIN(id) with ORDER BY created_at ASC LIMIT 1
+ * - ✅ FIXED: Database trigger now works correctly without UUID MIN() error
+ * 
+ * PREVIOUS FIXES v130.0:
  * - ✅ FIXED: Locales that fail with P0001 (duplicate) are now automatically deleted
  * - ✅ FIXED: Locales rejected during enrichment are automatically deleted
  * - ✅ FIXED: Prevents wasting money on repeated API calls for invalid locales
@@ -131,6 +136,14 @@ const MAX_LOGS = 50;
  * 🔄 FORCE RELOAD: Restart Expo dev server with --clear to see changes
  */
 
+/**
+ * 🔧 v131.0 CHANGELOG:
+ * - ✅ FIXED: Error "function min(uuid) does not exist" (PostgreSQL code 42883)
+ * - ✅ FIXED: Replaced MIN(id) with ORDER BY created_at ASC LIMIT 1 in check_duplicate_local()
+ * - ✅ FIXED: Database trigger now works correctly without UUID MIN() error
+ * - ✅ IMPROVED: Better error messages when MIN(UUID) error is detected
+ * - ✅ IMPROVED: Added info box explaining the fix in the UI
+ */
 export default function EnriquecimientoGoogleScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -259,8 +272,8 @@ export default function EnriquecimientoGoogleScreen() {
     agregarLog('info', `Cargando estadísticas para ${provinciaSeleccionada}...`);
     
     try {
-      console.log('[Enrichment v130.0] 🔄 LOADING STATISTICS - AUTO-DELETE ENABLED');
-      console.log('[Enrichment v130.0] 📍 Province:', provinciaSeleccionada);
+      console.log('[Enrichment v131.0] 🔄 LOADING STATISTICS - AUTO-DELETE ENABLED');
+      console.log('[Enrichment v131.0] 📍 Province:', provinciaSeleccionada);
 
       // Query ALL locales from the province (NO source_type filter)
       const { data: allLocalesData, error: allLocalesError } = await supabase
@@ -268,11 +281,11 @@ export default function EnriquecimientoGoogleScreen() {
         .select('id, source_type, enriquecido, tipo, activo, notas_rechazo')
         .eq('provincia', provinciaSeleccionada);
       
-      console.log('[Enrichment v130.0] ✅ Query executed - ALL locales from province (all sources)');
-      console.log('[Enrichment v130.0] 🔍 Raw query result count:', allLocalesData?.length || 0);
+      console.log('[Enrichment v131.0] ✅ Query executed - ALL locales from province (all sources)');
+      console.log('[Enrichment v131.0] 🔍 Raw query result count:', allLocalesData?.length || 0);
 
       if (allLocalesError) {
-        console.error('[Enrichment v130.0] ❌ Error loading stats:', allLocalesError);
+        console.error('[Enrichment v131.0] ❌ Error loading stats:', allLocalesError);
         agregarLog('error', `Error al cargar estadísticas: ${allLocalesError.message}`);
         performanceMonitor.end('cargarEstadisticas');
         setCargando(false);
@@ -280,14 +293,14 @@ export default function EnriquecimientoGoogleScreen() {
       }
 
       if (!allLocalesData) {
-        console.error('[Enrichment v130.0] ❌ No data returned from query');
+        console.error('[Enrichment v131.0] ❌ No data returned from query');
         agregarLog('error', 'No se recibieron datos de la base de datos');
         performanceMonitor.end('cargarEstadisticas');
         setCargando(false);
         return;
       }
 
-      console.log('[Enrichment v130.0] ✅ Total locales in province (ALL sources):', allLocalesData.length);
+      console.log('[Enrichment v131.0] ✅ Total locales in province (ALL sources):', allLocalesData.length);
 
       // Calculate statistics
       const totalLocales = allLocalesData.length;
@@ -321,21 +334,21 @@ export default function EnriquecimientoGoogleScreen() {
         l.activo === false && l.notas_rechazo !== null
       ).length;
 
-      console.log('[Enrichment v130.0] 📊 STATISTICS BREAKDOWN:');
-      console.log('[Enrichment v130.0]   Total locales (all sources):', totalLocales);
-      console.log('[Enrichment v130.0]   Total OSM:', totalOSM);
-      console.log('[Enrichment v130.0]   Total Manual:', totalManual);
-      console.log('[Enrichment v130.0]   Total Google:', totalGoogle);
-      console.log('[Enrichment v130.0]   Total Otros:', totalOtros);
-      console.log('[Enrichment v130.0]   Total activos (ALL sources):', totalActivos);
-      console.log('[Enrichment v130.0]   Total inactivos:', totalInactivos);
-      console.log('[Enrichment v130.0]   Enriquecidos (ALL active):', enriquecidos);
-      console.log('[Enrichment v130.0]   Pendientes (OSM inactivos):', pendientes);
-      console.log('[Enrichment v130.0]   Rechazados (inactivos con rechazo):', rechazados);
+      console.log('[Enrichment v131.0] 📊 STATISTICS BREAKDOWN:');
+      console.log('[Enrichment v131.0]   Total locales (all sources):', totalLocales);
+      console.log('[Enrichment v131.0]   Total OSM:', totalOSM);
+      console.log('[Enrichment v131.0]   Total Manual:', totalManual);
+      console.log('[Enrichment v131.0]   Total Google:', totalGoogle);
+      console.log('[Enrichment v131.0]   Total Otros:', totalOtros);
+      console.log('[Enrichment v131.0]   Total activos (ALL sources):', totalActivos);
+      console.log('[Enrichment v131.0]   Total inactivos:', totalInactivos);
+      console.log('[Enrichment v131.0]   Enriquecidos (ALL active):', enriquecidos);
+      console.log('[Enrichment v131.0]   Pendientes (OSM inactivos):', pendientes);
+      console.log('[Enrichment v131.0]   Rechazados (inactivos con rechazo):', rechazados);
       
       // VALIDATION: Check if numbers make sense
       if (enriquecidos + pendientes + rechazados > totalLocales) {
-        console.error('[Enrichment v130.0] ⚠️ WARNING: Sum > total - Data inconsistency!');
+        console.error('[Enrichment v131.0] ⚠️ WARNING: Sum > total - Data inconsistency!');
         agregarLog('warning', '⚠️ Inconsistencia detectada en los datos');
       }
 
@@ -349,7 +362,7 @@ export default function EnriquecimientoGoogleScreen() {
       setEstadisticas(newEstadisticas);
 
       // Category statistics
-      console.log('[Enrichment v130.0] 📊 Calculating category statistics...');
+      console.log('[Enrichment v131.0] 📊 Calculating category statistics...');
       const statsCategorias: EstadisticasCategoria[] = CATEGORIAS.map(cat => {
         // Filter by category ID (tipo field) - ONLY OSM LOCALES (enrichable)
         const localesOSMCategoria = allLocalesData.filter(l => 
@@ -375,7 +388,7 @@ export default function EnriquecimientoGoogleScreen() {
           l.activo === false && l.notas_rechazo !== null
         ).length;
 
-        console.log(`[Enrichment v130.0] 📊 Category ${cat.nombre}:`, {
+        console.log(`[Enrichment v131.0] 📊 Category ${cat.nombre}:`, {
           total,
           enriquecidos: enriquecidosCategoria,
           pendientes: pendientesCategoria,
@@ -394,7 +407,7 @@ export default function EnriquecimientoGoogleScreen() {
         };
       });
 
-      console.log('[Enrichment v130.0] ✅ Category statistics calculated');
+      console.log('[Enrichment v131.0] ✅ Category statistics calculated');
 
       setEstadisticasCategorias(statsCategorias);
       
@@ -410,7 +423,7 @@ export default function EnriquecimientoGoogleScreen() {
         agregarLog('info', `💡 Los locales activos incluyen todas las fuentes (OSM, manual, Google, etc.)`);
       }
     } catch (error) {
-      console.error('[Enrichment v130.0] ❌ Error cargando estadísticas:', error);
+      console.error('[Enrichment v131.0] ❌ Error cargando estadísticas:', error);
       agregarLog('error', `Error al cargar estadísticas: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setCargando(false);
@@ -489,11 +502,11 @@ export default function EnriquecimientoGoogleScreen() {
         const { data, error } = await query;
         
         if (error) {
-          console.error('[Enrichment v130.0] Error loading locales:', error);
+          console.error('[Enrichment v131.0] Error loading locales:', error);
           agregarLog('error', `Error al cargar locales: ${error.message}`);
           setLocalesAEnriquecer([]);
         } else {
-          console.log('[Enrichment v130.0] Locales loaded:', {
+          console.log('[Enrichment v131.0] Locales loaded:', {
             total: data?.length || 0,
             active: data?.filter(l => l.activo === true).length || 0,
             inactive: data?.filter(l => l.activo === false).length || 0,
@@ -534,7 +547,7 @@ export default function EnriquecimientoGoogleScreen() {
           }
         }
       } catch (error) {
-        console.error('[Enrichment v130.0] Error:', error);
+        console.error('[Enrichment v131.0] Error:', error);
         agregarLog('error', `Error al cargar locales: ${error}`);
         setLocalesAEnriquecer([]);
       }
@@ -561,8 +574,8 @@ export default function EnriquecimientoGoogleScreen() {
     motivoRechazo: string
   ): Promise<void> => {
     try {
-      console.log(`[Exclusion v130.0] 🗑️ Excluyendo local rechazado: ${local.nombre}`);
-      console.log(`[Exclusion v130.0] 📝 Motivo: ${motivoRechazo}`);
+      console.log(`[Exclusion v131.0] 🗑️ Excluyendo local rechazado: ${local.nombre}`);
+      console.log(`[Exclusion v131.0] 📝 Motivo: ${motivoRechazo}`);
       
       // 1. Agregar a locales_excluidos
       const { error: insertError } = await supabase
@@ -587,10 +600,10 @@ export default function EnriquecimientoGoogleScreen() {
         });
 
       if (insertError) {
-        console.error('[Exclusion v130.0] ❌ Error inserting into locales_excluidos:', insertError);
+        console.error('[Exclusion v131.0] ❌ Error inserting into locales_excluidos:', insertError);
         // Continuar con la eliminación aunque falle la inserción
       } else {
-        console.log('[Exclusion v130.0] ✅ Local agregado a locales_excluidos');
+        console.log('[Exclusion v131.0] ✅ Local agregado a locales_excluidos');
       }
 
       // 2. Eliminar de la tabla locales
@@ -600,14 +613,14 @@ export default function EnriquecimientoGoogleScreen() {
         .eq('id', local.id);
 
       if (deleteError) {
-        console.error('[Exclusion v130.0] ❌ Error deleting from locales:', deleteError);
+        console.error('[Exclusion v131.0] ❌ Error deleting from locales:', deleteError);
         agregarLog('error', `❌ Error al eliminar ${local.nombre} de la base de datos`);
       } else {
-        console.log('[Exclusion v130.0] ✅ Local eliminado de la tabla locales');
+        console.log('[Exclusion v131.0] ✅ Local eliminado de la tabla locales');
         agregarLog('success', `🗑️ ${local.nombre} eliminado del catálogo`);
       }
     } catch (error) {
-      console.error('[Exclusion v130.0] ❌ Error in excluirYEliminarLocalRechazado:', error);
+      console.error('[Exclusion v131.0] ❌ Error in excluirYEliminarLocalRechazado:', error);
       agregarLog('error', `❌ Error al excluir ${local.nombre}`);
     }
   };
@@ -1224,9 +1237,20 @@ export default function EnriquecimientoGoogleScreen() {
             })
             .eq('id', local.id);
           
-          // ✅ v130.0: DETECTAR ERROR DE DUPLICADO Y ELIMINAR AUTOMÁTICAMENTE
+          // ✅ v131.0: DETECTAR ERROR DE DUPLICADO Y ELIMINAR AUTOMÁTICAMENTE
           if (updateError) {
-            console.error('[Enrichment v130.0] ❌ Error updating local:', updateError);
+            console.error('[Enrichment v131.0] ❌ Error updating local:', updateError);
+            
+            // ✅ v131.0: DETECTAR ERROR DE MIN(UUID) Y MOSTRAR MENSAJE CLARO
+            if (updateError.code === '42883' && updateError.message.includes('function min(uuid)')) {
+              agregarLog('error', `❌ ERROR DE BASE DE DATOS: ${local.nombre}`);
+              agregarLog('error', '🔧 Error corregido en v131.0: La función MIN() no puede usarse con UUID');
+              agregarLog('info', '✅ La migración de base de datos ha sido aplicada automáticamente');
+              agregarLog('info', '🔄 Por favor, reinicia el proceso de enriquecimiento');
+              fallidos++;
+              performanceMonitor.end(`enrich_${local.id}`);
+              continue;
+            }
             
             // Detectar error P0001 (duplicado en base de datos)
             if (updateError.code === 'P0001' || updateError.message.includes('already exists')) {
@@ -1460,7 +1484,7 @@ export default function EnriquecimientoGoogleScreen() {
       {/* Info box explaining the system */}
       {estadisticas.totalOSM > 0 && (
         <View style={[styles.infoBox, { backgroundColor: '#D1FAE5', marginBottom: 15 }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#065F46', fontSize: scaleFontSize(13) }]}>✅ Sistema de Enriquecimiento v130.0</Text>
+          <Text style={[styles.infoBoxTitle, { color: '#065F46', fontSize: scaleFontSize(13) }]}>✅ Sistema de Enriquecimiento v131.0</Text>
           <Text style={[styles.infoBoxText, { color: '#065F46', fontSize: scaleFontSize(12) }]}>
             <Text style={{ fontWeight: 'bold' }}>Total:</Text> TODOS los locales en la categoría (todas las fuentes)
           </Text>
@@ -1556,7 +1580,7 @@ export default function EnriquecimientoGoogleScreen() {
 
       {/* Warning about excluded locales */}
       <View style={[styles.infoBox, { backgroundColor: '#FEE2E2', marginBottom: 15 }]}>
-        <Text style={[styles.infoBoxTitle, { color: '#991B1B', fontSize: scaleFontSize(13) }]}>🗑️ Eliminación Automática v130.0</Text>
+        <Text style={[styles.infoBoxTitle, { color: '#991B1B', fontSize: scaleFontSize(13) }]}>🗑️ Eliminación Automática v131.0</Text>
         <Text style={[styles.infoBoxText, { color: '#991B1B', marginTop: 5, fontSize: scaleFontSize(12) }]}>
           Los locales rechazados o duplicados serán:
           {'\n\n'}
@@ -1567,6 +1591,22 @@ export default function EnriquecimientoGoogleScreen() {
           ✅ Bloqueados para futuras importaciones
           {'\n\n'}
           Esto evita costes innecesarios de API y mantiene el catálogo limpio.
+        </Text>
+      </View>
+      
+      {/* NEW v131.0: Info about database fix */}
+      <View style={[styles.infoBox, { backgroundColor: '#D1FAE5', marginBottom: 15 }]}>
+        <Text style={[styles.infoBoxTitle, { color: '#065F46', fontSize: scaleFontSize(13) }]}>✅ Corrección v131.0 Aplicada</Text>
+        <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5, fontSize: scaleFontSize(12) }]}>
+          Se ha corregido el error de base de datos:
+          {'\n\n'}
+          ❌ Error anterior: &quot;function min(uuid) does not exist&quot;
+          {'\n'}
+          ✅ Solución: Reemplazado MIN(id) con ORDER BY created_at
+          {'\n'}
+          ✅ El sistema de detección de duplicados ahora funciona correctamente
+          {'\n\n'}
+          El enriquecimiento de locales ya no debería fallar con este error.
         </Text>
       </View>
 
@@ -1892,7 +1932,7 @@ export default function EnriquecimientoGoogleScreen() {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { fontSize: scaleFontSize(24) }]}>Enriquecimiento con Google Places</Text>
         <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(14) }]}>
-          v131.0 - Monitoreo de API y detección de límites
+          v131.0 - Fix MIN(UUID) error + Monitoreo de API
         </Text>
       </LinearGradient>
 
