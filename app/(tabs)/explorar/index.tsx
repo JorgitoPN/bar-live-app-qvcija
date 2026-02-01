@@ -1509,9 +1509,9 @@ export default function ExplorarScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            // ✅ FIX v295.0: Adjusted margin for new compact header height (no title)
+            // ✅ FIX v301.0: Increased margin between header and first local for better visual separation
             marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 10 : HEADER_MAX_HEIGHT + 11,
-            paddingTop: 16,
+            paddingTop: 24, // ✅ Increased from 16 to 24 for better spacing
             paddingBottom: getContentBottomPadding(100)
           },
         ]}
