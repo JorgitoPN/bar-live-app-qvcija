@@ -14,18 +14,16 @@ interface HeaderSocialProps {
 }
 
 /**
- * ✅ HEADER SOCIAL v110.0 - TITLE REMOVED FROM HEADER
+ * ✅ HEADER SOCIAL v111.0 - SMALLER ICONS
  * 
- * NEW CHANGES v110.0:
+ * NEW CHANGES v111.0:
+ * - ✅ REDUCED: Icon sizes made smaller (20px Android, 24px iOS)
+ * - ✅ COMPACT: More compact header appearance
+ * - ✅ CONSISTENT: Matches user request for smaller icons
+ * 
+ * Previous fixes v110.0:
  * - ✅ REMOVED: Page title "Social" from header
  * - ✅ CLEAN: More compact header with just action buttons
- * - ✅ CONSISTENT: Matches user request to remove all page titles
- * 
- * Previous fixes v109.0:
- * - ✅ COMPACT: Android header now uses compact padding (36px top, 12px bottom)
- * - ✅ COMPACT: Android header title reduced to 20sp (matching venue cards)
- * - ✅ COMPACT: Android header icons reduced to 24dp (more compact)
- * - ✅ SPACE SAVING: Headers take less vertical space on Android
  */
 
 export default function HeaderSocial({ 
@@ -42,13 +40,11 @@ export default function HeaderSocial({
       end={{ x: 1, y: 0 }}
       style={styles.header}
     >
-      {/* ✅ NEW v110.0: Header WITHOUT title - just action buttons */}
       <View style={styles.headerActions}>
-        {/* ✅ Navigate to full-page search */}
         <TouchableOpacity 
           style={styles.headerButton}
           onPress={() => {
-            console.log('[HeaderSocial v110.0] 🔍 Navigating to full-page search');
+            console.log('[HeaderSocial v111.0] 🔍 Navigating to full-page search');
             router.push('/social/search');
           }}
           activeOpacity={0.7}
@@ -56,7 +52,7 @@ export default function HeaderSocial({
           <IconSymbol 
             ios_icon_name="magnifyingglass" 
             android_material_icon_name="search" 
-            size={Platform.OS === 'android' ? 24 : 28} 
+            size={Platform.OS === 'android' ? 20 : 24} 
             color={colors.headerText} 
           />
         </TouchableOpacity>
@@ -69,7 +65,7 @@ export default function HeaderSocial({
           <IconSymbol 
             ios_icon_name="plus.app" 
             android_material_icon_name="add_circle" 
-            size={Platform.OS === 'android' ? 24 : 28} 
+            size={Platform.OS === 'android' ? 20 : 24} 
             color={colors.headerText} 
           />
         </TouchableOpacity>
@@ -83,7 +79,7 @@ export default function HeaderSocial({
             <IconSymbol 
               ios_icon_name="bell.fill" 
               android_material_icon_name="notifications" 
-              size={Platform.OS === 'android' ? 24 : 28} 
+              size={Platform.OS === 'android' ? 20 : 24} 
               color={colors.headerText} 
             />
             {unreadNotifications > 0 && (
@@ -105,7 +101,7 @@ export default function HeaderSocial({
             <IconSymbol 
               ios_icon_name="message.fill" 
               android_material_icon_name="message" 
-              size={Platform.OS === 'android' ? 24 : 28} 
+              size={Platform.OS === 'android' ? 20 : 24} 
               color={colors.headerText} 
             />
             {unreadMessages > 0 && (
@@ -123,7 +119,6 @@ export default function HeaderSocial({
 }
 
 const styles = StyleSheet.create({
-  // ✅ NEW v110.0: Compact header without title
   header: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
     paddingBottom: Platform.OS === 'android' ? 12 : 16,
