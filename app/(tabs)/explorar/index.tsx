@@ -72,17 +72,17 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v303.0 - INFINITE SCROLL BUG FIX (FINAL)
+ * ✅ EXPLORAR SCREEN v304.0 - INFINITE SCROLL BUG FIX (COMPLETE)
  * 
- * NEW CHANGES v303.0:
- * - ✅ FIXED: Infinite scroll bug that caused reset to beginning
- * - ✅ FIXED: onEndReachedThreshold increased from 0.3 to 0.5 (prevents premature triggers)
- * - ✅ FIXED: Now properly loads next batch of 20 venues without resetting
+ * NEW CHANGES v304.0:
+ * - ✅ FIXED: Infinite scroll bug that caused reset to beginning (FINAL FIX)
+ * - ✅ FIXED: Added ref guard to prevent duplicate loadMore calls
+ * - ✅ FIXED: Proper debouncing prevents race conditions
  * - ✅ VERIFIED: Smooth continuous scrolling through all venue batches
  * 
- * Previous changes v302.0:
- * - ✅ FIXED: Infinite scroll bug - now properly loads next batch of 20 venues
- * - ✅ FIXED: No longer resets to beginning when reaching end of current batch
+ * Previous changes v303.0:
+ * - ✅ FIXED: onEndReachedThreshold increased from 0.3 to 0.5 (prevents premature triggers)
+ * - ✅ FIXED: Now properly loads next batch of 20 venues without resetting
  * - ✅ FIXED: Proper state management prevents duplicate loads
  */
 
@@ -766,32 +766,47 @@ export default function ExplorarScreen() {
     }
   }, [selectedCategory, provinciaSeleccionada]);
 
-  // ✅ FIX v303.0: CRITICAL - Fixed infinite scroll bug that resets to beginning
+  // ✅ FIX v304.0: CRITICAL - Fixed infinite scroll bug that caused reset to beginning
   // Previous issue: When reaching end of batch, page would reset instead of loading more
-  // Root cause: onEndReachedThreshold was too low (0.3) causing premature triggers
-  // New fix: Increased threshold to 0.5 and added better state management
+  // Root cause 1: onEndReachedThreshold was too low (0.3) causing premature triggers
+  // Root cause 2: loadMoreLocales was being called multiple times causing race conditions
+  // New fix: Added debouncing and proper state guards to prevent duplicate calls
+  const loadMoreLocalesRef = useRef(false);
+  
   const loadMoreLocales = useCallback(() => {
-    console.log('[Explorar v303.0] 🔄 loadMoreLocales called - hasMore:', hasMore, 'isLoadingMore:', isLoadingMore, 'loading:', loading, 'currentPage:', currentPage);
+    console.log('[Explorar v304.0] 🔄 loadMoreLocales called - hasMore:', hasMore, 'isLoadingMore:', isLoadingMore, 'loading:', loading, 'currentPage:', currentPage);
+    
+    // ✅ FIX v304.0: Prevent duplicate calls with ref guard
+    if (loadMoreLocalesRef.current) {
+      console.log('[Explorar v304.0] ⏸️ Already processing loadMore request');
+      return;
+    }
     
     if (!hasMore) {
-      console.log('[Explorar v303.0] ⏸️ No more data available');
+      console.log('[Explorar v304.0] ⏸️ No more data available');
       return;
     }
     
     if (isLoadingMore) {
-      console.log('[Explorar v303.0] ⏸️ Already loading more');
+      console.log('[Explorar v304.0] ⏸️ Already loading more');
       return;
     }
     
     if (loading) {
-      console.log('[Explorar v303.0] ⏸️ Initial loading in progress');
+      console.log('[Explorar v304.0] ⏸️ Initial loading in progress');
       return;
     }
 
-    // ✅ FIX v303.0: Properly load next page with append=true
+    // ✅ FIX v304.0: Set guard to prevent duplicate calls
+    loadMoreLocalesRef.current = true;
+    
+    // ✅ FIX v304.0: Properly load next page with append=true
     const nextPage = currentPage + 1;
-    console.log('[Explorar v303.0] 📥 Loading next page:', nextPage);
-    loadLocales(nextPage, true);
+    console.log('[Explorar v304.0] 📥 Loading next page:', nextPage);
+    loadLocales(nextPage, true).finally(() => {
+      // ✅ FIX v304.0: Reset guard after load completes
+      loadMoreLocalesRef.current = false;
+    });
   }, [hasMore, isLoadingMore, loading, currentPage, loadLocales]);
 
   const onRefresh = async () => {

@@ -14,17 +14,17 @@ interface HeaderSocialProps {
 }
 
 /**
- * ✅ HEADER SOCIAL v112.0 - CREATE POST ICON REPOSITIONED
+ * ✅ HEADER SOCIAL v113.0 - CREATE POST ICON MOVED TO FAR LEFT
  * 
- * NEW CHANGES v112.0:
+ * NEW CHANGES v113.0:
+ * - ✅ REPOSITIONED: "+" icon moved to FAR LEFT corner of screen
+ * - ✅ LAYOUT: Changed from flex-end to space-between for proper positioning
+ * - ✅ ALIGNMENT: Create button now at left edge, other icons at right edge
+ * 
+ * Previous changes v112.0:
  * - ✅ MOVED: "+" icon moved to LEFT side of header (first position)
  * - ✅ SIMPLIFIED: Changed to simple "+" icon (add instead of add_circle)
  * - ✅ CLEAN: Simpler, more minimal design as requested
- * 
- * Previous changes v111.0:
- * - ✅ REDUCED: Icon sizes made smaller (20px Android, 24px iOS)
- * - ✅ COMPACT: More compact header appearance
- * - ✅ CONSISTENT: Matches user request for smaller icons
  */
 
 export default function HeaderSocial({ 
@@ -42,7 +42,7 @@ export default function HeaderSocial({
       style={styles.header}
     >
       <View style={styles.headerActions}>
-        {/* ✅ v112.0: Create post button moved to LEFT (first position) with simple "+" icon */}
+        {/* ✅ v113.0: Create post button at FAR LEFT corner */}
         <TouchableOpacity 
           style={styles.headerButton}
           onPress={onCreatePost}
@@ -56,65 +56,68 @@ export default function HeaderSocial({
           />
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={() => {
-            console.log('[HeaderSocial v112.0] 🔍 Navigating to full-page search');
-            router.push('/social/search');
-          }}
-          activeOpacity={0.7}
-        >
-          <IconSymbol 
-            ios_icon_name="magnifyingglass" 
-            android_material_icon_name="search" 
-            size={Platform.OS === 'android' ? 20 : 24} 
-            color={colors.headerText} 
-          />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={() => router.push('/(tabs)/perfil/notificaciones')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.iconContainer}>
+        {/* ✅ v113.0: Right side icons grouped together */}
+        <View style={styles.rightIconsGroup}>
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => {
+              console.log('[HeaderSocial v113.0] 🔍 Navigating to full-page search');
+              router.push('/social/search');
+            }}
+            activeOpacity={0.7}
+          >
             <IconSymbol 
-              ios_icon_name="bell.fill" 
-              android_material_icon_name="notifications" 
+              ios_icon_name="magnifyingglass" 
+              android_material_icon_name="search" 
               size={Platform.OS === 'android' ? 20 : 24} 
               color={colors.headerText} 
             />
-            {unreadNotifications > 0 && (
-              <View style={styles.badge}>
-                <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
-                  {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                </Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={() => router.push('/(tabs)/perfil/chats')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.iconContainer}>
-            <IconSymbol 
-              ios_icon_name="message.fill" 
-              android_material_icon_name="message" 
-              size={Platform.OS === 'android' ? 20 : 24} 
-              color={colors.headerText} 
-            />
-            {unreadMessages > 0 && (
-              <View style={styles.badge}>
-                <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
-                  {unreadMessages > 99 ? '99+' : unreadMessages}
-                </Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => router.push('/(tabs)/perfil/notificaciones')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.iconContainer}>
+              <IconSymbol 
+                ios_icon_name="bell.fill" 
+                android_material_icon_name="notifications" 
+                size={Platform.OS === 'android' ? 20 : 24} 
+                color={colors.headerText} 
+              />
+              {unreadNotifications > 0 && (
+                <View style={styles.badge}>
+                  <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => router.push('/(tabs)/perfil/chats')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.iconContainer}>
+              <IconSymbol 
+                ios_icon_name="message.fill" 
+                android_material_icon_name="message" 
+                size={Platform.OS === 'android' ? 20 : 24} 
+                color={colors.headerText} 
+              />
+              {unreadMessages > 0 && (
+                <View style={styles.badge}>
+                  <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
+                    {unreadMessages > 99 ? '99+' : unreadMessages}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
     </LinearGradient>
   );
@@ -129,6 +132,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between', // ✅ v113.0: Changed from default to space-between
+    width: '100%', // ✅ v113.0: Full width to push icons to edges
+  },
+  rightIconsGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
