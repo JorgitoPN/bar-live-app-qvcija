@@ -14,17 +14,17 @@ interface HeaderSocialProps {
 }
 
 /**
- * ✅ HEADER SOCIAL v113.0 - CREATE POST ICON MOVED TO FAR LEFT
+ * ✅ HEADER SOCIAL v114.0 - NOTIFICATION BADGE CUTOFF FIX
  * 
- * NEW CHANGES v113.0:
+ * NEW CHANGES v114.0:
+ * - ✅ FIXED: Notification badge no longer cuts off with multi-digit numbers
+ * - ✅ IMPROVED: Badge positioning with proper overflow space (top: -8, right: -10)
+ * - ✅ IMPROVED: Increased minWidth to 22 for better multi-digit display
+ * - ✅ IMPROVED: Added extra padding to iconContainer for badge overflow
+ * 
+ * Previous changes v113.0:
  * - ✅ REPOSITIONED: "+" icon moved to FAR LEFT corner of screen
  * - ✅ LAYOUT: Changed from flex-end to space-between for proper positioning
- * - ✅ ALIGNMENT: Create button now at left edge, other icons at right edge
- * 
- * Previous changes v112.0:
- * - ✅ MOVED: "+" icon moved to LEFT side of header (first position)
- * - ✅ SIMPLIFIED: Changed to simple "+" icon (add instead of add_circle)
- * - ✅ CLEAN: Simpler, more minimal design as requested
  */
 
 export default function HeaderSocial({ 
@@ -42,7 +42,6 @@ export default function HeaderSocial({
       style={styles.header}
     >
       <View style={styles.headerActions}>
-        {/* ✅ v113.0: Create post button at FAR LEFT corner */}
         <TouchableOpacity 
           style={styles.headerButton}
           onPress={onCreatePost}
@@ -56,12 +55,11 @@ export default function HeaderSocial({
           />
         </TouchableOpacity>
 
-        {/* ✅ v113.0: Right side icons grouped together */}
         <View style={styles.rightIconsGroup}>
           <TouchableOpacity 
             style={styles.headerButton}
             onPress={() => {
-              console.log('[HeaderSocial v113.0] 🔍 Navigating to full-page search');
+              console.log('[HeaderSocial v114.0] 🔍 Navigating to full-page search');
               router.push('/social/search');
             }}
             activeOpacity={0.7}
@@ -134,8 +132,8 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // ✅ v113.0: Changed from default to space-between
-    width: '100%', // ✅ v113.0: Full width to push icons to edges
+    justifyContent: 'space-between',
+    width: '100%',
   },
   rightIconsGroup: {
     flexDirection: 'row',
@@ -147,20 +145,27 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     position: 'relative',
+    // ✅ FIX v114.0: Extra padding to prevent badge cutoff
+    paddingTop: 8,
+    paddingRight: 10,
   },
   badge: {
     position: 'absolute',
-    top: -6,
-    right: -6,
+    // ✅ FIX v114.0: Adjusted positioning to prevent cutoff (was top: -6, right: -6)
+    top: -8,
+    right: -10,
     backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: 11,
+    // ✅ FIX v114.0: Increased minWidth for multi-digit numbers (was 20)
+    minWidth: 22,
+    height: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
     borderWidth: 2,
     borderColor: colors.headerGradientStart,
+    // ✅ FIX v114.0: Ensure badge is not clipped
+    overflow: 'visible',
   },
   badgeText: {
     fontWeight: '700',
