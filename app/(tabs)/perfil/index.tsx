@@ -72,15 +72,18 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v103.0 - TITLE REMOVED + NOTIFICATION BADGE FIX + ICON SIZE MATCH
+ * ✅ PROFILE SCREEN v104.0 - SCROLLABLE HEADER + COMPACT PROFILE SECTION
  * 
- * NEW CHANGES v103.0:
+ * NEW CHANGES v104.0:
+ * - ✅ SCROLLABLE: Header now scrolls with content (not fixed)
+ * - ✅ COMPACT: Profile section reduced vertical spacing
+ * - ✅ OPTIMIZED: Reduced padding and margins throughout profile header
+ * - ✅ CLEAN: More content visible without scrolling
+ * 
+ * Previous fixes v103.0:
  * - ✅ REMOVED: Page title "Mi Perfil" from header
- * - ✅ FIXED: Notification badge now uses same styling as Social page (no cutoff)
- * - ✅ FIXED: Icon sizes now match Social page (24px on Android, 28px on iOS)
- * - ✅ CLEAN: More compact header with just action buttons
- * - ✅ CONSISTENT: Badge uses scaleFontSize for proper text sizing
- * - ✅ CONSISTENT: Badge positioning matches Social page exactly
+ * - ✅ FIXED: Notification badge styling matches Social page
+ * - ✅ FIXED: Icon sizes match Social page (24px Android, 28px iOS)
  */
 
 export default function PerfilScreen() {
@@ -798,7 +801,7 @@ export default function PerfilScreen() {
           <UnifiedMomentoAvatar
             userId={userId}
             imageUrl={displayAvatar}
-            size={88}
+            size={76}
             showAddButton={true}
             isOwner={true}
             onPress={handleOpenMomentoViewer}
@@ -849,7 +852,7 @@ export default function PerfilScreen() {
                     <IconSymbol 
                       ios_icon_name="mappin.circle.fill" 
                       android_material_icon_name="location_on" 
-                      size={16} 
+                      size={14} 
                       color="#FFFFFF" 
                     />
                   </View>
@@ -923,10 +926,10 @@ export default function PerfilScreen() {
                 <IconSymbol 
                   ios_icon_name="mappin.slash.circle.fill" 
                   android_material_icon_name="location_off" 
-                  size={14} 
+                  size={12} 
                   color="#6B7280" 
                 />
-                <Text style={[styles.exitLocalButtonCompactText, { fontSize: scaleFontSize(12) }]}>Salir del local</Text>
+                <Text style={[styles.exitLocalButtonCompactText, { fontSize: scaleFontSize(11) }]}>Salir del local</Text>
               </TouchableOpacity>
             </LinearGradient>
           </View>
@@ -1019,74 +1022,76 @@ export default function PerfilScreen() {
 
   return (
     <View style={commonStyles.container}>
-      {/* ✅ FIX v103.0: Header WITHOUT title - just action buttons with SAME ICON SIZES as Social */}
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.fixedHeader}
-      >
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
-            <View style={styles.iconContainer}>
-              <IconSymbol 
-                ios_icon_name="message.fill" 
-                android_material_icon_name="message" 
-                size={Platform.OS === 'android' ? 24 : 28} 
-                color={colors.headerText} 
-              />
-              {unreadMessages > 0 && (
-                <View style={styles.badge}>
-                  <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
-                    {unreadMessages > 99 ? '99+' : unreadMessages}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
-            <View style={styles.iconContainer}>
-              <IconSymbol 
-                ios_icon_name="bell.fill" 
-                android_material_icon_name="notifications" 
-                size={Platform.OS === 'android' ? 24 : 28} 
-                color={colors.headerText} 
-              />
-              {unreadNotifications > 0 && (
-                <View style={styles.badge}>
-                  <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
-                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-          
-          {isPropietario && (
-            <ShoppingCart onCheckout={handleCartCheckout} />
-          )}
-          
-          <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
-            <IconSymbol 
-              ios_icon_name="gearshape.fill" 
-              android_material_icon_name="settings" 
-              size={Platform.OS === 'android' ? 24 : 28} 
-              color={colors.headerText} 
-            />
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-
+      {/* ✅ FIX v104.0: Scrollable content with header inside ScrollView */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
-        bounces={false}
-        overScrollMode="never"
+        bounces={true}
+        overScrollMode="auto"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {/* ✅ FIX v104.0: Header scrolls with content (not fixed) */}
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.scrollableHeader}
+        >
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
+              <View style={styles.iconContainer}>
+                <IconSymbol 
+                  ios_icon_name="message.fill" 
+                  android_material_icon_name="message" 
+                  size={Platform.OS === 'android' ? 24 : 28} 
+                  color={colors.headerText} 
+                />
+                {unreadMessages > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
+                      {unreadMessages > 99 ? '99+' : unreadMessages}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
+              <View style={styles.iconContainer}>
+                <IconSymbol 
+                  ios_icon_name="bell.fill" 
+                  android_material_icon_name="notifications" 
+                  size={Platform.OS === 'android' ? 24 : 28} 
+                  color={colors.headerText} 
+                />
+                {unreadNotifications > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
+                      {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+            
+            {isPropietario && (
+              <ShoppingCart onCheckout={handleCartCheckout} />
+            )}
+            
+            <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
+              <IconSymbol 
+                ios_icon_name="gearshape.fill" 
+                android_material_icon_name="settings" 
+                size={Platform.OS === 'android' ? 24 : 28} 
+                color={colors.headerText} 
+              />
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+
+        {/* ✅ FIX v104.0: Compact profile section */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -1349,32 +1354,33 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     paddingBottom: 100,
   },
-  // ✅ FIX v103.0: Compact header without title - SAME PADDING as Social
-  fixedHeader: {
+  // ✅ FIX v104.0: Scrollable header (scrolls with content)
+  scrollableHeader: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
-    paddingBottom: Platform.OS === 'android' ? 12 : 16,
+    paddingBottom: Platform.OS === 'android' ? 8 : 12,
     paddingHorizontal: 20,
     justifyContent: 'flex-end',
     alignItems: 'flex-end',
   },
-  // ✅ FIX v103.0: Header without title (for login screen)
+  // ✅ FIX v104.0: Header without title (for login screen)
   headerWithoutTitle: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
-    paddingBottom: Platform.OS === 'android' ? 12 : 16,
+    paddingBottom: Platform.OS === 'android' ? 8 : 12,
     paddingHorizontal: 20,
   },
+  // ✅ FIX v104.0: Compact profile header gradient (reduced padding)
   profileHeaderGradient: {
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingTop: 12,
+    paddingBottom: 16,
     paddingHorizontal: 20,
   },
-  // ✅ FIX v103.0: Header actions with SAME GAP as Social (8px)
+  // ✅ FIX v104.0: Header actions with SAME GAP as Social (8px)
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  // ✅ FIX v103.0: Header button with SAME PADDING as Social (4px)
+  // ✅ FIX v104.0: Header button with SAME PADDING as Social (4px)
   headerButton: {
     padding: 4,
   },
@@ -1455,19 +1461,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
+  // ✅ FIX v104.0: Compact profile section (reduced padding)
   profileSection: {
     paddingTop: 0,
   },
+  // ✅ FIX v104.0: Compact impersonation banner
   impersonationBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: 'rgba(251, 191, 36, 0.2)',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: 'rgba(251, 191, 36, 0.4)',
   },
@@ -1475,47 +1483,54 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
+  // ✅ FIX v104.0: Compact profile header (reduced margin)
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
     position: 'relative',
   },
+  // ✅ FIX v104.0: Compact profile info (reduced margin)
   profileInfo: {
     flex: 1,
-    marginLeft: 20,
+    marginLeft: 16,
   },
+  // ✅ FIX v104.0: Compact profile name (reduced margin)
   profileName: {
     fontWeight: 'bold',
     color: colors.headerText,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   profileUsername: {
     color: 'rgba(255, 255, 255, 0.9)',
   },
+  // ✅ FIX v104.0: Compact switch button (reduced padding)
   switchProfileButton: {
-    padding: 10,
+    padding: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 24,
+    borderRadius: 20,
   },
+  // ✅ FIX v104.0: Compact bio (reduced line height and margin)
   profileBio: {
     color: colors.headerText,
-    lineHeight: 22,
-    marginBottom: 16,
+    lineHeight: 20,
+    marginBottom: 12,
   },
+  // ✅ FIX v104.0: Compact website container (reduced margin)
   websiteContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 20,
+    gap: 6,
+    marginBottom: 14,
   },
   websiteText: {
     color: colors.headerText,
     fontWeight: '500',
   },
+  // ✅ FIX v104.0: Compact current local card (reduced margin)
   currentLocalCompact: {
-    marginBottom: 20,
-    borderRadius: 16,
+    marginBottom: 14,
+    borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -1523,39 +1538,42 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+  // ✅ FIX v104.0: Compact gradient padding
   currentLocalCompactGradient: {
-    padding: 14,
+    padding: 12,
   },
+  // ✅ FIX v104.0: Compact header (reduced margin)
   currentLocalCompactHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   currentLocalCompactHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
+  // ✅ FIX v104.0: Compact pulse container (reduced size)
   pulseContainer: {
     position: 'relative',
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pulseOuter: {
     position: 'absolute',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   pulseInner: {
     position: 'absolute',
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   currentLocalCompactTitle: {
@@ -1563,21 +1581,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.3,
   },
+  // ✅ FIX v104.0: Compact live badge (reduced padding)
   liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.4)',
   },
+  // ✅ FIX v104.0: Compact live dot (reduced size)
   liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: '#FFFFFF',
   },
   liveBadgeText: {
@@ -1585,19 +1605,21 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
+  // ✅ FIX v104.0: Compact content (reduced padding and margin)
   currentLocalCompactContent: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 10,
-    gap: 10,
-  },
-  currentLocalCompactImageWrapper: {
-    width: 50,
-    height: 50,
     borderRadius: 10,
+    padding: 8,
+    marginBottom: 8,
+    gap: 8,
+  },
+  // ✅ FIX v104.0: Compact image wrapper (reduced size)
+  currentLocalCompactImageWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   currentLocalCompactImage: {
@@ -1612,16 +1634,18 @@ const styles = StyleSheet.create({
   currentLocalCompactInfo: {
     flex: 1,
   },
+  // ✅ FIX v104.0: Compact name (reduced margin)
   currentLocalCompactName: {
     fontWeight: '800',
     color: '#FFFFFF',
-    marginBottom: 3,
+    marginBottom: 2,
   },
+  // ✅ FIX v104.0: Compact meta (reduced gap and margin)
   currentLocalCompactMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    marginBottom: 3,
+    gap: 2,
+    marginBottom: 2,
   },
   currentLocalCompactAddress: {
     color: 'rgba(255, 255, 255, 0.8)',
@@ -1634,15 +1658,16 @@ const styles = StyleSheet.create({
   currentLocalCompactArrow: {
     justifyContent: 'center',
   },
+  // ✅ FIX v104.0: Compact exit button (reduced padding)
   exitLocalButtonCompact: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: 'rgba(107, 114, 128, 0.15)',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(107, 114, 128, 0.3)',
   },
@@ -1651,43 +1676,48 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     letterSpacing: 0.3,
   },
+  // ✅ FIX v104.0: Compact stats container (reduced margin and padding)
   statsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    marginBottom: 24,
-    paddingVertical: 4,
+    marginBottom: 16,
+    paddingVertical: 2,
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
   },
+  // ✅ FIX v104.0: Compact stat number (reduced margin)
   statNumber: {
     fontWeight: 'bold',
     color: colors.headerText,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statLabel: {
     color: 'rgba(255, 255, 255, 0.9)',
   },
+  // ✅ FIX v104.0: Compact stat divider (reduced height)
   statDivider: {
     width: 1,
-    height: 44,
+    height: 36,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
+  // ✅ FIX v104.0: Compact action buttons (reduced gap)
   actionButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
+  // ✅ FIX v104.0: Compact action button (reduced padding and border radius)
   actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 16,
-    paddingVertical: 14,
-    gap: 8,
+    borderRadius: 12,
+    paddingVertical: 12,
+    gap: 6,
   },
   createButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
